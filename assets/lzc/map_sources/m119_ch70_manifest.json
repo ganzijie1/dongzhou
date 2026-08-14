@@ -1,0 +1,1023 @@
+{
+  "map": "assets/lzc/map/m119.png",
+  "source_base": "output/imagegen/chapter36-jiang-palace-base-gpt2.png",
+  "prompt_file": "output/imagegen/m119_prompt.txt",
+  "grid": [
+    68,
+    46
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "FgfffFggffffggFffggffffFgfffFggfffggfFffggffffFgfffFgffffggfFffggfff",
+    "ffggffffFgffffggfFfggfFffggffffFgfffggffFfggfFffggfffgFffffggffFfggf",
+    "gfFfggffffgFffffFgfffggffFfggffffgFfffgFffffggffFfggfffggFfffgFffffg",
+    "fggffFggffFfggffffgFfffggfffFggffFfggfffggFfffggfffFggffFggffffggFff",
+    "fffgFffWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWfggfffFgffffggf",
+    "gffffggWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWFffggfffgFffffF",
+    "fFgffffWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWgffFfggfFfggfff",
+    "fffgFffWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWfgFffffggffFggf",
+    "gffFfggWiiihhhhhhhhhiiiiiiiiiiiihhhhhhhhhhhhiiiiiiiiWfffggFfffggfffF",
+    "fggfffFWiiihhhhhhhhhiiiiiiiiiiiihhhhhhhhhhhhiiiiiiiiWgffffggfFffggFf",
+    "FffggffWiiihhhhhhhhhiiiiCiiiiiiihhhhhhhhhhhhiiiiiiiiWfgFffffFgffffgg",
+    "ggfFfggWiiihhhhhhhhhiiiiiiiiiiiihhhhhhhhhhhhiiiiiiiiWfFfggffffgFffff",
+    "ffFgfffWiiihhhhhhhhhiiiiiiiiiiiihhhhhhhhhhhhiiiiiiiiWggffFggffffggFf",
+    "ffffgFfWiiihhhhhhhhhiiiiiiiiiiiihhhhhhhhhhhhiiiiiiiiWffggfffFgfffFgg",
+    "ggffffgWiiihhhhhhhhhiiiiiiiiiiiihhhhhhhhhhhhiiiiiiiiWfFffggFffggffff",
+    "ffFgfffWiiihhhhhhhhhiiiiiiiiiiiihhhhhhhhhhhhiiiiiiiiWFgffffggfFfggff",
+    "fFffggfWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWffgFffffggffFgg",
+    "ggffFfgWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWffffggFfffgFfff",
+    "ffggfffWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWFgfffFggffffggF",
+    "gFffggFWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWffggffffFgffffg",
+    "FggfffgWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiGgfFfggffffgFfff",
+    "fffFgffWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiGfggffFggffFfggf",
+    "gffffgFWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWfffgFfffggfffFg",
+    "FggffFfWiiiiiiiiCiiiiiiiiiiiiiiiiiiiiiiCiiiiiiiiiiiiWgffffggFffggfff",
+    "fffggffWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWfFgffffggfFfggf",
+    "gfFffggWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWfffgFffffFgfffg",
+    "fggffFfWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWgffFfggffffgFff",
+    "fffgFffWiiihhhhhhhhhhiiiiiiiiiiiiihhhhhhhhhhhhhiiiiiWfggfffFggffffgg",
+    "ggfffggWiiihhhhhhhhhhiiiiiiiiiiiiihhhhhhhhhhhhhiiiiiWFffggffffFgfffF",
+    "fFggfffWiiihhhhhhhhhhiiiiiiiiiiiiihhhhhhhhhhhhhiiiiiWggfFfggfFffggff",
+    "ffffFgfWiiihhhhhhhhhhiiiiiiiiiiiiihhhhhhhhhhhhhiiiiiWffFgfffggffFfgg",
+    "ggfFffgWiiihhhhhhhhhhiiiiiiiiiiiiihhhhhhhhhhhhhiiiiiWffffgFfffggfffF",
+    "ffggffFWiiihhhhhhhhhhiiiiiiiiiiiiihhhhhhhhhhhhhiiiiiWggffffggFffggFf",
+    "FfffggfWiiihhhhhhhhhhiiiiiiiiiiiiihhhhhhhhhhhhhiiiiiWffFgfffFggfffgg",
+    "ggfFffgWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWfFffggffffFgfff",
+    "ffFgfffWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWggffFfggffffgFf",
+    "gfffgFfWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWffggfffFggffFfg",
+    "fggfffgWWWWWWWWWWWWWWWWWWWWWWGGWWWWWWWWWWWWWWWWWWWWWWgFffggFfffggfff",
+    "ffFggffFggffffggFfffggfffFgfffFggffffggFffggffffFgfffFggfffggfFffggf",
+    "gFfffggfffFgffffggfFffggFffggffffFgffffggfFfggfFffggffffFgfffggffFfg",
+    "fggfFffggfffgFffffFgffffggfFfggffffgFffffFgfffggffFfggffffgFfffgFfff",
+    "fffggffFfggfFfggffffgFffffggffFggffFfggffffgFfffggfffFggffFfggfffggF",
+    "gFfffgFffffggffFggffffggFfffgFfffggfffFggffffggFffggFfffggfffFggfffg",
+    "FggffffggFfffggfffFgfffFggffffggFffggffffFgfffFggfffggfFffggffffFgff",
+    "fffFgffffggfFffggFffggffffFgffffggfFfggfFffggffffFgfffggffFfggfFffgg",
+    "ggfffgFffffFgffffggfFfggffffgFffffFgfffggffFfggffffgFfffgFffffggffFf"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m",
+      "v"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "recomposed saved GPT Image 2 natural base plus reviewed programmatic source-of-truth geometry",
+  "structure_regions": {
+    "ying_city": [
+      [
+        7,
+        4
+      ],
+      [
+        52,
+        37
+      ]
+    ],
+    "east_gate": [
+      [
+        52,
+        20
+      ],
+      [
+        52,
+        21
+      ]
+    ],
+    "south_gate": [
+      [
+        29,
+        37
+      ],
+      [
+        30,
+        37
+      ]
+    ],
+    "palace_avenue": [
+      [
+        8,
+        20
+      ],
+      [
+        52,
+        21
+      ]
+    ],
+    "eastern_rebel_assembly": [
+      [
+        55,
+        15
+      ],
+      [
+        66,
+        27
+      ]
+    ]
+  },
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [
+    [
+      7,
+      4
+    ],
+    [
+      7,
+      5
+    ],
+    [
+      7,
+      6
+    ],
+    [
+      7,
+      7
+    ],
+    [
+      7,
+      8
+    ],
+    [
+      7,
+      9
+    ],
+    [
+      7,
+      10
+    ],
+    [
+      7,
+      11
+    ],
+    [
+      7,
+      12
+    ],
+    [
+      7,
+      13
+    ],
+    [
+      7,
+      14
+    ],
+    [
+      7,
+      15
+    ],
+    [
+      7,
+      16
+    ],
+    [
+      7,
+      17
+    ],
+    [
+      7,
+      18
+    ],
+    [
+      7,
+      19
+    ],
+    [
+      7,
+      20
+    ],
+    [
+      7,
+      21
+    ],
+    [
+      7,
+      22
+    ],
+    [
+      7,
+      23
+    ],
+    [
+      7,
+      24
+    ],
+    [
+      7,
+      25
+    ],
+    [
+      7,
+      26
+    ],
+    [
+      7,
+      27
+    ],
+    [
+      7,
+      28
+    ],
+    [
+      7,
+      29
+    ],
+    [
+      7,
+      30
+    ],
+    [
+      7,
+      31
+    ],
+    [
+      7,
+      32
+    ],
+    [
+      7,
+      33
+    ],
+    [
+      7,
+      34
+    ],
+    [
+      7,
+      35
+    ],
+    [
+      7,
+      36
+    ],
+    [
+      7,
+      37
+    ],
+    [
+      8,
+      4
+    ],
+    [
+      8,
+      37
+    ],
+    [
+      9,
+      4
+    ],
+    [
+      9,
+      37
+    ],
+    [
+      10,
+      4
+    ],
+    [
+      10,
+      37
+    ],
+    [
+      11,
+      4
+    ],
+    [
+      11,
+      37
+    ],
+    [
+      12,
+      4
+    ],
+    [
+      12,
+      37
+    ],
+    [
+      13,
+      4
+    ],
+    [
+      13,
+      37
+    ],
+    [
+      14,
+      4
+    ],
+    [
+      14,
+      37
+    ],
+    [
+      15,
+      4
+    ],
+    [
+      15,
+      37
+    ],
+    [
+      16,
+      4
+    ],
+    [
+      16,
+      37
+    ],
+    [
+      17,
+      4
+    ],
+    [
+      17,
+      37
+    ],
+    [
+      18,
+      4
+    ],
+    [
+      18,
+      37
+    ],
+    [
+      19,
+      4
+    ],
+    [
+      19,
+      37
+    ],
+    [
+      20,
+      4
+    ],
+    [
+      20,
+      37
+    ],
+    [
+      21,
+      4
+    ],
+    [
+      21,
+      37
+    ],
+    [
+      22,
+      4
+    ],
+    [
+      22,
+      37
+    ],
+    [
+      23,
+      4
+    ],
+    [
+      23,
+      37
+    ],
+    [
+      24,
+      4
+    ],
+    [
+      24,
+      37
+    ],
+    [
+      25,
+      4
+    ],
+    [
+      25,
+      37
+    ],
+    [
+      26,
+      4
+    ],
+    [
+      26,
+      37
+    ],
+    [
+      27,
+      4
+    ],
+    [
+      27,
+      37
+    ],
+    [
+      28,
+      4
+    ],
+    [
+      28,
+      37
+    ],
+    [
+      29,
+      4
+    ],
+    [
+      30,
+      4
+    ],
+    [
+      31,
+      4
+    ],
+    [
+      31,
+      37
+    ],
+    [
+      32,
+      4
+    ],
+    [
+      32,
+      37
+    ],
+    [
+      33,
+      4
+    ],
+    [
+      33,
+      37
+    ],
+    [
+      34,
+      4
+    ],
+    [
+      34,
+      37
+    ],
+    [
+      35,
+      4
+    ],
+    [
+      35,
+      37
+    ],
+    [
+      36,
+      4
+    ],
+    [
+      36,
+      37
+    ],
+    [
+      37,
+      4
+    ],
+    [
+      37,
+      37
+    ],
+    [
+      38,
+      4
+    ],
+    [
+      38,
+      37
+    ],
+    [
+      39,
+      4
+    ],
+    [
+      39,
+      37
+    ],
+    [
+      40,
+      4
+    ],
+    [
+      40,
+      37
+    ],
+    [
+      41,
+      4
+    ],
+    [
+      41,
+      37
+    ],
+    [
+      42,
+      4
+    ],
+    [
+      42,
+      37
+    ],
+    [
+      43,
+      4
+    ],
+    [
+      43,
+      37
+    ],
+    [
+      44,
+      4
+    ],
+    [
+      44,
+      37
+    ],
+    [
+      45,
+      4
+    ],
+    [
+      45,
+      37
+    ],
+    [
+      46,
+      4
+    ],
+    [
+      46,
+      37
+    ],
+    [
+      47,
+      4
+    ],
+    [
+      47,
+      37
+    ],
+    [
+      48,
+      4
+    ],
+    [
+      48,
+      37
+    ],
+    [
+      49,
+      4
+    ],
+    [
+      49,
+      37
+    ],
+    [
+      50,
+      4
+    ],
+    [
+      50,
+      37
+    ],
+    [
+      51,
+      4
+    ],
+    [
+      51,
+      37
+    ],
+    [
+      52,
+      4
+    ],
+    [
+      52,
+      5
+    ],
+    [
+      52,
+      6
+    ],
+    [
+      52,
+      7
+    ],
+    [
+      52,
+      8
+    ],
+    [
+      52,
+      9
+    ],
+    [
+      52,
+      10
+    ],
+    [
+      52,
+      11
+    ],
+    [
+      52,
+      12
+    ],
+    [
+      52,
+      13
+    ],
+    [
+      52,
+      14
+    ],
+    [
+      52,
+      15
+    ],
+    [
+      52,
+      16
+    ],
+    [
+      52,
+      17
+    ],
+    [
+      52,
+      18
+    ],
+    [
+      52,
+      19
+    ],
+    [
+      52,
+      22
+    ],
+    [
+      52,
+      23
+    ],
+    [
+      52,
+      24
+    ],
+    [
+      52,
+      25
+    ],
+    [
+      52,
+      26
+    ],
+    [
+      52,
+      27
+    ],
+    [
+      52,
+      28
+    ],
+    [
+      52,
+      29
+    ],
+    [
+      52,
+      30
+    ],
+    [
+      52,
+      31
+    ],
+    [
+      52,
+      32
+    ],
+    [
+      52,
+      33
+    ],
+    [
+      52,
+      34
+    ],
+    [
+      52,
+      35
+    ],
+    [
+      52,
+      36
+    ],
+    [
+      52,
+      37
+    ]
+  ],
+  "gates": [
+    {
+      "name": "ying_east_and_south_gates",
+      "cells": [
+        [
+          29,
+          37
+        ],
+        [
+          30,
+          37
+        ],
+        [
+          52,
+          20
+        ],
+        [
+          52,
+          21
+        ]
+      ]
+    }
+  ],
+  "castle_cells": [
+    [
+      16,
+      23
+    ],
+    [
+      24,
+      10
+    ],
+    [
+      39,
+      23
+    ]
+  ],
+  "supply_sites": [
+    [
+      16,
+      23
+    ],
+    [
+      24,
+      10
+    ],
+    [
+      39,
+      23
+    ]
+  ],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "GongZiQiJi69",
+      "force": 1,
+      "position": [
+        61,
+        20
+      ]
+    },
+    {
+      "name": "ZiGan70",
+      "force": 1,
+      "position": [
+        62,
+        18
+      ]
+    },
+    {
+      "name": "ZiXi70",
+      "force": 1,
+      "position": [
+        62,
+        23
+      ]
+    },
+    {
+      "name": "ChaoWu69",
+      "force": 1,
+      "position": [
+        58,
+        17
+      ]
+    },
+    {
+      "name": "XiaNie70",
+      "force": 1,
+      "position": [
+        58,
+        25
+      ]
+    },
+    {
+      "name": "XuWuMou70",
+      "force": 1,
+      "position": [
+        64,
+        21
+      ]
+    },
+    {
+      "name": "ChenCaiGuard70",
+      "force": 1,
+      "position": [
+        56,
+        19
+      ]
+    },
+    {
+      "name": "ChenCaiGuard70",
+      "force": 1,
+      "position": [
+        56,
+        22
+      ]
+    },
+    {
+      "name": "ChenCaiGuard70",
+      "force": 1,
+      "position": [
+        59,
+        16
+      ]
+    },
+    {
+      "name": "ChenCaiGuard70",
+      "force": 1,
+      "position": [
+        59,
+        25
+      ]
+    },
+    {
+      "name": "ChenCaiArcher70",
+      "force": 1,
+      "position": [
+        55,
+        17
+      ]
+    },
+    {
+      "name": "ChenCaiArcher70",
+      "force": 1,
+      "position": [
+        55,
+        24
+      ]
+    },
+    {
+      "name": "ChenCaiArcher70",
+      "force": 1,
+      "position": [
+        61,
+        15
+      ]
+    },
+    {
+      "name": "ChenCaiArcher70",
+      "force": 1,
+      "position": [
+        61,
+        26
+      ]
+    },
+    {
+      "name": "CaiWei69",
+      "force": 2,
+      "position": [
+        50,
+        20
+      ]
+    },
+    {
+      "name": "DouChengRan70",
+      "force": 2,
+      "position": [
+        50,
+        21
+      ]
+    },
+    {
+      "name": "WeiPi70",
+      "force": 3,
+      "position": [
+        24,
+        10
+      ]
+    },
+    {
+      "name": "ShiZiLu70",
+      "force": 3,
+      "position": [
+        16,
+        23
+      ]
+    },
+    {
+      "name": "GongZiBa70",
+      "force": 3,
+      "position": [
+        39,
+        23
+      ]
+    },
+    {
+      "name": "ChuPalaceGuard70",
+      "force": 3,
+      "position": [
+        48,
+        18
+      ]
+    },
+    {
+      "name": "ChuPalaceGuard70",
+      "force": 3,
+      "position": [
+        48,
+        23
+      ]
+    },
+    {
+      "name": "ChuPalaceGuard70",
+      "force": 3,
+      "position": [
+        43,
+        20
+      ]
+    },
+    {
+      "name": "ChuPalaceGuard70",
+      "force": 3,
+      "position": [
+        43,
+        21
+      ]
+    },
+    {
+      "name": "ChuPalaceArcher70",
+      "force": 3,
+      "position": [
+        46,
+        16
+      ]
+    },
+    {
+      "name": "ChuPalaceArcher70",
+      "force": 3,
+      "position": [
+        46,
+        25
+      ]
+    },
+    {
+      "name": "ChuPalaceArcher70",
+      "force": 3,
+      "position": [
+        34,
+        18
+      ]
+    },
+    {
+      "name": "ChuPalaceArcher70",
+      "force": 3,
+      "position": [
+        34,
+        23
+      ]
+    }
+  ],
+  "mission": {
+    "type": "ying_capital_coup",
+    "gate_name": "ying_east_and_south_gates",
+    "active_gate": "east_gate",
+    "gate_openers": [
+      "CaiWei69",
+      "DouChengRan70"
+    ],
+    "palace_targets": [
+      "ShiZiLu70",
+      "GongZiBa70"
+    ],
+    "historical_outcome": "qianxi_army_disperses_without_killing_chu_ling_wang"
+  },
+  "visual_grid_in_game": false
+}

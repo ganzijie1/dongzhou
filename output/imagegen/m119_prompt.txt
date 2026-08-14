@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: large Mengde palace-coup battle map
+Primary request: broad eastern approach leading through a two-cell gate into a continuous-walled Ying capital, with a central avenue, palace compound, government residences, and open deployment ground.
+Style: classic Chinese tactical-RPG painted terrain, orthographic, natural transitions.
+Constraints: no units, text, UI, or visible grid; walls, gates, buildings, and supply sites are separate overlays.

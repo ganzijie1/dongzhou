@@ -2956,6 +2956,13 @@ HERO_BIOS.update({"ChuLingWang69":"楚共王次子熊围，弑侄自立为楚灵
 PORTRAIT_INDEX_BY_HERO.update({"ChuLingWang69":8,"WuJu69":49,"GongZiQiJi69":7,"CaiLingHou69":8,"CaiShiZiYou69":7,"GongSunGuiSheng69":49,"CaiWei69":35,"ChaoWu69":42})
 SPEAKER_PORTRAIT_INDEX.update({"公子胜":35,"伍举":49,"楚灵王":8,"公子招":49,"公孙归生":49,"蔡灵侯":8,"蔡世子有":7,"公子弃疾":7,"蔡洧":35,"朝吴":42,"申无宇":49,"薳启疆":49,"晏婴":49,"斗成然":35,"公孙瑕":49,"囊瓦":35})
 
+_LARGE_BATTLE_MAPS["m119.png"]=(68,46,48)
+HERO_LABELS.update({"ZiGan70":"子干","ZiXi70":"子皙","XiaNie70":"夏啮","XuWuMou70":"须务牟","DouChengRan70":"斗成然","WeiPi70":"薳罢","ShiZiLu70":"世子禄","GongZiBa70":"公子罢","ChenCaiGuard70":"陈蔡义军","ChenCaiArcher70":"陈蔡弓手","ChuPalaceGuard70":"楚宫甲士","ChuPalaceArcher70":"楚宫弓手"})
+HERO_BIOS.update({"ZiGan70":"楚共王之子、楚灵王之弟，流亡晋国后被迎回郢都即位，旋因诈报灵王返城而自尽。","ZiXi70":"楚共王之子，流亡郑国。随子干返楚任令尹，误信灵王归来，先于兄长自刎。","XiaNie70":"陈国夏征舒后裔，响应复陈之举，率陈人协助公子弃疾袭取郢都。","XuWuMou70":"公子弃疾家臣，担任陈蔡联军先锋，率精甲先行突入郢都。","DouChengRan70":"楚国郊尹，与公子弃疾交好，郢都兵变时为内应，后参与诈报并迎立楚平王。","WeiPi70":"楚灵王所任令尹，郢都失守时欲奉世子禄出奔，不能进入王宫，最终自刎。","ShiZiLu70":"楚灵王太子，奉命留守郢都。公子弃疾联军入宫后被杀。","GongZiBa70":"楚灵王之子，郢都兵变中与世子禄一同守宫，被公子弃疾军杀死。"})
+PORTRAIT_INDEX_BY_HERO.update({"ZiGan70":7,"ZiXi70":49,"XiaNie70":35,"XuWuMou70":25,"DouChengRan70":49,"WeiPi70":42,"ShiZiLu70":8,"GongZiBa70":34})
+SPEAKER_PORTRAIT_INDEX.update({"郑丹":49,"观从":49,"朝吴":42,"公子弃疾":7,"夏啮":35,"须务牟":25,"蔡洧":35,"子干":7,"子皙":49,"斗成然":49,"楚平王":7,"申亥":35,"楚灵王":8,"晏婴":49,"羊舌肸":49,"齐景公":8})
+HISTORICAL_DEATH_HEROES.update({"WeiPi70","ShiZiLu70","GongZiBa70"})
+
 if _original_name == "__main__":
     if getattr(sys, "frozen", False) and "--scenario" not in sys.argv:
         sys.argv.extend(["--scenario", "dongzhou"])

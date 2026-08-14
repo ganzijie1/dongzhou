@@ -1077,8 +1077,20 @@ gconfig = {
         ,{ id = "ChuSiegeGuard69", class = "Infantry", stat = {90,95,88,92,90}, model = "infantry-1-red" }
         ,{ id = "ChuSiegeArcher69", class = "Archer", stat = {89,94,92,92,91}, model = "archer-1-red" }
         ,{ id = "CaiGuard69", class = "Infantry", stat = {89,94,88,91,90}, model = "infantry-1-blue" }
-        ,{ id = "CaiArcher69", class = "Archer", stat = {88,93,91,91,90}, model = "archer-1-blue" }    },
+        ,{ id = "CaiArcher69", class = "Archer", stat = {88,93,91,91,90}, model = "archer-1-blue" }
+        ,{ id = "ZiGan70", class = "Lord", stat = {93,91,92,91,90}, model = "lord-1-red" }
+        ,{ id = "ZiXi70", class = "Strategist", stat = {92,85,96,93,92}, model = "Strategist-1-red" }
+        ,{ id = "XiaNie70", class = "Cavalry", stat = {91,95,88,92,90}, model = "cavalry-1-red" }
+        ,{ id = "XuWuMou70", class = "Infantry", stat = {89,94,87,91,89}, model = "infantry-1-red" }
+        ,{ id = "DouChengRan70", class = "Strategist", stat = {93,88,96,94,92}, model = "Strategist-1-red" }
+        ,{ id = "WeiPi70", class = "Strategist", stat = {92,85,94,92,90}, model = "Strategist-1-blue" }
+        ,{ id = "ShiZiLu70", class = "Lord", stat = {89,90,86,88,86}, model = "lord-1-blue" }
+        ,{ id = "GongZiBa70", class = "Infantry", stat = {88,92,84,89,86}, model = "infantry-1-blue" }
+        ,{ id = "ChenCaiGuard70", class = "Infantry", stat = {89,94,87,91,89}, model = "infantry-1-red" }
+        ,{ id = "ChenCaiArcher70", class = "Archer", stat = {88,94,91,91,90}, model = "archer-1-red" }
+        ,{ id = "ChuPalaceGuard70", class = "Infantry", stat = {89,94,88,91,90}, model = "infantry-1-blue" }
+        ,{ id = "ChuPalaceArcher70", class = "Archer", stat = {88,93,91,91,89}, model = "archer-1-blue" }    },
     equipments = {},
     consumables = {},
-    stages = { "01", "02", "03", "03b", "04a", "04", "05", "06", "07", "07b", "08a", "08", "09", "10a", "10b", "11a", "11b", "11c", "12a", "12b", "13a", "13b", "14a", "14b", "15a", "16", "17", "18", "19a", "19b", "20a", "20b", "20c", "20d", "21a", "21b", "21c", "22", "23a", "23b", "24a", "24b", "25a", "25b", "26a", "26b", "27a", "27b", "28", "29", "30a", "30b", "31", "32", "33a", "33b", "34a", "34b", "35", "36a", "36b", "38a", "38b", "39", "40", "42", "43a", "43b", "44", "45a", "45b", "46a", "46b", "46c", "47a", "47b", "48a", "48b", "49", "50a", "50b", "50c", "51", "52", "53a", "53b", "54a", "54b", "55a", "55b", "56a", "56b", "57", "58", "59a", "59b", "60a", "60b", "60c", "61a", "61b", "61c", "62a", "62b", "62c", "63a", "63b", "64a", "64b", "65a", "65b", "65c", "66a", "66b", "66c", "66d", "66e", "67a", "67b", "68", "69" }
+    stages = { "01", "02", "03", "03b", "04a", "04", "05", "06", "07", "07b", "08a", "08", "09", "10a", "10b", "11a", "11b", "11c", "12a", "12b", "13a", "13b", "14a", "14b", "15a", "16", "17", "18", "19a", "19b", "20a", "20b", "20c", "20d", "21a", "21b", "21c", "22", "23a", "23b", "24a", "24b", "25a", "25b", "26a", "26b", "27a", "27b", "28", "29", "30a", "30b", "31", "32", "33a", "33b", "34a", "34b", "35", "36a", "36b", "38a", "38b", "39", "40", "42", "43a", "43b", "44", "45a", "45b", "46a", "46b", "46c", "47a", "47b", "48a", "48b", "49", "50a", "50b", "50c", "51", "52", "53a", "53b", "54a", "54b", "55a", "55b", "56a", "56b", "57", "58", "59a", "59b", "60a", "60b", "60c", "61a", "61b", "61c", "62a", "62b", "62c", "63a", "63b", "64a", "64b", "65a", "65b", "65c", "66a", "66b", "66c", "66d", "66e", "67a", "67b", "68", "69", "70" }
 }
