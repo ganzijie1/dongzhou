@@ -1,0 +1,12 @@
+{
+  "map": "assets/lzc/map/m106.png",
+  "grid": [
+    60,
+    40
+  ],
+  "backend": "reviewed-contract-with-dinov3-evidence-slot",
+  "threshold": 0.72,
+  "auto_apply": false,
+  "review_required": [],
+  "note": "Visual predictions cannot overwrite reviewed barriers, passages, sites, or deployments."
+}

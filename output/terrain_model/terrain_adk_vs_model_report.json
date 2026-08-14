@@ -1,0 +1,67 @@
+{
+  "manifest": "output/terrain_model/m058_fully_reviewed_manifest.json",
+  "standalone_vision": {
+    "accuracy": 0.9801136363636364,
+    "macro_f1": 0.9811598636906707,
+    "minimum_class_recall": 0.9615384615384616,
+    "classes": {
+      "f": {
+        "precision": 0.9727272727272728,
+        "recall": 1.0,
+        "f1-score": 0.9861751152073732,
+        "support": 107.0
+      },
+      "g": {
+        "precision": 0.9696969696969697,
+        "recall": 0.9795918367346939,
+        "f1-score": 0.9746192893401016,
+        "support": 98.0
+      },
+      "F": {
+        "precision": 0.9900990099009901,
+        "recall": 0.9615384615384616,
+        "f1-score": 0.975609756097561,
+        "support": 104.0
+      },
+      "m": {
+        "precision": 1.0,
+        "recall": 0.9767441860465116,
+        "f1-score": 0.9882352941176471,
+        "support": 43.0
+      }
+    }
+  },
+  "adk_arbitration": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "minimum_class_recall": 1.0,
+    "classes": {
+      "f": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 107.0
+      },
+      "g": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 98.0
+      },
+      "F": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 104.0
+      },
+      "m": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 43.0
+      }
+    }
+  },
+  "adk_decision": "accept_verified_source_matrix",
+  "comparison_scope": "terrain labeling; HAPPO is not a vision baseline"
+}

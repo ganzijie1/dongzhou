@@ -1,0 +1,116 @@
+{
+  "map": "assets/lzc/map/m070.png",
+  "source_base": "output/imagegen/chapter46-dagu-exchange-base-gpt2.png",
+  "prompt_file": "output/imagegen/m070_prompt.txt",
+  "grid": [
+    38,
+    26
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "rrrrrrmmFmmmFmmmFmmmFmmmFmmmFmmmrrrrrr",
+    "rrrrrrmmmFmmmFmmmFmmmFmmmFmmmFmmrrrrrr",
+    "mmFmmmFmmmFmmmFmmmFmmmFmmmFmmmFmmmFmmm",
+    "mmmFmmmFmmmFmmmFmmmFmmmFmmmFmmmFmmmFmm",
+    "FmmmFmmmFmmmFmmmFmmmFmmmFmmmFmmmFmmmFm",
+    "FFmFFmFFmFFmFFmFFmFFmFFmFFmFFmFFmFFmFF",
+    "mFFmFFmFFmFFmFFmFFmFFmFFmFFmFFmFFmFFmF",
+    "FmFFmFFmFFmFFmFFmFFmFFmFFmFFmFFmFFmFFm",
+    "fgfgwwfgfgwwfgfgwwfgfgwwfgfgwwfgfgwwfg",
+    "gggwwggggwwggggwwggggwwggggwwggggwwggg",
+    "gfwwgfgfwwgfgfwwgfgfwwgfgfwwgfgfwwgfgf",
+    "gwwggggwwggggwwggggwwggggwwggggwwggggw",
+    "wwfgfgwwfgfgwwfgfgwwfgfgwwfgfgwwfgfgww",
+    "wggggwwggggwwggggwwggggwwggggwwggggwwg",
+    "gfgfwwgfgfwwgfgfwwgfgfwwgfgfwwgfgfwwgf",
+    "gggwwggggwwggggwwggggwwggggwwggggwwggg",
+    "fgwwfgfgwwfgfgwwfgfgwwfgfgwwfgfgwwfgfg",
+    "gwwggggwwggggwwggggwwggggwwggggwwggggw",
+    "mFFmFFmFFmFFmFFmFFmFFmFFmFFmFFmFFmFFmF",
+    "FmFFmFFmFFmFFmFFmFFmFFmFFmFFmFFmFFmFFm",
+    "FFmFFmFFmFFmFFmFFmFFmFFmFFmFFmFFmFFmFF",
+    "mFmmmFmmmFmmmFmmmFmmmFmmmFmmmFmmmFmmmF",
+    "mmFmmmFmmmFmmmFmmmFmmmFmmmFmmmFmmmFmmm",
+    "mmmFmmmFmmmFmmmFmmmFmmmFmmmFmmmFmmmFmm",
+    "rrrrrrmmFmmmFmmmFmmmFmmmFmmmFmmmrrrrrr",
+    "rrrrrrmmmFmmmFmmmFmmmFmmmFmmmFmmrrrrrr"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "GPT Image 2 natural base plus reviewed source-of-truth terrain masks",
+  "structure_regions": {},
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [],
+  "supply_sites": [],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "XianQieJu45",
+      "force": 1,
+      "position": [
+        7,
+        13
+      ]
+    },
+    {
+      "name": "HuSheGu27",
+      "force": 1,
+      "position": [
+        8,
+        11
+      ]
+    },
+    {
+      "name": "XiQue45",
+      "force": 1,
+      "position": [
+        8,
+        15
+      ]
+    },
+    {
+      "name": "LuanDun45",
+      "force": 1,
+      "position": [
+        6,
+        10
+      ]
+    },
+    {
+      "name": "HuJuJu45",
+      "force": 1,
+      "position": [
+        6,
+        16
+      ]
+    },
+    {
+      "name": "BaiTun46",
+      "force": 3,
+      "position": [
+        30,
+        13
+      ]
+    }
+  ],
+  "mission": {
+    "type": "corpse_exchange_then_battle",
+    "boss_outcome": "released_by_hu_shegu"
+  },
+  "visual_grid_in_game": false
+}

@@ -1,0 +1,104 @@
+{
+  "map": "assets/lzc/map/m077.png",
+  "source_base": "output/imagegen/chapter49-mengzhu-base-gpt2.png",
+  "prompt_file": "output/imagegen/m077_prompt.txt",
+  "grid": [
+    44,
+    30
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "FgFfFFFFmFFFFFFFfFfFFgFfFFfFgFFmFFFFFFmFFmFm",
+    "FFfFfFFmFFFFFFFFFfFgFFfFfFFgFfFFmFFFFFFmFFmF",
+    "fFFgFFFFFFmFFFFFFFgFfFFfFgFFfFfFFmFFFFFFmFFm",
+    "FgFffmFFFmFFFmFFgfffffggfffffggmmFmmFmmFmmFF",
+    "gFfffFFFmFFFmFFFffffggfffffggffFmmFmmFmmFFmF",
+    "FfFfgFFmFFFmFFFmffggfffffggffffmFmmFmmFmmFFm",
+    "FFggfFmFFFmFFFmFggfffffggfffffggfffffggffFfF",
+    "gFFffmFFFmFFFmFFfffffggfffffggfffffggffffFFg",
+    "FfFffggfffffggfffffggfffffggfffffggfffffggFF",
+    "fFfggfffffggfffffggfffffggfffffggfffffggfFfF",
+    "FgFfffffggfffffggfffffggfffffggfffffggffffFg",
+    "FFffffggfffffggfffffggfffffggfffffggfffffFgF",
+    "fFFfggfffffggfffffggfffffggfffffggffwwwwwwww",
+    "wwwwwwwwwwwwffffggfffffggfffffwwwwwwwwwwwwww",
+    "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+    "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwffffggFf",
+    "FFfggfffffggwwwwwwwwwwwwwwwwwwfggfffffggfFfF",
+    "fFFfffffggfffffggfffffggfffffggfffffggfffFFg",
+    "FfFfffggfffffggfffffggfffffggfffffggfffffgFF",
+    "fFffggfffffggfffffggfffffggfffffggfffffggFfF",
+    "FfFgfffffggfffffggfffffggfffffggfffffggfffFf",
+    "FFfffffggfffffggfffffggfffffggfffffggffffFgF",
+    "fFFffggfffffggfffffggfffffggfffffggfffffgFFf",
+    "FfFggfffffggfffffggfffffggfFFmFFFmFFFmFFffFF",
+    "fFgfffffggfffffggfffffggfffFmFFFmFFFmFFFfFfF",
+    "FFFmFmmFmmFffggfffffggfffffmFFFmFFFmFFFmfgFf",
+    "FFFmmFmmFmmggfffffggfffffggFFFmFFFmFFFmFgFfF",
+    "FFFFFmFFmFmFFfFfFFfFfFFgFfFFFFFFFmFFFFFFfFFf",
+    "FFFFFFmFFmFfFFgFfFFfFgFFfFfFFFFFFFFFmFFFFfFF",
+    "mFFFFFFmFFmFgFFfFfFFgFfFFfFmFFFFFFFmFFFFgFfF"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "GPT Image 2 natural base plus reviewed programmatic source-of-truth terrain",
+  "structure_regions": {},
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [],
+  "supply_sites": [],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "SongZhaoGong49",
+      "force": 3,
+      "position": [
+        9,
+        14
+      ]
+    },
+    {
+      "name": "DangYiZhu49",
+      "force": 3,
+      "position": [
+        11,
+        14
+      ]
+    },
+    {
+      "name": "HuaOu49",
+      "force": 1,
+      "position": [
+        36,
+        13
+      ]
+    }
+  ],
+  "mission": {
+    "type": "mengzhu_pursuit",
+    "pursuit_direction": "east_to_west",
+    "first_target": "DangYiZhu49",
+    "protected_target": "SongZhaoGong49",
+    "protection_release": "DangYiZhu49 defeated",
+    "named_outcomes": {
+      "DangYiZhu49": "historical_death",
+      "SongZhaoGong49": "historical_death",
+      "HuaOu49": "must_survive_battle"
+    }
+  },
+  "visual_grid_in_game": false
+}

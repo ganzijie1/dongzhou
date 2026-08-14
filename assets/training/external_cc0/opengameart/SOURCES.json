@@ -1,0 +1,45 @@
+{
+  "license": "CC0-1.0",
+  "usage": "training-only; excluded from leave-one-map-out test folds",
+  "sources": [
+    {
+      "file": "forest_tilemap.png",
+      "url": "https://opengameart.org/content/forest-tilemap",
+      "author": "Vomdrache",
+      "labels": ["grass", "forest"],
+      "status": "downloaded-review-required"
+    },
+    {
+      "file": "grass_beach_water.png",
+      "url": "https://opengameart.org/content/top-down-grass-beach-and-water-tileset",
+      "author": "Matiaan",
+      "labels": ["grass", "beach", "water"],
+      "status": "downloaded-review-required"
+    },
+    {
+      "file": "grasslands.png",
+      "url": "https://opengameart.org/content/2d-tilesets",
+      "author": "kddove85",
+      "labels": ["grass"],
+      "status": "weak-training-enabled",
+      "tile_size": 32,
+      "terrain": "g"
+    },
+    {
+      "file": "snowy_mountain.png",
+      "url": "https://opengameart.org/content/2d-tilesets",
+      "author": "kddove85",
+      "labels": ["snowy-mountain"],
+      "status": "weak-training-enabled",
+      "tile_size": 32,
+      "terrain": "m"
+    },
+    {
+      "file": "punyworld_overworld.png",
+      "url": "https://opengameart.org/content/16x16-puny-world-tileset",
+      "author": "Shade",
+      "labels": ["grass", "tree", "elevation", "river", "sea", "building"],
+      "status": "downloaded-review-required"
+    }
+  ]
+}

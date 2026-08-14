@@ -1,0 +1,82 @@
+gally_hold_position=true
+gsupply_enabled=true
+gitems={{id="medicine",name="金疮药",hp=120,mp=0,price=120,initial=2},{id="spirit_powder",name="清心散",hp=0,mp=30,price=150,initial=1}}
+gcommanders={"QuJian66","ZiJiang66","XiHuan66"}
+gevents_enabled=true
+gduel_enabled=false
+gduels={}
+gsites={{id="shuju_center",name="舒鸠中营",position={56,16},restore_hp=25,restore_mp=15,rewards={{item="medicine",amount=1}}},{id="shuju_store",name="舒鸠后营",position={57,29},restore_hp=20,restore_mp=10,rewards={}}}
+gstory={chapter="第六十六回·中三",title="杀宁喜子鱄出奔 戮崔杼庆封独相",battle_title="舒鸠之战",objective="击退吴国救军并攻取舒鸠。",map_asset="m113.png",
+ intro={
+  {speaker="",text="吴王馀祭诱舒鸠叛楚，楚令尹屈建率军讨伐。老将养由基坚持为先锋，在离城迎击吴国救兵。"},
+  {speaker="",text="养由基追击过深，被吴国铁叶车与江南射手四面围住，死于万箭之下。"},
+  {speaker="屈建",text="养叔已死，不可再凭勇力。子疆诈败引夷昧至栭山，楚军伏于栖山林中。"},
+  {speaker="子疆",text="吴军离开水路又远离营壁，待其全军进入山口，我回军反击。"},
+  {speaker="军令",text="在栭山击退夷昧、屈狐庸，再攻入舒鸠西门并击退舒鸠君。三名楚将不得被击退。"}
+ },
+ events={
+  {id="story_event_1",trigger="scripted",turn=0,hp_percent=0,speaker="子疆",text="吴军已入栭山，伏兵起！"},
+  {id="story_event_2",trigger="scripted",turn=0,hp_percent=0,speaker="屈建",text="吴援败退，转攻舒鸠西门！"}
+ },
+ victory={
+  {speaker="",text="夷昧误认楚军逃遁，倾营追至栭山。子疆回军，屈建伏兵四起，将吴军围住。"},
+  {speaker="",text="屈狐庸奋力救出夷昧，吴国援军败归。楚军乘势攻入舒鸠，灭其国。"},
+  {speaker="",text="次年楚秦联军伐吴受阻，转兵侵郑；棘泽阵前又发生争夺俘虏之事。"},
+  {speaker="军令",text="舒鸠之战完成，获得1100金币。下一关：棘泽擒将。"}
+ },
+ defeat={{speaker="",text="屈建、子疆、息桓任一被击退，或超过二十八回合，失败。"}}
+}
+local function many(game,h,p,f)for _,v in ipairs(p)do game:generate_unit(h,1,f,v)end end
+local relief_down=false
+function on_deploy(game)for _,h in ipairs(gcommanders)do game:appoint_hero(h,1)end end
+function on_begin(game)game:generate_unit("YiMei60",1,Enum.force.enemy,{34,20});game:generate_unit("QuHuYong66",1,Enum.force.enemy,{38,24});game:generate_unit("ShuJiuLord66",1,Enum.force.enemy,{56,16});game:set_unit_invulnerable("ShuJiuLord66",true);many(game,"WuReliefGuard66",{{31,17},{31,22},{34,25},{38,19},{41,22}},Enum.force.enemy);many(game,"WuReliefArcher66",{{33,15},{36,27},{40,17},{42,25}},Enum.force.enemy);many(game,"ChuShujuGuard66",{{12,17},{12,23},{16,18},{16,26}},Enum.force.own);many(game,"ChuShujuArcher66",{{10,20},{18,16},{19,27}},Enum.force.own)end
+function on_update(game)if not relief_down and not game:has_unit("YiMei60") and not game:has_unit("QuHuYong66")then relief_down=true;game:set_unit_invulnerable("ShuJiuLord66",false);game:push_cmd_speak(0,"吴国救军已退，舒鸠西门失去外援！")end end function on_victory(game)end function on_defeat(game)end
+function end_condition(game)for _,h in ipairs(gcommanders)do if not game:has_unit(h)then return Enum.status.defeat end end if relief_down and not game:has_unit("ShuJiuLord66")then return Enum.status.victory end return Enum.status.undecided end
+gstage={title_id="ShujuCampaign66",turn_limit=28,map={blocked_edges={},size={68,46},terrain={
+        "FgfffFggffffggFffggFFFFFFFFFFggfffggfFffggffffFgfffFgffffggfFffggfff",
+        "ffggffffFgffffggfFfFFFFFFFFFfffFgfffggffFfggfFffggfffgFffffggffFfggf",
+        "gfFfggffffgFffffFgfFFFFFFFFFgffffgFfffgFffffggffFfggfffggFfffgFffffg",
+        "fggffFggffFfggffffgFFFFFFFFFFggffFfggfffggFfffggfffFggffFggffffggFff",
+        "fffgFfffggfffFggfffFFFFFFFFFfffggfffFggfffggfFffggFfffggfffFgffffggf",
+        "gffffggFffggffffFgfFFFFFFFFFgfFffggffffFgfffFgffffggfFffggfffgFffffF",
+        "fFgffffggfFfggfFffgFFFFFFFFFfggffFfggfFffggfffgFffffggffFfggfFfggfff",
+        "fffgFffffFgfffggffFFFFFFFFFFfffgFffffggffFfggfffggFfffgFffffggffFggf",
+        "gffFfggffffgFfffggfFFFFFFFFFggfffggFfffggfffFggPPPPPPPPPPPPPPPPPPffF",
+        "fggfffFggffffggFffgFFFFFFFFFfFggfffggfFffggFfffPgfffFgffffggfFffPgFf",
+        "FffggffffFgfffFggffFFFFFFFFFffffFgfffFgffffggfFPfggfffgFffffFgffPfgg",
+        "ggfFfggfFffggffffFgFFFFFFFFFggfFffggfffgFffffggPfFfggfFfggffffgFPfff",
+        "ffFgfffggffFfggffffFFFFFFFFFffggffFfggfffggFfffPFffffggffFggffffPgFf",
+        "ffffgFfffggfffFggffFFFFFFFFFFfffggfffFggffFggffPfggFfffggfffFgffPFgg",
+        "ggffffggFffggFfffggFFFFFFFFFggfFffggFfffggfffFgPfffggfFffggFffggPfff",
+        "ffFgfffFggfffggfFffFFFFFFFFFffFgffffggfFffggfffPFffffFgffffggfFfPgff",
+        "fFffggffffFgfffggffFFFFFFFFFgfffgFffffggffFfggfPfggffffgeffffggfPFgg",
+        "ggffFfggffffgFffffffffffffffffffffggFfffgFffffgPffFggffffggFfffgPfff",
+        "ffggfffFggffFfggfffffffffffffffffffFggffffggFffPggfffFgfffFggfffPggF",
+        "gFffggFfffggfffFfffffffffffffffffggfffFgffffggfPffggFffggffffFgfPffg",
+        "FggfffggfFffggfffffffffffffffffffffggfffgFffffFPffffggfFfggffffgPfff",
+        "fffFgfffggffFfggfffffffffffffffffffFfggfFfggfffPgFffffggffFggffFPggf",
+        "gffffgFfffgFfffffffffffffffffffffgFffffggffFggffffggFfffgFfffggfPfFg",
+        "FggffFfggfffggFffffffffffffffffffffggFfffggfffFgfffFggffffggFffgPfff",
+        "fffggfffFggfffggfffffffffffffffffffffggfFffggFfPggffffFgffffggfFPggf",
+        "gfFffggffffFgffffffffffffffffffffgFffffFgffffggPFfggffffgFffffFgPffg",
+        "fggffFfggfFffggffffffffffffffffffFfggffffgFffffPgffFggffFfggffffPFff",
+        "fffgFffffggffFfgfffffffffffffffffgffFggffffggFfPfgFfffggfffFggffPfgg",
+        "ggfffggFfffggfffffffffffffffffffffggfffFgfffFggPfffggFffggffffFgPffF",
+        "fFggfffggfFffggFfffFFFFFFFFFffggfFffggFffggffffPgffffggfFeggfFffPgff",
+        "ffffFgfffFgffffggfFFFFFFFFFFffffFgffffggfFfggffPfgFffffFgfffggffPfgg",
+        "ggfFffggfffgFffffggFFFFFFFFFggffffgFffffggffFggPfFfggffffgFfffggPffF",
+        "ffggffFfggfffggFfffFFFFFFFFFfFggffffggFfffgFfffPgfffFggffffggFffPgFf",
+        "FfffggfffFggffFggffFFFFFFFFFgfffFgfffFggffffggFPfggffffFgfffFggfPfgg",
+        "ggfFffggFfffggfffFgFFFFFFFFFfggFffggffffFgffffgPfFfggfFffggffffFPfff",
+        "ffFgffffggfFffggfffFFFFFFFFFfffggfFfggffffgFfffPFgfffggffFfggfffPgFf",
+        "gfffgFffffggffFfggfFFFFFFFFFFffffggffFggffFfggfPffgFfffggfffFggfPFfg",
+        "fggfffggFfffgFffffgFFFFFFFFFfggFfffgFfffggfffFgPPPPPPPPPPPPPPPPPPfff",
+        "ffFggffFggffffggFffFFFFFFFFFffFggffffggFffggffffFgfffFggfffggfFffggf",
+        "gFfffggfffFgffffggfFFFFFFFFFgffffFgffffggfFfggfFffggffffFgfffggffFfg",
+        "fggfFffggfffgFffffFFFFFFFFFFfggffffgFffffFgfffggffFfggffffgFfffgFfff",
+        "fffggffFfggfFfggfffFFFFFFFFFffFggffFfggffffgFfffggfffFggffFfggfffggF",
+        "gFfffgFffffggffFggfFFFFFFFFFgFfffggfffFggffffggFffggFfffggfffFggfffg",
+        "FggffffggFfffggfffFFFFFFFFFFffggFffggffffFgfffFggfffggfFffggffffFgff",
+        "fffFgffffggfFffggFfFFFFFFFFFffffggfFfggfFffggffffFgfffggffFfggfFffgg",
+        "ggfffgFffffFgffffggFFFFFFFFFgFffffFgfffggffFfggffffgFfffgFffffggffFf",
+},file="map.bmp"},deploy={unselectables={{position={14,20},hero="QuJian66"},{position={17,24},hero="ZiJiang66"},{position={21,21},hero="XiHuan66"}},num_required_selectables=0,selectables={}},rewards={equipments={},money=11000}}

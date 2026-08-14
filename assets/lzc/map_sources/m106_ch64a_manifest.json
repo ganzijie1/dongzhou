@@ -1,0 +1,158 @@
+{
+  "map": "assets/lzc/map/m106.png",
+  "source_base": "output/imagegen/chapter48-hequ-base-gpt2.png",
+  "prompt_file": "output/imagegen/m106_prompt.txt",
+  "grid": [
+    60,
+    40
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "FgfffFggffffggFmmmmmmmmmmmmmmgvvvfggfFffggffffFgfffFgffffggf",
+    "ffggffffFgffffgmmmmmmmmmmmmmmfvvvfffggffFfggfFffggfffgFffffg",
+    "gfFfggffffgFfffmmmmmmmmmmmmmmffvvvFfffgFffffggffFfggfffggFff",
+    "fggffFggffFfggfmmmmmmmmmmmmmmggvvvfggfffggFfffggfffFggffFggf",
+    "fffgFfffggfffFgmmmmmmmmmmmmmmffvvvffFggfffggfFffggFfffggfffF",
+    "gffffggFffggfffmmmmmmmmmmmmmmfFvvvgffffFgfffFgffffggfFffggff",
+    "fFgffffggfFfggfmmmmmmmmmmmmmmggvvvfggfFffggfffgFffffggffFfgg",
+    "fffgFffffFgfffgmmmmmmmmmmmmmmffvvvfffggffFfggfffggFfffgFffff",
+    "gffFfggffffgFffmmmmmmmmmmmmmmgffvvvFfffggfffFggffFggffffggFf",
+    "fggfffFggffffggmmmmmmmmmmmmmmFggvvvggfFffggFfffggfffFgffffgg",
+    "FffggffffFgfffFmmmmmmmmmmmmmmfffvvvffFgffffggfFffggfffgFffff",
+    "ggfFfggfFffggffmmmmmmmmmmmmmmgfFvvvgfffgFffffggffFfggfFfggff",
+    "ffFgfffggffFfggmmmmmmmmmmmmmmfggvvvfggfffggFfffgFffffggffFgg",
+    "ffffgFfffggfffFmmmmmmmmmmmmmmfffvvvffFggffFggffffggFfffggfff",
+    "ggffffggFffggFfmmmmmmmmmmmmmmgfFfvvvFfffggfffFgffffggfFffggF",
+    "ffFgfffFggfffffffffffffffffffffffvvvggfFffggfffgFffffFgffffg",
+    "fFffggffffFgffffffffffffffffffffgvvvvvvgffFfggfFfggffffgFfff",
+    "ggffFfggfffffffffffffffffffffffffvvvvvvfgFffffggffFggffffggF",
+    "ffggfffFggffffffffffffffffffffffgvvvvvvfffggFfffggfffFgfffFg",
+    "gFffggFfffggfffffffffffffffffffffvvvvvvgffffggfFffggFffggfff",
+    "FggfffggfFffffffffffffffffffffffFvvvvvvfgFffffFgffffggfFfggf",
+    "fffFgfffggffffffffffffffffffffffgvvvvvvfFfggffffgFffffggffFg",
+    "gffffgFfffgFfffffffffffffffffffffvvvvvvggffFggffffggFfffgFff",
+    "FggffFfggffffffffffffffffffffffffvvvvvvffggfffFgfffFggffffgg",
+    "fffggfffFggfffffffffffffffffffffgfvvvggfFffggFffggffffFgffff",
+    "gfFffggffffFgffmmmmmmmmmmmmmmgfffgvvvffFgffffggfFfggffffgFff",
+    "fggffFfggfFffggmmmmmmmmmmmmmmfggfFfvvvfffgFffffggffFggffFfgg",
+    "fffgFffffggffFfmmmmmmmmmmmmmmfffggfvvvgffffggFfffgFfffggfffF",
+    "ggfffggFfffggffmmmmmmmmmmmmmmgFfffgvvvfFgfffFggffffggFffggff",
+    "fFggfffggfFffggmmmmmmmmmmmmmmfggfFfvvvFffggffffFgffffggfFfgg",
+    "ffffFgfffFgffffmmmmmmmmmmmmmmfffFgfvvvggfFfggffffgFffffFgfff",
+    "ggfFffggfffgFffmmmmmmmmmmmmmmgffffgvvvffggffFggffFfggffffgFf",
+    "ffggffFfggfffggmmmmmmmmmmmmmmFggffffvvvfffgFfffggfffFggffffg",
+    "FfffggfffFggffFmmmmmmmmmmmmmmfffFgffvvvgffffggFffggffffFgfff",
+    "ggfFffggFfffggfmmmmmmmmmmmmmmggFffggvvvfFgffffggfFfggfFffggf",
+    "ffFgffffggfFffgmmmmmmmmmmmmmmffggfFfvvvfffgFffffFgfffggffFfg",
+    "gfffgFffffggffFmmmmmmmmmmmmmmffffggfvvvgffFfggffffgFfffggfff",
+    "fggfffggFfffgFfmmmmmmmmmmmmmmggFfffgvvvfggfffFggffffggFffggF",
+    "ffFggffFggffffgmmmmmmmmmmmmmmfFggffffvvvffggffffFgfffFggfffg",
+    "gFfffggfffFgfffmmmmmmmmmmmmmmffffFgffvvvgfFfggfFffggffffFgff"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m",
+      "v"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "recomposed saved GPT Image 2 natural base plus reviewed programmatic source-of-truth geometry",
+  "structure_regions": {
+    "taihang_pass": [
+      [
+        12,
+        15
+      ],
+      [
+        31,
+        24
+      ]
+    ],
+    "shaoshui": [
+      [
+        33,
+        0
+      ],
+      [
+        38,
+        39
+      ]
+    ],
+    "east_exit": [
+      [
+        58,
+        18
+      ],
+      [
+        59,
+        22
+      ]
+    ]
+  },
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [],
+  "supply_sites": [],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "QiZhuangGong62",
+      "force": 1,
+      "position": [
+        19,
+        19
+      ]
+    },
+    {
+      "name": "WangSunHui64",
+      "force": 1,
+      "position": [
+        22,
+        17
+      ]
+    },
+    {
+      "name": "ShenXianYu64",
+      "force": 1,
+      "position": [
+        22,
+        22
+      ]
+    },
+    {
+      "name": "YanMao64",
+      "force": 2,
+      "position": [
+        13,
+        20
+      ]
+    },
+    {
+      "name": "ZhaoSheng64",
+      "force": 3,
+      "position": [
+        6,
+        20
+      ]
+    }
+  ],
+  "mission": {
+    "type": "shaoshui_rearguard",
+    "exit": [
+      58,
+      20
+    ],
+    "historical_death": "YanMao64"
+  },
+  "visual_grid_in_game": false
+}

@@ -56,7 +56,7 @@ void UnitTooltipView::SetUnitTerrainInfo(core::Cell* cell) {
   if (unit_ == unit) return;
   SetUnit(unit);
 
-  string name           = cell->GetTerrainName();
+  string name           = cell->GetTerrainDisplayName();
   int    effect         = cell->GetTerrainEffectThisCell();
   string terrain_effect = name + " " + std::to_string(effect) + "%";
   tv_rgtbot_->SetText(terrain_effect);

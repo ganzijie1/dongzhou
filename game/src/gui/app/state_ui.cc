@@ -3,6 +3,7 @@
 #include "config.h"
 #include "control_view.h"
 #include "core/attack_range.h"
+#include "core/cell.h"
 #include "core/cmd.h"
 #include "core/formulae.h"
 #include "core/game.h"
@@ -528,7 +529,7 @@ StateUIEmptySelected::StateUIEmptySelected(Base base, Vec2D coords) : StateUI(ba
 
 void StateUIEmptySelected::Enter() {
   core::Map*  map  = game_->GetMap();
-  std::string name = map->GetTerrain(coords_)->GetName();
+  std::string name = map->GetCell(coords_)->GetTerrainDisplayName();
   gv_->terrain_info_view()->SetText(name);
   gv_->terrain_info_view()->visible(true);
 }

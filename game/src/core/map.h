@@ -1,6 +1,9 @@
 #ifndef MENGDE_CORE_MAP_H_
 #define MENGDE_CORE_MAP_H_
 
+#include <cstdint>
+#include <set>
+
 #include "resource_manager.h"
 #include "util/common.h"
 
@@ -25,6 +28,9 @@ class Map {
   bool          UnitInCell(Vec2D) const;
   Unit*         GetUnit(Vec2D);
   Terrain*      GetTerrain(Vec2D);
+  Terrain*      GetSecondaryTerrain(Vec2D);
+  uint8_t       GetSecondaryTerrainCoverage(Vec2D);
+  void          SetTerrainBlend(Vec2D, Terrain*, Terrain*, uint8_t);
   int           ApplyTerrainEffect(Unit*, int);
   void          EmptyCell(Vec2D);
   void          MoveUnit(Vec2D, Vec2D);
@@ -37,14 +43,18 @@ class Map {
   bool          IsHostileAdjacent(Unit*, Vec2D);
   bool          IsHostilePlaced(Unit*, Vec2D);
   bool          IsValidCoords(Vec2D) const;
+  void          BlockEdge(Vec2D, Vec2D);
 
  private:
   PathTree* FindPath(Unit*, Vec2D);
+  bool      IsEdgeBlocked(Vec2D, Vec2D) const;
+  std::pair<int, int> EdgeKey(Vec2D, Vec2D) const;
 
  private:
   Vec2D                  size_;
   vector<vector<Cell*> > grid_;
   string                 bitmap_path_;
+  std::set<std::pair<int, int> > blocked_edges_;
 };
 
 }  // namespace core

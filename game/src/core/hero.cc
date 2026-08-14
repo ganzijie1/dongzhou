@@ -13,7 +13,8 @@ Hero::Hero(const HeroTemplate* hero_tpl, uint16_t level)
       hero_attr_(hero_tpl->GetHeroStat()),
       unit_attr_(),
       unit_pure_attr_(),
-      hpmp_() {
+      hpmp_(),
+      training_penalty_(0) {
   UpdateStat();
 }
 
@@ -24,7 +25,8 @@ Hero::Hero(const Hero& hero)
       hero_attr_(hero.hero_attr_),
       unit_attr_(hero.unit_attr_),
       unit_pure_attr_(hero.unit_pure_attr_),
-      hpmp_(hero.hpmp_) {}
+      hpmp_(hero.hpmp_),
+      training_penalty_(hero.training_penalty_) {}
 
 Hero::~Hero() { delete equipment_set_; }
 
@@ -47,6 +49,16 @@ void Hero::LevelUp() {
   UpdateStat();
 }
 
+void Hero::RestoreProgress(uint16_t level, uint16_t exp) {
+  level_ = Level(level, exp);
+  UpdateStat();
+}
+
+void Hero::SetTrainingPenalty(uint16_t penalty) {
+  training_penalty_ = penalty;
+  UpdateStat();
+}
+
 void Hero::PutOn(const Equipment* equipment) { equipment_set_->SetEquipment(equipment); }
 
 HpMp Hero::CalcHpMp() const {
@@ -61,6 +73,11 @@ HpMp Hero::CalcHpMp() const {
 Attribute Hero::CalcUnitPureAttr() const {
   Attribute unit_stat =
       ((hero_attr_ / 2) + ((100 + 10 * (GetClass()->GetStatGrade() - 1)) * level_.level * hero_attr_) / 2000);
+  unit_stat.atk = std::max(1, unit_stat.atk - training_penalty_);
+  unit_stat.def = std::max(1, unit_stat.def - training_penalty_);
+  unit_stat.dex = std::max(1, unit_stat.dex - training_penalty_);
+  unit_stat.itl = std::max(1, unit_stat.itl - training_penalty_);
+  unit_stat.mor = std::max(1, unit_stat.mor - training_penalty_);
   return unit_stat;
 }
 

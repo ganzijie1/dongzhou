@@ -1,0 +1,8 @@
+Use case: historical-scene
+Asset type: seamless tactical battle-map base for a classic Chinese turn-based strategy RPG
+Primary request: Create a vast, dangerous Xiao Mountain ambush landscape viewed from a high orthographic three-quarter angle. A long winding east-west canyon and pale military road run through the center, squeezed by massive continuous rocky ridges and steep broken cliffs along the north and south. The central route must remain clearly traversable in a broad connected band, with several natural narrow passes, fallen-tree clearings, dry gullies, scrub and sparse woodland on the shoulders. The terrain should feel large enough for armies to enter from both ends.
+Style/medium: richly painted late-1990s Chinese tactical RPG battlefield, realistic natural textures, cohesive hand-painted terrain, no modern objects
+Composition/framing: wide landscape, continuous terrain to every edge, broad contiguous landforms rather than tile-sized patches, readable when divided into a 44 by 28 logical grid
+Lighting/mood: clear autumn daylight, tense mountain-pass atmosphere, high local contrast around ridges and road
+Constraints: natural base only; no camps, tents, fences, walls, gates, buildings, bridges, units, horses, weapons, flags, fire, text, UI, coordinate labels, borders, or visible grid lines; no isolated decorative rocks blocking the central connected route
+Avoid: square terrain seams, repeated tiled texture, miniature diorama edge, top-down satellite look, fantasy architecture, watercolor wash

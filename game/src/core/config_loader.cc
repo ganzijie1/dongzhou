@@ -118,6 +118,7 @@ uint16_t ConfigLoader::StatStrToIdx(const string& s) {
   if (s == "dex") return 2;
   if (s == "itl") return 3;
   if (s == "mor") return 4;
+  if (s == "all") return 0xffff;
   if (s == "") return -1;
   // UNREACHABLE("Invalid stat ID");
   return -1;

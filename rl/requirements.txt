@@ -1,0 +1,13 @@
+# Python 3.10-3.12. These versions match the paper's ML-Agents/PyTorch era.
+torch==2.2.1
+numpy==1.26.4
+gymnasium==0.29.1
+stable-baselines3==2.2.1
+sb3-contrib==2.2.1
+imitation==1.0.1
+tensorboard==2.16.2
+pygame==2.6.1
+scikit-learn==1.7.2
+Pillow==12.3.0
+transformers==4.56.2
+safetensors>=0.4.3

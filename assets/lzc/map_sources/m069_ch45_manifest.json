@@ -1,0 +1,112 @@
+{
+  "map": "assets/lzc/map/m069.png",
+  "source_base": "output/imagegen/chapter45-dagu-base-gpt2.png",
+  "prompt_file": "output/imagegen/m069_prompt.txt",
+  "grid": [
+    36,
+    26
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "rrrFFmmFmgggfgggfgggfgggfgggmFmFFrrr",
+    "rrrFmFFFFgfgggfgggfgggfgggfgFFFFFrrr",
+    "rrrmFFFmFmggfgggfgggfgggfgggFmFFFrrr",
+    "rrrFFFFFFFfgggfgggfgggfgggfgFFFFmrrr",
+    "rrrFFFmFmFggfgggfgggfgggfgggmFmmFrrr",
+    "mFFFFmFFFFfgggfgggfgggfgggfgFFFFFFFm",
+    "FFFFmFFmFmggfgggfgggfgggfgggFmFFFFmF",
+    "FFFmFFFFFFfgggfgggfgggfgggfgFFFFFmFF",
+    "FFmFFFFFmFggfgggfgggfgggfgggmFmFmFFF",
+    "FmFFFFmFFFfgggfgggfgggfgggfgFFFmFFFF",
+    "mFFFFmFmFmggfgggfgggfgggfggmFmmFFFFm",
+    "FFFFmFFFFFfgggfgggfgggfgggfFFFFFFFmF",
+    "FFFmFFmFmgggfgggfgggfgggfggFmFFFFmFF",
+    "FFmFFFFFFgfgggfgggfgggfgggFFFFFFmFFF",
+    "FmFFFmFmfgggfgggfgggfgggfgFmFFFmFFFF",
+    "mFFFFFFFggfgggfgggfgggfgggFFFFmFFFFm",
+    "FFFFmFmFfgggfgggfgggfgggfgmFmmFFFFmF",
+    "FFFmFFFFggfgggfgggfgggfgggFFFFFFFmFF",
+    "FFmFFmFmfgggfgggfgggfgggfgFmFFFFmFFF",
+    "FmFFFFFFggfgggfgggfgggfgggFFFFFmFFFF",
+    "mFFFFFmFfgggfgggfgggfgggfgmFmFmFFFFm",
+    "FFFFmFFFggfgggfgggfgggfgggFFFmFFFFmF",
+    "rrrmFmFmfgggfgggfgggfgggfgFmFFFFFrrr",
+    "rrrFFFFFggfgggfgggfgggfgggFFFFFFmrrr",
+    "rrrFFFmFmgggfgggfgggfgggfggFmFFmFrrr",
+    "rrrFFmFFFgfgggfgggfgggfgggfFFFmFFrrr"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_source": "GPT Image 2 natural base plus source-of-truth broad terrain masks",
+  "structure_regions": {},
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this natural battlefield",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [],
+  "supply_sites": [],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "XianZhen27",
+      "force": 1,
+      "position": [
+        18,
+        22
+      ]
+    },
+    {
+      "name": "XianQieJu45",
+      "force": 1,
+      "position": [
+        18,
+        17
+      ]
+    },
+    {
+      "name": "HuSheGu27",
+      "force": 1,
+      "position": [
+        15,
+        21
+      ]
+    },
+    {
+      "name": "HuJuJu45",
+      "force": 1,
+      "position": [
+        21,
+        21
+      ]
+    },
+    {
+      "name": "BaiBuHu45",
+      "force": 3,
+      "position": [
+        18,
+        4
+      ]
+    }
+  ],
+  "mission": {
+    "type": "lure_into_valley",
+    "trigger": [
+      18,
+      13
+    ],
+    "boss_outcome": "death",
+    "xian_zhen_outcome": "scripted_death"
+  },
+  "visual_grid_in_game": false
+}

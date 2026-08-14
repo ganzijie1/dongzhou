@@ -1,0 +1,9 @@
+Use case: historical-scene
+Asset type: clean base terrain for a classic Chinese tactical RPG battle map
+Primary request: create a very broad battlefield at Hequ for the Spring and Autumn period, designed for a 54 by 32 logical grid at 48 pixels per cell
+Scene/backdrop: a wide yellow-river channel running along the west side with muddy banks, open river plain across the center, low forested ridges along the north and south edges, large level areas reserved for a Qin camp in the west-center and a Jin camp in the east-center
+Style/medium: polished orthographic classic Cao Cao Zhuan-inspired tactical RPG terrain, hand-painted realistic pixel-art texture, readable from above
+Composition/framing: wide top-down orthographic map, long east-west maneuver corridor between two reserved camp clearings, enough room for cavalry pursuit and three-army reinforcement
+Lighting/mood: cold clear autumn daylight, restrained colors and strong gameplay readability
+Constraints: natural terrain only; no people, units, buildings, camps, tents, fences, walls, gates, fires, text, labels, UI, grid lines, square seams, or watermark
+Avoid: aerial photography, perspective horizon, checkerboard textures, structures or decoration spilling across logical cells

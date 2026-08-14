@@ -44,12 +44,19 @@ void Magic::Perform(Unit* unit_atk, Unit* unit_def) {
   }
 
   if (type_ & kMagicStatMod) {
-    unit_def->AddStatModifier(new StatModifier("magic", stat_id_, 0, amount_, turns_));
+    if (stat_id_ == 0xffff) {
+      for (uint16_t stat_id = 0; stat_id < 5; ++stat_id) {
+        unit_def->AddStatModifier(new StatModifier("magic_all", stat_id, 0, amount_, turns_));
+      }
+    } else {
+      unit_def->AddStatModifier(new StatModifier("magic", stat_id_, 0, amount_, turns_));
+    }
   }
 }
 
 int Magic::CalcDamage(Unit* unit_atk, Unit* unit_def) {
-  return Formulae::ComputeMagicDamage(nullptr, unit_atk, unit_def, 100 /* force */);
+  int base = Formulae::ComputeMagicDamage(nullptr, unit_atk, unit_def, 100 /* force */);
+  return Formulae::ApplyRatio(base, power_ == 0 ? 100 : power_);
 }
 
 int Magic::CalcAccuracy(Unit* unit_atk, Unit* unit_def) {

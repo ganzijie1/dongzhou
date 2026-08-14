@@ -1,0 +1,130 @@
+{
+  "map": "assets/lzc/map/m060.png",
+  "source_base": "output/imagegen/chapter36-jiang-palace-base-gpt2.png",
+  "prompt_file": "output/imagegen/m060_prompt.txt",
+  "grid": [
+    21,
+    15
+  ],
+  "cell_pixels": 64,
+  "terrain_rows": [
+    "mmFFFFFFFFFFFFFFFFFmm",
+    "FgiiiiiiiiiiiiiiiiigF",
+    "FgiiiWWWWWWWWWWWiiigF",
+    "FgiiiWiiiiiiiiiWiiigF",
+    "FgibiWiiiiCiiiiWibigF",
+    "FgiiiWihiiiiihiWiiigF",
+    "FgiiiWiiiiiiiiiWiiigF",
+    "FgiiiWihiiiiihiWiiigF",
+    "FgiiiWiiiiiiiiiWiiigF",
+    "FgiiiWWWWGGGWWWWiiigF",
+    "FgiiiiiiiiiiiiiiiiigF",
+    "FgiiiiiiiiiiiiiiiiigF",
+    "FgiiiiiiiiiiiiiiiiigF",
+    "FgiiiiiiiiiiiiiiiiigF",
+    "mmFFFFFFFFFFFFFFFFFmm"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "manually reviewed source-of-truth matrix with aligned structure overlays",
+  "structure_regions": {
+    "fortification": [
+      [
+        5,
+        2
+      ],
+      [
+        15,
+        9
+      ]
+    ]
+  },
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "none",
+  "gates": [
+    {
+      "name": "south_gate",
+      "cells": [
+        [
+          9,
+          9
+        ],
+        [
+          10,
+          9
+        ],
+        [
+          11,
+          9
+        ]
+      ]
+    }
+  ],
+  "supply_sites": [
+    [
+      10,
+      4
+    ],
+    [
+      3,
+      4
+    ],
+    [
+      17,
+      4
+    ],
+    [
+      9,
+      9
+    ],
+    [
+      10,
+      9
+    ],
+    [
+      11,
+      9
+    ]
+  ],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "ZhaoShuai27",
+      "force": 1,
+      "position": [
+        9,
+        13
+      ]
+    },
+    {
+      "name": "LvSheng36",
+      "force": 3,
+      "position": [
+        9,
+        6
+      ]
+    },
+    {
+      "name": "XiRui36",
+      "force": 3,
+      "position": [
+        11,
+        6
+      ]
+    }
+  ],
+  "visual_grid_in_game": false,
+  "prompt": "Use case: stylized-concept. Asset type: grid-free base environment for a Chinese historical turn-based tactical RPG battlefield. Primary request: the ground plane of ancient Jiang capital at night during a palace conspiracy, before structures are composited. Scene: broad dark stone-paved avenues mixed with compacted earth courtyards, muted winter grass at the outer edges, a straight southern approach road, a large level rectangular central-north area reserved for a palace wall overlay, scattered drainage channels and bare ornamental trees outside the reserved area. Style: polished orthographic top-down late-1990s Chinese historical tactical RPG map, hand-painted pixel texture, cool moonlit blue-gray palette with warm reflected firelight hints, natural transitions and clear movement surfaces readable at 48 pixels per cell. Composition: landscape, no perspective horizon, no dominant object. Constraints: absolutely no palace, walls, gates, houses, fires, camps, fences, tents, units, text, UI, labels, or visible grid lines; no square tile seams; no modern objects; no watermark."
+}

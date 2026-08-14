@@ -9,7 +9,7 @@ file(GLOB HEADERS app/*.h
 
 include_directories(app foundation uifw)
 
-add_library(gui SHARED ${SOURCES} ${HEADERS})
+add_library(gui STATIC ${SOURCES} ${HEADERS})
 
 target_link_libraries(gui core util)
 target_link_libraries(gui ${SDL2_LIBRARY})

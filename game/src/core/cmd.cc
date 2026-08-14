@@ -195,6 +195,16 @@ unique_ptr<Cmd> CmdBasicAttack::Do(Game* game) {
 
   Vec2D     atk_pos = atk_->GetPosition();
   Vec2D     def_pos = def_->GetPosition();
+  BattleEvent event;
+  event.type = IsCounter() ? BattleEventType::kCounterattackStarted : BattleEventType::kAttackStarted;
+  event.actor = atk_->GetId();
+  event.target = def_->GetId();
+  event.detail = IsSecond() ? "second" : "first";
+  event.from_x = atk_pos.x;
+  event.from_y = atk_pos.y;
+  event.to_x = def_pos.x;
+  event.to_y = def_pos.y;
+  game->EmitBattleEvent(std::move(event));
   Direction dir     = Vec2DRelativePosition(atk_pos, def_pos);
   atk_->SetDirection(dir);
   def_->SetDirection(OppositeDirection(dir));
@@ -235,7 +245,7 @@ unique_ptr<Cmd> CmdBasicAttack::Do(Game* game) {
     ret->Append(unique_ptr<CmdBasicAttack>(new CmdBasicAttack(atk_, def_, (Type)(type_ | Type::kSecond))));
   }
 
-  // atk_->GainExp(def_);
+  atk_->GainExp(def_);
 
   // Counter attack
   bool is_last_attack = (reserve_second_attack == IsSecond());
@@ -278,6 +288,20 @@ CmdMagic::CmdMagic(Unit* atk, Unit* def, Magic* magic) : CmdAct(atk, def), magic
 
 unique_ptr<Cmd> CmdMagic::Do(Game* game) {
   LOG_INFO("'%s' tries magic '%s' to '%s'", atk_->GetId().c_str(), magic_->GetId().c_str(), def_->GetId().c_str());
+  if (!atk_->SpendMP(magic_->GetMpCost())) {
+    LOG_INFO("'%s' lacks MP for magic '%s'", atk_->GetId().c_str(), magic_->GetId().c_str());
+    return unique_ptr<Cmd>(new CmdMiss(atk_, def_, CmdActResult::Type::kMagic, magic_));
+  }
+  BattleEvent event;
+  event.type = BattleEventType::kAttackStarted;
+  event.actor = atk_->GetId();
+  event.target = def_->GetId();
+  event.detail = magic_->GetId();
+  event.from_x = atk_->GetPosition().x;
+  event.from_y = atk_->GetPosition().y;
+  event.to_x = def_->GetPosition().x;
+  event.to_y = def_->GetPosition().y;
+  game->EmitBattleEvent(std::move(event));
   bool hit = magic_->TryPerform(atk_, def_);
   Cmd* ret = nullptr;
   if (hit) {
@@ -313,19 +337,27 @@ CmdHit::CmdHit(Unit* atk, Unit* def, Type type, HitType hit_type, Magic* magic, 
 CmdHit::CmdHit(Unit* atk, Unit* def, Type type, HitType hit_type, int damage)
     : CmdActResult(atk, def, type), hit_type_(hit_type), damage_(damage) {}
 
-unique_ptr<Cmd> CmdHit::Do(Game*) {
+unique_ptr<Cmd> CmdHit::Do(Game* game) {
   unique_ptr<Cmd> ret = nullptr;
   if (type_ == Type::kBasicAttack) {
     const string hit_type = hit_type_ == HitType::kCritical ? "Critical" : "Normal";
     LOG_INFO("%s does damage to %s by %d (%s)", atk_->GetId().c_str(), def_->GetId().c_str(), damage_,
              hit_type.c_str());
     if (!def_->DoDamage(damage_)) {  // unit is dead
+      atk_->GainExp(16);
       ret = unique_ptr<CmdKilled>(new CmdKilled(def_));
     }
   } else {
     ASSERT(type_ == Type::kMagic);
     magic_->Perform(atk_, def_);
   }
+  BattleEvent event;
+  event.type = BattleEventType::kHit;
+  event.actor = atk_->GetId();
+  event.target = def_->GetId();
+  event.detail = type_ == Type::kMagic ? "magic" : "basic_attack";
+  event.value = damage_;
+  game->EmitBattleEvent(std::move(event));
   return ret;
 }
 
@@ -354,9 +386,18 @@ unique_ptr<Cmd> CmdKilled::Do(Game* game) {
 CmdMove::CmdMove(Unit* unit, Vec2D dest) : CmdUnit(unit), dest_(dest) {}
 
 unique_ptr<Cmd> CmdMove::Do(Game* game) {
-  LOG_INFO("Unit '%s' moved from (%d, %d) to (%d, %d)", unit_->GetId().c_str(), unit_->GetPosition().x,
-           unit_->GetPosition().y, dest_.x, dest_.y);
+  const Vec2D source = unit_->GetPosition();
+  LOG_INFO("Unit '%s' moved from (%d, %d) to (%d, %d)", unit_->GetId().c_str(), source.x,
+           source.y, dest_.x, dest_.y);
   game->MoveUnit(unit_, dest_);
+  BattleEvent event;
+  event.type = BattleEventType::kMoveCompleted;
+  event.actor = unit_->GetId();
+  event.from_x = source.x;
+  event.from_y = source.y;
+  event.to_x = dest_.x;
+  event.to_y = dest_.y;
+  game->EmitBattleEvent(std::move(event));
   return nullptr;
 }
 
@@ -443,14 +484,52 @@ unique_ptr<Cmd> CmdPlayAI::Do(Game* game) {
   // Currently a simple rushing AI is implemented here.
   CmdAction* cmd = new CmdAction(CmdAction::Flag::kDecompose);
 
+  const bool hold_position = unit->GetForce() == Force::kAlly &&
+                             game->GetLuaScript()->GetOpt<bool>("gally_hold_position");
+  if (hold_position) {
+    Unit* target = game->GetOneHostileInRange(unit, unit->GetPosition());
+    Magic* selected_magic = nullptr;
+    Unit* magic_target = nullptr;
+    if (target == nullptr) {
+      game->GetMagicManager()->ForEach([&](Magic* magic) {
+        if (magic_target != nullptr || !magic->IsAvailible(unit) ||
+            unit->GetCurrentHpMp().mp < magic->GetMpCost()) return;
+        magic->GetRange().ForEach([&](Vec2D position) {
+          if (magic_target != nullptr || !game->IsValidCoords(position)) return;
+          Unit* candidate = game->GetUnitInCell(position);
+          if (candidate == nullptr || candidate->IsDead()) return;
+          const bool valid = magic->GetIsTargetEnemy() ? unit->IsHostile(candidate)
+                                                       : !unit->IsHostile(candidate);
+          if (!valid) return;
+          if (!magic->GetIsTargetEnemy() && magic->IsTypeHeal() &&
+              candidate->GetCurrentHpMp().hp >= candidate->GetOriginalHpMp().hp) return;
+          selected_magic = magic;
+          magic_target = candidate;
+        }, unit->GetPosition());
+      });
+    }
+    cmd->SetCmdMove(unique_ptr<CmdMove>(new CmdMove(unit, unit->GetPosition())));
+    if (target != nullptr) {
+      cmd->SetCmdAct(unique_ptr<CmdBasicAttack>(
+          new CmdBasicAttack(unit, target, CmdBasicAttack::Type::kActive)));
+    } else if (magic_target != nullptr) {
+      cmd->SetCmdAct(unique_ptr<CmdMagic>(new CmdMagic(unit, magic_target, selected_magic)));
+    } else {
+      cmd->SetCmdAct(unique_ptr<CmdStay>(new CmdStay(unit)));
+    }
+    return unique_ptr<CmdAction>(cmd);
+  }
+
   //  cmd->SetCmdAct(new CmdStay(unit));
 
   unique_ptr<PathTree> movable_path(game->FindMovablePath(unit));
   vector<Vec2D>        movable_pos_list = movable_path->GetNodeList();
+  vector<Vec2D>        available_pos_list;
   Vec2D                move_pos         = {-1, -1};
   Unit*                target           = nullptr;
   for (auto pos : movable_pos_list) {
     if (!game->UnitInCell(pos) || unit->GetPosition() == pos) {
+      available_pos_list.push_back(pos);
       Unit* u = game->GetOneHostileInRange(unit, pos);
       if (u != nullptr) {
         move_pos = pos;
@@ -459,8 +538,9 @@ unique_ptr<Cmd> CmdPlayAI::Do(Game* game) {
     }
   }
   if (move_pos == Vec2D(-1, -1)) {
-    int size = movable_pos_list.size();
-    move_pos = movable_pos_list[GenRandom(size)];
+    ASSERT(!available_pos_list.empty());
+    int size = available_pos_list.size();
+    move_pos = available_pos_list[GenRandom(size)];
   }
   cmd->SetCmdMove(unique_ptr<CmdMove>(new CmdMove(unit, move_pos)));
   if (target == nullptr) {

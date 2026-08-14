@@ -1,0 +1,10 @@
+Use case: stylized-concept
+Asset type: 19x14-grid tactical battle map background for a Chinese Three Kingdoms-era pixel-art strategy game
+Primary request: create an original Song-state capital defense battlefield at Suiyang, viewed from a fixed high oblique top-down angle, suitable for Cao Cao Zhuan-style tactical combat
+Scene/backdrop: a large fortified ancient Chinese city occupies the upper two-thirds; one continuous stone-and-packed-earth perimeter wall forms an unbroken defensive line; a single clearly open southern city gate is centered in the wall and connects to a broad north-south road; inside are paved streets, several residences, two barracks, and a distinct palace/castle supply court near the upper center; outside the south gate is open dry grassland with three dispersed Chu field camps and room for an attacking army
+Style/medium: polished late-1990s Chinese tactical RPG map art, hand-painted pixel-art texture, crisp readable terrain, natural transitions, warm restrained historical palette
+Composition/framing: exact landscape canvas, full battlefield visible, stable orthographic-like high oblique view; visually align major features to a 19-column by 14-row logical tile layout without drawing grid lines; south gate centered; walls at least one full logical cell thick
+Lighting/mood: clear daytime, tense siege atmosphere, high terrain readability
+Constraints: walls must be visually continuous with no cracks or accidental gaps; only the southern gate interrupts the wall; gate road must visibly remain open; camps must not overlap the wall; no units, people, flags with text, labels, UI, borders, grid lines, watermark, or decorative frame
+Avoid: gray placeholder blocks, broken wall segments, floating buildings, closed gate, fence across the gate, modern objects, oversized props, perspective distortion, blurry terrain boundaries
+Canvas completion: paint the entire image from top edge to bottom edge with finished terrain; every pixel must belong to the battlefield; absolutely no gray, transparent, blank, unfinished, masked, or placeholder area

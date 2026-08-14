@@ -1,0 +1,124 @@
+{
+  "map": "assets/lzc/map/m090.png",
+  "source_base": "output/imagegen/chapter56-an-base-gpt2.png",
+  "prompt_file": "output/imagegen/m090_prompt.txt",
+  "grid": [
+    60,
+    38
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "FFfffFFffgFFfffFFfggFFfffFFggfFFfffFFgffFFfffFFfffFFffgFFfff",
+    "ffFFfffFFfffFFffgFFfffFFfggFFfffFFggfFFfffFFgffFFfffFFfffFFf",
+    "FfffFFgffFFfffFFfffFFffgFFfffFFfggFFfffFFggfFFfffFFgffFFfffF",
+    "fFFggfffffffggfffffffggfffffffggfffffffggfffffffggfffffffFgf",
+    "fggfffffffggfffffffggfffffffggffffffrrmmmrrmmmrrmmfffffggfFF",
+    "FFffffffggfffffffggfffffffggfffffffgrmmmrrmmmrrmmmfffggfffff",
+    "ffFfffggfffffffggfffffffggfffffffggfmmmrrmmmrrmmmrfggffffFFf",
+    "FfffggfffffffggfffffffggfffffffggfffmmrrmmmrrmmmrrgfffffffgF",
+    "fFFgfffffffggfffffffggfffffffggfffffmrrmmmrrmmmrrmffffffgFff",
+    "ggfffffffggfffffffggfffffffggfffffffrrmmmrrmmmrrmmffffggffFF",
+    "FFfffffggfffffffggfffffffggfffffffggrmmmrrmmmrrmmmffggffffff",
+    "ffFffggfffffffggfffffffggfffffffggffmmmrrmmmrrmmmrggfffffFFg",
+    "FffggfffffffggfffffffggfffffffggffffmmrrmmmrrmmmrrfffffffggF",
+    "fFFfffffffggfffffffggfffffffggffffffmrrmmmrrmmmrrmfffffggFff",
+    "gfffffffggfffffffggfffffffggfffffffgrrmmmrrmmmrrmmfffggfffFF",
+    "FFffffggfffffffggfffffffggfffffffggfrmmmrrmmmrrmmmfggfffwwww",
+    "ffFfggfffffffggfffffffggfffffffggfffmmmrrmmmrrmmmrwwwwwwwwww",
+    "Ffggfffffffggfffffffggffffffwwwwwwwwmmrrmmmrrmmmrrwwwwwwwwww",
+    "gFFffffffggfffwwwwwwwwwwwwwwwwwwwwwwmrrmmmrrmmmrrmwwwwwwfFff",
+    "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwrrmmmrrmmmrrmmffggffffFF",
+    "wwwwwwwwwwwwwwwwwwwwwwwwwwwwffffggffrmmmrrmmmrrmmmggfffffffg",
+    "wwwwwwwwwwwwwwfffffffggfffffffggfffffffggfwwwwwfggfffffffFFf",
+    "FggfffffffggfffffffggfffffffggfffffffggfffwwwwwgfffffffggffF",
+    "gFFfffffggfffffffggfffffffggfffffffggfffffwwwwwffffffggffFff",
+    "ffffffggfffffffggfffffffggfffffffggfffffffwwwwwffffggfffffFF",
+    "FFffggfffffffggfffffffggfffffffggfffffffggfffffffggfffffffgg",
+    "ffFgfffffffggfffffffggfffffffggfffffffggfffffffggfffffffgFFf",
+    "FgfffffffggfffffffggfffffffggfffffffggfffffffggfffffffggfffF",
+    "fFFffffggfffffffggfffffffggfffffffggfffffffggfffffffggfffFff",
+    "FfFfFgFfFfFfFfFgFfFfFfFgFfFfFfFfFgFfFfFfFgFfFfFfFfFgFfFfFfFF",
+    "FFfFgFfFfFfFgFfFfFfFfFgFfFfFfFgFfFfFfFfFgFfFfFfFgFfFfFfFfFgF",
+    "fFFFfFfFfFgFfFfFfFfFgFfFfFfFgFfFfFfFfFgFfFfFfFgFfFfFfFfFgFFF",
+    "FfFfFfFfFgFfFfFfFgFfFfFfFfFgFfFfFfFgFfFfFfFfFgFfFfFfFgFfFfFF",
+    "FFFfFfFgFfFfFfFgFfFfFfFfFgFfFfFfFgFfFfFfFfFgFfFfFfFgFfFfFFFf",
+    "fFfFgFfFfFfFfFgFfFfFfFgFfFfFfFfFgFfFfFfFgFfFfFfFfFgFfFfFfFFF",
+    "FFgFfFFFfFFFgFfFFFfFFFfFfFFFfFFFfFfFFFgFFFfFfFFFgFFFfFfFFFfF",
+    "FgFFFfFFFgFfFFFfFFFgFfFFFfFFFfFfFFFfFFFfFfFFFgFFFfFfFFFgFFFf",
+    "FfFfFFFgFFFfFfFFFgFFFfFfFFFfFFFfFfFFFfFFFfFgFFFfFFFfFgFFFfFF"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "GPT Image 2 natural base plus reviewed programmatic source-of-truth geometry",
+  "structure_regions": {},
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [],
+  "supply_sites": [],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "XiKe56",
+      "force": 1,
+      "position": [
+        10,
+        19
+      ]
+    },
+    {
+      "name": "HanJue48",
+      "force": 1,
+      "position": [
+        12,
+        16
+      ]
+    },
+    {
+      "name": "QiQingGong56",
+      "force": 3,
+      "position": [
+        48,
+        19
+      ]
+    },
+    {
+      "name": "FengChouFu56",
+      "force": 3,
+      "position": [
+        46,
+        21
+      ]
+    }
+  ],
+  "mission": {
+    "type": "battle_of_an",
+    "canonical_name": "鞌之战",
+    "mount_huabuzhu": [
+      [
+        36,
+        4
+      ],
+      [
+        49,
+        20
+      ]
+    ],
+    "victory": "defeat FengChouFu56 after encirclement",
+    "QiQingGong56": "escapes_alive"
+  },
+  "visual_grid_in_game": false
+}

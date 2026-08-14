@@ -1,0 +1,113 @@
+{
+  "map": "assets/lzc/map/m082.png",
+  "source_base": "output/imagegen/chapter52-liufen-base-gpt2.png",
+  "prompt_file": "output/imagegen/m082_prompt.txt",
+  "grid": [
+    46,
+    30
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "gFFFfFFFfFFFfFFFfFFFfFFFfFFFgFFFfFFFfFFFfFFFgF",
+    "FfFFFfFFFfFFFfFFFfFFFgFFFfFFFfFFFfFFFgFFFfFFFf",
+    "FFfgffffgfffffgffffgfffffgffffgfffffgffffgffFF",
+    "FFfffffgffffgfffffgffffgfffmfgmfffgfffffgfffFF",
+    "wwfwwgfffffgffffgfffffgfffmgfmfffgffffgfffffgF",
+    "wfwwfwwfwwfffffgffffgffffmgfmffmfffffgffffgfFf",
+    "fwwfwwfwwfwwfwwffffgffffgffmffmffffgfffffgffFF",
+    "FFffffwwfwwfwwfwwfwwfffgffmfgmffffgffffgffffFF",
+    "FFffFFFffFfwwfwwfwwfwwfwwmfgmffmgfffffgffffgfF",
+    "FfFFFffFFFffFfgfwwfwwfwwfgfmffmgffffgfffffgfFf",
+    "FFFffFFFffFFFgffffgffwwfwffffgfffffgffffgfffFF",
+    "FFfFFFgfFFFgfffffgffffgfffffgffffgfffffgffffFF",
+    "fFFFgfFFFfgFFffgfffffgffffgfffffgffffgfffffgfF",
+    "FFfgFFFfgFFFffgffffgfffffgffffgfffffgfffwfwwFf",
+    "FFFFFffFFFffFfffffgffffgfffffgwfwwfwwfwwfwwfFF",
+    "FFFffFFFffFFFfffgfffwfwwfwwfwwfwwfwwfwwfwwfwFF",
+    "FFfFFFffFFFfwwfwwfwwfwwfwwfwwfwwfwwfwwfwffgffF",
+    "FFFFffFFFffFwfwwfwwfwwfwwfwwfwgffffgfffffgffFf",
+    "FFffFFFffFFFfwwfwwfwfffgffffgfffffgffffgffffFF",
+    "FFFFFgfFFFgfFfffgffffgfffffgffffgfffffgffffgFF",
+    "FFFgfFFFfgFFFfFfFfFfFfFffgfffffgffffgfffffgffF",
+    "FfgFFFfgFFFffgFfFfFfFfFfgffffgfffffgffffgfffFf",
+    "FFFFffFFFffFFFfFfFfFfFgfffffgffffgfffffgffffFF",
+    "FFffFFFffFFFfFfFfFfFfFffffgfffffgffffgfffffgFF",
+    "fFFFFffFFFffFfFfFfFgFfFffgffffgfffffgffffgfffF",
+    "FgfffffgffffgfFfFfFfFfFgfffffgffffgfffffgfffFg",
+    "FFfffgfffffgfFfFgFfFfFgffffgfffffgffffgfffffFF",
+    "FFffgffffgfffFfFfFfFgFffffgffffgfffffgffffgfFF",
+    "fFFFfFFFgFFFfFFFfFFFfFFFgFFFfFFFfFFFfFFFfFFFfF",
+    "FgFFFfFFFfFFFfFFFgFFFfFFFfFFFfFFFfFFFfFFFfFFFg"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "GPT Image 2 natural base plus reviewed programmatic source-of-truth natural terrain",
+  "structure_regions": {},
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [],
+  "supply_sites": [],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "XiQue45",
+      "force": 1,
+      "position": [
+        6,
+        5
+      ]
+    },
+    {
+      "name": "ZhengXiangGong52",
+      "force": 2,
+      "position": [
+        41,
+        16
+      ]
+    },
+    {
+      "name": "GongZiQuJi52",
+      "force": 2,
+      "position": [
+        39,
+        14
+      ]
+    },
+    {
+      "name": "ChuZhuangWang51",
+      "force": 3,
+      "position": [
+        27,
+        17
+      ]
+    }
+  ],
+  "mission": {
+    "type": "liufen_relief_flank_attack",
+    "surprise_trigger": [
+      20,
+      11
+    ],
+    "surprise_radius": 3,
+    "historical_survivors": [
+      "ChuZhuangWang51",
+      "ZhengXiangGong52",
+      "GongZiQuJi52"
+    ]
+  },
+  "visual_grid_in_game": false
+}

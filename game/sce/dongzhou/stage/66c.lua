@@ -1,0 +1,72 @@
+gally_hold_position=true
+gsupply_enabled=true
+gitems={{id="medicine",name="金疮药",hp=120,mp=0,price=120,initial=2},{id="spirit_powder",name="清心散",hp=0,mp=30,price=150,initial=1}}
+gcommanders={"QingFeng62","LuPuBie66"}
+gevents_enabled=true
+gduel_enabled=false
+gduels={}
+gsites={{id="cui_inner",name="崔氏内宅",position={24,9},restore_hp=25,restore_mp=15,rewards={{item="medicine",amount=1}}},{id="cui_store",name="崔氏府库",position={15,24},restore_hp=20,restore_mp=10,rewards={}}}
+gstory={chapter="第六十六回·中二",title="杀宁喜子鱄出奔 戮崔杼庆封独相",battle_title="崔氏覆灭",objective="击退崔成、崔疆，控制崔氏府。",map_asset="m108.png",
+ intro={
+  {speaker="",text="崔杼许立幼子崔明，崔成、崔疆不满东郭偃、棠无咎把持宗邑，转向庆封求援。"},
+  {speaker="",text="庆封赠甲百具，使二人先杀东郭偃、棠无咎，又暗令卢蒲嫳带家甲进入崔府。"},
+  {speaker="卢蒲嫳",text="我奉左相之命而来。开门之后先封住内院，崔成、崔疆一个也不能走。"},
+  {speaker="崔疆",text="庆氏兵马或许是来助我除掉崔明。开门纳军，不必防备。"},
+  {speaker="军令",text="击退崔成、崔疆。庆封、卢蒲嫳任一被击退均失败。"}
+ },
+ events={
+  {id="story_event_1",trigger="scripted",turn=0,hp_percent=0,speaker="卢蒲嫳",text="崔氏开门，甲士尽入！"},
+  {id="story_event_2",trigger="scripted",turn=0,hp_percent=0,speaker="崔成",text="庆氏不是援军，立即封锁内院！"}
+ },
+ victory={
+  {speaker="",text="崔成、崔疆开门纳入庆氏甲兵，卢蒲嫳当场翻脸，将二人斩首并抄毁家产。"},
+  {speaker="",text="棠姜自缢。崔杼回府见家门尽毁，自知被庆封出卖，也在内室自缢。"},
+  {speaker="",text="崔明盗取父母尸身合葬后奔鲁，庆封以讨弑君者为名，独相齐景公。"},
+  {speaker="军令",text="崔氏覆灭完成，获得700金币。下一关：舒鸠之战。"}
+ },
+ defeat={{speaker="",text="庆封或卢蒲嫳被击退，或超过十八回合，失败。"}}
+}
+local function many(game,h,p,f)for _,v in ipairs(p)do game:generate_unit(h,1,f,v)end end
+function on_deploy(game)for _,h in ipairs(gcommanders)do game:appoint_hero(h,1)end end
+function on_begin(game)game:generate_unit("CuiCheng65",1,Enum.force.enemy,{20,15});game:generate_unit("CuiJiang65",1,Enum.force.enemy,{29,15});many(game,"CuiGuard66",{{18,13},{23,13},{27,13},{32,13},{20,20},{29,20}},Enum.force.enemy);many(game,"QingGuard66",{{20,28},{24,29},{28,29},{32,28}},Enum.force.own)end function on_update(game)end function on_victory(game)end function on_defeat(game)end
+function end_condition(game)for _,h in ipairs(gcommanders)do if not game:has_unit(h)then return Enum.status.defeat end end if not game:has_unit("CuiCheng65") and not game:has_unit("CuiJiang65")then return Enum.status.victory end return Enum.status.undecided end
+gstage={title_id="CuiClanCollapse66",turn_limit=18,map={blocked_edges={},size={50,38},terrain={
+        "FgfffFggffffggFffggffffFgfffFggfffggfFffggffffFgff",
+        "ffggffffFgffffggfFfggfFffggffffFgfffggffFfggfFffgg",
+        "gfFfggffffgFffffFgfffggffFfggffffgFfffgFffffggffFf",
+        "fggffFgWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWfffggff",
+        "fffgFffWiiiihiiiiiiihiiiiiiihiiiiiiihiiiiiWgfFffgg",
+        "gffffggWiiihiiiiiiihiiiiiiihiiiiiiihiiiiiiWfFgffff",
+        "fFgffffWiihiiiiiiihiiiiiiihiiiiiiihiiiiiiiWfffgFff",
+        "fffgFffWihiiiiiiihiiiiiiihiiiiiiihiiiiiiihWggfffgg",
+        "gffFfggWhiiiiiiihiiiiiiihiiiiiiihiiiiiiihiWfFggffF",
+        "fggfffFWiiiiiiihiiiiiiihCiiiiiihiiiiiiihiiWFfffggf",
+        "FffggffWiiiiiihiiiiiiihiiiiiiihiiiiiiihiiiWggfFffg",
+        "ggfFfggWiiiiihiiiiiiihiiiiiiihiiiiiiihiiiiWffggffF",
+        "ffFgfffWiiiihiiiiiiihiiiiiiihiiiiiiihiiiiiWFfffgFf",
+        "ffffgFfWiiihiiiiiiihiiiiiiihiiiiiiihiiiiiiWggffffg",
+        "ggffffgWiihiiiiiiihiiiiiiihiiiiiiihiiiiiiiWffFgfff",
+        "ffFgfffWihiiiiiiihiiiiiiihiiiiiiihiiiiiiihWgfffgFf",
+        "fFffggfWhiiiiiiihiiiiiiihiiiiiiihiiiiiiihiWfggfFfg",
+        "ggffFfgWiiiiWWWWWWWWWWWWGGWWWWWWWWWWWWihiiWfffggff",
+        "ffggfffWiiiiiihiiiiiiihiiiiiiihiiiiiiihiiiWgFfffgg",
+        "gFffggFWiiiiihiiiiiiihiiiiiiihiiiiiiihiiiiWfggfFff",
+        "FggfffgWiiiihiiiiiiihiiiiiiihiiiiiiihiiiiiWfffFgff",
+        "fffFgffWiiihiiiiiiihiiiiiiihiiiiiiihiiiiiiWgffffgF",
+        "gffffgFWiihiiiiiiihiiiiiiihiiiiiiihiiiiiiiWFggffff",
+        "FggffFfWihiiiiiiihiiiiiiihiiiiiiihiiiiiiihWfffFgff",
+        "fffggffWhiiiiiiChiiiiiiihiiiiiiihiiiiiiihiWggFffgg",
+        "gfFffggWiiiiiiihiiiiiiihiiiiiiihiiiiiiihiiWffggfFf",
+        "fggffFfWiiiiiihiiiiiiihiiiiiiihiiiiiiihiiiWffffggf",
+        "fffgFffWiiiiihiiiiiiihiiiiiiihiiiiiiihiiiiWggFfffg",
+        "ggfffggWiiiihiiiiiiihiiiiiiihiiiiiiihiiiiiWfFggfff",
+        "fFggfffWiiihiiiiiiihiiiiiiihiiiiiiihiiiiiiWffffFgf",
+        "ffffFgfWiihiiiiiiihiiiiiiihiiiiiiihiiiiiiiWggffffg",
+        "ggfFffgWihiiiiiiihiiiiiiihiiiiiiihiiiiiiihWfFggffF",
+        "ffggffFWWWWWWWWWWWWWWWWWGGWWWWWWWWWWWWWWWWWFfffggf",
+        "FfffggfffFggffFggffffggFfffggfffFgfffFggffffggFffg",
+        "ggfFffggFfffggfffFgffffggfFffggFffggffffFgffffggfF",
+        "ffFgffffggfFffggfffgFffffFgffffggfFfggffffgFffffFg",
+        "gfffgFffffggffFfggfFfggffffgFffffggffFggffFfggffff",
+        "fggfffggFfffgFffffggffFggffffggFfffgFfffggfffFggff",
+},file="map.bmp"},deploy={unselectables={{position={19,29},hero="QingFeng62"},{position={24,30},hero="LuPuBie66"}},num_required_selectables=0,selectables={}},rewards={equipments={},money=7000}}

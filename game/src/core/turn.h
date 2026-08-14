@@ -13,6 +13,8 @@ class Turn {
   uint16_t GetCurrent() const { return current_; }
   uint16_t GetLimit() const { return limit_; }
   Force    GetForce() const { return force_; }
+  void     SetLimit(uint16_t limit) { limit_ = limit; }
+  void     Restore(uint16_t current, Force force);
 
  private:
   uint16_t current_;

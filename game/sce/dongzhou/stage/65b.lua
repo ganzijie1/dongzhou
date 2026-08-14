@@ -1,0 +1,71 @@
+gally_hold_position=true
+gsupply_enabled=true
+gitems={{id="medicine",name="金疮药",hp=120,mp=0,price=120,initial=2},{id="spirit_powder",name="清心散",hp=0,mp=30,price=150,initial=1}}
+gcommanders={"NiuChen65"}
+gevents_enabled=true
+gduel_enabled=false
+gduels={}
+gsites={{id="chao_city",name="巢城",position={43,10},restore_hp=25,restore_mp=15,rewards={{item="medicine",amount=1}}}}
+gstory={chapter="第六十五回·中",title="弑齐光崔庆专权 纳卫衎甯喜擅政",battle_title="巢门伏射",objective="依托短墙击退吴王诸樊。",map_asset="m109.png",
+ intro={
+  {speaker="",text="齐庄公死后，晋平公原欲会诸侯伐齐；崔杼、庆封归还朝歌并献宗器，晋齐重新讲和。"},
+  {speaker="",text="同年吴王诸樊率军伐楚，行至巢邑，亲自逼近城门督战。"},
+  {speaker="牛臣",text="吴王恃勇近门。我藏在门外短墙之后，待他进入两格射程再发箭。"},
+  {speaker="吴王诸樊",text="小小巢门，岂能挡我吴军？步卒压住两翼，寡人亲到门下察看虚实。"},
+  {speaker="军令",text="牛臣依托短墙射击吴王诸樊。牛臣被击退即失败，击退诸樊完成本关。"}
+ },
+ events={
+  {id="story_event_1",trigger="scripted",turn=0,hp_percent=0,speaker="牛臣",text="吴王已近短墙，弓手屏息，待我先发！"},
+  {id="story_event_2",trigger="scripted",turn=0,hp_percent=0,speaker="吴王诸樊",text="攻开巢门，今日不必扎营！"}
+ },
+ victory={
+  {speaker="",text="诸樊逼近巢门时，牛臣从短墙后突然发箭，正中吴王。吴军抢回主君，随即停止攻城。"},
+  {speaker="",text="诸樊伤重而死。吴国群臣遵从寿梦遗命，不立其子，而立弟馀祭为王。"},
+  {speaker="吴王馀祭",text="兄弟四人依次传位，最终应当传给季札。若人人寿终，季札已老，故我也不敢恋位。"},
+  {speaker="军令",text="巢门伏射完成，获得600金币。下一关：帝丘复君。"}
+ },
+ defeat={{speaker="",text="牛臣被击退或超过十八回合，本关失败。"}}
+}
+local function many(game,h,p,f)for _,v in ipairs(p)do game:generate_unit(h,1,f,v)end end
+function on_deploy(game)for _,h in ipairs(gcommanders)do game:appoint_hero(h,1)end end
+function on_begin(game)game:generate_unit("ZhuFan60",1,Enum.force.enemy,{22,17});many(game,"ChaoGuard65",{{31,14},{31,18},{31,22}},Enum.force.own);many(game,"WuGateGuard65",{{17,14},{17,18},{17,22},{21,14},{21,21}},Enum.force.enemy);many(game,"WuGateArcher65",{{14,16},{14,20},{19,11},{19,25}},Enum.force.enemy)end
+function on_update(game)end function on_victory(game)end function on_defeat(game)end
+function end_condition(game)if not game:has_unit("NiuChen65")then return Enum.status.defeat end if not game:has_unit("ZhuFan60")then return Enum.status.victory end return Enum.status.undecided end
+gstage={title_id="ChaoGateAmbush65",turn_limit=18,map={blocked_edges={},size={52,36},terrain={
+        "FgfffFggffffggFffggffffFgfffFggfffggfFffggffffFgfffF",
+        "ffggffffFgffffggfFfggfFffggffffFgfffggffFfggfFffggff",
+        "gfFfggffffgFffffFgfffggffFfggffffgFfffgFffffggffFfgg",
+        "fggffFggffFfggffffgFfffggfffFggffFWWWWWWWWWWWWWWWWWF",
+        "fffgFfffggfffFggffffggFffggFfffggfWiiiiiiiiiiiiiiiWf",
+        "gffffggFffggffffFgfffFggfffggfFffgWiiiiiiiiiiiiiiiWg",
+        "fFgffffggfFfggfFffggffffFgfffggffFWiiiiiiiiiiiiiiiWf",
+        "fffgFffffFgfffggffFfggffffgFfffgFfWiiiiiiiiiiiiiiiWf",
+        "gffFfggffffgFfffggfffFggffFfggfffgWiiiiiiiiiiiiiiiWg",
+        "fggfffFggffffggFffggFfffggfffFggffWiiiiiiiiiiiiiiiWf",
+        "FffggffffFgfffFggfffggfFffggffffFgWiiiiiiiiCiiiiiiWf",
+        "ggfFfggfFffggffffFgfffggffFfggfFffWiiiiiiiiiiiiiiiWg",
+        "ffFgfffggffFfggffffgFfffgFffffggffWiiiiiiiiiiiiiiiWf",
+        "ffffgFfffggfffFggffFfggfffggWfffggWiiiiiiiiiiiiiiiWF",
+        "ggffffggFffggFfffggfffFggfffWgfFffWiiiiiiiiiiiiiiiWg",
+        "ffFgfffFggfffggfFffggffffFgfWfFgffWiiiiiiiiiiiiiiiWf",
+        "fFffggffffFgfffggffFfggfFffgWfffgFWiiiiiiiiiiiiiiiWf",
+        "ggffFfggffffgFfffgFffffggffFGggfffGiiiiiiiiiiiiiiiWg",
+        "ffggfffFggffFfggfffggFfffggfGfFggfGiiiiiiiiiiiiiiiWf",
+        "gFffggFfffggfffFggfffggfFffgWFfffgWiiiiiiiiiiiiiiiWg",
+        "FggfffggfFffggffffFgfffFgfffWggfFfWiiiiiiiiiiiiiiiWf",
+        "fffFgfffggffFfggfFffggfffgFfWffggfWiiiiiiiiiiiiiiiWf",
+        "gffffgFfffgFffffggffFfggfffgWFfffgWiiiiiiiiiiiiiiiWg",
+        "FggffFfggfffggFfffggfffFggffFggfffWiiiiiiiiiiiiiiiWF",
+        "fffggfffFggfffggfFffggFfffggfffFgfWiiiiiiiiiiiiiiiWf",
+        "gfFffggffffFgfffFgffffggfFffggfffgWiiiiiiiiiiiiiiiWg",
+        "fggffFfggfFffggfffgFffffggffFfggfFWiiiiiiiiiiiiiiiWF",
+        "fffgFffffggffFfggfffggFfffgFffffggWiiiiiiiiiiiiiiiWf",
+        "ggfffggFfffggfffFggffFggffffggFfffWiiiiiiiiiiiiiiiWg",
+        "fFggfffggfFffggFfffggfffFgffffggfFWiiiiiiiiiiiiiiiWf",
+        "ffffFgfffFgffffggfFffggfffgFffffFgWiiiiiiiiiiiiiiiWf",
+        "ggfFffggfffgFffffggffFfggfFfggffffWiiiiiiiiiiiiiiiWg",
+        "ffggffFfggfffggFfffgFffffggffFggffWWWWWWWWWWWWWWWWWf",
+        "FfffggfffFggffFggffffggFfffggfffFgfffFggffffggFffggf",
+        "ggfFffggFfffggfffFgffffggfFffggFffggffffFgffffggfFfg",
+        "ffFgffffggfFffggfffgFffffFgffffggfFfggffffgFffffFgff",
+},file="map.bmp"},deploy={unselectables={{position={30,16},hero="NiuChen65"}},num_required_selectables=0,selectables={}},rewards={equipments={},money=6000}}

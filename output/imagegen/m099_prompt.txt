@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: Mengde tactical field map
+Primary request: broad Jing River plain at Yulin with western coalition bank and large reserved eastern Qin camp.
+Style: classic Chinese tactical-RPG painted terrain, orthographic.
+Constraints: no camp, fence, units, text, UI, or visible grid; camp is a separate source-of-truth overlay.

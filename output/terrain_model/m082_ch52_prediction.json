@@ -1,0 +1,12 @@
+{
+  "map": "assets/lzc/map/m082.png",
+  "grid": [
+    46,
+    30
+  ],
+  "backend": "reviewed-natural-contract-with-dinov3-evidence-slot",
+  "threshold": 0.72,
+  "auto_apply": false,
+  "review_required": [],
+  "note": "Natural classifier evidence cannot overwrite the reviewed Lua terrain rows."
+}

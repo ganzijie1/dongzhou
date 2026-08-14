@@ -1,0 +1,8 @@
+Use case: historical-scene
+Asset type: Mengde/Ekgd tactical battle-map natural base
+Primary request: an overhead Spring and Autumn period Jin capital landscape around the palace at Xinjiang, with weathered earth, sparse grass, subtle stone paths, and muted vegetation
+Style/medium: classic Cao Cao Zhuan-style hand-painted battlefield texture, readable from a high oblique top-down game camera
+Composition/framing: broad continuous ground texture with no grid, no fixed buildings, and enough calm open ground for a programmatic palace overlay
+Lighting/mood: clear daytime, restrained historical atmosphere
+Constraints: natural ground only; palace walls, gates, halls, terrain semantics, and unit positions are added programmatically from the source-of-truth matrix
+Avoid: grid lines, text, labels, units, people, armies, camps, fences, standalone walls, modern objects, watermark

@@ -1,0 +1,4359 @@
+{
+  "format": "EEX",
+  "source": "R_04.eex",
+  "kind": "R",
+  "scene_count": 3,
+  "scenes": [
+    {
+      "index": 0,
+      "offset": 22,
+      "section_count": 1,
+      "sections": [
+        {
+          "offset": 24,
+          "size": 6084,
+          "conditions": [
+            {
+              "offset": 26,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "王国"
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 39,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 41,
+                "opcode": 5,
+                "name": "变量测试",
+                "parameters": [
+                  {
+                    "parameter_id": 53,
+                    "name": "成立变量",
+                    "value": [
+                      1017
+                    ]
+                  },
+                  {
+                    "parameter_id": 53,
+                    "name": "不成立变量",
+                    "value": []
+                  }
+                ]
+              },
+              "then_size": 4,
+              "then": [
+                {
+                  "offset": 55,
+                  "opcode": 13,
+                  "name": "剧本正常过渡，用于剧本最后",
+                  "parameters": []
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 59,
+              "opcode": 10,
+              "name": "初始化局部变量",
+              "parameters": []
+            },
+            {
+              "offset": 61,
+              "opcode": 47,
+              "name": "清除场景中出现的人物",
+              "parameters": []
+            },
+            {
+              "offset": 63,
+              "opcode": 119,
+              "name": "变量运算",
+              "parameters": [
+                {
+                  "parameter_id": 81,
+                  "type": 81,
+                  "name": "目标变量类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "目标变量编号",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 83,
+                  "type": 83,
+                  "name": "操作数类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 82,
+                  "type": 82,
+                  "name": "运算符",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "操作数",
+                  "value": 423
+                }
+              ]
+            },
+            {
+              "offset": 89,
+              "opcode": 120,
+              "name": "整型变量赋值",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "变量编号",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 84,
+                  "type": 84,
+                  "name": "赋值方式",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "人物编号",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 85,
+                  "type": 85,
+                  "name": "人物属性",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 109,
+              "opcode": 36,
+              "name": "CD音轨设定",
+              "parameters": [
+                {
+                  "parameter_id": 9,
+                  "type": 9,
+                  "name": "音轨序号7",
+                  "value": 77
+                }
+              ]
+            },
+            {
+              "offset": 115,
+              "opcode": 119,
+              "name": "变量运算",
+              "parameters": [
+                {
+                  "parameter_id": 81,
+                  "type": 81,
+                  "name": "目标变量类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "目标变量编号",
+                  "value": 4027
+                },
+                {
+                  "parameter_id": 83,
+                  "type": 83,
+                  "name": "操作数类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 82,
+                  "type": 82,
+                  "name": "运算符",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "操作数",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 141,
+              "opcode": 39,
+              "name": "背景设定",
+              "parameters": [
+                {
+                  "parameter_id": 45,
+                  "type": 45,
+                  "name": "图片类型1",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 12,
+                  "type": 12,
+                  "name": "外景8",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 26,
+                  "type": 26,
+                  "name": "三国地图1",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 28,
+                  "type": 28,
+                  "name": "内景9",
+                  "value": 19
+                },
+                {
+                  "parameter_id": 21,
+                  "type": 21,
+                  "name": "战场a",
+                  "value": -1
+                }
+              ]
+            },
+            {
+              "offset": 163,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 42
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 55
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 189,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 61
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 56
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 3
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 215,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 61
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 61
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 3
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 241,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 973
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 61
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 51
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 3
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 267,
+              "opcode": 28,
+              "name": "绘图",
+              "parameters": []
+            },
+            {
+              "offset": 269,
+              "opcode": 24,
+              "name": "R剧本事件名称设定",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "名称",
+                  "value": "新军把总"
+                }
+              ]
+            },
+            {
+              "offset": 282,
+              "opcode": 23,
+              "name": "单行文字显示（R剧本中通常用来显示场所名）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字内容",
+                  "value": "甘州 军营"
+                }
+              ]
+            },
+            {
+              "offset": 296,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 304,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 314,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&王国\n梅前！你身为军中把总，平日里不好好管\n教士卒也就罢了，居然还敢带着他们到校\n场闹事！真是猖狂到没边了！"
+                }
+              ]
+            },
+            {
+              "offset": 425,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 435,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 443,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 973
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 6
+                }
+              ]
+            },
+            {
+              "offset": 453,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&梅前\n大人，是他们先以多欺少的。"
+                }
+              ]
+            },
+            {
+              "offset": 490,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 973
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 500,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 508,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 6
+                }
+              ]
+            },
+            {
+              "offset": 518,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n我的伙伴们是担心我的安危，才一时着急\n冲上擂台，并无继续争斗之意。倒是梅把\n总教唆老兵们突然发难，令人震惊。"
+                }
+              ]
+            },
+            {
+              "offset": 637,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 647,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 657,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&王国\n赵方，此言属实吗？"
+                }
+              ]
+            },
+            {
+              "offset": 686,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 696,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 6
+                }
+              ]
+            },
+            {
+              "offset": 706,
+              "opcode": 21,
+              "name": "二选一说话",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将1序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将2序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "说话内容",
+                  "value": "回禀大人，确实是梅把总的兵先动的手。"
+                }
+              ]
+            },
+            {
+              "offset": 755,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 765,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 775,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&王国\n好啊！梅前！校场作乱乃军中大忌，若是\n造成士兵哗变，你能承担得起吗？今日我\n饶你不得，来啊，将这没有脑子的家伙\n&王国\n拖出去砍了，以儆效尤！"
+                }
+              ]
+            },
+            {
+              "offset": 923,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 933,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 973
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 943,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&梅前\n大人饶命，我以后再也不敢了。"
+                }
+              ]
+            },
+            {
+              "offset": 982,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 992,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&王国\n哼，昔日你打骂士卒，军中怨声载道，我\n念你武勇，一再纵容，不想你不知感恩，\n反而愈加放肆，这一切都是你咎由自取，\n&王国\n怪不得别人！"
+                }
+              ]
+            },
+            {
+              "offset": 1132,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1142,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 6
+                }
+              ]
+            },
+            {
+              "offset": 1152,
+              "opcode": 21,
+              "name": "二选一说话",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将1序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将2序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "说话内容",
+                  "value": "大人，梅前虽然行事嚣张，不计后果，\n但绝无悖逆之心，还请宽大处理。"
+                }
+              ]
+            },
+            {
+              "offset": 1230,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1240,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 6
+                }
+              ]
+            },
+            {
+              "offset": 1250,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n赵将军所言甚是，梅把总私德有损，大德\n无亏，不然也不会在军中有如此威望。\n小的也请求大人赦免他的死罪。\n"
+                }
+              ]
+            },
+            {
+              "offset": 1364,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1374,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 1384,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&王国\n哈哈，自成啊，我赶去校场之前，便已经\n对整件事情的来龙去脉有了大致了解。你\n不畏军中悍将，肯为战友出头，是为义也；\n&王国\n独战沙场老兵，不落下风是为勇也；\n身陷危机，无数士兵相助是为信也；\n以德报怨，慷慨解围是为仁也；\n&王国\n谈吐不凡，毕恭毕敬是为礼也。说实话，\n我已经很久没有见到过像你这样的人才了，\n不知你可愿担任新军把总一职？"
+                }
+              ]
+            },
+            {
+              "offset": 1719,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1729,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 6
+                }
+              ]
+            },
+            {
+              "offset": 1739,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n小人愿意。\n"
+                }
+              ]
+            },
+            {
+              "offset": 1763,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1773,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 1781,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 1791,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&王国\n好，这件事就这样说定了，稍后我会将此\n命令通知下去。至于梅前，死罪可免，活\n罪难逃，便仗责三十，扣除本月俸禄。"
+                }
+              ]
+            },
+            {
+              "offset": 1910,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1920,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 1930,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&王国\n梅把总，你可有异议？"
+                }
+              ]
+            },
+            {
+              "offset": 1961,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1971,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 973
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 1981,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&梅前\n没有没有，感谢大人不杀之恩。"
+                }
+              ]
+            },
+            {
+              "offset": 2020,
+              "opcode": 47,
+              "name": "清除场景中出现的人物",
+              "parameters": []
+            },
+            {
+              "offset": 2022,
+              "opcode": 36,
+              "name": "CD音轨设定",
+              "parameters": [
+                {
+                  "parameter_id": 9,
+                  "type": 9,
+                  "name": "音轨序号7",
+                  "value": 75
+                }
+              ]
+            },
+            {
+              "offset": 2028,
+              "opcode": 39,
+              "name": "背景设定",
+              "parameters": [
+                {
+                  "parameter_id": 45,
+                  "type": 45,
+                  "name": "图片类型1",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 12,
+                  "type": 12,
+                  "name": "外景8",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 26,
+                  "type": 26,
+                  "name": "三国地图1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 28,
+                  "type": 28,
+                  "name": "内景9",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 21,
+                  "type": 21,
+                  "name": "战场a",
+                  "value": -1
+                }
+              ]
+            },
+            {
+              "offset": 2050,
+              "opcode": 119,
+              "name": "变量运算",
+              "parameters": [
+                {
+                  "parameter_id": 81,
+                  "type": 81,
+                  "name": "目标变量类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "目标变量编号",
+                  "value": 4027
+                },
+                {
+                  "parameter_id": 83,
+                  "type": 83,
+                  "name": "操作数类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 82,
+                  "type": 82,
+                  "name": "运算符",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "操作数",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 2076,
+              "opcode": 39,
+              "name": "背景设定",
+              "parameters": [
+                {
+                  "parameter_id": 45,
+                  "type": 45,
+                  "name": "图片类型1",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 12,
+                  "type": 12,
+                  "name": "外景8",
+                  "value": 21
+                },
+                {
+                  "parameter_id": 26,
+                  "type": 26,
+                  "name": "三国地图1",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 28,
+                  "type": 28,
+                  "name": "内景9",
+                  "value": 131
+                },
+                {
+                  "parameter_id": 21,
+                  "type": 21,
+                  "name": "战场a",
+                  "value": -1
+                }
+              ]
+            },
+            {
+              "offset": 2098,
+              "opcode": 28,
+              "name": "绘图",
+              "parameters": []
+            },
+            {
+              "offset": 2100,
+              "opcode": 44,
+              "name": "三国地图下方显示文字",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字内容",
+                  "value": "不得不说李自成的领导魅力还是很不错的，在他的经营下，甘肃边军里\n他形成了一个很大的派系，而许多老兵都再也不敢招惹他了。因为这件事，\n李自成明白乱世之中，只有自己的力量才能够相信，其他一切都靠不住。"
+                },
+                {
+                  "parameter_id": 38,
+                  "type": 38,
+                  "name": "文字前是否不换页0",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 38,
+                  "type": 38,
+                  "name": "文字前是否换行0",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 38,
+                  "type": 38,
+                  "name": "文字后是否有停顿0",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 2311,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 2319,
+              "opcode": 39,
+              "name": "背景设定",
+              "parameters": [
+                {
+                  "parameter_id": 45,
+                  "type": 45,
+                  "name": "图片类型1",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 12,
+                  "type": 12,
+                  "name": "外景8",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 26,
+                  "type": 26,
+                  "name": "三国地图1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 28,
+                  "type": 28,
+                  "name": "内景9",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 21,
+                  "type": 21,
+                  "name": "战场a",
+                  "value": -1
+                }
+              ]
+            },
+            {
+              "offset": 2341,
+              "opcode": 119,
+              "name": "变量运算",
+              "parameters": [
+                {
+                  "parameter_id": 81,
+                  "type": 81,
+                  "name": "目标变量类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "目标变量编号",
+                  "value": 4027
+                },
+                {
+                  "parameter_id": 83,
+                  "type": 83,
+                  "name": "操作数类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 82,
+                  "type": 82,
+                  "name": "运算符",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "操作数",
+                  "value": 2
+                }
+              ]
+            },
+            {
+              "offset": 2367,
+              "opcode": 39,
+              "name": "背景设定",
+              "parameters": [
+                {
+                  "parameter_id": 45,
+                  "type": 45,
+                  "name": "图片类型1",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 12,
+                  "type": 12,
+                  "name": "外景8",
+                  "value": 21
+                },
+                {
+                  "parameter_id": 26,
+                  "type": 26,
+                  "name": "三国地图1",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 28,
+                  "type": 28,
+                  "name": "内景9",
+                  "value": 32
+                },
+                {
+                  "parameter_id": 21,
+                  "type": 21,
+                  "name": "战场a",
+                  "value": -1
+                }
+              ]
+            },
+            {
+              "offset": 2389,
+              "opcode": 28,
+              "name": "绘图",
+              "parameters": []
+            },
+            {
+              "offset": 2391,
+              "opcode": 24,
+              "name": "R剧本事件名称设定",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "名称",
+                  "value": "己巳之变"
+                }
+              ]
+            },
+            {
+              "offset": 2404,
+              "opcode": 44,
+              "name": "三国地图下方显示文字",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字内容",
+                  "value": "崇祯二年（公元1629年）冬，后金皇太极率领八旗精兵，避开明军的宁锦防线，\n绕道蒙古，从长城重隘喜峰口突入关内，大举南下，肆虐畿辅，京师吃紧。\n为了保住北京，朝廷急调四方军队共赴北京勤王，史称“己巳之变”。"
+                },
+                {
+                  "parameter_id": 38,
+                  "type": 38,
+                  "name": "文字前是否不换页0",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 38,
+                  "type": 38,
+                  "name": "文字前是否换行0",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 38,
+                  "type": 38,
+                  "name": "文字后是否有停顿0",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 2621,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 2629,
+              "opcode": 39,
+              "name": "背景设定",
+              "parameters": [
+                {
+                  "parameter_id": 45,
+                  "type": 45,
+                  "name": "图片类型1",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 12,
+                  "type": 12,
+                  "name": "外景8",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 26,
+                  "type": 26,
+                  "name": "三国地图1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 28,
+                  "type": 28,
+                  "name": "内景9",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 21,
+                  "type": 21,
+                  "name": "战场a",
+                  "value": -1
+                }
+              ]
+            },
+            {
+              "offset": 2651,
+              "opcode": 119,
+              "name": "变量运算",
+              "parameters": [
+                {
+                  "parameter_id": 81,
+                  "type": 81,
+                  "name": "目标变量类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "目标变量编号",
+                  "value": 4027
+                },
+                {
+                  "parameter_id": 83,
+                  "type": 83,
+                  "name": "操作数类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 82,
+                  "type": 82,
+                  "name": "运算符",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "操作数",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 2677,
+              "opcode": 39,
+              "name": "背景设定",
+              "parameters": [
+                {
+                  "parameter_id": 45,
+                  "type": 45,
+                  "name": "图片类型1",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 12,
+                  "type": 12,
+                  "name": "外景8",
+                  "value": 21
+                },
+                {
+                  "parameter_id": 26,
+                  "type": 26,
+                  "name": "三国地图1",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 28,
+                  "type": 28,
+                  "name": "内景9",
+                  "value": 244
+                },
+                {
+                  "parameter_id": 21,
+                  "type": 21,
+                  "name": "战场a",
+                  "value": -1
+                }
+              ]
+            },
+            {
+              "offset": 2699,
+              "opcode": 28,
+              "name": "绘图",
+              "parameters": []
+            },
+            {
+              "offset": 2701,
+              "opcode": 44,
+              "name": "三国地图下方显示文字",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字内容",
+                  "value": "甘肃边兵李自成所在部队随参将王国向京师进发，途经金县（今甘肃榆中），\n士兵们要求发饷，参将王国却克扣不发，当地的县令也不出现，众人都很气愤。"
+                },
+                {
+                  "parameter_id": 38,
+                  "type": 38,
+                  "name": "文字前是否不换页0",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 38,
+                  "type": 38,
+                  "name": "文字前是否换行0",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 38,
+                  "type": 38,
+                  "name": "文字后是否有停顿0",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 2857,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 2865,
+              "opcode": 47,
+              "name": "清除场景中出现的人物",
+              "parameters": []
+            },
+            {
+              "offset": 2867,
+              "opcode": 36,
+              "name": "CD音轨设定",
+              "parameters": [
+                {
+                  "parameter_id": 9,
+                  "type": 9,
+                  "name": "音轨序号7",
+                  "value": 194
+                }
+              ]
+            },
+            {
+              "offset": 2873,
+              "opcode": 119,
+              "name": "变量运算",
+              "parameters": [
+                {
+                  "parameter_id": 81,
+                  "type": 81,
+                  "name": "目标变量类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "目标变量编号",
+                  "value": 4027
+                },
+                {
+                  "parameter_id": 83,
+                  "type": 83,
+                  "name": "操作数类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 82,
+                  "type": 82,
+                  "name": "运算符",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "操作数",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 2899,
+              "opcode": 39,
+              "name": "背景设定",
+              "parameters": [
+                {
+                  "parameter_id": 45,
+                  "type": 45,
+                  "name": "图片类型1",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 12,
+                  "type": 12,
+                  "name": "外景8",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 26,
+                  "type": 26,
+                  "name": "三国地图1",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 28,
+                  "type": 28,
+                  "name": "内景9",
+                  "value": 214
+                },
+                {
+                  "parameter_id": 21,
+                  "type": 21,
+                  "name": "战场a",
+                  "value": -1
+                }
+              ]
+            },
+            {
+              "offset": 2921,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 36
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 51
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 2947,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 28
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 44
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 2973,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 50
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 19
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 2999,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 973
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 43
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 44
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 3
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 3025,
+              "opcode": 28,
+              "name": "绘图",
+              "parameters": []
+            },
+            {
+              "offset": 3027,
+              "opcode": 24,
+              "name": "R剧本事件名称设定",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "名称",
+                  "value": "讨饷"
+                }
+              ]
+            },
+            {
+              "offset": 3036,
+              "opcode": 23,
+              "name": "单行文字显示（R剧本中通常用来显示场所名）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字内容",
+                  "value": "金县 王国军帐"
+                }
+              ]
+            },
+            {
+              "offset": 3054,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 3062,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 6
+                }
+              ]
+            },
+            {
+              "offset": 3072,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n大人！"
+                }
+              ]
+            },
+            {
+              "offset": 3091,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 3101,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 3111,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&王国\n哈哈，自成，你来的正好，请坐。"
+                }
+              ]
+            },
+            {
+              "offset": 3152,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 3162,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 6
+                }
+              ]
+            },
+            {
+              "offset": 3172,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n是！"
+                }
+              ]
+            },
+            {
+              "offset": 3189,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 3199,
+              "opcode": 50,
+              "name": "武将移动",
+              "parameters": [
+                {
+                  "parameter_id": 64,
+                  "type": 64,
+                  "name": "由什么决定武将（0序号，1出场顺序）1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "我方武将出场顺序",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 50
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 37
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 2
+                }
+              ]
+            },
+            {
+              "offset": 3231,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 3245,
+              "opcode": 50,
+              "name": "武将移动",
+              "parameters": [
+                {
+                  "parameter_id": 64,
+                  "type": 64,
+                  "name": "由什么决定武将（0序号，1出场顺序）1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "我方武将出场顺序",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 36
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 37
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 3277,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 2
+                }
+              ]
+            },
+            {
+              "offset": 3291,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 10
+                }
+              ]
+            },
+            {
+              "offset": 3301,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 3311,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n大人，为何最近几月的军饷迟迟未能发放？"
+                }
+              ]
+            },
+            {
+              "offset": 3362,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 3372,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&王国\n自成啊，并不是我有心克扣，只是此番\n勤王，军需辎重全是自费，若是发放，\n沿路吃喝用度如何自理？"
+                }
+              ]
+            },
+            {
+              "offset": 3475,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n大人，我理解你的难处，只是临近年关，\n可否暂发两月饷银，让士兵们能添件棉衣，\n有的兄弟对家人也好有个交待。"
+                }
+              ]
+            },
+            {
+              "offset": 3592,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&王国\n啊这，怕是有点困难......"
+                }
+              ]
+            },
+            {
+              "offset": 3627,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n一个月呢？"
+                }
+              ]
+            },
+            {
+              "offset": 3650,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&王国\n自成，此番鞑子来势汹汹，就连关宁铁骑\n都阻挡不过，赵率教，满桂这样的百战猛\n将都战死了，咱们此去也一定凶多吉少。\n&王国\n与其把钱发给必死之人，白白浪费掉，\n还不如咱兄弟几人独享，岂不美哉？"
+                }
+              ]
+            },
+            {
+              "offset": 3845,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 2
+                }
+              ]
+            },
+            {
+              "offset": 3855,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n大人，你说这话就不对啊，怎么就白白浪\n费了？士兵们为了保家卫国，前赴后继就\n活该战死吗？\n&李自成\n就活该生前忍饥受冻，死后连一分钱都得\n不到吗？"
+                }
+              ]
+            },
+            {
+              "offset": 4008,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 4018,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 973
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 4032,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 4046,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 973
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 4056,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 4066,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 4076,
+              "opcode": 21,
+              "name": "二选一说话",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将1序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将2序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "说话内容",
+                  "value": "自成，我知道你难以接受，但现实就是这\n样。咱们的饷银本来就不多，再经过上级\n官员们层层克扣，到参将手里就更少了。"
+                }
+              ]
+            },
+            {
+              "offset": 4199,
+              "opcode": 21,
+              "name": "二选一说话",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将1序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将2序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "说话内容",
+                  "value": "即使参将全部发放，也杯水车薪，徒让士\n兵误解。此次勤王什么好处也没有，搞不\n好还会丢掉性命，因此沿途一定不断会有"
+                }
+              ]
+            },
+            {
+              "offset": 4322,
+              "opcode": 21,
+              "name": "二选一说话",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将1序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将2序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "说话内容",
+                  "value": "士兵逃散，真到了京城也怕是没多少人了，\n还不如暂不发放，一直把士兵拴在军中，\n保存实力呢。"
+                }
+              ]
+            },
+            {
+              "offset": 4423,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&梅前\n不错，先好言安抚，把他们都骗在军中，\n战后大减员，银子都是咱们的了。"
+                }
+              ]
+            },
+            {
+              "offset": 4501,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 2
+                }
+              ]
+            },
+            {
+              "offset": 4511,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n逆天！你们大发国难财，\n良心过得去吗？"
+                }
+              ]
+            },
+            {
+              "offset": 4561,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 4571,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 2
+                }
+              ]
+            },
+            {
+              "offset": 4581,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&王国\n自成，平时你那么机灵，为何今日如此糊\n涂呢？军中属咱们武功最高，最后活下来\n的也一定是咱们几个。这些钱咱们只是\n&王国\n提前替他们保管而已，不然被鞑子搜刮去，\n岂不可惜。"
+                }
+              ]
+            },
+            {
+              "offset": 4756,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 4766,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 2
+                }
+              ]
+            },
+            {
+              "offset": 4776,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n荒谬！我李自成宁可与众兄弟一同\n战死沙场，也绝不接受这等不义之财！"
+                }
+              ]
+            },
+            {
+              "offset": 4854,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 4864,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 17
+                }
+              ]
+            },
+            {
+              "offset": 4874,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n而且大人，我劝你们不要玩火自焚，\n眼下军中很多士卒身着单衣，\n食不果腹，怨气沸腾。\n&李自成\n若是他们得知真相，愤起反抗，\n可就麻烦了。"
+                }
+              ]
+            },
+            {
+              "offset": 5017,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 5027,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 2
+                }
+              ]
+            },
+            {
+              "offset": 5037,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&王国\n你在威胁我？"
+                }
+              ]
+            },
+            {
+              "offset": 5060,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 5070,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 6
+                }
+              ]
+            },
+            {
+              "offset": 5080,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n自成不敢，只是希望大人慎重行事，\n早发军饷。"
+                }
+              ]
+            },
+            {
+              "offset": 5136,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 5146,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 5156,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&王国\n好，我知道了，你先回去吧，今日\n这酒宴，我是没兴致继续喝下去了。"
+                }
+              ]
+            },
+            {
+              "offset": 5230,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 5240,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 6
+                }
+              ]
+            },
+            {
+              "offset": 5250,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n是，忠言逆耳利于行，\n大人，自成改日再来拜访。"
+                }
+              ]
+            },
+            {
+              "offset": 5308,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 5318,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 5332,
+              "opcode": 50,
+              "name": "武将移动",
+              "parameters": [
+                {
+                  "parameter_id": 64,
+                  "type": 64,
+                  "name": "由什么决定武将（0序号，1出场顺序）1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "我方武将出场顺序",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 50
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 37
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 5364,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 5378,
+              "opcode": 50,
+              "name": "武将移动",
+              "parameters": [
+                {
+                  "parameter_id": 64,
+                  "type": 64,
+                  "name": "由什么决定武将（0序号，1出场顺序）1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "我方武将出场顺序",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 50
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 17
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 5410,
+              "opcode": 49,
+              "name": "武将消失",
+              "parameters": [
+                {
+                  "parameter_id": 44,
+                  "type": 44,
+                  "name": "由什么决定武将（0序号，1位置）1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "左上角横坐标",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "左上角纵坐标",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "右下角横坐标",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "右下角纵坐标",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 3,
+                  "type": 3,
+                  "name": "武将归属1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 5448,
+              "opcode": 30,
+              "name": "武将出现或消失生效",
+              "parameters": []
+            },
+            {
+              "offset": 5450,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 2
+                }
+              ]
+            },
+            {
+              "offset": 5460,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&王国\n什么东西！竟然敢教老子做事！真是给脸\n不要脸，既然他不愿意发财，咱们三人干。"
+                }
+              ]
+            },
+            {
+              "offset": 5546,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 5556,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 973
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 2
+                }
+              ]
+            },
+            {
+              "offset": 5570,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 6
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 2
+                }
+              ]
+            },
+            {
+              "offset": 5584,
+              "opcode": 21,
+              "name": "二选一说话",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将1序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将2序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "说话内容",
+                  "value": "大人息怒，自成是太过正直，一时\n想不开，才会出言不逊，日后定会\n明白大人用心。"
+                }
+              ]
+            },
+            {
+              "offset": 5673,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 982
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 5683,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 973
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 6
+                }
+              ]
+            },
+            {
+              "offset": 5693,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&梅前\n李自成可不是省油的灯啊，他既然知道了\n咱们的计划，又不愿意合作，怕是不会善\n罢甘休，日后指不定做出什么难以预料的\n&梅前\n事情来。"
+                }
+              ]
+            },
+            {
+              "offset": 5829,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 973
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 5839,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 5849,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&王国\n嗯，你所担忧的并无道理，明日我就\n抓几个他手下的士兵稍加惩戒，杀杀\n他的威风。"
+                }
+              ]
+            },
+            {
+              "offset": 5936,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 972
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 5946,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&梅前\n（呵呵，李自成此人偏激多疑，爱兵如子，\n本来就对你大失所望，你还欺负他的士卒，\n怕是自寻死路。不过这样才好，你们斗得\n&梅前\n两败俱伤，我好坐收渔翁之利。）"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "offset": 6110,
+      "section_count": 1,
+      "sections": [
+        {
+          "offset": 6112,
+          "size": 2219,
+          "index": 0,
+          "parse_error": "unknown opcode 512 at 0x21bd",
+          "raw_bytes": "ab 08 02 00 05 00 be fc ca c2 bb e1 d2 e9 a1 a4 20 bc e0 c0 ce 00 00 00 93 08 2f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 bd 01 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 78 03 55 00 00 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 6b 02 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 e8 03 55 00 01 00 24 00 09 00 32 00 77 00 51 00 02 00 04 00 bb 0f 00 00 53 00 02 00 52 00 00 00 04 00 02 00 00 00 27 00 2d 00 02 00 0c 00 ff ff 1a 00 ff ff 1c 00 3e 00 15 00 ff ff 30 00 02 00 00 00 04 00 2f 00 00 00 04 00 39 00 00 00 2b 00 01 00 0d 00 01 00 30 00 02 00 32 00 04 00 3a 00 00 00 04 00 38 00 00 00 2b 00 03 00 0d 00 01 00 1c 00 18 00 05 00 cf c8 cf c2 ca d6 ce aa c7 bf 00 17 00 05 00 bd f0 cf d8 20 c0 ee d7 d4 b3 c9 d3 aa d5 ca 00 09 00 04 00 05 00 00 00 14 00 05 00 26 c0 ee d7 d4 b3 c9 0a b0 a6 2e 2e 2e 2e 2e 2e 00 34 00 02 00 32 00 0d 00 0a 00 14 00 05 00 26 c1 f5 b9 fa c1 fa 0a d7 d4 b3 c9 a3 ac c4 e3 d4 f5 c3 b4 c1 cb a3 bf 00 34 00 02 00 32 00 0d 00 01 00 14 00 05 00 26 c0 ee d7 d4 b3 c9 0a d7 f2 c8 d5 cd f5 b9 fa b2 ce bd ab d1 fb ce d2 b8 b0 d1 e7 a3 ac cf eb d2 aa d3 eb ce d2 b9 cf b7 d6 be fc 0a e2 c3 a3 ac b1 bb ce d2 d1 cf b4 ca be dc be f8 a3 ac c5 c2 ca c7 d2 aa d4 e2 b5 bd cb fb c3 c7 b1 a8 b8 b4 a1 a3 0a d4 ad b1 be d2 d4 ce aa b4 d3 be fc bb e1 d3 d0 c7 b0 cd be a3 ac cb ad d6 aa d3 d6 c2 e4 b5 c3 c2 fa bb b3 0a 26 c0 ee d7 d4 b3 c9 0a ca a7 cd fb a1 a3 c5 a9 c3 f1 d0 c1 d0 c1 bf e0 bf e0 a3 ac ce de b7 a8 bd e2 be f6 c9 fa b4 e6 a1 a3 0a b1 df be fc c7 da c7 da bf d2 bf d2 a3 ac ce de b7 a8 b5 c3 b5 bd e2 c3 d2 f8 a1 a3 b3 af cd a2 bb ec c2 d2 0a b2 bb bf b0 a3 ac c8 ab c8 bb b2 bb b9 cb be fc d0 c4 c3 f1 d0 c4 a1 a3 0a 26 c0 ee d7 d4 b3 c9 0a d5 e2 d1 f9 b5 c4 b9 fa bc d2 bb b9 d3 d0 be c8 c2 f0 a3 bf 00 34 00 02 00 32 00 0d 00 08 00 14 00 05 00 26 c1 f5 b9 fa c1 fa 0a d0 d6 b5 dc a3 ac ce d2 d2 b2 bf b4 c7 e5 c1 cb d5 e2 ca c0 b5 c0 a3 ac b2 bb b8 d2 d4 d9 b6 d4 b3 af cd a2 0a b1 a7 d3 d0 bb c3 cf eb c1 cb a1 a3 cf d6 d4 da cc ec cf c2 b1 e9 b5 d8 b7 e9 bb f0 a3 ac b5 b1 b4 f3 cd b7 0a b1 f8 d3 d6 c3 bb d3 d0 b3 f6 cf a2 a3 ac d3 d0 bb fa bb e1 ce d2 c3 c7 d2 b2 b3 b6 c6 ec d4 ec b7 b4 b0 c9 a1 a3 00 34 00 02 00 00 00 0d 00 03 00 14 00 05 00 26 c0 ee d7 d4 b3 c9 0a ba c3 a3 ac d0 d6 b5 dc a3 ac ce d2 b5 c8 b5 c4 be cd ca c7 c4 e3 d5 e2 be e4 bb b0 a1 a3 0a d6 bb d2 aa c4 e3 bb b9 bf cf cf e0 d0 c5 ce d2 a3 ac d4 b8 d2 e2 b8 fa d7 c5 ce d2 b8 c9 a3 ac 0a ce d2 d2 bb b6 a8 b2 bb bb e1 bf f7 b4 fd c4 e3 b5 c4 a1 a3 0a 00 34 00 02 00 00 00 0d 00 00 00 34 00 02 00 32 00 0d 00 00 00 30 00 02 00 08 00 04 00 34 00 00 00 04 00 17 00 00 00 2b 00 02 00 0d 00 00 00 1e 00 32 00 40 00 00 00 02 00 08 00 04 00 00 00 00 00 04 00 34 00 00 00 04 00 1b 00 00 00 2b 00 02 00 34 00 02 00 08 00 0d 00 03 00 14 00 05 00 26 c1 f5 b7 bc c1 c1 0a d7 d4 b3 c9 a3 ac b9 fa c1 fa b4 f3 ca c2 b2 bb ba c3 c1 cb a3 a1 0a 00 33 00 02 00 00 00 0d 00 00 00 2b 00 00 00 33 00 02 00 32 00 0d 00 00 00 2b 00 00 00 32 00 40 00 00 00 02 00 08 00 04 00 00 00 00 00 04 00 34 00 00 00 04 00 2c 00 00 00 2b 00 02 00 34 00 02 00 08 00 0d 00 03 00 24 00 09 00 37 00 14 00 05 00 26 c1 f5 b7 bc c1 c1 0a c0 ee b9 fd b1 bb cd f5 b2 ce bd ab c5 c9 c0 b4 b5 c4 c7 d7 b1 f8 d7 a5 c6 f0 c0 b4 c1 cb a3 ac 0a cf d6 d4 da d5 fd d4 da cf d8 d1 c3 ca dc d0 cc c1 a8 a1 a3 00 34 00 02 00 08 00 0d 00 00 00 34 00 02 00 00 00 0d 00 02 00 14 00 05 00 26 c0 ee d7 d4 b3 c9 0a ca b2 c3 b4 a3 bf a3 a1 d5 e6 ca c7 c6 db c8 cb cc ab c9 f5 a3 a1 00 34 00 02 00 00 00 0d 00 00 00 33 00 02 00 00 00 0d 00 00 00 2b 00 01 00 33 00 02 00 32 00 0d 00 00 00 2b 00 03 00 14 00 05 00 26 c0 ee d7 d4 b3 c9 0a bc c8 c8 bb cb fb cd f5 b9 fa b2 bb c8 ca a3 ac c4 c7 be cd d0 dd b9 d6 ce d2 b2 bb d2 e5 a3 a1 0a b9 fa c1 fa a3 ac b7 bc c1 c1 a3 ac d7 df a3 ac d4 db c3 c7 b4 f8 d7 c5 ca d6 cf c2 0a ca bf b1 f8 c3 c7 c7 b0 c8 a5 cf d8 d1 c3 cb f7 d2 aa be fc e2 c3 a3 a1 0a 00 09 00 04 00 03 00 00 00 30 00 02 00 78 03 04 00 2f 00 00 00 04 00 0e 00 00 00 2b 00 02 00 0d 00 00 00 1e 00 09 00 04 00 03 00 00 00 01 00 05 00 35 00 01 00 08 01 35 00 00 00 0d 00 72 00 04 00 12 00 00 00 05 00 00 00 00 08 00 2e 00 01 00 06 00 2e 00 01 00 04 00 05 00 00 00 38 00 00 00 38 00 01 00 38 00 ff ff 38 00 ff ff 38 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 06 00 2e 00 01 00 04 00 05 00 00 00 38 00 ff ff 38 00 ff ff 38 00 ff ff 38 00 ff ff 38 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 06 00 2e 00 01 00 04 00 05 00 00 00 38 00 ff ff 38 00 ff ff 38 00 ff ff 38 00 ff ff 38 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 01 00 02 00 05 00 cd f5 b9 fa d1 a7 bb e1 cc d8 d0 a7 b3 e5 b7 e6 b9 a5 bb f7 00 d7 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 38 2c 32 35 2c 39 37 32 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 bd f0 cf d8 cf d8 c1 ee d1 a7 bb e1 cc d8 d0 a7 c3 bf bb d8 ba cf bb d6 b8 b4 00 d7 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 31 32 2c 31 2c 39 37 31 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 48 45 58 ce d2 be fc c9 e8 b6 a8 00 a6 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 02 00 04 00 d9 0f 00 00 53 00 02 00 52 00 00 00 04 00 04 00 00 00 4b 00 04 00 00 00 00 00 04 00 0f 00 00 00 04 00 0e 00 00 00 2b 00 00 00 26 00 00 00 4b 00 04 00 01 00 00 00 04 00 0d 00 00 00 04 00 02 00 00 00 2b 00 02 00 26 00 00 00 4b 00 04 00 02 00 00 00 04 00 0e 00 00 00 04 00 0e 00 00 00 2b 00 00 00 26 00 00 00 4b 00 04 00 03 00 00 00 04 00 10 00 00 00 04 00 0e 00 00 00 2b 00 00 00 26 00 00 00 00 00 00 00",
+          "conditions": [],
+          "instructions": []
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "offset": 8333,
+      "section_count": 4,
+      "sections": [
+        {
+          "offset": 8335,
+          "size": 566,
+          "conditions": [
+            {
+              "offset": 8337,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 8350,
+              "opcode": 7,
+              "name": "点击出兵按钮测试",
+              "parameters": []
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 8356,
+              "opcode": 8,
+              "name": "菜单处理",
+              "parameters": [
+                {
+                  "parameter_id": 46,
+                  "type": 46,
+                  "name": "可否控制0",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 8362,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 8364,
+                "opcode": 2,
+                "name": "内部信息测试（注释）",
+                "parameters": [
+                  {
+                    "parameter_id": 5,
+                    "type": 5,
+                    "name": "文字说明",
+                    "value": "战前难度选择"
+                  }
+                ]
+              },
+              "then_size": 415,
+              "then": [
+                {
+                  "offset": 8383,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 8385,
+                    "opcode": 5,
+                    "name": "变量测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 53,
+                        "name": "成立变量",
+                        "value": [
+                          260
+                        ]
+                      },
+                      {
+                        "parameter_id": 53,
+                        "name": "不成立变量",
+                        "value": [
+                          261
+                        ]
+                      }
+                    ]
+                  },
+                  "then_size": 375,
+                  "then": [
+                    {
+                      "offset": 8401,
+                      "opcode": 1,
+                      "name": "子事件开始标志",
+                      "condition": {
+                        "offset": 8403,
+                        "opcode": 18,
+                        "name": "出现选择框",
+                        "parameters": [
+                          {
+                            "parameter_id": 5,
+                            "type": 5,
+                            "name": "选项说明",
+                            "value": "[C79割草]（敌军能力系数降低为80%）\n[C1A休闲]（敌军能力系数降低为90%）\n普通（敌军能力系数不变）\n[C26困难]（敌军能力提升为105%）\n[C29打铁]（敌军能力提升为115%）"
+                          },
+                          {
+                            "parameter_id": 2,
+                            "type": 2,
+                            "name": "武将序号2",
+                            "value": 1002
+                          }
+                        ]
+                      },
+                      "then_size": 202,
+                      "then": [
+                        {
+                          "offset": 8572,
+                          "opcode": 1,
+                          "name": "子事件开始标志",
+                          "condition": {
+                            "offset": 8574,
+                            "opcode": 19,
+                            "name": "选项测试",
+                            "parameters": [
+                              {
+                                "parameter_id": 4,
+                                "type": 4,
+                                "name": "选项序号",
+                                "value": 1
+                              }
+                            ]
+                          },
+                          "then_size": 28,
+                          "then": [
+                            {
+                              "offset": 8584,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4033
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 80
+                                }
+                              ]
+                            }
+                          ],
+                          "else_size": 0,
+                          "else": []
+                        },
+                        {
+                          "offset": 8612,
+                          "opcode": 1,
+                          "name": "子事件开始标志",
+                          "condition": {
+                            "offset": 8614,
+                            "opcode": 19,
+                            "name": "选项测试",
+                            "parameters": [
+                              {
+                                "parameter_id": 4,
+                                "type": 4,
+                                "name": "选项序号",
+                                "value": 2
+                              }
+                            ]
+                          },
+                          "then_size": 28,
+                          "then": [
+                            {
+                              "offset": 8624,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4033
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 90
+                                }
+                              ]
+                            }
+                          ],
+                          "else_size": 0,
+                          "else": []
+                        },
+                        {
+                          "offset": 8652,
+                          "opcode": 1,
+                          "name": "子事件开始标志",
+                          "condition": {
+                            "offset": 8654,
+                            "opcode": 19,
+                            "name": "选项测试",
+                            "parameters": [
+                              {
+                                "parameter_id": 4,
+                                "type": 4,
+                                "name": "选项序号",
+                                "value": 3
+                              }
+                            ]
+                          },
+                          "then_size": 28,
+                          "then": [
+                            {
+                              "offset": 8664,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4033
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 100
+                                }
+                              ]
+                            }
+                          ],
+                          "else_size": 0,
+                          "else": []
+                        },
+                        {
+                          "offset": 8692,
+                          "opcode": 1,
+                          "name": "子事件开始标志",
+                          "condition": {
+                            "offset": 8694,
+                            "opcode": 19,
+                            "name": "选项测试",
+                            "parameters": [
+                              {
+                                "parameter_id": 4,
+                                "type": 4,
+                                "name": "选项序号",
+                                "value": 4
+                              }
+                            ]
+                          },
+                          "then_size": 28,
+                          "then": [
+                            {
+                              "offset": 8704,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4033
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 105
+                                }
+                              ]
+                            }
+                          ],
+                          "else_size": 0,
+                          "else": []
+                        },
+                        {
+                          "offset": 8732,
+                          "opcode": 1,
+                          "name": "子事件开始标志",
+                          "condition": {
+                            "offset": 8734,
+                            "opcode": 19,
+                            "name": "选项测试",
+                            "parameters": [
+                              {
+                                "parameter_id": 4,
+                                "type": 4,
+                                "name": "选项序号",
+                                "value": 5
+                              }
+                            ]
+                          },
+                          "then_size": 28,
+                          "then": [
+                            {
+                              "offset": 8744,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4033
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 115
+                                }
+                              ]
+                            }
+                          ],
+                          "else_size": 0,
+                          "else": []
+                        }
+                      ],
+                      "else_size": 0,
+                      "else": []
+                    }
+                  ],
+                  "else_size": 0,
+                  "else": []
+                },
+                {
+                  "offset": 8776,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 8778,
+                    "opcode": 5,
+                    "name": "变量测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 53,
+                        "name": "成立变量",
+                        "value": [
+                          261
+                        ]
+                      },
+                      {
+                        "parameter_id": 53,
+                        "name": "不成立变量",
+                        "value": [
+                          260
+                        ]
+                      }
+                    ]
+                  },
+                  "then_size": 2,
+                  "then": [],
+                  "else_size": 0,
+                  "else": []
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 8798,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 17
+                }
+              ]
+            },
+            {
+              "offset": 8808,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n出发！"
+                }
+              ]
+            },
+            {
+              "offset": 8827,
+              "opcode": 11,
+              "name": "变量赋值",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "变量序号",
+                  "value": 1017
+                },
+                {
+                  "parameter_id": 39,
+                  "type": 39,
+                  "name": "变量值",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 8839,
+              "opcode": 6,
+              "name": "我方出场人员控制",
+              "parameters": [
+                {
+                  "parameter_id": 46,
+                  "type": 46,
+                  "name": "可否控制0",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "最大出场人数（最大15）",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 56,
+                  "type": 56,
+                  "name": "强制出场武将12",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 56,
+                  "type": 56,
+                  "name": "强制出场武将22",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 56,
+                  "type": 56,
+                  "name": "强制出场武将32",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 56,
+                  "type": 56,
+                  "name": "强制出场武将42",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 56,
+                  "type": 56,
+                  "name": "强制出场武将52",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 57,
+                  "type": 57,
+                  "name": "强制不出场武将12",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 57,
+                  "type": 57,
+                  "name": "强制不出场武将22",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 57,
+                  "type": 57,
+                  "name": "强制不出场武将32",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 57,
+                  "type": 57,
+                  "name": "强制不出场武将42",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 57,
+                  "type": 57,
+                  "name": "强制不出场武将52",
+                  "value": -1
+                }
+              ]
+            },
+            {
+              "offset": 8891,
+              "opcode": 29,
+              "name": "调色板重设",
+              "parameters": []
+            },
+            {
+              "offset": 8893,
+              "opcode": 36,
+              "name": "CD音轨设定",
+              "parameters": [
+                {
+                  "parameter_id": 9,
+                  "type": 9,
+                  "name": "音轨序号7",
+                  "value": 255
+                }
+              ]
+            },
+            {
+              "offset": 8899,
+              "opcode": 13,
+              "name": "剧本正常过渡，用于剧本最后",
+              "parameters": []
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 8903,
+          "size": 502,
+          "index": 1,
+          "parse_error": "unknown opcode 121 at 0x231c",
+          "raw_bytes": "f6 01 02 00 05 00 b6 d2 bb bb 00 2d 00 02 00 78 03 00 00 e3 01 34 00 02 00 78 03 0d 00 00 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 01 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 93 0c 51 00 01 00 79 00 52 00 01 00 04 00 00 00 00 00 56 00 01 00 52 00 00 00 04 00 01 00 00 00 2e 01 77 00 51 00 00 00 04 00 00 00 00 00 53 00 01 00 52 00 00 00 04 00 01 00 00 00 01 00 12 00 05 00 5b 43 37 39 ce e4 c1 a6 b9 fb 5d 0a 5b 43 31 41 cd b3 cb a7 b9 fb 5d 0a d6 c7 c1 a6 b9 fb 0a 5b 43 32 36 c3 f4 bd dd b9 fb 5d 0a 5b 43 32 39 ba c3 d4 cb b9 fb 5d 0a c0 eb bf aa 00 02 00 e8 03 ca 00 01 00 13 00 04 00 01 00 00 00 14 00 3d 00 17 00 a1 00 49 00 00 00 26 00 00 00 02 00 00 00 00 00 01 00 13 00 04 00 02 00 00 00 14 00 3d 00 17 00 a2 00 49 00 00 00 26 00 00 00 02 00 00 00 00 00 01 00 13 00 04 00 03 00 00 00 14 00 3d 00 17 00 a3 00 49 00 00 00 26 00 00 00 02 00 00 00 00 00 01 00 13 00 04 00 04 00 00 00 14 00 3d 00 17 00 a4 00 49 00 00 00 26 00 00 00 02 00 00 00 00 00 01 00 13 00 04 00 05 00 00 00 14 00 3d 00 17 00 a5 00 49 00 00 00 26 00 00 00 02 00 00 00 00 00 01 00 13 00 04 00 06 00 00 00 1c 00 77 00 51 00 00 00 04 00 00 00 00 00 53 00 00 00 52 00 00 00 04 00 01 00 00 00 00 00 00 00 00 00 01 00 03 00 2f 00 14 00 05 00 26 b4 b3 bd b4 0a bc ec b2 e2 b5 bd d5 e4 d6 e9 ca fd c1 bf b2 bb b9 bb a3 ac ce de b7 a8 bd f8 d0 d0 b6 d2 bb bb a1 a3 00 00 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 09 00 04 00 0a 00 00 00 00 00",
+          "conditions": [],
+          "instructions": []
+        },
+        {
+          "offset": 9407,
+          "size": 151,
+          "conditions": [
+            {
+              "offset": 9409,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 9422,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 8
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 9432,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&刘芳亮\n自成，咱们这样做会不会激怒王国？\n&李自成\n不会，若我一人前去反而会有危险，\n众人一起，王国想要动我，也得拈量\n一下。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 9560,
+          "size": 72,
+          "conditions": [
+            {
+              "offset": 9562,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 9575,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 50
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 9585,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&刘国龙\n咱们先下手为强，王国一定毫无防备。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        }
+      ]
+    }
+  ],
+  "deployment_tables": [],
+  "summary": {
+    "section_count": 6,
+    "instruction_count": 215,
+    "unparsed_section_count": 2,
+    "deployment_instruction_count": 0,
+    "deployment": [],
+    "deployment_tables": [],
+    "text": [
+      "王国",
+      "新军把总",
+      "甘州 军营",
+      "&王国\n梅前！你身为军中把总，平日里不好好管\n教士卒也就罢了，居然还敢带着他们到校\n场闹事！真是猖狂到没边了！",
+      "&梅前\n大人，是他们先以多欺少的。",
+      "&李自成\n我的伙伴们是担心我的安危，才一时着急\n冲上擂台，并无继续争斗之意。倒是梅把\n总教唆老兵们突然发难，令人震惊。",
+      "&王国\n赵方，此言属实吗？",
+      "回禀大人，确实是梅把总的兵先动的手。",
+      "&王国\n好啊！梅前！校场作乱乃军中大忌，若是\n造成士兵哗变，你能承担得起吗？今日我\n饶你不得，来啊，将这没有脑子的家伙\n&王国\n拖出去砍了，以儆效尤！",
+      "&梅前\n大人饶命，我以后再也不敢了。",
+      "&王国\n哼，昔日你打骂士卒，军中怨声载道，我\n念你武勇，一再纵容，不想你不知感恩，\n反而愈加放肆，这一切都是你咎由自取，\n&王国\n怪不得别人！",
+      "大人，梅前虽然行事嚣张，不计后果，\n但绝无悖逆之心，还请宽大处理。",
+      "&李自成\n赵将军所言甚是，梅把总私德有损，大德\n无亏，不然也不会在军中有如此威望。\n小的也请求大人赦免他的死罪。\n",
+      "&王国\n哈哈，自成啊，我赶去校场之前，便已经\n对整件事情的来龙去脉有了大致了解。你\n不畏军中悍将，肯为战友出头，是为义也；\n&王国\n独战沙场老兵，不落下风是为勇也；\n身陷危机，无数士兵相助是为信也；\n以德报怨，慷慨解围是为仁也；\n&王国\n谈吐不凡，毕恭毕敬是为礼也。说实话，\n我已经很久没有见到过像你这样的人才了，\n不知你可愿担任新军把总一职？",
+      "&李自成\n小人愿意。\n",
+      "&王国\n好，这件事就这样说定了，稍后我会将此\n命令通知下去。至于梅前，死罪可免，活\n罪难逃，便仗责三十，扣除本月俸禄。",
+      "&王国\n梅把总，你可有异议？",
+      "&梅前\n没有没有，感谢大人不杀之恩。",
+      "不得不说李自成的领导魅力还是很不错的，在他的经营下，甘肃边军里\n他形成了一个很大的派系，而许多老兵都再也不敢招惹他了。因为这件事，\n李自成明白乱世之中，只有自己的力量才能够相信，其他一切都靠不住。",
+      "己巳之变",
+      "崇祯二年（公元1629年）冬，后金皇太极率领八旗精兵，避开明军的宁锦防线，\n绕道蒙古，从长城重隘喜峰口突入关内，大举南下，肆虐畿辅，京师吃紧。\n为了保住北京，朝廷急调四方军队共赴北京勤王，史称“己巳之变”。",
+      "甘肃边兵李自成所在部队随参将王国向京师进发，途经金县（今甘肃榆中），\n士兵们要求发饷，参将王国却克扣不发，当地的县令也不出现，众人都很气愤。",
+      "讨饷",
+      "金县 王国军帐",
+      "&李自成\n大人！",
+      "&王国\n哈哈，自成，你来的正好，请坐。",
+      "&李自成\n是！",
+      "&李自成\n大人，为何最近几月的军饷迟迟未能发放？",
+      "&王国\n自成啊，并不是我有心克扣，只是此番\n勤王，军需辎重全是自费，若是发放，\n沿路吃喝用度如何自理？",
+      "&李自成\n大人，我理解你的难处，只是临近年关，\n可否暂发两月饷银，让士兵们能添件棉衣，\n有的兄弟对家人也好有个交待。",
+      "&王国\n啊这，怕是有点困难......",
+      "&李自成\n一个月呢？",
+      "&王国\n自成，此番鞑子来势汹汹，就连关宁铁骑\n都阻挡不过，赵率教，满桂这样的百战猛\n将都战死了，咱们此去也一定凶多吉少。\n&王国\n与其把钱发给必死之人，白白浪费掉，\n还不如咱兄弟几人独享，岂不美哉？",
+      "&李自成\n大人，你说这话就不对啊，怎么就白白浪\n费了？士兵们为了保家卫国，前赴后继就\n活该战死吗？\n&李自成\n就活该生前忍饥受冻，死后连一分钱都得\n不到吗？",
+      "自成，我知道你难以接受，但现实就是这\n样。咱们的饷银本来就不多，再经过上级\n官员们层层克扣，到参将手里就更少了。",
+      "即使参将全部发放，也杯水车薪，徒让士\n兵误解。此次勤王什么好处也没有，搞不\n好还会丢掉性命，因此沿途一定不断会有",
+      "士兵逃散，真到了京城也怕是没多少人了，\n还不如暂不发放，一直把士兵拴在军中，\n保存实力呢。",
+      "&梅前\n不错，先好言安抚，把他们都骗在军中，\n战后大减员，银子都是咱们的了。",
+      "&李自成\n逆天！你们大发国难财，\n良心过得去吗？",
+      "&王国\n自成，平时你那么机灵，为何今日如此糊\n涂呢？军中属咱们武功最高，最后活下来\n的也一定是咱们几个。这些钱咱们只是\n&王国\n提前替他们保管而已，不然被鞑子搜刮去，\n岂不可惜。",
+      "&李自成\n荒谬！我李自成宁可与众兄弟一同\n战死沙场，也绝不接受这等不义之财！",
+      "&李自成\n而且大人，我劝你们不要玩火自焚，\n眼下军中很多士卒身着单衣，\n食不果腹，怨气沸腾。\n&李自成\n若是他们得知真相，愤起反抗，\n可就麻烦了。",
+      "&王国\n你在威胁我？",
+      "&李自成\n自成不敢，只是希望大人慎重行事，\n早发军饷。",
+      "&王国\n好，我知道了，你先回去吧，今日\n这酒宴，我是没兴致继续喝下去了。",
+      "&李自成\n是，忠言逆耳利于行，\n大人，自成改日再来拜访。",
+      "&王国\n什么东西！竟然敢教老子做事！真是给脸\n不要脸，既然他不愿意发财，咱们三人干。",
+      "大人息怒，自成是太过正直，一时\n想不开，才会出言不逊，日后定会\n明白大人用心。",
+      "&梅前\n李自成可不是省油的灯啊，他既然知道了\n咱们的计划，又不愿意合作，怕是不会善\n罢甘休，日后指不定做出什么难以预料的\n&梅前\n事情来。",
+      "&王国\n嗯，你所担忧的并无道理，明日我就\n抓几个他手下的士兵稍加惩戒，杀杀\n他的威风。",
+      "&梅前\n（呵呵，李自成此人偏激多疑，爱兵如子，\n本来就对你大失所望，你还欺负他的士卒，\n怕是自寻死路。不过这样才好，你们斗得\n&梅前\n两败俱伤，我好坐收渔翁之利。）",
+      "玩家切换",
+      "战前难度选择",
+      "[C79割草]（敌军能力系数降低为80%）\n[C1A休闲]（敌军能力系数降低为90%）\n普通（敌军能力系数不变）\n[C26困难]（敌军能力提升为105%）\n[C29打铁]（敌军能力提升为115%）",
+      "&李自成\n出发！",
+      "玩家切换",
+      "&刘芳亮\n自成，咱们这样做会不会激怒王国？\n&李自成\n不会，若我一人前去反而会有危险，\n众人一起，王国想要动我，也得拈量\n一下。",
+      "玩家切换",
+      "&刘国龙\n咱们先下手为强，王国一定毫无防备。"
+    ]
+  }
+}

@@ -1,0 +1,152 @@
+{
+  "map": "assets/lzc/map/m111.png",
+  "source_base": "output/imagegen/chapter47-linghu-night-base-gpt2.png",
+  "prompt_file": "output/imagegen/m111_prompt.txt",
+  "grid": [
+    56,
+    40
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "FgfffFggffffggFffggffffFgfffFggfffggfFffggffffFgfffFgfff",
+    "ffggffffFgffffggfFfggfFffggffffFgfffggffFfggfFffggfffgFf",
+    "gfFfggffffgFffffFgfffggffFfggffffgFfffgFffffggffFfggfffg",
+    "fggffFggffFfggffffgFfffggfffFggffFfggfffggFfffggfffFggff",
+    "fffgFfffggfffFggffffggFffggFfFFffFFfFFffFFfFFffFFfFFffgg",
+    "gffffggFffggffffFgfffFggfffgFffFFfFFffFFfFFffFFfFFfffFff",
+    "fFgffffggfFfggfFffggffffFgfffFFfFFffFFfFFffFFfFFffFFggff",
+    "fffgFffffFgfffggffFfggffffgFFfFFffFFfFFffFFfFFffFFfFffgF",
+    "gffFfggffffgFfffggfffFggffFfFFffFFfFFffFFfFFffFFfFFfffff",
+    "fggfffFggffffggFffggFfffggffffFFfFFffFFfFFffFFfFFffFFgff",
+    "FffggffffFgfffFggfffggfFffggFFfFFffFFfFFffFFfFFffFFfffgF",
+    "ggfFfggfFffggffffFgfffggffFffFFffFFfFFffFFfFFffFFfFFgfFf",
+    "ffFgfffggffFfggffffgFfffgFffFffFFfFFffFFfFFffFFfFFfffggf",
+    "ffffgFfffggfffFggffFfggfffggfFFfFFffffffffffffffffFFfffg",
+    "ggffffggFffggFfffggfffFggfffFfFFffFfffffffffffffFFfFgfFf",
+    "ffFgfffFggfffggfFffggffffFgfFFffFFfffffffffffffffFFffFgf",
+    "fFffggffffFgfffggffFfggfFffgffFFfFFfffffffffffffFffFfffg",
+    "ggffFfggffffgFfffgFffffggffFFFfFFffffffffffffffffFFfgfff",
+    "ffggfffFggffFfggfffggFfffggffFFffFFfffffffffffffFfFFfFgf",
+    "gFffggFfffggfffFggfffggfFffgFffFFfFfffffffffffffFFffFffg",
+    "FggfffggfFffggffffFgfffFgffffFFfFFffffffffffffffffFFggfF",
+    "fffFgfffggffFfggfFffggfffgFfFfFFffFfffffffffffffFFfFffgg",
+    "gffffgFfffgFffffggffFfggfffgFFffFFfffffffffffffffFFfFfff",
+    "FggffFfggfffggFfffggfffFggffffFFfFFfffffffffffffFffFggff",
+    "fffggfffFggfffggfFffggFfffggFFfFFffffffffffffffffFFfffFg",
+    "gfFffggffffFgfffFgffffggfFfffFFffFFfffffffffffffFfFFffff",
+    "fggffFfggfFffggfffgFffffggffFffFFfFfffffffffffffFFffggff",
+    "fffgFffffggffFfggfffggFfffgFfFFfFFffFFfFFffFFfFFffFFffgg",
+    "ggfffggFfffggfffFggffFggffffFfFFffFFfFFffFFfFFffFFfFgFff",
+    "fFggfffggfFffggFfffggfffFgffFFffFFfFFffFFfFFffFFfFFffggf",
+    "ffffFgfffFgffffggfFffggfffgFffFFfFFffFFfFFffFFfFFffFfffF",
+    "ggfFffggfffgFffffggffFfggfFfFFfFFffFFfFFffFFfFFffFFfgfff",
+    "ffggffFfggfffggFfffgFffffggffFFffFFfFFffFFfFFffFFfFFFggf",
+    "FfffggfffFggffFggffffggFfffgFffFFfFFffFFfFFffFFfFFfffffF",
+    "ggfFffggFfffggfffFgffffggfFffFFfFFffFFfFFffFFfFFffFFgfFf",
+    "ffFgffffggfFffggfffgFffffFgfFfFFffFFfFFffFFfFFffFFfFfggf",
+    "gfffgFffffggffFfggfFfggffffgFffffggffFggffFfggffffgFfffg",
+    "fggfffggFfffgFffffggffFggffffggFfffgFfffggfffFggffffggFf",
+    "ffFggffFggffffggFfffggfffFgfffFggffffggFffggffffFgfffFgg",
+    "gFfffggfffFgffffggfFffggFffggffffFgffffggfFfggfFffggffff"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m",
+      "v"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "recomposed saved GPT Image 2 natural base plus reviewed programmatic source-of-truth geometry",
+  "structure_regions": {
+    "yu_village": [
+      [
+        35,
+        13
+      ],
+      [
+        47,
+        26
+      ]
+    ],
+    "forest_ambush": [
+      [
+        28,
+        4
+      ],
+      [
+        51,
+        35
+      ]
+    ],
+    "pit": [
+      [
+        41,
+        19
+      ],
+      [
+        41,
+        20
+      ]
+    ]
+  },
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [],
+  "supply_sites": [],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "SunKuai61",
+      "force": 1,
+      "position": [
+        46,
+        17
+      ]
+    },
+    {
+      "name": "YongChu65",
+      "force": 1,
+      "position": [
+        31,
+        22
+      ]
+    },
+    {
+      "name": "ZhiChuo62",
+      "force": 3,
+      "position": [
+        17,
+        20
+      ]
+    }
+  ],
+  "mission": {
+    "type": "yu_village_trap",
+    "trap": [
+      41,
+      19
+    ],
+    "historical_death": "ZhiChuo62"
+  },
+  "visual_grid_in_game": false,
+  "trap_cells": [
+    [
+      41,
+      19
+    ],
+    [
+      41,
+      20
+    ]
+  ]
+}

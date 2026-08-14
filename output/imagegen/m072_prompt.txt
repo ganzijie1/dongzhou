@@ -1,0 +1,8 @@
+Use case: historical-scene
+Asset type: seamless natural base for a fortified-city tactical battle map in a classic Chinese turn-based strategy RPG
+Primary request: Create a broad Wangguan frontier landscape viewed from a high orthographic three-quarter angle. Reserve a large level rectangular plateau in the northern half for a walled city to be overlaid later, with open dry approach ground and a main south road in the lower half. Add subtle wooded hills along the far west and east edges and low rocky uplands in the corners, while keeping the entire future city footprint visually level and unobstructed.
+Style/medium: richly painted late-1990s Chinese tactical RPG battlefield, realistic natural textures, cohesive hand-painted terrain
+Composition/framing: wide landscape, continuous terrain to every edge, reserved city plateau large enough for a 20 by 15 cell structure, readable when divided into a 36 by 28 logical grid
+Lighting/mood: bright early summer daylight, determined military atmosphere, natural green and earth palette
+Constraints: natural base only; no city, walls, gates, towers, houses, camps, tents, fences, bridges, units, horses, weapons, flags, text, UI, coordinate labels, borders, or visible grid lines
+Avoid: square terrain seams, repeated tiled texture, miniature diorama edge, fantasy architecture, steep obstacles inside the reserved northern plateau

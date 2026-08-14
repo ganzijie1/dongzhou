@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: large Mengde capital coup map
+Primary request: Linzi city with a spacious ancestral temple in the center and a broad western approach. Reserve a continuous city-wall perimeter and a two-cell west gate.
+Style: classic Chinese tactical-RPG painted terrain, orthographic.
+Constraints: no units, text, UI or visible grid; walls, gates and temple buildings are separate overlays.

@@ -1,0 +1,80 @@
+gally_hold_position=true
+gsupply_enabled=true
+gitems={{id="medicine",name="金疮药",hp=120,mp=0,price=120,initial=2},{id="spirit_powder",name="清心散",hp=0,mp=30,price=150,initial=1}}
+gcommanders={"QiZhuangGong62","WangSunHui64","ShenXianYu64"}
+gevents_enabled=true
+gduel_enabled=false
+gduels={}
+gsites={}
+gstory={chapter="第六十四回·中",title="曲沃城栾盈灭族 且于门杞梁死战",battle_title="少水断后",objective="护送齐庄公穿过太行与少水，从东侧撤出。",map_asset="m106.png",
+ intro={
+  {speaker="",text="栾盈袭晋时，齐庄公亲率大军为外援，先侵卫境，又北取朝歌，分兵经孟门、共山登太行。"},
+  {speaker="王孙挥",text="前军已经越过孟门。若栾盈控制绛都，我军便可从太行直下，内外夹击晋国。"},
+  {speaker="申鲜虞",text="曲沃急报：督戎、栾乐皆死，栾盈已经败退，晋国诸卿正集结大军。"},
+  {speaker="齐庄公",text="接应已无意义。全军沿少水撤回齐境，不可在山中与晋国主力纠缠。"},
+  {speaker="",text="齐军前队已经先发，邯郸大夫赵胜率本邑兵追来。齐庄公仓促撤退，只留晏氂断后。"},
+  {speaker="晏氂",text="主公先过少水，我守太行东口。只要中军退出，赵军便不能拖住全军。"},
+  {speaker="赵胜",text="齐军远来犯晋，如今仓皇退走。骑兵沿山道追击，弓手占住少水西岸。"},
+  {speaker="军令",text="护送齐庄公穿过太行山口与少水，到达东侧出口。晏氂为友军坚守后路，其退场不判我方失败。"}
+ },
+ events={
+  {id="story_event_1",trigger="scripted",turn=0,hp_percent=0,speaker="赵胜",text="邯郸骑兵已经追上，截住齐侯！"},
+  {id="story_event_2",trigger="scripted",turn=0,hp_percent=0,speaker="晏氂",text="主公只管东撤，后路由我来守！"}
+ },
+ victory={
+  {speaker="",text="齐庄公率中军越过少水，王孙挥、申鲜虞整顿前军，主力得以脱离晋国追兵。"},
+  {speaker="晏氂",text="中军已经走远，我军不必再退。列阵迎敌，为主公争取最后一段路程！"},
+  {speaker="",text="赵胜集中邯郸兵猛攻后队，晏氂兵败被杀。齐军虽失后将，仍成功退出晋境。"},
+  {speaker="齐庄公",text="栾盈已败，伐晋之志未成；平阴之役莒人曾欲袭齐，此仇尚未报。"},
+  {speaker="",text="齐庄公不肯立即回临淄，在国境整顿车乘，准备以精锐袭击莒国。"},
+  {speaker="军令",text="少水断后完成，获得800金币。下一关：且于门死战。"}
+ },
+ defeat={{speaker="",text="齐庄公、王孙挥、申鲜虞任一被击退，或超过二十四回合，战役失败。"}}
+}
+local function many(game,h,p,f)for _,v in ipairs(p)do game:generate_unit(h,1,f,v)end end
+function on_deploy(game)for _,h in ipairs(gcommanders)do game:appoint_hero(h,1)end end
+function on_begin(game)game:generate_unit("YanMao64",1,Enum.force.ally,{13,20});game:generate_unit("ZhaoSheng64",1,Enum.force.enemy,{6,20});many(game,"ZhaoPursuer64",{{4,15},{4,18},{4,22},{4,25},{8,16},{8,24}},Enum.force.enemy);many(game,"ZhaoArcher64",{{2,18},{2,22},{7,13},{7,27}},Enum.force.enemy);many(game,"QiRetreatGuard64",{{17,17},{17,22},{21,20}},Enum.force.own);many(game,"QiRetreatArcher64",{{15,15},{15,25}},Enum.force.own)end
+function on_update(game)end function on_victory(game)end function on_defeat(game)end
+function end_condition(game)for _,h in ipairs(gcommanders)do if not game:has_unit(h)then return Enum.status.defeat end end if game:is_unit_within("QiZhuangGong62",{58,20},1)then return Enum.status.victory end return Enum.status.undecided end
+gstage={title_id="ShaoshuiRetreat64",turn_limit=24,map={blocked_edges={},size={60,40},terrain={
+        "FgfffFggffffggFmmmmmmmmmmmmmmgvvvfggfFffggffffFgfffFgffffggf",
+        "ffggffffFgffffgmmmmmmmmmmmmmmfvvvfffggffFfggfFffggfffgFffffg",
+        "gfFfggffffgFfffmmmmmmmmmmmmmmffvvvFfffgFffffggffFfggfffggFff",
+        "fggffFggffFfggfmmmmmmmmmmmmmmggvvvfggfffggFfffggfffFggffFggf",
+        "fffgFfffggfffFgmmmmmmmmmmmmmmffvvvffFggfffggfFffggFfffggfffF",
+        "gffffggFffggfffmmmmmmmmmmmmmmfFvvvgffffFgfffFgffffggfFffggff",
+        "fFgffffggfFfggfmmmmmmmmmmmmmmggvvvfggfFffggfffgFffffggffFfgg",
+        "fffgFffffFgfffgmmmmmmmmmmmmmmffvvvfffggffFfggfffggFfffgFffff",
+        "gffFfggffffgFffmmmmmmmmmmmmmmgffvvvFfffggfffFggffFggffffggFf",
+        "fggfffFggffffggmmmmmmmmmmmmmmFggvvvggfFffggFfffggfffFgffffgg",
+        "FffggffffFgfffFmmmmmmmmmmmmmmfffvvvffFgffffggfFffggfffgFffff",
+        "ggfFfggfFffggffmmmmmmmmmmmmmmgfFvvvgfffgFffffggffFfggfFfggff",
+        "ffFgfffggffFfggmmmmmmmmmmmmmmfggvvvfggfffggFfffgFffffggffFgg",
+        "ffffgFfffggfffFmmmmmmmmmmmmmmfffvvvffFggffFggffffggFfffggfff",
+        "ggffffggFffggFfmmmmmmmmmmmmmmgfFfvvvFfffggfffFgffffggfFffggF",
+        "ffFgfffFggfffffffffffffffffffffffvvvggfFffggfffgFffffFgffffg",
+        "fFffggffffFgffffffffffffffffffffgvvvvvvgffFfggfFfggffffgFfff",
+        "ggffFfggfffffffffffffffffffffffffvvvvvvfgFffffggffFggffffggF",
+        "ffggfffFggffffffffffffffffffffffgvvvvvvfffggFfffggfffFgfffFg",
+        "gFffggFfffggfffffffffffffffffffffvvvvvvgffffggfFffggFffggfff",
+        "FggfffggfFffffffffffffffffffffffFvvvvvvfgFffffFgffffggfFfggf",
+        "fffFgfffggffffffffffffffffffffffgvvvvvvfFfggffffgFffffggffFg",
+        "gffffgFfffgFfffffffffffffffffffffvvvvvvggffFggffffggFfffgFff",
+        "FggffFfggffffffffffffffffffffffffvvvvvvffggfffFgfffFggffffgg",
+        "fffggfffFggfffffffffffffffffffffgfvvvggfFffggFffggffffFgffff",
+        "gfFffggffffFgffmmmmmmmmmmmmmmgfffgvvvffFgffffggfFfggffffgFff",
+        "fggffFfggfFffggmmmmmmmmmmmmmmfggfFfvvvfffgFffffggffFggffFfgg",
+        "fffgFffffggffFfmmmmmmmmmmmmmmfffggfvvvgffffggFfffgFfffggfffF",
+        "ggfffggFfffggffmmmmmmmmmmmmmmgFfffgvvvfFgfffFggffffggFffggff",
+        "fFggfffggfFffggmmmmmmmmmmmmmmfggfFfvvvFffggffffFgffffggfFfgg",
+        "ffffFgfffFgffffmmmmmmmmmmmmmmfffFgfvvvggfFfggffffgFffffFgfff",
+        "ggfFffggfffgFffmmmmmmmmmmmmmmgffffgvvvffggffFggffFfggffffgFf",
+        "ffggffFfggfffggmmmmmmmmmmmmmmFggffffvvvfffgFfffggfffFggffffg",
+        "FfffggfffFggffFmmmmmmmmmmmmmmfffFgffvvvgffffggFffggffffFgfff",
+        "ggfFffggFfffggfmmmmmmmmmmmmmmggFffggvvvfFgffffggfFfggfFffggf",
+        "ffFgffffggfFffgmmmmmmmmmmmmmmffggfFfvvvfffgFffffFgfffggffFfg",
+        "gfffgFffffggffFmmmmmmmmmmmmmmffffggfvvvgffFfggffffgFfffggfff",
+        "fggfffggFfffgFfmmmmmmmmmmmmmmggFfffgvvvfggfffFggffffggFffggF",
+        "ffFggffFggffffgmmmmmmmmmmmmmmfFggffffvvvffggffffFgfffFggfffg",
+        "gFfffggfffFgfffmmmmmmmmmmmmmmffffFgffvvvgfFfggfFffggffffFgff",
+},file="map.bmp"},deploy={unselectables={{position={19,19},hero="QiZhuangGong62"},{position={22,17},hero="WangSunHui64"},{position={22,22},hero="ShenXianYu64"}},num_required_selectables=0,selectables={}},rewards={equipments={},money=8000}}

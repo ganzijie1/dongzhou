@@ -1,0 +1,7 @@
+Use case: historical-scene
+Asset type: grid-free tactical RPG battlefield base
+Primary request: Create the vast Bi battlefield between Ao and Hao hills, where the Chu army launches a sudden three-wing assault on an unprepared Jin camp.
+Scene/backdrop: huge summer grassland, two low rugged hill masses to the northwest and west, broad dusty military roads, scattered scrub and shallow gullies, open central ground for several army formations, and a distant northern riverbank without visible water.
+Style/medium: polished hand-painted classic Chinese tactical-RPG terrain, orthographic view, readable at 48-pixel logical cells.
+Composition/framing: landscape 2048x1152, broad contiguous terrain masses and wide maneuver corridors, no fixed structures.
+Constraints: natural landscape only. No troops, camps, tents, fences, walls, gates, buildings, flags, text, UI, supply icons, square tiles, or grid lines.

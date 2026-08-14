@@ -2,6 +2,7 @@
 
 #include "map.h"
 #include "unit.h"
+#include "unit_class.h"
 #include "util/common.h"
 
 namespace mengde {
@@ -14,7 +15,22 @@ int Formulae::ComputeBasicAttackDamage(Map* m, Unit* unit_atk, Unit* unit_def, i
   const Attribute& d   = unit_def->GetCurrentAttr();
   int              atk = m->ApplyTerrainEffect(unit_atk, a.atk);
   int              def = m->ApplyTerrainEffect(unit_def, d.def);
-  return ComputeDamageBase(atk, def, unit_atk->GetLevel(), force);
+  int damage = ComputeDamageBase(atk, def, unit_atk->GetLevel(), force);
+  return ApplyRatio(damage, ComputeClassAdvantage(unit_atk, unit_def));
+}
+
+int Formulae::ComputeClassAdvantage(Unit* unit_atk, Unit* unit_def) {
+  const string atk = unit_atk->GetClass()->GetId();
+  const string def = unit_def->GetClass()->GetId();
+  const bool atk_archer = atk == "Archer" || atk == "HorseArcher";
+  const bool def_archer = def == "Archer" || def == "HorseArcher";
+  if ((atk == "Cavalry" && def == "Infantry") ||
+      (atk == "Infantry" && def_archer) ||
+      (atk_archer && def == "Cavalry")) return 120;
+  if ((def == "Cavalry" && atk == "Infantry") ||
+      (def == "Infantry" && atk_archer) ||
+      (def_archer && atk == "Cavalry")) return 80;
+  return 100;
 }
 
 int Formulae::ComputeMagicDamage(Map* m, Unit* unit_atk, Unit* unit_def, int force) {

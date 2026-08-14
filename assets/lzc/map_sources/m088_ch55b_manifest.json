@@ -1,0 +1,104 @@
+{
+  "map": "assets/lzc/map/m088.png",
+  "source_base": "output/imagegen/chapter55-qingcao-base-gpt2.png",
+  "prompt_file": "output/imagegen/m088_prompt.txt",
+  "grid": [
+    48,
+    32
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "FFffwwgwwgwwgwffFFgfFFffFFffFFgfFFffFFffFFgfFFff",
+    "fFFfwgwwgwwgwwFffFFffFFgfFFffFFffFFgfFFffFFffFFg",
+    "ffFFgwwgwwgwwgFFgfFFffFFffFFgfFFffFFffFFgfFFffFF",
+    "FffgwwgwwgwwgwfgfffffgfffffgfffffgfffffgfffffgfF",
+    "FFgfwgwwgwwgwwgfffffgfffffgfffffgfffffgfffffgFff",
+    "fFFfgwwgwwgwwgfffffgfffffgfffffgfffffgfffffgfFFf",
+    "gfFfwwgwwgwwgwffffgfffffgfffffgfffffgfffffgfffFF",
+    "FfffwgwwgwwgwwfffgfffffgfffffgfffffgfffffgfffffF",
+    "FFffgwwgwwgwwgffgfffffgfffffgfffffgfffffgffffFgf",
+    "fFFgwwgwwgwwgwfgfffffgfffffgfffffgfffffgfffffFFf",
+    "ffFfffffgfffffgfffffgfffffgfffffgfffffgfffffgfFF",
+    "FgfffffgfffffgfffffgfffffgfffffgfffffgfffffgfffF",
+    "FFffffgfffffgfffffgfffffgfffffgfffffgfffffgffFff",
+    "fFFffgfffffgfffffgfffffgfffffgfffffgffffwwwwwwww",
+    "ffFfgfffffgfffffgfffffgfffffgfwwwwwwwwwwwwwwwwww",
+    "Fffgfffffggggggggggggggggggggggggggggggwwwwwwwww",
+    "FFgfffffgfgggggggggggggggggggggggggggggwffffgFff",
+    "wwwwwwwwwwgggggggggggggggggggggggggggggffffgfFFf",
+    "wwwwwwwwwwgggggggggggggggggggggggggggggfffgfffFF",
+    "wwwwwwwwwwgggggggggggggggggggggggggggggffgfffffF",
+    "FFffgfffffgggggggggggggggggggggggggggggfgffffFgf",
+    "fFFgfffffgfffffgfffffgfffffgfffffgfffffgfffffFFf",
+    "ffFfffffgfffffgfffffgfffffgfffffgfffffgfffffgfFF",
+    "FgfffffgfffffgfffffgfffffgfffffgfffffgfffffgfffF",
+    "FFffffgfffffgfffffgfffffgfffffgfffffgfffffgffFff",
+    "FFFFfFffFfFgfFfFfgFfFffFfFffFgFffFfFffFfFgfFfFFg",
+    "FfFfgFfFffFfFffFgFffFfFffFfFgfFfFfgFfFffFfFffFFF",
+    "FfFgFffFfFffFfFgfFfFfgFfFffFfFffFgFffFfFffFfFgfF",
+    "FFgfFfFfgFfFffFfFffFgFffFfFffFfFgfFfFfgFfFffFFFf",
+    "fFFFfFFgFFFFfFFfFFFgfFFFfFFfFFFFfFFfFFFffFFFfFFf",
+    "FfFFfFFFFfFFgFFFffFFFfFFgFFFFfFFfFFFgfFFFfFFfFFF",
+    "FfFFFFfFFfFFFffFFFfFFfFFFFfFFgFFFffFFFfFFgFFFFfF"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "GPT Image 2 natural base plus reviewed programmatic source-of-truth geometry",
+  "structure_regions": {},
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [],
+  "supply_sites": [],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "WeiKe55",
+      "force": 1,
+      "position": [
+        8,
+        18
+      ]
+    },
+    {
+      "name": "WeiQi54",
+      "force": 1,
+      "position": [
+        10,
+        22
+      ]
+    },
+    {
+      "name": "DuHui55",
+      "force": 3,
+      "position": [
+        39,
+        17
+      ]
+    }
+  ],
+  "mission": {
+    "type": "qingcao_slope_ambush",
+    "trigger": [
+      24,
+      18
+    ],
+    "target": "DuHui55",
+    "outcome": "captured_then_executed",
+    "old_man": "ties_grass_at_trigger"
+  },
+  "visual_grid_in_game": false
+}

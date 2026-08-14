@@ -1,0 +1,87 @@
+{
+  "map": "assets/lzc/map/m078.png",
+  "source_base": "output/imagegen/chapter50-daji-base-gpt2.png",
+  "prompt_file": "output/imagegen/m078_prompt.txt",
+  "grid": [
+    42,
+    28
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "FgFfFfFgFmFfFgFfFfFgFfFfFgFmFfFgFfFfFgFfFf",
+    "FfFfFgFfFfFgFfFmFgFfFfFgFfFfFgFfFmFgFfFfFg",
+    "fFgFfFfFgFfFmFgFfFfFgFfFfFgFfFmFgFfFfFgFfF",
+    "mFffffggfmffggffffmgffffggfmffggffffmgfFfF",
+    "FfFfggmfffggfffmggffffggmfffggfffmggffffFg",
+    "FfFmffffggffmfggffffgmffffggffmfggffffgmFf",
+    "mFffffggffffggffffggffffggffffggffffmgfFfF",
+    "fFffggffffggffffggffffggffffggffffggfffFgF",
+    "FfFmffffggffffggffffggffffggffffggffffgmFf",
+    "FgFfffggffffggffffggffffggffffggffffmgffFf",
+    "fFffggffffggffffggffffggffffggffffggfffFgF",
+    "fFgmffffggffffggffffggffffggffffggffffgFfF",
+    "wwwwwwwwwwwwggffffggffffwwwwwwwwwwwwmgffFf",
+    "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+    "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+    "mFffffggffffwwwwwwwwwwwwggffffggffffwwwwww",
+    "FfFfggffffggffffggffffggffffggffffggffffFg",
+    "FfFmffffggffffggffffggffffggffffggffffgmFf",
+    "mFffffggffffggffffggffffggffffggffffmgfFfF",
+    "fFffggffffggffffggffffggffffggffffggfffFgF",
+    "FfFmffffggffffggffffggffffggffffggffffgmFf",
+    "FgFfffggffffggffffggffffggffffggffffmgffFf",
+    "fFffggmfffggfffmggffffggmfffggfffmggfffFgF",
+    "fFgmffffggffmfggffffgmffffggffmfggffffgFfF",
+    "FgFfffggfmffggffffmgffffggfmffggffffmgffFf",
+    "FfFfFgFfFfFgFfFmFgFfFfFgFfFfFgFfFmFgFfFfFg",
+    "fFgFfFfFgFfFmFgFfFfFgFfFfFgFfFmFgFfFfFgFfF",
+    "mFfFfFgFfFfFgFfFfFmFfFfFgFfFfFgFfFfFmFfFfF"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "GPT Image 2 natural base plus reviewed programmatic source-of-truth geometry",
+  "structure_regions": {},
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [],
+  "supply_sites": [],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "GongZiGuiSheng50",
+      "force": 1,
+      "position": [
+        34,
+        13
+      ]
+    },
+    {
+      "name": "HuaYuan50",
+      "force": 3,
+      "position": [
+        8,
+        14
+      ]
+    }
+  ],
+  "mission": {
+    "type": "battle_of_daji",
+    "target": "HuaYuan50",
+    "target_outcome": "captured_not_killed"
+  },
+  "visual_grid_in_game": false
+}

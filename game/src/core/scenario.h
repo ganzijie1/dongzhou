@@ -14,7 +14,7 @@ class Game;
 
 class Scenario {
  public:
-  Scenario(const string&);
+  Scenario(const string&, uint32_t stage_no = 0);
   ~Scenario();
   const ResourceManagers& GetResourceManagers() { return rc_; }
   Assets*                 GetAssets() { return assets_; }
@@ -22,6 +22,8 @@ class Scenario {
 
  public:
   void NextStage();
+  bool HasNextStage() const { return stage_no_ + 1 < stage_ids_.size(); }
+  uint32_t GetStageNo() const { return stage_no_; }
 
  private:
   Game* NewGame(const string& stage_id);

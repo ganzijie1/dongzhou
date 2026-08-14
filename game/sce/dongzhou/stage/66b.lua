@@ -1,0 +1,72 @@
+gally_hold_position=true
+gsupply_enabled=true
+gitems={{id="medicine",name="金疮药",hp=120,mp=0,price=120,initial=2},{id="spirit_powder",name="清心散",hp=0,mp=30,price=150,initial=1}}
+gcommanders={"GongSunMianYu66"}
+gevents_enabled=true
+gduel_enabled=false
+gduels={}
+gsites={{id="ning_hall",name="宁氏正堂",position={25,10},restore_hp=25,restore_mp=15,rewards={{item="medicine",amount=1}}},{id="ning_store",name="宁氏府库",position={17,23},restore_hp=20,restore_mp=10,rewards={}}}
+gstory={chapter="第六十六回·中一",title="杀宁喜子鱄出奔 戮崔杼庆封独相",battle_title="宁府诛喜",objective="攻入宁府，击退右宰谷与宁喜。",map_asset="m112.png",
+ intro={
+  {speaker="",text="宋国向戌倡导晋楚弭兵。宁喜不经卫献公便遣石恶赴会，自称政权归宁氏，引起献公不满。"},
+  {speaker="",text="公孙无地、公孙臣先攻宁府，误触伏机，一死一擒；宁喜将无地鞭杀。"},
+  {speaker="公孙免馀",text="宁氏开门处理俘虏，正是乘门而入之机。先截右宰谷，再围宁喜于堂柱。"},
+  {speaker="宁喜",text="我迎故君复位，卫国政事本应归我。何人敢趁春宴犯宁氏？"},
+  {speaker="军令",text="攻入宁府，击退右宰谷与宁喜。公孙免馀被击退即失败。"}
+ },
+ events={
+  {id="story_event_1",trigger="scripted",turn=0,hp_percent=0,speaker="公孙免馀",text="宁府门启，随我突入！"},
+  {id="story_event_2",trigger="scripted",turn=0,hp_percent=0,speaker="宁喜",text="绕柱结阵，挡住来兵！"}
+ },
+ victory={
+  {speaker="",text="右宰谷夜车来问，刚入门便被公孙免馀截杀。宁喜绕堂柱逃走，身中两剑而死。"},
+  {speaker="",text="卫献公陈宁喜、右宰谷尸于朝。公子鱄因自认失信，携妻子出奔晋国，终身不再入卫。"},
+  {speaker="",text="献公任太叔仪执政，卫国暂安；石恶因闻宁喜被杀，不敢归卫而留在晋国。"},
+  {speaker="军令",text="宁府诛喜完成，获得700金币。下一关：崔氏覆灭。"}
+ },
+ defeat={{speaker="",text="公孙免馀被击退或超过十八回合，失败。"}}
+}
+local function many(game,h,p,f)for _,v in ipairs(p)do game:generate_unit(h,1,f,v)end end
+function on_deploy(game)game:appoint_hero("GongSunMianYu66",1)end
+function on_begin(game)game:generate_unit("NingXi65",1,Enum.force.enemy,{25,10});game:generate_unit("YouZaiGu65",1,Enum.force.enemy,{17,23});many(game,"NingGuard66",{{22,29},{26,29},{30,29},{20,24},{28,24},{22,18},{27,18}},Enum.force.enemy);many(game,"QingGuard66",{{20,34},{24,34},{28,34},{32,34}},Enum.force.own)end function on_update(game)end function on_victory(game)end function on_defeat(game)end
+function end_condition(game)if not game:has_unit("GongSunMianYu66")then return Enum.status.defeat end if not game:has_unit("NingXi65") and not game:has_unit("YouZaiGu65")then return Enum.status.victory end return Enum.status.undecided end
+gstage={title_id="NingManorCoup66",turn_limit=18,map={blocked_edges={},size={50,38},terrain={
+        "FgfffFggffffggFffggffffFgfffFggfffggfFffggffffFgff",
+        "ffggffffFgffffggfFfggfFffggffffFgfffggffFfggfFffgg",
+        "gfFfggffffgFffffFgfffggffFfggffffgFfffgFffffggffFf",
+        "fggffFggffFfggffffgFfffggfffFggffFfggfffggFfffggff",
+        "fffgFfffWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWgfFffgg",
+        "gffffggFWhiiiiiihiiiiiihiiiiiihiiiiiihiiiiWfFgffff",
+        "fFgffffgWiiiiiihiiiiiihiiiiiihiiiiiihiiiiiWfffgFff",
+        "fffgFfffWiiiiihiiiiiihiiiiiihiiiiiihiiiiiiWggfffgg",
+        "gffFfggfWiiiihiiiiiihiiiiiihiiiiiihiiiiiihWfFggffF",
+        "fggfffFgWiiihiiiiiihiiiiiihiiiiiihiiiiiihiWFfffggf",
+        "FffggfffWiihiiiiiihiiiiiiCiiiiiihiiiiiihiiWggfFffg",
+        "ggfFfggfWihiiiiiihiiiiiihiiiiiihiiiiiihiiiWffggffF",
+        "ffFgfffgWhiiiiiihiiiiiihiiiiiihiiiiiihiiiiWFfffgFf",
+        "ffffgFffWiiiiiihiiiiiihiiiiiihiiiiiihiiiiiWggffffg",
+        "ggffffggWiiiiihiiiiiihiiiiiihiiiiiihiiiiiiWffFgfff",
+        "ffFgfffFWiiiihiiiiiihiiiiiihiiiiiihiiiiiihWgfffgFf",
+        "fFffggffWiiihiiiiiihiiiiiihiiiiiihiiiiiihiWfggfFfg",
+        "ggffFfggWiihiiiiiihiiiiiihiiiiiihiiiiiihiiWfffggff",
+        "ffggfffFWihiiiiiihiiiiiihiiiiiihiiiiiihiiiWgFfffgg",
+        "gFffggFfWhiiiiiihiiiiiihiiiiiihiiiiiihiiiiWfggfFff",
+        "FggfffggWiiiiiihiiiiiihiiiiiihiiiiiihiiiiiWfffFgff",
+        "fffFgfffWiiiiihiiiiiihiiiiiihiiiiiihiiiiiiWgffffgF",
+        "gffffgFfWiiiihiiiiiihiiiiiihiiiiiihiiiiiihWFggffff",
+        "FggffFfgWiiihiiiiCihiiiiiihiiiiiihiiiiiihiWfffFgff",
+        "fffggfffWiihiiiiiihiiiiiihiiiiiihiiiiiihiiWggFffgg",
+        "gfFffggfWihiiiiiihiiiiiihiiiiiihiiiiiihiiiWffggfFf",
+        "fggffFfgWhiiiiiihiiiiiihiiiiiihiiiiiihiiiiWffffggf",
+        "fffgFfffWiiiiiihiiiiiihiiiiiihiiiiiihiiiiiWggFfffg",
+        "ggfffggFWiiiiihiiiiiihiiiiiihiiiiiihiiiiiiWfFggfff",
+        "fFggfffgWiiiihiiiiiihiiiiiihiiiiiihiiiiiihWffffFgf",
+        "ffffFgffWiiihiiiiiihiiiiiihiiiiiihiiiiiihiWggffffg",
+        "ggfFffggWiihiiiiiihiiiiiihiiiiiihiiiiiihiiWfFggffF",
+        "ffggffFfWWWWWWWWWWWWWWWWGGWWWWWWWWWWWWWWWWWFfffggf",
+        "FfffggfffFggffFggffffggFfffggfffFgfffFggffffggFffg",
+        "ggfFffggFfffggfffFgffffggfFffggFffggffffFgffffggfF",
+        "ffFgffffggfFffggfffgFffffFgffffggfFfggffffgFffffFg",
+        "gfffgFffffggffFfggfFfggffffgFffffggffFggffFfggffff",
+        "fggfffggFfffgFffffggffFggffffggFfffgFfffggfffFggff",
+},file="map.bmp"},deploy={unselectables={{position={24,35},hero="GongSunMianYu66"}},num_required_selectables=0,selectables={}},rewards={equipments={},money=7000}}

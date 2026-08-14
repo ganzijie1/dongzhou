@@ -1,0 +1,9 @@
+Use case: historical-scene
+Asset type: clean base terrain for a classic Chinese tactical RPG battle map
+Primary request: create a broad winter battlefield for the Spring and Autumn period, designed for a 36 by 26 logical grid at 48 pixels per cell
+Scene/backdrop: snow-covered rolling plain with a winding packed-earth route from southeast to northwest, sparse leafless woodland along the west and north edges, an open level ambush field in the center, subtle frozen grass and shallow drifts
+Style/medium: polished orthographic classic Cao Cao Zhuan-inspired tactical RPG terrain, hand-painted realistic pixel-art texture, readable from above
+Composition/framing: wide top-down orthographic map, broad contiguous natural terrain masses, center and southeast kept open and level for troops and hidden pit traps
+Lighting/mood: cold overcast winter night with enough visibility for gameplay, soft moonlit snow, no heavy darkness
+Constraints: natural terrain only; no people, units, animals, buildings, camps, tents, fences, walls, gates, pits, holes, text, labels, UI, grid lines, square tile seams, or watermark
+Avoid: photorealistic aerial photography, perspective horizon, repeated checkerboard textures, decorative objects crossing logical cells

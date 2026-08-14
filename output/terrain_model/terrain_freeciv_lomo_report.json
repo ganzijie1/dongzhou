@@ -1,0 +1,624 @@
+{
+  "evaluation": "leave-one-fully-reviewed-map-out",
+  "external_source": "Freeciv GPL-2.0 full scenario maps + official terrain codes",
+  "external_role": "training-only weak semantic pretraining",
+  "external_cells": 5172,
+  "windows": [
+    {
+      "scenario": "earth-small.sav",
+      "origin": [
+        50,
+        10
+      ],
+      "supported_cells": 93
+    },
+    {
+      "scenario": "earth-small.sav",
+      "origin": [
+        40,
+        10
+      ],
+      "supported_cells": 84
+    },
+    {
+      "scenario": "earth-small.sav",
+      "origin": [
+        0,
+        10
+      ],
+      "supported_cells": 71
+    },
+    {
+      "scenario": "europe.sav",
+      "origin": [
+        90,
+        70
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "europe.sav",
+      "origin": [
+        90,
+        50
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "europe.sav",
+      "origin": [
+        80,
+        60
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "europe.sav",
+      "origin": [
+        70,
+        50
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "europe.sav",
+      "origin": [
+        70,
+        40
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "europe.sav",
+      "origin": [
+        60,
+        50
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "europe.sav",
+      "origin": [
+        50,
+        50
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "europe.sav",
+      "origin": [
+        100,
+        40
+      ],
+      "supported_cells": 99
+    },
+    {
+      "scenario": "british-isles.sav",
+      "origin": [
+        40,
+        50
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "british-isles.sav",
+      "origin": [
+        40,
+        40
+      ],
+      "supported_cells": 98
+    },
+    {
+      "scenario": "british-isles.sav",
+      "origin": [
+        40,
+        60
+      ],
+      "supported_cells": 94
+    },
+    {
+      "scenario": "british-isles.sav",
+      "origin": [
+        30,
+        30
+      ],
+      "supported_cells": 80
+    },
+    {
+      "scenario": "british-isles.sav",
+      "origin": [
+        50,
+        60
+      ],
+      "supported_cells": 78
+    },
+    {
+      "scenario": "british-isles.sav",
+      "origin": [
+        30,
+        60
+      ],
+      "supported_cells": 75
+    },
+    {
+      "scenario": "british-isles.sav",
+      "origin": [
+        30,
+        20
+      ],
+      "supported_cells": 70
+    },
+    {
+      "scenario": "france.sav",
+      "origin": [
+        100,
+        40
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "france.sav",
+      "origin": [
+        80,
+        30
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "france.sav",
+      "origin": [
+        70,
+        60
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "france.sav",
+      "origin": [
+        60,
+        10
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "france.sav",
+      "origin": [
+        40,
+        20
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "france.sav",
+      "origin": [
+        100,
+        30
+      ],
+      "supported_cells": 99
+    },
+    {
+      "scenario": "france.sav",
+      "origin": [
+        50,
+        40
+      ],
+      "supported_cells": 98
+    },
+    {
+      "scenario": "france.sav",
+      "origin": [
+        60,
+        50
+      ],
+      "supported_cells": 97
+    },
+    {
+      "scenario": "iberian-peninsula.sav",
+      "origin": [
+        60,
+        60
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "iberian-peninsula.sav",
+      "origin": [
+        30,
+        40
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "iberian-peninsula.sav",
+      "origin": [
+        20,
+        50
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "iberian-peninsula.sav",
+      "origin": [
+        20,
+        40
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "iberian-peninsula.sav",
+      "origin": [
+        70,
+        60
+      ],
+      "supported_cells": 99
+    },
+    {
+      "scenario": "iberian-peninsula.sav",
+      "origin": [
+        70,
+        70
+      ],
+      "supported_cells": 83
+    },
+    {
+      "scenario": "iberian-peninsula.sav",
+      "origin": [
+        10,
+        70
+      ],
+      "supported_cells": 74
+    },
+    {
+      "scenario": "iberian-peninsula.sav",
+      "origin": [
+        100,
+        10
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "italy.sav",
+      "origin": [
+        40,
+        20
+      ],
+      "supported_cells": 99
+    },
+    {
+      "scenario": "italy.sav",
+      "origin": [
+        80,
+        50
+      ],
+      "supported_cells": 96
+    },
+    {
+      "scenario": "italy.sav",
+      "origin": [
+        20,
+        0
+      ],
+      "supported_cells": 94
+    },
+    {
+      "scenario": "italy.sav",
+      "origin": [
+        10,
+        10
+      ],
+      "supported_cells": 94
+    },
+    {
+      "scenario": "italy.sav",
+      "origin": [
+        50,
+        30
+      ],
+      "supported_cells": 93
+    },
+    {
+      "scenario": "italy.sav",
+      "origin": [
+        50,
+        0
+      ],
+      "supported_cells": 93
+    },
+    {
+      "scenario": "italy.sav",
+      "origin": [
+        60,
+        30
+      ],
+      "supported_cells": 91
+    },
+    {
+      "scenario": "italy.sav",
+      "origin": [
+        40,
+        0
+      ],
+      "supported_cells": 91
+    },
+    {
+      "scenario": "japan.sav",
+      "origin": [
+        40,
+        60
+      ],
+      "supported_cells": 99
+    },
+    {
+      "scenario": "japan.sav",
+      "origin": [
+        50,
+        50
+      ],
+      "supported_cells": 94
+    },
+    {
+      "scenario": "japan.sav",
+      "origin": [
+        60,
+        10
+      ],
+      "supported_cells": 89
+    },
+    {
+      "scenario": "japan.sav",
+      "origin": [
+        20,
+        70
+      ],
+      "supported_cells": 79
+    },
+    {
+      "scenario": "japan.sav",
+      "origin": [
+        50,
+        60
+      ],
+      "supported_cells": 72
+    },
+    {
+      "scenario": "north_america.sav",
+      "origin": [
+        80,
+        60
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "north_america.sav",
+      "origin": [
+        70,
+        60
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "north_america.sav",
+      "origin": [
+        70,
+        50
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "north_america.sav",
+      "origin": [
+        50,
+        40
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "north_america.sav",
+      "origin": [
+        50,
+        30
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "north_america.sav",
+      "origin": [
+        40,
+        30
+      ],
+      "supported_cells": 100
+    },
+    {
+      "scenario": "north_america.sav",
+      "origin": [
+        60,
+        40
+      ],
+      "supported_cells": 98
+    },
+    {
+      "scenario": "north_america.sav",
+      "origin": [
+        40,
+        40
+      ],
+      "supported_cells": 98
+    }
+  ],
+  "folds": [
+    {
+      "held_out_map": "m008-large-v2.png",
+      "selected_c": 0.1,
+      "macro_f1": 0.3483952578317309,
+      "minimum_recall": 0.0,
+      "classes": {
+        "f": {
+          "precision": 1.0,
+          "recall": 0.4052863436123348,
+          "f1-score": 0.5768025078369906,
+          "support": 227.0
+        },
+        "g": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 0.0
+        },
+        "F": {
+          "precision": 0.37745098039215685,
+          "recall": 0.8191489361702128,
+          "f1-score": 0.5167785234899329,
+          "support": 94.0
+        },
+        "m": {
+          "precision": 0.23076923076923078,
+          "recall": 0.42857142857142855,
+          "f1-score": 0.3,
+          "support": 14.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          92,
+          12,
+          119,
+          4
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          77,
+          16
+        ],
+        [
+          0,
+          0,
+          8,
+          6
+        ]
+      ]
+    },
+    {
+      "held_out_map": "m058.png",
+      "selected_c": 0.1,
+      "macro_f1": 0.3528458464467852,
+      "minimum_recall": 0.0,
+      "classes": {
+        "f": {
+          "precision": 0.5297297297297298,
+          "recall": 0.9158878504672897,
+          "f1-score": 0.6712328767123288,
+          "support": 107.0
+        },
+        "g": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 98.0
+        },
+        "F": {
+          "precision": 0.4421768707482993,
+          "recall": 0.625,
+          "f1-score": 0.5179282868525896,
+          "support": 104.0
+        },
+        "m": {
+          "precision": 0.35,
+          "recall": 0.16279069767441862,
+          "f1-score": 0.2222222222222222,
+          "support": 43.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          98,
+          0,
+          6,
+          3
+        ],
+        [
+          41,
+          0,
+          49,
+          8
+        ],
+        [
+          37,
+          0,
+          65,
+          2
+        ],
+        [
+          9,
+          0,
+          27,
+          7
+        ]
+      ]
+    }
+  ],
+  "pooled": {
+    "macro_f1": 0.3479156585326222,
+    "minimum_recall": 0.0,
+    "classes": {
+      "f": {
+        "precision": 0.6859205776173285,
+        "recall": 0.5688622754491018,
+        "f1-score": 0.6219312602291326,
+        "support": 334.0
+      },
+      "g": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 98.0
+      },
+      "F": {
+        "precision": 0.4045584045584046,
+        "recall": 0.7171717171717171,
+        "f1-score": 0.517304189435337,
+        "support": 198.0
+      },
+      "m": {
+        "precision": 0.2826086956521739,
+        "recall": 0.22807017543859648,
+        "f1-score": 0.2524271844660194,
+        "support": 57.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        190,
+        12,
+        125,
+        7
+      ],
+      [
+        41,
+        0,
+        49,
+        8
+      ],
+      [
+        37,
+        1,
+        142,
+        18
+      ],
+      [
+        9,
+        0,
+        35,
+        13
+      ]
+    ]
+  },
+  "production_promotion": false,
+  "auto_apply": false
+}

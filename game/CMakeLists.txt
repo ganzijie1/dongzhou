@@ -19,6 +19,7 @@ add_subdirectory(src/lua)
 add_subdirectory(src/util)
 add_subdirectory(src/core)
 add_subdirectory(src/gui)
+add_subdirectory(src/rl)
 
 add_executable(game ${SOURCES} ${HEADERS})
 

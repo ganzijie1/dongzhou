@@ -1,0 +1,7 @@
+Use case: historical-scene
+Asset type: grid-free tactical RPG battlefield base
+Primary request: Create the large battlefield of An near Mount Hua-buzhu for a coalition chariot battle between Jin and Qi.
+Scene/backdrop: vast summer plain with long chariot tracks, low rugged Mount Hua-buzhu dominating the northeastern quarter, a clear spring and stony ground near its base, sparse woods on the southern edge, and very broad open center for opposing chariot lines.
+Style/medium: polished hand-painted classic Chinese tactical-RPG terrain, orthographic view, readable at 48-pixel logical cells.
+Composition/framing: landscape 2048x1152, huge maneuver space, clear central charge lanes and a looping route around the mountain.
+Constraints: natural landscape only. No troops, chariots, camps, tents, fences, walls, gates, buildings, flags, text, UI, supply icons, square tiles, or grid lines.

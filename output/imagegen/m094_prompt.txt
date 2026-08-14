@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: Mengde tactical battle-map base
+Primary request: level ground reserved for a large Jin noble estate with a broad southern approach.
+Style: classic Chinese tactical-RPG painted terrain, orthographic, natural transitions.
+Constraints: no buildings, walls, gates, units, text, UI, or visible grid; estate structures are separate overlays.

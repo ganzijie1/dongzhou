@@ -1,0 +1,12 @@
+{
+  "map": "assets/lzc/map/m086.png",
+  "grid": [
+    52,
+    34
+  ],
+  "backend": "reviewed-contract-with-dinov3-evidence-slot",
+  "threshold": 0.72,
+  "auto_apply": false,
+  "review_required": [],
+  "note": "Classifier evidence cannot overwrite reviewed river, rocky barrier, or Lua terrain rows."
+}

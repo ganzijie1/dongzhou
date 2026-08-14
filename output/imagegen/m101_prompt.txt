@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: very large Mengde tactical campaign map
+Primary request: Fangmen trench, walled Pingyin, rocky Shimen pass, and continuous walled Linzi in one scrolling battlefield.
+Style: classic Chinese tactical-RPG painted terrain, orthographic, natural transitions.
+Constraints: no units, text, UI, or visible grid; walls, gates and cities are source-of-truth overlays.

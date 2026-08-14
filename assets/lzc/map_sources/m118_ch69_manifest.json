@@ -1,0 +1,1078 @@
+{
+  "map": "assets/lzc/map/m118.png",
+  "source_base": "output/imagegen/chapter55-suiyang-base-gpt2.png",
+  "prompt_file": "output/imagegen/m118_prompt.txt",
+  "grid": [
+    64,
+    46
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "FgfffFggffffggFffggffffFgfffFggfffggfFffggffffFgfffFgffffggfFffg",
+    "ffggffffFgffffggfFfggfFffggffffFgfffggffFfggfFffggfffgFffffggffF",
+    "gfFfggffffgFffffFgfffggffFfggffffgFfffgFffffggffFfggfffggFfffgFf",
+    "fggffFggfWWWWWWWWWWWWWWWWWWWWWWGGWWWWWWWWWWWWWWWWWWWWWWfFggffffg",
+    "fffgFfffgWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWgfffFgfff",
+    "gffffggFfWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWfggfffgFf",
+    "fFgffffggWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWfFfggfFfg",
+    "fffgFffffWiiihhhhhhhhhhhhiiiiiiiiiiiiiihhhhhhhhhhhhiiiWFffffggff",
+    "gffFfggffWiiihhhhhhhhhhhhiiiiiiiiiiiiiihhhhhhhhhhhhiiiWfggFfffgg",
+    "fggfffFggWiiihhhhhhhhhhhhiiiiiiCiiiiiiihhhhhhhhhhhhiiiWfffggfFff",
+    "FffggffffWiiihhhhhhhhhhhhiiiiiiiiiiiiiihhhhhhhhhhhhiiiWFffffFgff",
+    "ggfFfggfFWiiihhhhhhhhhhhhiiiiiiiiiiiiiihhhhhhhhhhhhiiiWfggffffgF",
+    "ffFgfffggWiiihhhhhhhhhhhhiiiiiiiiiiiiiihhhhhhhhhhhhiiiWffFggffff",
+    "ffffgFfffWiiihhhhhhhhhhhhiiiiiiiiiiiiiihhhhhhhhhhhhiiiWggfffFgff",
+    "ggffffggFWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWffggFffgg",
+    "ffFgfffFgWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWffffggfFf",
+    "fFffggfffWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWgFffffggf",
+    "ggffFfggfWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWffggFfffg",
+    "ffggfffFgWiiiiiiiiiiiCiiiiiiiiiiiiiiiiiiiiCiiiiiiiiiiiWfffFggfff",
+    "gFffggFffWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWggffffFgf",
+    "FggfffggfWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWFfggffffg",
+    "fffFgfffgWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWgffFggffF",
+    "gffffgFffWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWfgFfffggf",
+    "FggffFfggWiiihhhhhhhhhhhhiiiiiiiiiiiiiihhhhhhhhhhhhiiiWfffggFffg",
+    "fffggfffFWiiihhhhhhhhhhhhiiiiiiiiiiiiiihhhhhhhhhhhhiiiWgffffggfF",
+    "gfFffggffWiiihhhhhhhhhhhhiiiiiiiiiiiiiihhhhhhhhhhhhiiiWfgFffffFg",
+    "fggffFfggWiiihhhhhhhhhhhhiiiiiiiiiiiiiihhhhhhhhhhhhiiiWfFfggffff",
+    "fffgFffffWiiihhhhhhhhhhhhiiiiiiiiiiiiiihhhhhhhhhhhhiiiWgfffFggff",
+    "ggfffggFfWiiihhhhhhhhhhhhiiiiiiiiiiiiiihhhhhhhhhhhhiiiWfggffffFg",
+    "fFggfffggWiiihhhhhhhhhhhhiiiiiiiiiiiiiihhhhhhhhhhhhiiiWfFfggfFff",
+    "ffffFgfffWiiihhhhhhhhhhhhiiiiiiiiiiiiiihhhhhhhhhhhhiiiWFgfffggff",
+    "ggfFffggfWiiihhhhhhhhhhhhiiiiiiiiiiiiiihhhhhhhhhhhhiiiWffgFfffgg",
+    "ffggffFfgWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWffffggFff",
+    "FfffggfffWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWFgfffFggf",
+    "ggfFffggFWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWffggffffF",
+    "ffFgffffgWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWffFfggfff",
+    "gfffgFfffWiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiWggfffFggf",
+    "fggfffggFWWWWWWWWWWWWWWWWWWWWWWGGWWWWWWWWWWWWWWWWWWWWWWffggFfffg",
+    "ffFggffFggffffggFfffggfffFgfffFggffffggFffggffffFgfffFggfffggfFf",
+    "gFfffggfffFgffffggfFffggFffggffffFgffffggfFfggfFffggffffFgfffggf",
+    "fggfFffggfffgFffffFgffffggfFfggffffgFffffFgfffggffFfggffffgFfffg",
+    "fffggffFfggfFfggffffgFffffggffFggffFfggffffgFfffggfffFggffFfggff",
+    "gFfffgFffffggffFggffffggFfffgFfffggfffFggffffggFffggFfffggfffFgg",
+    "FggffffggFfffggfffFgfffFggffffggFffggffffFgfffFggfffggfFffggffff",
+    "fffFgffffggfFffggFffggffffFgffffggfFfggfFffggffffFgfffggffFfggfF",
+    "ggfffgFffffFgffffggfFfggffffgFffffFgfffggffFfggffffgFfffgFffffgg"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m",
+      "v"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "recomposed saved GPT Image 2 natural base plus reviewed programmatic source-of-truth geometry",
+  "structure_regions": {
+    "shangcai_city": [
+      [
+        9,
+        3
+      ],
+      [
+        54,
+        37
+      ]
+    ],
+    "north_gate": [
+      [
+        31,
+        3
+      ],
+      [
+        32,
+        3
+      ]
+    ],
+    "south_gate": [
+      [
+        31,
+        37
+      ],
+      [
+        32,
+        37
+      ]
+    ],
+    "central_avenue": [
+      [
+        30,
+        3
+      ],
+      [
+        33,
+        37
+      ]
+    ],
+    "residential_wards": [
+      [
+        13,
+        7
+      ],
+      [
+        50,
+        31
+      ]
+    ],
+    "southern_chu_lines": [
+      [
+        20,
+        39
+      ],
+      [
+        43,
+        45
+      ]
+    ]
+  },
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [
+    [
+      9,
+      3
+    ],
+    [
+      9,
+      4
+    ],
+    [
+      9,
+      5
+    ],
+    [
+      9,
+      6
+    ],
+    [
+      9,
+      7
+    ],
+    [
+      9,
+      8
+    ],
+    [
+      9,
+      9
+    ],
+    [
+      9,
+      10
+    ],
+    [
+      9,
+      11
+    ],
+    [
+      9,
+      12
+    ],
+    [
+      9,
+      13
+    ],
+    [
+      9,
+      14
+    ],
+    [
+      9,
+      15
+    ],
+    [
+      9,
+      16
+    ],
+    [
+      9,
+      17
+    ],
+    [
+      9,
+      18
+    ],
+    [
+      9,
+      19
+    ],
+    [
+      9,
+      20
+    ],
+    [
+      9,
+      21
+    ],
+    [
+      9,
+      22
+    ],
+    [
+      9,
+      23
+    ],
+    [
+      9,
+      24
+    ],
+    [
+      9,
+      25
+    ],
+    [
+      9,
+      26
+    ],
+    [
+      9,
+      27
+    ],
+    [
+      9,
+      28
+    ],
+    [
+      9,
+      29
+    ],
+    [
+      9,
+      30
+    ],
+    [
+      9,
+      31
+    ],
+    [
+      9,
+      32
+    ],
+    [
+      9,
+      33
+    ],
+    [
+      9,
+      34
+    ],
+    [
+      9,
+      35
+    ],
+    [
+      9,
+      36
+    ],
+    [
+      9,
+      37
+    ],
+    [
+      10,
+      3
+    ],
+    [
+      10,
+      37
+    ],
+    [
+      11,
+      3
+    ],
+    [
+      11,
+      37
+    ],
+    [
+      12,
+      3
+    ],
+    [
+      12,
+      37
+    ],
+    [
+      13,
+      3
+    ],
+    [
+      13,
+      37
+    ],
+    [
+      14,
+      3
+    ],
+    [
+      14,
+      37
+    ],
+    [
+      15,
+      3
+    ],
+    [
+      15,
+      37
+    ],
+    [
+      16,
+      3
+    ],
+    [
+      16,
+      37
+    ],
+    [
+      17,
+      3
+    ],
+    [
+      17,
+      37
+    ],
+    [
+      18,
+      3
+    ],
+    [
+      18,
+      37
+    ],
+    [
+      19,
+      3
+    ],
+    [
+      19,
+      37
+    ],
+    [
+      20,
+      3
+    ],
+    [
+      20,
+      37
+    ],
+    [
+      21,
+      3
+    ],
+    [
+      21,
+      37
+    ],
+    [
+      22,
+      3
+    ],
+    [
+      22,
+      37
+    ],
+    [
+      23,
+      3
+    ],
+    [
+      23,
+      37
+    ],
+    [
+      24,
+      3
+    ],
+    [
+      24,
+      37
+    ],
+    [
+      25,
+      3
+    ],
+    [
+      25,
+      37
+    ],
+    [
+      26,
+      3
+    ],
+    [
+      26,
+      37
+    ],
+    [
+      27,
+      3
+    ],
+    [
+      27,
+      37
+    ],
+    [
+      28,
+      3
+    ],
+    [
+      28,
+      37
+    ],
+    [
+      29,
+      3
+    ],
+    [
+      29,
+      37
+    ],
+    [
+      30,
+      3
+    ],
+    [
+      30,
+      37
+    ],
+    [
+      33,
+      3
+    ],
+    [
+      33,
+      37
+    ],
+    [
+      34,
+      3
+    ],
+    [
+      34,
+      37
+    ],
+    [
+      35,
+      3
+    ],
+    [
+      35,
+      37
+    ],
+    [
+      36,
+      3
+    ],
+    [
+      36,
+      37
+    ],
+    [
+      37,
+      3
+    ],
+    [
+      37,
+      37
+    ],
+    [
+      38,
+      3
+    ],
+    [
+      38,
+      37
+    ],
+    [
+      39,
+      3
+    ],
+    [
+      39,
+      37
+    ],
+    [
+      40,
+      3
+    ],
+    [
+      40,
+      37
+    ],
+    [
+      41,
+      3
+    ],
+    [
+      41,
+      37
+    ],
+    [
+      42,
+      3
+    ],
+    [
+      42,
+      37
+    ],
+    [
+      43,
+      3
+    ],
+    [
+      43,
+      37
+    ],
+    [
+      44,
+      3
+    ],
+    [
+      44,
+      37
+    ],
+    [
+      45,
+      3
+    ],
+    [
+      45,
+      37
+    ],
+    [
+      46,
+      3
+    ],
+    [
+      46,
+      37
+    ],
+    [
+      47,
+      3
+    ],
+    [
+      47,
+      37
+    ],
+    [
+      48,
+      3
+    ],
+    [
+      48,
+      37
+    ],
+    [
+      49,
+      3
+    ],
+    [
+      49,
+      37
+    ],
+    [
+      50,
+      3
+    ],
+    [
+      50,
+      37
+    ],
+    [
+      51,
+      3
+    ],
+    [
+      51,
+      37
+    ],
+    [
+      52,
+      3
+    ],
+    [
+      52,
+      37
+    ],
+    [
+      53,
+      3
+    ],
+    [
+      53,
+      37
+    ],
+    [
+      54,
+      3
+    ],
+    [
+      54,
+      4
+    ],
+    [
+      54,
+      5
+    ],
+    [
+      54,
+      6
+    ],
+    [
+      54,
+      7
+    ],
+    [
+      54,
+      8
+    ],
+    [
+      54,
+      9
+    ],
+    [
+      54,
+      10
+    ],
+    [
+      54,
+      11
+    ],
+    [
+      54,
+      12
+    ],
+    [
+      54,
+      13
+    ],
+    [
+      54,
+      14
+    ],
+    [
+      54,
+      15
+    ],
+    [
+      54,
+      16
+    ],
+    [
+      54,
+      17
+    ],
+    [
+      54,
+      18
+    ],
+    [
+      54,
+      19
+    ],
+    [
+      54,
+      20
+    ],
+    [
+      54,
+      21
+    ],
+    [
+      54,
+      22
+    ],
+    [
+      54,
+      23
+    ],
+    [
+      54,
+      24
+    ],
+    [
+      54,
+      25
+    ],
+    [
+      54,
+      26
+    ],
+    [
+      54,
+      27
+    ],
+    [
+      54,
+      28
+    ],
+    [
+      54,
+      29
+    ],
+    [
+      54,
+      30
+    ],
+    [
+      54,
+      31
+    ],
+    [
+      54,
+      32
+    ],
+    [
+      54,
+      33
+    ],
+    [
+      54,
+      34
+    ],
+    [
+      54,
+      35
+    ],
+    [
+      54,
+      36
+    ],
+    [
+      54,
+      37
+    ]
+  ],
+  "gates": [
+    {
+      "name": "shangcai_north_and_south_gates",
+      "cells": [
+        [
+          31,
+          3
+        ],
+        [
+          31,
+          37
+        ],
+        [
+          32,
+          3
+        ],
+        [
+          32,
+          37
+        ]
+      ]
+    }
+  ],
+  "castle_cells": [
+    [
+      21,
+      18
+    ],
+    [
+      31,
+      9
+    ],
+    [
+      42,
+      18
+    ]
+  ],
+  "supply_sites": [
+    [
+      21,
+      18
+    ],
+    [
+      31,
+      9
+    ],
+    [
+      42,
+      18
+    ]
+  ],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "GongZiQiJi69",
+      "force": 1,
+      "position": [
+        31,
+        42
+      ]
+    },
+    {
+      "name": "ChuSiegeGuard69",
+      "force": 1,
+      "position": [
+        25,
+        41
+      ]
+    },
+    {
+      "name": "ChuSiegeGuard69",
+      "force": 1,
+      "position": [
+        28,
+        42
+      ]
+    },
+    {
+      "name": "ChuSiegeGuard69",
+      "force": 1,
+      "position": [
+        35,
+        42
+      ]
+    },
+    {
+      "name": "ChuSiegeGuard69",
+      "force": 1,
+      "position": [
+        38,
+        41
+      ]
+    },
+    {
+      "name": "ChuSiegeGuard69",
+      "force": 1,
+      "position": [
+        23,
+        43
+      ]
+    },
+    {
+      "name": "ChuSiegeGuard69",
+      "force": 1,
+      "position": [
+        40,
+        43
+      ]
+    },
+    {
+      "name": "ChuSiegeArcher69",
+      "force": 1,
+      "position": [
+        27,
+        44
+      ]
+    },
+    {
+      "name": "ChuSiegeArcher69",
+      "force": 1,
+      "position": [
+        31,
+        44
+      ]
+    },
+    {
+      "name": "ChuSiegeArcher69",
+      "force": 1,
+      "position": [
+        32,
+        44
+      ]
+    },
+    {
+      "name": "ChuSiegeArcher69",
+      "force": 1,
+      "position": [
+        36,
+        44
+      ]
+    },
+    {
+      "name": "CaiShiZiYou69",
+      "force": 3,
+      "position": [
+        31,
+        9
+      ]
+    },
+    {
+      "name": "GongSunGuiSheng69",
+      "force": 3,
+      "position": [
+        21,
+        18
+      ]
+    },
+    {
+      "name": "ChaoWu69",
+      "force": 3,
+      "position": [
+        42,
+        18
+      ]
+    },
+    {
+      "name": "CaiGuard69",
+      "force": 3,
+      "position": [
+        31,
+        36
+      ]
+    },
+    {
+      "name": "CaiGuard69",
+      "force": 3,
+      "position": [
+        32,
+        36
+      ]
+    },
+    {
+      "name": "CaiGuard69",
+      "force": 3,
+      "position": [
+        26,
+        32
+      ]
+    },
+    {
+      "name": "CaiGuard69",
+      "force": 3,
+      "position": [
+        37,
+        32
+      ]
+    },
+    {
+      "name": "CaiGuard69",
+      "force": 3,
+      "position": [
+        18,
+        28
+      ]
+    },
+    {
+      "name": "CaiGuard69",
+      "force": 3,
+      "position": [
+        45,
+        28
+      ]
+    },
+    {
+      "name": "CaiGuard69",
+      "force": 3,
+      "position": [
+        26,
+        14
+      ]
+    },
+    {
+      "name": "CaiGuard69",
+      "force": 3,
+      "position": [
+        37,
+        14
+      ]
+    },
+    {
+      "name": "CaiGuard69",
+      "force": 3,
+      "position": [
+        31,
+        5
+      ]
+    },
+    {
+      "name": "CaiGuard69",
+      "force": 3,
+      "position": [
+        32,
+        5
+      ]
+    },
+    {
+      "name": "CaiArcher69",
+      "force": 3,
+      "position": [
+        28,
+        34
+      ]
+    },
+    {
+      "name": "CaiArcher69",
+      "force": 3,
+      "position": [
+        35,
+        34
+      ]
+    },
+    {
+      "name": "CaiArcher69",
+      "force": 3,
+      "position": [
+        17,
+        25
+      ]
+    },
+    {
+      "name": "CaiArcher69",
+      "force": 3,
+      "position": [
+        46,
+        25
+      ]
+    },
+    {
+      "name": "CaiArcher69",
+      "force": 3,
+      "position": [
+        27,
+        12
+      ]
+    },
+    {
+      "name": "CaiArcher69",
+      "force": 3,
+      "position": [
+        36,
+        12
+      ]
+    },
+    {
+      "name": "CaiArcher69",
+      "force": 3,
+      "position": [
+        29,
+        7
+      ]
+    },
+    {
+      "name": "CaiArcher69",
+      "force": 3,
+      "position": [
+        34,
+        7
+      ]
+    }
+  ],
+  "mission": {
+    "type": "merged_chen_cai_campaign",
+    "gate_name": "shangcai_north_and_south_gates",
+    "active_gate": "south_gate",
+    "messenger_escape_turn": 3,
+    "parley_turn": 6,
+    "final_assault_turn": 8,
+    "capture": [
+      "CaiShiZiYou69"
+    ]
+  },
+  "visual_grid_in_game": false
+}

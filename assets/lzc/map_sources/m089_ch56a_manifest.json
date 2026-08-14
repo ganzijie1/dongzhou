@@ -1,0 +1,416 @@
+{
+  "map": "assets/lzc/map/m089.png",
+  "source_base": "output/imagegen/chapter56-xinzhu-base-gpt2.png",
+  "prompt_file": "output/imagegen/m089_prompt.txt",
+  "grid": [
+    48,
+    32
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "FFffFFffFFffFFffFFffFFffFFffFFffFFffFFmmFFmmFFmm",
+    "gfFFgfFFgfFFgfFFgfFFgfFFgfFFgfFFgfFFgfFFmmFFmmFF",
+    "FFfgFFfgFFfgFFfgFFfgFFfgFFfgFFfgFFfgFFmmFFmmFFmm",
+    "ffFgfffgfffgfffgfffgfffgfffgfffgfffgffmmmmmmmmFF",
+    "FFgfffgfffgfffgfffgfffgfffgfffgfffgfffmmmmmmmFmm",
+    "ffFfffgfffgfffgfffgfffgfffgfffgfffgfffmmmmmmmmFF",
+    "FFfffgfffgfffgfffgfffgfffgfffgfffgfffgmmmmmmmFmm",
+    "fgFffgfffgfffgPPPPPPPPPPPPPPPPPPPgfffgmmmmmmmmFF",
+    "FFffgfffgfffgfPfgfffgfffgfffgfffPfffgfmmmmmmmFmm",
+    "gfFfgfffgfffgfPfgfffgfffgfffgfffPfffgfffgfffgfFF",
+    "FFfgfffgfffgffPgfffgfffgfffgfffgPffgfffgfffgfFfg",
+    "ffFgfffgfffgffPgfffgfffgfffgfffgPffgfffgfffgffFF",
+    "FFgfffgfffgfffPfffgfffgfffgfffgfPfgfffgfffgffFgf",
+    "ffFfffgfffgfffPfffgfffgfffgfffgfPfgfffgfffgfffFF",
+    "FFfffgfffgfffgPffgfffgfffgfffgffPgfffgfffgfffFff",
+    "wwwwwwwwwwwwwwPwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+    "wwwwwwwwwwwwwwPwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+    "wwwwwwwwwwwwwwPwwwwwwwwwwwwwwwwwPwwwwwwwwwwwwwww",
+    "FFfgfffgfffgffPgfffgfffgfffgfffgPffgfffgfffgfFfg",
+    "ffFgfffgfffgffPgfffgfffgfffgfffgPffgfffgfffgffFF",
+    "FFgfffgfffgfffPfffgfffgfffgfffgfPfgfffgfffgffFgf",
+    "ffFfffgfffgfffPfffgfffgfffgfffgfPfgfffgfffgfffFF",
+    "FFfffgfffgfffgPffgfffgfffgfffgffPgfffgfffgfffFff",
+    "fgFffgfffgfffgPffgfffgfffgfffgffPgfffgfffgfffgFF",
+    "FFffgfffgfffgfPfgfffgfffgfffgfffPfffgfffgfffgFff",
+    "gfFfgfffgfffgfPPPPPPPPPPPPPPPPPPPfffgfffgfffgfFF",
+    "FFfgfffgfffgfffgfffgfffgfffgfffgfffgfffgfffgfFfg",
+    "ffFgfffgfffgfffgfffgfffgfffgfffgfffgfffgfffgffFF",
+    "FFgfffgfffgfffgfffgfffgfffgfffgfffgfffgfffgffFgf",
+    "ffFFffFFffFFffFFffFFffFFffFFffFFffFFffFFffFFffFF",
+    "FFffFFffFFffFFffFFffFFffFFffFFffFFffFFffFFffFFff",
+    "fgFFfgFFfgFFfgFFfgFFfgFFfgFFfgFFfgFFfgFFfgFFfgFF"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "GPT Image 2 natural base plus reviewed programmatic source-of-truth geometry",
+  "structure_regions": {
+    "empty_qi_camp": [
+      [
+        14,
+        7
+      ],
+      [
+        32,
+        25
+      ]
+    ]
+  },
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [
+    [
+      14,
+      7
+    ],
+    [
+      14,
+      8
+    ],
+    [
+      14,
+      9
+    ],
+    [
+      14,
+      10
+    ],
+    [
+      14,
+      11
+    ],
+    [
+      14,
+      12
+    ],
+    [
+      14,
+      13
+    ],
+    [
+      14,
+      14
+    ],
+    [
+      14,
+      15
+    ],
+    [
+      14,
+      16
+    ],
+    [
+      14,
+      17
+    ],
+    [
+      14,
+      18
+    ],
+    [
+      14,
+      19
+    ],
+    [
+      14,
+      20
+    ],
+    [
+      14,
+      21
+    ],
+    [
+      14,
+      22
+    ],
+    [
+      14,
+      23
+    ],
+    [
+      14,
+      24
+    ],
+    [
+      14,
+      25
+    ],
+    [
+      15,
+      7
+    ],
+    [
+      15,
+      25
+    ],
+    [
+      16,
+      7
+    ],
+    [
+      16,
+      25
+    ],
+    [
+      17,
+      7
+    ],
+    [
+      17,
+      25
+    ],
+    [
+      18,
+      7
+    ],
+    [
+      18,
+      25
+    ],
+    [
+      19,
+      7
+    ],
+    [
+      19,
+      25
+    ],
+    [
+      20,
+      7
+    ],
+    [
+      20,
+      25
+    ],
+    [
+      21,
+      7
+    ],
+    [
+      21,
+      25
+    ],
+    [
+      22,
+      7
+    ],
+    [
+      22,
+      25
+    ],
+    [
+      23,
+      7
+    ],
+    [
+      23,
+      25
+    ],
+    [
+      24,
+      7
+    ],
+    [
+      24,
+      25
+    ],
+    [
+      25,
+      7
+    ],
+    [
+      25,
+      25
+    ],
+    [
+      26,
+      7
+    ],
+    [
+      26,
+      25
+    ],
+    [
+      27,
+      7
+    ],
+    [
+      27,
+      25
+    ],
+    [
+      28,
+      7
+    ],
+    [
+      28,
+      25
+    ],
+    [
+      29,
+      7
+    ],
+    [
+      29,
+      25
+    ],
+    [
+      30,
+      7
+    ],
+    [
+      30,
+      25
+    ],
+    [
+      31,
+      7
+    ],
+    [
+      31,
+      25
+    ],
+    [
+      32,
+      7
+    ],
+    [
+      32,
+      8
+    ],
+    [
+      32,
+      9
+    ],
+    [
+      32,
+      10
+    ],
+    [
+      32,
+      11
+    ],
+    [
+      32,
+      12
+    ],
+    [
+      32,
+      13
+    ],
+    [
+      32,
+      14
+    ],
+    [
+      32,
+      17
+    ],
+    [
+      32,
+      18
+    ],
+    [
+      32,
+      19
+    ],
+    [
+      32,
+      20
+    ],
+    [
+      32,
+      21
+    ],
+    [
+      32,
+      22
+    ],
+    [
+      32,
+      23
+    ],
+    [
+      32,
+      24
+    ],
+    [
+      32,
+      25
+    ]
+  ],
+  "fence_geometry": "impassable cell center-axis; corners use two half-axis segments",
+  "wall_cells": [],
+  "gates": [
+    {
+      "name": "xinzhu_camp_east_gate",
+      "cells": [
+        [
+          32,
+          15
+        ],
+        [
+          32,
+          16
+        ]
+      ]
+    }
+  ],
+  "castle_cells": [],
+  "supply_sites": [],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "SunLiangFu56",
+      "force": 1,
+      "position": [
+        23,
+        16
+      ]
+    },
+    {
+      "name": "ShiJi56",
+      "force": 2,
+      "position": [
+        42,
+        13
+      ]
+    },
+    {
+      "name": "GuoZuo56",
+      "force": 3,
+      "position": [
+        10,
+        12
+      ]
+    },
+    {
+      "name": "GaoGu56",
+      "force": 3,
+      "position": [
+        10,
+        21
+      ]
+    }
+  ],
+  "mission": {
+    "type": "xinzhu_night_raid_escape",
+    "escape": [
+      44,
+      16
+    ],
+    "relief_turn": 3
+  },
+  "visual_grid_in_game": false
+}

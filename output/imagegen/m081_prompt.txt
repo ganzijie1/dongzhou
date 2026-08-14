@@ -1,0 +1,7 @@
+Use case: historical-scene
+Asset type: grid-free tactical RPG battlefield base
+Primary request: Create the Qinghe river battlefield during the rebellion of Dou Yuejiao in ancient Chu, designed for a large ambush after a long pursuit.
+Scene/backdrop: broad dry late-summer grassland and worn pursuit tracks across the north and center; a substantial natural river runs horizontally across the lower quarter of the image, with muddy banks, reeds, and a shallow rocky ford far to the east. Low wooded hills and concealed gullies on the northern, western, and eastern edges provide believable ambush positions. The center north of the river remains open enough for an exhausted army to halt and cook.
+Style/medium: polished hand-painted classic Chinese tactical-RPG terrain, orthographic view, readable at 48-pixel logical cells.
+Composition/framing: landscape 2048x1152, detailed edge to edge, broad contiguous terrain masses; keep the central pursuit corridor and eastern ford clearly readable.
+Constraints: natural landscape base only. Do not draw bridges, broken bridge pieces, troops, people, camps, tents, fences, walls, gates, buildings, flags, text, UI, supply icons, square tiles, or grid lines.

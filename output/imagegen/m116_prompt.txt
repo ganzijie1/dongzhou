@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: Mengde city-gate defense map
+Primary request: Zheng northern countryside leading to one two-cell north gate, with a continuous southern city wall and dense city interior.
+Style: classic Chinese tactical-RPG painted terrain, orthographic.
+Constraints: no units, text, UI or visible grid; walls, gate and city buildings are separate overlays.

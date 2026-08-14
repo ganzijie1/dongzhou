@@ -1,0 +1,512 @@
+{
+  "image": "assets\\lzc\\map\\m053.png",
+  "feature_backend": "dinov3-directional-v2",
+  "feature_version": 2,
+  "grid": [
+    19,
+    14
+  ],
+  "rows": [
+    "WWWWWWWWWWWWWWWWWWW",
+    "WWWWWWiiiiWiWiWWWWW",
+    "WWiiiiiiiiiiWiiiiWi",
+    "WWiiiiiiiiiiiiiiiWW",
+    "WWiiiiiiiiiiiiWiiWW",
+    "WWWiiiiiiiiiWiiiiWW",
+    "WiiiiiiiiiWWiiffGii",
+    "WWiiiiiiiiiiiWiWiWW",
+    "WWiWiiiiiWWiWWWiiWi",
+    "WWiiiiiiiiiiiiWiiWW",
+    "WWiiiiiiiiiiiiiWiWW",
+    "WiiiiiiiiiiiiiWWiWW",
+    "WWWiiiiiiiiiiiWWWWW",
+    "WWWWWWWWWWWWWWWWWWW"
+  ],
+  "threshold": 0.72,
+  "mean_confidence": 0.8603039360799238,
+  "minimum_confidence": 0.35474847541451576,
+  "review_required": [
+    {
+      "x": 0,
+      "y": 1,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.6545
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.6166
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.5545
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.7001
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.6119
+    },
+    {
+      "x": 12,
+      "y": 1,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.5015
+    },
+    {
+      "x": 13,
+      "y": 1,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.5696
+    },
+    {
+      "x": 15,
+      "y": 1,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.6949
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.6284
+    },
+    {
+      "x": 12,
+      "y": 2,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.5605
+    },
+    {
+      "x": 16,
+      "y": 2,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.5875
+    },
+    {
+      "x": 18,
+      "y": 2,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.5388
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.7155
+    },
+    {
+      "x": 14,
+      "y": 4,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.5185
+    },
+    {
+      "x": 1,
+      "y": 5,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.5354
+    },
+    {
+      "x": 2,
+      "y": 5,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.6317
+    },
+    {
+      "x": 5,
+      "y": 5,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.6182
+    },
+    {
+      "x": 9,
+      "y": 5,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.4692
+    },
+    {
+      "x": 12,
+      "y": 5,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.4856
+    },
+    {
+      "x": 16,
+      "y": 5,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.502
+    },
+    {
+      "x": 2,
+      "y": 6,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.6304
+    },
+    {
+      "x": 10,
+      "y": 6,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.5481
+    },
+    {
+      "x": 11,
+      "y": 6,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.4929
+    },
+    {
+      "x": 14,
+      "y": 6,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.4041
+    },
+    {
+      "x": 15,
+      "y": 6,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.3547
+    },
+    {
+      "x": 16,
+      "y": 6,
+      "predicted": "G",
+      "terrain": "Gate",
+      "confidence": 0.5212
+    },
+    {
+      "x": 17,
+      "y": 6,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.6346
+    },
+    {
+      "x": 18,
+      "y": 6,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.4036
+    },
+    {
+      "x": 1,
+      "y": 7,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.5801
+    },
+    {
+      "x": 12,
+      "y": 7,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.6835
+    },
+    {
+      "x": 13,
+      "y": 7,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.4405
+    },
+    {
+      "x": 14,
+      "y": 7,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.6075
+    },
+    {
+      "x": 17,
+      "y": 7,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.6785
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.6788
+    },
+    {
+      "x": 3,
+      "y": 8,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.5663
+    },
+    {
+      "x": 6,
+      "y": 8,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.6716
+    },
+    {
+      "x": 13,
+      "y": 8,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.5774
+    },
+    {
+      "x": 14,
+      "y": 8,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.5135
+    },
+    {
+      "x": 17,
+      "y": 8,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.5949
+    },
+    {
+      "x": 18,
+      "y": 8,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.5757
+    },
+    {
+      "x": 2,
+      "y": 9,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.7042
+    },
+    {
+      "x": 14,
+      "y": 9,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.5637
+    },
+    {
+      "x": 15,
+      "y": 9,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.4952
+    },
+    {
+      "x": 1,
+      "y": 10,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.5525
+    },
+    {
+      "x": 14,
+      "y": 10,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.6076
+    },
+    {
+      "x": 15,
+      "y": 10,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.5737
+    },
+    {
+      "x": 1,
+      "y": 11,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.6441
+    },
+    {
+      "x": 8,
+      "y": 11,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.5777
+    },
+    {
+      "x": 16,
+      "y": 11,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.6352
+    },
+    {
+      "x": 3,
+      "y": 12,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.6366
+    },
+    {
+      "x": 4,
+      "y": 12,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.7161
+    },
+    {
+      "x": 14,
+      "y": 12,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.5466
+    },
+    {
+      "x": 15,
+      "y": 12,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.5753
+    }
+  ],
+  "fence_review_required": [
+    {
+      "x": 15,
+      "y": 0,
+      "current_prediction": "W",
+      "fence_score": -0.483
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "current_prediction": "W",
+      "fence_score": -0.2556
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "current_prediction": "i",
+      "fence_score": 0.1065
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "current_prediction": "i",
+      "fence_score": -0.3237
+    },
+    {
+      "x": 13,
+      "y": 3,
+      "current_prediction": "i",
+      "fence_score": -0.318
+    },
+    {
+      "x": 0,
+      "y": 6,
+      "current_prediction": "W",
+      "fence_score": -0.5104
+    },
+    {
+      "x": 8,
+      "y": 7,
+      "current_prediction": "i",
+      "fence_score": -0.2766
+    },
+    {
+      "x": 12,
+      "y": 7,
+      "current_prediction": "i",
+      "fence_score": -0.6431
+    },
+    {
+      "x": 14,
+      "y": 7,
+      "current_prediction": "i",
+      "fence_score": -0.4467
+    },
+    {
+      "x": 15,
+      "y": 7,
+      "current_prediction": "W",
+      "fence_score": -0.2093
+    },
+    {
+      "x": 17,
+      "y": 7,
+      "current_prediction": "W",
+      "fence_score": -0.6479
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "current_prediction": "W",
+      "fence_score": -0.5747
+    },
+    {
+      "x": 5,
+      "y": 8,
+      "current_prediction": "i",
+      "fence_score": 0.0109
+    },
+    {
+      "x": 8,
+      "y": 8,
+      "current_prediction": "i",
+      "fence_score": -0.2871
+    },
+    {
+      "x": 15,
+      "y": 8,
+      "current_prediction": "i",
+      "fence_score": -0.4907
+    },
+    {
+      "x": 10,
+      "y": 9,
+      "current_prediction": "i",
+      "fence_score": -0.2721
+    },
+    {
+      "x": 11,
+      "y": 9,
+      "current_prediction": "i",
+      "fence_score": -0.2784
+    },
+    {
+      "x": 12,
+      "y": 9,
+      "current_prediction": "i",
+      "fence_score": -0.4436
+    }
+  ],
+  "auto_apply": false
+}

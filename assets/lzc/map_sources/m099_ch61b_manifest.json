@@ -1,0 +1,500 @@
+{
+  "map": "assets/lzc/map/m099.png",
+  "source_base": "output/imagegen/chapter48-hequ-base-gpt2.png",
+  "prompt_file": "output/imagegen/m099_prompt.txt",
+  "grid": [
+    62,
+    40
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "FgfffFggffffggFffgg~~~~~~fffFggfffggfFffggffffFgfffFgffffggfFf",
+    "ffggffffFgffffggfFf~~~~~~ggffffFgfffggffFfggfFffggfffgFffffggf",
+    "gfFfggffffgFffffFgf~~~~~~FfggffffgFfffgFffffggffFfggfffggFfffg",
+    "fggffFggffFfggffffg~~~~~~fffFggffFfggfffggFfffggfffFggffFggfff",
+    "fffgFfffggfffFggfff~~~~~~ggFfffggfffFggfffggfFffggFfffggfffFgf",
+    "gffffggFffggffffFgf~~~~~~ffggfFffggffffFgfffFgffffggfFffggfffg",
+    "fFgffffggfFfggfFffg~~~~~~gfffggffFfggfFffggfffgFffffggffFfggfF",
+    "fffgFffffFgfffggffF~~~~~~fgFfffgFffffggffFfggfffggFfffgFffffgg",
+    "gffFfggffffgFfffggf~~~~~~fFfggfffggFfffggfPPPPPPPPPPPPPPPPPfff",
+    "fggfffFggffffggFffg~~~~~~gfffFggfffggfFffgPFfffggfffFgffffPgfF",
+    "FffggffffFgfffFggff~~~~~~fggffffFgfffFgfffPggfFffggfffgFffPfFg",
+    "ggfFfggfFffggffffFg~~~~~~fFfggfFffggfffgFfPffggffFfggfFfggPfff",
+    "ffFgfffggffFfggffff~~~~~~FffffggffFfggfffgPFfffgFffffggffFPgff",
+    "ffffgFfffggfffFggff~~~~~~fggFfffggfffFggffPggffffggFfffggfPfFg",
+    "ggffffggFffggFfffgg~~~~~~fffggfFffggFfffggPffFgffffggfFffgPFff",
+    "ffFgfffFggfffggfFff~~~~~~FgfffFgffffggfFffPgfffgFffffFgfffPggf",
+    "fFffggffffFgfffggff~~~~~~ffggfffgFffffggffPfggfFfggffffgFfPffg",
+    "ggffFfggffffgFfffgFvvvvvvffFfggfffggFfffgFPfffggffFggffffgPFff",
+    "ffggfffFggffFfggfffvvvvvvggfffFggffFggffffPgFfffggeffFgfffPggf",
+    "gFffggFfffggfffFggfvvvvvvffggFfffggfffFgffffggfFffggFffggfPffF",
+    "FggfffggfFffggffffFvvvvvvffffggfFffggfffgFffffFgffffggfFfgPfff",
+    "fffFgfffggffFfggfFf~~~~~~gFffffggffFfggfFfPgffffgFffffggffPggf",
+    "gffffgFfffgFffffggf~~~~~~ffggFfffgFffffggfPFggffffggFfffgFPffg",
+    "FggffFfggfffggFfffg~~~~~~gffFggffffggFfffgPfffFgfffFgeffffPgFf",
+    "fffggfffFggfffggfFf~~~~~~fggfffFgffffggfFfPggFffggffffFgffPfgg",
+    "gfFffggffffFgfffFgf~~~~~~FffggfffgFffffFgfPffggfFfggffffgFPfff",
+    "fggffFfggfFffggfffg~~~~~~gffFfggfFfggffffgPffffggffFggffFfPgff",
+    "fffgFffffggffFfggff~~~~~~fgFffffggffFggfffPggFfffgFfffggffPFgg",
+    "ggfffggFfffggfffFgg~~~~~~fffggFfffggfffFgfPfFggffffggFffggPfff",
+    "fFggfffggfFffggFfff~~~~~~gffffggfFffggFffgPffffFgffffggfFfPgfF",
+    "ffffFgfffFgffffggfF~~~~~~fgFffffFgffffggfFPggffffgFffffFgfPfgg",
+    "ggfFffggfffgFffffgg~~~~~~fFfggffffgFffffggPPPPPPPPPPPPPPPPPfff",
+    "ffggffFfggfffggFfff~~~~~~ggffFggffffggFfffgFfffggfffFggffffggF",
+    "FfffggfffFggffFggff~~~~~~ffggfffFgfffFggffffggFffggffffFgfffFg",
+    "ggfFffggFfffggfffFg~~~~~~fFffggFffggffffFgffffggfFfggfFffggfff",
+    "ffFgffffggfFffggfff~~~~~~FgffffggfFfggffffgFffffFgfffggffFfggf",
+    "gfffgFffffggffFfggf~~~~~~ffgFffffggffFggffFfggffffgFfffggfffFg",
+    "fggfffggFfffgFffffg~~~~~~ffffggFfffgFfffggfffFggffffggFffggFff",
+    "ffFggffFggffffggFff~~~~~~FgfffFggffffggFffggffffFgfffFggfffggf",
+    "gFfffggfffFgffffggf~~~~~~ffggffffFgffffggfFfggfFffggffffFgfffg"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m",
+      "v"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "recomposed saved GPT Image 2 natural base plus reviewed programmatic source-of-truth geometry",
+  "structure_regions": {
+    "qin_camp": [
+      [
+        42,
+        8
+      ],
+      [
+        58,
+        31
+      ]
+    ],
+    "west_gate": [
+      [
+        42,
+        19
+      ],
+      [
+        42,
+        20
+      ]
+    ]
+  },
+  "camp_icon_cells": [
+    [
+      50,
+      18
+    ],
+    [
+      53,
+      23
+    ]
+  ],
+  "camp_cells": [
+    [
+      50,
+      18
+    ],
+    [
+      53,
+      23
+    ]
+  ],
+  "fence_cells": [
+    [
+      42,
+      8
+    ],
+    [
+      42,
+      9
+    ],
+    [
+      42,
+      10
+    ],
+    [
+      42,
+      11
+    ],
+    [
+      42,
+      12
+    ],
+    [
+      42,
+      13
+    ],
+    [
+      42,
+      14
+    ],
+    [
+      42,
+      15
+    ],
+    [
+      42,
+      16
+    ],
+    [
+      42,
+      17
+    ],
+    [
+      42,
+      18
+    ],
+    [
+      42,
+      21
+    ],
+    [
+      42,
+      22
+    ],
+    [
+      42,
+      23
+    ],
+    [
+      42,
+      24
+    ],
+    [
+      42,
+      25
+    ],
+    [
+      42,
+      26
+    ],
+    [
+      42,
+      27
+    ],
+    [
+      42,
+      28
+    ],
+    [
+      42,
+      29
+    ],
+    [
+      42,
+      30
+    ],
+    [
+      42,
+      31
+    ],
+    [
+      43,
+      8
+    ],
+    [
+      43,
+      31
+    ],
+    [
+      44,
+      8
+    ],
+    [
+      44,
+      31
+    ],
+    [
+      45,
+      8
+    ],
+    [
+      45,
+      31
+    ],
+    [
+      46,
+      8
+    ],
+    [
+      46,
+      31
+    ],
+    [
+      47,
+      8
+    ],
+    [
+      47,
+      31
+    ],
+    [
+      48,
+      8
+    ],
+    [
+      48,
+      31
+    ],
+    [
+      49,
+      8
+    ],
+    [
+      49,
+      31
+    ],
+    [
+      50,
+      8
+    ],
+    [
+      50,
+      31
+    ],
+    [
+      51,
+      8
+    ],
+    [
+      51,
+      31
+    ],
+    [
+      52,
+      8
+    ],
+    [
+      52,
+      31
+    ],
+    [
+      53,
+      8
+    ],
+    [
+      53,
+      31
+    ],
+    [
+      54,
+      8
+    ],
+    [
+      54,
+      31
+    ],
+    [
+      55,
+      8
+    ],
+    [
+      55,
+      31
+    ],
+    [
+      56,
+      8
+    ],
+    [
+      56,
+      31
+    ],
+    [
+      57,
+      8
+    ],
+    [
+      57,
+      31
+    ],
+    [
+      58,
+      8
+    ],
+    [
+      58,
+      9
+    ],
+    [
+      58,
+      10
+    ],
+    [
+      58,
+      11
+    ],
+    [
+      58,
+      12
+    ],
+    [
+      58,
+      13
+    ],
+    [
+      58,
+      14
+    ],
+    [
+      58,
+      15
+    ],
+    [
+      58,
+      16
+    ],
+    [
+      58,
+      17
+    ],
+    [
+      58,
+      18
+    ],
+    [
+      58,
+      19
+    ],
+    [
+      58,
+      20
+    ],
+    [
+      58,
+      21
+    ],
+    [
+      58,
+      22
+    ],
+    [
+      58,
+      23
+    ],
+    [
+      58,
+      24
+    ],
+    [
+      58,
+      25
+    ],
+    [
+      58,
+      26
+    ],
+    [
+      58,
+      27
+    ],
+    [
+      58,
+      28
+    ],
+    [
+      58,
+      29
+    ],
+    [
+      58,
+      30
+    ],
+    [
+      58,
+      31
+    ]
+  ],
+  "fence_geometry": "impassable cell center-axis; corners use two half-axis segments; west gate omits two cells",
+  "wall_cells": [],
+  "gates": [
+    {
+      "name": "qin_camp_west_gate",
+      "cells": [
+        [
+          42,
+          19
+        ],
+        [
+          42,
+          20
+        ]
+      ]
+    }
+  ],
+  "castle_cells": [
+    [
+      50,
+      18
+    ],
+    [
+      53,
+      23
+    ]
+  ],
+  "supply_sites": [
+    [
+      50,
+      18
+    ],
+    [
+      53,
+      23
+    ]
+  ],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "LuanZhen58",
+      "force": 1,
+      "position": [
+        31,
+        18
+      ]
+    },
+    {
+      "name": "FanYang61",
+      "force": 1,
+      "position": [
+        31,
+        21
+      ]
+    },
+    {
+      "name": "QinJingGong61",
+      "force": 3,
+      "position": [
+        50,
+        18
+      ]
+    },
+    {
+      "name": "YingZhan61",
+      "force": 3,
+      "position": [
+        53,
+        23
+      ]
+    },
+    {
+      "name": "GongZiWuDi61",
+      "force": 3,
+      "position": [
+        44,
+        20
+      ]
+    }
+  ],
+  "mission": {
+    "type": "yulin_last_charge",
+    "gate_name": "qin_camp_west_gate",
+    "historical_death": "LuanZhen58"
+  },
+  "visual_grid_in_game": false
+}

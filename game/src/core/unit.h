@@ -48,6 +48,8 @@ class Unit : public IUnitBase, public IEvent, public IEquipper {
   void      AddStatModifier(StatModifier*);
   void      AddEventEffect(EventEffect*);
   uint16_t  GetMaxExp() { return Level::kExpLimit; }
+  uint16_t  GetTrainingPenalty() const { return hero_->GetTrainingPenalty(); }
+  void      SetTrainingPenalty(uint16_t penalty);
   void      SetPosition(Vec2D pos) { position_ = pos; }
   Vec2D     GetPosition() const { return position_; }
   void      SetDirection(Direction direction) { direction_ = direction; }
@@ -56,11 +58,15 @@ class Unit : public IUnitBase, public IEvent, public IEquipper {
   int       GetClassIndex() const;
   Force     GetForce() const { return force_; }
   bool      IsNoRender() const { return no_render_; }
+  void      SetInvulnerable(bool value) { invulnerable_ = value; }
+  bool      IsInvulnerable() const { return invulnerable_; }
   bool      IsHPLow() const;
   bool      IsDead() const;
   bool      DoDamage(int);
   void      RestoreHP(int);
+  void      RestoreMP(int);
   void      Heal(int);
+  bool      SpendMP(int);
   void      Kill();
   bool      IsHostile(Unit*) const;
   bool      IsInRange(Vec2D, const AttackRange&) const;
@@ -71,6 +77,7 @@ class Unit : public IUnitBase, public IEvent, public IEquipper {
   void      LevelUp();
   void      EndAction();
   void      ResetAction();
+  void      RestoreState(uint16_t level, uint16_t exp, HpMp hpmp, Direction direction, bool done_action);
 
  private:
   Hero*            hero_;
@@ -85,6 +92,7 @@ class Unit : public IUnitBase, public IEvent, public IEquipper {
   Direction direction_;    // Direction the unit is looking at
   Force     force_;        // Which force that the unit is belong to
   bool      no_render_;    // FIXME this should be moved to some View related module
+  bool      invulnerable_; // Scripted phases may protect historical participants
   bool      done_action_;  // action is done in current turn
 };
 

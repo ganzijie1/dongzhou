@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: Mengde tactical siege approach
+Primary request: broad Ju outskirts, a narrow rocky approach, a visible charcoal fire trench, and continuous walls around Qieyu gate.
+Style: classic Chinese tactical-RPG painted terrain, orthographic.
+Constraints: no units, text, UI, or visible grid; fire trench and city geometry are reviewed source-of-truth overlays.

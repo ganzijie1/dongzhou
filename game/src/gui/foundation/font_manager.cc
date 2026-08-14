@@ -28,7 +28,22 @@ TTF_Font* FontManager::FetchFont(const string& name, int size) {
 
   auto iter = container_.find(key);
   if (iter == container_.end()) {
-    TTF_Font* font  = TTF_OpenFont(full_path.c_str(), size);
+    TTF_Font* font = TTF_OpenFont(full_path.c_str(), size);
+    if (font == nullptr) {
+      const char* fallback_fonts[] = {
+          "C:/Windows/Fonts/consola.ttf",
+          "C:/Windows/Fonts/segoeui.ttf",
+          "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+          "/System/Library/Fonts/Menlo.ttc",
+      };
+      for (const char* fallback : fallback_fonts) {
+        font = TTF_OpenFont(fallback, size);
+        if (font != nullptr) break;
+      }
+    }
+    if (font == nullptr) {
+      LOG_FATAL("Unable to load a UI font: %s", TTF_GetError());
+    }
     container_[key] = font;
     return font;
   } else {

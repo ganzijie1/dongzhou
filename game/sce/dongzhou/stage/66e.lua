@@ -1,0 +1,77 @@
+gally_hold_position=true
+gsupply_enabled=true
+gitems={{id="medicine",name="金疮药",hp=120,mp=0,price=120,initial=2},{id="spirit_powder",name="清心散",hp=0,mp=30,price=150,initial=1}}
+gcommanders={"ChuanFengShu66","GongZiWei66"}
+gevents_enabled=true
+gduel_enabled=false
+gduels={}
+gsites={}
+gstory={chapter="第六十六回·下",title="杀宁喜子鱄出奔 戮崔杼庆封独相",battle_title="棘泽擒将",objective="击退并俘获郑将皇颉。",map_asset="m114.png",
+ intro={
+  {speaker="",text="楚秦伐吴无功，楚军回师侵郑。大夫穿封戍在棘泽迎战郑军，王子围随军争功。"},
+  {speaker="穿封戍",text="皇颉在前阵。我亲自冲车截住他，王子围守住侧翼即可。"},
+  {speaker="公子围",text="俘获敌将是全军首功。谁先把皇颉押到中军，功劳便归谁。"},
+  {speaker="皇颉",text="楚军两路逼近，郑军结阵后撤，不可陷在浅泽中央。"},
+  {speaker="军令",text="击退皇颉即视为俘获。穿封戍、公子围任一被击退均失败。"}
+ },
+ events={
+  {id="story_event_1",trigger="scripted",turn=0,hp_percent=0,speaker="穿封戍",text="皇颉阵脚已乱，随我截住他的战车！"},
+  {id="story_event_2",trigger="scripted",turn=0,hp_percent=0,speaker="公子围",text="拿住郑将，立即送往中军！"}
+ },
+ victory={
+  {speaker="",text="穿封戍在阵中擒住皇颉，公子围却抢先向楚康王报功，称俘虏为自己所得。"},
+  {speaker="",text="伯州犁审问皇颉时上下指手，暗示应奉承王子围。皇颉遂称自己败于王子围。"},
+  {speaker="",text="穿封戍愤怒拔戈追逐公子围。楚康王最终将功劳平分，留下“上下其手”的典故。"},
+  {speaker="",text="吴王馀祭后来伐越，醉卧馀皇大舟，被守船越俘夺刀刺死；其弟夷昧继位，任季札通聘列国。"},
+  {speaker="军令",text="棘泽擒将完成，获得700金币。第六十六回结束。"}
+ },
+ defeat={{speaker="",text="穿封戍或公子围被击退，或超过十八回合，失败。"}}
+}
+local function many(game,h,p,f)for _,v in ipairs(p)do game:generate_unit(h,1,f,v)end end
+function on_deploy(game)for _,h in ipairs(gcommanders)do game:appoint_hero(h,1)end end
+function on_begin(game)game:generate_unit("HuangJie66",1,Enum.force.enemy,{45,21});many(game,"ZhengGuard66",{{42,17},{42,21},{42,25},{47,17},{47,25},{50,20},{50,23}},Enum.force.enemy);many(game,"ChuShujuGuard66",{{12,17},{12,23},{17,18},{17,25}},Enum.force.own)end function on_update(game)end function on_victory(game)end function on_defeat(game)end
+function end_condition(game)for _,h in ipairs(gcommanders)do if not game:has_unit(h)then return Enum.status.defeat end end if not game:has_unit("HuangJie66")then return Enum.status.victory end return Enum.status.undecided end
+gstage={title_id="JizeCapture66",turn_limit=18,map={blocked_edges={},size={60,42},terrain={
+        "FgfffFggffffggFffggffffFgffvwwvwwvggfFffggffffFgfffFgffffggf",
+        "ffggffffFgffffggfFfggfFffggwwvwwvwffggffFfggfFffggfffgFffffg",
+        "gfFfggffffgFffffFgfffggffFfwvwwvwwFfffgFffffggffFfggfffggFff",
+        "fggffFggffFfggffffgFfffggffvwwvwwvfggfffggFfffggfffFggffFggf",
+        "fffgFfffggfffFggffffggFffggwwvwwvwffFggfffggfFffggFfffggfffF",
+        "gffffggFffggffffFgfffFggfffwvwwvwwgffffFgfffFgffffggfFffggff",
+        "fFgffffggfFfggfFffggffffFgfvwwvwwvfggfFffggfffgFffffggffFfgg",
+        "fffgFffffFgfffggffFfggffffgwwvwwvwfffggffFfggfffggFfffgFffff",
+        "gffFfggffffgFfffggfffFggffFwvwwvwwgFfffggfffFggffFggffffggFf",
+        "fggfffFggffffggFffggFfffggfvwwvwwvfggfFffggFfffggfffFgffffgg",
+        "FffggffffFgfffFggfffggfFffgwwvwwvwfffFgffffggfFffggfffgFffff",
+        "ggfFfggfFffggffffFgfffggffFwvwwvwwggfffgFffffggffFfggfFfggff",
+        "ffFgfffggffFfggffffgFfffgFfvwwvwwvFfggfffggFfffgFffffggffFgg",
+        "ffffgFfffggfffFggffFfggfffgwwvwwvwfffFggffFggffffggFfffggfff",
+        "ggffffggFffggFfffggfffFggffwvwwvwwggFfffggfffFgffffggfFffggF",
+        "ffFgfffFggfffggfFffggffffffffffffffffffFffggfffgFffffFgffffg",
+        "fFffggffffFgfffggffFfggfffffffffffffffggffFfggfFfggffffgFfff",
+        "ggffFfggffffgFfffgFffffgffffffffffffffffgFffffggffFggffffggF",
+        "ffggfffFggffFfggfffggFffffffffffffffffffffggFfffggfffFgfffFg",
+        "gFffggFfffggfffFggfffggfffffffffffffffFgffffggfFffggFffggfff",
+        "FggfffggfFffggffffFgfffFffffffffffffffffgFffffFgffffggfFfggf",
+        "fffFgfffggffFfggfFffggffffffffffffffffgfFfggffffgFffffggffFg",
+        "gffffgFfffgFffffggffFfggfffffffffffffffggffFggffffggFfffgFff",
+        "FggffFfggfffggFfffggfffFfffffffffffffffffggfffFgfffFggffffgg",
+        "fffggfffFggfffggfFffggFfffffffffffffffgfFffggFffggffffFgffff",
+        "gfFffggffffFgfffFgffffggfffffffffffffffFgffffggfFfggffffgFff",
+        "fggffFfggfFffggfffgFfffffffffffffffffffffgFffffggffFggffFfgg",
+        "fffgFffffggffFfggfffggFfffffffffffffffgffffggFfffgFfffggfffF",
+        "ggfffggFfffggfffFggffFggfffwwvwwvwggfffFgfffFggffffggFffggff",
+        "fFggfffggfFffggFfffggfffFgfwvwwvwwffggFffggffffFgffffggfFfgg",
+        "ffffFgfffFgffffggfFffggfffgvwwvwwvffffggfFfggffffgFffffFgfff",
+        "ggfFffggfffgFffffggffFfggfFwwvwwvwgFffffggffFggffFfggffffgFf",
+        "ffggffFfggfffggFfffgFffffggwvwwvwwffggFfffgFfffggfffFggffffg",
+        "FfffggfffFggffFggffffggFfffvwwvwwvfffFggffffggFffggffffFgfff",
+        "ggfFffggFfffggfffFgffffggfFwwvwwvwggffffFgffffggfFfggfFffggf",
+        "ffFgffffggfFffggfffgFffffFgwvwwvwwFfggffffgFffffFgfffggffFfg",
+        "gfffgFffffggffFfggfFfggffffvwwvwwvgffFggffFfggffffgFfffggfff",
+        "fggfffggFfffgFffffggffFggffwwvwwvwfgFfffggfffFggffffggFffggF",
+        "ffFggffFggffffggFfffggfffFgwvwwvwwfffggFffggffffFgfffFggfffg",
+        "gFfffggfffFgffffggfFffggFffvwwvwwvgffffggfFfggfFffggffffFgff",
+        "fggfFffggfffgFffffFgffffggfwwvwwvwfgFffffFgfffggffFfggffffgF",
+        "fffggffFfggfFfggffffgFffffgwvwwvwwfFfggffffgFfffggfffFggffFf",
+},file="map.bmp"},deploy={unselectables={{position={14,20},hero="ChuanFengShu66"},{position={18,23},hero="GongZiWei66"}},num_required_selectables=0,selectables={}},rewards={equipments={},money=7000}}

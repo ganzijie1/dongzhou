@@ -1,0 +1,10 @@
+Use case: stylized-concept
+Asset type: 19x14-grid tactical battle map background for a Chinese Three Kingdoms-era pixel-art strategy game
+Primary request: create an original Battle of Hong River battlefield, viewed from a fixed high oblique top-down angle, suitable for Cao Cao Zhuan-style tactical combat
+Scene/backdrop: the Hong River runs horizontally across the upper-middle of the field in a continuous natural channel; a broad shallow stone-and-gravel ford, two logical cells wide, crosses the river at the exact center and is visibly passable; the north bank contains an organized Chu army camp with three red-brown command tents and open deployment ground; the south bank is a much larger open grass-and-dirt battlefield with a modest Song camp near the lower center and a clear retreat road continuing to the bottom edge; sparse woods and low rocky hills remain near outer corners only
+Style/medium: polished late-1990s Chinese tactical RPG map art, hand-painted pixel-art texture, crisp readable terrain, natural shoreline transitions, restrained green, ochre, stone-gray, and river-blue palette
+Composition/framing: exact landscape canvas, full battlefield visible, stable orthographic-like high oblique view; visually align major features to a 19-column by 14-row logical tile layout without drawing grid lines; ford centered; river banks continuous except for the visible ford; broad open maneuver space south of the river
+Lighting/mood: clear late-autumn daylight, solemn battlefield atmosphere, high terrain readability
+Constraints: river must be unmistakable and continuous; only the central ford may be crossed; no bridge, city wall, fence, closed gate, units, people, text, labels, UI, borders, grid lines, watermark, or decorative frame
+Avoid: all-forest map, camps mistaken for mountains, river fragments, hidden ford, gray placeholder terrain, modern objects, oversized tents, perspective distortion, blurry semantic boundaries
+Canvas completion: paint the entire image from top edge to bottom edge with finished terrain; every pixel must belong to the battlefield; absolutely no gray, transparent, blank, unfinished, masked, or placeholder area

@@ -18,6 +18,7 @@ class Formulae {
   static int ComputeMagicAccuracy(Unit*, Unit*, int = kDefaultRatio);
   static int ComputeBasicAttackDouble(Unit*, Unit*);
   static int ComputeBasicAttackCritical(Unit*, Unit*);
+  static int ComputeClassAdvantage(Unit*, Unit*);
   static int ApplyRatio(int, int);
 
  private:

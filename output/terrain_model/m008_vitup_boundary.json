@@ -1,0 +1,4133 @@
+{
+  "backend": "official ViT-Up DINOv3-S+; eager CPU inference",
+  "backbone": "C:\\mengde\\output\\model_cache\\modelscope\\dinov3-vits16plus-pretrain-lvd1689m",
+  "auto_apply": false,
+  "grid": [
+    30,
+    22
+  ],
+  "scale": 4,
+  "prototype_cells": {
+    "f": [
+      [
+        10,
+        2
+      ],
+      [
+        11,
+        2
+      ],
+      [
+        9,
+        3
+      ],
+      [
+        10,
+        3
+      ],
+      [
+        11,
+        3
+      ],
+      [
+        12,
+        3
+      ],
+      [
+        14,
+        3
+      ],
+      [
+        10,
+        4
+      ],
+      [
+        11,
+        4
+      ],
+      [
+        12,
+        4
+      ],
+      [
+        13,
+        4
+      ],
+      [
+        14,
+        4
+      ],
+      [
+        15,
+        4
+      ],
+      [
+        16,
+        4
+      ],
+      [
+        19,
+        4
+      ],
+      [
+        9,
+        5
+      ],
+      [
+        10,
+        5
+      ],
+      [
+        11,
+        5
+      ],
+      [
+        12,
+        5
+      ],
+      [
+        13,
+        5
+      ],
+      [
+        14,
+        5
+      ],
+      [
+        15,
+        5
+      ],
+      [
+        16,
+        5
+      ],
+      [
+        17,
+        5
+      ],
+      [
+        18,
+        5
+      ],
+      [
+        19,
+        5
+      ],
+      [
+        20,
+        5
+      ],
+      [
+        22,
+        5
+      ],
+      [
+        23,
+        5
+      ],
+      [
+        24,
+        5
+      ],
+      [
+        25,
+        5
+      ],
+      [
+        10,
+        6
+      ],
+      [
+        11,
+        6
+      ],
+      [
+        12,
+        6
+      ],
+      [
+        13,
+        6
+      ],
+      [
+        14,
+        6
+      ],
+      [
+        15,
+        6
+      ],
+      [
+        16,
+        6
+      ],
+      [
+        17,
+        6
+      ],
+      [
+        18,
+        6
+      ],
+      [
+        19,
+        6
+      ],
+      [
+        20,
+        6
+      ],
+      [
+        21,
+        6
+      ],
+      [
+        22,
+        6
+      ],
+      [
+        23,
+        6
+      ],
+      [
+        24,
+        6
+      ],
+      [
+        25,
+        6
+      ],
+      [
+        26,
+        6
+      ],
+      [
+        9,
+        7
+      ],
+      [
+        10,
+        7
+      ],
+      [
+        11,
+        7
+      ],
+      [
+        12,
+        7
+      ],
+      [
+        13,
+        7
+      ],
+      [
+        14,
+        7
+      ],
+      [
+        15,
+        7
+      ],
+      [
+        16,
+        7
+      ],
+      [
+        17,
+        7
+      ],
+      [
+        18,
+        7
+      ],
+      [
+        19,
+        7
+      ],
+      [
+        20,
+        7
+      ],
+      [
+        21,
+        7
+      ],
+      [
+        8,
+        8
+      ],
+      [
+        9,
+        8
+      ],
+      [
+        10,
+        8
+      ],
+      [
+        11,
+        8
+      ],
+      [
+        12,
+        8
+      ],
+      [
+        13,
+        8
+      ],
+      [
+        14,
+        8
+      ],
+      [
+        15,
+        8
+      ],
+      [
+        16,
+        8
+      ],
+      [
+        17,
+        8
+      ],
+      [
+        18,
+        8
+      ],
+      [
+        19,
+        8
+      ],
+      [
+        20,
+        8
+      ],
+      [
+        21,
+        8
+      ],
+      [
+        7,
+        9
+      ],
+      [
+        8,
+        9
+      ],
+      [
+        9,
+        9
+      ],
+      [
+        10,
+        9
+      ],
+      [
+        11,
+        9
+      ],
+      [
+        12,
+        9
+      ],
+      [
+        13,
+        9
+      ],
+      [
+        14,
+        9
+      ],
+      [
+        15,
+        9
+      ],
+      [
+        16,
+        9
+      ],
+      [
+        17,
+        9
+      ],
+      [
+        18,
+        9
+      ],
+      [
+        19,
+        9
+      ],
+      [
+        20,
+        9
+      ],
+      [
+        21,
+        9
+      ],
+      [
+        6,
+        10
+      ],
+      [
+        7,
+        10
+      ],
+      [
+        8,
+        10
+      ],
+      [
+        9,
+        10
+      ],
+      [
+        10,
+        10
+      ],
+      [
+        11,
+        10
+      ],
+      [
+        12,
+        10
+      ],
+      [
+        13,
+        10
+      ],
+      [
+        14,
+        10
+      ],
+      [
+        15,
+        10
+      ],
+      [
+        16,
+        10
+      ],
+      [
+        17,
+        10
+      ],
+      [
+        18,
+        10
+      ],
+      [
+        19,
+        10
+      ],
+      [
+        20,
+        10
+      ],
+      [
+        21,
+        10
+      ],
+      [
+        22,
+        10
+      ],
+      [
+        6,
+        11
+      ],
+      [
+        7,
+        11
+      ],
+      [
+        8,
+        11
+      ],
+      [
+        9,
+        11
+      ],
+      [
+        10,
+        11
+      ],
+      [
+        11,
+        11
+      ],
+      [
+        12,
+        11
+      ],
+      [
+        13,
+        11
+      ],
+      [
+        14,
+        11
+      ],
+      [
+        15,
+        11
+      ],
+      [
+        16,
+        11
+      ],
+      [
+        17,
+        11
+      ],
+      [
+        18,
+        11
+      ],
+      [
+        19,
+        11
+      ],
+      [
+        20,
+        11
+      ],
+      [
+        21,
+        11
+      ],
+      [
+        22,
+        11
+      ],
+      [
+        6,
+        12
+      ],
+      [
+        7,
+        12
+      ],
+      [
+        8,
+        12
+      ],
+      [
+        9,
+        12
+      ],
+      [
+        10,
+        12
+      ],
+      [
+        11,
+        12
+      ],
+      [
+        12,
+        12
+      ],
+      [
+        13,
+        12
+      ],
+      [
+        14,
+        12
+      ],
+      [
+        15,
+        12
+      ],
+      [
+        16,
+        12
+      ],
+      [
+        17,
+        12
+      ],
+      [
+        18,
+        12
+      ],
+      [
+        19,
+        12
+      ],
+      [
+        20,
+        12
+      ],
+      [
+        21,
+        12
+      ],
+      [
+        7,
+        13
+      ],
+      [
+        8,
+        13
+      ],
+      [
+        9,
+        13
+      ],
+      [
+        10,
+        13
+      ],
+      [
+        11,
+        13
+      ],
+      [
+        12,
+        13
+      ],
+      [
+        13,
+        13
+      ],
+      [
+        14,
+        13
+      ],
+      [
+        15,
+        13
+      ],
+      [
+        16,
+        13
+      ],
+      [
+        17,
+        13
+      ],
+      [
+        18,
+        13
+      ],
+      [
+        19,
+        13
+      ],
+      [
+        20,
+        13
+      ],
+      [
+        21,
+        13
+      ],
+      [
+        6,
+        14
+      ],
+      [
+        7,
+        14
+      ],
+      [
+        8,
+        14
+      ],
+      [
+        9,
+        14
+      ],
+      [
+        10,
+        14
+      ],
+      [
+        11,
+        14
+      ],
+      [
+        12,
+        14
+      ],
+      [
+        13,
+        14
+      ],
+      [
+        14,
+        14
+      ],
+      [
+        15,
+        14
+      ],
+      [
+        16,
+        14
+      ],
+      [
+        17,
+        14
+      ],
+      [
+        18,
+        14
+      ],
+      [
+        19,
+        14
+      ],
+      [
+        20,
+        14
+      ],
+      [
+        21,
+        14
+      ],
+      [
+        22,
+        14
+      ],
+      [
+        23,
+        14
+      ],
+      [
+        24,
+        14
+      ],
+      [
+        6,
+        15
+      ],
+      [
+        7,
+        15
+      ],
+      [
+        8,
+        15
+      ],
+      [
+        9,
+        15
+      ],
+      [
+        10,
+        15
+      ],
+      [
+        11,
+        15
+      ],
+      [
+        12,
+        15
+      ],
+      [
+        13,
+        15
+      ],
+      [
+        14,
+        15
+      ],
+      [
+        15,
+        15
+      ],
+      [
+        16,
+        15
+      ],
+      [
+        17,
+        15
+      ],
+      [
+        18,
+        15
+      ],
+      [
+        19,
+        15
+      ],
+      [
+        20,
+        15
+      ],
+      [
+        21,
+        15
+      ],
+      [
+        22,
+        15
+      ],
+      [
+        23,
+        15
+      ],
+      [
+        25,
+        15
+      ],
+      [
+        6,
+        16
+      ],
+      [
+        7,
+        16
+      ],
+      [
+        8,
+        16
+      ],
+      [
+        9,
+        16
+      ],
+      [
+        10,
+        16
+      ],
+      [
+        14,
+        16
+      ],
+      [
+        15,
+        16
+      ],
+      [
+        19,
+        16
+      ],
+      [
+        20,
+        16
+      ],
+      [
+        21,
+        16
+      ],
+      [
+        22,
+        16
+      ],
+      [
+        7,
+        17
+      ],
+      [
+        8,
+        17
+      ],
+      [
+        9,
+        17
+      ],
+      [
+        10,
+        17
+      ],
+      [
+        19,
+        17
+      ],
+      [
+        20,
+        17
+      ],
+      [
+        21,
+        17
+      ],
+      [
+        22,
+        17
+      ],
+      [
+        23,
+        17
+      ],
+      [
+        25,
+        17
+      ],
+      [
+        6,
+        18
+      ],
+      [
+        7,
+        18
+      ],
+      [
+        8,
+        18
+      ],
+      [
+        9,
+        18
+      ],
+      [
+        10,
+        18
+      ],
+      [
+        19,
+        18
+      ],
+      [
+        20,
+        18
+      ],
+      [
+        22,
+        18
+      ],
+      [
+        23,
+        18
+      ],
+      [
+        24,
+        18
+      ],
+      [
+        25,
+        18
+      ],
+      [
+        26,
+        18
+      ],
+      [
+        10,
+        19
+      ]
+    ],
+    "F": [
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        12,
+        0
+      ],
+      [
+        13,
+        0
+      ],
+      [
+        14,
+        0
+      ],
+      [
+        15,
+        0
+      ],
+      [
+        16,
+        0
+      ],
+      [
+        17,
+        0
+      ],
+      [
+        18,
+        0
+      ],
+      [
+        19,
+        0
+      ],
+      [
+        20,
+        0
+      ],
+      [
+        21,
+        0
+      ],
+      [
+        22,
+        0
+      ],
+      [
+        23,
+        0
+      ],
+      [
+        24,
+        0
+      ],
+      [
+        25,
+        0
+      ],
+      [
+        29,
+        0
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        13,
+        1
+      ],
+      [
+        15,
+        1
+      ],
+      [
+        16,
+        1
+      ],
+      [
+        17,
+        1
+      ],
+      [
+        18,
+        1
+      ],
+      [
+        19,
+        1
+      ],
+      [
+        20,
+        1
+      ],
+      [
+        21,
+        1
+      ],
+      [
+        22,
+        1
+      ],
+      [
+        23,
+        1
+      ],
+      [
+        24,
+        1
+      ],
+      [
+        25,
+        1
+      ],
+      [
+        26,
+        1
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        17,
+        2
+      ],
+      [
+        18,
+        2
+      ],
+      [
+        21,
+        2
+      ],
+      [
+        22,
+        2
+      ],
+      [
+        23,
+        2
+      ],
+      [
+        24,
+        2
+      ],
+      [
+        25,
+        2
+      ],
+      [
+        26,
+        2
+      ],
+      [
+        27,
+        3
+      ],
+      [
+        29,
+        3
+      ],
+      [
+        29,
+        10
+      ],
+      [
+        0,
+        11
+      ],
+      [
+        29,
+        11
+      ],
+      [
+        29,
+        12
+      ],
+      [
+        0,
+        13
+      ],
+      [
+        29,
+        13
+      ],
+      [
+        0,
+        14
+      ],
+      [
+        1,
+        14
+      ],
+      [
+        0,
+        15
+      ],
+      [
+        1,
+        15
+      ],
+      [
+        2,
+        15
+      ],
+      [
+        3,
+        15
+      ],
+      [
+        29,
+        15
+      ],
+      [
+        0,
+        16
+      ],
+      [
+        1,
+        16
+      ],
+      [
+        2,
+        16
+      ],
+      [
+        28,
+        16
+      ],
+      [
+        29,
+        16
+      ],
+      [
+        0,
+        17
+      ],
+      [
+        29,
+        17
+      ],
+      [
+        0,
+        19
+      ],
+      [
+        0,
+        20
+      ],
+      [
+        1,
+        20
+      ],
+      [
+        3,
+        20
+      ],
+      [
+        21,
+        20
+      ],
+      [
+        29,
+        20
+      ],
+      [
+        0,
+        21
+      ],
+      [
+        1,
+        21
+      ],
+      [
+        2,
+        21
+      ],
+      [
+        3,
+        21
+      ],
+      [
+        4,
+        21
+      ],
+      [
+        5,
+        21
+      ],
+      [
+        6,
+        21
+      ],
+      [
+        7,
+        21
+      ],
+      [
+        8,
+        21
+      ],
+      [
+        9,
+        21
+      ],
+      [
+        19,
+        21
+      ],
+      [
+        20,
+        21
+      ],
+      [
+        21,
+        21
+      ],
+      [
+        22,
+        21
+      ],
+      [
+        23,
+        21
+      ],
+      [
+        24,
+        21
+      ],
+      [
+        25,
+        21
+      ],
+      [
+        26,
+        21
+      ],
+      [
+        27,
+        21
+      ],
+      [
+        28,
+        21
+      ],
+      [
+        29,
+        21
+      ]
+    ],
+    "m": [
+      [
+        4,
+        2
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        4,
+        4
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        3,
+        5
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        5,
+        5
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        0,
+        7
+      ]
+    ]
+  },
+  "metrics_against_reviewed_map": {
+    "accuracy": 0.763668430335097,
+    "macro_f1": 0.6998970630346054,
+    "classes": {
+      "f": {
+        "precision": 0.9459459459459459,
+        "recall": 0.8166666666666667,
+        "f1": 0.8765652951699464,
+        "support": 300
+      },
+      "F": {
+        "precision": 0.7688172043010753,
+        "recall": 0.6875,
+        "f1": 0.7258883248730965,
+        "support": 208
+      },
+      "m": {
+        "precision": 0.36885245901639346,
+        "recall": 0.7627118644067796,
+        "f1": 0.4972375690607735,
+        "support": 59
+      }
+    }
+  },
+  "prediction_counts": {
+    "F": 186,
+    "f": 259,
+    "m": 122
+  },
+  "disagreements": [
+    {
+      "position": [
+        9,
+        5
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.3263894319534302
+    },
+    {
+      "position": [
+        5,
+        9
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.3393124043941498
+    },
+    {
+      "position": [
+        10,
+        2
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.3509168028831482
+    },
+    {
+      "position": [
+        5,
+        14
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.3652687668800354
+    },
+    {
+      "position": [
+        15,
+        4
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.3725724518299103
+    },
+    {
+      "position": [
+        13,
+        5
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.37875738739967346
+    },
+    {
+      "position": [
+        20,
+        14
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.3815135955810547
+    },
+    {
+      "position": [
+        8,
+        8
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.38152116537094116
+    },
+    {
+      "position": [
+        12,
+        5
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.38249558210372925
+    },
+    {
+      "position": [
+        19,
+        5
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.3831739127635956
+    },
+    {
+      "position": [
+        14,
+        5
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.3843536972999573
+    },
+    {
+      "position": [
+        4,
+        10
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.388949453830719
+    },
+    {
+      "position": [
+        19,
+        4
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.3900245726108551
+    },
+    {
+      "position": [
+        9,
+        1
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.39570456743240356
+    },
+    {
+      "position": [
+        11,
+        4
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.39732974767684937
+    },
+    {
+      "position": [
+        20,
+        4
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.40112146735191345
+    },
+    {
+      "position": [
+        20,
+        6
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.4074897766113281
+    },
+    {
+      "position": [
+        6,
+        8
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.4082573652267456
+    },
+    {
+      "position": [
+        16,
+        3
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.4124199151992798
+    },
+    {
+      "position": [
+        8,
+        2
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.4171096086502075
+    },
+    {
+      "position": [
+        19,
+        6
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.4218749701976776
+    },
+    {
+      "position": [
+        3,
+        17
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.4237205386161804
+    },
+    {
+      "position": [
+        14,
+        4
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.42391178011894226
+    },
+    {
+      "position": [
+        27,
+        6
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.42672428488731384
+    },
+    {
+      "position": [
+        3,
+        16
+      ],
+      "expected": "F",
+      "predicted": "f",
+      "confidence": 0.42715299129486084
+    },
+    {
+      "position": [
+        8,
+        4
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.4285769462585449
+    },
+    {
+      "position": [
+        2,
+        13
+      ],
+      "expected": "m",
+      "predicted": "F",
+      "confidence": 0.42916634678840637
+    },
+    {
+      "position": [
+        19,
+        3
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.43461793661117554
+    },
+    {
+      "position": [
+        0,
+        4
+      ],
+      "expected": "m",
+      "predicted": "F",
+      "confidence": 0.4390597939491272
+    },
+    {
+      "position": [
+        11,
+        1
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.44330525398254395
+    },
+    {
+      "position": [
+        1,
+        12
+      ],
+      "expected": "m",
+      "predicted": "F",
+      "confidence": 0.44647401571273804
+    },
+    {
+      "position": [
+        11,
+        2
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.4467235803604126
+    },
+    {
+      "position": [
+        11,
+        3
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.4471285045146942
+    },
+    {
+      "position": [
+        26,
+        4
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.44859740138053894
+    },
+    {
+      "position": [
+        25,
+        4
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.4523839056491852
+    },
+    {
+      "position": [
+        7,
+        1
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.4530637264251709
+    },
+    {
+      "position": [
+        4,
+        12
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.45612719655036926
+    },
+    {
+      "position": [
+        0,
+        3
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.45718079805374146
+    },
+    {
+      "position": [
+        7,
+        7
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.46061211824417114
+    },
+    {
+      "position": [
+        14,
+        2
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.46077316999435425
+    },
+    {
+      "position": [
+        4,
+        13
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.46187353134155273
+    },
+    {
+      "position": [
+        29,
+        8
+      ],
+      "expected": "m",
+      "predicted": "f",
+      "confidence": 0.46305978298187256
+    },
+    {
+      "position": [
+        8,
+        19
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.46347466111183167
+    },
+    {
+      "position": [
+        13,
+        4
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.46451544761657715
+    },
+    {
+      "position": [
+        16,
+        0
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.4685348868370056
+    },
+    {
+      "position": [
+        21,
+        14
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.4711293876171112
+    },
+    {
+      "position": [
+        7,
+        9
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.47162532806396484
+    },
+    {
+      "position": [
+        3,
+        18
+      ],
+      "expected": "m",
+      "predicted": "F",
+      "confidence": 0.471843421459198
+    },
+    {
+      "position": [
+        21,
+        4
+      ],
+      "expected": "F",
+      "predicted": "f",
+      "confidence": 0.4725584387779236
+    },
+    {
+      "position": [
+        4,
+        15
+      ],
+      "expected": "F",
+      "predicted": "f",
+      "confidence": 0.4744899868965149
+    },
+    {
+      "position": [
+        5,
+        18
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.4757590889930725
+    },
+    {
+      "position": [
+        14,
+        0
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.47671985626220703
+    },
+    {
+      "position": [
+        0,
+        11
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.4778488278388977
+    },
+    {
+      "position": [
+        7,
+        8
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.47910386323928833
+    },
+    {
+      "position": [
+        10,
+        1
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.48065388202667236
+    },
+    {
+      "position": [
+        23,
+        3
+      ],
+      "expected": "F",
+      "predicted": "f",
+      "confidence": 0.4824090003967285
+    },
+    {
+      "position": [
+        14,
+        3
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.4827437996864319
+    },
+    {
+      "position": [
+        6,
+        19
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.4831951856613159
+    },
+    {
+      "position": [
+        16,
+        1
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.4836302101612091
+    },
+    {
+      "position": [
+        9,
+        6
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.4850962162017822
+    },
+    {
+      "position": [
+        15,
+        0
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.490961492061615
+    },
+    {
+      "position": [
+        17,
+        1
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.4988182485103607
+    },
+    {
+      "position": [
+        4,
+        9
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.5085996389389038
+    },
+    {
+      "position": [
+        22,
+        21
+      ],
+      "expected": "F",
+      "predicted": "f",
+      "confidence": 0.5099257230758667
+    },
+    {
+      "position": [
+        0,
+        5
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.5167909860610962
+    },
+    {
+      "position": [
+        8,
+        3
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.5177874565124512
+    },
+    {
+      "position": [
+        12,
+        4
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.5210407972335815
+    },
+    {
+      "position": [
+        22,
+        20
+      ],
+      "expected": "F",
+      "predicted": "f",
+      "confidence": 0.5257231593132019
+    },
+    {
+      "position": [
+        12,
+        2
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.5292878746986389
+    },
+    {
+      "position": [
+        3,
+        11
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.5347565412521362
+    },
+    {
+      "position": [
+        28,
+        6
+      ],
+      "expected": "m",
+      "predicted": "F",
+      "confidence": 0.5392849445343018
+    },
+    {
+      "position": [
+        26,
+        15
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.5399901866912842
+    },
+    {
+      "position": [
+        21,
+        20
+      ],
+      "expected": "F",
+      "predicted": "f",
+      "confidence": 0.5438719391822815
+    },
+    {
+      "position": [
+        4,
+        19
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.5444823503494263
+    },
+    {
+      "position": [
+        27,
+        14
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.5466254353523254
+    },
+    {
+      "position": [
+        1,
+        4
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.5491854548454285
+    },
+    {
+      "position": [
+        6,
+        0
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.549450695514679
+    },
+    {
+      "position": [
+        24,
+        3
+      ],
+      "expected": "F",
+      "predicted": "f",
+      "confidence": 0.5497183799743652
+    },
+    {
+      "position": [
+        13,
+        3
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.5530396699905396
+    },
+    {
+      "position": [
+        5,
+        8
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.5536583065986633
+    },
+    {
+      "position": [
+        25,
+        16
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.5541548132896423
+    },
+    {
+      "position": [
+        1,
+        18
+      ],
+      "expected": "m",
+      "predicted": "F",
+      "confidence": 0.5543075799942017
+    },
+    {
+      "position": [
+        9,
+        7
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.5550297498703003
+    },
+    {
+      "position": [
+        5,
+        19
+      ],
+      "expected": "m",
+      "predicted": "F",
+      "confidence": 0.5567505359649658
+    },
+    {
+      "position": [
+        1,
+        0
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.5568569302558899
+    },
+    {
+      "position": [
+        8,
+        7
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.5581378936767578
+    },
+    {
+      "position": [
+        9,
+        21
+      ],
+      "expected": "F",
+      "predicted": "f",
+      "confidence": 0.5613407492637634
+    },
+    {
+      "position": [
+        13,
+        0
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.5622568130493164
+    },
+    {
+      "position": [
+        6,
+        7
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.562630295753479
+    },
+    {
+      "position": [
+        13,
+        2
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.5650678277015686
+    },
+    {
+      "position": [
+        21,
+        19
+      ],
+      "expected": "F",
+      "predicted": "f",
+      "confidence": 0.5661944150924683
+    },
+    {
+      "position": [
+        12,
+        3
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.5665923357009888
+    },
+    {
+      "position": [
+        12,
+        1
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.5666974186897278
+    },
+    {
+      "position": [
+        13,
+        1
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.5682634115219116
+    },
+    {
+      "position": [
+        1,
+        11
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.5714046359062195
+    },
+    {
+      "position": [
+        12,
+        0
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.5752257704734802
+    },
+    {
+      "position": [
+        28,
+        5
+      ],
+      "expected": "m",
+      "predicted": "F",
+      "confidence": 0.5765557885169983
+    },
+    {
+      "position": [
+        28,
+        14
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.5787965059280396
+    },
+    {
+      "position": [
+        0,
+        10
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.5833619236946106
+    },
+    {
+      "position": [
+        6,
+        1
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.588593065738678
+    },
+    {
+      "position": [
+        28,
+        4
+      ],
+      "expected": "m",
+      "predicted": "F",
+      "confidence": 0.5900329351425171
+    },
+    {
+      "position": [
+        2,
+        19
+      ],
+      "expected": "m",
+      "predicted": "F",
+      "confidence": 0.5938059091567993
+    },
+    {
+      "position": [
+        5,
+        0
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.6006724834442139
+    },
+    {
+      "position": [
+        8,
+        5
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.6076783537864685
+    },
+    {
+      "position": [
+        2,
+        9
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.6133881211280823
+    },
+    {
+      "position": [
+        28,
+        2
+      ],
+      "expected": "m",
+      "predicted": "F",
+      "confidence": 0.6150563955307007
+    },
+    {
+      "position": [
+        26,
+        16
+      ],
+      "expected": "f",
+      "predicted": "F",
+      "confidence": 0.6152120232582092
+    },
+    {
+      "position": [
+        1,
+        1
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.6186983585357666
+    },
+    {
+      "position": [
+        7,
+        2
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.6205743551254272
+    },
+    {
+      "position": [
+        3,
+        12
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.6212193965911865
+    },
+    {
+      "position": [
+        24,
+        16
+      ],
+      "expected": "F",
+      "predicted": "f",
+      "confidence": 0.6227161288261414
+    },
+    {
+      "position": [
+        2,
+        10
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.6316624879837036
+    },
+    {
+      "position": [
+        7,
+        3
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.6371762752532959
+    },
+    {
+      "position": [
+        9,
+        20
+      ],
+      "expected": "F",
+      "predicted": "f",
+      "confidence": 0.6376258134841919
+    },
+    {
+      "position": [
+        2,
+        0
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.6391606330871582
+    },
+    {
+      "position": [
+        28,
+        1
+      ],
+      "expected": "m",
+      "predicted": "F",
+      "confidence": 0.640337347984314
+    },
+    {
+      "position": [
+        1,
+        2
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.6406983733177185
+    },
+    {
+      "position": [
+        10,
+        21
+      ],
+      "expected": "F",
+      "predicted": "f",
+      "confidence": 0.6424775123596191
+    },
+    {
+      "position": [
+        2,
+        2
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.648472785949707
+    },
+    {
+      "position": [
+        7,
+        4
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.649541437625885
+    },
+    {
+      "position": [
+        4,
+        0
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.649791955947876
+    },
+    {
+      "position": [
+        8,
+        6
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.6509405970573425
+    },
+    {
+      "position": [
+        4,
+        8
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.65409916639328
+    },
+    {
+      "position": [
+        7,
+        6
+      ],
+      "expected": "f",
+      "predicted": "m",
+      "confidence": 0.656055212020874
+    },
+    {
+      "position": [
+        1,
+        9
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.6595270037651062
+    },
+    {
+      "position": [
+        2,
+        7
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.6659524440765381
+    },
+    {
+      "position": [
+        2,
+        1
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.6660239696502686
+    },
+    {
+      "position": [
+        1,
+        8
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.6696139574050903
+    },
+    {
+      "position": [
+        2,
+        3
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.6741448640823364
+    },
+    {
+      "position": [
+        5,
+        1
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.6751264333724976
+    },
+    {
+      "position": [
+        6,
+        2
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.6790723204612732
+    },
+    {
+      "position": [
+        7,
+        5
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.7077457904815674
+    },
+    {
+      "position": [
+        27,
+        0
+      ],
+      "expected": "m",
+      "predicted": "F",
+      "confidence": 0.7112733125686646
+    },
+    {
+      "position": [
+        1,
+        6
+      ],
+      "expected": "F",
+      "predicted": "m",
+      "confidence": 0.7225502729415894
+    }
+  ],
+  "mixed_cells": [
+    {
+      "position": [
+        0,
+        0
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        1,
+        0
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        7,
+        0
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        11,
+        0
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        14,
+        0
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        15,
+        0
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        16,
+        0
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 128
+    },
+    {
+      "position": [
+        17,
+        0
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        18,
+        0
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        0,
+        1
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        7,
+        1
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 80
+    },
+    {
+      "position": [
+        8,
+        1
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        9,
+        1
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 96
+    },
+    {
+      "position": [
+        11,
+        1
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        14,
+        1
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        15,
+        1
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        16,
+        1
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 64
+    },
+    {
+      "position": [
+        17,
+        1
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 48
+    },
+    {
+      "position": [
+        21,
+        1
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        0,
+        2
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        8,
+        2
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        9,
+        2
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        10,
+        2
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 96
+    },
+    {
+      "position": [
+        11,
+        2
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 64
+    },
+    {
+      "position": [
+        14,
+        2
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 96
+    },
+    {
+      "position": [
+        15,
+        2
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        16,
+        2
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        17,
+        2
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        21,
+        2
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        0,
+        3
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 128
+    },
+    {
+      "position": [
+        8,
+        3
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        9,
+        3
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        10,
+        3
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 96
+    },
+    {
+      "position": [
+        14,
+        3
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        15,
+        3
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 80
+    },
+    {
+      "position": [
+        16,
+        3
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        19,
+        3
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        20,
+        3
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        21,
+        3
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        22,
+        3
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        23,
+        3
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 96
+    },
+    {
+      "position": [
+        24,
+        3
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        25,
+        3
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        0,
+        4
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        8,
+        4
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        10,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        11,
+        4
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        13,
+        4
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 48
+    },
+    {
+      "position": [
+        14,
+        4
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        15,
+        4
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 96
+    },
+    {
+      "position": [
+        17,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 64
+    },
+    {
+      "position": [
+        18,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        19,
+        4
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        20,
+        4
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 128
+    },
+    {
+      "position": [
+        21,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 80
+    },
+    {
+      "position": [
+        25,
+        4
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 112
+    },
+    {
+      "position": [
+        26,
+        4
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 128
+    },
+    {
+      "position": [
+        0,
+        5
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        9,
+        5
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 128
+    },
+    {
+      "position": [
+        11,
+        5
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        12,
+        5
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        13,
+        5
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        14,
+        5
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        15,
+        5
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 48
+    },
+    {
+      "position": [
+        18,
+        5
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 48
+    },
+    {
+      "position": [
+        19,
+        5
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 112
+    },
+    {
+      "position": [
+        20,
+        5
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        26,
+        5
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 64
+    },
+    {
+      "position": [
+        27,
+        5
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        9,
+        6
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        13,
+        6
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        18,
+        6
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        19,
+        6
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        20,
+        6
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        26,
+        6
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        27,
+        6
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 112
+    },
+    {
+      "position": [
+        10,
+        7
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 64
+    },
+    {
+      "position": [
+        18,
+        7
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        8,
+        8
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        9,
+        8
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        10,
+        8
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        11,
+        8
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        18,
+        8
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        29,
+        8
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 80
+    },
+    {
+      "position": [
+        5,
+        9
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 128
+    },
+    {
+      "position": [
+        6,
+        9
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        8,
+        9
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        10,
+        9
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        11,
+        9
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        29,
+        9
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        4,
+        10
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        5,
+        10
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        7,
+        10
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        8,
+        10
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        0,
+        11
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        1,
+        11
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        5,
+        11
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        1,
+        12
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        2,
+        12
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        5,
+        12
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        0,
+        13
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        1,
+        13
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        2,
+        13
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 64
+    },
+    {
+      "position": [
+        3,
+        13
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 64
+    },
+    {
+      "position": [
+        5,
+        13
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 112
+    },
+    {
+      "position": [
+        20,
+        13
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        21,
+        13
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        0,
+        14
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        1,
+        14
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        3,
+        14
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 64
+    },
+    {
+      "position": [
+        4,
+        14
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        5,
+        14
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 96
+    },
+    {
+      "position": [
+        19,
+        14
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        20,
+        14
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 112
+    },
+    {
+      "position": [
+        21,
+        14
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        22,
+        14
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        25,
+        14
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 48
+    },
+    {
+      "position": [
+        3,
+        15
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 128
+    },
+    {
+      "position": [
+        4,
+        15
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 64
+    },
+    {
+      "position": [
+        7,
+        15
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        21,
+        15
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        25,
+        15
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 80
+    },
+    {
+      "position": [
+        3,
+        16
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        4,
+        16
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 96
+    },
+    {
+      "position": [
+        5,
+        16
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        7,
+        16
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        24,
+        16
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 48
+    },
+    {
+      "position": [
+        25,
+        16
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        3,
+        17
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        4,
+        17
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 64
+    },
+    {
+      "position": [
+        5,
+        17
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 96
+    },
+    {
+      "position": [
+        25,
+        17
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 64
+    },
+    {
+      "position": [
+        26,
+        17
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 96
+    },
+    {
+      "position": [
+        27,
+        17
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        3,
+        18
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        4,
+        18
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        5,
+        18
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        6,
+        18
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 48
+    },
+    {
+      "position": [
+        7,
+        18
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 80
+    },
+    {
+      "position": [
+        8,
+        18
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        28,
+        18
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 64
+    },
+    {
+      "position": [
+        29,
+        18
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 128
+    },
+    {
+      "position": [
+        3,
+        19
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        4,
+        19
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        6,
+        19
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        7,
+        19
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 96
+    },
+    {
+      "position": [
+        8,
+        19
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        9,
+        19
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        20,
+        19
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 80
+    },
+    {
+      "position": [
+        21,
+        19
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 48
+    },
+    {
+      "position": [
+        22,
+        19
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 64
+    },
+    {
+      "position": [
+        26,
+        19
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 64
+    },
+    {
+      "position": [
+        27,
+        19
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 48
+    },
+    {
+      "position": [
+        29,
+        19
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 128
+    },
+    {
+      "position": [
+        8,
+        20
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        9,
+        20
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        19,
+        20
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        20,
+        20
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        22,
+        20
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        23,
+        20
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        24,
+        20
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 112
+    },
+    {
+      "position": [
+        25,
+        20
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        8,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        9,
+        21
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        19,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        21,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        22,
+        21
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 64
+    },
+    {
+      "position": [
+        23,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 112
+    }
+  ],
+  "rows": [
+    "FmmmmmmFFFFFmmmmmFFFFFFFFFFFFF",
+    "FmmmmmmmfFFmmmFFmmFFFFFFFFFFFF",
+    "FmmmmmmmmfFmmmmFFFFFFFFFFFFFFF",
+    "mmmmmmmmmffmmmmfFFFFfFFffFFFFF",
+    "FmmmmmmmmffmmmFFfffFFffffFFFFF",
+    "mmmmmmmmmmffmFFffffFfffffffFFF",
+    "mmmmmmmmmmfffffffffFFffffffFFF",
+    "mmmmmmmmmmffffffffffffPPPPPPPF",
+    "mmmmmmmmmfffffffffffffPwwwwwPf",
+    "mmmmmmfmffffffffffffffPwewewPF",
+    "mmmmmffffffffffffffffffwwewwPF",
+    "mmmmmffffffffffffffffffwwwwwPF",
+    "FFmmmfffffffffffffffffPwewewPF",
+    "FFFmmFffffffffffffffffPPPPPPPF",
+    "FFFFFFffffffffffffffFFffffFFFF",
+    "FFFFffffffffffffffffffffffFFFF",
+    "FFFffffffffPPPffPPPffffffFFFFF",
+    "FFFFFFfffffPwwwwwwPffffffffFFF",
+    "FFFFmFfffffPwewwwePffffffffffF",
+    "FFFFFFFfFffPwwwewwPffffffffffF",
+    "FFFFFFFFFffPwewwwePFFffFFFFFFF",
+    "FFFFFFFFFffPPPPPPPPFFFfFFFFFFF"
+  ]
+}

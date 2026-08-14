@@ -1,0 +1,7 @@
+Use case: historical-scene
+Asset type: native tactical RPG battlefield base
+Primary request: Create a high-quality orthographic night battlefield background for the assault on the small ancient Chinese state of Hua, compatible with the classic Cao Cao Zhuan tactical RPG visual language but with richer natural textures.
+Scene/backdrop: broad dark-green and dry-grass plains under clear moonlight, packed-earth roads approaching a large reserved rectangular level area in the upper-middle from southwest, south, and southeast, sparse low hills and shrubs only near the far outer edges.
+Composition/framing: wide 4:3 landscape, top-down three-quarter orthographic view; leave the upper-middle rectangular region completely open for a programmatically overlaid continuous walled city, and leave three unobstructed road approaches for three attacking columns.
+Lighting/mood: readable blue-gray moonlight, quiet before a surprise attack, never so dark that terrain becomes unclear.
+Constraints: natural continuous terrain only; no grid, no tile seams, no text, no UI, no units, no armies, no buildings, no city, no walls, no gates, no towers, no fences, no tents, no camps, no fires.

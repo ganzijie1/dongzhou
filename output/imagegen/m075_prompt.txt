@@ -1,0 +1,9 @@
+Use case: historical-scene
+Asset type: clean base terrain for a classic Chinese tactical RPG battle map
+Primary request: create a broad night battlefield on the Zheng-Chu frontier, designed for a 40 by 28 logical grid at 48 pixels per cell
+Scene/backdrop: late-summer grassland with a large flat central clearing reserved for a deceptive military camp, wooded ridges behind the clearing, two concealed side valleys suitable for ambush troops, and an open retreat road toward the east
+Style/medium: polished orthographic classic Cao Cao Zhuan-inspired tactical RPG terrain, hand-painted realistic pixel-art texture, readable from above
+Composition/framing: top-down orthographic map with broad contiguous terrain masses; keep the central rectangle and east approach level and obstacle-free
+Lighting/mood: bright moonlit night with warm distant torch glow but clear tactical readability
+Constraints: natural terrain only; no people, units, straw figures, buildings, camps, tents, fences, walls, gates, fires, text, labels, UI, grid lines, square seams, or watermark
+Avoid: aerial photography, perspective horizon, checkerboard textures, structures or decoration spilling across logical cells

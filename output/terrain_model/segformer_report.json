@@ -1,0 +1,70 @@
+{
+  "validation": "complete held-out map assets",
+  "miou": 0.07079604274551694,
+  "pixel_accuracy": 0.525970458984375,
+  "per_map": [
+    {
+      "pixel_accuracy": 0.525970458984375,
+      "class_iou": {
+        "open": 0.5311336677624808,
+        "forest": 0.06547612976920174,
+        "mountain": 0.04055458717797003,
+        "water": 0.0,
+        "barrier": 0.0,
+        "city": 0.0,
+        "gate": 0.0,
+        "camp": 0.0,
+        "supply": 0.0
+      },
+      "miou": 0.07079604274551694
+    }
+  ],
+  "mean_inference_ms": 1918.8305999850854,
+  "backbone": "MiT-B2",
+  "decoder": "SegFormer all-MLP",
+  "learning_rate": 6e-05,
+  "crop_size": 512,
+  "epochs": 2,
+  "training_maps": [
+    "m000.jpg",
+    "m001.jpg",
+    "m002.jpg",
+    "m004.jpg",
+    "m005.jpg",
+    "m006.jpg",
+    "m007-camp-v5.png",
+    "m009.png",
+    "m010-camp-v2.png",
+    "m011-camp.png",
+    "m012.png",
+    "m013.png",
+    "m014.png",
+    "m015.png",
+    "m016.png",
+    "m017.png",
+    "m018.png",
+    "m019.png",
+    "m020.png"
+  ],
+  "holdout_maps": [
+    "m008.png"
+  ],
+  "supervision": "weak Lua labels",
+  "mean_training_loss": 2.167284590005875,
+  "training_seconds": 89.0177726999973,
+  "device": "cpu",
+  "encoder_frozen": true,
+  "class_weights": {
+    "open": 0.5,
+    "forest": 0.6665733456611633,
+    "mountain": 2.4307427406311035,
+    "rock": 3.06815242767334,
+    "water": 2.310927152633667,
+    "barrier": 1.5373367071151733,
+    "city": 1.9371893405914307,
+    "gate": 4.0,
+    "camp": 3.237166166305542,
+    "supply": 4.0
+  },
+  "sampling": "50% rare-terrain-centered crops, 50% random crops"
+}

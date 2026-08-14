@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: large Mengde forest ambush and stockade map
+Primary request: Qishan forest ambush in the west, broad Ershan battlefield and a separate fenced Shuju stockade in the east.
+Style: classic Chinese tactical-RPG painted terrain, orthographic.
+Constraints: no structures, units, text, UI or visible grid; stockade is a separate center-axis fence overlay.

@@ -1,0 +1,140 @@
+{
+  "map": "assets/lzc/map/m114.png",
+  "source_base": "output/imagegen/chapter55-qingcao-base-gpt2.png",
+  "prompt_file": "output/imagegen/m114_prompt.txt",
+  "grid": [
+    60,
+    42
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "FgfffFggffffggFffggffffFgffvwwvwwvggfFffggffffFgfffFgffffggf",
+    "ffggffffFgffffggfFfggfFffggwwvwwvwffggffFfggfFffggfffgFffffg",
+    "gfFfggffffgFffffFgfffggffFfwvwwvwwFfffgFffffggffFfggfffggFff",
+    "fggffFggffFfggffffgFfffggffvwwvwwvfggfffggFfffggfffFggffFggf",
+    "fffgFfffggfffFggffffggFffggwwvwwvwffFggfffggfFffggFfffggfffF",
+    "gffffggFffggffffFgfffFggfffwvwwvwwgffffFgfffFgffffggfFffggff",
+    "fFgffffggfFfggfFffggffffFgfvwwvwwvfggfFffggfffgFffffggffFfgg",
+    "fffgFffffFgfffggffFfggffffgwwvwwvwfffggffFfggfffggFfffgFffff",
+    "gffFfggffffgFfffggfffFggffFwvwwvwwgFfffggfffFggffFggffffggFf",
+    "fggfffFggffffggFffggFfffggfvwwvwwvfggfFffggFfffggfffFgffffgg",
+    "FffggffffFgfffFggfffggfFffgwwvwwvwfffFgffffggfFffggfffgFffff",
+    "ggfFfggfFffggffffFgfffggffFwvwwvwwggfffgFffffggffFfggfFfggff",
+    "ffFgfffggffFfggffffgFfffgFfvwwvwwvFfggfffggFfffgFffffggffFgg",
+    "ffffgFfffggfffFggffFfggfffgwwvwwvwfffFggffFggffffggFfffggfff",
+    "ggffffggFffggFfffggfffFggffwvwwvwwggFfffggfffFgffffggfFffggF",
+    "ffFgfffFggfffggfFffggffffffffffffffffffFffggfffgFffffFgffffg",
+    "fFffggffffFgfffggffFfggfffffffffffffffggffFfggfFfggffffgFfff",
+    "ggffFfggffffgFfffgFffffgffffffffffffffffgFffffggffFggffffggF",
+    "ffggfffFggffFfggfffggFffffffffffffffffffffggFfffggfffFgfffFg",
+    "gFffggFfffggfffFggfffggfffffffffffffffFgffffggfFffggFffggfff",
+    "FggfffggfFffggffffFgfffFffffffffffffffffgFffffFgffffggfFfggf",
+    "fffFgfffggffFfggfFffggffffffffffffffffgfFfggffffgFffffggffFg",
+    "gffffgFfffgFffffggffFfggfffffffffffffffggffFggffffggFfffgFff",
+    "FggffFfggfffggFfffggfffFfffffffffffffffffggfffFgfffFggffffgg",
+    "fffggfffFggfffggfFffggFfffffffffffffffgfFffggFffggffffFgffff",
+    "gfFffggffffFgfffFgffffggfffffffffffffffFgffffggfFfggffffgFff",
+    "fggffFfggfFffggfffgFfffffffffffffffffffffgFffffggffFggffFfgg",
+    "fffgFffffggffFfggfffggFfffffffffffffffgffffggFfffgFfffggfffF",
+    "ggfffggFfffggfffFggffFggfffwwvwwvwggfffFgfffFggffffggFffggff",
+    "fFggfffggfFffggFfffggfffFgfwvwwvwwffggFffggffffFgffffggfFfgg",
+    "ffffFgfffFgffffggfFffggfffgvwwvwwvffffggfFfggffffgFffffFgfff",
+    "ggfFffggfffgFffffggffFfggfFwwvwwvwgFffffggffFggffFfggffffgFf",
+    "ffggffFfggfffggFfffgFffffggwvwwvwwffggFfffgFfffggfffFggffffg",
+    "FfffggfffFggffFggffffggFfffvwwvwwvfffFggffffggFffggffffFgfff",
+    "ggfFffggFfffggfffFgffffggfFwwvwwvwggffffFgffffggfFfggfFffggf",
+    "ffFgffffggfFffggfffgFffffFgwvwwvwwFfggffffgFffffFgfffggffFfg",
+    "gfffgFffffggffFfggfFfggffffvwwvwwvgffFggffFfggffffgFfffggfff",
+    "fggfffggFfffgFffffggffFggffwwvwwvwfgFfffggfffFggffffggFffggF",
+    "ffFggffFggffffggFfffggfffFgwvwwvwwfffggFffggffffFgfffFggfffg",
+    "gFfffggfffFgffffggfFffggFffvwwvwwvgffffggfFfggfFffggffffFgff",
+    "fggfFffggfffgFffffFgffffggfwwvwwvwfgFffffFgfffggffFfggffffgF",
+    "fffggffFfggfFfggffffgFffffgwvwwvwwfFfggffffgFfffggfffFggffFf"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m",
+      "v"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "recomposed saved GPT Image 2 natural base plus reviewed programmatic source-of-truth geometry",
+  "structure_regions": {
+    "jize_marsh": [
+      [
+        24,
+        0
+      ],
+      [
+        37,
+        41
+      ]
+    ],
+    "chu_start": [
+      [
+        10,
+        16
+      ],
+      [
+        20,
+        26
+      ]
+    ],
+    "zheng_line": [
+      [
+        42,
+        16
+      ],
+      [
+        50,
+        27
+      ]
+    ]
+  },
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [],
+  "supply_sites": [],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "ChuanFengShu66",
+      "force": 1,
+      "position": [
+        14,
+        20
+      ]
+    },
+    {
+      "name": "GongZiWei66",
+      "force": 2,
+      "position": [
+        18,
+        23
+      ]
+    },
+    {
+      "name": "HuangJie66",
+      "force": 3,
+      "position": [
+        45,
+        21
+      ]
+    }
+  ],
+  "mission": {
+    "type": "jize_capture",
+    "capture": "HuangJie66"
+  },
+  "visual_grid_in_game": false
+}

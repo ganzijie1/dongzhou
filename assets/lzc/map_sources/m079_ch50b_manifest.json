@@ -1,0 +1,375 @@
+{
+  "map": "assets/lzc/map/m079.png",
+  "source_base": "output/imagegen/chapter50-jiao-base-gpt2.png",
+  "prompt_file": "output/imagegen/m079_prompt.txt",
+  "grid": [
+    46,
+    30
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "FFffgfFFfffgFFgfffFFfgffFFffmfFFmffgFFfgmfFFmf",
+    "gffFFffgfFFfffgFFgfffFFfgffFFffmfFFmffgFFfgmfF",
+    "FFfgffFFffgfFFfffgFFgfffFFmgffFFffmfFFmffgFFfg",
+    "ffgfffgffgfffgffgfffgffgfmfgfmgffmgffmfffmffgF",
+    "FFgffgfffgffgfffgffgfffgffgfmfgfmgffmgffmffFmf",
+    "fgWWWWWWWWWWWWWWfffgffgfffgffgfffgffgfffgffgfF",
+    "FFWiiiiiiiiiiiiWffgfffgffgfffgffgfffgffgfffFff",
+    "gfWiiiiiiiiiiiiWffgffgfffgffgfffgffgfffgffgffF",
+    "FFWiiiiiiiiiiiiWfgfffgffgfffgffgfffgffgfffgFfg",
+    "ffWiiiiiiiiiiiiWfgffgfffgffgfffgffgfffgffgfffF",
+    "FFWiiiiiiiiiiiiWgfffgffgfffgffgfffgffgfffgfFgf",
+    "ffWiiiiiiiiiiiiWgffgfffgffgfffgffgfffgffgfffgF",
+    "FFWiiiiiiiiiiiiWfffgffgfffgffgfffgffgfffgffFff",
+    "wwWiiiiiiiiiiiiWwwwwwwwwwwwwwwwwwwwwwwwwwwwwwF",
+    "FFWiiiiiiiiiiiiGwwwwwwwwwwwwwwwwwwwwwwwwwwwFww",
+    "wwWiiiiiiiiiiiiGwwwwwwwwwwwwwwwwwwwwwwwwwwwwwF",
+    "FFWiiiiiiiiiiiiWfgffgfffgffgfffgffgfffgffgfFfg",
+    "ffWiiiiiiiiiiiiWgfffgffgfffgffgfffgffgfffgffgF",
+    "FFWiiiiiiiiiiiiWgffgfffgffgfffgffgfffgffgffFgf",
+    "fgWiiiiiiiiiiiiWfffgffgfffgffgfffgffgfffgffgfF",
+    "FFWiiiiiiiiiiiiWffgfffgffgfffgffgfffgffgfffFff",
+    "gfWiiiiiiiiiiiiWffgffgfffgffgfffgffgfffgffgffF",
+    "FFWiiiiiiiiiiiiWfgfffgffgfffgffgfffgffgfffgFfg",
+    "ffWiiiiiiiiiiiiWfgffgfffgffgfffgffgfffgffgfffF",
+    "FFWWWWWWWWWWWWWWgfffgffgfffgffgfffgffgfffgfFgf",
+    "ffgffgfffgffgfffgffgfffgffgfffgffgfffgffgfffgF",
+    "FFfffgffgfffgffgfffgffgfffgffgfffgffgfffgffFff",
+    "fgfFFfffgFFgfffFFfgffFFffgfFFgffgFFfgffFFffgfF",
+    "FFffgfFFfffgFFgfffFFfgffFFffgfFFgffgFFfgffFFff",
+    "gffFFffgfFFfffgFFgfffFFfgffFFffgfFFgffgFFfgffF"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "GPT Image 2 natural base plus reviewed programmatic source-of-truth geometry",
+  "structure_regions": {
+    "jiao_city": [
+      [
+        2,
+        5
+      ],
+      [
+        15,
+        24
+      ]
+    ]
+  },
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [
+    [
+      2,
+      5
+    ],
+    [
+      2,
+      6
+    ],
+    [
+      2,
+      7
+    ],
+    [
+      2,
+      8
+    ],
+    [
+      2,
+      9
+    ],
+    [
+      2,
+      10
+    ],
+    [
+      2,
+      11
+    ],
+    [
+      2,
+      12
+    ],
+    [
+      2,
+      13
+    ],
+    [
+      2,
+      14
+    ],
+    [
+      2,
+      15
+    ],
+    [
+      2,
+      16
+    ],
+    [
+      2,
+      17
+    ],
+    [
+      2,
+      18
+    ],
+    [
+      2,
+      19
+    ],
+    [
+      2,
+      20
+    ],
+    [
+      2,
+      21
+    ],
+    [
+      2,
+      22
+    ],
+    [
+      2,
+      23
+    ],
+    [
+      2,
+      24
+    ],
+    [
+      3,
+      5
+    ],
+    [
+      3,
+      24
+    ],
+    [
+      4,
+      5
+    ],
+    [
+      4,
+      24
+    ],
+    [
+      5,
+      5
+    ],
+    [
+      5,
+      24
+    ],
+    [
+      6,
+      5
+    ],
+    [
+      6,
+      24
+    ],
+    [
+      7,
+      5
+    ],
+    [
+      7,
+      24
+    ],
+    [
+      8,
+      5
+    ],
+    [
+      8,
+      24
+    ],
+    [
+      9,
+      5
+    ],
+    [
+      9,
+      24
+    ],
+    [
+      10,
+      5
+    ],
+    [
+      10,
+      24
+    ],
+    [
+      11,
+      5
+    ],
+    [
+      11,
+      24
+    ],
+    [
+      12,
+      5
+    ],
+    [
+      12,
+      24
+    ],
+    [
+      13,
+      5
+    ],
+    [
+      13,
+      24
+    ],
+    [
+      14,
+      5
+    ],
+    [
+      14,
+      24
+    ],
+    [
+      15,
+      5
+    ],
+    [
+      15,
+      6
+    ],
+    [
+      15,
+      7
+    ],
+    [
+      15,
+      8
+    ],
+    [
+      15,
+      9
+    ],
+    [
+      15,
+      10
+    ],
+    [
+      15,
+      11
+    ],
+    [
+      15,
+      12
+    ],
+    [
+      15,
+      13
+    ],
+    [
+      15,
+      16
+    ],
+    [
+      15,
+      17
+    ],
+    [
+      15,
+      18
+    ],
+    [
+      15,
+      19
+    ],
+    [
+      15,
+      20
+    ],
+    [
+      15,
+      21
+    ],
+    [
+      15,
+      22
+    ],
+    [
+      15,
+      23
+    ],
+    [
+      15,
+      24
+    ]
+  ],
+  "gates": [
+    {
+      "name": "jiao_east_gate",
+      "cells": [
+        [
+          15,
+          14
+        ],
+        [
+          15,
+          15
+        ]
+      ]
+    }
+  ],
+  "castle_cells": [],
+  "supply_sites": [],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "ZhaoChuan48",
+      "force": 1,
+      "position": [
+        39,
+        14
+      ]
+    },
+    {
+      "name": "QinSiegeCaptain50",
+      "force": 3,
+      "position": [
+        22,
+        14
+      ]
+    },
+    {
+      "name": "JiaoDefender50",
+      "force": 2,
+      "position": [
+        12,
+        14
+      ]
+    }
+  ],
+  "mission": {
+    "type": "relief_of_jiao",
+    "relief_gate": [
+      15,
+      14
+    ],
+    "hold_turns": 3,
+    "qin_outcome": "withdraws_after_relief"
+  },
+  "visual_grid_in_game": false
+}

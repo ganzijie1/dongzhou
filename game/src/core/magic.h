@@ -27,8 +27,10 @@ class Magic {
 
  public:
   Magic(const std::string&, MagicType, Range::Type, bool, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t);
-  std::string GetId() { return id_; }
-  bool        GetIsTargetEnemy() { return is_target_enemy_; }
+  std::string GetId() const { return id_; }
+  bool        GetIsTargetEnemy() const { return is_target_enemy_; }
+  uint16_t    GetMpCost() const { return mp_cost_; }
+  uint16_t    GetPower() const { return power_; }
   void        Perform(Unit*, Unit*);
   void        AddLearnInfo(uint16_t, uint16_t);
 
@@ -39,8 +41,8 @@ class Magic {
   int  CalcAccuracy(Unit*, Unit*);
   bool TryPerform(Unit*, Unit*);
   bool IsAvailible(Unit*);
-  bool IsTypeHeal() { return type_ & kMagicHeal; }
-  bool IsTypeDeal() { return type_ & kMagicDeal; }
+  bool IsTypeHeal() const { return type_ & kMagicHeal; }
+  bool IsTypeDeal() const { return type_ & kMagicDeal; }
 
  private:
   string            id_;

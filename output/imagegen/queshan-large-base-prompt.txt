@@ -1,0 +1,9 @@
+Create a high-quality 2D top-down battlefield background for a classic Chinese Three Kingdoms-era pixel-art tactical RPG, inspired by the visual readability and hand-painted terrain language of 1990s Chinese/Japanese grid strategy games.
+
+Scene: the Queshan countryside in the Spring and Autumn period. A broad natural battlefield viewed from a strict near-orthographic top-down angle. Mountain ridges and rocky foothills occupy the north and northwest. Sparse dark-green woodland follows some slopes. The center is an open grassy and packed-earth basin with winding but broad natural approaches. The south-center contains a broad, completely level open field large enough for a later 6-by-4-cell military camp. The east contains another broad, completely level open field large enough for a later 5-by-5-cell military camp. Keep both reserved fields visually clear and free of obstacles.
+
+Composition must remain readable when converted to a 30 by 22 tactical grid at 48 pixels per cell. Terrain transitions should be organic and cross several cells; do not draw square tile boundaries. Mountains must occupy substantial contiguous areas, not tiny isolated rocks. Keep the central and southern routes open and visually obvious.
+
+IMPORTANT EXCLUSIONS: no camps, no tents, no fences, no palisades, no gates, no walls, no buildings, no bridges, no units, no characters, no weapons, no text, no labels, no UI, no visible grid lines, no checkerboard pattern. The later pipeline will add camps and fences as separate aligned sprite overlays.
+
+Fill the entire canvas with finished terrain. No blank margins, framing, vignette, border, gray background, or transparency. Use restrained natural greens, earth browns, gray stone, and subtle shadows. Crisp game-map detail, coherent lighting from upper left, no photorealism, no isometric perspective.

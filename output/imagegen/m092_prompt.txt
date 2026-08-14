@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: Mengde tactical battle-map base
+Primary request: broad Yanling battlefield with northern and southern level camp clearings, open central battle line, and a dark shallow bog.
+Style: classic Chinese tactical-RPG painted terrain, orthographic, natural transitions.
+Constraints: no structures, camps, fences, walls, units, text, UI, or visible grid; structures are separate overlays.

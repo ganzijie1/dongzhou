@@ -1,0 +1,8 @@
+Use case: historical-scene
+Asset type: seamless tactical battle-map base for a classic Chinese turn-based strategy RPG
+Primary request: Create the broad battlefield at Ji City and Dagu valley viewed from a high orthographic three-quarter angle. A long open north-south grass valley occupies the center, spacious enough for cavalry pursuit and an ambush. Dense continuous woodland and low wooded hills line both western and eastern sides, with rocky outer corners, dry grass, shallow gullies and two concealed side approaches opening into the central valley. Keep the middle route open and connected from north to south.
+Style/medium: richly painted late-1990s Chinese tactical RPG battlefield, realistic natural textures, cohesive hand-painted terrain, no modern objects
+Composition/framing: wide landscape, continuous terrain to every edge, broad contiguous landforms rather than tile-sized patches, readable when divided into a 36 by 26 logical grid
+Lighting/mood: crisp northern daylight, late autumn, restrained green and ochre palette, clear terrain readability
+Constraints: natural base only; no camps, tents, fences, walls, gates, buildings, bridges, units, horses, weapons, flags, fire, text, UI, coordinate labels, borders, or visible grid lines
+Avoid: square terrain seams, repeated tiled texture, miniature diorama edge, top-down satellite look, fantasy architecture, flat empty lawn

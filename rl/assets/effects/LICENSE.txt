@@ -1,0 +1,5 @@
+The battle effect frames were extracted from ccz-for-iOS:
+https://gitee.com/damocs0921/ccz-for-iOS
+
+They are included under the MIT License reproduced in:
+../unit_anim/LICENSE.txt

@@ -1,0 +1,3488 @@
+{
+  "format": "EEX",
+  "source": "R_09.eex",
+  "kind": "R",
+  "scene_count": 3,
+  "scenes": [
+    {
+      "index": 0,
+      "offset": 22,
+      "section_count": 1,
+      "sections": [
+        {
+          "offset": 24,
+          "size": 2521,
+          "conditions": [
+            {
+              "offset": 26,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "战后文聘入队"
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 47,
+              "opcode": 10,
+              "name": "初始化局部变量",
+              "parameters": []
+            },
+            {
+              "offset": 49,
+              "opcode": 47,
+              "name": "清除场景中出现的人物",
+              "parameters": []
+            },
+            {
+              "offset": 51,
+              "opcode": 36,
+              "name": "CD音轨设定",
+              "parameters": [
+                {
+                  "parameter_id": 9,
+                  "type": 9,
+                  "name": "音轨序号7",
+                  "value": 123
+                }
+              ]
+            },
+            {
+              "offset": 57,
+              "opcode": 119,
+              "name": "变量运算",
+              "parameters": [
+                {
+                  "parameter_id": 81,
+                  "type": 81,
+                  "name": "目标变量类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "目标变量编号",
+                  "value": 4027
+                },
+                {
+                  "parameter_id": 83,
+                  "type": 83,
+                  "name": "操作数类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 82,
+                  "type": 82,
+                  "name": "运算符",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "操作数",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 83,
+              "opcode": 39,
+              "name": "背景设定",
+              "parameters": [
+                {
+                  "parameter_id": 45,
+                  "type": 45,
+                  "name": "图片类型1",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 12,
+                  "type": 12,
+                  "name": "外景8",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 26,
+                  "type": 26,
+                  "name": "三国地图1",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 28,
+                  "type": 28,
+                  "name": "内景9",
+                  "value": 107
+                },
+                {
+                  "parameter_id": 21,
+                  "type": 21,
+                  "name": "战场a",
+                  "value": -1
+                }
+              ]
+            },
+            {
+              "offset": 105,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 50
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 61
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 3
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 131,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 6
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 50
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 67
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 3
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 157,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 4
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 44
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 55
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 183,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 44
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 61
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 209,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 50
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 44
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 67
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 235,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 8
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 38
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 55
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 261,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 5
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 38
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 61
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 287,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 9
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 38
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 67
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 313,
+              "opcode": 28,
+              "name": "绘图",
+              "parameters": []
+            },
+            {
+              "offset": 315,
+              "opcode": 24,
+              "name": "R剧本事件名称设定",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "名称",
+                  "value": "战后"
+                }
+              ]
+            },
+            {
+              "offset": 324,
+              "opcode": 23,
+              "name": "单行文字显示（R剧本中通常用来显示场所名）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字内容",
+                  "value": "米脂 城门"
+                }
+              ]
+            },
+            {
+              "offset": 338,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 346,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 356,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n米脂虽破，但洪承畴的兵马已至绥德，\n艾万年又在无定河畔列阵。此城孤悬\n敌后，不可久守！"
+                }
+              ]
+            },
+            {
+              "offset": 453,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 463,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 473,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李过\n可是若弃米脂，那刚归附的百姓......"
+                }
+              ]
+            },
+            {
+              "offset": 518,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 528,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n存孟兄攻打葭州十日无音讯，必陷重围！\n我若不去相救，他们恐有覆灭之虞。"
+                }
+              ]
+            },
+            {
+              "offset": 610,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 620,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 6
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 634,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 2
+                }
+              ]
+            },
+            {
+              "offset": 648,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&张礼\n鸿基，米脂粮仓刚到手，若弃城而走，\n弟兄们这仗不是白打了吗？"
+                }
+              ]
+            },
+            {
+              "offset": 718,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 726,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 736,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n洪承畴要的是米脂这座空城，我要的是\n张存孟那几千条命！若张存孟在葭州有失，\n义军必被拦腰斩断。"
+                }
+              ]
+            },
+            {
+              "offset": 841,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 851,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 865,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 6
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 879,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 889,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n传令下去：焚粮仓、沉火炮，半个时辰后\n全军轻装出东门！"
+                }
+              ]
+            },
+            {
+              "offset": 955,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 965,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 973,
+              "opcode": 47,
+              "name": "清除场景中出现的人物",
+              "parameters": []
+            },
+            {
+              "offset": 975,
+              "opcode": 36,
+              "name": "CD音轨设定",
+              "parameters": [
+                {
+                  "parameter_id": 9,
+                  "type": 9,
+                  "name": "音轨序号7",
+                  "value": 137
+                }
+              ]
+            },
+            {
+              "offset": 981,
+              "opcode": 119,
+              "name": "变量运算",
+              "parameters": [
+                {
+                  "parameter_id": 81,
+                  "type": 81,
+                  "name": "目标变量类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "目标变量编号",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 83,
+                  "type": 83,
+                  "name": "操作数类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 82,
+                  "type": 82,
+                  "name": "运算符",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "操作数",
+                  "value": 638
+                }
+              ]
+            },
+            {
+              "offset": 1007,
+              "opcode": 120,
+              "name": "整型变量赋值",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "变量编号",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 84,
+                  "type": 84,
+                  "name": "赋值方式",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "人物编号",
+                  "value": 809
+                },
+                {
+                  "parameter_id": 85,
+                  "type": 85,
+                  "name": "人物属性",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 1027,
+              "opcode": 119,
+              "name": "变量运算",
+              "parameters": [
+                {
+                  "parameter_id": 81,
+                  "type": 81,
+                  "name": "目标变量类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "目标变量编号",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 83,
+                  "type": 83,
+                  "name": "操作数类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 82,
+                  "type": 82,
+                  "name": "运算符",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "操作数",
+                  "value": 419
+                }
+              ]
+            },
+            {
+              "offset": 1053,
+              "opcode": 120,
+              "name": "整型变量赋值",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "变量编号",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 84,
+                  "type": 84,
+                  "name": "赋值方式",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "人物编号",
+                  "value": 809
+                },
+                {
+                  "parameter_id": 85,
+                  "type": 85,
+                  "name": "人物属性",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1073,
+              "opcode": 119,
+              "name": "变量运算",
+              "parameters": [
+                {
+                  "parameter_id": 81,
+                  "type": 81,
+                  "name": "目标变量类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "目标变量编号",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 83,
+                  "type": 83,
+                  "name": "操作数类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 82,
+                  "type": 82,
+                  "name": "运算符",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "操作数",
+                  "value": 637
+                }
+              ]
+            },
+            {
+              "offset": 1099,
+              "opcode": 120,
+              "name": "整型变量赋值",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "变量编号",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 84,
+                  "type": 84,
+                  "name": "赋值方式",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "人物编号",
+                  "value": 810
+                },
+                {
+                  "parameter_id": 85,
+                  "type": 85,
+                  "name": "人物属性",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 1119,
+              "opcode": 119,
+              "name": "变量运算",
+              "parameters": [
+                {
+                  "parameter_id": 81,
+                  "type": 81,
+                  "name": "目标变量类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "目标变量编号",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 83,
+                  "type": 83,
+                  "name": "操作数类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 82,
+                  "type": 82,
+                  "name": "运算符",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "操作数",
+                  "value": 420
+                }
+              ]
+            },
+            {
+              "offset": 1145,
+              "opcode": 120,
+              "name": "整型变量赋值",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "变量编号",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 84,
+                  "type": 84,
+                  "name": "赋值方式",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "人物编号",
+                  "value": 810
+                },
+                {
+                  "parameter_id": 85,
+                  "type": 85,
+                  "name": "人物属性",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1165,
+              "opcode": 119,
+              "name": "变量运算",
+              "parameters": [
+                {
+                  "parameter_id": 81,
+                  "type": 81,
+                  "name": "目标变量类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "目标变量编号",
+                  "value": 4027
+                },
+                {
+                  "parameter_id": 83,
+                  "type": 83,
+                  "name": "操作数类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 82,
+                  "type": 82,
+                  "name": "运算符",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "操作数",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1191,
+              "opcode": 39,
+              "name": "背景设定",
+              "parameters": [
+                {
+                  "parameter_id": 45,
+                  "type": 45,
+                  "name": "图片类型1",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 12,
+                  "type": 12,
+                  "name": "外景8",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 26,
+                  "type": 26,
+                  "name": "三国地图1",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 28,
+                  "type": 28,
+                  "name": "内景9",
+                  "value": 22
+                },
+                {
+                  "parameter_id": 21,
+                  "type": 21,
+                  "name": "战场a",
+                  "value": -1
+                }
+              ]
+            },
+            {
+              "offset": 1213,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 110
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 52
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 38
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1239,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 949
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 45
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 52
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1265,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 111
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 61
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 52
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1291,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 945
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 45
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 61
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1317,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 55
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 61
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 61
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1343,
+              "opcode": 28,
+              "name": "绘图",
+              "parameters": []
+            },
+            {
+              "offset": 1345,
+              "opcode": 24,
+              "name": "R剧本事件名称设定",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "名称",
+                  "value": "追击"
+                }
+              ]
+            },
+            {
+              "offset": 1354,
+              "opcode": 23,
+              "name": "单行文字显示（R剧本中通常用来显示场所名）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字内容",
+                  "value": "绥德  议事厅"
+                }
+              ]
+            },
+            {
+              "offset": 1371,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 1379,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 949
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 6
+                }
+              ]
+            },
+            {
+              "offset": 1389,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&艾万年\n大人，李自成流寇已陷米脂，若放任\n其裹挟饥民，陕北必成燎原之势！"
+                }
+              ]
+            },
+            {
+              "offset": 1465,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 949
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1475,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 110
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 1485,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&洪承畴\n流寇无根之萍，不足为虑。我已命人焚毁\n清涧粮仓，断其南下之路。贺将军率火铳\n营堵住延水渡口，此贼插翅难飞。"
+                }
+              ]
+            },
+            {
+              "offset": 1602,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 110
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1612,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1638,
+              "opcode": 48,
+              "name": "武将出现",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 809
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 53
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 94
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1664,
+              "opcode": 30,
+              "name": "武将出现或消失生效",
+              "parameters": []
+            },
+            {
+              "offset": 1666,
+              "opcode": 50,
+              "name": "武将移动",
+              "parameters": [
+                {
+                  "parameter_id": 64,
+                  "type": 64,
+                  "name": "由什么决定武将（0序号，1出场顺序）1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 809
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "我方武将出场顺序",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "横坐标",
+                  "value": 53
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "纵坐标",
+                  "value": 55
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1698,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 809
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 6
+                }
+              ]
+            },
+            {
+              "offset": 1708,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&士兵01\n报！李贼焚城东遁！"
+                }
+              ]
+            },
+            {
+              "offset": 1739,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 809
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1749,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 949
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 1763,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 945
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 1777,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 111
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 1791,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 55
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 1805,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&艾万年\n好个李闯！竟不要米脂？！"
+                }
+              ]
+            },
+            {
+              "offset": 1842,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李卑\n末将早说该在无定河设伏......"
+                }
+              ]
+            },
+            {
+              "offset": 1881,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&左光先\n张存孟困在葭州十日毫无动静，李自成\n却突然弃守米脂，这里面必有蹊跷。"
+                }
+              ]
+            },
+            {
+              "offset": 1961,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 111
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 6
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 1975,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&贺人龙\n大人，不如趁贼军分兵，直取米脂？"
+                }
+              ]
+            },
+            {
+              "offset": 2020,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 949
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 2034,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 945
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 2048,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 55
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 2062,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 111
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 2076,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 110
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 2086,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&洪承畴\n糊涂！李自成能放弃刚到手的城池，说明\n张存孟那边才是重中之重，此贼必是要救\n张存孟这个祸首。艾万年！！"
+                }
+              ]
+            },
+            {
+              "offset": 2199,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 110
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 2209,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 949
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 6
+                }
+              ]
+            },
+            {
+              "offset": 2219,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&艾万年\n末将在！"
+                }
+              ]
+            },
+            {
+              "offset": 2240,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 949
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 2250,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 110
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 2260,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&洪承畴\n你带三千铁骑，沿无定河追击，务必要\n缠住贼军主力。"
+                }
+              ]
+            },
+            {
+              "offset": 2322,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 110
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 2332,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 949
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 6
+                }
+              ]
+            },
+            {
+              "offset": 2342,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&艾万年\n遵命！"
+                }
+              ]
+            },
+            {
+              "offset": 2361,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 110
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 2371,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&洪承畴\n贺人龙，李贼北上葭州，西川再无外援，\n我调来左参将的榆林镇兵协助你，这次\n务必给我拿下贼军老巢！"
+                }
+              ]
+            },
+            {
+              "offset": 2478,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 110
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 2488,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 111
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 6
+                }
+              ]
+            },
+            {
+              "offset": 2498,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&贺人龙\n遵命！末将一定一雪前耻！"
+                }
+              ]
+            },
+            {
+              "offset": 2535,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 110
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "offset": 2547,
+      "section_count": 1,
+      "sections": [
+        {
+          "offset": 2549,
+          "size": 5581,
+          "index": 0,
+          "parse_error": "unknown opcode 752 at 0xa94",
+          "raw_bytes": "cd 15 02 00 05 00 00 00 00 c4 15 2f 00 24 00 09 00 75 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 7f 02 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 ef 02 55 00 01 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 f0 02 55 00 01 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 f1 02 55 00 01 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 f2 02 55 00 01 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 f3 02 55 00 01 00 75 00 02 00 ef 02 50 00 3d 01 75 00 02 00 f0 02 50 00 3d 01 75 00 02 00 f1 02 50 00 3d 01 75 00 02 00 f2 02 50 00 3d 01 75 00 02 00 f3 02 50 00 3d 01 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 80 02 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 b0 03 55 00 01 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 cc 01 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 b0 03 55 00 00 00 75 00 02 00 b0 03 50 00 3e 01 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 81 02 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 b4 03 55 00 01 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 cd 01 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 b4 03 55 00 00 00 75 00 02 00 b4 03 50 00 3f 01 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 bd 01 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 78 03 55 00 00 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 6b 02 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 e8 03 55 00 01 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 58 02 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 2e 03 55 00 01 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 b2 01 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 2e 03 55 00 00 00 77 00 51 00 02 00 04 00 bb 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 75 00 02 00 2a 03 50 00 40 01 75 00 02 00 2e 03 50 00 14 01 27 00 2d 00 02 00 0c 00 03 00 1a 00 ff ff 1c 00 c4 00 15 00 ff ff 30 00 02 00 00 00 04 00 3f 00 00 00 04 00 2c 00 00 00 2b 00 00 00 0d 00 00 00 30 00 02 00 05 00 04 00 39 00 00 00 04 00 2c 00 00 00 2b 00 00 00 0d 00 00 00 30 00 02 00 08 00 04 00 39 00 00 00 04 00 32 00 00 00 2b 00 00 00 0d 00 00 00 30 00 02 00 09 00 04 00 45 00 00 00 04 00 2c 00 00 00 2b 00 00 00 0d 00 00 00 30 00 02 00 01 00 04 00 3f 00 00 00 04 00 32 00 00 00 2b 00 00 00 0d 00 00 00 30 00 02 00 06 00 04 00 45 00 00 00 04 00 32 00 00 00 2b 00 00 00 0d 00 00 00 30 00 02 00 32 00 04 00 39 00 00 00 04 00 38 00 00 00 2b 00 00 00 0d 00 00 00 30 00 02 00 04 00 04 00 3f 00 00 00 04 00 38 00 00 00 2b 00 00 00 0d 00 00 00 30 00 02 00 03 00 04 00 45 00 00 00 04 00 38 00 00 00 2b 00 00 00 0d 00 00 00 30 00 02 00 2e 03 04 00 3f 00 00 00 04 00 25 00 00 00 2b 00 02 00 0d 00 04 00 1c 00 18 00 05 00 d6 a7 d4 ae 00 17 00 05 00 dd e7 d6 dd 20 20 c4 cf d4 ad 00 34 00 02 00 2e 03 0d 00 04 00 14 00 05 00 26 b3 e2 ba f2 31 0a b4 b3 bd ab a3 ac d5 c5 d5 c6 c5 cc d7 d3 b1 bb c0 a7 dd e7 d6 dd b3 c7 cf c2 a3 ac 0a b2 dc ce c4 da af b5 c4 b9 d8 c4 fe be fc d5 fd d4 da ba cf ce a7 a3 a1 00 34 00 02 00 2e 03 0d 00 03 00 34 00 02 00 00 00 0d 00 03 00 14 00 05 00 26 c0 ee d7 d4 b3 c9 0a b9 d8 c4 fe be fc a3 bf b5 b1 c4 ea c1 c9 b6 ab b3 d4 d4 db c3 c7 ce f7 b1 b1 b5 c4 c1 c9 e2 c3 a3 ac c8 e7 0a bd f1 b5 b9 c4 c3 d4 db c3 c7 b5 c4 d1 aa ba b9 c7 ae d1 f8 c2 ed c9 b1 d4 db c3 c7 a3 bf ce d2 b5 b9 d2 aa 0a bf b4 bf b4 d5 e2 d0 a9 ba c8 c8 cb d1 aa b5 c4 d0 f3 c9 fc b3 a4 b5 c3 ca b2 c3 b4 c4 a3 d1 f9 a3 a1 0a 26 c0 ee d7 d4 b3 c9 0a c5 e4 b2 bb c5 e4 b5 c3 c9 cf b8 df c8 cb d2 bb b5 c8 a3 a1 00 34 00 02 00 00 00 0d 00 00 00 33 00 02 00 00 00 0d 00 00 00 2b 00 00 00 09 00 04 00 03 00 00 00 3b 00 02 00 06 00 0e 00 00 00 3e 00 00 00 3b 00 02 00 03 00 0e 00 00 00 3e 00 00 00 30 00 02 00 78 03 04 00 2f 00 00 00 04 00 0e 00 00 00 2b 00 02 00 0d 00 00 00 1e 00 01 00 02 00 05 00 b2 dc ce c4 da af c1 d9 ca b1 d1 a7 bb e1 cc d8 d0 a7 cd f2 b7 f2 c4 aa b5 d0 33 00 d7 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 33 2c 38 35 2c 39 34 36 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 b2 dc ce c4 da af c1 d9 ca b1 d1 a7 bb e1 cc d8 d0 a7 ce a8 ce d2 00 d7 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 31 2c 35 37 2c 39 34 36 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 b2 dc b1 e4 f2 d4 c1 d9 ca b1 d1 a7 bb e1 cc d8 d0 a7 cd f2 b7 f2 c4 aa b5 d0 33 00 d7 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 33 2c 38 35 2c 39 34 37 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 b2 dc b1 e4 f2 d4 c1 d9 ca b1 d1 a7 bb e1 cc d8 d0 a7 d4 d9 b4 ce d2 c6 b6 af 00 d7 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 31 2c 39 30 2c 39 34 37 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 b9 d8 c4 fe cc fa c6 ef c1 d9 ca b1 d1 a7 bb e1 cc d8 d0 a7 b4 f3 b2 bd c1 f7 d0 c7 00 d8 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 31 2c 31 31 39 2c 37 35 31 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 b9 d8 c4 fe cc fa c6 ef c1 d9 ca b1 d1 a7 bb e1 cc d8 d0 a7 b4 f3 b2 bd c1 f7 d0 c7 00 d8 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 31 2c 31 31 39 2c 37 35 32 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 b9 d8 c4 fe cc fa c6 ef c1 d9 ca b1 d1 a7 bb e1 cc d8 d0 a7 b4 f3 b2 bd c1 f7 d0 c7 00 d8 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 31 2c 31 31 39 2c 37 35 33 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 b9 d8 c4 fe cc fa c6 ef c1 d9 ca b1 d1 a7 bb e1 cc d8 d0 a7 b4 f3 b2 bd c1 f7 d0 c7 00 d8 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 31 2c 31 31 39 2c 37 35 34 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 b9 d8 c4 fe cc fa c6 ef c1 d9 ca b1 d1 a7 bb e1 cc d8 d0 a7 b4 f3 b2 bd c1 f7 d0 c7 00 d8 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 31 2c 31 31 39 2c 37 35 35 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 d5 c5 d3 a6 b2 fd c1 d9 ca b1 d1 a7 bb e1 cc d8 d0 a7 b2 bd b1 f8 b9 a5 bb f7 00 d8 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 33 30 2c 36 33 2c 39 34 38 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 b9 d8 c4 fe cc fa c6 ef c1 d9 ca b1 d1 a7 bb e1 cc d8 d0 a7 b3 e5 b7 e6 b9 a5 bb f7 00 d7 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 38 2c 32 35 2c 37 35 31 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 b9 d8 c4 fe cc fa c6 ef c1 d9 ca b1 d1 a7 bb e1 cc d8 d0 a7 b3 e5 b7 e6 b9 a5 bb f7 00 d7 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 38 2c 32 35 2c 37 35 32 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 b9 d8 c4 fe cc fa c6 ef c1 d9 ca b1 d1 a7 bb e1 cc d8 d0 a7 b3 e5 b7 e6 b9 a5 bb f7 00 d7 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 38 2c 32 35 2c 37 35 33 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 b9 d8 c4 fe cc fa c6 ef c1 d9 ca b1 d1 a7 bb e1 cc d8 d0 a7 b3 e5 b7 e6 b9 a5 bb f7 00 d7 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 38 2c 32 35 2c 37 35 34 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 b9 d8 c4 fe cc fa c6 ef c1 d9 ca b1 d1 a7 bb e1 cc d8 d0 a7 b3 e5 b7 e6 b9 a5 bb f7 00 d7 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 38 2c 32 35 2c 37 35 35 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 09 00 04 00 05 00 00 00 08 00 2e 00 01 00 06 00 2e 00 01 00 04 00 09 00 00 00 38 00 ff ff 38 00 ff ff 38 00 ff ff 38 00 ff ff 38 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 06 00 2e 00 01 00 04 00 09 00 00 00 38 00 ff ff 38 00 ff ff 38 00 ff ff 38 00 ff ff 38 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 06 00 2e 00 01 00 04 00 09 00 00 00 38 00 ff ff 38 00 ff ff 38 00 ff ff 38 00 ff ff 38 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 06 00 2e 00 01 00 04 00 09 00 00 00 38 00 ff ff 38 00 ff ff 38 00 ff ff 38 00 ff ff 38 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 01 00 02 00 05 00 00 32 01 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 02 00 04 00 d9 0f 00 00 53 00 02 00 52 00 00 00 04 00 09 00 00 00 4b 00 04 00 00 00 00 00 04 00 09 00 00 00 04 00 11 00 00 00 2b 00 00 00 26 00 01 00 4b 00 04 00 01 00 00 00 04 00 08 00 00 00 04 00 11 00 00 00 2b 00 00 00 26 00 01 00 4b 00 04 00 02 00 00 00 04 00 0a 00 00 00 04 00 11 00 00 00 2b 00 00 00 26 00 01 00 4b 00 04 00 03 00 00 00 04 00 09 00 00 00 04 00 12 00 00 00 2b 00 00 00 26 00 01 00 4b 00 04 00 04 00 00 00 04 00 08 00 00 00 04 00 12 00 00 00 2b 00 00 00 26 00 01 00 4b 00 04 00 05 00 00 00 04 00 0a 00 00 00 04 00 12 00 00 00 2b 00 00 00 26 00 01 00 4b 00 04 00 06 00 00 00 04 00 08 00 00 00 04 00 13 00 00 00 2b 00 00 00 26 00 01 00 4b 00 04 00 07 00 00 00 04 00 09 00 00 00 04 00 13 00 00 00 2b 00 00 00 26 00 01 00 4b 00 04 00 08 00 00 00 04 00 0a 00 00 00 04 00 13 00 00 00 2b 00 00 00 26 00 01 00 00 00 00 00",
+          "conditions": [],
+          "instructions": []
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "offset": 8132,
+      "section_count": 11,
+      "sections": [
+        {
+          "offset": 8134,
+          "size": 612,
+          "conditions": [
+            {
+              "offset": 8136,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 8149,
+              "opcode": 7,
+              "name": "点击出兵按钮测试",
+              "parameters": []
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 8155,
+              "opcode": 8,
+              "name": "菜单处理",
+              "parameters": [
+                {
+                  "parameter_id": 46,
+                  "type": 46,
+                  "name": "可否控制0",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 8161,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 8163,
+                "opcode": 2,
+                "name": "内部信息测试（注释）",
+                "parameters": [
+                  {
+                    "parameter_id": 5,
+                    "type": 5,
+                    "name": "文字说明",
+                    "value": "战前难度选择"
+                  }
+                ]
+              },
+              "then_size": 415,
+              "then": [
+                {
+                  "offset": 8182,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 8184,
+                    "opcode": 5,
+                    "name": "变量测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 53,
+                        "name": "成立变量",
+                        "value": [
+                          260
+                        ]
+                      },
+                      {
+                        "parameter_id": 53,
+                        "name": "不成立变量",
+                        "value": [
+                          261
+                        ]
+                      }
+                    ]
+                  },
+                  "then_size": 375,
+                  "then": [
+                    {
+                      "offset": 8200,
+                      "opcode": 1,
+                      "name": "子事件开始标志",
+                      "condition": {
+                        "offset": 8202,
+                        "opcode": 18,
+                        "name": "出现选择框",
+                        "parameters": [
+                          {
+                            "parameter_id": 5,
+                            "type": 5,
+                            "name": "选项说明",
+                            "value": "[C79割草]（敌军能力系数降低为80%）\n[C1A休闲]（敌军能力系数降低为90%）\n普通（敌军能力系数不变）\n[C26困难]（敌军能力提升为105%）\n[C29打铁]（敌军能力提升为115%）"
+                          },
+                          {
+                            "parameter_id": 2,
+                            "type": 2,
+                            "name": "武将序号2",
+                            "value": 1002
+                          }
+                        ]
+                      },
+                      "then_size": 202,
+                      "then": [
+                        {
+                          "offset": 8371,
+                          "opcode": 1,
+                          "name": "子事件开始标志",
+                          "condition": {
+                            "offset": 8373,
+                            "opcode": 19,
+                            "name": "选项测试",
+                            "parameters": [
+                              {
+                                "parameter_id": 4,
+                                "type": 4,
+                                "name": "选项序号",
+                                "value": 1
+                              }
+                            ]
+                          },
+                          "then_size": 28,
+                          "then": [
+                            {
+                              "offset": 8383,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4033
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 80
+                                }
+                              ]
+                            }
+                          ],
+                          "else_size": 0,
+                          "else": []
+                        },
+                        {
+                          "offset": 8411,
+                          "opcode": 1,
+                          "name": "子事件开始标志",
+                          "condition": {
+                            "offset": 8413,
+                            "opcode": 19,
+                            "name": "选项测试",
+                            "parameters": [
+                              {
+                                "parameter_id": 4,
+                                "type": 4,
+                                "name": "选项序号",
+                                "value": 2
+                              }
+                            ]
+                          },
+                          "then_size": 28,
+                          "then": [
+                            {
+                              "offset": 8423,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4033
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 90
+                                }
+                              ]
+                            }
+                          ],
+                          "else_size": 0,
+                          "else": []
+                        },
+                        {
+                          "offset": 8451,
+                          "opcode": 1,
+                          "name": "子事件开始标志",
+                          "condition": {
+                            "offset": 8453,
+                            "opcode": 19,
+                            "name": "选项测试",
+                            "parameters": [
+                              {
+                                "parameter_id": 4,
+                                "type": 4,
+                                "name": "选项序号",
+                                "value": 3
+                              }
+                            ]
+                          },
+                          "then_size": 28,
+                          "then": [
+                            {
+                              "offset": 8463,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4033
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 100
+                                }
+                              ]
+                            }
+                          ],
+                          "else_size": 0,
+                          "else": []
+                        },
+                        {
+                          "offset": 8491,
+                          "opcode": 1,
+                          "name": "子事件开始标志",
+                          "condition": {
+                            "offset": 8493,
+                            "opcode": 19,
+                            "name": "选项测试",
+                            "parameters": [
+                              {
+                                "parameter_id": 4,
+                                "type": 4,
+                                "name": "选项序号",
+                                "value": 4
+                              }
+                            ]
+                          },
+                          "then_size": 28,
+                          "then": [
+                            {
+                              "offset": 8503,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4033
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 105
+                                }
+                              ]
+                            }
+                          ],
+                          "else_size": 0,
+                          "else": []
+                        },
+                        {
+                          "offset": 8531,
+                          "opcode": 1,
+                          "name": "子事件开始标志",
+                          "condition": {
+                            "offset": 8533,
+                            "opcode": 19,
+                            "name": "选项测试",
+                            "parameters": [
+                              {
+                                "parameter_id": 4,
+                                "type": 4,
+                                "name": "选项序号",
+                                "value": 5
+                              }
+                            ]
+                          },
+                          "then_size": 28,
+                          "then": [
+                            {
+                              "offset": 8543,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4033
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 115
+                                }
+                              ]
+                            }
+                          ],
+                          "else_size": 0,
+                          "else": []
+                        }
+                      ],
+                      "else_size": 0,
+                      "else": []
+                    }
+                  ],
+                  "else_size": 0,
+                  "else": []
+                },
+                {
+                  "offset": 8575,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 8577,
+                    "opcode": 5,
+                    "name": "变量测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 53,
+                        "name": "成立变量",
+                        "value": [
+                          261
+                        ]
+                      },
+                      {
+                        "parameter_id": 53,
+                        "name": "不成立变量",
+                        "value": [
+                          260
+                        ]
+                      }
+                    ]
+                  },
+                  "then_size": 2,
+                  "then": [],
+                  "else_size": 0,
+                  "else": []
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 8597,
+              "opcode": 51,
+              "name": "武将转向",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 43,
+                  "type": 43,
+                  "name": "朝向1",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 8611,
+              "opcode": 52,
+              "name": "武将动作",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 13,
+                  "type": 13,
+                  "name": "动作形态1",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 8621,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n出发！"
+                }
+              ]
+            },
+            {
+              "offset": 8640,
+              "opcode": 11,
+              "name": "变量赋值",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "变量序号",
+                  "value": 1017
+                },
+                {
+                  "parameter_id": 39,
+                  "type": 39,
+                  "name": "变量值",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 8652,
+              "opcode": 6,
+              "name": "我方出场人员控制",
+              "parameters": [
+                {
+                  "parameter_id": 46,
+                  "type": 46,
+                  "name": "可否控制0",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "最大出场人数（最大15）",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 56,
+                  "type": 56,
+                  "name": "强制出场武将12",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 56,
+                  "type": 56,
+                  "name": "强制出场武将22",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 56,
+                  "type": 56,
+                  "name": "强制出场武将32",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 56,
+                  "type": 56,
+                  "name": "强制出场武将42",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 56,
+                  "type": 56,
+                  "name": "强制出场武将52",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 57,
+                  "type": 57,
+                  "name": "强制不出场武将12",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 57,
+                  "type": 57,
+                  "name": "强制不出场武将22",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 57,
+                  "type": 57,
+                  "name": "强制不出场武将32",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 57,
+                  "type": 57,
+                  "name": "强制不出场武将42",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 57,
+                  "type": 57,
+                  "name": "强制不出场武将52",
+                  "value": -1
+                }
+              ]
+            },
+            {
+              "offset": 8704,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 8712,
+              "opcode": 29,
+              "name": "调色板重设",
+              "parameters": []
+            },
+            {
+              "offset": 8714,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 15
+                }
+              ]
+            },
+            {
+              "offset": 8722,
+              "opcode": 114,
+              "name": "信息传送",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "信息编号",
+                  "value": 14
+                },
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "信息内容",
+                  "value": "0,0,0"
+                }
+              ]
+            },
+            {
+              "offset": 8738,
+              "opcode": 36,
+              "name": "CD音轨设定",
+              "parameters": [
+                {
+                  "parameter_id": 9,
+                  "type": 9,
+                  "name": "音轨序号7",
+                  "value": 255
+                }
+              ]
+            },
+            {
+              "offset": 8744,
+              "opcode": 13,
+              "name": "剧本正常过渡，用于剧本最后",
+              "parameters": []
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 8748,
+          "size": 502,
+          "index": 1,
+          "parse_error": "unknown opcode 121 at 0x2281",
+          "raw_bytes": "f6 01 02 00 05 00 b6 d2 bb bb 00 2d 00 02 00 78 03 00 00 e3 01 34 00 02 00 78 03 0d 00 00 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 01 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 93 0c 51 00 01 00 79 00 52 00 01 00 04 00 00 00 00 00 56 00 01 00 52 00 00 00 04 00 01 00 00 00 2e 01 77 00 51 00 00 00 04 00 00 00 00 00 53 00 01 00 52 00 00 00 04 00 01 00 00 00 01 00 12 00 05 00 5b 43 37 39 ce e4 c1 a6 b9 fb 5d 0a 5b 43 31 41 cd b3 cb a7 b9 fb 5d 0a d6 c7 c1 a6 b9 fb 0a 5b 43 32 36 c3 f4 bd dd b9 fb 5d 0a 5b 43 32 39 ba c3 d4 cb b9 fb 5d 0a c0 eb bf aa 00 02 00 e8 03 ca 00 01 00 13 00 04 00 01 00 00 00 14 00 3d 00 17 00 a1 00 49 00 00 00 26 00 00 00 02 00 00 00 00 00 01 00 13 00 04 00 02 00 00 00 14 00 3d 00 17 00 a2 00 49 00 00 00 26 00 00 00 02 00 00 00 00 00 01 00 13 00 04 00 03 00 00 00 14 00 3d 00 17 00 a3 00 49 00 00 00 26 00 00 00 02 00 00 00 00 00 01 00 13 00 04 00 04 00 00 00 14 00 3d 00 17 00 a4 00 49 00 00 00 26 00 00 00 02 00 00 00 00 00 01 00 13 00 04 00 05 00 00 00 14 00 3d 00 17 00 a5 00 49 00 00 00 26 00 00 00 02 00 00 00 00 00 01 00 13 00 04 00 06 00 00 00 1c 00 77 00 51 00 00 00 04 00 00 00 00 00 53 00 00 00 52 00 00 00 04 00 01 00 00 00 00 00 00 00 00 00 01 00 03 00 2f 00 14 00 05 00 26 b4 b3 bd b4 0a bc ec b2 e2 b5 bd d5 e4 d6 e9 ca fd c1 bf b2 bb b9 bb a3 ac ce de b7 a8 bd f8 d0 d0 b6 d2 bb bb a1 a3 00 00 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 09 00 04 00 0a 00 00 00 00 00",
+          "conditions": [],
+          "instructions": []
+        },
+        {
+          "offset": 9252,
+          "size": 302,
+          "conditions": [
+            {
+              "offset": 9254,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 9267,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 5
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 9277,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&谷英\n张存孟的外号 “不沾泥” 源自他青年时期\n在陕北大理河的一段传奇经历。据子洲县\n地方志记载，张存孟早年常参与洪水中的\n&谷英\n物资打捞，某次与同伴比拼踩水耐力时，\n他在汹涌浪涛中始终保持身体直立，肚脐\n以上竟无半点泥污，观者惊叹其水性。\n&谷英\n“不沾泥”，这个绰号便由此传开。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 9556,
+          "size": 70,
+          "conditions": [
+            {
+              "offset": 9558,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 9571,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 9
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 9581,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&田见秀\n米脂民心可用，惜张存孟不听良言。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 9628,
+          "size": 62,
+          "conditions": [
+            {
+              "offset": 9630,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 9643,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 1
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 9653,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李过\n待在叔叔身边就会感到安心。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 9692,
+          "size": 58,
+          "conditions": [
+            {
+              "offset": 9694,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 9707,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 4
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 9717,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&王得仁\n不知道西川怎么样了。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 9752,
+          "size": 70,
+          "conditions": [
+            {
+              "offset": 9754,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 9767,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 50
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 9777,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&刘国龙\n须知少年凌云志，曾许人间第一流。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 9824,
+          "size": 58,
+          "conditions": [
+            {
+              "offset": 9826,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 9839,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 6
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 9849,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&张礼\n我跟不沾泥还是本家哩。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 9884,
+          "size": 58,
+          "conditions": [
+            {
+              "offset": 9886,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 9899,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 3
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 9909,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李友\n比起累，我更害怕闲着。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 9944,
+          "size": 57,
+          "conditions": [
+            {
+              "offset": 9946,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 9959,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 814
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 9969,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&斥候1\n苦过累过，但没富过。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 10003,
+          "size": 79,
+          "conditions": [
+            {
+              "offset": 10005,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 10018,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 8
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 10028,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&刘芳亮\n我是西北人，李哥刚才的话\n说到我心坎里了。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        }
+      ]
+    }
+  ],
+  "deployment_tables": [],
+  "summary": {
+    "section_count": 13,
+    "instruction_count": 167,
+    "unparsed_section_count": 2,
+    "deployment_instruction_count": 0,
+    "deployment": [],
+    "deployment_tables": [],
+    "text": [
+      "战后文聘入队",
+      "战后",
+      "米脂 城门",
+      "&李自成\n米脂虽破，但洪承畴的兵马已至绥德，\n艾万年又在无定河畔列阵。此城孤悬\n敌后，不可久守！",
+      "&李过\n可是若弃米脂，那刚归附的百姓......",
+      "&李自成\n存孟兄攻打葭州十日无音讯，必陷重围！\n我若不去相救，他们恐有覆灭之虞。",
+      "&张礼\n鸿基，米脂粮仓刚到手，若弃城而走，\n弟兄们这仗不是白打了吗？",
+      "&李自成\n洪承畴要的是米脂这座空城，我要的是\n张存孟那几千条命！若张存孟在葭州有失，\n义军必被拦腰斩断。",
+      "&李自成\n传令下去：焚粮仓、沉火炮，半个时辰后\n全军轻装出东门！",
+      "追击",
+      "绥德  议事厅",
+      "&艾万年\n大人，李自成流寇已陷米脂，若放任\n其裹挟饥民，陕北必成燎原之势！",
+      "&洪承畴\n流寇无根之萍，不足为虑。我已命人焚毁\n清涧粮仓，断其南下之路。贺将军率火铳\n营堵住延水渡口，此贼插翅难飞。",
+      "&士兵01\n报！李贼焚城东遁！",
+      "&艾万年\n好个李闯！竟不要米脂？！",
+      "&李卑\n末将早说该在无定河设伏......",
+      "&左光先\n张存孟困在葭州十日毫无动静，李自成\n却突然弃守米脂，这里面必有蹊跷。",
+      "&贺人龙\n大人，不如趁贼军分兵，直取米脂？",
+      "&洪承畴\n糊涂！李自成能放弃刚到手的城池，说明\n张存孟那边才是重中之重，此贼必是要救\n张存孟这个祸首。艾万年！！",
+      "&艾万年\n末将在！",
+      "&洪承畴\n你带三千铁骑，沿无定河追击，务必要\n缠住贼军主力。",
+      "&艾万年\n遵命！",
+      "&洪承畴\n贺人龙，李贼北上葭州，西川再无外援，\n我调来左参将的榆林镇兵协助你，这次\n务必给我拿下贼军老巢！",
+      "&贺人龙\n遵命！末将一定一雪前耻！",
+      "玩家切换",
+      "战前难度选择",
+      "[C79割草]（敌军能力系数降低为80%）\n[C1A休闲]（敌军能力系数降低为90%）\n普通（敌军能力系数不变）\n[C26困难]（敌军能力提升为105%）\n[C29打铁]（敌军能力提升为115%）",
+      "&李自成\n出发！",
+      "0,0,0",
+      "玩家切换",
+      "&谷英\n张存孟的外号 “不沾泥” 源自他青年时期\n在陕北大理河的一段传奇经历。据子洲县\n地方志记载，张存孟早年常参与洪水中的\n&谷英\n物资打捞，某次与同伴比拼踩水耐力时，\n他在汹涌浪涛中始终保持身体直立，肚脐\n以上竟无半点泥污，观者惊叹其水性。\n&谷英\n“不沾泥”，这个绰号便由此传开。",
+      "玩家切换",
+      "&田见秀\n米脂民心可用，惜张存孟不听良言。",
+      "玩家切换",
+      "&李过\n待在叔叔身边就会感到安心。",
+      "玩家切换",
+      "&王得仁\n不知道西川怎么样了。",
+      "玩家切换",
+      "&刘国龙\n须知少年凌云志，曾许人间第一流。",
+      "玩家切换",
+      "&张礼\n我跟不沾泥还是本家哩。",
+      "玩家切换",
+      "&李友\n比起累，我更害怕闲着。",
+      "玩家切换",
+      "&斥候1\n苦过累过，但没富过。",
+      "玩家切换",
+      "&刘芳亮\n我是西北人，李哥刚才的话\n说到我心坎里了。"
+    ]
+  }
+}

@@ -16,5 +16,12 @@ bool Turn::Next() {
   return next_turn;
 }
 
+void Turn::Restore(uint16_t current, Force force) {
+  ASSERT(current >= 1 && current <= limit_);
+  ASSERT(force == Force::kOwn || force == Force::kAlly || force == Force::kEnemy);
+  current_ = current;
+  force_   = force;
+}
+
 }  // namespace core
 }  // namespace mengde

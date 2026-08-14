@@ -1,0 +1,7 @@
+Use case: historical-scene
+Asset type: grid-free tactical RPG battlefield base
+Primary request: Create the broad outskirts of Suiyang during a nine-month Chu siege, with level ground reserved for a large continuous walled Song capital.
+Scene/backdrop: dry siege-worn plains, trampled roads, sparse woodland at the far edges, open western ground for siege formations and earthen observation mounds, and a large level eastern city site.
+Style/medium: polished hand-painted classic Chinese tactical-RPG terrain, orthographic view, readable at 48-pixel logical cells.
+Composition/framing: landscape 2048x1152, broad contiguous terrain masses; reserve the eastern half for a large rectangular city and a two-cell western gate.
+Constraints: natural landscape only. No walls, gates, buildings, siege towers, troops, camps, tents, fences, flags, text, UI, supply icons, square tiles, or grid lines.

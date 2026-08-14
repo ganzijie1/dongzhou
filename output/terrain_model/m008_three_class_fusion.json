@@ -1,0 +1,5227 @@
+{
+  "backend": "DINOv3-S directional features + handcrafted texture; linear/ExtraTrees fusion",
+  "target_excluded_from_training": true,
+  "auto_apply": false,
+  "classes": [
+    "f",
+    "F",
+    "m"
+  ],
+  "grid": [
+    30,
+    22
+  ],
+  "training_maps": [
+    "m000.jpg",
+    "m001.jpg",
+    "m002.jpg",
+    "m004.jpg",
+    "m005.jpg",
+    "m006.jpg",
+    "m007-camp-v5.png",
+    "m009.png",
+    "m010-camp-v2.png",
+    "m011-camp.png",
+    "m012.png",
+    "m013.png",
+    "m014.png",
+    "m015.png",
+    "m016.png",
+    "m017.png",
+    "m018.png",
+    "m019.png",
+    "m020.png",
+    "m021.png",
+    "m022.png",
+    "m023.png",
+    "m024.png",
+    "m025.png",
+    "m026.png",
+    "m027.png",
+    "m028.png",
+    "m029.png",
+    "m030.png",
+    "m032.png",
+    "m034.png",
+    "m035.png",
+    "m036.png",
+    "m037.png",
+    "m038.png",
+    "m040.png",
+    "m041.png",
+    "m042.png",
+    "m043.png",
+    "m044.png",
+    "m045.png",
+    "m046.png",
+    "m047.png",
+    "m048.png",
+    "m049.png",
+    "m050.png",
+    "m051.png",
+    "m053.png",
+    "m054.png",
+    "m055.png",
+    "m056.png",
+    "m057.png",
+    "song-capital-coup.png"
+  ],
+  "training_counts": {
+    "F": 2279,
+    "f": 3526,
+    "m": 793
+  },
+  "validation": {
+    "macro_f1": 0.6398602708568071,
+    "classes": {
+      "f": {
+        "precision": 0.7406639004149378,
+        "recall": 0.7786259541984732,
+        "f1-score": 0.759170653907496,
+        "support": 917.0
+      },
+      "F": {
+        "precision": 0.6865671641791045,
+        "recall": 0.7976878612716763,
+        "f1-score": 0.7379679144385026,
+        "support": 692.0
+      },
+      "m": {
+        "precision": 0.8888888888888888,
+        "recall": 0.27705627705627706,
+        "f1-score": 0.42244224422442245,
+        "support": 231.0
+      },
+      "accuracy": 0.7228260869565217,
+      "macro avg": {
+        "precision": 0.7720399844943104,
+        "recall": 0.6177900308421421,
+        "f1-score": 0.6398602708568071,
+        "support": 1840.0
+      },
+      "weighted avg": {
+        "precision": 0.738927504144441,
+        "recall": 0.7228260869565217,
+        "f1-score": 0.7089225243698148,
+        "support": 1840.0
+      }
+    }
+  },
+  "prediction_counts": {
+    "F": 208,
+    "f": 300,
+    "m": 59
+  },
+  "rows": [
+    "FFFmFFFFFFFFFFFFFFFFFFFFFFFmFF",
+    "FFFmmFFFffffFFFFFFFFFFFFFFFFmF",
+    "FFFmmmFFFffffFfFFFFFFFFFFFFFmF",
+    "FmFmmmmffffffffffFFffFFFFFFFFF",
+    "mFmmmmmFFffffffffffffFfffffFmF",
+    "FmmmmmmFfffffffffffffffffffFmF",
+    "mFmmmmmfFfffffffffffffffffffmF",
+    "mmFmmmfFffffffffffffffPPPPPPPF",
+    "mFmmFfFfffffffffffffffPwwwwwPm",
+    "mFFmFFffffffffffffffffPwewewPF",
+    "FmFmFffffffffffffffffffwwewwPF",
+    "FFmFmffffffffffffffffffwwwwwPF",
+    "FmmFFfffffffffffffffffPwewewPF",
+    "FFmmFFffffffffffffffffPPPPPPPF",
+    "FFFFFfffffffffffffffffffffFffF",
+    "FFFFFffffffffffffffffffffffFFF",
+    "FFFFfffffffPPPffPPPfffffFffFFF",
+    "FFFfFFfffffPwwwwwwPffffffffFFF",
+    "FmFmmffffffPwewwwePffffffffffF",
+    "FFmFfmfffffPwwwewwPffFfffffffF",
+    "FFFFFFFFFFfPwewwwePFFFFFFFFFFF",
+    "FFFFFFFFFFFPPPPPPPPFFFFFFFFFFF"
+  ],
+  "review_required": [
+    {
+      "position": [
+        4,
+        11
+      ],
+      "prediction": "m",
+      "confidence": 0.35833489894866943,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.32664626836776733,
+        "F": 0.31501883268356323,
+        "m": 0.35833489894866943
+      }
+    },
+    {
+      "position": [
+        3,
+        18
+      ],
+      "prediction": "m",
+      "confidence": 0.36480745673179626,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.2767118215560913,
+        "F": 0.3584807515144348,
+        "m": 0.36480745673179626
+      }
+    },
+    {
+      "position": [
+        7,
+        3
+      ],
+      "prediction": "f",
+      "confidence": 0.3649597764015198,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.3649597764015198,
+        "F": 0.2837493121623993,
+        "m": 0.35129088163375854
+      }
+    },
+    {
+      "position": [
+        5,
+        19
+      ],
+      "prediction": "m",
+      "confidence": 0.3719128370285034,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.3015874922275543,
+        "F": 0.32649967074394226,
+        "m": 0.3719128370285034
+      }
+    },
+    {
+      "position": [
+        26,
+        16
+      ],
+      "prediction": "f",
+      "confidence": 0.38151127099990845,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.38151127099990845,
+        "F": 0.3786312937736511,
+        "m": 0.23985740542411804
+      }
+    },
+    {
+      "position": [
+        29,
+        9
+      ],
+      "prediction": "F",
+      "confidence": 0.39086219668388367,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.24094387888908386,
+        "F": 0.39086219668388367,
+        "m": 0.36819392442703247
+      }
+    },
+    {
+      "position": [
+        7,
+        5
+      ],
+      "prediction": "F",
+      "confidence": 0.3952482044696808,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.24224910140037537,
+        "F": 0.3952482044696808,
+        "m": 0.36250269412994385
+      }
+    },
+    {
+      "position": [
+        5,
+        18
+      ],
+      "prediction": "f",
+      "confidence": 0.40104979276657104,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.40104979276657104,
+        "F": 0.27872318029403687,
+        "m": 0.3202270567417145
+      }
+    },
+    {
+      "position": [
+        4,
+        19
+      ],
+      "prediction": "f",
+      "confidence": 0.4016687870025635,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.4016687870025635,
+        "F": 0.3453453779220581,
+        "m": 0.2529858350753784
+      }
+    },
+    {
+      "position": [
+        5,
+        8
+      ],
+      "prediction": "f",
+      "confidence": 0.40171802043914795,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.40171802043914795,
+        "F": 0.28160277009010315,
+        "m": 0.3166792094707489
+      }
+    },
+    {
+      "position": [
+        28,
+        18
+      ],
+      "prediction": "f",
+      "confidence": 0.4154069125652313,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.4154069125652313,
+        "F": 0.2791537046432495,
+        "m": 0.3054393529891968
+      }
+    },
+    {
+      "position": [
+        4,
+        18
+      ],
+      "prediction": "m",
+      "confidence": 0.41620543599128723,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.2001175880432129,
+        "F": 0.3836769461631775,
+        "m": 0.41620543599128723
+      }
+    },
+    {
+      "position": [
+        28,
+        14
+      ],
+      "prediction": "f",
+      "confidence": 0.416452020406723,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.416452020406723,
+        "F": 0.4078505039215088,
+        "m": 0.1756974458694458
+      }
+    },
+    {
+      "position": [
+        27,
+        5
+      ],
+      "prediction": "F",
+      "confidence": 0.4167811870574951,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.26521676778793335,
+        "F": 0.4167811870574951,
+        "m": 0.31800204515457153
+      }
+    },
+    {
+      "position": [
+        3,
+        13
+      ],
+      "prediction": "m",
+      "confidence": 0.4178653955459595,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.22826385498046875,
+        "F": 0.35387077927589417,
+        "m": 0.4178653955459595
+      }
+    },
+    {
+      "position": [
+        8,
+        6
+      ],
+      "prediction": "F",
+      "confidence": 0.4182314872741699,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.39910149574279785,
+        "F": 0.4182314872741699,
+        "m": 0.18266701698303223
+      }
+    },
+    {
+      "position": [
+        6,
+        4
+      ],
+      "prediction": "m",
+      "confidence": 0.4195913076400757,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.23250560462474823,
+        "F": 0.3479030728340149,
+        "m": 0.4195913076400757
+      }
+    },
+    {
+      "position": [
+        11,
+        1
+      ],
+      "prediction": "f",
+      "confidence": 0.42359739542007446,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.42359739542007446,
+        "F": 0.35165929794311523,
+        "m": 0.2247432917356491
+      }
+    },
+    {
+      "position": [
+        4,
+        5
+      ],
+      "prediction": "m",
+      "confidence": 0.4365096688270569,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.17696413397789001,
+        "F": 0.3865261673927307,
+        "m": 0.4365096688270569
+      }
+    },
+    {
+      "position": [
+        2,
+        9
+      ],
+      "prediction": "F",
+      "confidence": 0.4368157386779785,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1302875280380249,
+        "F": 0.4368157386779785,
+        "m": 0.4328967332839966
+      }
+    },
+    {
+      "position": [
+        6,
+        6
+      ],
+      "prediction": "m",
+      "confidence": 0.43709635734558105,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.26722753047943115,
+        "F": 0.2956761121749878,
+        "m": 0.43709635734558105
+      }
+    },
+    {
+      "position": [
+        27,
+        17
+      ],
+      "prediction": "F",
+      "confidence": 0.4375452697277069,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.416572630405426,
+        "F": 0.4375452697277069,
+        "m": 0.14588207006454468
+      }
+    },
+    {
+      "position": [
+        1,
+        9
+      ],
+      "prediction": "F",
+      "confidence": 0.44076818227767944,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.12249588966369629,
+        "F": 0.44076818227767944,
+        "m": 0.43673592805862427
+      }
+    },
+    {
+      "position": [
+        1,
+        3
+      ],
+      "prediction": "m",
+      "confidence": 0.4414035677909851,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.15602219104766846,
+        "F": 0.40257424116134644,
+        "m": 0.4414035677909851
+      }
+    },
+    {
+      "position": [
+        2,
+        11
+      ],
+      "prediction": "m",
+      "confidence": 0.44396668672561646,
+      "linear": "m",
+      "trees": "m",
+      "probabilities": {
+        "f": 0.1434803307056427,
+        "F": 0.41255301237106323,
+        "m": 0.44396668672561646
+      }
+    },
+    {
+      "position": [
+        5,
+        17
+      ],
+      "prediction": "F",
+      "confidence": 0.44552573561668396,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.42021241784095764,
+        "F": 0.44552573561668396,
+        "m": 0.1342618316411972
+      }
+    },
+    {
+      "position": [
+        27,
+        2
+      ],
+      "prediction": "F",
+      "confidence": 0.4477279782295227,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.14476360380649567,
+        "F": 0.4477279782295227,
+        "m": 0.4075084328651428
+      }
+    },
+    {
+      "position": [
+        4,
+        17
+      ],
+      "prediction": "F",
+      "confidence": 0.4486376941204071,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.34976035356521606,
+        "F": 0.4486376941204071,
+        "m": 0.20160195231437683
+      }
+    },
+    {
+      "position": [
+        2,
+        6
+      ],
+      "prediction": "m",
+      "confidence": 0.4503554105758667,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.13895854353904724,
+        "F": 0.41068604588508606,
+        "m": 0.4503554105758667
+      }
+    },
+    {
+      "position": [
+        29,
+        10
+      ],
+      "prediction": "F",
+      "confidence": 0.4503830671310425,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.11076624691486359,
+        "F": 0.4503830671310425,
+        "m": 0.4388507008552551
+      }
+    },
+    {
+      "position": [
+        25,
+        19
+      ],
+      "prediction": "f",
+      "confidence": 0.451551616191864,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.451551616191864,
+        "F": 0.2460492104291916,
+        "m": 0.3023991584777832
+      }
+    },
+    {
+      "position": [
+        26,
+        3
+      ],
+      "prediction": "F",
+      "confidence": 0.4519691467285156,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.2051013708114624,
+        "F": 0.4519691467285156,
+        "m": 0.34292951226234436
+      }
+    },
+    {
+      "position": [
+        5,
+        13
+      ],
+      "prediction": "F",
+      "confidence": 0.452592134475708,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.4120773673057556,
+        "F": 0.452592134475708,
+        "m": 0.13533048331737518
+      }
+    },
+    {
+      "position": [
+        4,
+        16
+      ],
+      "prediction": "f",
+      "confidence": 0.4536502957344055,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.4536502957344055,
+        "F": 0.42446795105934143,
+        "m": 0.12188177555799484
+      }
+    },
+    {
+      "position": [
+        29,
+        8
+      ],
+      "prediction": "m",
+      "confidence": 0.4537537395954132,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.18827156722545624,
+        "F": 0.35797470808029175,
+        "m": 0.4537537395954132
+      }
+    },
+    {
+      "position": [
+        6,
+        7
+      ],
+      "prediction": "f",
+      "confidence": 0.45513004064559937,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.45513004064559937,
+        "F": 0.32411786913871765,
+        "m": 0.22075209021568298
+      }
+    },
+    {
+      "position": [
+        1,
+        11
+      ],
+      "prediction": "F",
+      "confidence": 0.4567049443721771,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.11901059001684189,
+        "F": 0.4567049443721771,
+        "m": 0.4242844581604004
+      }
+    },
+    {
+      "position": [
+        28,
+        1
+      ],
+      "prediction": "m",
+      "confidence": 0.45954862236976624,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.09575077146291733,
+        "F": 0.4447006285190582,
+        "m": 0.45954862236976624
+      }
+    },
+    {
+      "position": [
+        10,
+        0
+      ],
+      "prediction": "F",
+      "confidence": 0.46007993817329407,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.16489101946353912,
+        "F": 0.46007993817329407,
+        "m": 0.3750290274620056
+      }
+    },
+    {
+      "position": [
+        11,
+        2
+      ],
+      "prediction": "f",
+      "confidence": 0.4603384733200073,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.4603384733200073,
+        "F": 0.34570518136024475,
+        "m": 0.19395636022090912
+      }
+    },
+    {
+      "position": [
+        9,
+        7
+      ],
+      "prediction": "f",
+      "confidence": 0.4610934853553772,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.4610934853553772,
+        "F": 0.3833118677139282,
+        "m": 0.15559464693069458
+      }
+    },
+    {
+      "position": [
+        5,
+        14
+      ],
+      "prediction": "f",
+      "confidence": 0.4611819386482239,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.4611819386482239,
+        "F": 0.3770213723182678,
+        "m": 0.1617966592311859
+      }
+    },
+    {
+      "position": [
+        25,
+        2
+      ],
+      "prediction": "F",
+      "confidence": 0.4614986777305603,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.3048476576805115,
+        "F": 0.4614986777305603,
+        "m": 0.2336536943912506
+      }
+    },
+    {
+      "position": [
+        7,
+        8
+      ],
+      "prediction": "f",
+      "confidence": 0.4616299271583557,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.4616299271583557,
+        "F": 0.34516143798828125,
+        "m": 0.19320867955684662
+      }
+    },
+    {
+      "position": [
+        0,
+        10
+      ],
+      "prediction": "F",
+      "confidence": 0.4625014066696167,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.10539005696773529,
+        "F": 0.4625014066696167,
+        "m": 0.4321085214614868
+      }
+    },
+    {
+      "position": [
+        11,
+        0
+      ],
+      "prediction": "F",
+      "confidence": 0.46292853355407715,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.3369542956352234,
+        "F": 0.46292853355407715,
+        "m": 0.20011717081069946
+      }
+    },
+    {
+      "position": [
+        9,
+        19
+      ],
+      "prediction": "f",
+      "confidence": 0.463432252407074,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.463432252407074,
+        "F": 0.45786991715431213,
+        "m": 0.0786978155374527
+      }
+    },
+    {
+      "position": [
+        3,
+        5
+      ],
+      "prediction": "m",
+      "confidence": 0.4639834761619568,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.146520733833313,
+        "F": 0.3894957900047302,
+        "m": 0.4639834761619568
+      }
+    },
+    {
+      "position": [
+        6,
+        1
+      ],
+      "prediction": "F",
+      "confidence": 0.4645063281059265,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.14883263409137726,
+        "F": 0.4645063281059265,
+        "m": 0.3866610527038574
+      }
+    },
+    {
+      "position": [
+        28,
+        2
+      ],
+      "prediction": "m",
+      "confidence": 0.4649675488471985,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.10487585514783859,
+        "F": 0.4301565885543823,
+        "m": 0.4649675488471985
+      }
+    },
+    {
+      "position": [
+        6,
+        8
+      ],
+      "prediction": "F",
+      "confidence": 0.46527016162872314,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.3097568154335022,
+        "F": 0.46527016162872314,
+        "m": 0.22497302293777466
+      }
+    },
+    {
+      "position": [
+        2,
+        19
+      ],
+      "prediction": "m",
+      "confidence": 0.4653436541557312,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1367652714252472,
+        "F": 0.3978910744190216,
+        "m": 0.4653436541557312
+      }
+    },
+    {
+      "position": [
+        12,
+        1
+      ],
+      "prediction": "F",
+      "confidence": 0.46570491790771484,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.24757370352745056,
+        "F": 0.46570491790771484,
+        "m": 0.2867213785648346
+      }
+    },
+    {
+      "position": [
+        6,
+        19
+      ],
+      "prediction": "f",
+      "confidence": 0.465783029794693,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.465783029794693,
+        "F": 0.42947280406951904,
+        "m": 0.10474416613578796
+      }
+    },
+    {
+      "position": [
+        27,
+        19
+      ],
+      "prediction": "f",
+      "confidence": 0.46661579608917236,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.46661579608917236,
+        "F": 0.4055955111980438,
+        "m": 0.12778867781162262
+      }
+    },
+    {
+      "position": [
+        4,
+        8
+      ],
+      "prediction": "F",
+      "confidence": 0.4669467806816101,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.15614023804664612,
+        "F": 0.4669467806816101,
+        "m": 0.37691301107406616
+      }
+    },
+    {
+      "position": [
+        10,
+        1
+      ],
+      "prediction": "f",
+      "confidence": 0.46708956360816956,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.46708956360816956,
+        "F": 0.38516050577163696,
+        "m": 0.14774993062019348
+      }
+    },
+    {
+      "position": [
+        0,
+        15
+      ],
+      "prediction": "F",
+      "confidence": 0.47052454948425293,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.11675137281417847,
+        "F": 0.47052454948425293,
+        "m": 0.412724107503891
+      }
+    },
+    {
+      "position": [
+        9,
+        6
+      ],
+      "prediction": "f",
+      "confidence": 0.47143787145614624,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.47143787145614624,
+        "F": 0.3951939344406128,
+        "m": 0.13336816430091858
+      }
+    },
+    {
+      "position": [
+        8,
+        5
+      ],
+      "prediction": "f",
+      "confidence": 0.4718126058578491,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.4718126058578491,
+        "F": 0.3670247495174408,
+        "m": 0.16116265952587128
+      }
+    },
+    {
+      "position": [
+        24,
+        3
+      ],
+      "prediction": "F",
+      "confidence": 0.47229474782943726,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.44213584065437317,
+        "F": 0.47229474782943726,
+        "m": 0.08556941896677017
+      }
+    },
+    {
+      "position": [
+        1,
+        18
+      ],
+      "prediction": "m",
+      "confidence": 0.4727361500263214,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1574629694223404,
+        "F": 0.3698009252548218,
+        "m": 0.4727361500263214
+      }
+    },
+    {
+      "position": [
+        28,
+        17
+      ],
+      "prediction": "F",
+      "confidence": 0.47454702854156494,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.32685038447380066,
+        "F": 0.47454702854156494,
+        "m": 0.1986025869846344
+      }
+    },
+    {
+      "position": [
+        7,
+        7
+      ],
+      "prediction": "F",
+      "confidence": 0.4764662981033325,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.35373884439468384,
+        "F": 0.4764662981033325,
+        "m": 0.16979484260082245
+      }
+    },
+    {
+      "position": [
+        3,
+        9
+      ],
+      "prediction": "m",
+      "confidence": 0.47674787044525146,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.15188263356685638,
+        "F": 0.37136948108673096,
+        "m": 0.47674787044525146
+      }
+    },
+    {
+      "position": [
+        7,
+        6
+      ],
+      "prediction": "f",
+      "confidence": 0.4767965078353882,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.4767965078353882,
+        "F": 0.21285700798034668,
+        "m": 0.31034648418426514
+      }
+    },
+    {
+      "position": [
+        0,
+        4
+      ],
+      "prediction": "m",
+      "confidence": 0.4802001714706421,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.0709494799375534,
+        "F": 0.4488503634929657,
+        "m": 0.4802001714706421
+      }
+    },
+    {
+      "position": [
+        13,
+        2
+      ],
+      "prediction": "F",
+      "confidence": 0.48132503032684326,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.3632371127605438,
+        "F": 0.48132503032684326,
+        "m": 0.1554378867149353
+      }
+    },
+    {
+      "position": [
+        2,
+        3
+      ],
+      "prediction": "F",
+      "confidence": 0.48213082551956177,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.11458539217710495,
+        "F": 0.48213082551956177,
+        "m": 0.4032837748527527
+      }
+    },
+    {
+      "position": [
+        26,
+        4
+      ],
+      "prediction": "f",
+      "confidence": 0.4824967384338379,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.4824967384338379,
+        "F": 0.36265531182289124,
+        "m": 0.15484794974327087
+      }
+    },
+    {
+      "position": [
+        28,
+        19
+      ],
+      "prediction": "f",
+      "confidence": 0.48255446553230286,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.48255446553230286,
+        "F": 0.4340367913246155,
+        "m": 0.08340873569250107
+      }
+    },
+    {
+      "position": [
+        0,
+        18
+      ],
+      "prediction": "F",
+      "confidence": 0.4838530421257019,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1339048147201538,
+        "F": 0.4838530421257019,
+        "m": 0.3822421133518219
+      }
+    },
+    {
+      "position": [
+        25,
+        20
+      ],
+      "prediction": "F",
+      "confidence": 0.4839079976081848,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.37093597650527954,
+        "F": 0.4839079976081848,
+        "m": 0.14515601098537445
+      }
+    },
+    {
+      "position": [
+        4,
+        6
+      ],
+      "prediction": "m",
+      "confidence": 0.4845128655433655,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.14526163041591644,
+        "F": 0.3702254891395569,
+        "m": 0.4845128655433655
+      }
+    },
+    {
+      "position": [
+        6,
+        14
+      ],
+      "prediction": "f",
+      "confidence": 0.4848134517669678,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.4848134517669678,
+        "F": 0.3972809910774231,
+        "m": 0.11790554970502853
+      }
+    },
+    {
+      "position": [
+        7,
+        9
+      ],
+      "prediction": "f",
+      "confidence": 0.4870120882987976,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.4870120882987976,
+        "F": 0.3457019329071045,
+        "m": 0.1672859638929367
+      }
+    },
+    {
+      "position": [
+        26,
+        19
+      ],
+      "prediction": "f",
+      "confidence": 0.48731207847595215,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.48731207847595215,
+        "F": 0.40916505455970764,
+        "m": 0.10352283716201782
+      }
+    },
+    {
+      "position": [
+        24,
+        20
+      ],
+      "prediction": "F",
+      "confidence": 0.487402081489563,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.36275142431259155,
+        "F": 0.487402081489563,
+        "m": 0.14984650909900665
+      }
+    },
+    {
+      "position": [
+        27,
+        0
+      ],
+      "prediction": "m",
+      "confidence": 0.488126277923584,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.10317636281251907,
+        "F": 0.40869733691215515,
+        "m": 0.488126277923584
+      }
+    },
+    {
+      "position": [
+        3,
+        6
+      ],
+      "prediction": "m",
+      "confidence": 0.48818832635879517,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.14721617102622986,
+        "F": 0.364595502614975,
+        "m": 0.48818832635879517
+      }
+    },
+    {
+      "position": [
+        28,
+        4
+      ],
+      "prediction": "m",
+      "confidence": 0.48918968439102173,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.09880303591489792,
+        "F": 0.41200727224349976,
+        "m": 0.48918968439102173
+      }
+    },
+    {
+      "position": [
+        25,
+        4
+      ],
+      "prediction": "f",
+      "confidence": 0.48952072858810425,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.48952072858810425,
+        "F": 0.3920744061470032,
+        "m": 0.11840483546257019
+      }
+    },
+    {
+      "position": [
+        2,
+        7
+      ],
+      "prediction": "F",
+      "confidence": 0.4918159246444702,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1144699975848198,
+        "F": 0.4918159246444702,
+        "m": 0.3937140703201294
+      }
+    },
+    {
+      "position": [
+        4,
+        13
+      ],
+      "prediction": "F",
+      "confidence": 0.49245116114616394,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.23657414317131042,
+        "F": 0.49245116114616394,
+        "m": 0.27097469568252563
+      }
+    },
+    {
+      "position": [
+        2,
+        13
+      ],
+      "prediction": "m",
+      "confidence": 0.49255481362342834,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.177012637257576,
+        "F": 0.3304325342178345,
+        "m": 0.49255481362342834
+      }
+    },
+    {
+      "position": [
+        16,
+        3
+      ],
+      "prediction": "f",
+      "confidence": 0.49273961782455444,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.49273961782455444,
+        "F": 0.41019925475120544,
+        "m": 0.09706110507249832
+      }
+    },
+    {
+      "position": [
+        3,
+        12
+      ],
+      "prediction": "F",
+      "confidence": 0.49290981888771057,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1545688956975937,
+        "F": 0.49290981888771057,
+        "m": 0.35252130031585693
+      }
+    },
+    {
+      "position": [
+        5,
+        15
+      ],
+      "prediction": "f",
+      "confidence": 0.49438220262527466,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.49438220262527466,
+        "F": 0.3813316226005554,
+        "m": 0.12428617477416992
+      }
+    },
+    {
+      "position": [
+        3,
+        3
+      ],
+      "prediction": "m",
+      "confidence": 0.4948593080043793,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1064777597784996,
+        "F": 0.3986629247665405,
+        "m": 0.4948593080043793
+      }
+    },
+    {
+      "position": [
+        27,
+        18
+      ],
+      "prediction": "f",
+      "confidence": 0.4953940212726593,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.4953940212726593,
+        "F": 0.36688441038131714,
+        "m": 0.13772159814834595
+      }
+    },
+    {
+      "position": [
+        27,
+        15
+      ],
+      "prediction": "F",
+      "confidence": 0.49633878469467163,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.37247633934020996,
+        "F": 0.49633878469467163,
+        "m": 0.13118486106395721
+      }
+    },
+    {
+      "position": [
+        21,
+        14
+      ],
+      "prediction": "f",
+      "confidence": 0.49637678265571594,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.49637678265571594,
+        "F": 0.38210076093673706,
+        "m": 0.1215224340558052
+      }
+    },
+    {
+      "position": [
+        1,
+        19
+      ],
+      "prediction": "F",
+      "confidence": 0.49709293246269226,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.13074585795402527,
+        "F": 0.49709293246269226,
+        "m": 0.37216120958328247
+      }
+    },
+    {
+      "position": [
+        0,
+        19
+      ],
+      "prediction": "F",
+      "confidence": 0.49905961751937866,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.12119533866643906,
+        "F": 0.49905961751937866,
+        "m": 0.3797450661659241
+      }
+    },
+    {
+      "position": [
+        22,
+        4
+      ],
+      "prediction": "f",
+      "confidence": 0.499828040599823,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.499828040599823,
+        "F": 0.4003242254257202,
+        "m": 0.09984774887561798
+      }
+    },
+    {
+      "position": [
+        9,
+        20
+      ],
+      "prediction": "F",
+      "confidence": 0.5019903779029846,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.43312525749206543,
+        "F": 0.5019903779029846,
+        "m": 0.06488434225320816
+      }
+    },
+    {
+      "position": [
+        4,
+        1
+      ],
+      "prediction": "m",
+      "confidence": 0.5021887421607971,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.09778190404176712,
+        "F": 0.40002939105033875,
+        "m": 0.5021887421607971
+      }
+    },
+    {
+      "position": [
+        1,
+        6
+      ],
+      "prediction": "F",
+      "confidence": 0.5038344860076904,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.1847413033246994,
+        "F": 0.5038344860076904,
+        "m": 0.31142425537109375
+      }
+    },
+    {
+      "position": [
+        3,
+        19
+      ],
+      "prediction": "F",
+      "confidence": 0.5039982795715332,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.17982713878154755,
+        "F": 0.5039982795715332,
+        "m": 0.31617459654808044
+      }
+    },
+    {
+      "position": [
+        29,
+        12
+      ],
+      "prediction": "F",
+      "confidence": 0.5070311427116394,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.10409770905971527,
+        "F": 0.5070311427116394,
+        "m": 0.38887113332748413
+      }
+    },
+    {
+      "position": [
+        26,
+        1
+      ],
+      "prediction": "F",
+      "confidence": 0.5076861381530762,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.16231821477413177,
+        "F": 0.5076861381530762,
+        "m": 0.32999566197395325
+      }
+    },
+    {
+      "position": [
+        28,
+        3
+      ],
+      "prediction": "F",
+      "confidence": 0.5086567401885986,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.11163283884525299,
+        "F": 0.5086567401885986,
+        "m": 0.37971043586730957
+      }
+    },
+    {
+      "position": [
+        21,
+        3
+      ],
+      "prediction": "F",
+      "confidence": 0.5103200674057007,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.36826011538505554,
+        "F": 0.5103200674057007,
+        "m": 0.12141977995634079
+      }
+    },
+    {
+      "position": [
+        8,
+        4
+      ],
+      "prediction": "F",
+      "confidence": 0.5105985403060913,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.3765938878059387,
+        "F": 0.5105985403060913,
+        "m": 0.11280757188796997
+      }
+    },
+    {
+      "position": [
+        0,
+        14
+      ],
+      "prediction": "F",
+      "confidence": 0.5126232504844666,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.11769294738769531,
+        "F": 0.5126232504844666,
+        "m": 0.36968380212783813
+      }
+    },
+    {
+      "position": [
+        6,
+        3
+      ],
+      "prediction": "m",
+      "confidence": 0.5128399133682251,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.15597659349441528,
+        "F": 0.3311834931373596,
+        "m": 0.5128399133682251
+      }
+    },
+    {
+      "position": [
+        6,
+        2
+      ],
+      "prediction": "F",
+      "confidence": 0.5146106481552124,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.15024569630622864,
+        "F": 0.5146106481552124,
+        "m": 0.3351436257362366
+      }
+    },
+    {
+      "position": [
+        1,
+        8
+      ],
+      "prediction": "F",
+      "confidence": 0.5160535573959351,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.13133108615875244,
+        "F": 0.5160535573959351,
+        "m": 0.3526153564453125
+      }
+    },
+    {
+      "position": [
+        2,
+        10
+      ],
+      "prediction": "F",
+      "confidence": 0.5161773562431335,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.12177415192127228,
+        "F": 0.5161773562431335,
+        "m": 0.36204850673675537
+      }
+    },
+    {
+      "position": [
+        5,
+        7
+      ],
+      "prediction": "m",
+      "confidence": 0.5179985165596008,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1919267177581787,
+        "F": 0.29007473587989807,
+        "m": 0.5179985165596008
+      }
+    },
+    {
+      "position": [
+        22,
+        19
+      ],
+      "prediction": "f",
+      "confidence": 0.5188729763031006,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.5188729763031006,
+        "F": 0.40938806533813477,
+        "m": 0.07173900306224823
+      }
+    },
+    {
+      "position": [
+        8,
+        7
+      ],
+      "prediction": "f",
+      "confidence": 0.5190659165382385,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.5190659165382385,
+        "F": 0.25425630807876587,
+        "m": 0.22667774558067322
+      }
+    },
+    {
+      "position": [
+        26,
+        15
+      ],
+      "prediction": "f",
+      "confidence": 0.5193127393722534,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.5193127393722534,
+        "F": 0.3456680178642273,
+        "m": 0.1350192129611969
+      }
+    },
+    {
+      "position": [
+        1,
+        4
+      ],
+      "prediction": "F",
+      "confidence": 0.5209913849830627,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.12254351377487183,
+        "F": 0.5209913849830627,
+        "m": 0.35646510124206543
+      }
+    },
+    {
+      "position": [
+        19,
+        20
+      ],
+      "prediction": "F",
+      "confidence": 0.5210464000701904,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.38887858390808105,
+        "F": 0.5210464000701904,
+        "m": 0.09007497876882553
+      }
+    },
+    {
+      "position": [
+        5,
+        9
+      ],
+      "prediction": "F",
+      "confidence": 0.5247369408607483,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.3296738564968109,
+        "F": 0.5247369408607483,
+        "m": 0.145589217543602
+      }
+    },
+    {
+      "position": [
+        5,
+        4
+      ],
+      "prediction": "m",
+      "confidence": 0.5247493982315063,
+      "linear": "m",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.21515510976314545,
+        "F": 0.2600955069065094,
+        "m": 0.5247493982315063
+      }
+    },
+    {
+      "position": [
+        20,
+        3
+      ],
+      "prediction": "f",
+      "confidence": 0.5256554484367371,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.5256554484367371,
+        "F": 0.37748754024505615,
+        "m": 0.09685704112052917
+      }
+    },
+    {
+      "position": [
+        2,
+        18
+      ],
+      "prediction": "F",
+      "confidence": 0.5262184143066406,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.2572055459022522,
+        "F": 0.5262184143066406,
+        "m": 0.2165759801864624
+      }
+    },
+    {
+      "position": [
+        21,
+        19
+      ],
+      "prediction": "F",
+      "confidence": 0.5268433690071106,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.40534549951553345,
+        "F": 0.5268433690071106,
+        "m": 0.06781112402677536
+      }
+    },
+    {
+      "position": [
+        3,
+        0
+      ],
+      "prediction": "m",
+      "confidence": 0.5279396772384644,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.11499547213315964,
+        "F": 0.357064813375473,
+        "m": 0.5279396772384644
+      }
+    },
+    {
+      "position": [
+        5,
+        2
+      ],
+      "prediction": "m",
+      "confidence": 0.5294936299324036,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.15770487487316132,
+        "F": 0.3128015100955963,
+        "m": 0.5294936299324036
+      }
+    },
+    {
+      "position": [
+        3,
+        11
+      ],
+      "prediction": "F",
+      "confidence": 0.529812216758728,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.12815043330192566,
+        "F": 0.529812216758728,
+        "m": 0.3420373201370239
+      }
+    },
+    {
+      "position": [
+        25,
+        16
+      ],
+      "prediction": "f",
+      "confidence": 0.5305220484733582,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.5305220484733582,
+        "F": 0.3001391291618347,
+        "m": 0.16933880746364594
+      }
+    },
+    {
+      "position": [
+        3,
+        2
+      ],
+      "prediction": "m",
+      "confidence": 0.5321176052093506,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.12345743924379349,
+        "F": 0.3444249927997589,
+        "m": 0.5321176052093506
+      }
+    },
+    {
+      "position": [
+        28,
+        0
+      ],
+      "prediction": "F",
+      "confidence": 0.5325018167495728,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.09013098478317261,
+        "F": 0.5325018167495728,
+        "m": 0.37736719846725464
+      }
+    },
+    {
+      "position": [
+        2,
+        17
+      ],
+      "prediction": "F",
+      "confidence": 0.5328034162521362,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.35999608039855957,
+        "F": 0.5328034162521362,
+        "m": 0.10720043629407883
+      }
+    },
+    {
+      "position": [
+        4,
+        2
+      ],
+      "prediction": "m",
+      "confidence": 0.5343435406684875,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.10873538255691528,
+        "F": 0.35692113637924194,
+        "m": 0.5343435406684875
+      }
+    },
+    {
+      "position": [
+        21,
+        17
+      ],
+      "prediction": "f",
+      "confidence": 0.535315752029419,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.535315752029419,
+        "F": 0.40438687801361084,
+        "m": 0.06029738858342171
+      }
+    },
+    {
+      "position": [
+        4,
+        10
+      ],
+      "prediction": "F",
+      "confidence": 0.5362356901168823,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.24870723485946655,
+        "F": 0.5362356901168823,
+        "m": 0.2150571048259735
+      }
+    },
+    {
+      "position": [
+        2,
+        8
+      ],
+      "prediction": "m",
+      "confidence": 0.5375609397888184,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.12469449639320374,
+        "F": 0.3377445638179779,
+        "m": 0.5375609397888184
+      }
+    },
+    {
+      "position": [
+        1,
+        15
+      ],
+      "prediction": "F",
+      "confidence": 0.5379247069358826,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.12812308967113495,
+        "F": 0.5379247069358826,
+        "m": 0.3339521884918213
+      }
+    },
+    {
+      "position": [
+        4,
+        9
+      ],
+      "prediction": "F",
+      "confidence": 0.5400629043579102,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1664172112941742,
+        "F": 0.5400629043579102,
+        "m": 0.29351985454559326
+      }
+    },
+    {
+      "position": [
+        2,
+        12
+      ],
+      "prediction": "m",
+      "confidence": 0.5405433177947998,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.12707246840000153,
+        "F": 0.33238425850868225,
+        "m": 0.5405433177947998
+      }
+    },
+    {
+      "position": [
+        9,
+        1
+      ],
+      "prediction": "f",
+      "confidence": 0.541439950466156,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.541439950466156,
+        "F": 0.34305626153945923,
+        "m": 0.11550376564264297
+      }
+    },
+    {
+      "position": [
+        2,
+        2
+      ],
+      "prediction": "F",
+      "confidence": 0.5447984337806702,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.10242536664009094,
+        "F": 0.5447984337806702,
+        "m": 0.3527761995792389
+      }
+    },
+    {
+      "position": [
+        7,
+        19
+      ],
+      "prediction": "f",
+      "confidence": 0.5450366735458374,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.5450366735458374,
+        "F": 0.3590283989906311,
+        "m": 0.09593497216701508
+      }
+    },
+    {
+      "position": [
+        0,
+        7
+      ],
+      "prediction": "m",
+      "confidence": 0.5473439693450928,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1231667622923851,
+        "F": 0.3294892907142639,
+        "m": 0.5473439693450928
+      }
+    },
+    {
+      "position": [
+        15,
+        2
+      ],
+      "prediction": "F",
+      "confidence": 0.5491386651992798,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.3465062379837036,
+        "F": 0.5491386651992798,
+        "m": 0.1043551117181778
+      }
+    },
+    {
+      "position": [
+        7,
+        20
+      ],
+      "prediction": "F",
+      "confidence": 0.5499382615089417,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.35195714235305786,
+        "F": 0.5499382615089417,
+        "m": 0.0981045663356781
+      }
+    },
+    {
+      "position": [
+        28,
+        16
+      ],
+      "prediction": "F",
+      "confidence": 0.5531454086303711,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.331642210483551,
+        "F": 0.5531454086303711,
+        "m": 0.11521239578723907
+      }
+    },
+    {
+      "position": [
+        28,
+        15
+      ],
+      "prediction": "F",
+      "confidence": 0.5533013939857483,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.26280027627944946,
+        "F": 0.5533013939857483,
+        "m": 0.18389832973480225
+      }
+    },
+    {
+      "position": [
+        26,
+        14
+      ],
+      "prediction": "F",
+      "confidence": 0.5538274049758911,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.2654293179512024,
+        "F": 0.5538274049758911,
+        "m": 0.1807432472705841
+      }
+    },
+    {
+      "position": [
+        19,
+        17
+      ],
+      "prediction": "f",
+      "confidence": 0.5540950298309326,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.5540950298309326,
+        "F": 0.3943643569946289,
+        "m": 0.05154059827327728
+      }
+    },
+    {
+      "position": [
+        26,
+        20
+      ],
+      "prediction": "F",
+      "confidence": 0.5544328689575195,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.19734162092208862,
+        "F": 0.5544328689575195,
+        "m": 0.24822551012039185
+      }
+    },
+    {
+      "position": [
+        25,
+        3
+      ],
+      "prediction": "F",
+      "confidence": 0.55633944272995,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.3236393332481384,
+        "F": 0.55633944272995,
+        "m": 0.12002122402191162
+      }
+    },
+    {
+      "position": [
+        19,
+        4
+      ],
+      "prediction": "f",
+      "confidence": 0.5563997030258179,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.5563997030258179,
+        "F": 0.38888606429100037,
+        "m": 0.05471426248550415
+      }
+    },
+    {
+      "position": [
+        20,
+        16
+      ],
+      "prediction": "f",
+      "confidence": 0.5581490397453308,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.5581490397453308,
+        "F": 0.374697208404541,
+        "m": 0.06715374439954758
+      }
+    },
+    {
+      "position": [
+        6,
+        13
+      ],
+      "prediction": "f",
+      "confidence": 0.5585320591926575,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.5585320591926575,
+        "F": 0.31693944334983826,
+        "m": 0.12452846765518188
+      }
+    },
+    {
+      "position": [
+        28,
+        5
+      ],
+      "prediction": "m",
+      "confidence": 0.5591368079185486,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.09437480568885803,
+        "F": 0.346488356590271,
+        "m": 0.5591368079185486
+      }
+    },
+    {
+      "position": [
+        1,
+        7
+      ],
+      "prediction": "m",
+      "confidence": 0.5598229169845581,
+      "linear": "m",
+      "trees": "m",
+      "probabilities": {
+        "f": 0.15604545176029205,
+        "F": 0.2841316759586334,
+        "m": 0.5598229169845581
+      }
+    },
+    {
+      "position": [
+        3,
+        1
+      ],
+      "prediction": "m",
+      "confidence": 0.5606799125671387,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.12453291565179825,
+        "F": 0.3147871494293213,
+        "m": 0.5606799125671387
+      }
+    },
+    {
+      "position": [
+        5,
+        10
+      ],
+      "prediction": "f",
+      "confidence": 0.5611004829406738,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.5611004829406738,
+        "F": 0.3084036707878113,
+        "m": 0.1304958313703537
+      }
+    },
+    {
+      "position": [
+        1,
+        12
+      ],
+      "prediction": "m",
+      "confidence": 0.5611981749534607,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.13282078504562378,
+        "F": 0.3059810698032379,
+        "m": 0.5611981749534607
+      }
+    },
+    {
+      "position": [
+        2,
+        4
+      ],
+      "prediction": "m",
+      "confidence": 0.5614436864852905,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.15179681777954102,
+        "F": 0.28675949573516846,
+        "m": 0.5614436864852905
+      }
+    },
+    {
+      "position": [
+        3,
+        10
+      ],
+      "prediction": "m",
+      "confidence": 0.5619363784790039,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1274566501379013,
+        "F": 0.31060701608657837,
+        "m": 0.5619363784790039
+      }
+    },
+    {
+      "position": [
+        27,
+        14
+      ],
+      "prediction": "f",
+      "confidence": 0.563278317451477,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.563278317451477,
+        "F": 0.3010973632335663,
+        "m": 0.13562434911727905
+      }
+    },
+    {
+      "position": [
+        8,
+        19
+      ],
+      "prediction": "f",
+      "confidence": 0.563879132270813,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.563879132270813,
+        "F": 0.34161630272865295,
+        "m": 0.09450454264879227
+      }
+    },
+    {
+      "position": [
+        21,
+        20
+      ],
+      "prediction": "F",
+      "confidence": 0.5641356706619263,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.38020506501197815,
+        "F": 0.5641356706619263,
+        "m": 0.055659256875514984
+      }
+    },
+    {
+      "position": [
+        28,
+        6
+      ],
+      "prediction": "m",
+      "confidence": 0.5647392868995667,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.11111859977245331,
+        "F": 0.32414209842681885,
+        "m": 0.5647392868995667
+      }
+    },
+    {
+      "position": [
+        4,
+        12
+      ],
+      "prediction": "F",
+      "confidence": 0.5658336877822876,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.20475605130195618,
+        "F": 0.5658336877822876,
+        "m": 0.22941027581691742
+      }
+    },
+    {
+      "position": [
+        21,
+        4
+      ],
+      "prediction": "F",
+      "confidence": 0.5666599273681641,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.33805161714553833,
+        "F": 0.5666599273681641,
+        "m": 0.0952884703874588
+      }
+    },
+    {
+      "position": [
+        0,
+        11
+      ],
+      "prediction": "F",
+      "confidence": 0.5667021870613098,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.11669725924730301,
+        "F": 0.5667021870613098,
+        "m": 0.3166005611419678
+      }
+    },
+    {
+      "position": [
+        3,
+        16
+      ],
+      "prediction": "F",
+      "confidence": 0.5672366619110107,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.3232678472995758,
+        "F": 0.5672366619110107,
+        "m": 0.10949546098709106
+      }
+    },
+    {
+      "position": [
+        3,
+        4
+      ],
+      "prediction": "m",
+      "confidence": 0.5698704123497009,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.11783696711063385,
+        "F": 0.31229260563850403,
+        "m": 0.5698704123497009
+      }
+    },
+    {
+      "position": [
+        5,
+        5
+      ],
+      "prediction": "m",
+      "confidence": 0.5701462030410767,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1561937779188156,
+        "F": 0.27366000413894653,
+        "m": 0.5701462030410767
+      }
+    },
+    {
+      "position": [
+        4,
+        3
+      ],
+      "prediction": "m",
+      "confidence": 0.5703426599502563,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1363314539194107,
+        "F": 0.29332587122917175,
+        "m": 0.5703426599502563
+      }
+    },
+    {
+      "position": [
+        19,
+        3
+      ],
+      "prediction": "f",
+      "confidence": 0.5705697536468506,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.5705697536468506,
+        "F": 0.31866487860679626,
+        "m": 0.11076533794403076
+      }
+    },
+    {
+      "position": [
+        6,
+        5
+      ],
+      "prediction": "m",
+      "confidence": 0.5707616806030273,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1937544047832489,
+        "F": 0.23548392951488495,
+        "m": 0.5707616806030273
+      }
+    },
+    {
+      "position": [
+        24,
+        16
+      ],
+      "prediction": "F",
+      "confidence": 0.5708110332489014,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.3480590581893921,
+        "F": 0.5708110332489014,
+        "m": 0.08112988620996475
+      }
+    },
+    {
+      "position": [
+        25,
+        17
+      ],
+      "prediction": "f",
+      "confidence": 0.5714783072471619,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.5714783072471619,
+        "F": 0.32034045457839966,
+        "m": 0.10818126797676086
+      }
+    },
+    {
+      "position": [
+        5,
+        6
+      ],
+      "prediction": "m",
+      "confidence": 0.5739534497261047,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.17044997215270996,
+        "F": 0.2555965781211853,
+        "m": 0.5739534497261047
+      }
+    },
+    {
+      "position": [
+        0,
+        20
+      ],
+      "prediction": "F",
+      "confidence": 0.5761455297470093,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1002066358923912,
+        "F": 0.5761455297470093,
+        "m": 0.32364779710769653
+      }
+    },
+    {
+      "position": [
+        3,
+        17
+      ],
+      "prediction": "f",
+      "confidence": 0.5763512253761292,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.5763512253761292,
+        "F": 0.30260682106018066,
+        "m": 0.12104196846485138
+      }
+    },
+    {
+      "position": [
+        5,
+        3
+      ],
+      "prediction": "m",
+      "confidence": 0.5768142938613892,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.16911815106868744,
+        "F": 0.2540675401687622,
+        "m": 0.5768142938613892
+      }
+    },
+    {
+      "position": [
+        0,
+        13
+      ],
+      "prediction": "F",
+      "confidence": 0.5774126648902893,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1024002954363823,
+        "F": 0.5774126648902893,
+        "m": 0.3201870322227478
+      }
+    },
+    {
+      "position": [
+        1,
+        10
+      ],
+      "prediction": "m",
+      "confidence": 0.5794543027877808,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.13998068869113922,
+        "F": 0.2805649936199188,
+        "m": 0.5794543027877808
+      }
+    },
+    {
+      "position": [
+        29,
+        6
+      ],
+      "prediction": "F",
+      "confidence": 0.5809941291809082,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.0659230500459671,
+        "F": 0.5809941291809082,
+        "m": 0.3530828356742859
+      }
+    },
+    {
+      "position": [
+        8,
+        20
+      ],
+      "prediction": "F",
+      "confidence": 0.5861528515815735,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.32835322618484497,
+        "F": 0.5861528515815735,
+        "m": 0.08549391478300095
+      }
+    },
+    {
+      "position": [
+        4,
+        4
+      ],
+      "prediction": "m",
+      "confidence": 0.5874000787734985,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.17564886808395386,
+        "F": 0.2369510978460312,
+        "m": 0.5874000787734985
+      }
+    },
+    {
+      "position": [
+        27,
+        1
+      ],
+      "prediction": "F",
+      "confidence": 0.5905977487564087,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.127560093998909,
+        "F": 0.5905977487564087,
+        "m": 0.28184211254119873
+      }
+    },
+    {
+      "position": [
+        26,
+        2
+      ],
+      "prediction": "F",
+      "confidence": 0.5912563800811768,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.22517237067222595,
+        "F": 0.5912563800811768,
+        "m": 0.18357127904891968
+      }
+    },
+    {
+      "position": [
+        23,
+        3
+      ],
+      "prediction": "F",
+      "confidence": 0.5923579335212708,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.28555411100387573,
+        "F": 0.5923579335212708,
+        "m": 0.12208797037601471
+      }
+    },
+    {
+      "position": [
+        8,
+        8
+      ],
+      "prediction": "f",
+      "confidence": 0.5936803221702576,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.5936803221702576,
+        "F": 0.2710495591163635,
+        "m": 0.1352701187133789
+      }
+    },
+    {
+      "position": [
+        8,
+        18
+      ],
+      "prediction": "f",
+      "confidence": 0.59517502784729,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.59517502784729,
+        "F": 0.3042891323566437,
+        "m": 0.10053584724664688
+      }
+    },
+    {
+      "position": [
+        5,
+        11
+      ],
+      "prediction": "f",
+      "confidence": 0.6004366874694824,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6004366874694824,
+        "F": 0.2700628936290741,
+        "m": 0.12950046360492706
+      }
+    },
+    {
+      "position": [
+        5,
+        1
+      ],
+      "prediction": "F",
+      "confidence": 0.6011452078819275,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.12203840166330338,
+        "F": 0.6011452078819275,
+        "m": 0.2768164277076721
+      }
+    },
+    {
+      "position": [
+        0,
+        12
+      ],
+      "prediction": "F",
+      "confidence": 0.6014806032180786,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.09826242923736572,
+        "F": 0.6014806032180786,
+        "m": 0.3002569079399109
+      }
+    },
+    {
+      "position": [
+        2,
+        16
+      ],
+      "prediction": "F",
+      "confidence": 0.6015838384628296,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.273739755153656,
+        "F": 0.6015838384628296,
+        "m": 0.12467639148235321
+      }
+    },
+    {
+      "position": [
+        3,
+        15
+      ],
+      "prediction": "F",
+      "confidence": 0.6025493144989014,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.26840686798095703,
+        "F": 0.6025493144989014,
+        "m": 0.1290438175201416
+      }
+    },
+    {
+      "position": [
+        20,
+        17
+      ],
+      "prediction": "f",
+      "confidence": 0.6032795310020447,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6032795310020447,
+        "F": 0.35069960355758667,
+        "m": 0.046020857989788055
+      }
+    },
+    {
+      "position": [
+        26,
+        6
+      ],
+      "prediction": "f",
+      "confidence": 0.6042513251304626,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6042513251304626,
+        "F": 0.18056444823741913,
+        "m": 0.21518419682979584
+      }
+    },
+    {
+      "position": [
+        29,
+        7
+      ],
+      "prediction": "F",
+      "confidence": 0.6057922840118408,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.08835563063621521,
+        "F": 0.6057922840118408,
+        "m": 0.3058520555496216
+      }
+    },
+    {
+      "position": [
+        27,
+        3
+      ],
+      "prediction": "F",
+      "confidence": 0.6061815023422241,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.13654999434947968,
+        "F": 0.6061815023422241,
+        "m": 0.2572685182094574
+      }
+    },
+    {
+      "position": [
+        26,
+        17
+      ],
+      "prediction": "f",
+      "confidence": 0.6071765422821045,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6071765422821045,
+        "F": 0.24737176299095154,
+        "m": 0.14545167982578278
+      }
+    },
+    {
+      "position": [
+        7,
+        4
+      ],
+      "prediction": "F",
+      "confidence": 0.6075137853622437,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.22307120263576508,
+        "F": 0.6075137853622437,
+        "m": 0.16941501200199127
+      }
+    },
+    {
+      "position": [
+        3,
+        8
+      ],
+      "prediction": "m",
+      "confidence": 0.608928918838501,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.14034336805343628,
+        "F": 0.25072774291038513,
+        "m": 0.608928918838501
+      }
+    },
+    {
+      "position": [
+        23,
+        4
+      ],
+      "prediction": "f",
+      "confidence": 0.6100642681121826,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6100642681121826,
+        "F": 0.30464863777160645,
+        "m": 0.08528708666563034
+      }
+    },
+    {
+      "position": [
+        20,
+        13
+      ],
+      "prediction": "f",
+      "confidence": 0.6108046174049377,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6108046174049377,
+        "F": 0.2865963876247406,
+        "m": 0.10259898006916046
+      }
+    },
+    {
+      "position": [
+        20,
+        19
+      ],
+      "prediction": "f",
+      "confidence": 0.610912561416626,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.610912561416626,
+        "F": 0.329885333776474,
+        "m": 0.059202104806900024
+      }
+    },
+    {
+      "position": [
+        27,
+        4
+      ],
+      "prediction": "F",
+      "confidence": 0.6123157143592834,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.21109984815120697,
+        "F": 0.6123157143592834,
+        "m": 0.17658443748950958
+      }
+    },
+    {
+      "position": [
+        14,
+        1
+      ],
+      "prediction": "F",
+      "confidence": 0.612351655960083,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.25271064043045044,
+        "F": 0.612351655960083,
+        "m": 0.13493771851062775
+      }
+    },
+    {
+      "position": [
+        21,
+        5
+      ],
+      "prediction": "f",
+      "confidence": 0.6127715706825256,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6127715706825256,
+        "F": 0.304151713848114,
+        "m": 0.08307670801877975
+      }
+    },
+    {
+      "position": [
+        14,
+        2
+      ],
+      "prediction": "f",
+      "confidence": 0.6149513721466064,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.6149513721466064,
+        "F": 0.29391270875930786,
+        "m": 0.09113592654466629
+      }
+    },
+    {
+      "position": [
+        2,
+        5
+      ],
+      "prediction": "m",
+      "confidence": 0.6153155565261841,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.12398975342512131,
+        "F": 0.260694682598114,
+        "m": 0.6153155565261841
+      }
+    },
+    {
+      "position": [
+        12,
+        2
+      ],
+      "prediction": "f",
+      "confidence": 0.6166804432868958,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6166804432868958,
+        "F": 0.23342126607894897,
+        "m": 0.14989829063415527
+      }
+    },
+    {
+      "position": [
+        22,
+        3
+      ],
+      "prediction": "F",
+      "confidence": 0.6173574328422546,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.2628036141395569,
+        "F": 0.6173574328422546,
+        "m": 0.11983898282051086
+      }
+    },
+    {
+      "position": [
+        6,
+        18
+      ],
+      "prediction": "f",
+      "confidence": 0.6209376454353333,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6209376454353333,
+        "F": 0.2739821970462799,
+        "m": 0.10508015006780624
+      }
+    },
+    {
+      "position": [
+        4,
+        7
+      ],
+      "prediction": "m",
+      "confidence": 0.6214572191238403,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.13942959904670715,
+        "F": 0.2391132116317749,
+        "m": 0.6214572191238403
+      }
+    },
+    {
+      "position": [
+        22,
+        20
+      ],
+      "prediction": "F",
+      "confidence": 0.6228615045547485,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.3130967617034912,
+        "F": 0.6228615045547485,
+        "m": 0.06404169648885727
+      }
+    },
+    {
+      "position": [
+        8,
+        2
+      ],
+      "prediction": "F",
+      "confidence": 0.6242352724075317,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.24287593364715576,
+        "F": 0.6242352724075317,
+        "m": 0.1328887939453125
+      }
+    },
+    {
+      "position": [
+        25,
+        15
+      ],
+      "prediction": "f",
+      "confidence": 0.6250463724136353,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6250463724136353,
+        "F": 0.29690128564834595,
+        "m": 0.0780523493885994
+      }
+    },
+    {
+      "position": [
+        15,
+        3
+      ],
+      "prediction": "f",
+      "confidence": 0.6252288818359375,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6252288818359375,
+        "F": 0.2822536826133728,
+        "m": 0.09251746535301208
+      }
+    },
+    {
+      "position": [
+        7,
+        13
+      ],
+      "prediction": "f",
+      "confidence": 0.6256850957870483,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6256850957870483,
+        "F": 0.2774033844470978,
+        "m": 0.09691149741411209
+      }
+    },
+    {
+      "position": [
+        24,
+        19
+      ],
+      "prediction": "f",
+      "confidence": 0.6276546716690063,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6276546716690063,
+        "F": 0.29419541358947754,
+        "m": 0.0781499594449997
+      }
+    },
+    {
+      "position": [
+        23,
+        20
+      ],
+      "prediction": "F",
+      "confidence": 0.6284394860267639,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.29105252027511597,
+        "F": 0.6284394860267639,
+        "m": 0.08050799369812012
+      }
+    },
+    {
+      "position": [
+        18,
+        4
+      ],
+      "prediction": "f",
+      "confidence": 0.6289774179458618,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6289774179458618,
+        "F": 0.2975328862667084,
+        "m": 0.07348974049091339
+      }
+    },
+    {
+      "position": [
+        9,
+        0
+      ],
+      "prediction": "F",
+      "confidence": 0.629281222820282,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.23603858053684235,
+        "F": 0.629281222820282,
+        "m": 0.13468016684055328
+      }
+    },
+    {
+      "position": [
+        26,
+        0
+      ],
+      "prediction": "F",
+      "confidence": 0.6303482055664062,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.11483485251665115,
+        "F": 0.6303482055664062,
+        "m": 0.2548169493675232
+      }
+    },
+    {
+      "position": [
+        1,
+        16
+      ],
+      "prediction": "F",
+      "confidence": 0.6311910152435303,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.13084250688552856,
+        "F": 0.6311910152435303,
+        "m": 0.23796649277210236
+      }
+    },
+    {
+      "position": [
+        1,
+        1
+      ],
+      "prediction": "F",
+      "confidence": 0.6315746307373047,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.13128285109996796,
+        "F": 0.6315746307373047,
+        "m": 0.23714253306388855
+      }
+    },
+    {
+      "position": [
+        12,
+        0
+      ],
+      "prediction": "F",
+      "confidence": 0.6321489214897156,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.20196031033992767,
+        "F": 0.6321489214897156,
+        "m": 0.16589078307151794
+      }
+    },
+    {
+      "position": [
+        0,
+        6
+      ],
+      "prediction": "m",
+      "confidence": 0.6337814331054688,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1458279937505722,
+        "F": 0.22039060294628143,
+        "m": 0.6337814331054688
+      }
+    },
+    {
+      "position": [
+        19,
+        5
+      ],
+      "prediction": "f",
+      "confidence": 0.6337818503379822,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6337818503379822,
+        "F": 0.2591284513473511,
+        "m": 0.10708969831466675
+      }
+    },
+    {
+      "position": [
+        27,
+        6
+      ],
+      "prediction": "f",
+      "confidence": 0.6339857578277588,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.6339857578277588,
+        "F": 0.22317488491535187,
+        "m": 0.14283940196037292
+      }
+    },
+    {
+      "position": [
+        20,
+        6
+      ],
+      "prediction": "f",
+      "confidence": 0.6344428062438965,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6344428062438965,
+        "F": 0.25061988830566406,
+        "m": 0.11493729054927826
+      }
+    },
+    {
+      "position": [
+        0,
+        8
+      ],
+      "prediction": "m",
+      "confidence": 0.6360386610031128,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1273386925458908,
+        "F": 0.2366226315498352,
+        "m": 0.6360386610031128
+      }
+    },
+    {
+      "position": [
+        0,
+        5
+      ],
+      "prediction": "F",
+      "confidence": 0.6369051933288574,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1029917299747467,
+        "F": 0.6369051933288574,
+        "m": 0.26010310649871826
+      }
+    },
+    {
+      "position": [
+        29,
+        4
+      ],
+      "prediction": "F",
+      "confidence": 0.6388012170791626,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.05406714975833893,
+        "F": 0.6388012170791626,
+        "m": 0.3071315884590149
+      }
+    },
+    {
+      "position": [
+        6,
+        0
+      ],
+      "prediction": "F",
+      "confidence": 0.6388750672340393,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.12619727849960327,
+        "F": 0.6388750672340393,
+        "m": 0.23492762446403503
+      }
+    },
+    {
+      "position": [
+        24,
+        17
+      ],
+      "prediction": "f",
+      "confidence": 0.6389713287353516,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6389713287353516,
+        "F": 0.2959768772125244,
+        "m": 0.06505177915096283
+      }
+    },
+    {
+      "position": [
+        1,
+        5
+      ],
+      "prediction": "m",
+      "confidence": 0.6392677426338196,
+      "linear": "m",
+      "trees": "m",
+      "probabilities": {
+        "f": 0.15127979218959808,
+        "F": 0.20945248007774353,
+        "m": 0.6392677426338196
+      }
+    },
+    {
+      "position": [
+        6,
+        9
+      ],
+      "prediction": "f",
+      "confidence": 0.6411964893341064,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6411964893341064,
+        "F": 0.23045939207077026,
+        "m": 0.1283441036939621
+      }
+    },
+    {
+      "position": [
+        18,
+        3
+      ],
+      "prediction": "F",
+      "confidence": 0.6415992975234985,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.2572126090526581,
+        "F": 0.6415992975234985,
+        "m": 0.10118810087442398
+      }
+    },
+    {
+      "position": [
+        4,
+        14
+      ],
+      "prediction": "F",
+      "confidence": 0.6429358124732971,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.23510798811912537,
+        "F": 0.6429358124732971,
+        "m": 0.12195619940757751
+      }
+    },
+    {
+      "position": [
+        2,
+        0
+      ],
+      "prediction": "F",
+      "confidence": 0.6429781913757324,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1223900243639946,
+        "F": 0.6429781913757324,
+        "m": 0.23463182151317596
+      }
+    },
+    {
+      "position": [
+        1,
+        14
+      ],
+      "prediction": "F",
+      "confidence": 0.6430099010467529,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.10234153270721436,
+        "F": 0.6430099010467529,
+        "m": 0.2546485960483551
+      }
+    },
+    {
+      "position": [
+        16,
+        2
+      ],
+      "prediction": "F",
+      "confidence": 0.6432798504829407,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.23254705965518951,
+        "F": 0.6432798504829407,
+        "m": 0.12417308986186981
+      }
+    },
+    {
+      "position": [
+        13,
+        1
+      ],
+      "prediction": "F",
+      "confidence": 0.6447480916976929,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.2069084346294403,
+        "F": 0.6447480916976929,
+        "m": 0.14834347367286682
+      }
+    },
+    {
+      "position": [
+        5,
+        12
+      ],
+      "prediction": "f",
+      "confidence": 0.6450106501579285,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.6450106501579285,
+        "F": 0.2429915815591812,
+        "m": 0.11199779063463211
+      }
+    },
+    {
+      "position": [
+        21,
+        2
+      ],
+      "prediction": "F",
+      "confidence": 0.6462094783782959,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.19175764918327332,
+        "F": 0.6462094783782959,
+        "m": 0.16203293204307556
+      }
+    },
+    {
+      "position": [
+        8,
+        3
+      ],
+      "prediction": "f",
+      "confidence": 0.6465250253677368,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6465250253677368,
+        "F": 0.2128201723098755,
+        "m": 0.1406547874212265
+      }
+    },
+    {
+      "position": [
+        5,
+        16
+      ],
+      "prediction": "f",
+      "confidence": 0.6469259858131409,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6469259858131409,
+        "F": 0.23789893090724945,
+        "m": 0.11517505347728729
+      }
+    },
+    {
+      "position": [
+        29,
+        16
+      ],
+      "prediction": "F",
+      "confidence": 0.6473520994186401,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.23585331439971924,
+        "F": 0.6473520994186401,
+        "m": 0.11679454892873764
+      }
+    },
+    {
+      "position": [
+        4,
+        15
+      ],
+      "prediction": "F",
+      "confidence": 0.647620439529419,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.24919697642326355,
+        "F": 0.647620439529419,
+        "m": 0.10318256914615631
+      }
+    },
+    {
+      "position": [
+        19,
+        6
+      ],
+      "prediction": "f",
+      "confidence": 0.6479557752609253,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.6479557752609253,
+        "F": 0.24242253601551056,
+        "m": 0.10962167382240295
+      }
+    },
+    {
+      "position": [
+        8,
+        1
+      ],
+      "prediction": "f",
+      "confidence": 0.6505958437919617,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6505958437919617,
+        "F": 0.2335597723722458,
+        "m": 0.11584438383579254
+      }
+    },
+    {
+      "position": [
+        3,
+        20
+      ],
+      "prediction": "F",
+      "confidence": 0.6509280204772949,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.10683871060609818,
+        "F": 0.6509280204772949,
+        "m": 0.2422332763671875
+      }
+    },
+    {
+      "position": [
+        26,
+        5
+      ],
+      "prediction": "f",
+      "confidence": 0.6520302891731262,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6520302891731262,
+        "F": 0.20703577995300293,
+        "m": 0.14093393087387085
+      }
+    },
+    {
+      "position": [
+        15,
+        1
+      ],
+      "prediction": "F",
+      "confidence": 0.6524187326431274,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.17652414739131927,
+        "F": 0.6524187326431274,
+        "m": 0.17105714976787567
+      }
+    },
+    {
+      "position": [
+        29,
+        11
+      ],
+      "prediction": "F",
+      "confidence": 0.6538844108581543,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.08213073015213013,
+        "F": 0.6538844108581543,
+        "m": 0.26398488879203796
+      }
+    },
+    {
+      "position": [
+        1,
+        13
+      ],
+      "prediction": "F",
+      "confidence": 0.6539632081985474,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.11743538826704025,
+        "F": 0.6539632081985474,
+        "m": 0.2286013811826706
+      }
+    },
+    {
+      "position": [
+        3,
+        7
+      ],
+      "prediction": "m",
+      "confidence": 0.6559022665023804,
+      "linear": "m",
+      "trees": "m",
+      "probabilities": {
+        "f": 0.14671270549297333,
+        "F": 0.1973850280046463,
+        "m": 0.6559022665023804
+      }
+    },
+    {
+      "position": [
+        25,
+        21
+      ],
+      "prediction": "F",
+      "confidence": 0.6561048626899719,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.13165907561779022,
+        "F": 0.6561048626899719,
+        "m": 0.21223604679107666
+      }
+    },
+    {
+      "position": [
+        1,
+        2
+      ],
+      "prediction": "F",
+      "confidence": 0.6564739942550659,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.12171351164579391,
+        "F": 0.6564739942550659,
+        "m": 0.22181251645088196
+      }
+    },
+    {
+      "position": [
+        0,
+        3
+      ],
+      "prediction": "F",
+      "confidence": 0.6569867134094238,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.07593713700771332,
+        "F": 0.6569867134094238,
+        "m": 0.26707613468170166
+      }
+    },
+    {
+      "position": [
+        7,
+        2
+      ],
+      "prediction": "F",
+      "confidence": 0.6589244604110718,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.17280137538909912,
+        "F": 0.6589244604110718,
+        "m": 0.1682741791009903
+      }
+    },
+    {
+      "position": [
+        0,
+        9
+      ],
+      "prediction": "m",
+      "confidence": 0.6598162651062012,
+      "linear": "m",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.10324255377054214,
+        "F": 0.23694121837615967,
+        "m": 0.6598162651062012
+      }
+    },
+    {
+      "position": [
+        20,
+        4
+      ],
+      "prediction": "f",
+      "confidence": 0.6619122624397278,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.6619122624397278,
+        "F": 0.2716846168041229,
+        "m": 0.06640315800905228
+      }
+    },
+    {
+      "position": [
+        15,
+        0
+      ],
+      "prediction": "F",
+      "confidence": 0.6622130870819092,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.17167828977108002,
+        "F": 0.6622130870819092,
+        "m": 0.166108638048172
+      }
+    },
+    {
+      "position": [
+        8,
+        13
+      ],
+      "prediction": "f",
+      "confidence": 0.6624054908752441,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6624054908752441,
+        "F": 0.2601003050804138,
+        "m": 0.07749422639608383
+      }
+    },
+    {
+      "position": [
+        3,
+        14
+      ],
+      "prediction": "F",
+      "confidence": 0.6636576652526855,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1550150364637375,
+        "F": 0.6636576652526855,
+        "m": 0.18132729828357697
+      }
+    },
+    {
+      "position": [
+        20,
+        15
+      ],
+      "prediction": "f",
+      "confidence": 0.6639701724052429,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6639701724052429,
+        "F": 0.28987765312194824,
+        "m": 0.04615216702222824
+      }
+    },
+    {
+      "position": [
+        2,
+        14
+      ],
+      "prediction": "F",
+      "confidence": 0.6640641689300537,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.16550275683403015,
+        "F": 0.6640641689300537,
+        "m": 0.17043310403823853
+      }
+    },
+    {
+      "position": [
+        23,
+        2
+      ],
+      "prediction": "F",
+      "confidence": 0.6662622094154358,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.24061119556427002,
+        "F": 0.6662622094154358,
+        "m": 0.0931265726685524
+      }
+    },
+    {
+      "position": [
+        22,
+        2
+      ],
+      "prediction": "F",
+      "confidence": 0.6671119928359985,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.21303381025791168,
+        "F": 0.6671119928359985,
+        "m": 0.1198541596531868
+      }
+    },
+    {
+      "position": [
+        0,
+        2
+      ],
+      "prediction": "F",
+      "confidence": 0.6674278974533081,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.0831221342086792,
+        "F": 0.6674278974533081,
+        "m": 0.24944999814033508
+      }
+    },
+    {
+      "position": [
+        29,
+        5
+      ],
+      "prediction": "F",
+      "confidence": 0.6677849292755127,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.06490349769592285,
+        "F": 0.6677849292755127,
+        "m": 0.26731157302856445
+      }
+    },
+    {
+      "position": [
+        25,
+        1
+      ],
+      "prediction": "F",
+      "confidence": 0.6678907871246338,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1765274554491043,
+        "F": 0.6678907871246338,
+        "m": 0.1555817425251007
+      }
+    },
+    {
+      "position": [
+        24,
+        2
+      ],
+      "prediction": "F",
+      "confidence": 0.6680646538734436,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.22559982538223267,
+        "F": 0.6680646538734436,
+        "m": 0.10633550584316254
+      }
+    },
+    {
+      "position": [
+        21,
+        15
+      ],
+      "prediction": "f",
+      "confidence": 0.6691765785217285,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6691765785217285,
+        "F": 0.2532323896884918,
+        "m": 0.07759098708629608
+      }
+    },
+    {
+      "position": [
+        14,
+        0
+      ],
+      "prediction": "F",
+      "confidence": 0.6708663105964661,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.19428332149982452,
+        "F": 0.6708663105964661,
+        "m": 0.1348503679037094
+      }
+    },
+    {
+      "position": [
+        13,
+        0
+      ],
+      "prediction": "F",
+      "confidence": 0.6709765791893005,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.18422971665859222,
+        "F": 0.6709765791893005,
+        "m": 0.14479368925094604
+      }
+    },
+    {
+      "position": [
+        6,
+        15
+      ],
+      "prediction": "f",
+      "confidence": 0.6720394492149353,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6720394492149353,
+        "F": 0.23092620074748993,
+        "m": 0.09703437238931656
+      }
+    },
+    {
+      "position": [
+        29,
+        13
+      ],
+      "prediction": "F",
+      "confidence": 0.6769253015518188,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1484711766242981,
+        "F": 0.6769253015518188,
+        "m": 0.17460349202156067
+      }
+    },
+    {
+      "position": [
+        1,
+        20
+      ],
+      "prediction": "F",
+      "confidence": 0.6773873567581177,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.11762478202581406,
+        "F": 0.6773873567581177,
+        "m": 0.20498785376548767
+      }
+    },
+    {
+      "position": [
+        10,
+        20
+      ],
+      "prediction": "f",
+      "confidence": 0.6774673461914062,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6774673461914062,
+        "F": 0.25800883769989014,
+        "m": 0.06452383100986481
+      }
+    },
+    {
+      "position": [
+        2,
+        1
+      ],
+      "prediction": "F",
+      "confidence": 0.6777831315994263,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.11499544233083725,
+        "F": 0.6777831315994263,
+        "m": 0.20722141861915588
+      }
+    },
+    {
+      "position": [
+        11,
+        3
+      ],
+      "prediction": "f",
+      "confidence": 0.678863525390625,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.678863525390625,
+        "F": 0.20297618210315704,
+        "m": 0.11816029250621796
+      }
+    },
+    {
+      "position": [
+        16,
+        1
+      ],
+      "prediction": "F",
+      "confidence": 0.6791481971740723,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1707552820444107,
+        "F": 0.6791481971740723,
+        "m": 0.15009649097919464
+      }
+    },
+    {
+      "position": [
+        8,
+        9
+      ],
+      "prediction": "f",
+      "confidence": 0.680461585521698,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.680461585521698,
+        "F": 0.1968776285648346,
+        "m": 0.1226608082652092
+      }
+    },
+    {
+      "position": [
+        12,
+        4
+      ],
+      "prediction": "f",
+      "confidence": 0.6806601285934448,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6806601285934448,
+        "F": 0.1762206256389618,
+        "m": 0.14311926066875458
+      }
+    },
+    {
+      "position": [
+        20,
+        14
+      ],
+      "prediction": "f",
+      "confidence": 0.680801510810852,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.680801510810852,
+        "F": 0.21335874497890472,
+        "m": 0.10583976656198502
+      }
+    },
+    {
+      "position": [
+        7,
+        16
+      ],
+      "prediction": "f",
+      "confidence": 0.6808440089225769,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6808440089225769,
+        "F": 0.22014202177524567,
+        "m": 0.09901396930217743
+      }
+    },
+    {
+      "position": [
+        29,
+        17
+      ],
+      "prediction": "F",
+      "confidence": 0.6822417974472046,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1697114259004593,
+        "F": 0.6822417974472046,
+        "m": 0.14804674685001373
+      }
+    },
+    {
+      "position": [
+        13,
+        3
+      ],
+      "prediction": "f",
+      "confidence": 0.6828398108482361,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6828398108482361,
+        "F": 0.18299344182014465,
+        "m": 0.13416673243045807
+      }
+    },
+    {
+      "position": [
+        8,
+        10
+      ],
+      "prediction": "f",
+      "confidence": 0.6850808262825012,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6850808262825012,
+        "F": 0.20275546610355377,
+        "m": 0.1121637299656868
+      }
+    },
+    {
+      "position": [
+        19,
+        19
+      ],
+      "prediction": "f",
+      "confidence": 0.6855785846710205,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6855785846710205,
+        "F": 0.25999486446380615,
+        "m": 0.05442656949162483
+      }
+    },
+    {
+      "position": [
+        19,
+        12
+      ],
+      "prediction": "f",
+      "confidence": 0.6860799193382263,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6860799193382263,
+        "F": 0.2488120198249817,
+        "m": 0.06510806083679199
+      }
+    },
+    {
+      "position": [
+        7,
+        18
+      ],
+      "prediction": "f",
+      "confidence": 0.6873469948768616,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6873469948768616,
+        "F": 0.22451257705688477,
+        "m": 0.08814043551683426
+      }
+    },
+    {
+      "position": [
+        23,
+        19
+      ],
+      "prediction": "f",
+      "confidence": 0.6876673698425293,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6876673698425293,
+        "F": 0.22914117574691772,
+        "m": 0.08319144695997238
+      }
+    },
+    {
+      "position": [
+        17,
+        1
+      ],
+      "prediction": "F",
+      "confidence": 0.6882955431938171,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.17999203503131866,
+        "F": 0.6882955431938171,
+        "m": 0.1317124217748642
+      }
+    },
+    {
+      "position": [
+        2,
+        15
+      ],
+      "prediction": "F",
+      "confidence": 0.6884742975234985,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.15354418754577637,
+        "F": 0.6884742975234985,
+        "m": 0.1579815149307251
+      }
+    },
+    {
+      "position": [
+        20,
+        18
+      ],
+      "prediction": "f",
+      "confidence": 0.688594400882721,
+      "linear": "f",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.688594400882721,
+        "F": 0.2544718384742737,
+        "m": 0.05693378299474716
+      }
+    },
+    {
+      "position": [
+        29,
+        18
+      ],
+      "prediction": "F",
+      "confidence": 0.6887032985687256,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.16685858368873596,
+        "F": 0.6887032985687256,
+        "m": 0.14443810284137726
+      }
+    },
+    {
+      "position": [
+        22,
+        15
+      ],
+      "prediction": "f",
+      "confidence": 0.6891528367996216,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6891528367996216,
+        "F": 0.22999027371406555,
+        "m": 0.08085685223340988
+      }
+    },
+    {
+      "position": [
+        17,
+        3
+      ],
+      "prediction": "F",
+      "confidence": 0.6901266574859619,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.19507470726966858,
+        "F": 0.6901266574859619,
+        "m": 0.11479861289262772
+      }
+    },
+    {
+      "position": [
+        28,
+        20
+      ],
+      "prediction": "F",
+      "confidence": 0.6903362274169922,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.21907465159893036,
+        "F": 0.6903362274169922,
+        "m": 0.09058911353349686
+      }
+    },
+    {
+      "position": [
+        29,
+        20
+      ],
+      "prediction": "F",
+      "confidence": 0.6905189752578735,
+      "linear": "F",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.22383329272270203,
+        "F": 0.6905189752578735,
+        "m": 0.08564773947000504
+      }
+    },
+    {
+      "position": [
+        24,
+        14
+      ],
+      "prediction": "f",
+      "confidence": 0.6924991607666016,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6924991607666016,
+        "F": 0.24247141182422638,
+        "m": 0.06502943485975266
+      }
+    },
+    {
+      "position": [
+        23,
+        15
+      ],
+      "prediction": "f",
+      "confidence": 0.6935312747955322,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6935312747955322,
+        "F": 0.24552151560783386,
+        "m": 0.060947224497795105
+      }
+    },
+    {
+      "position": [
+        4,
+        0
+      ],
+      "prediction": "F",
+      "confidence": 0.6946447491645813,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.12433536350727081,
+        "F": 0.6946447491645813,
+        "m": 0.18101990222930908
+      }
+    },
+    {
+      "position": [
+        29,
+        19
+      ],
+      "prediction": "F",
+      "confidence": 0.6947593688964844,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.16607701778411865,
+        "F": 0.6947593688964844,
+        "m": 0.13916362822055817
+      }
+    },
+    {
+      "position": [
+        20,
+        5
+      ],
+      "prediction": "f",
+      "confidence": 0.69477379322052,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.69477379322052,
+        "F": 0.23421262204647064,
+        "m": 0.07101362943649292
+      }
+    },
+    {
+      "position": [
+        16,
+        0
+      ],
+      "prediction": "F",
+      "confidence": 0.6948063969612122,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1608649045228958,
+        "F": 0.6948063969612122,
+        "m": 0.1443287432193756
+      }
+    },
+    {
+      "position": [
+        6,
+        16
+      ],
+      "prediction": "f",
+      "confidence": 0.6949471831321716,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6949471831321716,
+        "F": 0.20139941573143005,
+        "m": 0.10365339368581772
+      }
+    },
+    {
+      "position": [
+        6,
+        12
+      ],
+      "prediction": "f",
+      "confidence": 0.6952224373817444,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6952224373817444,
+        "F": 0.17356416583061218,
+        "m": 0.13121341168880463
+      }
+    },
+    {
+      "position": [
+        2,
+        20
+      ],
+      "prediction": "F",
+      "confidence": 0.6956670880317688,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.10223511606454849,
+        "F": 0.6956670880317688,
+        "m": 0.2020977884531021
+      }
+    },
+    {
+      "position": [
+        22,
+        14
+      ],
+      "prediction": "f",
+      "confidence": 0.6957252621650696,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6957252621650696,
+        "F": 0.224932000041008,
+        "m": 0.07934273779392242
+      }
+    },
+    {
+      "position": [
+        12,
+        3
+      ],
+      "prediction": "f",
+      "confidence": 0.697311520576477,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.697311520576477,
+        "F": 0.14997416734695435,
+        "m": 0.1527143120765686
+      }
+    },
+    {
+      "position": [
+        7,
+        12
+      ],
+      "prediction": "f",
+      "confidence": 0.6986652612686157,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.6986652612686157,
+        "F": 0.1882292926311493,
+        "m": 0.11310549080371857
+      }
+    },
+    {
+      "position": [
+        10,
+        8
+      ],
+      "prediction": "f",
+      "confidence": 0.7006745338439941,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.7006745338439941,
+        "F": 0.17250174283981323,
+        "m": 0.12682372331619263
+      }
+    },
+    {
+      "position": [
+        13,
+        4
+      ],
+      "prediction": "f",
+      "confidence": 0.700883150100708,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.700883150100708,
+        "F": 0.18750379979610443,
+        "m": 0.11161304265260696
+      }
+    },
+    {
+      "position": [
+        29,
+        14
+      ],
+      "prediction": "F",
+      "confidence": 0.7014848589897156,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1337248831987381,
+        "F": 0.7014848589897156,
+        "m": 0.16479024291038513
+      }
+    },
+    {
+      "position": [
+        18,
+        2
+      ],
+      "prediction": "F",
+      "confidence": 0.7020156383514404,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.159665048122406,
+        "F": 0.7020156383514404,
+        "m": 0.13831928372383118
+      }
+    },
+    {
+      "position": [
+        14,
+        3
+      ],
+      "prediction": "f",
+      "confidence": 0.7025302648544312,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.7025302648544312,
+        "F": 0.19266116619110107,
+        "m": 0.10480856895446777
+      }
+    },
+    {
+      "position": [
+        20,
+        20
+      ],
+      "prediction": "F",
+      "confidence": 0.7030375003814697,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.25485172867774963,
+        "F": 0.7030375003814697,
+        "m": 0.04211079701781273
+      }
+    },
+    {
+      "position": [
+        10,
+        7
+      ],
+      "prediction": "f",
+      "confidence": 0.7033190131187439,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.7033190131187439,
+        "F": 0.19157761335372925,
+        "m": 0.10510333627462387
+      }
+    },
+    {
+      "position": [
+        27,
+        16
+      ],
+      "prediction": "F",
+      "confidence": 0.7037807106971741,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.15832704305648804,
+        "F": 0.7037807106971741,
+        "m": 0.13789227604866028
+      }
+    },
+    {
+      "position": [
+        17,
+        0
+      ],
+      "prediction": "F",
+      "confidence": 0.7058200240135193,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1517868936061859,
+        "F": 0.7058200240135193,
+        "m": 0.1423930823802948
+      }
+    },
+    {
+      "position": [
+        18,
+        5
+      ],
+      "prediction": "f",
+      "confidence": 0.7067369222640991,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.7067369222640991,
+        "F": 0.21804258227348328,
+        "m": 0.0752205178141594
+      }
+    },
+    {
+      "position": [
+        17,
+        2
+      ],
+      "prediction": "F",
+      "confidence": 0.7073513865470886,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.1567438840866089,
+        "F": 0.7073513865470886,
+        "m": 0.13590475916862488
+      }
+    },
+    {
+      "position": [
+        18,
+        6
+      ],
+      "prediction": "f",
+      "confidence": 0.7077401876449585,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.7077401876449585,
+        "F": 0.2067253142595291,
+        "m": 0.08553452044725418
+      }
+    },
+    {
+      "position": [
+        29,
+        0
+      ],
+      "prediction": "F",
+      "confidence": 0.7085707783699036,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.09271100908517838,
+        "F": 0.7085707783699036,
+        "m": 0.19871821999549866
+      }
+    },
+    {
+      "position": [
+        13,
+        5
+      ],
+      "prediction": "f",
+      "confidence": 0.708617091178894,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.708617091178894,
+        "F": 0.17649754881858826,
+        "m": 0.1148853674530983
+      }
+    },
+    {
+      "position": [
+        9,
+        15
+      ],
+      "prediction": "f",
+      "confidence": 0.7107892036437988,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.7107892036437988,
+        "F": 0.21181254088878632,
+        "m": 0.07739828526973724
+      }
+    },
+    {
+      "position": [
+        19,
+        1
+      ],
+      "prediction": "F",
+      "confidence": 0.7111169695854187,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.14205610752105713,
+        "F": 0.7111169695854187,
+        "m": 0.14682690799236298
+      }
+    },
+    {
+      "position": [
+        1,
+        0
+      ],
+      "prediction": "F",
+      "confidence": 0.7118752002716064,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.11572421342134476,
+        "F": 0.7118752002716064,
+        "m": 0.172400563955307
+      }
+    },
+    {
+      "position": [
+        24,
+        1
+      ],
+      "prediction": "F",
+      "confidence": 0.7120952606201172,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.15622356534004211,
+        "F": 0.7120952606201172,
+        "m": 0.13168120384216309
+      }
+    },
+    {
+      "position": [
+        10,
+        2
+      ],
+      "prediction": "f",
+      "confidence": 0.712961733341217,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.712961733341217,
+        "F": 0.18861056864261627,
+        "m": 0.0984276756644249
+      }
+    },
+    {
+      "position": [
+        27,
+        20
+      ],
+      "prediction": "F",
+      "confidence": 0.7130482196807861,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.13432271778583527,
+        "F": 0.7130482196807861,
+        "m": 0.152629092335701
+      }
+    },
+    {
+      "position": [
+        8,
+        16
+      ],
+      "prediction": "f",
+      "confidence": 0.7137007713317871,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.7137007713317871,
+        "F": 0.19971154630184174,
+        "m": 0.08658765256404877
+      }
+    },
+    {
+      "position": [
+        8,
+        0
+      ],
+      "prediction": "F",
+      "confidence": 0.7150552272796631,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.20068970322608948,
+        "F": 0.7150552272796631,
+        "m": 0.08425508439540863
+      }
+    },
+    {
+      "position": [
+        19,
+        14
+      ],
+      "prediction": "f",
+      "confidence": 0.7156730890274048,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.7156730890274048,
+        "F": 0.2148645520210266,
+        "m": 0.06946232169866562
+      }
+    },
+    {
+      "position": [
+        29,
+        3
+      ],
+      "prediction": "F",
+      "confidence": 0.7166805267333984,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.08864825963973999,
+        "F": 0.7166805267333984,
+        "m": 0.19467122852802277
+      }
+    },
+    {
+      "position": [
+        7,
+        10
+      ],
+      "prediction": "f",
+      "confidence": 0.7189541459083557,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.7189541459083557,
+        "F": 0.14683343470096588,
+        "m": 0.13421238958835602
+      }
+    },
+    {
+      "position": [
+        5,
+        0
+      ],
+      "prediction": "F",
+      "confidence": 0.7190160751342773,
+      "linear": "F",
+      "trees": "F",
+      "probabilities": {
+        "f": 0.11419463902711868,
+        "F": 0.7190160751342773,
+        "m": 0.166789248585701
+      }
+    },
+    {
+      "position": [
+        6,
+        17
+      ],
+      "prediction": "f",
+      "confidence": 0.7196117043495178,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.7196117043495178,
+        "F": 0.17741477489471436,
+        "m": 0.10297353565692902
+      }
+    },
+    {
+      "position": [
+        9,
+        5
+      ],
+      "prediction": "f",
+      "confidence": 0.7197952270507812,
+      "linear": "f",
+      "trees": "f",
+      "probabilities": {
+        "f": 0.7197952270507812,
+        "F": 0.19918999075889587,
+        "m": 0.08101476728916168
+      }
+    }
+  ],
+  "excluded_conflicting_assets": []
+}

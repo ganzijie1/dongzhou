@@ -1,5 +1,7 @@
 #include "game.h"
 
+#include <cstdlib>
+
 #include "assets.h"
 #include "cmd.h"
 #include "commander.h"
@@ -32,6 +34,7 @@ Game::Game(const ResourceManagers& rc, Assets* assets, const Path& stage_script_
       turn_(),
       status_(Status::kDeploying) {
   lua_ = CreateLua(stage_script_path);
+  turn_.SetLimit(lua_->Get<uint16_t>("gstage.turn_limit"));
   map_ = CreateMap();
   lua_->Call<void>(string("on_deploy"), lua_this_);
   deployer_ = CreateDeployer();
@@ -101,7 +104,42 @@ Map* Game::CreateMap() {
   for (auto e : terrain) {
     ASSERT(cols == e.size());
   }
-  return new Map(terrain, file, rc_.terrain_manager);
+  Map* map = new Map(terrain, file, rc_.terrain_manager);
+  const string blendable = "fgFwm";
+  if (lua_->GetOpt<bool>("gstage.map.has_terrain_layers")) {
+  lua_->ForEachTableEntry("gstage.map.terrain_layers", [map, this, blendable](lua::Lua* l, const string&) {
+    const vector<int> position = l->Get<vector<int>>("position");
+    const string primary_id = l->Get<string>("primary_terrain");
+    const string secondary_id = l->GetOpt<string>("secondary_terrain");
+    const int coverage = l->GetOpt<int>("coverage");
+    ASSERT(position.size() == 2);
+    ASSERT(primary_id.size() == 1);
+    ASSERT(blendable.find(primary_id[0]) != string::npos);
+    ASSERT(coverage >= 0 && coverage <= 255);
+    Terrain* primary = rc_.terrain_manager->Get(primary_id);
+    Terrain* secondary = nullptr;
+    if (!secondary_id.empty() && secondary_id != "nil") {
+      ASSERT(secondary_id.size() == 1);
+      ASSERT(blendable.find(secondary_id[0]) != string::npos);
+      ASSERT(secondary_id != primary_id);
+      ASSERT(coverage > 0);
+      secondary = rc_.terrain_manager->Get(secondary_id);
+    } else {
+      ASSERT(coverage == 0);
+    }
+    ASSERT(primary != nullptr);
+    ASSERT(map->GetTerrain({position[0], position[1]}) == primary);
+    map->SetTerrainBlend({position[0], position[1]}, primary, secondary,
+                         static_cast<uint8_t>(coverage));
+  });
+  }
+  lua_->ForEachTableEntry("gstage.map.blocked_edges", [map](lua::Lua* l, const string&) {
+    vector<int> from = l->Get<vector<int>>("from");
+    vector<int> to   = l->Get<vector<int>>("to");
+    ASSERT(from.size() == 2 && to.size() == 2);
+    map->BlockEdge({from[0], from[1]}, {to[0], to[1]});
+  });
+  return map;
 }
 
 Deployer* Game::CreateDeployer() {
@@ -139,8 +177,15 @@ void Game::MoveUnit(Unit* unit, Vec2D dst) {
 }
 
 void Game::KillUnit(Unit* unit) {
-  map_->RemoveUnit(unit->GetPosition());
+  const Vec2D position = unit->GetPosition();
+  map_->RemoveUnit(position);
   stage_unit_manager_->Kill(unit);
+  BattleEvent event;
+  event.type = BattleEventType::kDeath;
+  event.target = unit->GetId();
+  event.from_x = position.x;
+  event.from_y = position.y;
+  EmitBattleEvent(std::move(event));
 }
 
 bool Game::TryBasicAttack(Unit* unit_atk, Unit* unit_def) {
@@ -191,6 +236,72 @@ bool Game::IsCurrentTurn(Unit* unit) const { return unit->GetForce() == turn_.Ge
 
 uint16_t Game::GetTurnCurrent() const { return turn_.GetCurrent(); }
 
+bool Game::HasUnit(const std::string& id) const {
+  bool found = false;
+  ForEachUnitIdxConst([&](uint32_t, const Unit* unit) {
+    if (!unit->IsDead() && unit->GetId() == id) found = true;
+  });
+  return found;
+}
+
+uint32_t Game::GetNumUnitsAlive(const std::string& id) const {
+  uint32_t count = 0;
+  ForEachUnitIdxConst([&](uint32_t, const Unit* unit) {
+    if (!unit->IsDead() && unit->GetId() == id) ++count;
+  });
+  return count;
+}
+
+bool Game::AreUnitsWithin(const std::string& first_id, const std::string& second_id,
+                          uint16_t radius) const {
+  vector<Vec2D> first_positions;
+  vector<Vec2D> second_positions;
+  ForEachUnitIdxConst([&](uint32_t, const Unit* unit) {
+    if (unit->IsDead()) return;
+    if (unit->GetId() == first_id) first_positions.push_back(unit->GetPosition());
+    if (unit->GetId() == second_id) second_positions.push_back(unit->GetPosition());
+  });
+  for (const Vec2D& first : first_positions) {
+    for (const Vec2D& second : second_positions) {
+      const int distance = std::abs(first.x - second.x) + std::abs(first.y - second.y);
+      if (distance <= radius) return true;
+    }
+  }
+  return false;
+}
+
+bool Game::IsCellVacant(Vec2D position) const { return !UnitInCell(position); }
+
+bool Game::IsForceWithin(Force force, Vec2D center, uint16_t radius) const {
+  bool found = false;
+  ForEachUnitIdxConst([&](uint32_t, const Unit* unit) {
+    if (found || unit->IsDead() || unit->GetForce() != force) return;
+    const Vec2D pos = unit->GetPosition();
+    const int distance = std::abs(pos.x - center.x) + std::abs(pos.y - center.y);
+    if (distance <= radius) found = true;
+  });
+  return found;
+}
+
+bool Game::IsUnitWithin(const std::string& id, Vec2D center, uint16_t radius) const {
+  bool found = false;
+  ForEachUnitIdxConst([&](uint32_t, const Unit* unit) {
+    if (found || unit->IsDead() || unit->GetId() != id) return;
+    const Vec2D pos = unit->GetPosition();
+    const int distance = std::abs(pos.x - center.x) + std::abs(pos.y - center.y);
+    if (distance <= radius) found = true;
+  });
+  return found;
+}
+
+void Game::RunScriptUpdate() {
+  lua_->Call<void>(string("on_update"), lua_this_);
+  BattleEvent event;
+  event.type = BattleEventType::kScriptTriggered;
+  event.detail = "on_update";
+  EmitBattleEvent(std::move(event));
+}
+
 uint16_t Game::GetTurnLimit() const { return turn_.GetLimit(); }
 
 vector<Unit*> Game::GetCurrentTurnUnits() {
@@ -204,7 +315,7 @@ vector<Unit*> Game::GetCurrentTurnUnits() {
 }
 
 vector<Vec2D> Game::FindMovablePos(Unit* unit) {
-  PathTree* path_tree = FindMovablePath(unit);
+  unique_ptr<PathTree> path_tree(FindMovablePath(unit));
   return path_tree->GetNodeList();
 }
 
@@ -235,7 +346,7 @@ const Cmd* Game::GetNextCmdConst() const {
 bool Game::UnitInCell(Vec2D c) const { return map_->UnitInCell(c); }
 
 Unit* Game::GetUnitInCell(Vec2D c) const {
-  if (map_->UnitInCell(c)) return nullptr;
+  if (!map_->UnitInCell(c)) return nullptr;
   return map_->GetUnit(c);
 }
 
@@ -250,6 +361,11 @@ void Game::DoNext() {
 void Game::Push(unique_ptr<Cmd> cmd) {
   ///  if (cmd == nullptr) return;
   commander_->Push(std::move(cmd));
+}
+
+void Game::EmitBattleEvent(BattleEvent event) noexcept {
+  event.turn = GetTurnCurrent();
+  battle_event_queue_.Emit(std::move(event));
 }
 
 bool Game::CheckStatus() {
@@ -274,6 +390,21 @@ uint32_t Game::GetNumOwnsAlive() {
   ForEachUnit([=, &count](Unit* u) {
     if (!u->IsDead() && u->GetForce() == Force::kOwn) {
       count++;
+    }
+  });
+  return count;
+}
+
+uint32_t Game::GetNumCommandersAlive() {
+  const vector<string> commander_ids = lua_->GetVector<string>("gcommanders");
+  uint32_t count = 0;
+  ForEachUnit([&](Unit* unit) {
+    if (unit->IsDead() || unit->GetForce() != Force::kOwn) return;
+    for (const string& id : commander_ids) {
+      if (unit->GetId() == id) {
+        ++count;
+        break;
+      }
     }
   });
   return count;

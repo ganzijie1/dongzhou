@@ -1,0 +1,12 @@
+{
+  "map": "assets/lzc/map/m087.png",
+  "grid": [
+    54,
+    36
+  ],
+  "backend": "reviewed-contract-with-dinov3-evidence-slot",
+  "threshold": 0.72,
+  "auto_apply": false,
+  "review_required": [],
+  "note": "Classifier evidence cannot overwrite reviewed structure or Lua terrain rows."
+}

@@ -1,0 +1,7 @@
+Use case: historical-scene
+Asset type: grid-free tactical RPG battlefield base
+Primary request: Create the wooded Zhulin estate outskirts in ancient Chen, where a Chu army surrounds a fugitive commander's manor.
+Scene/backdrop: broad late-summer woodland clearings, bamboo and deciduous groves, winding packed-earth approaches, a level central-eastern clearing reserved for a large aristocratic manor compound, and open western assembly ground for an arriving army.
+Style/medium: polished hand-painted classic Chinese tactical-RPG terrain, orthographic view, readable at 48-pixel logical cells.
+Composition/framing: landscape 2048x1152, broad contiguous terrain masses, detailed edge to edge; reserve an obstacle-free rectangular area on the center-right large enough for a manor plus a complete one-cell wall ring.
+Constraints: natural landscape base only. Do not draw buildings, manor walls, gates, troops, people, camps, tents, fences, flags, text, UI, supply icons, square tiles, or grid lines.

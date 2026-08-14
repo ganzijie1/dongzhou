@@ -1,0 +1,7 @@
+Use case: illustration-story
+Asset type: production sprite sheet for a classic Chinese historical tactical RPG
+Primary request: The same powerful ancient Chinese mastiff Ling Ao, with dark russet-red coat like glowing charcoal and natural canine anatomy.
+Composition/framing: exactly 4 columns and 4 rows on a perfectly flat solid #00ff00 chroma-key background. Each pose centered in an equal square cell with generous padding and no overlap.
+Pose layout: row 1 faces down: idle, walking, lunging bite attack, hit reaction. Row 2 faces left: idle, walking, lunging bite attack, hit reaction. Row 3 faces right: idle, walking, lunging bite attack, hit reaction. Row 4 faces up: idle, walking, lunging bite attack, hit reaction.
+Style/medium: orthographic three-quarter pixel-art sprite matching a polished late-1990s Chinese historical tactical RPG, consistent scale and lighting.
+Constraints: background must be one uniform #00ff00 with no shadows, gradients, texture, floor, or grid lines. Do not use green on the dog. No human rider, armor, text, labels, UI, logo, or watermark.

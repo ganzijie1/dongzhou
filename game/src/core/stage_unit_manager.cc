@@ -7,6 +7,10 @@ namespace core {
 
 StageUnitManager::StageUnitManager() : units_() {}
 
+StageUnitManager::~StageUnitManager() {
+  for (Unit* unit : units_) delete unit;
+}
+
 uint32_t StageUnitManager::Deploy(Unit* unit) {
   uint32_t unit_id = units_.size();
   units_.push_back(unit);
@@ -16,7 +20,7 @@ uint32_t StageUnitManager::Deploy(Unit* unit) {
 void StageUnitManager::Kill(Unit* unit) { unit->Kill(); }
 
 Unit* StageUnitManager::Get(uint32_t id) {
-  ASSERT(id < units_.size());
+  if (id >= units_.size()) return nullptr;
   return units_[id];
 }
 

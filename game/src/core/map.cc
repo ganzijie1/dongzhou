@@ -64,6 +64,21 @@ Terrain* Map::GetTerrain(Vec2D c) {
   return grid_[c.y][c.x]->GetTerrain();
 }
 
+Terrain* Map::GetSecondaryTerrain(Vec2D c) {
+  ASSERT(IsValidCoords(c));
+  return grid_[c.y][c.x]->GetSecondaryTerrain();
+}
+
+uint8_t Map::GetSecondaryTerrainCoverage(Vec2D c) {
+  ASSERT(IsValidCoords(c));
+  return grid_[c.y][c.x]->GetSecondaryCoverage();
+}
+
+void Map::SetTerrainBlend(Vec2D c, Terrain* primary, Terrain* secondary, uint8_t coverage) {
+  ASSERT(IsValidCoords(c));
+  grid_[c.y][c.x]->SetTerrainBlend(primary, secondary, coverage);
+}
+
 // Using Dijkstra Shortest Path Algorithm
 // ( O(N^2) where N is number of vertices )
 PathTree* Map::FindPath(Unit* unit, Vec2D dest) {
@@ -122,8 +137,11 @@ PathTree* Map::FindPath(Unit* unit, Vec2D dest) {
       int   nc = vec_current.x + kDCol[i];
       Vec2D nvec(nc, nr);
       if (!IsValidCoords(nvec)) continue;
+      if (IsEdgeBlocked(vec_current, nvec)) continue;
+      const int move_cost = grid_[nr][nc]->GetMoveCost(unit->GetClassIndex());
+      if (move_cost >= 255) continue;
       int next     = SerializeVec2D(nvec);
-      int new_dist = dist[current] + grid_[nr][nc]->GetMoveCost(unit->GetClassIndex());
+      int new_dist = dist[current] + move_cost;
 
       // handle ZOC
       if (new_dist < stat_move && IsHostileAdjacent(unit, nvec) && nvec != dest) {
@@ -189,6 +207,24 @@ bool Map::IsHostilePlaced(Unit* unit, Vec2D coords) {
 }
 
 bool Map::IsValidCoords(Vec2D c) const { return c.x >= 0 && c.x < size_.x && c.y >= 0 && c.y < size_.y; }
+
+std::pair<int, int> Map::EdgeKey(Vec2D a, Vec2D b) const {
+  int first  = a.y * size_.x + a.x;
+  int second = b.y * size_.x + b.x;
+  if (first > second) std::swap(first, second);
+  return {first, second};
+}
+
+void Map::BlockEdge(Vec2D a, Vec2D b) {
+  ASSERT(IsValidCoords(a));
+  ASSERT(IsValidCoords(b));
+  ASSERT(std::abs(a.x - b.x) + std::abs(a.y - b.y) == 1);
+  blocked_edges_.insert(EdgeKey(a, b));
+}
+
+bool Map::IsEdgeBlocked(Vec2D a, Vec2D b) const {
+  return blocked_edges_.find(EdgeKey(a, b)) != blocked_edges_.end();
+}
 
 int Map::ApplyTerrainEffect(Unit* unit, int value) {
   Vec2D v = unit->GetPosition();

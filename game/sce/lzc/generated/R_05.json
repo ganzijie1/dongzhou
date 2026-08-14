@@ -1,0 +1,1617 @@
+{
+  "format": "EEX",
+  "source": "R_05.eex",
+  "kind": "R",
+  "scene_count": 3,
+  "scenes": [
+    {
+      "index": 0,
+      "offset": 22,
+      "section_count": 1,
+      "sections": [
+        {
+          "offset": 24,
+          "size": 1217,
+          "index": 0,
+          "parse_error": "unknown opcode 21248 at 0x2e4",
+          "raw_bytes": "c1 04 02 00 05 00 b4 f3 b5 d8 cd bc 00 00 00 b2 04 01 00 05 00 35 00 01 00 f9 03 35 00 00 00 04 00 0d 00 00 00 0a 00 2f 00 24 00 09 00 56 00 27 00 2d 00 01 00 0c 00 ff ff 1a 00 00 00 1c 00 ff ff 15 00 ff ff 77 00 51 00 02 00 04 00 bb 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 27 00 2d 00 02 00 0c 00 15 00 1a 00 ff ff 1c 00 73 00 15 00 ff ff 1c 00 2c 00 05 00 b8 ca cb e0 c7 da cd f5 be fc b6 d3 b7 a2 c9 fa bb a9 b1 e4 b2 a2 b2 bb ca c7 b8 f6 c0 fd a1 a3 b5 b1 ca b1 b3 af cd a2 b4 df b5 f7 bc b1 b4 d9 a3 ac b5 ab b4 d3 b8 ca cb e0 b5 bd be a9 ca a6 0a 36 30 30 30 c0 ef b5 c4 c2 b7 cd be c8 b4 b2 bb b8 f8 ca bf b1 f8 c8 ce ba ce ce ef d7 ca d3 eb b2 b9 cc f9 a1 a3 b9 d9 d4 b1 c6 c8 d3 da c3 fc c1 ee a3 ac b1 c6 c6 c8 ca bf b1 f8 bf ec d7 df a3 ac 0a ca bf b1 f8 d4 b9 c6 f8 bc ab b4 f3 a3 ac d2 f2 b4 cb b7 df c5 ad c9 b1 cb c0 c9 cf bc b6 a3 ac b6 e1 c8 a1 e2 c3 d2 f8 ba f3 b7 b5 bb d8 d7 a4 b5 d8 a1 a3 00 26 00 00 00 26 00 01 00 26 00 01 00 09 00 04 00 05 00 00 00 27 00 2d 00 01 00 0c 00 ff ff 1a 00 00 00 1c 00 ff ff 15 00 ff ff 77 00 51 00 02 00 04 00 bb 0f 00 00 53 00 02 00 52 00 00 00 04 00 01 00 00 00 27 00 2d 00 02 00 0c 00 15 00 1a 00 ff ff 1c 00 55 00 15 00 ff ff 1c 00 2c 00 05 00 c0 ee d7 d4 b3 c9 d2 b2 b2 ce d3 eb c1 cb d5 e2 b4 ce b1 f8 b1 e4 a3 ac c3 bb d3 d0 d5 fd be ad b9 a4 d7 f7 a3 ac d5 e2 cf c2 d3 d6 c9 b1 c1 cb c1 ec b5 bc a3 ac c1 ac b4 f3 c3 f7 b5 c4 b1 f8 0a d2 b2 b5 b1 b2 bb c1 cb c1 cb a3 ac b2 d4 c3 a3 b4 f3 b5 d8 a3 ac d2 d1 ce de d2 bb c1 a2 c9 ed d6 ae b5 d8 a1 a3 b9 fd b2 bb c1 cb d5 fd b3 a3 c9 fa bb ee a3 ac ce aa c1 cb bb ee cf c2 c8 a5 a3 ac 0a cb fb b2 bb b5 c3 d2 d1 b4 f8 d7 c5 d7 d4 bc ba b5 c4 b1 df be fc b6 d3 ce e9 d7 df c9 cf c1 cb d4 ec b7 b4 b5 c4 b2 bb b9 e9 c2 b7 a3 a1 00 26 00 00 00 26 00 01 00 26 00 01 00 09 00 04 00 05 00 00 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 17 02 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 09 00 55 00 01 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 76 01 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 09 00 55 00 00 00 75 00 02 00 09 00 50 00 0f 01 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 55 02 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 c9 03 55 00 01 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 aa 01 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 c9 03 55 00 00 00 75 00 02 00 c9 03 50 00 0b 01 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 54 02 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 c8 03 55 00 01 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 a8 01 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 c8 03 55 00 00 00 75 00 02 00 c8 03 50 00 0d 01 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 53 02 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 ca 03 55 00 01 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 a9 01 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 ca 03 55 00 00 00 75 00 02 00 ca 03 50 00 0c 01 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 68 02 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 b9 03 55 00 01 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 ba 01 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 b9 03 55 00 00 00 75 00 02 00 b9 03 50 00 1e 01 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 69 02 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 b8 03 55 00 01 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 bb 01 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 b8 03 55 00 00 00 75 00 02 00 b8 03 50 00 20 01 1e 00 00 00",
+          "conditions": [],
+          "instructions": []
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "offset": 1243,
+      "section_count": 1,
+      "sections": [
+        {
+          "offset": 1245,
+          "size": 4139,
+          "index": 0,
+          "parse_error": "unknown opcode 1024 at 0x1653",
+          "raw_bytes": "2b 10 02 00 05 00 b3 f6 b1 f8 00 00 00 1e 10 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 bd 01 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 78 03 55 00 00 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 6b 02 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 e8 03 55 00 01 00 2f 00 24 00 09 00 6f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 5b 02 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 bf 03 55 00 01 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 c0 03 55 00 01 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 5a 02 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 c1 03 55 00 01 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 c2 03 55 00 01 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 58 02 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 c3 03 55 00 01 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 59 02 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 c4 03 55 00 01 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 c5 03 55 00 01 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 57 02 00 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 c6 03 55 00 01 00 78 00 04 00 00 00 00 00 54 00 01 00 02 00 c7 03 55 00 01 00 77 00 51 00 02 00 04 00 bb 0f 00 00 53 00 02 00 52 00 00 00 04 00 02 00 00 00 27 00 2d 00 02 00 0c 00 ff ff 1a 00 ff ff 1c 00 40 00 15 00 ff ff 30 00 02 00 01 00 04 00 3f 00 00 00 04 00 38 00 00 00 2b 00 03 00 0d 00 00 00 30 00 02 00 00 00 04 00 39 00 00 00 04 00 38 00 00 00 2b 00 03 00 0d 00 00 00 30 00 02 00 08 00 04 00 3f 00 00 00 04 00 33 00 00 00 2b 00 03 00 0d 00 00 00 30 00 02 00 32 00 04 00 3f 00 00 00 04 00 3d 00 00 00 2b 00 03 00 0d 00 00 00 30 00 02 00 6c 01 04 00 45 00 00 00 04 00 33 00 00 00 2b 00 03 00 0d 00 10 00 30 00 02 00 82 01 04 00 45 00 00 00 04 00 3d 00 00 00 2b 00 03 00 0d 00 11 00 30 00 02 00 b0 01 04 00 45 00 00 00 04 00 38 00 00 00 2b 00 03 00 0d 00 00 00 1c 00 18 00 05 00 cc ef bc fb d0 e3 00 17 00 05 00 c9 c2 b1 b1 20 cd df d2 a4 b1 a4 b8 bd bd fc 00 30 00 02 00 09 00 04 00 10 00 00 00 04 00 38 00 00 00 2b 00 01 00 0d 00 00 00 1e 00 34 00 02 00 09 00 0d 00 03 00 14 00 05 00 26 cc ef bc fb d0 e3 0a b9 fe b9 fe a3 ac cc ab ba c3 c1 cb a3 a1 00 32 00 40 00 00 00 02 00 09 00 04 00 00 00 00 00 04 00 30 00 00 00 04 00 38 00 00 00 2b 00 01 00 34 00 02 00 09 00 0d 00 05 00 14 00 05 00 26 cc ef bc fb d0 e3 0a d6 d5 d3 da d5 d2 b5 bd b4 f3 b2 bf b6 d3 c1 cb a1 a3 0a 00 34 00 02 00 09 00 0d 00 00 00 34 00 02 00 00 00 0d 00 05 00 14 00 05 00 26 c0 ee d7 d4 b3 c9 0a c4 e3 ca c7 a3 bf 0a 00 34 00 02 00 00 00 0d 00 00 00 34 00 02 00 09 00 0d 00 05 00 14 00 05 00 26 cc ef bc fb d0 e3 0a ce d2 ca c7 cd df d2 a4 b1 a4 b5 c4 c0 cf cc ef b0 a1 a3 ac b7 ee d5 c5 d7 da cd fb d6 ae c3 fc c7 b0 c0 b4 0a d5 f2 d1 b9 b1 a9 c3 f1 a3 ac c1 ec cd b7 b5 c4 cb ef be b0 b2 ae b8 fa c4 e3 c3 c7 b4 f2 b9 fd d5 d0 ba f4 0a c1 a8 a3 ac d4 bc ba c3 b5 c4 d2 bb c6 f0 bd f8 b9 a5 a3 ac cb ad d6 aa b5 c0 d2 bb cd a8 c2 d2 d5 bd a3 ac 0a 26 cc ef bc fb d0 e3 0a b4 f3 bc d2 b6 bc d7 df c9 a2 df d6 a1 a3 00 34 00 02 00 09 00 0d 00 00 00 14 00 05 00 26 c0 ee d7 d4 b3 c9 0a a3 a8 b9 fe b9 fe a3 ac bf b4 c0 b4 d5 e2 b4 f3 ba ba ca c7 b0 d1 ce d2 c3 c7 b5 b1 b3 c9 b9 d9 b1 f8 c1 cb a3 ac 0a d3 d0 c8 a4 a3 ac d3 d0 c8 a4 a1 a3 a3 a9 00 34 00 02 00 00 00 0d 00 03 00 14 00 05 00 26 c0 ee d7 d4 b3 c9 0a c5 b6 a3 ac ca c7 b0 a1 a3 ac d5 e2 d0 a9 b1 a9 c3 f1 cc ab c4 d1 b2 f8 c1 cb a1 a3 d4 ad b1 be b6 bc 0a b0 d1 cb fb c3 c7 b4 f2 c5 dc c1 cb a3 ac cb ad d6 aa b5 c0 d3 d6 be ed cd c1 d6 d8 c0 b4 c1 cb a1 a3 00 34 00 02 00 00 00 0d 00 00 00 30 00 02 00 b9 03 04 00 1d 00 00 00 04 00 33 00 00 00 2b 00 01 00 0d 00 00 00 30 00 02 00 b8 03 04 00 1d 00 00 00 04 00 38 00 00 00 2b 00 01 00 0d 00 00 00 30 00 02 00 c4 03 04 00 18 00 00 00 04 00 2e 00 00 00 2b 00 01 00 0d 00 02 00 30 00 02 00 c6 03 04 00 18 00 00 00 04 00 33 00 00 00 2b 00 01 00 0d 00 01 00 30 00 02 00 c7 03 04 00 18 00 00 00 04 00 38 00 00 00 2b 00 01 00 0d 00 01 00 30 00 02 00 c5 03 04 00 18 00 00 00 04 00 3d 00 00 00 2b 00 01 00 0d 00 02 00 30 00 02 00 c1 03 04 00 13 00 00 00 04 00 2f 00 00 00 2b 00 01 00 0d 00 10 00 30 00 02 00 c3 03 04 00 13 00 00 00 04 00 34 00 00 00 2b 00 01 00 0d 00 10 00 30 00 02 00 c2 03 04 00 13 00 00 00 04 00 39 00 00 00 2b 00 01 00 0d 00 10 00 30 00 02 00 bf 03 04 00 0e 00 00 00 04 00 30 00 00 00 2b 00 01 00 0d 00 11 00 30 00 02 00 c0 03 04 00 0e 00 00 00 04 00 36 00 00 00 2b 00 01 00 0d 00 11 00 1e 00 33 00 02 00 09 00 0d 00 00 00 2b 00 03 00 34 00 02 00 b9 03 0d 00 03 00 14 00 05 00 26 b7 c9 c9 bd bb a2 0a d0 a1 d7 d3 a3 ac d5 e2 cf c2 bf b4 c4 e3 cd f9 c4 c4 c0 ef c5 dc a3 a1 00 34 00 02 00 b9 03 0d 00 00 00 14 00 05 00 26 b7 c9 c9 bd bb a2 0a df d7 a3 bf bb b9 d3 d0 c3 f7 be fc a3 ac c4 e3 d0 a1 d7 d3 d5 e6 ca c7 ba c3 d4 cb a1 a3 0a b2 bb b9 fd a3 ac c3 bb d3 c3 b5 c4 a1 a3 00 09 00 04 00 06 00 00 00 33 00 02 00 09 00 0d 00 00 00 2b 00 01 00 34 00 02 00 00 00 0d 00 00 00 14 00 05 00 26 cc ef bc fb d0 e3 0a b2 bb ba c3 a3 ac cb fb c3 c7 d7 b7 c9 cf c0 b4 c1 cb a3 a1 00 34 00 02 00 00 00 0d 00 02 00 14 00 05 00 26 c0 ee d7 d4 b3 c9 0a c4 aa bb c5 a3 ac d5 fd ba c3 c8 c3 d5 e2 c8 ba b1 a9 c3 f1 bc fb ca b6 d2 bb cf c2 0a ce d2 c3 c7 b4 f3 c3 f7 b1 df be fc b5 c4 c0 f7 ba a6 a3 a1 00 34 00 02 00 00 00 0d 00 00 00 33 00 02 00 09 00 0d 00 00 00 2b 00 03 00 30 00 02 00 78 03 04 00 2f 00 00 00 04 00 0e 00 00 00 2b 00 02 00 0d 00 00 00 1e 00 01 00 02 00 05 00 cc ef bc fb d0 e3 d1 a7 bb e1 cc d8 d0 a7 ce fc d1 aa b9 a5 bb f7 00 d6 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 34 30 2c 32 30 2c 39 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 cb ab b3 e1 bb a2 d1 a7 bb e1 cc d8 d0 a7 b7 dc d5 bd b9 a5 bb f7 00 d7 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 31 2c 32 33 2c 39 37 30 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 cb ab b3 e1 bb a2 d1 a7 bb e1 cc d8 d0 a7 b4 a9 d4 bd d2 c6 b6 af 00 d7 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 31 2c 35 34 2c 39 37 30 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 b7 c9 c9 bd bb a2 d1 a7 bb e1 cc d8 d0 a7 b7 dc d5 bd b9 a5 bb f7 00 d7 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 31 35 2c 30 2c 39 35 33 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 cd f5 b5 c3 c8 ca d1 a7 bb e1 cc d8 d0 a7 b9 ed c9 f1 d6 ae d3 c2 00 d6 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 31 35 2c 38 31 2c 34 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 b4 f3 ba ec c0 c7 d1 a7 bb e1 cc d8 d0 a7 ce de b7 b4 b9 a5 bb f7 00 d7 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 31 2c 33 38 2c 39 35 32 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 d0 a1 b6 d3 b3 a4 31 d1 a7 bb e1 cc d8 d0 a7 b8 a8 d6 fa b9 a5 bb f7 b7 c0 d3 f9 00 d8 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 32 30 2c 33 32 2c 39 36 36 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 01 00 02 00 05 00 d0 a1 b6 d3 b3 a4 32 d1 a7 bb e1 cc d8 d0 a7 b8 a8 d6 fa b9 a5 bb f7 b7 c0 d3 f9 00 d8 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 0c 00 4f 00 77 00 51 00 02 00 04 00 00 00 00 00 53 00 02 00 52 00 01 00 04 00 00 00 00 00 72 00 04 00 0d 00 00 00 05 00 33 0a 32 30 2c 33 32 2c 39 36 37 0a 30 2c 30 2c 30 0a 2a 30 0a 0d 0a b5 da b6 fe d0 d0 a3 ac b5 da d2 bb b8 f6 ca fd ca c7 cc d8 d0 a7 d6 b5 a3 ac b5 da b6 fe b8 f6 ca fd ca c7 cc d8 d0 a7 ba c5 a3 ac b5 da c8 fd b8 f6 ca fd ca c7 c8 cb ce ef 64 61 74 61 ba c5 0a d2 e2 cb bc ca c7 b8 f8 30 ba c5 c8 cb ce ef bc d3 c8 eb 32 ba c5 cc d8 bc bc a3 ac d0 a7 b9 fb d6 b5 ce aa 33 00 00 00 3b 00 02 00 09 00 0e 00 00 00 3e 00 00 00 24 00 09 00 2e 00 77 00 51 00 02 00 04 00 c0 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 01 00 05 00 35 00 01 00 08 01 35 00 00 00 0d 00 72 00 04 00 12 00 00 00 05 00 00 00 00 08 00 2e 00 01 00 06 00 2e 00 01 00 04 00 06 00 00 00 38 00 00 00 38 00 09 00 38 00 ff ff 38 00 ff ff 38 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 39 00 ff ff 01 00 02 00 05 00 ce d2 be fc b3 f6 b3 a1 00 c2 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 77 00 51 00 02 00 04 00 d9 0f 00 00 53 00 02 00 52 00 00 00 04 00 05 00 00 00 4b 00 04 00 00 00 00 00 04 00 0f 00 00 00 04 00 05 00 00 00 2b 00 03 00 26 00 00 00 4b 00 04 00 01 00 00 00 04 00 0d 00 00 00 04 00 05 00 00 00 2b 00 03 00 26 00 00 00 4b 00 04 00 02 00 00 00 04 00 10 00 00 00 04 00 05 00 00 00 2b 00 03 00 26 00 00 00 4b 00 04 00 03 00 00 00 04 00 10 00 00 00 04 00 04 00 00 00 2b 00 03 00 26 00 00 00 4b 00 04 00 04 00 00 00 04 00 10 00 00 00 04 00 06 00 00 00 2b 00 03 00 26 00 00 00 00 00 00 00",
+          "conditions": [],
+          "instructions": []
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "offset": 5386,
+      "section_count": 20,
+      "sections": [
+        {
+          "offset": 5388,
+          "size": 572,
+          "conditions": [
+            {
+              "offset": 5390,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 5403,
+              "opcode": 7,
+              "name": "点击出兵按钮测试",
+              "parameters": []
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 5409,
+              "opcode": 8,
+              "name": "菜单处理",
+              "parameters": [
+                {
+                  "parameter_id": 46,
+                  "type": 46,
+                  "name": "可否控制0",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 5415,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n迎敌！"
+                }
+              ]
+            },
+            {
+              "offset": 5434,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 5436,
+                "opcode": 2,
+                "name": "内部信息测试（注释）",
+                "parameters": [
+                  {
+                    "parameter_id": 5,
+                    "type": 5,
+                    "name": "文字说明",
+                    "value": "战前难度选择"
+                  }
+                ]
+              },
+              "then_size": 415,
+              "then": [
+                {
+                  "offset": 5455,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 5457,
+                    "opcode": 5,
+                    "name": "变量测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 53,
+                        "name": "成立变量",
+                        "value": [
+                          260
+                        ]
+                      },
+                      {
+                        "parameter_id": 53,
+                        "name": "不成立变量",
+                        "value": [
+                          261
+                        ]
+                      }
+                    ]
+                  },
+                  "then_size": 375,
+                  "then": [
+                    {
+                      "offset": 5473,
+                      "opcode": 1,
+                      "name": "子事件开始标志",
+                      "condition": {
+                        "offset": 5475,
+                        "opcode": 18,
+                        "name": "出现选择框",
+                        "parameters": [
+                          {
+                            "parameter_id": 5,
+                            "type": 5,
+                            "name": "选项说明",
+                            "value": "[C79割草]（敌军能力系数降低为80%）\n[C1A休闲]（敌军能力系数降低为90%）\n普通（敌军能力系数不变）\n[C26困难]（敌军能力提升为105%）\n[C29打铁]（敌军能力提升为115%）"
+                          },
+                          {
+                            "parameter_id": 2,
+                            "type": 2,
+                            "name": "武将序号2",
+                            "value": 1002
+                          }
+                        ]
+                      },
+                      "then_size": 202,
+                      "then": [
+                        {
+                          "offset": 5644,
+                          "opcode": 1,
+                          "name": "子事件开始标志",
+                          "condition": {
+                            "offset": 5646,
+                            "opcode": 19,
+                            "name": "选项测试",
+                            "parameters": [
+                              {
+                                "parameter_id": 4,
+                                "type": 4,
+                                "name": "选项序号",
+                                "value": 1
+                              }
+                            ]
+                          },
+                          "then_size": 28,
+                          "then": [
+                            {
+                              "offset": 5656,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4033
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 80
+                                }
+                              ]
+                            }
+                          ],
+                          "else_size": 0,
+                          "else": []
+                        },
+                        {
+                          "offset": 5684,
+                          "opcode": 1,
+                          "name": "子事件开始标志",
+                          "condition": {
+                            "offset": 5686,
+                            "opcode": 19,
+                            "name": "选项测试",
+                            "parameters": [
+                              {
+                                "parameter_id": 4,
+                                "type": 4,
+                                "name": "选项序号",
+                                "value": 2
+                              }
+                            ]
+                          },
+                          "then_size": 28,
+                          "then": [
+                            {
+                              "offset": 5696,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4033
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 90
+                                }
+                              ]
+                            }
+                          ],
+                          "else_size": 0,
+                          "else": []
+                        },
+                        {
+                          "offset": 5724,
+                          "opcode": 1,
+                          "name": "子事件开始标志",
+                          "condition": {
+                            "offset": 5726,
+                            "opcode": 19,
+                            "name": "选项测试",
+                            "parameters": [
+                              {
+                                "parameter_id": 4,
+                                "type": 4,
+                                "name": "选项序号",
+                                "value": 3
+                              }
+                            ]
+                          },
+                          "then_size": 28,
+                          "then": [
+                            {
+                              "offset": 5736,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4033
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 100
+                                }
+                              ]
+                            }
+                          ],
+                          "else_size": 0,
+                          "else": []
+                        },
+                        {
+                          "offset": 5764,
+                          "opcode": 1,
+                          "name": "子事件开始标志",
+                          "condition": {
+                            "offset": 5766,
+                            "opcode": 19,
+                            "name": "选项测试",
+                            "parameters": [
+                              {
+                                "parameter_id": 4,
+                                "type": 4,
+                                "name": "选项序号",
+                                "value": 4
+                              }
+                            ]
+                          },
+                          "then_size": 28,
+                          "then": [
+                            {
+                              "offset": 5776,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4033
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 105
+                                }
+                              ]
+                            }
+                          ],
+                          "else_size": 0,
+                          "else": []
+                        },
+                        {
+                          "offset": 5804,
+                          "opcode": 1,
+                          "name": "子事件开始标志",
+                          "condition": {
+                            "offset": 5806,
+                            "opcode": 19,
+                            "name": "选项测试",
+                            "parameters": [
+                              {
+                                "parameter_id": 4,
+                                "type": 4,
+                                "name": "选项序号",
+                                "value": 5
+                              }
+                            ]
+                          },
+                          "then_size": 28,
+                          "then": [
+                            {
+                              "offset": 5816,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4033
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 115
+                                }
+                              ]
+                            }
+                          ],
+                          "else_size": 0,
+                          "else": []
+                        }
+                      ],
+                      "else_size": 0,
+                      "else": []
+                    }
+                  ],
+                  "else_size": 0,
+                  "else": []
+                },
+                {
+                  "offset": 5848,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 5850,
+                    "opcode": 5,
+                    "name": "变量测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 53,
+                        "name": "成立变量",
+                        "value": [
+                          261
+                        ]
+                      },
+                      {
+                        "parameter_id": 53,
+                        "name": "不成立变量",
+                        "value": [
+                          260
+                        ]
+                      }
+                    ]
+                  },
+                  "then_size": 2,
+                  "then": [],
+                  "else_size": 0,
+                  "else": []
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 5870,
+              "opcode": 11,
+              "name": "变量赋值",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "变量序号",
+                  "value": 1017
+                },
+                {
+                  "parameter_id": 39,
+                  "type": 39,
+                  "name": "变量值",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 5882,
+              "opcode": 6,
+              "name": "我方出场人员控制",
+              "parameters": [
+                {
+                  "parameter_id": 46,
+                  "type": 46,
+                  "name": "可否控制0",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "最大出场人数（最大15）",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 56,
+                  "type": 56,
+                  "name": "强制出场武将12",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 56,
+                  "type": 56,
+                  "name": "强制出场武将22",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 56,
+                  "type": 56,
+                  "name": "强制出场武将32",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 56,
+                  "type": 56,
+                  "name": "强制出场武将42",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 56,
+                  "type": 56,
+                  "name": "强制出场武将52",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 57,
+                  "type": 57,
+                  "name": "强制不出场武将12",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 57,
+                  "type": 57,
+                  "name": "强制不出场武将22",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 57,
+                  "type": 57,
+                  "name": "强制不出场武将32",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 57,
+                  "type": 57,
+                  "name": "强制不出场武将42",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 57,
+                  "type": 57,
+                  "name": "强制不出场武将52",
+                  "value": -1
+                }
+              ]
+            },
+            {
+              "offset": 5934,
+              "opcode": 29,
+              "name": "调色板重设",
+              "parameters": []
+            },
+            {
+              "offset": 5936,
+              "opcode": 114,
+              "name": "信息传送",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "信息编号",
+                  "value": 14
+                },
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "信息内容",
+                  "value": "0,0,1"
+                }
+              ]
+            },
+            {
+              "offset": 5952,
+              "opcode": 36,
+              "name": "CD音轨设定",
+              "parameters": [
+                {
+                  "parameter_id": 9,
+                  "type": 9,
+                  "name": "音轨序号7",
+                  "value": 255
+                }
+              ]
+            },
+            {
+              "offset": 5958,
+              "opcode": 13,
+              "name": "剧本正常过渡，用于剧本最后",
+              "parameters": []
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 5962,
+          "size": 502,
+          "index": 1,
+          "parse_error": "unknown opcode 121 at 0x179f",
+          "raw_bytes": "f6 01 02 00 05 00 b6 d2 bb bb 00 2d 00 02 00 78 03 00 00 e3 01 34 00 02 00 78 03 0d 00 00 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 01 00 00 00 77 00 51 00 01 00 04 00 00 00 00 00 53 00 02 00 52 00 00 00 04 00 93 0c 51 00 01 00 79 00 52 00 01 00 04 00 00 00 00 00 56 00 01 00 52 00 00 00 04 00 01 00 00 00 2e 01 77 00 51 00 00 00 04 00 00 00 00 00 53 00 01 00 52 00 00 00 04 00 01 00 00 00 01 00 12 00 05 00 5b 43 37 39 ce e4 c1 a6 b9 fb 5d 0a 5b 43 31 41 cd b3 cb a7 b9 fb 5d 0a d6 c7 c1 a6 b9 fb 0a 5b 43 32 36 c3 f4 bd dd b9 fb 5d 0a 5b 43 32 39 ba c3 d4 cb b9 fb 5d 0a c0 eb bf aa 00 02 00 e8 03 ca 00 01 00 13 00 04 00 01 00 00 00 14 00 3d 00 17 00 a1 00 49 00 00 00 26 00 00 00 02 00 00 00 00 00 01 00 13 00 04 00 02 00 00 00 14 00 3d 00 17 00 a2 00 49 00 00 00 26 00 00 00 02 00 00 00 00 00 01 00 13 00 04 00 03 00 00 00 14 00 3d 00 17 00 a3 00 49 00 00 00 26 00 00 00 02 00 00 00 00 00 01 00 13 00 04 00 04 00 00 00 14 00 3d 00 17 00 a4 00 49 00 00 00 26 00 00 00 02 00 00 00 00 00 01 00 13 00 04 00 05 00 00 00 14 00 3d 00 17 00 a5 00 49 00 00 00 26 00 00 00 02 00 00 00 00 00 01 00 13 00 04 00 06 00 00 00 1c 00 77 00 51 00 00 00 04 00 00 00 00 00 53 00 00 00 52 00 00 00 04 00 01 00 00 00 00 00 00 00 00 00 01 00 03 00 2f 00 14 00 05 00 26 b4 b3 bd b4 0a bc ec b2 e2 b5 bd d5 e4 d6 e9 ca fd c1 bf b2 bb b9 bb a3 ac ce de b7 a8 bd f8 d0 d0 b6 d2 bb bb a1 a3 00 00 00 77 00 51 00 02 00 04 00 ec 0f 00 00 53 00 02 00 52 00 00 00 04 00 00 00 00 00 09 00 04 00 0a 00 00 00 00 00",
+          "conditions": [],
+          "instructions": []
+        },
+        {
+          "offset": 6466,
+          "size": 216,
+          "conditions": [
+            {
+              "offset": 6468,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 6481,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 9
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 6491,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李自成\n老田，你叫啥？\n&田见秀\n我没叫啊。\n&李自成\n不是，我在问你的名字。\n&田见秀\n哦哦，俺叫田见秀，字玉峰。\n&李自成\n不错，好名字。\n（这个人身材魁梧高大，长得却又\n憨态可掬，真让人喜欢。）"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 6684,
+          "size": 229,
+          "conditions": [
+            {
+              "offset": 6686,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 6699,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 1
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 6709,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&李过\n叔，咱们不是应该跟对面的暴民是一伙的\n吗？怎么还要帮着眼前这人对付他们？\n&李自成\n这群暴民有马有刀枪，一定是有组织的，\n咱们跟他们争斗，一来试探，二来展现\n实力，为日后的发展奠定基础。\n&李过\n噢噢。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 6915,
+          "size": 54,
+          "conditions": [
+            {
+              "offset": 6917,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 6930,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 952
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 6940,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&大红狼\n有种不好的预感。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 6971,
+          "size": 72,
+          "conditions": [
+            {
+              "offset": 6973,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 6986,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 50
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 6996,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&刘国龙\n他们也是苦命百姓，我会手下留情的。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 7045,
+          "size": 64,
+          "conditions": [
+            {
+              "offset": 7047,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 7060,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 8
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 7070,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&刘芳亮\n打架的时候还是会有点紧张。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 7111,
+          "size": 56,
+          "conditions": [
+            {
+              "offset": 7113,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 7126,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 953
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 7136,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&飞山虎\n今天正好杀个过瘾。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 7169,
+          "size": 80,
+          "conditions": [
+            {
+              "offset": 7171,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 7184,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 959
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 7194,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&农民军1\n为什么选择在这么冷的天动手，\n真是搞不懂。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 7251,
+          "size": 61,
+          "conditions": [
+            {
+              "offset": 7253,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 7266,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 960
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 7276,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&农民军2\n希望这次能多抢点财物。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 7314,
+          "size": 49,
+          "conditions": [
+            {
+              "offset": 7316,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 7329,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 961
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 7339,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&农民军3\n干就完了。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 7365,
+          "size": 59,
+          "conditions": [
+            {
+              "offset": 7367,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 7380,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 962
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 7390,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&农民军4\n水能载舟，亦能覆舟。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 7426,
+          "size": 67,
+          "conditions": [
+            {
+              "offset": 7428,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 7441,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 963
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 7451,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&农民军5\n舍得一身剐，敢把皇帝拉下马。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 7495,
+          "size": 71,
+          "conditions": [
+            {
+              "offset": 7497,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 7510,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 964
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 7520,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&农民军6\n骑着马跟不骑马的感受就是不一样。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 7568,
+          "size": 63,
+          "conditions": [
+            {
+              "offset": 7570,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 7583,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 965
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 7593,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&农民军7\n对面看起来很厉害的样子。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 7633,
+          "size": 65,
+          "conditions": [
+            {
+              "offset": 7635,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 7648,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 966
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 7658,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&小队长1\n屠龙的少年，终将变成恶龙。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 7700,
+          "size": 59,
+          "conditions": [
+            {
+              "offset": 7702,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 7715,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 967
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 7725,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&小队长2\n王侯将相，宁有种乎？"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 7761,
+          "size": 54,
+          "conditions": [
+            {
+              "offset": 7763,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 7776,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 364
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 7786,
+              "opcode": 21,
+              "name": "二选一说话",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将1序号2",
+                  "value": 364
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将2序号2",
+                  "value": 364
+                },
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "说话内容",
+                  "value": "我现在强的可怕。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 7817,
+          "size": 76,
+          "conditions": [
+            {
+              "offset": 7819,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 7832,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 386
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 7842,
+              "opcode": 21,
+              "name": "二选一说话",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将1序号2",
+                  "value": 386
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将2序号2",
+                  "value": 386
+                },
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "说话内容",
+                  "value": "只有经过残酷战争的洗礼，才能成为精锐。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        },
+        {
+          "offset": 7895,
+          "size": 58,
+          "conditions": [
+            {
+              "offset": 7897,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "玩家切换"
+                }
+              ]
+            },
+            {
+              "offset": 7910,
+              "opcode": 45,
+              "name": "点击武将测试",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将序号2",
+                  "value": 432
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 7920,
+              "opcode": 21,
+              "name": "二选一说话",
+              "parameters": [
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将1序号2",
+                  "value": 432
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "武将2序号2",
+                  "value": 432
+                },
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "说话内容",
+                  "value": "来者不善，善者不来。"
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        }
+      ]
+    }
+  ],
+  "deployment_tables": [],
+  "summary": {
+    "section_count": 22,
+    "instruction_count": 87,
+    "unparsed_section_count": 3,
+    "deployment_instruction_count": 0,
+    "deployment": [],
+    "deployment_tables": [],
+    "text": [
+      "玩家切换",
+      "&李自成\n迎敌！",
+      "战前难度选择",
+      "[C79割草]（敌军能力系数降低为80%）\n[C1A休闲]（敌军能力系数降低为90%）\n普通（敌军能力系数不变）\n[C26困难]（敌军能力提升为105%）\n[C29打铁]（敌军能力提升为115%）",
+      "0,0,1",
+      "玩家切换",
+      "&李自成\n老田，你叫啥？\n&田见秀\n我没叫啊。\n&李自成\n不是，我在问你的名字。\n&田见秀\n哦哦，俺叫田见秀，字玉峰。\n&李自成\n不错，好名字。\n（这个人身材魁梧高大，长得却又\n憨态可掬，真让人喜欢。）",
+      "玩家切换",
+      "&李过\n叔，咱们不是应该跟对面的暴民是一伙的\n吗？怎么还要帮着眼前这人对付他们？\n&李自成\n这群暴民有马有刀枪，一定是有组织的，\n咱们跟他们争斗，一来试探，二来展现\n实力，为日后的发展奠定基础。\n&李过\n噢噢。",
+      "玩家切换",
+      "&大红狼\n有种不好的预感。",
+      "玩家切换",
+      "&刘国龙\n他们也是苦命百姓，我会手下留情的。",
+      "玩家切换",
+      "&刘芳亮\n打架的时候还是会有点紧张。",
+      "玩家切换",
+      "&飞山虎\n今天正好杀个过瘾。",
+      "玩家切换",
+      "&农民军1\n为什么选择在这么冷的天动手，\n真是搞不懂。",
+      "玩家切换",
+      "&农民军2\n希望这次能多抢点财物。",
+      "玩家切换",
+      "&农民军3\n干就完了。",
+      "玩家切换",
+      "&农民军4\n水能载舟，亦能覆舟。",
+      "玩家切换",
+      "&农民军5\n舍得一身剐，敢把皇帝拉下马。",
+      "玩家切换",
+      "&农民军6\n骑着马跟不骑马的感受就是不一样。",
+      "玩家切换",
+      "&农民军7\n对面看起来很厉害的样子。",
+      "玩家切换",
+      "&小队长1\n屠龙的少年，终将变成恶龙。",
+      "玩家切换",
+      "&小队长2\n王侯将相，宁有种乎？",
+      "玩家切换",
+      "我现在强的可怕。",
+      "玩家切换",
+      "只有经过残酷战争的洗礼，才能成为精锐。",
+      "玩家切换",
+      "来者不善，善者不来。"
+    ]
+  }
+}

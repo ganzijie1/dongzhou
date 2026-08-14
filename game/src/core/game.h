@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "battle_event_queue.h"
 #include "i_deploy_helper.h"
 #include "lua/lua.h"
 #include "map.h"
@@ -63,18 +64,30 @@ class Game : public IDeployHelper {
   bool          IsUserTurn() const;
   uint16_t      GetTurnCurrent() const;
   uint16_t      GetTurnLimit() const;
+  void          RestoreTurn(uint16_t current, Force force) { turn_.Restore(current, force); }
   bool          HasNext() const;
   void          DoNext();
   void          Push(unique_ptr<Cmd>);
+  void          EmitBattleEvent(BattleEvent) noexcept;
+  BattleEventQueue& GetBattleEventQueue() { return battle_event_queue_; }
+  const BattleEventQueue& GetBattleEventQueue() const { return battle_event_queue_; }
   const Cmd*    GetNextCmdConst() const;
   bool          UnitInCell(Vec2D) const;
   Unit*         GetUnitInCell(Vec2D) const;
   uint32_t      GetNumEnemiesAlive();
   uint32_t      GetNumOwnsAlive();
   bool          CheckStatus();
-  Status        GetStatus() { return status_; }
+  Status        GetStatus() const { return status_; }
   Assets*       assets() { return assets_; }
 
+  uint32_t      GetNumCommandersAlive();
+  bool          HasUnit(const std::string&) const;
+  uint32_t      GetNumUnitsAlive(const std::string&) const;
+  bool          AreUnitsWithin(const std::string&, const std::string&, uint16_t) const;
+  bool          IsCellVacant(Vec2D) const;
+  bool          IsForceWithin(Force, Vec2D, uint16_t) const;
+  bool          IsUnitWithin(const std::string&, Vec2D, uint16_t) const;
+  void          RunScriptUpdate();
   // IDeployHelper interfaces
   bool     SubmitDeploy() override;
   uint32_t AssignDeploy(const Hero*) override;
@@ -118,6 +131,7 @@ class Game : public IDeployHelper {
   Deployer*         deployer_;
   Map*              map_;
   StageUnitManager* stage_unit_manager_;
+  BattleEventQueue  battle_event_queue_;
   Turn              turn_;
   Status            status_;
 };

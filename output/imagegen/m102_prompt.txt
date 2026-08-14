@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: Mengde tactical siege map
+Primary request: continuous walled Gaotang city, broad south approach, and reserved northeast wall corner for a night rope breach.
+Style: classic Chinese tactical-RPG painted terrain, orthographic.
+Constraints: no units, text, UI, or visible grid; the northeast rope entry and south gate remain distinct passable cells.

@@ -18,6 +18,7 @@ Unit::Unit(const Hero* hero, Force force)
       direction_(kDirDown),
       force_(force),
       no_render_(false),
+      invulnerable_(false),
       done_action_(false) {
   equipment_set_->CopyEquipmentSet(*hero_->GetEquipmentSet());
 }
@@ -29,13 +30,27 @@ Unit::~Unit() {
 
 // Return true if alive, false if dead
 bool Unit::DoDamage(int damage) {
+  if (invulnerable_ && damage >= current_hpmp_.hp) {
+    current_hpmp_.hp = GetOriginalHpMp().hp;
+    return true;
+  }
   current_hpmp_.hp -= damage;
   return current_hpmp_.hp > 0;
 }
 
 void Unit::RestoreHP(int amount) { Heal(amount); }
 
+void Unit::RestoreMP(int amount) {
+  current_hpmp_.mp = std::min(current_hpmp_.mp + amount, GetOriginalHpMp().mp);
+}
+
 void Unit::Heal(int amount) { current_hpmp_.hp = std::min(current_hpmp_.hp + amount, GetOriginalHpMp().hp); }
+
+bool Unit::SpendMP(int amount) {
+  if (amount < 0 || current_hpmp_.mp < amount) return false;
+  current_hpmp_.mp -= amount;
+  return true;
+}
 
 bool Unit::IsHostile(Unit* u) const {
   Force uforce = u->force_;
@@ -74,11 +89,18 @@ void Unit::AddStatModifier(StatModifier* sm) {
   UpdateStat();
 }
 
+void Unit::SetTrainingPenalty(uint16_t penalty) {
+  hero_->SetTrainingPenalty(penalty);
+  UpdateStat();
+}
+
 bool Unit::IsHPLow() const { return GetCurrentHpMp().hp <= GetOriginalHpMp().hp * 3 / 10; }
 
 bool Unit::IsDead() const { return GetCurrentHpMp().hp <= 0; }
 
-void Unit::Kill() { current_hpmp_.hp = 0; }
+void Unit::Kill() {
+  current_hpmp_.hp = invulnerable_ ? GetOriginalHpMp().hp : 0;
+}
 
 const UnitClass* Unit::GetClass() const { return hero_->GetClass(); }
 
@@ -109,7 +131,17 @@ void Unit::GainExp(Unit* object) {
   GainExp(exp);
 }
 
-void Unit::GainExp(uint16_t exp) { hero_->GainExp(exp); }
+void Unit::GainExp(uint16_t exp) {
+  if (force_ != Force::kOwn || IsDead() || exp == 0) return;
+  uint32_t total = static_cast<uint32_t>(hero_->GetExp()) + exp;
+  uint16_t level = hero_->GetLevel();
+  while (total >= Level::kExpLimit) {
+    total -= Level::kExpLimit;
+    ++level;
+  }
+  hero_->RestoreProgress(level, static_cast<uint16_t>(total));
+  UpdateStat();
+}
 
 void Unit::LevelUp() {
   // TODO check if Unit is alread in max level
@@ -121,6 +153,15 @@ void Unit::LevelUp() {
 void Unit::EndAction() { done_action_ = true; }
 
 void Unit::ResetAction() { done_action_ = false; }
+
+void Unit::RestoreState(uint16_t level, uint16_t exp, HpMp hpmp, Direction direction, bool done_action) {
+  hero_->RestoreProgress(level, exp);
+  UpdateStat();
+  current_hpmp_.hp = std::min(hpmp.hp, GetOriginalHpMp().hp);
+  current_hpmp_.mp = std::min(hpmp.mp, GetOriginalHpMp().mp);
+  direction_       = direction;
+  done_action_     = done_action;
+}
 
 unique_ptr<Cmd> Unit::RaiseEvent(event::GeneralEvent type, Unit* unit) const {
   ASSERT(unit == this);

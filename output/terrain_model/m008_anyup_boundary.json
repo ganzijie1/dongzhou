@@ -1,0 +1,3187 @@
+{
+  "backend": "official AnyUp weights + local DINOv3-S",
+  "cost_aggregation": "image-guided 3x3 proxy; not official trained CAFe-DINO aggregator",
+  "auto_apply": false,
+  "grid": [
+    30,
+    22
+  ],
+  "scale": 4,
+  "forest_prototype_cells": [
+    [
+      0,
+      18
+    ],
+    [
+      1,
+      16
+    ],
+    [
+      2,
+      14
+    ],
+    [
+      2,
+      16
+    ],
+    [
+      2,
+      17
+    ],
+    [
+      5,
+      19
+    ],
+    [
+      7,
+      21
+    ],
+    [
+      8,
+      21
+    ]
+  ],
+  "raw_cell_accuracy": 0.7266313932980599,
+  "aggregate_cell_accuracy": 0.7354497354497355,
+  "southwest_mountain_cells": 65,
+  "southwest_raw_counts": {
+    "f": 0,
+    "F": 57,
+    "m": 8
+  },
+  "southwest_aggregate_counts": {
+    "f": 0,
+    "F": 58,
+    "m": 7
+  },
+  "raw_rows": [
+    "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmmmmmmfffmmmm",
+    "mmmmmmmmmffmmmmmfffffffffmffmm",
+    "mmmmmmmmmmffmmmmffmmffffffffff",
+    "mmmmmmmmmmmffmfffffmmfffffffff",
+    "mmmmmmmmmmmfffffffffffffffffff",
+    "mmmmmmmmmmmmffffffffffffffffff",
+    "mmmmmmmmmmmmffffffffffffffffff",
+    "mmmmmffmmfffffffffffffffffffff",
+    "mmmmFFfffffffffffffffffffffffF",
+    "FFmmmFfffffffffffffffffffffffF",
+    "FFFmmmFmfffffffffffffffffffffF",
+    "mFFmFmmffffffffffffffmffffffFF",
+    "FFFFFFFfFFfffffffffffffffffFFF",
+    "FFFFFFFFFffffffffffffffffmmfff",
+    "FFFFFFFFffffffffffffffffffffff",
+    "FFFFmFFFFfffffffffffFfffffffff",
+    "mmFmFFFFFFfffffffffFFfffffffff",
+    "mmFFFFFFFFFFfffffffFFfffffmmff",
+    "FFFFFFFFFFFFFffffFFFFFffFmmfff"
+  ],
+  "aggregate_rows": [
+    "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmmmmmmfffmmmm",
+    "mmmmmmmmmffmmmmmmmfffffffffffm",
+    "mmmmmmmmmmffmmmmfffmffffffffff",
+    "mmmmmmmmmmmffmfffffmffffffffff",
+    "mmmmmmmmmmmfffffffffffffffffff",
+    "mmmmmmmmmmmmffffffffffffffffff",
+    "mmmmmmmmmmmmffffffffffffffffff",
+    "mmmmmffmmfffffffffffffffffffff",
+    "mmmmFFfffffffffffffffffffffffF",
+    "FFmmmFfffffffffffffffffffffffF",
+    "FFFmmmFFfffffffffffffffffffffF",
+    "mFFmFmmfffffffffffffffffffffFF",
+    "FFFFFFFfFffffffffffffffffffFFF",
+    "FFFFFFFFFffffffffffffffffmmfff",
+    "FFFFFFFFffffffffffffffffffffff",
+    "FFFFmFFFFfffffffffffFfffffffff",
+    "mmFFFFFFFFfffffffffFFfffffffff",
+    "mmFFFFFFFFFFfffffffFFfffffmfff",
+    "FFFFFFFFFFFFFFfffFFFFFfffFmfff"
+  ],
+  "raw_mixed_cells": [
+    {
+      "position": [
+        9,
+        2
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        10,
+        2
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        24,
+        2
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        25,
+        2
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 96
+    },
+    {
+      "position": [
+        9,
+        3
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 96
+    },
+    {
+      "position": [
+        10,
+        3
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        16,
+        3
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        19,
+        3
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        20,
+        3
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        21,
+        3
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        22,
+        3
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        23,
+        3
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 64
+    },
+    {
+      "position": [
+        25,
+        3
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        26,
+        3
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        27,
+        3
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        9,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 64
+    },
+    {
+      "position": [
+        10,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 96
+    },
+    {
+      "position": [
+        16,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        17,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        18,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 96
+    },
+    {
+      "position": [
+        19,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 64
+    },
+    {
+      "position": [
+        20,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        21,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        25,
+        4
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 128
+    },
+    {
+      "position": [
+        28,
+        4
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 112
+    },
+    {
+      "position": [
+        29,
+        4
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        9,
+        5
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        10,
+        5
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        11,
+        5
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        15,
+        5
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        16,
+        5
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        17,
+        5
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        18,
+        5
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 128
+    },
+    {
+      "position": [
+        19,
+        5
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 112
+    },
+    {
+      "position": [
+        20,
+        5
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        27,
+        5
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        10,
+        6
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        12,
+        6
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        13,
+        6
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        14,
+        6
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        18,
+        6
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        19,
+        6
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        20,
+        6
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 112
+    },
+    {
+      "position": [
+        26,
+        6
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        11,
+        7
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        17,
+        7
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        18,
+        7
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        11,
+        8
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        18,
+        8
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        6,
+        9
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        9,
+        9
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        10,
+        9
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        11,
+        9
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        12,
+        9
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        3,
+        10
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        4,
+        10
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 64
+    },
+    {
+      "position": [
+        5,
+        10
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 64
+    },
+    {
+      "position": [
+        6,
+        10
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        7,
+        10
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 112
+    },
+    {
+      "position": [
+        9,
+        10
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 64
+    },
+    {
+      "position": [
+        11,
+        10
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        12,
+        10
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        29,
+        10
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 48
+    },
+    {
+      "position": [
+        0,
+        11
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        1,
+        11
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        3,
+        11
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        4,
+        11
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        5,
+        11
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        9,
+        11
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        29,
+        11
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        1,
+        12
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        2,
+        12
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        4,
+        12
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 48
+    },
+    {
+      "position": [
+        5,
+        12
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        6,
+        12
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        7,
+        12
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        18,
+        12
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        28,
+        12
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 48
+    },
+    {
+      "position": [
+        0,
+        13
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        1,
+        13
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        2,
+        13
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        3,
+        13
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        4,
+        13
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        5,
+        13
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        6,
+        13
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 112
+    },
+    {
+      "position": [
+        7,
+        13
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        19,
+        13
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        20,
+        13
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        21,
+        13
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        26,
+        13
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        28,
+        13
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 96
+    },
+    {
+      "position": [
+        0,
+        14
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        1,
+        14
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 96
+    },
+    {
+      "position": [
+        2,
+        14
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        3,
+        14
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 128
+    },
+    {
+      "position": [
+        4,
+        14
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        5,
+        14
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 96
+    },
+    {
+      "position": [
+        6,
+        14
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        7,
+        14
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 64
+    },
+    {
+      "position": [
+        9,
+        14
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        19,
+        14
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        20,
+        14
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 64
+    },
+    {
+      "position": [
+        21,
+        14
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 128
+    },
+    {
+      "position": [
+        23,
+        14
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        25,
+        14
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        26,
+        14
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        27,
+        14
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 96
+    },
+    {
+      "position": [
+        28,
+        14
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        0,
+        15
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        3,
+        15
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        4,
+        15
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        6,
+        15
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        7,
+        15
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 48
+    },
+    {
+      "position": [
+        8,
+        15
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        9,
+        15
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 128
+    },
+    {
+      "position": [
+        10,
+        15
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        25,
+        15
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        26,
+        15
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        27,
+        15
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        28,
+        15
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        29,
+        15
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        0,
+        16
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        5,
+        16
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        7,
+        16
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        8,
+        16
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        9,
+        16
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 64
+    },
+    {
+      "position": [
+        19,
+        16
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        25,
+        16
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        26,
+        16
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        27,
+        16
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 64
+    },
+    {
+      "position": [
+        28,
+        16
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        0,
+        17
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        3,
+        17
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        4,
+        17
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 96
+    },
+    {
+      "position": [
+        7,
+        17
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        8,
+        17
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        19,
+        17
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        20,
+        17
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 96
+    },
+    {
+      "position": [
+        21,
+        17
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        25,
+        17
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        26,
+        17
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        27,
+        17
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        28,
+        17
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        0,
+        18
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        1,
+        18
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        3,
+        18
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 96
+    },
+    {
+      "position": [
+        4,
+        18
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        5,
+        18
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        7,
+        18
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        8,
+        18
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        9,
+        18
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        19,
+        18
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 64
+    },
+    {
+      "position": [
+        20,
+        18
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        0,
+        19
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        1,
+        19
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        2,
+        19
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        3,
+        19
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        4,
+        19
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 64
+    },
+    {
+      "position": [
+        10,
+        19
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        19,
+        19
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 96
+    },
+    {
+      "position": [
+        20,
+        19
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        21,
+        19
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 80
+    },
+    {
+      "position": [
+        22,
+        19
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        0,
+        20
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        1,
+        20
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        2,
+        20
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        10,
+        20
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        11,
+        20
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 112
+    },
+    {
+      "position": [
+        12,
+        20
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        18,
+        20
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        20,
+        20
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        21,
+        20
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 48
+    },
+    {
+      "position": [
+        22,
+        20
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        23,
+        20
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        25,
+        20
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 64
+    },
+    {
+      "position": [
+        26,
+        20
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        27,
+        20
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 96
+    },
+    {
+      "position": [
+        1,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        2,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        6,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 64
+    },
+    {
+      "position": [
+        11,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        12,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 96
+    },
+    {
+      "position": [
+        13,
+        21
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        14,
+        21
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 64
+    },
+    {
+      "position": [
+        15,
+        21
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        16,
+        21
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 64
+    },
+    {
+      "position": [
+        17,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 112
+    },
+    {
+      "position": [
+        18,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 96
+    },
+    {
+      "position": [
+        19,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        21,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        22,
+        21
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        23,
+        21
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        24,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 128
+    },
+    {
+      "position": [
+        25,
+        21
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 80
+    },
+    {
+      "position": [
+        26,
+        21
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        27,
+        21
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 64
+    }
+  ],
+  "aggregate_mixed_cells": [
+    {
+      "position": [
+        24,
+        2
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        25,
+        2
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        9,
+        3
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 96
+    },
+    {
+      "position": [
+        10,
+        3
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        20,
+        3
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        21,
+        3
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        22,
+        3
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        23,
+        3
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        25,
+        3
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        9,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        10,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        16,
+        4
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 112
+    },
+    {
+      "position": [
+        17,
+        4
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 128
+    },
+    {
+      "position": [
+        18,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 96
+    },
+    {
+      "position": [
+        19,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        20,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 96
+    },
+    {
+      "position": [
+        21,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        25,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 96
+    },
+    {
+      "position": [
+        27,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        28,
+        4
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        29,
+        4
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        9,
+        5
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        10,
+        5
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        11,
+        5
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 96
+    },
+    {
+      "position": [
+        15,
+        5
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        16,
+        5
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        18,
+        5
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 96
+    },
+    {
+      "position": [
+        19,
+        5
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 112
+    },
+    {
+      "position": [
+        20,
+        5
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        10,
+        6
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        12,
+        6
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        13,
+        6
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        14,
+        6
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        18,
+        6
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 64
+    },
+    {
+      "position": [
+        19,
+        6
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        20,
+        6
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        11,
+        7
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        18,
+        7
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        11,
+        8
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        6,
+        9
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        9,
+        9
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        10,
+        9
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        11,
+        9
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        12,
+        9
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        4,
+        10
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 48
+    },
+    {
+      "position": [
+        5,
+        10
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 96
+    },
+    {
+      "position": [
+        6,
+        10
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        7,
+        10
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        9,
+        10
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        11,
+        10
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        29,
+        10
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        0,
+        11
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        3,
+        11
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        4,
+        11
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 64
+    },
+    {
+      "position": [
+        5,
+        11
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        29,
+        11
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        1,
+        12
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        2,
+        12
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        4,
+        12
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        5,
+        12
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        6,
+        12
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        7,
+        12
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        0,
+        13
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 96
+    },
+    {
+      "position": [
+        1,
+        13
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        2,
+        13
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        3,
+        13
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        4,
+        13
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        5,
+        13
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        6,
+        13
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        7,
+        13
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 64
+    },
+    {
+      "position": [
+        20,
+        13
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        26,
+        13
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        28,
+        13
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 80
+    },
+    {
+      "position": [
+        0,
+        14
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        1,
+        14
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 64
+    },
+    {
+      "position": [
+        3,
+        14
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 128
+    },
+    {
+      "position": [
+        4,
+        14
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        5,
+        14
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 96
+    },
+    {
+      "position": [
+        6,
+        14
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 96
+    },
+    {
+      "position": [
+        7,
+        14
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 80
+    },
+    {
+      "position": [
+        20,
+        14
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        21,
+        14
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        26,
+        14
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        27,
+        14
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 96
+    },
+    {
+      "position": [
+        0,
+        15
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        4,
+        15
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        6,
+        15
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        7,
+        15
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 80
+    },
+    {
+      "position": [
+        8,
+        15
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        9,
+        15
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 64
+    },
+    {
+      "position": [
+        25,
+        15
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        26,
+        15
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        27,
+        15
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        29,
+        15
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        7,
+        16
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        8,
+        16
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        9,
+        16
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        25,
+        16
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 64
+    },
+    {
+      "position": [
+        26,
+        16
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        27,
+        16
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 80
+    },
+    {
+      "position": [
+        28,
+        16
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 112
+    },
+    {
+      "position": [
+        7,
+        17
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 48
+    },
+    {
+      "position": [
+        19,
+        17
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 48
+    },
+    {
+      "position": [
+        20,
+        17
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 48
+    },
+    {
+      "position": [
+        27,
+        17
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        0,
+        18
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        1,
+        18
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 16
+    },
+    {
+      "position": [
+        3,
+        18
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        4,
+        18
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 80
+    },
+    {
+      "position": [
+        8,
+        18
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        9,
+        18
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 96
+    },
+    {
+      "position": [
+        19,
+        18
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        20,
+        18
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        0,
+        19
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        1,
+        19
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        3,
+        19
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 64
+    },
+    {
+      "position": [
+        4,
+        19
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        19,
+        19
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 96
+    },
+    {
+      "position": [
+        20,
+        19
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        21,
+        19
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        22,
+        19
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 96
+    },
+    {
+      "position": [
+        0,
+        20
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 48
+    },
+    {
+      "position": [
+        1,
+        20
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        2,
+        20
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        10,
+        20
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 32
+    },
+    {
+      "position": [
+        11,
+        20
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 112
+    },
+    {
+      "position": [
+        12,
+        20
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        18,
+        20
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        21,
+        20
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        23,
+        20
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 96
+    },
+    {
+      "position": [
+        25,
+        20
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 48
+    },
+    {
+      "position": [
+        26,
+        20
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "f",
+      "coverage": 112
+    },
+    {
+      "position": [
+        27,
+        20
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        6,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 32
+    },
+    {
+      "position": [
+        12,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 16
+    },
+    {
+      "position": [
+        13,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 112
+    },
+    {
+      "position": [
+        14,
+        21
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        16,
+        21
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 16
+    },
+    {
+      "position": [
+        17,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 112
+    },
+    {
+      "position": [
+        18,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 80
+    },
+    {
+      "position": [
+        21,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "f",
+      "coverage": 96
+    },
+    {
+      "position": [
+        23,
+        21
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 32
+    },
+    {
+      "position": [
+        24,
+        21
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "F",
+      "coverage": 96
+    },
+    {
+      "position": [
+        25,
+        21
+      ],
+      "primary_terrain": "F",
+      "secondary_terrain": "m",
+      "coverage": 112
+    },
+    {
+      "position": [
+        26,
+        21
+      ],
+      "primary_terrain": "m",
+      "secondary_terrain": "F",
+      "coverage": 48
+    },
+    {
+      "position": [
+        27,
+        21
+      ],
+      "primary_terrain": "f",
+      "secondary_terrain": "m",
+      "coverage": 48
+    }
+  ]
+}

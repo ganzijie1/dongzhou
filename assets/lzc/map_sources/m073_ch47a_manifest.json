@@ -1,0 +1,135 @@
+{
+  "map": "assets/lzc/map/m073.png",
+  "source_base": "output/imagegen/chapter47-snow-ambush-base-gpt2.png",
+  "prompt_file": "output/imagegen/m073_prompt.txt",
+  "grid": [
+    36,
+    26
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "FgFffFgFffFgFffFgFffFgFwwFwFffFgFffF",
+    "FffFgFffFgFffFgFffFgFffFwFwwFgFffFgF",
+    "fFgFffFgFffFgFffFgFffFwFwwFgFffFgFff",
+    "gFffmgfffmgfffmgfffmgfwwmwwffmgfffFg",
+    "ffFgfffmgfffmgfffmgffwmwwwfmgfffmgFf",
+    "FgFffggfffggfffggfffgwwwwwgfffggfffF",
+    "FffmgfffggfffggfffggwwwwwfffggfffFgF",
+    "fFgfffggfffggfffggffwwwwwfggfffmgFff",
+    "gFffmgfffggfffggfffwwwwwggfffggfffFg",
+    "ffFgfffggfffggfffggwwwwwfffggfffmgFf",
+    "FgFffggfffggfffggfwwwwwffggfffggfffF",
+    "FffmgfffggfffggfffwwwwwggfffggfffFgF",
+    "fFgfffggfffggfffgwwwwwgfffggfffmgFff",
+    "gFffmgfffggfffggfwwwwwffggfffggfffFg",
+    "ffFgfffggfffggffwwwwwfggfffggfffmgFf",
+    "FgFffggfffggfffgwwwwwgfffggfffggfffF",
+    "FffmgfffggfffggwwwwwfffggfffggfffFgF",
+    "fFgfffggfffggffwwwwwfggfffggfffmgFff",
+    "gFffmgfffggfffwwwwwggfffggfffggfffFg",
+    "ffFgfffggfffggwwwwwfffggfffggfffmgFf",
+    "FgFffggfffggfwwwwwffggfffggfffggfffF",
+    "FffmgfffmgfffmwwwwmgfffmgfffmgfffFgF",
+    "fFgfffmgfffmwwwwmgfffmgfffmgfffmgFff",
+    "gFffFgFffFgFwwFwFffFgFffFgFffFgFffFg",
+    "ffFgFffFgFfwFwFwfFgFffFgFffFgFffFgFf",
+    "FgFffFgFffFwFwwFgFffFgFffFgFffFgFffF"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "GPT Image 2 natural base plus reviewed programmatic source-of-truth geometry",
+  "structure_regions": {},
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [],
+  "supply_sites": [],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "ShuSunDeChen47",
+      "force": 1,
+      "position": [
+        27,
+        18
+      ]
+    },
+    {
+      "name": "FuFuZhongSheng47",
+      "force": 1,
+      "position": [
+        25,
+        16
+      ]
+    },
+    {
+      "name": "QiaoRu47",
+      "force": 3,
+      "position": [
+        8,
+        7
+      ]
+    }
+  ],
+  "mission": {
+    "type": "snow_trap_ambush",
+    "trap_cells": [
+      [
+        17,
+        12
+      ],
+      [
+        17,
+        13
+      ],
+      [
+        17,
+        14
+      ],
+      [
+        18,
+        12
+      ],
+      [
+        18,
+        13
+      ],
+      [
+        18,
+        14
+      ],
+      [
+        19,
+        12
+      ],
+      [
+        19,
+        13
+      ],
+      [
+        19,
+        14
+      ]
+    ],
+    "trigger_center": [
+      18,
+      13
+    ],
+    "trigger_radius": 2,
+    "boss_outcome": "historical_death"
+  },
+  "visual_grid_in_game": false
+}

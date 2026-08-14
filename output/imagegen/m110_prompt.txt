@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: large Mengde tactical coup map
+Primary request: separate continuous-walled Sun clan manor in the west and Wei palace in the east, joined by broad Diqiu streets.
+Style: classic Chinese tactical-RPG painted terrain, orthographic.
+Constraints: no units, text, UI, or visible grid; both enclosures have explicit two-cell gates.

@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: large Mengde capital pursuit map
+Primary request: the eastern wards of Linzi, a broad avenue from the palace district to a two-cell east gate, with room outside the wall for fleeing clan troops.
+Style: classic Chinese tactical-RPG painted terrain, orthographic.
+Constraints: no units, text, UI or visible grid; continuous walls, east gate and buildings are separate overlays.

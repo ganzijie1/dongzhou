@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: Mengde tactical manor ambush map
+Primary request: large continuous-walled Cui clan manor, inner residence, open courtyard, southern gate and two explicit inner passages.
+Style: classic Chinese tactical-RPG painted terrain, orthographic.
+Constraints: no units, text, UI, or visible grid; walls and sites are source-of-truth overlays.

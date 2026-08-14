@@ -3,17 +3,19 @@
 #include "assets.h"
 #include "config_loader.h"
 #include "game.h"
+#include "util/game_env.h"
 
 namespace mengde {
 namespace core {
 
-Scenario::Scenario(const string& scenario_id)
-    : scenario_id_(scenario_id), stage_ids_(), stage_no_(0), rc_(), assets_(nullptr), game_(nullptr) {
+Scenario::Scenario(const string& scenario_id, uint32_t stage_no)
+    : scenario_id_(scenario_id), stage_ids_(), stage_no_(stage_no), rc_(), assets_(nullptr), game_(nullptr) {
   const Path base_path(scenario_id_);
 
   ConfigLoader loader(base_path / "config.lua");
   rc_        = loader.GetResources();
   stage_ids_ = loader.GetStages();
+  if (stage_no_ >= stage_ids_.size()) throw std::out_of_range("stage does not exist");
 
   // For the case of NEW GAME
   assets_ = new Assets();
@@ -48,14 +50,14 @@ void Scenario::NextStage() {
 }
 
 Scenario::~Scenario() {
+  delete game_;
+  delete assets_;
+
   delete rc_.unit_class_manager;
   delete rc_.terrain_manager;
   delete rc_.magic_manager;
   delete rc_.equipment_manager;
   delete rc_.hero_tpl_manager;
-
-  delete assets_;
-  delete game_;
 }
 
 }  // namespace core

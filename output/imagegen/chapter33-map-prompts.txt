@@ -1,0 +1,16 @@
+Model: gpt-image-2
+Quality: high
+Size: 1536x1024
+Use case: stylized-concept
+
+Qi camp prompt:
+Qi capital Linzi outer-field night battle map for an isometric Chinese tactical RPG. Across the entire north edge stands one continuous ancient rammed-earth city wall with a single clearly open central gate and a broad road leading south. Outside the wall are open grass fields, trampled dirt roads, sparse trees, and a large Song army camp in the southern half with orderly red military tents, torch stands and supply wagons but no enclosing fence. The composition must support defenders emerging from the north gate to raid the southern camp, followed by a counterattack toward the city gate. Elevated three-quarter top-down orthographic view, hand-painted late-1990s Chinese strategy RPG battlefield style, crisp readable terrain regions, natural transitions, moonlit blue night with warm campfire accents, detailed but uncluttered.
+
+Qi camp constraints:
+No units, no people, no labels, no text, no UI, no visible square grid, no broken wall, no sealed central gate, no other gates, no water, no modern objects, no perspective horizon. The wall must be visually continuous and the gate opening unmistakably passable.
+
+Meng ambush prompt:
+Ancient Meng alliance meeting ground ambush map at dawn for an isometric Chinese tactical RPG. A broad ceremonial earthen altar and oath platform occupies the center, surrounded by six open noble pavilions, banner stands, ritual tables and spacious packed-earth gathering grounds. Beyond the meeting ground are grassland, sparse autumn woods and low rocky ridges, with one broad unobstructed escape road running from the central altar to the southern edge. The space must allow hidden armored troops to rush from surrounding pavilions while a small group escapes south. Elevated three-quarter top-down orthographic view, hand-painted late-1990s Chinese strategy RPG battlefield style, clear readable terrain regions, natural transitions, pale dawn light and fading torchlight, detailed but uncluttered.
+
+Meng ambush constraints:
+No units, no people, no labels, no text, no UI, no visible square grid, no city walls, no fences, no water, no modern objects, no perspective horizon. The south escape road must remain open; pavilions must not form an impassable ring.

@@ -1,0 +1,123 @@
+{
+  "map": "assets/lzc/map/m085.png",
+  "source_base": "output/imagegen/chapter54-bi-base-gpt2.png",
+  "prompt_file": "output/imagegen/m085_prompt.txt",
+  "grid": [
+    58,
+    36
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "FffFfFfgFfFffFfFfgFfFffFfFfgFfFffFfFfgFfFffFfFfgFfFffFfFfg",
+    "FfFgfFgFffFfFgfFgFffFfFgfFgFffFfFgfFgFffFfFgfFgFffFfFgfFgF",
+    "ffFfFffFfFffFfFffFfFffFfFffFfFffFfFffFfFffFfFffFfFffFfFffF",
+    "fFfffgffgffffffgffgffffffgffgffffffgffgffffffgffgffffffgFf",
+    "fFffgffffffgffgffffffgffgffffffgffgffffffgffgffffffgffgfFf",
+    "FffffmmrmmmrmmmrmgffgffffffgffgffffffgffgffffffgffgffffFfg",
+    "FfFgfmrmmmrmmmrmmffffffgffgffffffgffgffffffgffgffffffgfFgF",
+    "ffFffrmmmrmmmrmmmffgffgffffffgffgffffffgffgffffffgffgffffF",
+    "fFfffmmmrmmmrmmmrfgffffffgffgffffffgffgffffffgffgffffffgFf",
+    "fFffgmmrmmmrmmmrmffffgffgffffffgffgffffffgffgffffffgffgfFf",
+    "FffffmrmmmrmmmrmmgffgffffffgffgffffffgffgffffffgffgffffFfg",
+    "FfFgfrmmmrmmmrmmmffffffgffgffffffgffgffffffgffgffffffgfFgF",
+    "ffFffmmmrmmmrmmmrffgffgffffffgffgffffffgffgffffffgffgffffF",
+    "fFfffgffgffffffgffgffffffgffgffffffgffgffffffgffgffffffgFf",
+    "fFffgffffffgffgffffffgffgffffffgffgffffffgffgwwwwwwwwwwwww",
+    "Fffffffgffgffffffgffgffffffgffwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+    "FfFgffgffffffgfwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+    "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwffffgffgffffF",
+    "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwfffffgffgffffffgffgffffffgFf",
+    "wwwwwwwwwwwwwwwffffffgffgffffffgffgffffffgffgffffffgffgfFf",
+    "FfmmrmmmrmmmfffffgffgffffffgffgffffffgffgffffffgffgffffFfg",
+    "FfmrmmmrmmmrfgffgffffffgffgffffffgffgffffffgffgffffffgfFgF",
+    "ffrmmmrmmmrmgffffffgffgffffffgffgffffffgffgffffffgffgffffF",
+    "fFmmmrmmmrmmfffgffgffffffgffgffffffgffgffffffgffgffffffgFf",
+    "fFmmrmmmrmmmffgffffffgffgffffffgffgffffffgffgffffffgffgfFf",
+    "FfmrmmmrmmmrfffffgffgffffffgffgffffffgffgffffffgffgffffFfg",
+    "FfrmmmrmmmrmfgffgffffffgffgffffffgffgffffffgffgffffffgfFgF",
+    "ffmmmrmmmrmmgffffffgffgffffffgffgffffffgffgffffffgffgffffF",
+    "fFmmrmmmrmmmfffgffgffffffgffgffffffgffgffffffgffgffffffgFf",
+    "fFmrmmmrmmmrffgffffffgffgffffffgffgffffffgffgffffffgffgfFf",
+    "FfrmmmrmmmrmfffffgffgffffffgffgffffffgffgffffffgffgffffFfg",
+    "FfFgffgffffffgffgffffffgffgffffffgffgffffffgffgffffffgfFgF",
+    "ffFffffffgffgffffffgffgffffffgffgffffffgffgffffffgffgffffF",
+    "fFffFgFfgFfFffFgFfgFfFffFgFfgFfFffFgFfgFfFffFgFfgFfFffFgFf",
+    "fFfFgfFfFffFfFgfFfFffFfFgfFfFffFfFgfFfFffFfFgfFfFffFfFgfFf",
+    "FffFfFfgFfFffFfFfgFfFffFfFfgFfFffFfFfgFfFffFfFfgFfFffFfFfg"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "GPT Image 2 natural base plus reviewed programmatic source-of-truth geometry",
+  "structure_regions": {},
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [],
+  "supply_sites": [],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "ChuZhuangWang51",
+      "force": 1,
+      "position": [
+        48,
+        18
+      ]
+    },
+    {
+      "name": "GongZiYingQi51",
+      "force": 1,
+      "position": [
+        47,
+        9
+      ]
+    },
+    {
+      "name": "GongZiCe51",
+      "force": 1,
+      "position": [
+        47,
+        27
+      ]
+    },
+    {
+      "name": "XunLinFu47",
+      "force": 3,
+      "position": [
+        25,
+        18
+      ]
+    },
+    {
+      "name": "XunYing54",
+      "force": 3,
+      "position": [
+        18,
+        15
+      ]
+    }
+  ],
+  "mission": {
+    "type": "battle_of_bi_main_assault",
+    "victory": "break Jin center and capture XunYing54",
+    "historical_survivors": [
+      "XunLinFu47",
+      "ShiHui47"
+    ],
+    "captured": "XunYing54"
+  },
+  "visual_grid_in_game": false
+}

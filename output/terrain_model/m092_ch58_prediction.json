@@ -1,0 +1,12 @@
+{
+  "map": "assets/lzc/map/m092.png",
+  "grid": [
+    64,
+    44
+  ],
+  "backend": "reviewed-contract-with-dinov3-evidence-slot",
+  "threshold": 0.72,
+  "auto_apply": false,
+  "review_required": [],
+  "note": "Classifier evidence cannot overwrite reviewed fences, gates, camps, bog, deployments, or Lua terrain."
+}

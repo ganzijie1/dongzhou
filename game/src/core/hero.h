@@ -39,6 +39,9 @@ class Hero : public IUnitBase, IEquipper {
   const Attribute& GetHeroStatBase() const;
   const Attribute& GetHeroStat() const { return hero_attr_; }
   void             GainExp(uint16_t exp) { level_.exp += exp; }
+  void             RestoreProgress(uint16_t level, uint16_t exp);
+  uint16_t         GetTrainingPenalty() const { return training_penalty_; }
+  void             SetTrainingPenalty(uint16_t penalty);
   const Attribute& GetUnitPureStat() const { return unit_pure_attr_; }
   void             LevelUp();
   void             PutOn(const Equipment*);
@@ -56,6 +59,7 @@ class Hero : public IUnitBase, IEquipper {
   Attribute           unit_attr_;
   Attribute           unit_pure_attr_;  // Cached data
   HpMp                hpmp_;
+  uint16_t            training_penalty_;
 };
 
 }  // namespace core

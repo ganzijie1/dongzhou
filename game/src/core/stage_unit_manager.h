@@ -16,6 +16,7 @@ class Unit;
 class StageUnitManager {
  public:
   StageUnitManager();
+  ~StageUnitManager();
   uint32_t Deploy(Unit*);
   void     Kill(Unit*);
   Unit*    Get(uint32_t);

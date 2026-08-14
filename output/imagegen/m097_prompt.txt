@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: Mengde tactical siege-map base
+Primary request: broad rain-soaked northern approach reserved for a large continuous-walled Biyang city, dense streets and public squares.
+Style: classic Chinese tactical-RPG painted terrain, orthographic, natural transitions.
+Constraints: no structures, units, text, UI, or visible grid; walls, hanging gate, and city sites are separate overlays.

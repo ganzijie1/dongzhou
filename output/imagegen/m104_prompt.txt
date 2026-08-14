@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: very large Mengde tactical city-defense map
+Primary request: continuous outer walls of Jiang, broad southern breach avenue, northern Wei residence, and a separate strongly walled Gugong palace in the east.
+Style: classic Chinese tactical-RPG painted terrain, orthographic, natural city streets.
+Constraints: no units, text, UI, or visible grid; all walls, gates and supply buildings are separate source-of-truth overlays.

@@ -1,0 +1,588 @@
+{
+  "supervision": "weak labels parsed from stage Lua terrain arrays",
+  "split": "grouped by complete map asset",
+  "samples": 12470,
+  "maps": 44,
+  "training_maps": [
+    "m000.jpg",
+    "m001.jpg",
+    "m002.jpg",
+    "m004.jpg",
+    "m007-camp-v5.png",
+    "m008.png",
+    "m009.png",
+    "m010-camp-v2.png",
+    "m013.png",
+    "m014.png",
+    "m015.png",
+    "m016.png",
+    "m017.png",
+    "m018.png",
+    "m019.png",
+    "m020.png",
+    "m021.png",
+    "m022.png",
+    "m023.png",
+    "m024.png",
+    "m025.png",
+    "m026.png",
+    "m027.png",
+    "m032.png",
+    "m034.png",
+    "m035.png",
+    "m036.png",
+    "m038.png",
+    "m040.png",
+    "m043.png",
+    "m044.png",
+    "m045.png",
+    "song-capital-coup.png"
+  ],
+  "validation_maps": [
+    "m005.jpg",
+    "m006.jpg",
+    "m011-camp.png",
+    "m012.png",
+    "m028.png",
+    "m029.png",
+    "m030.png",
+    "m033.png",
+    "m037.png",
+    "m041.png",
+    "m042.png"
+  ],
+  "label_counts": {
+    "C": 16,
+    "D": 2,
+    "F": 2004,
+    "G": 43,
+    "P": 63,
+    "W": 706,
+    "b": 37,
+    "c": 2,
+    "e": 111,
+    "f": 3228,
+    "g": 3688,
+    "h": 17,
+    "i": 867,
+    "m": 873,
+    "r": 388,
+    "w": 224,
+    "~": 201
+  },
+  "accuracy": 0.3961038961038961,
+  "macro_f1": 0.2409057369973547,
+  "classes": {
+    "C": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 6.0
+    },
+    "F": {
+      "precision": 0.5219123505976095,
+      "recall": 0.5147347740667977,
+      "f1-score": 0.5182987141444114,
+      "support": 509.0
+    },
+    "G": {
+      "precision": 0.16666666666666666,
+      "recall": 0.1111111111111111,
+      "f1-score": 0.13333333333333333,
+      "support": 9.0
+    },
+    "P": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 26.0
+    },
+    "W": {
+      "precision": 0.3116883116883117,
+      "recall": 0.192,
+      "f1-score": 0.2376237623762376,
+      "support": 250.0
+    },
+    "b": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 10.0
+    },
+    "e": {
+      "precision": 0.10256410256410256,
+      "recall": 0.13793103448275862,
+      "f1-score": 0.11764705882352941,
+      "support": 29.0
+    },
+    "f": {
+      "precision": 0.5948434622467772,
+      "recall": 0.3375130616509927,
+      "f1-score": 0.43066666666666664,
+      "support": 957.0
+    },
+    "g": {
+      "precision": 0.507183908045977,
+      "recall": 0.46386333771353483,
+      "f1-score": 0.48455730954015097,
+      "support": 761.0
+    },
+    "h": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 4.0
+    },
+    "i": {
+      "precision": 0.4725609756097561,
+      "recall": 0.38944723618090454,
+      "f1-score": 0.42699724517906334,
+      "support": 398.0
+    },
+    "m": {
+      "precision": 0.1953125,
+      "recall": 0.37174721189591076,
+      "f1-score": 0.2560819462227913,
+      "support": 269.0
+    },
+    "r": {
+      "precision": 0.10294117647058823,
+      "recall": 0.3088235294117647,
+      "f1-score": 0.15441176470588236,
+      "support": 68.0
+    },
+    "w": {
+      "precision": 0.023333333333333334,
+      "recall": 0.4666666666666667,
+      "f1-score": 0.044444444444444446,
+      "support": 15.0
+    },
+    "~": {
+      "precision": 0.7472527472527473,
+      "recall": 0.8831168831168831,
+      "f1-score": 0.8095238095238095,
+      "support": 77.0
+    },
+    "accuracy": 0.3961038961038961,
+    "macro avg": {
+      "precision": 0.24975063563172464,
+      "recall": 0.2784636564198217,
+      "f1-score": 0.2409057369973547,
+      "support": 3388.0
+    },
+    "weighted avg": {
+      "precision": 0.47484910362305743,
+      "recall": 0.3961038961038961,
+      "f1-score": 0.4194388460669127,
+      "support": 3388.0
+    }
+  },
+  "sources": [
+    {
+      "stage": "01",
+      "asset": "m007-camp-v5.png",
+      "cells": 266,
+      "image_size": [
+        1536,
+        1152
+      ]
+    },
+    {
+      "stage": "02",
+      "asset": "m001.jpg",
+      "cells": 266,
+      "image_size": [
+        1248,
+        576
+      ]
+    },
+    {
+      "stage": "03",
+      "asset": "m000.jpg",
+      "cells": 304,
+      "image_size": [
+        912,
+        768
+      ]
+    },
+    {
+      "stage": "03b",
+      "asset": "m024.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "04",
+      "asset": "m004.jpg",
+      "cells": 266,
+      "image_size": [
+        1488,
+        960
+      ]
+    },
+    {
+      "stage": "04a",
+      "asset": "m009.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "05",
+      "asset": "m005.jpg",
+      "cells": 266,
+      "image_size": [
+        960,
+        960
+      ]
+    },
+    {
+      "stage": "06",
+      "asset": "m006.jpg",
+      "cells": 728,
+      "image_size": [
+        1248,
+        1344
+      ]
+    },
+    {
+      "stage": "07",
+      "asset": "m027.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "07b",
+      "asset": "m010-camp-v2.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "08",
+      "asset": "m008.png",
+      "cells": 266,
+      "image_size": [
+        1461,
+        1076
+      ]
+    },
+    {
+      "stage": "08a",
+      "asset": "song-capital-coup.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "09",
+      "asset": "m002.jpg",
+      "cells": 266,
+      "image_size": [
+        1680,
+        1200
+      ]
+    },
+    {
+      "stage": "10a",
+      "asset": "m011-camp.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "10b",
+      "asset": "m012.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "11a",
+      "asset": "m013.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "11b",
+      "asset": "m014.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "11c",
+      "asset": "m015.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "12a",
+      "asset": "m016.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "12b",
+      "asset": "m017.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "13a",
+      "asset": "m018.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "13b",
+      "asset": "m019.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "14a",
+      "asset": "m020.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "14b",
+      "asset": "m021.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "15a",
+      "asset": "m022.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "15b",
+      "asset": "m023.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "16",
+      "asset": "m025.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "17",
+      "asset": "m026.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "18",
+      "asset": "m027.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "19a",
+      "asset": "m028.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "19b",
+      "asset": "m029.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "20a",
+      "asset": "m030.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "20c",
+      "asset": "m032.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "20d",
+      "asset": "m033.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "21a",
+      "asset": "m034.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "21b",
+      "asset": "m035.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "21c",
+      "asset": "m036.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "22",
+      "asset": "m037.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "23a",
+      "asset": "m038.png",
+      "cells": 266,
+      "image_size": [
+        1461,
+        1076
+      ]
+    },
+    {
+      "stage": "24a",
+      "asset": "m040.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "24b",
+      "asset": "m041.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "25a",
+      "asset": "m042.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "25b",
+      "asset": "m043.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "26a",
+      "asset": "m044.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    },
+    {
+      "stage": "26b",
+      "asset": "m045.png",
+      "cells": 266,
+      "image_size": [
+        1520,
+        1120
+      ]
+    }
+  ],
+  "auto_apply_eligible": false
+}

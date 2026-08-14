@@ -1,0 +1,412 @@
+{
+  "purpose": "specialist for common terrain only; never predicts structures",
+  "classes": {
+    "f": "Flatland",
+    "F": "Forest",
+    "m": "Mountain"
+  },
+  "split": "grouped by complete map; reviewed Queshan kept in training",
+  "samples": 7165,
+  "maps": 54,
+  "label_counts": {
+    "F": 2487,
+    "f": 3826,
+    "m": 852
+  },
+  "reviewed_map_weight_multiplier": 6.0,
+  "epochs": 24,
+  "batch_size": 1024,
+  "validation_maps": [
+    "m004.jpg",
+    "m006.jpg",
+    "m012.png",
+    "m017.png",
+    "m020.png",
+    "m023.png",
+    "m032.png",
+    "m034.png",
+    "m038.png",
+    "m041.png",
+    "m042.png",
+    "m043.png",
+    "m044.png",
+    "m053.png"
+  ],
+  "experiments": {
+    "linear": {
+      "hidden": 0,
+      "unseen_maps": {
+        "accuracy": 0.7258312020460358,
+        "macro_f1": 0.6848242630681781,
+        "classes": {
+          "f": {
+            "precision": 0.805668016194332,
+            "recall": 0.8223140495867769,
+            "f1-score": 0.8139059304703476,
+            "support": 968.0
+          },
+          "F": {
+            "precision": 0.6620370370370371,
+            "recall": 0.6986970684039088,
+            "f1-score": 0.6798732171156894,
+            "support": 614.0
+          },
+          "m": {
+            "precision": 0.6081504702194357,
+            "recall": 0.5201072386058981,
+            "f1-score": 0.5606936416184971,
+            "support": 373.0
+          },
+          "accuracy": 0.7258312020460358,
+          "macro avg": {
+            "precision": 0.6919518411502682,
+            "recall": 0.6803727855321946,
+            "f1-score": 0.6848242630681781,
+            "support": 1955.0
+          },
+          "weighted avg": {
+            "precision": 0.7228734045057308,
+            "recall": 0.7258312020460358,
+            "f1-score": 0.7234996543877388,
+            "support": 1955.0
+          }
+        }
+      },
+      "reviewed_queshan_fit": {
+        "accuracy": 0.9647266313932981,
+        "macro_f1": 0.9458489702061016,
+        "classes": {
+          "f": {
+            "precision": 0.9833887043189369,
+            "recall": 0.9866666666666667,
+            "f1-score": 0.9850249584026622,
+            "support": 300.0
+          },
+          "F": {
+            "precision": 0.9565217391304348,
+            "recall": 0.9519230769230769,
+            "f1-score": 0.9542168674698795,
+            "support": 208.0
+          },
+          "m": {
+            "precision": 0.8983050847457628,
+            "recall": 0.8983050847457628,
+            "f1-score": 0.8983050847457628,
+            "support": 59.0
+          },
+          "accuracy": 0.9647266313932981,
+          "macro avg": {
+            "precision": 0.9460718427317115,
+            "recall": 0.9456316094451687,
+            "f1-score": 0.9458489702061016,
+            "support": 567.0
+          },
+          "weighted avg": {
+            "precision": 0.9646792469749763,
+            "recall": 0.9647266313932981,
+            "f1-score": 0.9646994637646097,
+            "support": 567.0
+          }
+        }
+      }
+    },
+    "mlp128": {
+      "hidden": 128,
+      "unseen_maps": {
+        "accuracy": 0.7370843989769821,
+        "macro_f1": 0.6923390566001961,
+        "classes": {
+          "f": {
+            "precision": 0.8,
+            "recall": 0.8553719008264463,
+            "f1-score": 0.8267598602096855,
+            "support": 968.0
+          },
+          "F": {
+            "precision": 0.648729446935725,
+            "recall": 0.7068403908794788,
+            "f1-score": 0.676539360872954,
+            "support": 614.0
+          },
+          "m": {
+            "precision": 0.7131474103585658,
+            "recall": 0.47989276139410186,
+            "f1-score": 0.5737179487179487,
+            "support": 373.0
+          },
+          "accuracy": 0.7370843989769821,
+          "macro avg": {
+            "precision": 0.720625619098097,
+            "recall": 0.6807016843666757,
+            "f1-score": 0.6923390566001961,
+            "support": 1955.0
+          },
+          "weighted avg": {
+            "precision": 0.7359201352850538,
+            "recall": 0.7370843989769821,
+            "f1-score": 0.7313020496832554,
+            "support": 1955.0
+          }
+        }
+      },
+      "reviewed_queshan_fit": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "classes": {
+          "f": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 300.0
+          },
+          "F": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 208.0
+          },
+          "m": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 59.0
+          },
+          "accuracy": 1.0,
+          "macro avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 567.0
+          },
+          "weighted avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 567.0
+          }
+        }
+      }
+    }
+  },
+  "selected": "mlp128",
+  "spatial_postprocess_validation": {
+    "raw_accuracy": 0.7370843989769821,
+    "post_accuracy": 0.7478260869565218,
+    "eligible_cells": 1955,
+    "total_changes": 67,
+    "maps": [
+      {
+        "map": "m004.jpg",
+        "cells": 68,
+        "raw_accuracy": 0.7058823529411765,
+        "post_accuracy": 0.7352941176470589,
+        "confidence_threshold": 0.72,
+        "kernel": "3x3 close then open per natural class",
+        "min_protected_component": 12,
+        "eligible_cells": 68,
+        "low_confidence_cells": 4,
+        "protected_cells": 63,
+        "vote_changes": 4,
+        "morphology_changes": 0,
+        "total_changes": 4
+      },
+      {
+        "map": "m006.jpg",
+        "cells": 548,
+        "raw_accuracy": 0.6879562043795621,
+        "post_accuracy": 0.6897810218978102,
+        "confidence_threshold": 0.72,
+        "kernel": "3x3 close then open per natural class",
+        "min_protected_component": 12,
+        "eligible_cells": 548,
+        "low_confidence_cells": 14,
+        "protected_cells": 522,
+        "vote_changes": 8,
+        "morphology_changes": 0,
+        "total_changes": 8
+      },
+      {
+        "map": "m012.png",
+        "cells": 197,
+        "raw_accuracy": 0.9898477157360406,
+        "post_accuracy": 0.9746192893401016,
+        "confidence_threshold": 0.72,
+        "kernel": "3x3 close then open per natural class",
+        "min_protected_component": 12,
+        "eligible_cells": 197,
+        "low_confidence_cells": 5,
+        "protected_cells": 178,
+        "vote_changes": 3,
+        "morphology_changes": 0,
+        "total_changes": 3
+      },
+      {
+        "map": "m017.png",
+        "cells": 178,
+        "raw_accuracy": 0.949438202247191,
+        "post_accuracy": 0.949438202247191,
+        "confidence_threshold": 0.72,
+        "kernel": "3x3 close then open per natural class",
+        "min_protected_component": 12,
+        "eligible_cells": 178,
+        "low_confidence_cells": 2,
+        "protected_cells": 165,
+        "vote_changes": 0,
+        "morphology_changes": 0,
+        "total_changes": 0
+      },
+      {
+        "map": "m020.png",
+        "cells": 118,
+        "raw_accuracy": 0.7627118644067796,
+        "post_accuracy": 0.7542372881355932,
+        "confidence_threshold": 0.72,
+        "kernel": "3x3 close then open per natural class",
+        "min_protected_component": 12,
+        "eligible_cells": 118,
+        "low_confidence_cells": 16,
+        "protected_cells": 62,
+        "vote_changes": 5,
+        "morphology_changes": 0,
+        "total_changes": 5
+      },
+      {
+        "map": "m023.png",
+        "cells": 164,
+        "raw_accuracy": 0.7987804878048781,
+        "post_accuracy": 0.8536585365853658,
+        "confidence_threshold": 0.72,
+        "kernel": "3x3 close then open per natural class",
+        "min_protected_component": 12,
+        "eligible_cells": 164,
+        "low_confidence_cells": 16,
+        "protected_cells": 113,
+        "vote_changes": 11,
+        "morphology_changes": 0,
+        "total_changes": 11
+      },
+      {
+        "map": "m032.png",
+        "cells": 62,
+        "raw_accuracy": 1.0,
+        "post_accuracy": 1.0,
+        "confidence_threshold": 0.72,
+        "kernel": "3x3 close then open per natural class",
+        "min_protected_component": 12,
+        "eligible_cells": 62,
+        "low_confidence_cells": 0,
+        "protected_cells": 62,
+        "vote_changes": 0,
+        "morphology_changes": 0,
+        "total_changes": 0
+      },
+      {
+        "map": "m034.png",
+        "cells": 104,
+        "raw_accuracy": 0.7403846153846154,
+        "post_accuracy": 0.75,
+        "confidence_threshold": 0.72,
+        "kernel": "3x3 close then open per natural class",
+        "min_protected_component": 12,
+        "eligible_cells": 104,
+        "low_confidence_cells": 21,
+        "protected_cells": 63,
+        "vote_changes": 6,
+        "morphology_changes": 0,
+        "total_changes": 6
+      },
+      {
+        "map": "m038.png",
+        "cells": 66,
+        "raw_accuracy": 0.6060606060606061,
+        "post_accuracy": 0.6515151515151515,
+        "confidence_threshold": 0.72,
+        "kernel": "3x3 close then open per natural class",
+        "min_protected_component": 12,
+        "eligible_cells": 66,
+        "low_confidence_cells": 9,
+        "protected_cells": 16,
+        "vote_changes": 3,
+        "morphology_changes": 0,
+        "total_changes": 3
+      },
+      {
+        "map": "m041.png",
+        "cells": 89,
+        "raw_accuracy": 0.9775280898876404,
+        "post_accuracy": 0.9887640449438202,
+        "confidence_threshold": 0.72,
+        "kernel": "3x3 close then open per natural class",
+        "min_protected_component": 12,
+        "eligible_cells": 89,
+        "low_confidence_cells": 1,
+        "protected_cells": 87,
+        "vote_changes": 1,
+        "morphology_changes": 0,
+        "total_changes": 1
+      },
+      {
+        "map": "m042.png",
+        "cells": 148,
+        "raw_accuracy": 0.6824324324324325,
+        "post_accuracy": 0.7567567567567568,
+        "confidence_threshold": 0.72,
+        "kernel": "3x3 close then open per natural class",
+        "min_protected_component": 12,
+        "eligible_cells": 148,
+        "low_confidence_cells": 21,
+        "protected_cells": 102,
+        "vote_changes": 15,
+        "morphology_changes": 0,
+        "total_changes": 15
+      },
+      {
+        "map": "m043.png",
+        "cells": 142,
+        "raw_accuracy": 0.4014084507042254,
+        "post_accuracy": 0.3873239436619718,
+        "confidence_threshold": 0.72,
+        "kernel": "3x3 close then open per natural class",
+        "min_protected_component": 12,
+        "eligible_cells": 142,
+        "low_confidence_cells": 7,
+        "protected_cells": 121,
+        "vote_changes": 6,
+        "morphology_changes": 0,
+        "total_changes": 6
+      },
+      {
+        "map": "m044.png",
+        "cells": 68,
+        "raw_accuracy": 0.058823529411764705,
+        "post_accuracy": 0.04411764705882353,
+        "confidence_threshold": 0.72,
+        "kernel": "3x3 close then open per natural class",
+        "min_protected_component": 12,
+        "eligible_cells": 68,
+        "low_confidence_cells": 8,
+        "protected_cells": 45,
+        "vote_changes": 5,
+        "morphology_changes": 0,
+        "total_changes": 5
+      },
+      {
+        "map": "m053.png",
+        "cells": 3,
+        "raw_accuracy": 1.0,
+        "post_accuracy": 1.0,
+        "confidence_threshold": 0.72,
+        "kernel": "3x3 close then open per natural class",
+        "min_protected_component": 12,
+        "eligible_cells": 3,
+        "low_confidence_cells": 1,
+        "protected_cells": 0,
+        "vote_changes": 0,
+        "morphology_changes": 0,
+        "total_changes": 0
+      }
+    ]
+  },
+  "auto_apply": false,
+  "excluded_conflicting_assets": []
+}

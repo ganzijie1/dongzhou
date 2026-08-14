@@ -1,0 +1,675 @@
+{
+  "map": "assets/lzc/map/m065.png",
+  "source_base": "output/imagegen/chapter43-yingyang-base-gpt2.png",
+  "prompt_file": "output/imagegen/m065_prompt.txt",
+  "grid": [
+    32,
+    24
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "mmfffFgFffffFgFfffgFfFffggFfFfgg",
+    "FfFfggfFfFggffFfFgfffFgFffffFmmf",
+    "ffmgFfffWWWWWWWWWWWWWWWWfFggffFf",
+    "mgffffggWiiiiiiiiiiiiiiWggffffgm",
+    "ffffggffWiiiiiiiiiiiiiiWffffgmff",
+    "fmmgffffWiiiiiCiCiCiiiiWffggffff",
+    "ggffffggWiiiiiiiiiiiiiiWggffffmm",
+    "ffffggffWiiiiiiiiiiiiiiWffffggff",
+    "mmggffffWiiiiiiiiiiiiiiWffggffff",
+    "ggffffggWiiiiiiiiiiiiiiWggfffmmg",
+    "ffmfggffWiiiiiiiiiiiiiiWffffggff",
+    "mfggffffWiiiiiiiiiiiiiiWffggfffm",
+    "ggffffggWiiiiiiiiiiiiiiWggfffmgg",
+    "fmmfggffWiiiiiiiiiiiiiiWffffggff",
+    "ffggffffWWWWWWWGGWWWWWWWffggffmm",
+    "ggffffggffffggffffggffffggffffgg",
+    "mmffggffffggffffggffffggffffggff",
+    "ffggffffggPPPPPgfPPPPPffffggfmmf",
+    "ggmfffggffPfggffffggfPffggffffgg",
+    "mfffggffffPgffffggfffPggffffggfm",
+    "ffggffffggPffeggffefgPffffggfmff",
+    "FmmffFgFffPfFgFfffgFfPffggFfFfgg",
+    "FfFfggfFfFPgffFfFgfffPgFffffFgmm",
+    "ffFgFfffgFPPPPPPPPPPPPfFfFggffFf"
+  ],
+  "terrain_source": "GPT Image 2 natural base plus programmatic source-of-truth structures",
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "structure_regions": {
+    "yingyang_city": [
+      [
+        8,
+        2
+      ],
+      [
+        23,
+        14
+      ]
+    ],
+    "jin_camp": [
+      [
+        10,
+        17
+      ],
+      [
+        21,
+        23
+      ]
+    ]
+  },
+  "wall_cells": [
+    [
+      8,
+      2
+    ],
+    [
+      8,
+      3
+    ],
+    [
+      8,
+      4
+    ],
+    [
+      8,
+      5
+    ],
+    [
+      8,
+      6
+    ],
+    [
+      8,
+      7
+    ],
+    [
+      8,
+      8
+    ],
+    [
+      8,
+      9
+    ],
+    [
+      8,
+      10
+    ],
+    [
+      8,
+      11
+    ],
+    [
+      8,
+      12
+    ],
+    [
+      8,
+      13
+    ],
+    [
+      8,
+      14
+    ],
+    [
+      9,
+      2
+    ],
+    [
+      9,
+      14
+    ],
+    [
+      10,
+      2
+    ],
+    [
+      10,
+      14
+    ],
+    [
+      11,
+      2
+    ],
+    [
+      11,
+      14
+    ],
+    [
+      12,
+      2
+    ],
+    [
+      12,
+      14
+    ],
+    [
+      13,
+      2
+    ],
+    [
+      13,
+      14
+    ],
+    [
+      14,
+      2
+    ],
+    [
+      14,
+      14
+    ],
+    [
+      15,
+      2
+    ],
+    [
+      16,
+      2
+    ],
+    [
+      17,
+      2
+    ],
+    [
+      17,
+      14
+    ],
+    [
+      18,
+      2
+    ],
+    [
+      18,
+      14
+    ],
+    [
+      19,
+      2
+    ],
+    [
+      19,
+      14
+    ],
+    [
+      20,
+      2
+    ],
+    [
+      20,
+      14
+    ],
+    [
+      21,
+      2
+    ],
+    [
+      21,
+      14
+    ],
+    [
+      22,
+      2
+    ],
+    [
+      22,
+      14
+    ],
+    [
+      23,
+      2
+    ],
+    [
+      23,
+      3
+    ],
+    [
+      23,
+      4
+    ],
+    [
+      23,
+      5
+    ],
+    [
+      23,
+      6
+    ],
+    [
+      23,
+      7
+    ],
+    [
+      23,
+      8
+    ],
+    [
+      23,
+      9
+    ],
+    [
+      23,
+      10
+    ],
+    [
+      23,
+      11
+    ],
+    [
+      23,
+      12
+    ],
+    [
+      23,
+      13
+    ],
+    [
+      23,
+      14
+    ]
+  ],
+  "fence_cells": [
+    [
+      10,
+      17
+    ],
+    [
+      10,
+      18
+    ],
+    [
+      10,
+      19
+    ],
+    [
+      10,
+      20
+    ],
+    [
+      10,
+      21
+    ],
+    [
+      10,
+      22
+    ],
+    [
+      10,
+      23
+    ],
+    [
+      11,
+      17
+    ],
+    [
+      11,
+      23
+    ],
+    [
+      12,
+      17
+    ],
+    [
+      12,
+      23
+    ],
+    [
+      13,
+      17
+    ],
+    [
+      13,
+      23
+    ],
+    [
+      14,
+      17
+    ],
+    [
+      14,
+      23
+    ],
+    [
+      15,
+      23
+    ],
+    [
+      16,
+      23
+    ],
+    [
+      17,
+      17
+    ],
+    [
+      17,
+      23
+    ],
+    [
+      18,
+      17
+    ],
+    [
+      18,
+      23
+    ],
+    [
+      19,
+      17
+    ],
+    [
+      19,
+      23
+    ],
+    [
+      20,
+      17
+    ],
+    [
+      20,
+      23
+    ],
+    [
+      21,
+      17
+    ],
+    [
+      21,
+      18
+    ],
+    [
+      21,
+      19
+    ],
+    [
+      21,
+      20
+    ],
+    [
+      21,
+      21
+    ],
+    [
+      21,
+      22
+    ],
+    [
+      21,
+      23
+    ]
+  ],
+  "fence_geometry": "impassable cell center-axis; corners use two half-axis segments",
+  "gates": [
+    {
+      "name": "yingyang_south_gate",
+      "cells": [
+        [
+          15,
+          14
+        ],
+        [
+          16,
+          14
+        ]
+      ]
+    },
+    {
+      "name": "jin_north_gate",
+      "cells": [
+        [
+          15,
+          17
+        ],
+        [
+          16,
+          17
+        ]
+      ]
+    }
+  ],
+  "camp_icon_cells": [
+    [
+      13,
+      20
+    ],
+    [
+      18,
+      20
+    ]
+  ],
+  "camp_cells": [
+    [
+      13,
+      20
+    ],
+    [
+      18,
+      20
+    ]
+  ],
+  "castle_cells": [
+    [
+      14,
+      5
+    ],
+    [
+      16,
+      5
+    ],
+    [
+      18,
+      5
+    ]
+  ],
+  "supply_sites": [
+    [
+      13,
+      20
+    ],
+    [
+      14,
+      5
+    ],
+    [
+      16,
+      5
+    ],
+    [
+      18,
+      5
+    ],
+    [
+      18,
+      20
+    ]
+  ],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "ChongEr27",
+      "force": 1,
+      "position": [
+        15,
+        20
+      ]
+    },
+    {
+      "name": "ZhaoShuai27",
+      "force": 1,
+      "position": [
+        13,
+        21
+      ]
+    },
+    {
+      "name": "HuYan27",
+      "force": 1,
+      "position": [
+        17,
+        21
+      ]
+    },
+    {
+      "name": "XianZhen27",
+      "force": 1,
+      "position": [
+        19,
+        21
+      ]
+    },
+    {
+      "name": "JinGuard43",
+      "force": 1,
+      "position": [
+        12,
+        19
+      ]
+    },
+    {
+      "name": "JinGuard43",
+      "force": 1,
+      "position": [
+        18,
+        19
+      ]
+    },
+    {
+      "name": "JinArcher43",
+      "force": 1,
+      "position": [
+        16,
+        19
+      ]
+    },
+    {
+      "name": "QinMuGong29",
+      "force": 2,
+      "position": [
+        5,
+        16
+      ]
+    },
+    {
+      "name": "CaoGongGong39",
+      "force": 2,
+      "position": [
+        26,
+        16
+      ]
+    },
+    {
+      "name": "GongSunGu33",
+      "force": 2,
+      "position": [
+        27,
+        12
+      ]
+    },
+    {
+      "name": "GuoGuiFu40",
+      "force": 2,
+      "position": [
+        5,
+        12
+      ]
+    },
+    {
+      "name": "XuXiGong43",
+      "force": 3,
+      "position": [
+        16,
+        5
+      ]
+    },
+    {
+      "name": "XuGuard43",
+      "force": 3,
+      "position": [
+        15,
+        14
+      ]
+    },
+    {
+      "name": "XuGuard43",
+      "force": 3,
+      "position": [
+        16,
+        14
+      ]
+    },
+    {
+      "name": "XuGuard43",
+      "force": 3,
+      "position": [
+        12,
+        11
+      ]
+    },
+    {
+      "name": "XuGuard43",
+      "force": 3,
+      "position": [
+        20,
+        11
+      ]
+    },
+    {
+      "name": "XuGuard43",
+      "force": 3,
+      "position": [
+        14,
+        8
+      ]
+    },
+    {
+      "name": "XuGuard43",
+      "force": 3,
+      "position": [
+        18,
+        8
+      ]
+    },
+    {
+      "name": "XuArcher43",
+      "force": 3,
+      "position": [
+        11,
+        9
+      ]
+    },
+    {
+      "name": "XuArcher43",
+      "force": 3,
+      "position": [
+        21,
+        9
+      ]
+    },
+    {
+      "name": "XuArcher43",
+      "force": 3,
+      "position": [
+        15,
+        7
+      ]
+    },
+    {
+      "name": "XuArcher43",
+      "force": 3,
+      "position": [
+        17,
+        7
+      ]
+    }
+  ],
+  "visual_grid_in_game": false
+}

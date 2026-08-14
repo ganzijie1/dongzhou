@@ -1,0 +1,122 @@
+{
+  "map": "assets/lzc/map/m068.png",
+  "source_base": "output/imagegen/chapter45-xiaoshan-base-gpt2.png",
+  "prompt_file": "output/imagegen/m068_prompt.txt",
+  "grid": [
+    44,
+    28
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+    "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+    "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrmmmrrrrr",
+    "rrrrrrrrrrrrrrrrrrrrrmmmmrrrrrrrrrmmmmmmmmrr",
+    "rrrrrrmmmrrrrrrrrrrmmmmmmmmmrrrrmmmmmFmmmmmm",
+    "rrmmmmmmmmmmmrrrmmmmmmFmmmmmmmmmmmmFmFmmFmmm",
+    "mmmmmmmmFmmmmmmmmmmmFmmFmFmmmmmmmFmFFmmmFmmF",
+    "mmmFmmFmFmmFmmmmFmFmmmFmmmFmFmmFmFFmmmFmmmmF",
+    "mFmmFmmmFFmFmmFmFmmmFmmmFmmmmFmFFmmmgwwmFmmm",
+    "mmFmmmFmmmFmmmFmmmFmmwwgfmFmmmFmmmggwwgfgwFm",
+    "FmmmFmwfgmmmFmmmFmmfwwfggwwgFmmmggfwwfggwwgf",
+    "mmfgwwggfwwfgmFmgfgwwggfwwfggwwgfgwwggfwwfgg",
+    "fggwwgfgwwggfwwfggwwgfgwwggfwwfggwwgfgwwggfw",
+    "gfwwfggwwgfgwwggfwwfggwwgfgwwggfwwfggwwgfgww",
+    "gwwggfwwfggwwgfgwwggfwwfggwwgfgwwggfwwfggwwg",
+    "wwgfgwwggfwwfggwwgfgwwggfwwfggwwgfgwmmFfwwfg",
+    "wfggwwgfgwwggfwwfggwwmmmFwggfwwfggmmFmmmFmgf",
+    "ggfwwfFmmwgfgwwggfwmmmFmmmFmwwggmmFmFmFmmmFm",
+    "fgmmFmmmFmmmFwgfFmmmFFmmFmmmFmmmFmFmFmmFmFmm",
+    "mmFmmmmFmmFmmmFmmmFFmmFmFmmFmmFmFmFmmmmFmmFm",
+    "FmFmmFmFmmFmFmmmmFmmFmmmmFmFmmFmFmmmmmmmmmFm",
+    "FmmFmFmmmmFmmFmFmmFmmmmmmmmmFmFmmmmmrrrmmmmm",
+    "mFmmmmmmmmmmmFmmmmmmmrrrrmmmmmmmmmrrrrrrrrmm",
+    "mmmmmmrrrmmmmmmmmmmrrrrrrrrrmmmmrrrrrrrrrrrr",
+    "mmrrrrrrrrrrrmmmrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+    "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+    "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+    "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_source": "GPT Image 2 natural base plus source-of-truth broad terrain masks",
+  "structure_regions": {},
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this natural battlefield",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [],
+  "supply_sites": [],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "JinXiangGong45",
+      "force": 1,
+      "position": [
+        23,
+        18
+      ]
+    },
+    {
+      "name": "XianZhen27",
+      "force": 1,
+      "position": [
+        21,
+        18
+      ]
+    },
+    {
+      "name": "BaoManZi44",
+      "force": 3,
+      "position": [
+        11,
+        14
+      ]
+    },
+    {
+      "name": "MengMingShi26",
+      "force": 3,
+      "position": [
+        18,
+        14
+      ]
+    },
+    {
+      "name": "XiQiShu26",
+      "force": 3,
+      "position": [
+        22,
+        12
+      ]
+    },
+    {
+      "name": "BaiYiBing26",
+      "force": 3,
+      "position": [
+        26,
+        13
+      ]
+    }
+  ],
+  "mission": {
+    "type": "four_sided_ambush",
+    "trigger": [
+      11,
+      14
+    ],
+    "qin_named_outcome": "capture",
+    "bao_manzi_outcome": "death"
+  },
+  "visual_grid_in_game": false
+}

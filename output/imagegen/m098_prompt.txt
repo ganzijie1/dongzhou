@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: Mengde tactical city map
+Primary request: broad level terrain reserved for Zheng west palace, north palace and connected city streets.
+Style: classic Chinese tactical-RPG painted terrain, orthographic.
+Constraints: no structures, units, text, UI, or visible grid; palace walls are separate overlays.

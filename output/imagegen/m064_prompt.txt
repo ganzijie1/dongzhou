@@ -1,0 +1,6 @@
+Use case: stylized-concept.
+Asset type: grid-free natural base environment for a Mengde/Ekgd Chinese historical tactical RPG battlefield.
+Primary request: the ancient Chengpu battlefield, a broad spring plain suitable for three large army wings, with a low wooded ridge along the northwest, an open central field, shallow marshy ground and reed-fringed ponds along the southeast edge, and two broad curving dirt roads crossing the plain.
+Style/medium: polished orthographic top-down late-1990s Chinese historical tactical RPG map, hand-painted pixel texture, natural terrain transitions, readable at 64 pixels per logical cell.
+Composition/framing: full-canvas landscape, no horizon, no visible grid; broad open deployment zones at north and south and maneuver corridors on both flanks.
+Constraints: absolutely no walls, gates, buildings, city structures, camps, tents, fences, units, carts, horses, tiger skins, flags, fire, corpses, text, UI, labels, grid lines, tile seams, modern objects, or watermark.

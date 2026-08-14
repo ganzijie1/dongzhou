@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: Mengde tactical retreat map
+Primary request: broad Taihang mountain shoulders, an open east-west withdrawal pass, and crossable Shaoshui shallows toward the eastern exit.
+Style: classic Chinese tactical-RPG painted terrain, orthographic, natural transitions.
+Constraints: no structures, units, text, UI, or visible grid.

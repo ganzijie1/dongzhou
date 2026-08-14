@@ -1,0 +1,8 @@
+Use case: historical-scene
+Asset type: grid-free tactical RPG battlefield base
+Primary request: Create the countryside around the ancient fortified town of Jiao during a Qin siege and Jin relief operation.
+Scene/backdrop: broad dry grassland and worn siege roads, open level ground reserved on the western side for a programmatically overlaid fortified town, wider open approach and deployment lanes across the center and east, sparse woodland and low hills only near outer edges.
+Style/medium: polished hand-painted classic Chinese tactical-RPG terrain, orthographic view, readable at 48-pixel logical cells.
+Composition/framing: landscape 2048x1152, detailed edge to edge; the western reserved area must be relatively flat and unobstructed.
+Constraints: natural landscape base only; do not draw the town, walls, gates, houses, troops, siege engines, camps, tents, fences, text, UI, flags, supply icons, square tiles, or grid lines.
+

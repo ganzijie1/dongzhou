@@ -1,0 +1,8 @@
+Use case: historical-scene
+Asset type: seamless tactical battle-map base for a classic Chinese turn-based strategy RPG
+Primary request: Create the Pengya border battlefield viewed from a high orthographic three-quarter angle. A large dry open plain occupies the center and east, crossed by shallow wheel-rutted tracks and broad patches of winter grass. Low ridges and sparse woodland run along the western and northern edges, with two open flanking approaches and a wide central zone suitable for opposing chariot armies. Preserve generous maneuvering space for a hundred-man vanguard charge followed by a full army advance.
+Style/medium: richly painted late-1990s Chinese tactical RPG battlefield, realistic natural textures, cohesive hand-painted terrain
+Composition/framing: very wide battlefield, continuous terrain to every edge, broad natural regions rather than tile-sized patches, readable when divided into a 42 by 28 logical grid
+Lighting/mood: clear winter afternoon, tense and windswept, natural ochre, faded green and gray rock
+Constraints: natural base only; no camps, tents, chariots, fences, walls, gates, buildings, units, horses, weapons, flags, text, UI, coordinate labels, borders, or visible grid lines
+Avoid: square terrain seams, repeated tiled texture, miniature diorama edge, fantasy architecture, flat empty lawn

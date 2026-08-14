@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: Mengde tactical pursuit map
+Primary request: Wei capital at west, broad east gate road through Heze marsh toward distant Qi border.
+Style: classic Chinese tactical-RPG painted terrain, orthographic, natural transitions.
+Constraints: no walls, units, text, UI, or visible grid; city structures are separate overlays.

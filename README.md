@@ -17,6 +17,30 @@ There are features in common between mengde and 三國志曹操傳.
 
 This game is not complete for playing yet.
 
+### 东周列国志 MOD（Windows）
+
+给其他玩家使用时，发布 `release\Ekgd-portable-win64.zip`。玩家完整解压后双击 `Ekgd\Ekgd.exe`，无需安装 Python，也不需要项目源码或命令行。不要只复制单个 EXE，必须保留旁边的 `_internal` 文件夹。
+
+便携版存档保存在 `%LOCALAPPDATA%\Ekgd\saves`，启动错误日志保存在 `%LOCALAPPDATA%\Ekgd\logs\startup-error.log`。
+
+开发机重新打包：
+
+```powershell
+.\.venv-rl\Scripts\python.exe -m pip install -r packaging\requirements-portable.txt
+.\tools\build_portable.ps1
+```
+
+第一回使用 `game/sce/dongzhou` 下的 Lua 剧本。进入项目目录后运行：
+
+```powershell
+cd C:\mengde
+.\.venv-rl\Scripts\python.exe -m rl.play_gui --scenario dongzhou --assets-root "D:\Downloads\LZC传（Li自成）\LZC传（Li自成）"
+```
+
+开场、胜利和失败过场均由关卡 Lua 文件中的 `gstory` 表驱动；战场、人物和胜负条件由同一关卡文件中的 `gstage` 及回调函数驱动。
+
+当前 GUI 入口 `rl/play_gui.py` 会加载同目录的固定 Python 3.10 运行载荷 `rl/_play_gui_runtime.cpython-310.pyc`。发布或迁移时两者必须一同保留；不要把该载荷当作普通 `__pycache__` 删除。
+
 ## For scenario(MOD) developers
 
 TBD
@@ -24,6 +48,10 @@ TBD
 ## For game engine developers
 
 For now we only have instructions for build.
+
+### Reinforcement learning / Mirror Mode
+
+The Fire Emblem Mirror Mode method has been ported as a headless Gymnasium environment using the real mengde rule engine. It includes legal-action masking, demonstration recording, behavioral cloning, GAIL, and masked PPO. See [the Chinese RL guide](docs/reinforcement_learning_zh.md) for architecture, build, data collection, training, and evaluation commands.
 
 ### How to Build
 

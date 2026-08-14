@@ -1,0 +1,81 @@
+gally_hold_position=true
+gsupply_enabled=true
+gitems={{id="medicine",name="金疮药",hp=120,mp=0,price=120,initial=2},{id="spirit_powder",name="清心散",hp=0,mp=30,price=150,initial=1}}
+gcommanders={"TangWuJiu65","CuiCheng65","CuiJiang65","DongGuoYan65"}
+gevents_enabled=true
+gduel_enabled=false
+gduels={}
+gsites={{id="cui_inner",name="崔氏内宅",position={24,9},restore_hp=25,restore_mp=15,rewards={{item="medicine",amount=1}}},{id="cui_store",name="崔氏府库",position={15,24},restore_hp=20,restore_mp=10,rewards={}}}
+gstory={chapter="第六十五回·上",title="弑齐光崔庆专权 纳卫衎甯喜擅政",battle_title="崔府之变",objective="击退齐庄公及随行勇士，控制崔氏府第。",map_asset="m108.png",
+ intro={
+  {speaker="",text="莒黎比公入临淄朝齐，齐庄公在北郭设宴。崔杼诈称有病，诱使庄公宴后到崔府问疾。"},
+  {speaker="",text="齐庄公私通棠姜已久，以为崔杼病重，便带贾举、州绰、公孙敖、偻堙等勇士前往。"},
+  {speaker="东郭偃",text="州绰等人留在外舍饮酒，先盗走兵器；府内鸣钟后，门外伏甲同时发动。"},
+  {speaker="棠无咎",text="内室左右已伏甲百人。庄公入楼后封闭后门，以钟声为号，不许任何人越墙。"},
+  {speaker="齐庄公",text="寡人愿与崔相立盟，甚至到太庙自尽谢罪，只求放开一条生路。"},
+  {speaker="棠无咎",text="我等只奉命捉拿淫贼，不知有君。花台与墙头均有弓手，休想逃走。"},
+  {speaker="州绰",text="我受齐侯知遇，今日纵无兵器，也不能苟活而事新主。"},
+  {speaker="军令",text="击退齐庄公及贾举、州绰、公孙敖、偻堙。崔氏四名具名角色任一被击退均失败。"}
+ },
+ events={
+  {id="story_event_1",trigger="scripted",turn=0,hp_percent=0,speaker="棠无咎",text="钟声已响，封锁后户与花台！"},
+  {id="story_event_2",trigger="scripted",turn=0,hp_percent=0,speaker="齐庄公",text="寡人知罪，愿与崔相面盟！"},
+  {id="story_event_3",trigger="scripted",turn=0,hp_percent=0,speaker="州绰",text="兵器虽失，州绰尚有一命可报君恩！"}
+ },
+ victory={
+  {speaker="",text="齐庄公破后户登楼，又跳上花台欲翻墙，被棠无咎射中左股，坠墙后遭伏甲刺杀。"},
+  {speaker="",text="贾举入中门时被绊索绊倒，崔疆将其击杀；公孙敖奋力折断崔成手臂，最终也被长戈刺死。"},
+  {speaker="",text="偻堙被州绰误投车石打断一足，旋即战死；州绰不肯降服，以头撞墙自尽。"},
+  {speaker="",text="邴师、封具、铎父、襄尹等勇爵之士先后殉死，王何奔莒，卢蒲癸奔晋。"},
+  {speaker="",text="晏婴伏在庄公尸身上痛哭三踊。崔杼不敢杀贤，随后迎公子杵臼为齐景公。"},
+  {speaker="",text="太史伯与两名弟弟因直书“崔杼弑其君光”相继被杀，第三弟仍不改书，崔杼终于退让。"},
+  {speaker="军令",text="崔府之变完成，获得900金币。下一关：巢门伏射。"}
+ },
+ defeat={{speaker="",text="棠无咎、崔成、崔疆、东郭偃任一被击退，或超过二十二回合，失败。"}}
+}
+local targets={"QiZhuangGong62","JiaJu65","ZhouChuoQi65","GongSunAo65","LouYan65"}
+local function many(game,h,p,f)for _,v in ipairs(p)do game:generate_unit(h,1,f,v)end end
+function on_deploy(game)for _,h in ipairs(gcommanders)do game:appoint_hero(h,1)end end
+function on_begin(game)game:generate_unit("QiZhuangGong62",1,Enum.force.enemy,{24,22});game:generate_unit("JiaJu65",1,Enum.force.enemy,{25,20});game:generate_unit("ZhouChuoQi65",1,Enum.force.enemy,{22,29});game:generate_unit("GongSunAo65",1,Enum.force.enemy,{27,29});game:generate_unit("LouYan65",1,Enum.force.enemy,{30,28});many(game,"CuiAmbusher65",{{18,13},{22,13},{27,13},{31,13},{18,19},{21,20},{28,20},{32,19}},Enum.force.own);many(game,"QiBraveGuard65",{{20,25},{24,26},{28,25},{24,29}},Enum.force.enemy)end
+function on_update(game)end function on_victory(game)end function on_defeat(game)end
+function end_condition(game)for _,h in ipairs(gcommanders)do if not game:has_unit(h)then return Enum.status.defeat end end for _,h in ipairs(targets)do if game:has_unit(h)then return Enum.status.undecided end end return Enum.status.victory end
+gstage={title_id="CuiManorRegicide65",turn_limit=22,map={blocked_edges={},size={50,38},terrain={
+        "FgfffFggffffggFffggffffFgfffFggfffggfFffggffffFgff",
+        "ffggffffFgffffggfFfggfFffggffffFgfffggffFfggfFffgg",
+        "gfFfggffffgFffffFgfffggffFfggffffgFfffgFffffggffFf",
+        "fggffFgWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWfffggff",
+        "fffgFffWiiiihiiiiiiihiiiiiiihiiiiiiihiiiiiWgfFffgg",
+        "gffffggWiiihiiiiiiihiiiiiiihiiiiiiihiiiiiiWfFgffff",
+        "fFgffffWiihiiiiiiihiiiiiiihiiiiiiihiiiiiiiWfffgFff",
+        "fffgFffWihiiiiiiihiiiiiiihiiiiiiihiiiiiiihWggfffgg",
+        "gffFfggWhiiiiiiihiiiiiiihiiiiiiihiiiiiiihiWfFggffF",
+        "fggfffFWiiiiiiihiiiiiiihCiiiiiihiiiiiiihiiWFfffggf",
+        "FffggffWiiiiiihiiiiiiihiiiiiiihiiiiiiihiiiWggfFffg",
+        "ggfFfggWiiiiihiiiiiiihiiiiiiihiiiiiiihiiiiWffggffF",
+        "ffFgfffWiiiihiiiiiiihiiiiiiihiiiiiiihiiiiiWFfffgFf",
+        "ffffgFfWiiihiiiiiiihiiiiiiihiiiiiiihiiiiiiWggffffg",
+        "ggffffgWiihiiiiiiihiiiiiiihiiiiiiihiiiiiiiWffFgfff",
+        "ffFgfffWihiiiiiiihiiiiiiihiiiiiiihiiiiiiihWgfffgFf",
+        "fFffggfWhiiiiiiihiiiiiiihiiiiiiihiiiiiiihiWfggfFfg",
+        "ggffFfgWiiiiWWWWWWWWWWWWGGWWWWWWWWWWWWihiiWfffggff",
+        "ffggfffWiiiiiihiiiiiiihiiiiiiihiiiiiiihiiiWgFfffgg",
+        "gFffggFWiiiiihiiiiiiihiiiiiiihiiiiiiihiiiiWfggfFff",
+        "FggfffgWiiiihiiiiiiihiiiiiiihiiiiiiihiiiiiWfffFgff",
+        "fffFgffWiiihiiiiiiihiiiiiiihiiiiiiihiiiiiiWgffffgF",
+        "gffffgFWiihiiiiiiihiiiiiiihiiiiiiihiiiiiiiWFggffff",
+        "FggffFfWihiiiiiiihiiiiiiihiiiiiiihiiiiiiihWfffFgff",
+        "fffggffWhiiiiiiChiiiiiiihiiiiiiihiiiiiiihiWggFffgg",
+        "gfFffggWiiiiiiihiiiiiiihiiiiiiihiiiiiiihiiWffggfFf",
+        "fggffFfWiiiiiihiiiiiiihiiiiiiihiiiiiiihiiiWffffggf",
+        "fffgFffWiiiiihiiiiiiihiiiiiiihiiiiiiihiiiiWggFfffg",
+        "ggfffggWiiiihiiiiiiihiiiiiiihiiiiiiihiiiiiWfFggfff",
+        "fFggfffWiiihiiiiiiihiiiiiiihiiiiiiihiiiiiiWffffFgf",
+        "ffffFgfWiihiiiiiiihiiiiiiihiiiiiiihiiiiiiiWggffffg",
+        "ggfFffgWihiiiiiiihiiiiiiihiiiiiiihiiiiiiihWfFggffF",
+        "ffggffFWWWWWWWWWWWWWWWWWGGWWWWWWWWWWWWWWWWWFfffggf",
+        "FfffggfffFggffFggffffggFfffggfffFgfffFggffffggFffg",
+        "ggfFffggFfffggfffFgffffggfFffggFffggffffFgffffggfF",
+        "ffFgffffggfFffggfffgFffffFgffffggfFfggffffgFffffFg",
+        "gfffgFffffggffFfggfFfggffffgFffffggffFggffFfggffff",
+        "fggfffggFfffgFffffggffFggffffggFfffgFfffggfffFggff",
+},file="map.bmp"},deploy={unselectables={{position={24,9},hero="TangWuJiu65"},{position={20,15},hero="CuiCheng65"},{position={29,15},hero="CuiJiang65"},{position={15,24},hero="DongGuoYan65"}},num_required_selectables=0,selectables={}},rewards={equipments={},money=9000}}

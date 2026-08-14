@@ -1,0 +1,6 @@
+[submodule "tools/vendor/DINO_Soars"]
+	path = tools/vendor/DINO_Soars
+	url = https://github.com/rfaulk/DINO_Soars.git
+[submodule "tools/vendor/vit-up"]
+	path = tools/vendor/vit-up
+	url = https://github.com/krispinwandel/vit-up.git

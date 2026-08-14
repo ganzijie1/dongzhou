@@ -1,0 +1,603 @@
+{
+  "map": "assets/lzc/map/m063.png",
+  "source_base": "output/imagegen/chapter39-cao-base-gpt2.png",
+  "prompt_file": "output/imagegen/m063_prompt.txt",
+  "grid": [
+    25,
+    19
+  ],
+  "cell_pixels": 64,
+  "terrain_rows": [
+    "mmmmmmmmmmmmmmmmmmmmmmmmm",
+    "mFmFFmFFmFFmFFmFFmFFmFFmm",
+    "mmffgfffgffffgfffgffffgFm",
+    "mFfgWWWWWWWGGGWWWWWWWgfFm",
+    "mFfgWiiiiiiiiiiiiiiiWgfmm",
+    "mmgfWiihiiiiiiiiihiiWffFm",
+    "mFgfWiiiiiiiCiiiiiiiWffFm",
+    "mFffGiiiiiiiiiiiiiiiGffmm",
+    "mmffGiiiiiiiiiiiiiiiGffFm",
+    "mFffGiiiiiiiiiiiiiiiGffFm",
+    "mFffWiiiiiiiiiiiiiiiWfgmm",
+    "mmffWiibiiiiiiiiihiiWfgFm",
+    "mFfgWiiiiiiiiiiiiiiiWgfFm",
+    "mFfgWiiiiiiiiiiiiiiiWgfmm",
+    "mmgfWWWWWWWGGGWWWWWWWffFm",
+    "mFgfffgffffgfffgffffgffFm",
+    "mFffffgfffgffffgfffgfffmm",
+    "mmFFmFFmFFmFFmFFmFFmFFmFm",
+    "mmmmmmmmmmmmmmmmmmmmmmmmm"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "manually reviewed programmatic source of truth with aligned structures",
+  "structure_regions": {
+    "cao_city": [
+      [
+        4,
+        3
+      ],
+      [
+        20,
+        14
+      ]
+    ]
+  },
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "none",
+  "wall_cells": [
+    [
+      4,
+      3
+    ],
+    [
+      5,
+      3
+    ],
+    [
+      6,
+      3
+    ],
+    [
+      7,
+      3
+    ],
+    [
+      8,
+      3
+    ],
+    [
+      9,
+      3
+    ],
+    [
+      10,
+      3
+    ],
+    [
+      14,
+      3
+    ],
+    [
+      15,
+      3
+    ],
+    [
+      16,
+      3
+    ],
+    [
+      17,
+      3
+    ],
+    [
+      18,
+      3
+    ],
+    [
+      19,
+      3
+    ],
+    [
+      20,
+      3
+    ],
+    [
+      4,
+      4
+    ],
+    [
+      20,
+      4
+    ],
+    [
+      4,
+      5
+    ],
+    [
+      20,
+      5
+    ],
+    [
+      4,
+      6
+    ],
+    [
+      20,
+      6
+    ],
+    [
+      4,
+      10
+    ],
+    [
+      20,
+      10
+    ],
+    [
+      4,
+      11
+    ],
+    [
+      20,
+      11
+    ],
+    [
+      4,
+      12
+    ],
+    [
+      20,
+      12
+    ],
+    [
+      4,
+      13
+    ],
+    [
+      20,
+      13
+    ],
+    [
+      4,
+      14
+    ],
+    [
+      5,
+      14
+    ],
+    [
+      6,
+      14
+    ],
+    [
+      7,
+      14
+    ],
+    [
+      8,
+      14
+    ],
+    [
+      9,
+      14
+    ],
+    [
+      10,
+      14
+    ],
+    [
+      14,
+      14
+    ],
+    [
+      15,
+      14
+    ],
+    [
+      16,
+      14
+    ],
+    [
+      17,
+      14
+    ],
+    [
+      18,
+      14
+    ],
+    [
+      19,
+      14
+    ],
+    [
+      20,
+      14
+    ]
+  ],
+  "gates": [
+    {
+      "name": "north_gate",
+      "cells": [
+        [
+          11,
+          3
+        ],
+        [
+          12,
+          3
+        ],
+        [
+          13,
+          3
+        ]
+      ]
+    },
+    {
+      "name": "south_gate",
+      "cells": [
+        [
+          11,
+          14
+        ],
+        [
+          12,
+          14
+        ],
+        [
+          13,
+          14
+        ]
+      ]
+    },
+    {
+      "name": "west_gate",
+      "cells": [
+        [
+          4,
+          7
+        ],
+        [
+          4,
+          8
+        ],
+        [
+          4,
+          9
+        ]
+      ]
+    },
+    {
+      "name": "east_gate",
+      "cells": [
+        [
+          20,
+          7
+        ],
+        [
+          20,
+          8
+        ],
+        [
+          20,
+          9
+        ]
+      ]
+    }
+  ],
+  "supply_sites": [
+    [
+      4,
+      7
+    ],
+    [
+      4,
+      8
+    ],
+    [
+      4,
+      9
+    ],
+    [
+      11,
+      3
+    ],
+    [
+      11,
+      14
+    ],
+    [
+      12,
+      3
+    ],
+    [
+      12,
+      14
+    ],
+    [
+      13,
+      3
+    ],
+    [
+      13,
+      14
+    ],
+    [
+      20,
+      7
+    ],
+    [
+      20,
+      8
+    ],
+    [
+      20,
+      9
+    ],
+    [
+      12,
+      6
+    ],
+    [
+      7,
+      11
+    ]
+  ],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "HuMao27",
+      "force": 1,
+      "position": [
+        10,
+        1
+      ]
+    },
+    {
+      "name": "HuYan27",
+      "force": 1,
+      "position": [
+        12,
+        1
+      ]
+    },
+    {
+      "name": "DianJie27",
+      "force": 1,
+      "position": [
+        1,
+        7
+      ]
+    },
+    {
+      "name": "ZhaoShuai27",
+      "force": 1,
+      "position": [
+        1,
+        9
+      ]
+    },
+    {
+      "name": "LuanZhi36",
+      "force": 1,
+      "position": [
+        23,
+        8
+      ]
+    },
+    {
+      "name": "XuChen27",
+      "force": 1,
+      "position": [
+        23,
+        9
+      ]
+    },
+    {
+      "name": "XianZhen27",
+      "force": 1,
+      "position": [
+        11,
+        16
+      ]
+    },
+    {
+      "name": "WeiChou27",
+      "force": 1,
+      "position": [
+        13,
+        16
+      ]
+    },
+    {
+      "name": "ChongEr27",
+      "force": 1,
+      "position": [
+        12,
+        17
+      ]
+    },
+    {
+      "name": "JinGuard39#N",
+      "force": 1,
+      "position": [
+        8,
+        1
+      ]
+    },
+    {
+      "name": "JinArcher39#N",
+      "force": 1,
+      "position": [
+        14,
+        1
+      ]
+    },
+    {
+      "name": "JinGuard39#W",
+      "force": 1,
+      "position": [
+        2,
+        8
+      ]
+    },
+    {
+      "name": "JinArcher39#E",
+      "force": 1,
+      "position": [
+        22,
+        8
+      ]
+    },
+    {
+      "name": "JinGuard39#S",
+      "force": 1,
+      "position": [
+        10,
+        16
+      ]
+    },
+    {
+      "name": "JinArcher39#S",
+      "force": 1,
+      "position": [
+        14,
+        16
+      ]
+    },
+    {
+      "name": "CaoGongGong39",
+      "force": 3,
+      "position": [
+        12,
+        6
+      ]
+    },
+    {
+      "name": "YuLang39",
+      "force": 3,
+      "position": [
+        12,
+        10
+      ]
+    },
+    {
+      "name": "CaoGateGuard39#N",
+      "force": 3,
+      "position": [
+        12,
+        3
+      ]
+    },
+    {
+      "name": "CaoGateGuard39#S",
+      "force": 3,
+      "position": [
+        12,
+        14
+      ]
+    },
+    {
+      "name": "CaoGateGuard39#W",
+      "force": 3,
+      "position": [
+        4,
+        8
+      ]
+    },
+    {
+      "name": "CaoGateGuard39#E",
+      "force": 3,
+      "position": [
+        20,
+        8
+      ]
+    },
+    {
+      "name": "CaoArcher39#N1",
+      "force": 3,
+      "position": [
+        10,
+        4
+      ]
+    },
+    {
+      "name": "CaoArcher39#N2",
+      "force": 3,
+      "position": [
+        14,
+        4
+      ]
+    },
+    {
+      "name": "CaoArcher39#S1",
+      "force": 3,
+      "position": [
+        10,
+        13
+      ]
+    },
+    {
+      "name": "CaoArcher39#S2",
+      "force": 3,
+      "position": [
+        14,
+        13
+      ]
+    },
+    {
+      "name": "CaoArcher39#W1",
+      "force": 3,
+      "position": [
+        5,
+        6
+      ]
+    },
+    {
+      "name": "CaoArcher39#W2",
+      "force": 3,
+      "position": [
+        5,
+        10
+      ]
+    },
+    {
+      "name": "CaoArcher39#E1",
+      "force": 3,
+      "position": [
+        19,
+        6
+      ]
+    },
+    {
+      "name": "CaoArcher39#E2",
+      "force": 3,
+      "position": [
+        19,
+        10
+      ]
+    },
+    {
+      "name": "XiFuJi39",
+      "force": 2,
+      "position": [
+        7,
+        5
+      ]
+    }
+  ],
+  "visual_grid_in_game": false,
+  "prompt": "Use case: stylized-concept. Asset type: grid-free natural base environment for a Mengde / Ekgd Chinese historical tactical RPG battle map. Primary request: the rural outskirts around ancient Cao capital before any fortifications are composited. Scene/backdrop: broad spring grassland and compacted earth roads; a large completely level rectangular reserved area centered in the upper-middle for one sizeable walled city; four broad road approaches aligned from north, south, east, and west toward that reserved area; an old ancestral cemetery grove outside the future west wall; open military assembly ground outside every future gate; low forest belts and rocky foothills only around the far outer border. Style/medium: polished orthographic top-down late-1990s Chinese historical tactical RPG map, hand-painted pixel texture, natural soft terrain transitions, readable at 64 pixels per logical cell. Composition/framing: full-canvas landscape, no horizon, no visible grid. Constraints: absolutely no walls, gates, buildings, city structures, camps, fences, tombstones, units, carts, flags, fire, corpses, text, UI, labels, grid lines, tile seams, modern objects, or watermark. Keep the central reserved rectangle obstacle-free and keep all four road approaches continuous."
+}

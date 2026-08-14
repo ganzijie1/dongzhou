@@ -1,0 +1,158 @@
+{
+  "map": "assets/lzc/map/m081.png",
+  "source_base": "output/imagegen/chapter51-qinghe-base-gpt2.png",
+  "prompt_file": "output/imagegen/m081_prompt.txt",
+  "grid": [
+    48,
+    34
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "FFFFmFFFFFFFmFgFffFfFgfFfFffFfFfgFfFmFFFFFFFmFFF",
+    "FFFmFFFmFFFFFFFfFgfFfFffFfFfgFfFffFmFFFFFFFmFFFm",
+    "FFFFFFmFFFFFFFfFfFffFfFfgFfFffFgFfgFFFmFFFFFFFmF",
+    "FFFFFmFFFmFFFmffgfffgffgfffgffgfffgFFmFFFmFFFmFF",
+    "mFFFmFFFmFFFmFffgffgfffgffgfffgffgfFmFFFmFFFmFFF",
+    "FFFmFFFmFFFmFFfgfffgffgfffgffgfffgfmFFFmFFFmFFFm",
+    "FFmFFFmFFFmFFFfgffgfffgffgfffgffgffFFFmFFFmFFFFF",
+    "FmFfgfmgfffgffgfffgffgfffgffgfffgffgfffgfmgffFmF",
+    "gFfgmffgffgfffgffgfffgffgfffgffgfffgffgfffgfmgFf",
+    "ffFgffgfffgffgfffgffgfffgffgfffgffgfffgffgmffgfF",
+    "FfgffmgffgfffgffgfffgffgfffgffgfffgffgfffgffgFff",
+    "fFgmfgfffgffgfffgffgfffgffgfffgffgfffgffgffmgfFg",
+    "FmFffgmfgfffgffgfffgffgfffgffgfffgffgfffgmfgfFmF",
+    "fFffmfffgffgfffgffgfffgffgfffgffgfffgffgfffgmfFf",
+    "wwFwwwwwwwwwwfgfffgffgfffgwwwwwwwwwwwwwgffmfffgF",
+    "FwwwwmwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwFww",
+    "wFwmwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwmwwFw",
+    "FmFfffmffgfffwwwwwwwwwwwwwfgffgfffgffgfwwmwwwFmF",
+    "fFgfmgfffgffgfffgffgfffgffgfffgffgfffgffgfffmfFg",
+    "fgFffgffgfffgffgfffgffgfffgffgfffgffgfffgfmgfffF",
+    "FgffgmffgffgfffgffgfffgffgfffgffgfffgffgfffgfFgf",
+    "gFfmgffgfffgffgfffgffgfffgffgfffgffgfffgffgmffFf",
+    "FmFwggmwggwwggwwggwwggwwggwwggwwggwwggwwgmwwgFmF",
+    "gFwgmwwggwwggwwggwwggwwggwwggwwggwwggwwggwwgmwFg",
+    "wwFgwwggwwggwwggwwggwwggwwggwwggwwggwwggwwggwwgF",
+    "wggwwggwwggwwggwwggwwggwwggwwggwwggwwggwwggwwggw",
+    "ggwwggwwggwwggwwggwwggwwggwwggwwggwwggwwggwwwwww",
+    "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~wwww",
+    "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~wwww",
+    "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~wwww",
+    "fffgffgfffgffgfffgffgfffgffgfffgffgfffgffgffwwww",
+    "ffgfffgffgfffgffgfffgffgfffgffgfffgffgfffgffgfff",
+    "ffgffgfffgffgfffgffgfffgffgfffgffgfffgffgfffgffg",
+    "fgfffgffgfffgffgfffgffgfffgffgfffgffgfffgffgfffg"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "GPT Image 2 natural base plus reviewed programmatic source-of-truth river and broken bridge",
+  "structure_regions": {},
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [],
+  "supply_sites": [],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "ChuZhuangWang51",
+      "force": 1,
+      "position": [
+        24,
+        25
+      ]
+    },
+    {
+      "name": "GongZiCe51",
+      "force": 1,
+      "position": [
+        39,
+        17
+      ]
+    },
+    {
+      "name": "GongZiYingQi51",
+      "force": 1,
+      "position": [
+        9,
+        17
+      ]
+    },
+    {
+      "name": "PanWang51",
+      "force": 1,
+      "position": [
+        37,
+        10
+      ]
+    },
+    {
+      "name": "LeBo51",
+      "force": 1,
+      "position": [
+        11,
+        10
+      ]
+    },
+    {
+      "name": "YangYouJi51",
+      "force": 1,
+      "position": [
+        19,
+        23
+      ]
+    },
+    {
+      "name": "DouYueJiao40",
+      "force": 3,
+      "position": [
+        24,
+        16
+      ]
+    },
+    {
+      "name": "DouBenHuang51",
+      "force": 3,
+      "position": [
+        26,
+        14
+      ]
+    }
+  ],
+  "mission": {
+    "type": "qinghe_bridge_encirclement",
+    "river_rows": [
+      27,
+      29
+    ],
+    "east_ford_columns": [
+      44,
+      47
+    ],
+    "broken_bridge_center": [
+      24,
+      28
+    ],
+    "broken_bridge_passable": false,
+    "duel": {
+      "attacker": "YangYouJi51",
+      "defender": "DouYueJiao40",
+      "outcome": "historical_death"
+    },
+    "DouBenHuang51": "escapes_to_Jin"
+  },
+  "visual_grid_in_game": false
+}

@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: Mengde tactical gate defense map
+Primary request: continuous-walled Chao city at east, two-cell west gate, open approach and a short firing wall immediately before the gate.
+Style: classic Chinese tactical-RPG painted terrain, orthographic.
+Constraints: no units, text, UI, or visible grid; wall geometry is a reviewed overlay.

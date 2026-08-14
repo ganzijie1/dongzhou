@@ -1,0 +1,7 @@
+Use case: illustration-story
+Asset type: tactical RPG character portrait
+Primary request: A fierce ancient Chinese hunting mastiff named Ling Ao, the notorious red hound kept by Duke Ling of Jin.
+Subject: powerful large mastiff, dark russet-red coat like glowing charcoal, natural canine anatomy, scarred muzzle, alert cruel expression, heavy neck, head and upper torso in three-quarter view.
+Style/medium: refined late-1990s Chinese historical strategy-game painted portrait, crisp silhouette, detailed fur, muted dark olive background.
+Constraints: animal only; no human face, clothing, armor, fantasy horns, fire effects, text, frame, logo, or watermark.
+

@@ -1,0 +1,1893 @@
+{
+  "image": "assets\\lzc\\map\\m008.png",
+  "model": "C:\\mengde\\output\\terrain_model\\segformer-b2-mengde",
+  "grid": [
+    19,
+    14
+  ],
+  "rows": [
+    "fffffffffffffffffff",
+    "fffffffffffmmffffff",
+    "fffmfffffffmfffffff",
+    "fffffffffFfffffffff",
+    "fffffffff~mfffffff~",
+    "ffffffFFffFFFfffff~",
+    "fffffffffffffffffff",
+    "ffffffffffffffff~ff",
+    "fffffffffffffffffff",
+    "ffffffffffffffff~ff",
+    "fffffffffffffffffff",
+    "fffffffffffffffffff",
+    "fffffffffffffffffff",
+    "ffffffffffffffffmf~"
+  ],
+  "postprocess": "4-connected small-component cleanup + per-cell majority vote",
+  "inference_ms": 1776.8202999723144,
+  "device": "cpu",
+  "review_required": [
+    {
+      "x": 0,
+      "y": 0,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.172
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1665
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1689
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "class": "open",
+      "vote": 0.9591,
+      "confidence": 0.1417
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "class": "open",
+      "vote": 0.9598,
+      "confidence": 0.1437
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "class": "open",
+      "vote": 0.9898,
+      "confidence": 0.1453
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "class": "open",
+      "vote": 0.9781,
+      "confidence": 0.1547
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "class": "open",
+      "vote": 0.9014,
+      "confidence": 0.1346
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "class": "open",
+      "vote": 0.4317,
+      "confidence": 0.1236
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "class": "open",
+      "vote": 0.8841,
+      "confidence": 0.1423
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "class": "open",
+      "vote": 0.702,
+      "confidence": 0.1467
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "class": "open",
+      "vote": 0.6991,
+      "confidence": 0.1396
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "class": "open",
+      "vote": 0.5917,
+      "confidence": 0.1337
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "class": "open",
+      "vote": 0.8598,
+      "confidence": 0.1378
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "class": "open",
+      "vote": 0.9795,
+      "confidence": 0.1535
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1684
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1661
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1648
+    },
+    {
+      "x": 18,
+      "y": 0,
+      "class": "open",
+      "vote": 0.8627,
+      "confidence": 0.1519
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1587
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.16
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "class": "open",
+      "vote": 0.9474,
+      "confidence": 0.1453
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "class": "open",
+      "vote": 0.997,
+      "confidence": 0.146
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "class": "open",
+      "vote": 0.9842,
+      "confidence": 0.1669
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "class": "open",
+      "vote": 0.8949,
+      "confidence": 0.154
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "class": "open",
+      "vote": 0.8408,
+      "confidence": 0.1444
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "class": "open",
+      "vote": 0.9752,
+      "confidence": 0.1418
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "class": "open",
+      "vote": 0.5511,
+      "confidence": 0.1294
+    },
+    {
+      "x": 9,
+      "y": 1,
+      "class": "open",
+      "vote": 0.8209,
+      "confidence": 0.1484
+    },
+    {
+      "x": 10,
+      "y": 1,
+      "class": "open",
+      "vote": 0.455,
+      "confidence": 0.1304
+    },
+    {
+      "x": 11,
+      "y": 1,
+      "class": "mountain",
+      "vote": 0.72,
+      "confidence": 0.1399
+    },
+    {
+      "x": 12,
+      "y": 1,
+      "class": "mountain",
+      "vote": 0.6396,
+      "confidence": 0.1354
+    },
+    {
+      "x": 13,
+      "y": 1,
+      "class": "open",
+      "vote": 0.5781,
+      "confidence": 0.1278
+    },
+    {
+      "x": 14,
+      "y": 1,
+      "class": "open",
+      "vote": 0.7785,
+      "confidence": 0.1296
+    },
+    {
+      "x": 15,
+      "y": 1,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1421
+    },
+    {
+      "x": 16,
+      "y": 1,
+      "class": "open",
+      "vote": 0.973,
+      "confidence": 0.1419
+    },
+    {
+      "x": 17,
+      "y": 1,
+      "class": "open",
+      "vote": 0.9872,
+      "confidence": 0.1444
+    },
+    {
+      "x": 18,
+      "y": 1,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1616
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1657
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "class": "open",
+      "vote": 0.9386,
+      "confidence": 0.1376
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "class": "open",
+      "vote": 0.6406,
+      "confidence": 0.1274
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "class": "mountain",
+      "vote": 0.4872,
+      "confidence": 0.1403
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "class": "open",
+      "vote": 0.8305,
+      "confidence": 0.1467
+    },
+    {
+      "x": 5,
+      "y": 2,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1565
+    },
+    {
+      "x": 6,
+      "y": 2,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1543
+    },
+    {
+      "x": 7,
+      "y": 2,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1577
+    },
+    {
+      "x": 8,
+      "y": 2,
+      "class": "open",
+      "vote": 0.8766,
+      "confidence": 0.1491
+    },
+    {
+      "x": 9,
+      "y": 2,
+      "class": "open",
+      "vote": 0.3385,
+      "confidence": 0.1362
+    },
+    {
+      "x": 10,
+      "y": 2,
+      "class": "open",
+      "vote": 0.9182,
+      "confidence": 0.143
+    },
+    {
+      "x": 11,
+      "y": 2,
+      "class": "mountain",
+      "vote": 0.5617,
+      "confidence": 0.1326
+    },
+    {
+      "x": 12,
+      "y": 2,
+      "class": "open",
+      "vote": 0.6465,
+      "confidence": 0.141
+    },
+    {
+      "x": 13,
+      "y": 2,
+      "class": "open",
+      "vote": 0.7341,
+      "confidence": 0.1466
+    },
+    {
+      "x": 14,
+      "y": 2,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.147
+    },
+    {
+      "x": 15,
+      "y": 2,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1449
+    },
+    {
+      "x": 16,
+      "y": 2,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1332
+    },
+    {
+      "x": 17,
+      "y": 2,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.137
+    },
+    {
+      "x": 18,
+      "y": 2,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1628
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "class": "open",
+      "vote": 0.961,
+      "confidence": 0.1479
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "class": "open",
+      "vote": 0.7553,
+      "confidence": 0.1334
+    },
+    {
+      "x": 2,
+      "y": 3,
+      "class": "open",
+      "vote": 0.8596,
+      "confidence": 0.1466
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "class": "open",
+      "vote": 0.8934,
+      "confidence": 0.1551
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "class": "open",
+      "vote": 0.9947,
+      "confidence": 0.1659
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "class": "open",
+      "vote": 0.9677,
+      "confidence": 0.1609
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "class": "open",
+      "vote": 0.8731,
+      "confidence": 0.15
+    },
+    {
+      "x": 7,
+      "y": 3,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.153
+    },
+    {
+      "x": 8,
+      "y": 3,
+      "class": "open",
+      "vote": 0.9414,
+      "confidence": 0.1591
+    },
+    {
+      "x": 9,
+      "y": 3,
+      "class": "forest",
+      "vote": 0.4211,
+      "confidence": 0.1327
+    },
+    {
+      "x": 10,
+      "y": 3,
+      "class": "open",
+      "vote": 0.5158,
+      "confidence": 0.1409
+    },
+    {
+      "x": 11,
+      "y": 3,
+      "class": "open",
+      "vote": 0.7177,
+      "confidence": 0.1342
+    },
+    {
+      "x": 12,
+      "y": 3,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1517
+    },
+    {
+      "x": 13,
+      "y": 3,
+      "class": "open",
+      "vote": 0.8416,
+      "confidence": 0.155
+    },
+    {
+      "x": 14,
+      "y": 3,
+      "class": "open",
+      "vote": 0.994,
+      "confidence": 0.1449
+    },
+    {
+      "x": 15,
+      "y": 3,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1569
+    },
+    {
+      "x": 16,
+      "y": 3,
+      "class": "open",
+      "vote": 0.964,
+      "confidence": 0.1403
+    },
+    {
+      "x": 17,
+      "y": 3,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1478
+    },
+    {
+      "x": 18,
+      "y": 3,
+      "class": "open",
+      "vote": 0.9459,
+      "confidence": 0.1393
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "class": "open",
+      "vote": 0.6216,
+      "confidence": 0.1268
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "class": "open",
+      "vote": 0.9335,
+      "confidence": 0.1646
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1565
+    },
+    {
+      "x": 3,
+      "y": 4,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1532
+    },
+    {
+      "x": 4,
+      "y": 4,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1583
+    },
+    {
+      "x": 5,
+      "y": 4,
+      "class": "open",
+      "vote": 0.8963,
+      "confidence": 0.1625
+    },
+    {
+      "x": 6,
+      "y": 4,
+      "class": "open",
+      "vote": 0.4726,
+      "confidence": 0.134
+    },
+    {
+      "x": 7,
+      "y": 4,
+      "class": "open",
+      "vote": 0.7663,
+      "confidence": 0.1389
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "class": "open",
+      "vote": 0.7955,
+      "confidence": 0.1311
+    },
+    {
+      "x": 9,
+      "y": 4,
+      "class": "water",
+      "vote": 0.357,
+      "confidence": 0.1242
+    },
+    {
+      "x": 10,
+      "y": 4,
+      "class": "mountain",
+      "vote": 0.5515,
+      "confidence": 0.1361
+    },
+    {
+      "x": 11,
+      "y": 4,
+      "class": "open",
+      "vote": 0.8305,
+      "confidence": 0.1366
+    },
+    {
+      "x": 12,
+      "y": 4,
+      "class": "open",
+      "vote": 0.6362,
+      "confidence": 0.1508
+    },
+    {
+      "x": 13,
+      "y": 4,
+      "class": "open",
+      "vote": 0.8503,
+      "confidence": 0.1582
+    },
+    {
+      "x": 14,
+      "y": 4,
+      "class": "open",
+      "vote": 0.7056,
+      "confidence": 0.137
+    },
+    {
+      "x": 15,
+      "y": 4,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1703
+    },
+    {
+      "x": 16,
+      "y": 4,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1541
+    },
+    {
+      "x": 17,
+      "y": 4,
+      "class": "open",
+      "vote": 0.9942,
+      "confidence": 0.1405
+    },
+    {
+      "x": 18,
+      "y": 4,
+      "class": "water",
+      "vote": 0.7078,
+      "confidence": 0.1352
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "class": "open",
+      "vote": 0.8191,
+      "confidence": 0.1423
+    },
+    {
+      "x": 1,
+      "y": 5,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1624
+    },
+    {
+      "x": 2,
+      "y": 5,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1559
+    },
+    {
+      "x": 3,
+      "y": 5,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.14
+    },
+    {
+      "x": 4,
+      "y": 5,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1427
+    },
+    {
+      "x": 5,
+      "y": 5,
+      "class": "open",
+      "vote": 0.6104,
+      "confidence": 0.1356
+    },
+    {
+      "x": 6,
+      "y": 5,
+      "class": "forest",
+      "vote": 0.5083,
+      "confidence": 0.126
+    },
+    {
+      "x": 7,
+      "y": 5,
+      "class": "forest",
+      "vote": 0.4857,
+      "confidence": 0.1223
+    },
+    {
+      "x": 8,
+      "y": 5,
+      "class": "open",
+      "vote": 0.7973,
+      "confidence": 0.1374
+    },
+    {
+      "x": 9,
+      "y": 5,
+      "class": "open",
+      "vote": 0.6491,
+      "confidence": 0.1407
+    },
+    {
+      "x": 10,
+      "y": 5,
+      "class": "forest",
+      "vote": 0.7785,
+      "confidence": 0.1297
+    },
+    {
+      "x": 11,
+      "y": 5,
+      "class": "forest",
+      "vote": 0.7635,
+      "confidence": 0.1376
+    },
+    {
+      "x": 12,
+      "y": 5,
+      "class": "forest",
+      "vote": 0.7357,
+      "confidence": 0.1368
+    },
+    {
+      "x": 13,
+      "y": 5,
+      "class": "open",
+      "vote": 0.7748,
+      "confidence": 0.1428
+    },
+    {
+      "x": 14,
+      "y": 5,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1374
+    },
+    {
+      "x": 15,
+      "y": 5,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1524
+    },
+    {
+      "x": 16,
+      "y": 5,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1604
+    },
+    {
+      "x": 17,
+      "y": 5,
+      "class": "open",
+      "vote": 0.7177,
+      "confidence": 0.1474
+    },
+    {
+      "x": 18,
+      "y": 5,
+      "class": "water",
+      "vote": 0.4257,
+      "confidence": 0.1328
+    },
+    {
+      "x": 0,
+      "y": 6,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1821
+    },
+    {
+      "x": 1,
+      "y": 6,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1877
+    },
+    {
+      "x": 2,
+      "y": 6,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.152
+    },
+    {
+      "x": 3,
+      "y": 6,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1546
+    },
+    {
+      "x": 4,
+      "y": 6,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1652
+    },
+    {
+      "x": 5,
+      "y": 6,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1568
+    },
+    {
+      "x": 6,
+      "y": 6,
+      "class": "open",
+      "vote": 0.9985,
+      "confidence": 0.153
+    },
+    {
+      "x": 7,
+      "y": 6,
+      "class": "open",
+      "vote": 0.989,
+      "confidence": 0.1586
+    },
+    {
+      "x": 8,
+      "y": 6,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1616
+    },
+    {
+      "x": 9,
+      "y": 6,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1676
+    },
+    {
+      "x": 10,
+      "y": 6,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1544
+    },
+    {
+      "x": 11,
+      "y": 6,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1711
+    },
+    {
+      "x": 12,
+      "y": 6,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1673
+    },
+    {
+      "x": 13,
+      "y": 6,
+      "class": "open",
+      "vote": 0.8817,
+      "confidence": 0.1472
+    },
+    {
+      "x": 14,
+      "y": 6,
+      "class": "open",
+      "vote": 0.7188,
+      "confidence": 0.1321
+    },
+    {
+      "x": 15,
+      "y": 6,
+      "class": "open",
+      "vote": 0.8824,
+      "confidence": 0.1445
+    },
+    {
+      "x": 16,
+      "y": 6,
+      "class": "open",
+      "vote": 0.8349,
+      "confidence": 0.1545
+    },
+    {
+      "x": 17,
+      "y": 6,
+      "class": "open",
+      "vote": 0.8875,
+      "confidence": 0.1592
+    },
+    {
+      "x": 18,
+      "y": 6,
+      "class": "open",
+      "vote": 0.7195,
+      "confidence": 0.1256
+    },
+    {
+      "x": 0,
+      "y": 7,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.185
+    },
+    {
+      "x": 1,
+      "y": 7,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.2076
+    },
+    {
+      "x": 2,
+      "y": 7,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1884
+    },
+    {
+      "x": 3,
+      "y": 7,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1596
+    },
+    {
+      "x": 4,
+      "y": 7,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1438
+    },
+    {
+      "x": 5,
+      "y": 7,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1568
+    },
+    {
+      "x": 6,
+      "y": 7,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1598
+    },
+    {
+      "x": 7,
+      "y": 7,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1746
+    },
+    {
+      "x": 8,
+      "y": 7,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1862
+    },
+    {
+      "x": 9,
+      "y": 7,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1947
+    },
+    {
+      "x": 10,
+      "y": 7,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1894
+    },
+    {
+      "x": 11,
+      "y": 7,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1734
+    },
+    {
+      "x": 12,
+      "y": 7,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1645
+    },
+    {
+      "x": 13,
+      "y": 7,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1644
+    },
+    {
+      "x": 14,
+      "y": 7,
+      "class": "open",
+      "vote": 0.9313,
+      "confidence": 0.1471
+    },
+    {
+      "x": 15,
+      "y": 7,
+      "class": "open",
+      "vote": 0.504,
+      "confidence": 0.1312
+    },
+    {
+      "x": 16,
+      "y": 7,
+      "class": "water",
+      "vote": 0.2359,
+      "confidence": 0.1312
+    },
+    {
+      "x": 17,
+      "y": 7,
+      "class": "open",
+      "vote": 0.5018,
+      "confidence": 0.141
+    },
+    {
+      "x": 18,
+      "y": 7,
+      "class": "open",
+      "vote": 0.6297,
+      "confidence": 0.1279
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1831
+    },
+    {
+      "x": 1,
+      "y": 8,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.2079
+    },
+    {
+      "x": 2,
+      "y": 8,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1739
+    },
+    {
+      "x": 3,
+      "y": 8,
+      "class": "open",
+      "vote": 0.8273,
+      "confidence": 0.1419
+    },
+    {
+      "x": 4,
+      "y": 8,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1533
+    },
+    {
+      "x": 5,
+      "y": 8,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1822
+    },
+    {
+      "x": 6,
+      "y": 8,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1741
+    },
+    {
+      "x": 7,
+      "y": 8,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1869
+    },
+    {
+      "x": 8,
+      "y": 8,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1846
+    },
+    {
+      "x": 9,
+      "y": 8,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.2033
+    },
+    {
+      "x": 10,
+      "y": 8,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1916
+    },
+    {
+      "x": 11,
+      "y": 8,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1766
+    },
+    {
+      "x": 12,
+      "y": 8,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1629
+    },
+    {
+      "x": 13,
+      "y": 8,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1736
+    },
+    {
+      "x": 14,
+      "y": 8,
+      "class": "open",
+      "vote": 0.765,
+      "confidence": 0.1661
+    },
+    {
+      "x": 15,
+      "y": 8,
+      "class": "open",
+      "vote": 0.979,
+      "confidence": 0.1434
+    },
+    {
+      "x": 16,
+      "y": 8,
+      "class": "open",
+      "vote": 0.6674,
+      "confidence": 0.1374
+    },
+    {
+      "x": 17,
+      "y": 8,
+      "class": "open",
+      "vote": 0.5886,
+      "confidence": 0.1354
+    },
+    {
+      "x": 18,
+      "y": 8,
+      "class": "open",
+      "vote": 0.9399,
+      "confidence": 0.143
+    },
+    {
+      "x": 0,
+      "y": 9,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.187
+    },
+    {
+      "x": 1,
+      "y": 9,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.2029
+    },
+    {
+      "x": 2,
+      "y": 9,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1552
+    },
+    {
+      "x": 3,
+      "y": 9,
+      "class": "open",
+      "vote": 0.9233,
+      "confidence": 0.1431
+    },
+    {
+      "x": 4,
+      "y": 9,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1555
+    },
+    {
+      "x": 5,
+      "y": 9,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1741
+    },
+    {
+      "x": 6,
+      "y": 9,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1698
+    },
+    {
+      "x": 7,
+      "y": 9,
+      "class": "open",
+      "vote": 0.9934,
+      "confidence": 0.168
+    },
+    {
+      "x": 8,
+      "y": 9,
+      "class": "open",
+      "vote": 0.8787,
+      "confidence": 0.1646
+    },
+    {
+      "x": 9,
+      "y": 9,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1839
+    },
+    {
+      "x": 10,
+      "y": 9,
+      "class": "open",
+      "vote": 0.9715,
+      "confidence": 0.1601
+    },
+    {
+      "x": 11,
+      "y": 9,
+      "class": "open",
+      "vote": 0.981,
+      "confidence": 0.1593
+    },
+    {
+      "x": 12,
+      "y": 9,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1652
+    },
+    {
+      "x": 13,
+      "y": 9,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1777
+    },
+    {
+      "x": 14,
+      "y": 9,
+      "class": "open",
+      "vote": 0.8378,
+      "confidence": 0.1596
+    },
+    {
+      "x": 15,
+      "y": 9,
+      "class": "open",
+      "vote": 0.9335,
+      "confidence": 0.1465
+    },
+    {
+      "x": 16,
+      "y": 9,
+      "class": "water",
+      "vote": 0.4558,
+      "confidence": 0.1202
+    },
+    {
+      "x": 17,
+      "y": 9,
+      "class": "open",
+      "vote": 0.5252,
+      "confidence": 0.1312
+    },
+    {
+      "x": 18,
+      "y": 9,
+      "class": "open",
+      "vote": 0.989,
+      "confidence": 0.1384
+    },
+    {
+      "x": 0,
+      "y": 10,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1964
+    },
+    {
+      "x": 1,
+      "y": 10,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.2038
+    },
+    {
+      "x": 2,
+      "y": 10,
+      "class": "open",
+      "vote": 0.9977,
+      "confidence": 0.1617
+    },
+    {
+      "x": 3,
+      "y": 10,
+      "class": "open",
+      "vote": 0.7995,
+      "confidence": 0.1329
+    },
+    {
+      "x": 4,
+      "y": 10,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1639
+    },
+    {
+      "x": 5,
+      "y": 10,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1684
+    },
+    {
+      "x": 6,
+      "y": 10,
+      "class": "open",
+      "vote": 0.9977,
+      "confidence": 0.1658
+    },
+    {
+      "x": 7,
+      "y": 10,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.2068
+    },
+    {
+      "x": 8,
+      "y": 10,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.2195
+    },
+    {
+      "x": 9,
+      "y": 10,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1947
+    },
+    {
+      "x": 10,
+      "y": 10,
+      "class": "open",
+      "vote": 0.9842,
+      "confidence": 0.1908
+    },
+    {
+      "x": 11,
+      "y": 10,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.2023
+    },
+    {
+      "x": 12,
+      "y": 10,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1829
+    },
+    {
+      "x": 13,
+      "y": 10,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1901
+    },
+    {
+      "x": 14,
+      "y": 10,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1754
+    },
+    {
+      "x": 15,
+      "y": 10,
+      "class": "open",
+      "vote": 0.9242,
+      "confidence": 0.1455
+    },
+    {
+      "x": 16,
+      "y": 10,
+      "class": "open",
+      "vote": 0.6832,
+      "confidence": 0.1238
+    },
+    {
+      "x": 17,
+      "y": 10,
+      "class": "open",
+      "vote": 0.9992,
+      "confidence": 0.1439
+    },
+    {
+      "x": 18,
+      "y": 10,
+      "class": "open",
+      "vote": 0.8408,
+      "confidence": 0.1387
+    },
+    {
+      "x": 0,
+      "y": 11,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1711
+    },
+    {
+      "x": 1,
+      "y": 11,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1701
+    },
+    {
+      "x": 2,
+      "y": 11,
+      "class": "open",
+      "vote": 0.9627,
+      "confidence": 0.1395
+    },
+    {
+      "x": 3,
+      "y": 11,
+      "class": "open",
+      "vote": 0.8437,
+      "confidence": 0.1366
+    },
+    {
+      "x": 4,
+      "y": 11,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1681
+    },
+    {
+      "x": 5,
+      "y": 11,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1536
+    },
+    {
+      "x": 6,
+      "y": 11,
+      "class": "open",
+      "vote": 0.7794,
+      "confidence": 0.1495
+    },
+    {
+      "x": 7,
+      "y": 11,
+      "class": "open",
+      "vote": 0.4806,
+      "confidence": 0.1551
+    },
+    {
+      "x": 8,
+      "y": 11,
+      "class": "open",
+      "vote": 0.805,
+      "confidence": 0.1579
+    },
+    {
+      "x": 9,
+      "y": 11,
+      "class": "open",
+      "vote": 0.9822,
+      "confidence": 0.1795
+    },
+    {
+      "x": 10,
+      "y": 11,
+      "class": "open",
+      "vote": 0.9372,
+      "confidence": 0.1663
+    },
+    {
+      "x": 11,
+      "y": 11,
+      "class": "open",
+      "vote": 0.8276,
+      "confidence": 0.1651
+    },
+    {
+      "x": 12,
+      "y": 11,
+      "class": "open",
+      "vote": 0.9861,
+      "confidence": 0.1662
+    },
+    {
+      "x": 13,
+      "y": 11,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1723
+    },
+    {
+      "x": 14,
+      "y": 11,
+      "class": "open",
+      "vote": 0.9759,
+      "confidence": 0.1449
+    },
+    {
+      "x": 15,
+      "y": 11,
+      "class": "open",
+      "vote": 0.6581,
+      "confidence": 0.1281
+    },
+    {
+      "x": 16,
+      "y": 11,
+      "class": "open",
+      "vote": 0.9774,
+      "confidence": 0.1525
+    },
+    {
+      "x": 17,
+      "y": 11,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1601
+    },
+    {
+      "x": 18,
+      "y": 11,
+      "class": "open",
+      "vote": 0.8605,
+      "confidence": 0.1392
+    },
+    {
+      "x": 0,
+      "y": 12,
+      "class": "open",
+      "vote": 0.8206,
+      "confidence": 0.1439
+    },
+    {
+      "x": 1,
+      "y": 12,
+      "class": "open",
+      "vote": 0.8003,
+      "confidence": 0.1277
+    },
+    {
+      "x": 2,
+      "y": 12,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1355
+    },
+    {
+      "x": 3,
+      "y": 12,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1435
+    },
+    {
+      "x": 4,
+      "y": 12,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1518
+    },
+    {
+      "x": 5,
+      "y": 12,
+      "class": "open",
+      "vote": 0.6321,
+      "confidence": 0.1256
+    },
+    {
+      "x": 6,
+      "y": 12,
+      "class": "open",
+      "vote": 0.6029,
+      "confidence": 0.1345
+    },
+    {
+      "x": 7,
+      "y": 12,
+      "class": "open",
+      "vote": 0.6186,
+      "confidence": 0.1502
+    },
+    {
+      "x": 8,
+      "y": 12,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.191
+    },
+    {
+      "x": 9,
+      "y": 12,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.177
+    },
+    {
+      "x": 10,
+      "y": 12,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1983
+    },
+    {
+      "x": 11,
+      "y": 12,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1799
+    },
+    {
+      "x": 12,
+      "y": 12,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1808
+    },
+    {
+      "x": 13,
+      "y": 12,
+      "class": "open",
+      "vote": 0.7395,
+      "confidence": 0.1556
+    },
+    {
+      "x": 14,
+      "y": 12,
+      "class": "open",
+      "vote": 0.7718,
+      "confidence": 0.1435
+    },
+    {
+      "x": 15,
+      "y": 12,
+      "class": "open",
+      "vote": 0.7102,
+      "confidence": 0.1269
+    },
+    {
+      "x": 16,
+      "y": 12,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1488
+    },
+    {
+      "x": 17,
+      "y": 12,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1578
+    },
+    {
+      "x": 18,
+      "y": 12,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1385
+    },
+    {
+      "x": 0,
+      "y": 13,
+      "class": "open",
+      "vote": 0.4733,
+      "confidence": 0.1291
+    },
+    {
+      "x": 1,
+      "y": 13,
+      "class": "open",
+      "vote": 0.8364,
+      "confidence": 0.1429
+    },
+    {
+      "x": 2,
+      "y": 13,
+      "class": "open",
+      "vote": 0.9795,
+      "confidence": 0.1506
+    },
+    {
+      "x": 3,
+      "y": 13,
+      "class": "open",
+      "vote": 0.8093,
+      "confidence": 0.1329
+    },
+    {
+      "x": 4,
+      "y": 13,
+      "class": "open",
+      "vote": 0.5077,
+      "confidence": 0.1301
+    },
+    {
+      "x": 5,
+      "y": 13,
+      "class": "open",
+      "vote": 0.8356,
+      "confidence": 0.1334
+    },
+    {
+      "x": 6,
+      "y": 13,
+      "class": "open",
+      "vote": 0.7312,
+      "confidence": 0.127
+    },
+    {
+      "x": 7,
+      "y": 13,
+      "class": "open",
+      "vote": 0.9277,
+      "confidence": 0.1448
+    },
+    {
+      "x": 8,
+      "y": 13,
+      "class": "open",
+      "vote": 0.7728,
+      "confidence": 0.1612
+    },
+    {
+      "x": 9,
+      "y": 13,
+      "class": "open",
+      "vote": 0.9616,
+      "confidence": 0.1723
+    },
+    {
+      "x": 10,
+      "y": 13,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1674
+    },
+    {
+      "x": 11,
+      "y": 13,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1515
+    },
+    {
+      "x": 12,
+      "y": 13,
+      "class": "open",
+      "vote": 1.0,
+      "confidence": 0.1447
+    },
+    {
+      "x": 13,
+      "y": 13,
+      "class": "open",
+      "vote": 0.7275,
+      "confidence": 0.1402
+    },
+    {
+      "x": 14,
+      "y": 13,
+      "class": "open",
+      "vote": 0.6326,
+      "confidence": 0.136
+    },
+    {
+      "x": 15,
+      "y": 13,
+      "class": "open",
+      "vote": 0.8656,
+      "confidence": 0.1314
+    },
+    {
+      "x": 16,
+      "y": 13,
+      "class": "mountain",
+      "vote": 0.5734,
+      "confidence": 0.1243
+    },
+    {
+      "x": 17,
+      "y": 13,
+      "class": "open",
+      "vote": 0.5179,
+      "confidence": 0.1308
+    },
+    {
+      "x": 18,
+      "y": 13,
+      "class": "water",
+      "vote": 0.4792,
+      "confidence": 0.1251
+    }
+  ],
+  "auto_apply": false,
+  "warning": "Merged visual classes need review before exact Lua terrain subtypes are chosen."
+}

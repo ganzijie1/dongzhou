@@ -5,7 +5,11 @@ file(GLOB HEADERS *.h)
 
 include_directories(.)
 
-add_library(util SHARED ${SOURCES} ${HEADERS})
+if(WIN32)
+  add_library(util STATIC ${SOURCES} ${HEADERS})
+else()
+  add_library(util SHARED ${SOURCES} ${HEADERS})
+endif()
 
 target_link_libraries(util ${SDL2_LIBRARY})
 target_link_libraries(util ${Boost_LIBRARIES})

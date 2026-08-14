@@ -1,0 +1,10 @@
+Model: gpt-image-2
+Quality: high
+Size: 1536x1024
+Use case: stylized-concept
+
+Prompt:
+Ancient Linzi palace-city tactical battle map at night for a Three Kingdoms-era isometric strategy game. A complete continuous rectangular rammed-earth city wall surrounds the playable area. Exactly one clearly open eastern city gate at the middle-right edge connects to a broad east-west stone avenue. Inside are a central eastern-palace courtyard, orderly dark-red tiled residences, stone plazas, trees and small garden patches, with wide walkable lanes between buildings. The palace troops will chase a prince from the central courtyard toward the east gate, so the road must be visually obvious and unobstructed. Elevated three-quarter top-down orthographic view, hand-painted late-1990s Chinese tactical RPG battlefield style, crisp readable terrain regions, natural transitions, warm torchlight against deep blue night, detailed but not cluttered.
+
+Constraints:
+No units, no people, no labels, no text, no UI, no visible square grid, no broken walls, no sealed eastern gate, no western gate, no water, no modern objects, no perspective horizon. Walls must be continuous and visually distinct from passable roads.

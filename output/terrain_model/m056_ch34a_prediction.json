@@ -1,0 +1,1061 @@
+{
+  "image": "assets\\lzc\\map\\m056.png",
+  "feature_backend": "dinov3-directional-v2",
+  "feature_version": 2,
+  "grid": [
+    19,
+    14
+  ],
+  "rows": [
+    "mmFWWWWWWWWWWWWmFmm",
+    "mmWWiWiiCCiiiiWmmmm",
+    "mmmiWiiiiiiiWiiWmmm",
+    "mmWmhhiiiGiiiWWWmWm",
+    "gmmbWWiiiffiiWbWmmm",
+    "mmmmWgibffigibiiWmF",
+    "mmmiiiWfffififimmmW",
+    "gggggggggGggggggggg",
+    "FggggffWfGfWfgggggF",
+    "FggggfgffffggfgggFF",
+    "mggggggggefgggggggg",
+    "mmggggggfffggggeggg",
+    "mgggggfggeggfgggggm",
+    "FFggggfgeeeggggggFF"
+  ],
+  "threshold": 0.72,
+  "mean_confidence": 0.6970325165222747,
+  "minimum_confidence": 0.2081767621310315,
+  "review_required": [
+    {
+      "x": 0,
+      "y": 0,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.6431
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.4695
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.6895
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.7151
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.7093
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "predicted": "F",
+      "terrain": "Forest",
+      "confidence": 0.4646
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.3413
+    },
+    {
+      "x": 10,
+      "y": 1,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.703
+    },
+    {
+      "x": 12,
+      "y": 1,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.6374
+    },
+    {
+      "x": 13,
+      "y": 1,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.5682
+    },
+    {
+      "x": 14,
+      "y": 1,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.4579
+    },
+    {
+      "x": 15,
+      "y": 1,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.4793
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.6905
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.4484
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.5662
+    },
+    {
+      "x": 10,
+      "y": 2,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.6835
+    },
+    {
+      "x": 13,
+      "y": 2,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.3318
+    },
+    {
+      "x": 14,
+      "y": 2,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.5403
+    },
+    {
+      "x": 15,
+      "y": 2,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.3561
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.6088
+    },
+    {
+      "x": 3,
+      "y": 3,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.5973
+    },
+    {
+      "x": 4,
+      "y": 3,
+      "predicted": "h",
+      "terrain": "Residence",
+      "confidence": 0.6082
+    },
+    {
+      "x": 11,
+      "y": 3,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.6419
+    },
+    {
+      "x": 13,
+      "y": 3,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.5961
+    },
+    {
+      "x": 15,
+      "y": 3,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.6398
+    },
+    {
+      "x": 17,
+      "y": 3,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.4421
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.4893
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.4922
+    },
+    {
+      "x": 3,
+      "y": 4,
+      "predicted": "b",
+      "terrain": "Storehouse",
+      "confidence": 0.3543
+    },
+    {
+      "x": 7,
+      "y": 4,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.5444
+    },
+    {
+      "x": 9,
+      "y": 4,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.6444
+    },
+    {
+      "x": 10,
+      "y": 4,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.51
+    },
+    {
+      "x": 13,
+      "y": 4,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.4206
+    },
+    {
+      "x": 14,
+      "y": 4,
+      "predicted": "b",
+      "terrain": "Storehouse",
+      "confidence": 0.3915
+    },
+    {
+      "x": 15,
+      "y": 4,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.6565
+    },
+    {
+      "x": 16,
+      "y": 4,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.5698
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.4984
+    },
+    {
+      "x": 3,
+      "y": 5,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.6248
+    },
+    {
+      "x": 4,
+      "y": 5,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.3551
+    },
+    {
+      "x": 5,
+      "y": 5,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.47
+    },
+    {
+      "x": 7,
+      "y": 5,
+      "predicted": "b",
+      "terrain": "Storehouse",
+      "confidence": 0.6167
+    },
+    {
+      "x": 8,
+      "y": 5,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.4261
+    },
+    {
+      "x": 9,
+      "y": 5,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.6719
+    },
+    {
+      "x": 10,
+      "y": 5,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.5619
+    },
+    {
+      "x": 11,
+      "y": 5,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.3065
+    },
+    {
+      "x": 13,
+      "y": 5,
+      "predicted": "b",
+      "terrain": "Storehouse",
+      "confidence": 0.2082
+    },
+    {
+      "x": 16,
+      "y": 5,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.6459
+    },
+    {
+      "x": 18,
+      "y": 5,
+      "predicted": "F",
+      "terrain": "Forest",
+      "confidence": 0.5349
+    },
+    {
+      "x": 0,
+      "y": 6,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.4855
+    },
+    {
+      "x": 1,
+      "y": 6,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.6918
+    },
+    {
+      "x": 2,
+      "y": 6,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.4143
+    },
+    {
+      "x": 3,
+      "y": 6,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.6542
+    },
+    {
+      "x": 4,
+      "y": 6,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.4322
+    },
+    {
+      "x": 6,
+      "y": 6,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.3758
+    },
+    {
+      "x": 7,
+      "y": 6,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.3365
+    },
+    {
+      "x": 8,
+      "y": 6,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.4221
+    },
+    {
+      "x": 9,
+      "y": 6,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.4921
+    },
+    {
+      "x": 10,
+      "y": 6,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.4391
+    },
+    {
+      "x": 11,
+      "y": 6,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.4531
+    },
+    {
+      "x": 12,
+      "y": 6,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.6145
+    },
+    {
+      "x": 13,
+      "y": 6,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.5306
+    },
+    {
+      "x": 14,
+      "y": 6,
+      "predicted": "i",
+      "terrain": "CityInterior",
+      "confidence": 0.3772
+    },
+    {
+      "x": 15,
+      "y": 6,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.3277
+    },
+    {
+      "x": 16,
+      "y": 6,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.4931
+    },
+    {
+      "x": 17,
+      "y": 6,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.4262
+    },
+    {
+      "x": 8,
+      "y": 7,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6858
+    },
+    {
+      "x": 18,
+      "y": 7,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6029
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "predicted": "F",
+      "terrain": "Forest",
+      "confidence": 0.5442
+    },
+    {
+      "x": 2,
+      "y": 8,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.4892
+    },
+    {
+      "x": 3,
+      "y": 8,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.5835
+    },
+    {
+      "x": 4,
+      "y": 8,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.4812
+    },
+    {
+      "x": 5,
+      "y": 8,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.6374
+    },
+    {
+      "x": 6,
+      "y": 8,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.4837
+    },
+    {
+      "x": 8,
+      "y": 8,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.6972
+    },
+    {
+      "x": 11,
+      "y": 8,
+      "predicted": "W",
+      "terrain": "Wall",
+      "confidence": 0.404
+    },
+    {
+      "x": 13,
+      "y": 8,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.469
+    },
+    {
+      "x": 14,
+      "y": 8,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.4793
+    },
+    {
+      "x": 15,
+      "y": 8,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6548
+    },
+    {
+      "x": 16,
+      "y": 8,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.5306
+    },
+    {
+      "x": 17,
+      "y": 8,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6558
+    },
+    {
+      "x": 18,
+      "y": 8,
+      "predicted": "F",
+      "terrain": "Forest",
+      "confidence": 0.5326
+    },
+    {
+      "x": 1,
+      "y": 9,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6383
+    },
+    {
+      "x": 3,
+      "y": 9,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6591
+    },
+    {
+      "x": 5,
+      "y": 9,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.5799
+    },
+    {
+      "x": 6,
+      "y": 9,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.5171
+    },
+    {
+      "x": 11,
+      "y": 9,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.5242
+    },
+    {
+      "x": 12,
+      "y": 9,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.5999
+    },
+    {
+      "x": 13,
+      "y": 9,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.5243
+    },
+    {
+      "x": 16,
+      "y": 9,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6614
+    },
+    {
+      "x": 17,
+      "y": 9,
+      "predicted": "F",
+      "terrain": "Forest",
+      "confidence": 0.337
+    },
+    {
+      "x": 0,
+      "y": 10,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.6899
+    },
+    {
+      "x": 1,
+      "y": 10,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.5107
+    },
+    {
+      "x": 5,
+      "y": 10,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6158
+    },
+    {
+      "x": 6,
+      "y": 10,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.5635
+    },
+    {
+      "x": 7,
+      "y": 10,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6351
+    },
+    {
+      "x": 8,
+      "y": 10,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.535
+    },
+    {
+      "x": 9,
+      "y": 10,
+      "predicted": "e",
+      "terrain": "Camp",
+      "confidence": 0.5772
+    },
+    {
+      "x": 10,
+      "y": 10,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.7159
+    },
+    {
+      "x": 11,
+      "y": 10,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.5504
+    },
+    {
+      "x": 12,
+      "y": 10,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6457
+    },
+    {
+      "x": 13,
+      "y": 10,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6727
+    },
+    {
+      "x": 17,
+      "y": 10,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.7106
+    },
+    {
+      "x": 18,
+      "y": 10,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.3504
+    },
+    {
+      "x": 1,
+      "y": 11,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.6576
+    },
+    {
+      "x": 3,
+      "y": 11,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6993
+    },
+    {
+      "x": 4,
+      "y": 11,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.5081
+    },
+    {
+      "x": 5,
+      "y": 11,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.4945
+    },
+    {
+      "x": 6,
+      "y": 11,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.5083
+    },
+    {
+      "x": 11,
+      "y": 11,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.5356
+    },
+    {
+      "x": 12,
+      "y": 11,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6843
+    },
+    {
+      "x": 13,
+      "y": 11,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.5861
+    },
+    {
+      "x": 15,
+      "y": 11,
+      "predicted": "e",
+      "terrain": "Camp",
+      "confidence": 0.6749
+    },
+    {
+      "x": 18,
+      "y": 11,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.5154
+    },
+    {
+      "x": 0,
+      "y": 12,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.5194
+    },
+    {
+      "x": 1,
+      "y": 12,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6829
+    },
+    {
+      "x": 2,
+      "y": 12,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.5097
+    },
+    {
+      "x": 3,
+      "y": 12,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6569
+    },
+    {
+      "x": 4,
+      "y": 12,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.5309
+    },
+    {
+      "x": 5,
+      "y": 12,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6505
+    },
+    {
+      "x": 6,
+      "y": 12,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.5852
+    },
+    {
+      "x": 10,
+      "y": 12,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6947
+    },
+    {
+      "x": 12,
+      "y": 12,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.7129
+    },
+    {
+      "x": 13,
+      "y": 12,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6879
+    },
+    {
+      "x": 14,
+      "y": 12,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6724
+    },
+    {
+      "x": 15,
+      "y": 12,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6529
+    },
+    {
+      "x": 18,
+      "y": 12,
+      "predicted": "m",
+      "terrain": "Mountain",
+      "confidence": 0.4526
+    },
+    {
+      "x": 1,
+      "y": 13,
+      "predicted": "F",
+      "terrain": "Forest",
+      "confidence": 0.4873
+    },
+    {
+      "x": 2,
+      "y": 13,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.4071
+    },
+    {
+      "x": 3,
+      "y": 13,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.277
+    },
+    {
+      "x": 4,
+      "y": 13,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.551
+    },
+    {
+      "x": 5,
+      "y": 13,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6586
+    },
+    {
+      "x": 6,
+      "y": 13,
+      "predicted": "f",
+      "terrain": "Flatland",
+      "confidence": 0.5198
+    },
+    {
+      "x": 7,
+      "y": 13,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.4312
+    },
+    {
+      "x": 11,
+      "y": 13,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.504
+    },
+    {
+      "x": 12,
+      "y": 13,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6029
+    },
+    {
+      "x": 13,
+      "y": 13,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.7098
+    },
+    {
+      "x": 14,
+      "y": 13,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.545
+    },
+    {
+      "x": 15,
+      "y": 13,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.6925
+    },
+    {
+      "x": 16,
+      "y": 13,
+      "predicted": "g",
+      "terrain": "Grass",
+      "confidence": 0.4516
+    },
+    {
+      "x": 17,
+      "y": 13,
+      "predicted": "F",
+      "terrain": "Forest",
+      "confidence": 0.5094
+    }
+  ],
+  "fence_review_required": [
+    {
+      "x": 7,
+      "y": 1,
+      "current_prediction": "i",
+      "fence_score": -0.5622
+    },
+    {
+      "x": 9,
+      "y": 1,
+      "current_prediction": "C",
+      "fence_score": -0.4626
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "current_prediction": "W",
+      "fence_score": -0.3994
+    },
+    {
+      "x": 10,
+      "y": 3,
+      "current_prediction": "i",
+      "fence_score": -0.5561
+    },
+    {
+      "x": 12,
+      "y": 5,
+      "current_prediction": "i",
+      "fence_score": -0.3762
+    },
+    {
+      "x": 18,
+      "y": 5,
+      "current_prediction": "F",
+      "fence_score": -0.476
+    },
+    {
+      "x": 6,
+      "y": 6,
+      "current_prediction": "W",
+      "fence_score": -0.6428
+    },
+    {
+      "x": 2,
+      "y": 9,
+      "current_prediction": "g",
+      "fence_score": -0.4354
+    }
+  ],
+  "auto_apply": false
+}

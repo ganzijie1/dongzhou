@@ -2,41 +2,38 @@ gstage = {
     title_id = "Stage1",
     turn_limit = 20,
     map = {
-        size = {28, 20},
+        blocked_edges = {},
+        size = {19, 16},
         terrain = {
-            "WWWWWWWWffmmmmrrrrrrrrmmmmmm",
-            "fffffffWffmmmmmrrrrrmmmmmfff",
-            "fffffffWffffmmmmrrrmmmmmmfff",
-            "fffffffffffffmmmmrmmmmmfffff",
-            "fffffffWffffffmmmmmmmmffffff",
-            "fffffffWfffffffmmmmmfffffmmm",
-            "fffffffWfffffffmmmmffffmmmmm",
-            "ffffWffWffffffffffffffmmmmrr",
-            "ffffWffWffffffffffffffmmmrrr",
-            "ffffWffffffffffmmffffffmmmrr",
-            "ffffWffffffffffmmmmmffffmmmr",
-            "ffffWffWfffffffmmmmmfffffmmm",
-            "ffffWffWffffffmmmmmmmmfffffm",
-            "fffffffWffffffmmrrmmmmmffffm",
-            "fffffffWffffffmmrrmmmmmmfffm",
-            "fffffffffffffffrrrrrfffffffm",
-            "fffffffWfffffffrrrrrffffffmm",
-            "fffffffWffffffrrrrrrffffffmm",
-            "fffffffWffffffrrrrrfffffffmm",
-            "WWWWWWWWfffffrrrrrrffffffmmm"
+            "WffffWWffffffWWffff",
+            "WffWffffffffffffWff",
+            "WfffffffWffWfffffff",
+            "WWWWWWWWWffWWWWWWWW",
+            "WFFFWffWffffWffWggg",
+            "WFFFWffffffffffWggg",
+            "WFFFffWWWffWWWffgfg",
+            "WFFFWffffffffffWggg",
+            "WFFFWffWffffWffWggf",
+            "WWWWWWWWWffWWWWWWWW",
+            "Wffffffffffffffffff",
+            "WffffWffffffffWffff",
+            "WWWWWWWWWffWWWWWWWW",
+            "fffffffffffffffffff",
+            "fffffffffffffffffff",
+            "fffffffffffffffffff"
         },
         file = "map.bmp"
     },
     deploy = {
         unselectables = {
-            { position = {9, 2}, hero = "CaoCao" },
-            { position = {9, 1}, hero = "ZhangLiao" },
-            { position = {9, 9}, hero = "XunYu" },
-            { position = {5, 3}, hero = "DianWei" }
+            { position = {17, 5}, hero = "CaoCao" },
+            { position = {17, 6}, hero = "ZhangLiao" },
+            { position = {16, 6}, hero = "XunYu" },
+            { position = {17, 7}, hero = "DianWei" }
         },
         num_required_selectables = 0,
         selectables = {
-            { position = {9, 4} },
+            { position = {16, 7} },
 --            { position = {5, 3} }
         }
     },
@@ -63,10 +60,16 @@ end
 
 function on_begin(game)
     -- Enemies
-    game:generate_unit("Bandit", 12, Enum.force.enemy, {9, 6})
---    game:generate_unit("Cavalry", 18, Enum.force.enemy, {10, 7})
+    game:generate_unit("Bandit", 18, Enum.force.enemy, {8, 1})
+    game:generate_unit("Bandit", 18, Enum.force.enemy, {9, 1})
+    game:generate_unit("Bandit", 20, Enum.force.enemy, {10, 1})
+    game:generate_unit("Bandit", 20, Enum.force.enemy, {11, 1})
+    game:generate_unit("Bandit", 22, Enum.force.enemy, {8, 7})
+    game:generate_unit("Bandit", 22, Enum.force.enemy, {11, 7})
 end
 
+
+function on_update(game) end
 
 function on_victory(game)
     game:push_cmd_speak(0, "So long, losers!")

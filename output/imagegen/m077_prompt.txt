@@ -1,0 +1,5 @@
+Create a grid-free, orthographic tactical RPG battlefield background in the visual spirit of a polished late-1990s Chinese historical strategy game, rendered at 2048x1152.
+
+Historical scene: the wooded hunting country near Mengzhu in ancient Song. A broad, readable earthen hunting road runs mostly east-west through the middle, with a gentle bend and several open grassy clearings suitable for a mounted pursuit. Dense but naturally shaped deciduous woodland occupies parts of the north and south edges, with low rolling scrub-covered hills near the corners. Keep the eastern and central approach lanes open and readable. Use late-spring daylight, natural greens, muted earth, subtle hand-painted pixel-art texture, and clear terrain silhouettes.
+
+This is a natural landscape base only. Do not draw troops, people, animals, UI, labels, text, flags, buildings, city walls, fences, gates, camps, tents, treasure sites, supply icons, visible square tiles, or grid lines. Do not make a photorealistic aerial photograph. Avoid oversized vegetation that would obscure units. The full image must remain detailed and nonblank from edge to edge.

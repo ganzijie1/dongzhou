@@ -45,3 +45,14 @@ include_directories(${LUA_INCLUDE_DIR})
 
 # Look in the game subdirectory to find its CMakeLists.txt so we can build the executable
 add_subdirectory(game)
+
+if(WIN32)
+    add_executable(Ekgd WIN32 launcher/main.cc)
+    target_link_libraries(Ekgd shell32)
+    set_target_properties(Ekgd PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${MENGDE_SOURCE_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${MENGDE_SOURCE_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${MENGDE_SOURCE_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${MENGDE_SOURCE_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${MENGDE_SOURCE_DIR}")
+endif()

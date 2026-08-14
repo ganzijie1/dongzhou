@@ -1,0 +1,4215 @@
+{
+  "format": "EEX",
+  "source": "R_00.eex",
+  "kind": "R",
+  "scene_count": 1,
+  "scenes": [
+    {
+      "index": 0,
+      "offset": 14,
+      "section_count": 1,
+      "sections": [
+        {
+          "offset": 16,
+          "size": 6203,
+          "conditions": [
+            {
+              "offset": 18,
+              "opcode": 2,
+              "name": "内部信息测试（注释）",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "文字说明",
+                  "value": "初始设定模板：\ndata内999号人物改为说书人（或游戏指导或你自己名字，什么都行）\ndata内1000号人物改为你（或者玩家1号之类的）\n记得对应头像也要改。"
+                }
+              ]
+            }
+          ],
+          "instructions": [
+            {
+              "offset": 168,
+              "opcode": 58,
+              "name": "钱、剧本、忠奸度设置",
+              "parameters": [
+                {
+                  "parameter_id": 40,
+                  "type": 40,
+                  "name": "设置哪个数字（0钱，1剧本，2忠奸度）1",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 52,
+                  "type": 52,
+                  "name": "设定方式1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "数值",
+                  "value": 50
+                }
+              ]
+            },
+            {
+              "offset": 184,
+              "opcode": 58,
+              "name": "钱、剧本、忠奸度设置",
+              "parameters": [
+                {
+                  "parameter_id": 40,
+                  "type": 40,
+                  "name": "设置哪个数字（0钱，1剧本，2忠奸度）1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 52,
+                  "type": 52,
+                  "name": "设定方式1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "数值",
+                  "value": 1000
+                }
+              ]
+            },
+            {
+              "offset": 200,
+              "opcode": 10,
+              "name": "初始化局部变量",
+              "parameters": []
+            },
+            {
+              "offset": 202,
+              "opcode": 47,
+              "name": "清除场景中出现的人物",
+              "parameters": []
+            },
+            {
+              "offset": 204,
+              "opcode": 8,
+              "name": "菜单处理",
+              "parameters": [
+                {
+                  "parameter_id": 46,
+                  "type": 46,
+                  "name": "可否控制0",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 210,
+              "opcode": 36,
+              "name": "CD音轨设定",
+              "parameters": [
+                {
+                  "parameter_id": 9,
+                  "type": 9,
+                  "name": "音轨序号7",
+                  "value": 63
+                }
+              ]
+            },
+            {
+              "offset": 216,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 218,
+                "opcode": 2,
+                "name": "内部信息测试（注释）",
+                "parameters": [
+                  {
+                    "parameter_id": 5,
+                    "type": 5,
+                    "name": "文字说明",
+                    "value": "游戏介绍"
+                  }
+                ]
+              },
+              "then_size": 2325,
+              "then": [
+                {
+                  "offset": 233,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4071
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 1
+                    }
+                  ]
+                },
+                {
+                  "offset": 259,
+                  "opcode": 22,
+                  "name": "多行文字显示",
+                  "parameters": [
+                    {
+                      "parameter_id": 5,
+                      "type": 5,
+                      "name": "文字内容",
+                      "value": "                  [C09警告： ]\n\r\n      [C29如果你以购买方式或者从手游移植群那里 ]\n      [C29获得此游戏，]\n      [C29那么你真是倒了血霉了，]\r\n      [C29此游戏乃免费公开的电脑端游戏，]\n      [C29白花了冤枉钱，认识了狗贼。]\n      [C29请跟我一起大喊：]\n      [C29倒卖者和私自移植者死全家！！！]\n      [C29倒卖者和私自移植者死全家！！！]\n      [C29倒卖者和私自移植者死全家！！！]\n      [C29倒卖者和私自移植者死全家！！！]\n      [C29=谢谢=]\n\r\n\r\n"
+                    }
+                  ]
+                },
+                {
+                  "offset": 703,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4071
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 1
+                    }
+                  ]
+                },
+                {
+                  "offset": 729,
+                  "opcode": 22,
+                  "name": "多行文字显示",
+                  "parameters": [
+                    {
+                      "parameter_id": 5,
+                      "type": 5,
+                      "name": "文字内容",
+                      "value": "            [C09《李自成传》游戏介绍 ]\n\r\n"
+                    }
+                  ]
+                },
+                {
+                  "offset": 775,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4071
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 1
+                    }
+                  ]
+                },
+                {
+                  "offset": 801,
+                  "opcode": 22,
+                  "name": "多行文字显示",
+                  "parameters": [
+                    {
+                      "parameter_id": 5,
+                      "type": 5,
+                      "name": "文字内容",
+                      "value": " [C28【能力档位与对应成长参数】 ]\n\r\n  属性档位           合格能力         \n\r\n     6               102            \n     5                95             \n     4                80             \n     3                70             \n     2                50             \n     1                 0             \n"
+                    }
+                  ]
+                },
+                {
+                  "offset": 1110,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4071
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 1
+                    }
+                  ]
+                },
+                {
+                  "offset": 1136,
+                  "opcode": 22,
+                  "name": "多行文字显示",
+                  "parameters": [
+                    {
+                      "parameter_id": 5,
+                      "type": 5,
+                      "name": "文字内容",
+                      "value": "\n [C59【键盘快捷键说明】 ]\n\n 键盘1,2,3,4键可加速游戏运行，0键还原速度。\n 5键可选是否开启血条，\n 6键是否显示属性buff情况。\n 7键显示装备；\n 8键显示预估伤害等；\n 9键显示地形适性。\n e键在显示移动范围的情况下显示所有不可控单位的行动\n顺序。\n f键在显示移动范围的情况下显示这个单位对其敌对方势\n力的仇恨值（物理和策略只显示更高的）\n g键用红色半透明显示此单位处于哪些敌方势力的攻击\n范围内（敌对方在原地或仅需移动一次就可以攻击到）\n"
+                    }
+                  ]
+                },
+                {
+                  "offset": 1562,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4071
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 1
+                    }
+                  ]
+                },
+                {
+                  "offset": 1588,
+                  "opcode": 22,
+                  "name": "多行文字显示",
+                  "parameters": [
+                    {
+                      "parameter_id": 5,
+                      "type": 5,
+                      "name": "文字内容",
+                      "value": "\n [C08【游戏培养模式说明】 ]\n\n游戏内分为「功勋模式」与「吃果模式」两种游戏培\n养模式。\n玩家仅能在其中选择一种进行操作。\n"
+                    }
+                  ]
+                },
+                {
+                  "offset": 1712,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4071
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 1
+                    }
+                  ]
+                },
+                {
+                  "offset": 1738,
+                  "opcode": 22,
+                  "name": "多行文字显示",
+                  "parameters": [
+                    {
+                      "parameter_id": 5,
+                      "type": 5,
+                      "name": "文字内容",
+                      "value": " [C0B「功勋模式」 ]\n点击头像可以分配功勋，不打勾仅能提升功勋无法提升\n属性，只有打勾的能力才会提升，满足相应能力功勋需\n求额度后才能提升对应的能力属性。\n在战场上进行攻击、被攻击、防御、施放策略、承受策\n略及击杀敌军获得人头都可以获取到功勋。\n精进状态下获得的功勋值加倍。\n战斗中每节省一回合我军在场者五种功勋各增加2点。\n功勋模式不能通过果子进行培养。\n"
+                    }
+                  ]
+                },
+                {
+                  "offset": 2090,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4071
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 1
+                    }
+                  ]
+                },
+                {
+                  "offset": 2116,
+                  "opcode": 22,
+                  "name": "多行文字显示",
+                  "parameters": [
+                    {
+                      "parameter_id": 5,
+                      "type": 5,
+                      "name": "文字内容",
+                      "value": " [C29「吃果模式」 ]\n在果子模式下服用果子可以永久提升2点属性。\n贩卖店货可以获得珍珠，\n战前可使用珍珠兑换果子。"
+                    }
+                  ]
+                },
+                {
+                  "offset": 2230,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4071
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 1
+                    }
+                  ]
+                },
+                {
+                  "offset": 2256,
+                  "opcode": 22,
+                  "name": "多行文字显示",
+                  "parameters": [
+                    {
+                      "parameter_id": 5,
+                      "type": 5,
+                      "name": "文字内容",
+                      "value": "[C29 前置说明： ]\n[C29 必杀系统关闭； ] \n[C29 自动开启升级能力重算、转职能力重算； ]  \n[C29 开启ai智能走位；]  \n[C29 开启攻击方向伤害加成。]  \n\r\n"
+                    }
+                  ]
+                },
+                {
+                  "offset": 2406,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4071
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 4
+                    }
+                  ]
+                },
+                {
+                  "offset": 2432,
+                  "opcode": 22,
+                  "name": "多行文字显示",
+                  "parameters": [
+                    {
+                      "parameter_id": 5,
+                      "type": 5,
+                      "name": "文字内容",
+                      "value": "===================================================\n\n\n"
+                    }
+                  ]
+                },
+                {
+                  "offset": 2491,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4071
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 4
+                    }
+                  ]
+                },
+                {
+                  "offset": 2517,
+                  "opcode": 22,
+                  "name": "多行文字显示",
+                  "parameters": [
+                    {
+                      "parameter_id": 5,
+                      "type": 5,
+                      "name": "文字内容",
+                      "value": " 检索：查询你已开启或关闭的项目。\n"
+                    }
+                  ]
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 2558,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 2560,
+                "opcode": 2,
+                "name": "内部信息测试（注释）",
+                "parameters": [
+                  {
+                    "parameter_id": 5,
+                    "type": 5,
+                    "name": "文字说明",
+                    "value": " 历史情报排序"
+                  }
+                ]
+              },
+              "then_size": 28,
+              "then": [
+                {
+                  "offset": 2580,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4064
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 1
+                    }
+                  ]
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 2608,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 2610,
+                "opcode": 2,
+                "name": "内部信息测试（注释）",
+                "parameters": [
+                  {
+                    "parameter_id": 5,
+                    "type": 5,
+                    "name": "文字说明",
+                    "value": "方向伤害加成、ai智能走位、禁围攻必杀"
+                  }
+                ]
+              },
+              "then_size": 106,
+              "then": [
+                {
+                  "offset": 2653,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4059
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 1
+                    }
+                  ]
+                },
+                {
+                  "offset": 2679,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4063
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 1
+                    }
+                  ]
+                },
+                {
+                  "offset": 2705,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4065
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 1
+                    }
+                  ]
+                },
+                {
+                  "offset": 2731,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4066
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 1
+                    }
+                  ]
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 2759,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 2761,
+                "opcode": 2,
+                "name": "内部信息测试（注释）",
+                "parameters": [
+                  {
+                    "parameter_id": 5,
+                    "type": 5,
+                    "name": "文字说明",
+                    "value": "buff/debuff能同时显示"
+                  }
+                ]
+              },
+              "then_size": 28,
+              "then": [
+                {
+                  "offset": 2789,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4043
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 0
+                    }
+                  ]
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 2817,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 2819,
+                "opcode": 2,
+                "name": "内部信息测试（注释）",
+                "parameters": [
+                  {
+                    "parameter_id": 5,
+                    "type": 5,
+                    "name": "文字说明",
+                    "value": "自动使用道具不消耗库存"
+                  }
+                ]
+              },
+              "then_size": 28,
+              "then": [
+                {
+                  "offset": 2848,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4035
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 1
+                    }
+                  ]
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 2876,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 2878,
+                "opcode": 2,
+                "name": "内部信息测试（注释）",
+                "parameters": [
+                  {
+                    "parameter_id": 5,
+                    "type": 5,
+                    "name": "文字说明",
+                    "value": "自动开启能力升级重算和转职重算。"
+                  }
+                ]
+              },
+              "then_size": 54,
+              "then": [
+                {
+                  "offset": 2917,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4081
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 1
+                    }
+                  ]
+                },
+                {
+                  "offset": 2943,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4094
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 1
+                    }
+                  ]
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 2971,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 2973,
+                "opcode": 2,
+                "name": "内部信息测试（注释）",
+                "parameters": [
+                  {
+                    "parameter_id": 5,
+                    "type": 5,
+                    "name": "文字说明",
+                    "value": "允许跟友军换位"
+                  }
+                ]
+              },
+              "then_size": 28,
+              "then": [
+                {
+                  "offset": 2994,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4052
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 4
+                    }
+                  ]
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 3022,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 3024,
+                "opcode": 2,
+                "name": "内部信息测试（注释）",
+                "parameters": [
+                  {
+                    "parameter_id": 5,
+                    "type": 5,
+                    "name": "文字说明",
+                    "value": "关闭敌友成长"
+                  }
+                ]
+              },
+              "then_size": 28,
+              "then": [
+                {
+                  "offset": 3043,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4075
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 0
+                    }
+                  ]
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 3071,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 3073,
+                "opcode": 2,
+                "name": "内部信息测试（注释）",
+                "parameters": [
+                  {
+                    "parameter_id": 5,
+                    "type": 5,
+                    "name": "文字说明",
+                    "value": "全模式下开启破百加成"
+                  }
+                ]
+              },
+              "then_size": 28,
+              "then": [
+                {
+                  "offset": 3100,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4073
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 1
+                    }
+                  ]
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 3128,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 3130,
+                "opcode": 2,
+                "name": "内部信息测试（注释）",
+                "parameters": [
+                  {
+                    "parameter_id": 5,
+                    "type": 5,
+                    "name": "文字说明",
+                    "value": "杀敌数加成，默认0不开启，1开启。"
+                  }
+                ]
+              },
+              "then_size": 28,
+              "then": [
+                {
+                  "offset": 3169,
+                  "opcode": 119,
+                  "name": "变量运算",
+                  "parameters": [
+                    {
+                      "parameter_id": 81,
+                      "type": 81,
+                      "name": "目标变量类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "目标变量编号",
+                      "value": 4046
+                    },
+                    {
+                      "parameter_id": 83,
+                      "type": 83,
+                      "name": "操作数类型",
+                      "value": 2
+                    },
+                    {
+                      "parameter_id": 82,
+                      "type": 82,
+                      "name": "运算符",
+                      "value": 0
+                    },
+                    {
+                      "parameter_id": 4,
+                      "type": 4,
+                      "name": "操作数",
+                      "value": 0
+                    }
+                  ]
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 3197,
+              "opcode": 119,
+              "name": "变量运算",
+              "parameters": [
+                {
+                  "parameter_id": 81,
+                  "type": 81,
+                  "name": "目标变量类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "目标变量编号",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 83,
+                  "type": 83,
+                  "name": "操作数类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 82,
+                  "type": 82,
+                  "name": "运算符",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "操作数",
+                  "value": 518
+                }
+              ]
+            },
+            {
+              "offset": 3223,
+              "opcode": 120,
+              "name": "整型变量赋值",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "变量编号",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 84,
+                  "type": 84,
+                  "name": "赋值方式",
+                  "value": 1
+                },
+                {
+                  "parameter_id": 2,
+                  "type": 2,
+                  "name": "人物编号",
+                  "value": 1002
+                },
+                {
+                  "parameter_id": 85,
+                  "type": 85,
+                  "name": "人物属性",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "offset": 3243,
+              "opcode": 119,
+              "name": "变量运算",
+              "parameters": [
+                {
+                  "parameter_id": 81,
+                  "type": 81,
+                  "name": "目标变量类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "目标变量编号",
+                  "value": 4027
+                },
+                {
+                  "parameter_id": 83,
+                  "type": 83,
+                  "name": "操作数类型",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 82,
+                  "type": 82,
+                  "name": "运算符",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "操作数",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 3269,
+              "opcode": 39,
+              "name": "背景设定",
+              "parameters": [
+                {
+                  "parameter_id": 45,
+                  "type": 45,
+                  "name": "图片类型1",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 12,
+                  "type": 12,
+                  "name": "外景8",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 26,
+                  "type": 26,
+                  "name": "三国地图1",
+                  "value": -1
+                },
+                {
+                  "parameter_id": 28,
+                  "type": 28,
+                  "name": "内景9",
+                  "value": 91
+                },
+                {
+                  "parameter_id": 21,
+                  "type": 21,
+                  "name": "战场a",
+                  "value": -1
+                }
+              ]
+            },
+            {
+              "offset": 3291,
+              "opcode": 28,
+              "name": "绘图",
+              "parameters": []
+            },
+            {
+              "offset": 3293,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 3301,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&昏头李\n哈喽，感谢您观看大型连续奇幻历史剧\n《闯王李自成传》，我是该剧的总导演\n兼旁白——昏头李。"
+                }
+              ]
+            },
+            {
+              "offset": 3402,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&昏头李\n接下来，请进行游戏的初始设定。"
+                }
+              ]
+            },
+            {
+              "offset": 3445,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&昏头李\n是否开启杀敌加成？"
+                }
+              ]
+            },
+            {
+              "offset": 3476,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 3478,
+                "opcode": 18,
+                "name": "出现选择框",
+                "parameters": [
+                  {
+                    "parameter_id": 5,
+                    "type": 5,
+                    "name": "选项说明",
+                    "value": "是\n否"
+                  },
+                  {
+                    "parameter_id": 2,
+                    "type": 2,
+                    "name": "武将序号2",
+                    "value": 1002
+                  }
+                ]
+              },
+              "then_size": 206,
+              "then": [
+                {
+                  "offset": 3494,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 3496,
+                    "opcode": 19,
+                    "name": "选项测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 4,
+                        "type": 4,
+                        "name": "选项序号",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  "then_size": 103,
+                  "then": [
+                    {
+                      "offset": 3506,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4071
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 4
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 3532,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4046
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 1
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 3558,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4059
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 1
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 3584,
+                      "opcode": 22,
+                      "name": "多行文字显示",
+                      "parameters": [
+                        {
+                          "parameter_id": 5,
+                          "type": 5,
+                          "name": "文字内容",
+                          "value": " 1.开启杀敌加成。\n"
+                        }
+                      ]
+                    }
+                  ],
+                  "else_size": 0,
+                  "else": []
+                },
+                {
+                  "offset": 3609,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 3611,
+                    "opcode": 19,
+                    "name": "选项测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 4,
+                        "type": 4,
+                        "name": "选项序号",
+                        "value": 2
+                      }
+                    ]
+                  },
+                  "then_size": 77,
+                  "then": [
+                    {
+                      "offset": 3621,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4059
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 1
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 3647,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4071
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 4
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 3673,
+                      "opcode": 22,
+                      "name": "多行文字显示",
+                      "parameters": [
+                        {
+                          "parameter_id": 5,
+                          "type": 5,
+                          "name": "文字内容",
+                          "value": " 1.关闭杀敌加成。\n"
+                        }
+                      ]
+                    }
+                  ],
+                  "else_size": 0,
+                  "else": []
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 3700,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 3708,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&昏头李\n是否开启敌友成长？开启后敌军\n成长会随着每关的难度增加。"
+                }
+              ]
+            },
+            {
+              "offset": 3776,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 3778,
+                "opcode": 18,
+                "name": "出现选择框",
+                "parameters": [
+                  {
+                    "parameter_id": 5,
+                    "type": 5,
+                    "name": "选项说明",
+                    "value": "是\n否"
+                  },
+                  {
+                    "parameter_id": 2,
+                    "type": 2,
+                    "name": "武将序号2",
+                    "value": 1002
+                  }
+                ]
+              },
+              "then_size": 180,
+              "then": [
+                {
+                  "offset": 3794,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 3796,
+                    "opcode": 19,
+                    "name": "选项测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 4,
+                        "type": 4,
+                        "name": "选项序号",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  "then_size": 77,
+                  "then": [
+                    {
+                      "offset": 3806,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4075
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 1
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 3832,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4071
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 4
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 3858,
+                      "opcode": 22,
+                      "name": "多行文字显示",
+                      "parameters": [
+                        {
+                          "parameter_id": 5,
+                          "type": 5,
+                          "name": "文字内容",
+                          "value": " 2.开启敌友成长。\n"
+                        }
+                      ]
+                    }
+                  ],
+                  "else_size": 0,
+                  "else": []
+                },
+                {
+                  "offset": 3883,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 3885,
+                    "opcode": 19,
+                    "name": "选项测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 4,
+                        "type": 4,
+                        "name": "选项序号",
+                        "value": 2
+                      }
+                    ]
+                  },
+                  "then_size": 77,
+                  "then": [
+                    {
+                      "offset": 3895,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4075
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 0
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 3921,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4071
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 4
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 3947,
+                      "opcode": 22,
+                      "name": "多行文字显示",
+                      "parameters": [
+                        {
+                          "parameter_id": 5,
+                          "type": 5,
+                          "name": "文字内容",
+                          "value": " 2.关闭敌友成长。\n"
+                        }
+                      ]
+                    }
+                  ],
+                  "else_size": 0,
+                  "else": []
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 3974,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&昏头李\n请选择游戏培养模式。"
+                }
+              ]
+            },
+            {
+              "offset": 4007,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 4009,
+                "opcode": 18,
+                "name": "出现选择框",
+                "parameters": [
+                  {
+                    "parameter_id": 5,
+                    "type": 5,
+                    "name": "选项说明",
+                    "value": "「功勋模式」\n「吃果模式」"
+                  },
+                  {
+                    "parameter_id": 2,
+                    "type": 2,
+                    "name": "武将序号2",
+                    "value": 1002
+                  }
+                ]
+              },
+              "then_size": 788,
+              "then": [
+                {
+                  "offset": 4045,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 4047,
+                    "opcode": 19,
+                    "name": "选项测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 4,
+                        "type": 4,
+                        "name": "选项序号",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  "then_size": 700,
+                  "then": [
+                    {
+                      "offset": 4057,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4047
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 1
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 4083,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4074
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 1
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 4109,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4055
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 1
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 4135,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4071
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 4
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 4161,
+                      "opcode": 22,
+                      "name": "多行文字显示",
+                      "parameters": [
+                        {
+                          "parameter_id": 5,
+                          "type": 5,
+                          "name": "文字内容",
+                          "value": " 3.开启功勋模式。"
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 4183,
+                      "opcode": 9,
+                      "name": "延时",
+                      "parameters": [
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "时长",
+                          "value": 3
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 4191,
+                      "opcode": 20,
+                      "name": "对话",
+                      "parameters": [
+                        {
+                          "parameter_id": 5,
+                          "type": 5,
+                          "name": "对话内容",
+                          "value": "&昏头李\n是否开启功勋共享。\n"
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 4223,
+                      "opcode": 1,
+                      "name": "子事件开始标志",
+                      "condition": {
+                        "offset": 4225,
+                        "opcode": 18,
+                        "name": "出现选择框",
+                        "parameters": [
+                          {
+                            "parameter_id": 5,
+                            "type": 5,
+                            "name": "选项说明",
+                            "value": "开启功勋共享\n关闭功勋共享"
+                          },
+                          {
+                            "parameter_id": 2,
+                            "type": 2,
+                            "name": "武将序号2",
+                            "value": 1002
+                          }
+                        ]
+                      },
+                      "then_size": 212,
+                      "then": [
+                        {
+                          "offset": 4261,
+                          "opcode": 1,
+                          "name": "子事件开始标志",
+                          "condition": {
+                            "offset": 4263,
+                            "opcode": 19,
+                            "name": "选项测试",
+                            "parameters": [
+                              {
+                                "parameter_id": 4,
+                                "type": 4,
+                                "name": "选项序号",
+                                "value": 1
+                              }
+                            ]
+                          },
+                          "then_size": 76,
+                          "then": [
+                            {
+                              "offset": 4273,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4047
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 1
+                                }
+                              ]
+                            },
+                            {
+                              "offset": 4299,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4071
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 4
+                                }
+                              ]
+                            },
+                            {
+                              "offset": 4325,
+                              "opcode": 22,
+                              "name": "多行文字显示",
+                              "parameters": [
+                                {
+                                  "parameter_id": 5,
+                                  "type": 5,
+                                  "name": "文字内容",
+                                  "value": "   开启功勋共享。"
+                                }
+                              ]
+                            }
+                          ],
+                          "else_size": 0,
+                          "else": []
+                        },
+                        {
+                          "offset": 4349,
+                          "opcode": 1,
+                          "name": "子事件开始标志",
+                          "condition": {
+                            "offset": 4351,
+                            "opcode": 19,
+                            "name": "选项测试",
+                            "parameters": [
+                              {
+                                "parameter_id": 4,
+                                "type": 4,
+                                "name": "选项序号",
+                                "value": 2
+                              }
+                            ]
+                          },
+                          "then_size": 110,
+                          "then": [
+                            {
+                              "offset": 4361,
+                              "opcode": 2,
+                              "name": "内部信息测试（注释）",
+                              "parameters": [
+                                {
+                                  "parameter_id": 5,
+                                  "type": 5,
+                                  "name": "文字说明",
+                                  "value": "4047 = 功分配模式 1开启 0关闭"
+                                }
+                              ]
+                            },
+                            {
+                              "offset": 4395,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4047
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "offset": 4421,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4071
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 4
+                                }
+                              ]
+                            },
+                            {
+                              "offset": 4447,
+                              "opcode": 22,
+                              "name": "多行文字显示",
+                              "parameters": [
+                                {
+                                  "parameter_id": 5,
+                                  "type": 5,
+                                  "name": "文字内容",
+                                  "value": "   关闭功勋共享。"
+                                }
+                              ]
+                            }
+                          ],
+                          "else_size": 0,
+                          "else": []
+                        }
+                      ],
+                      "else_size": 0,
+                      "else": []
+                    },
+                    {
+                      "offset": 4473,
+                      "opcode": 9,
+                      "name": "延时",
+                      "parameters": [
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "时长",
+                          "value": 3
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 4481,
+                      "opcode": 20,
+                      "name": "对话",
+                      "parameters": [
+                        {
+                          "parameter_id": 5,
+                          "type": 5,
+                          "name": "对话内容",
+                          "value": "&昏头李\n是否开启装备保底自动升级系统。\n"
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 4525,
+                      "opcode": 1,
+                      "name": "子事件开始标志",
+                      "condition": {
+                        "offset": 4527,
+                        "opcode": 18,
+                        "name": "出现选择框",
+                        "parameters": [
+                          {
+                            "parameter_id": 5,
+                            "type": 5,
+                            "name": "选项说明",
+                            "value": "开启装备自动升级（卖装备不获得珍珠）\n不开启装备自动升级"
+                          },
+                          {
+                            "parameter_id": 2,
+                            "type": 2,
+                            "name": "武将序号2",
+                            "value": 1002
+                          }
+                        ]
+                      },
+                      "then_size": 162,
+                      "then": [
+                        {
+                          "offset": 4593,
+                          "opcode": 1,
+                          "name": "子事件开始标志",
+                          "condition": {
+                            "offset": 4595,
+                            "opcode": 19,
+                            "name": "选项测试",
+                            "parameters": [
+                              {
+                                "parameter_id": 4,
+                                "type": 4,
+                                "name": "选项序号",
+                                "value": 1
+                              }
+                            ]
+                          },
+                          "then_size": 80,
+                          "then": [
+                            {
+                              "offset": 4605,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4039
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 1
+                                }
+                              ]
+                            },
+                            {
+                              "offset": 4631,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4071
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 4
+                                }
+                              ]
+                            },
+                            {
+                              "offset": 4657,
+                              "opcode": 22,
+                              "name": "多行文字显示",
+                              "parameters": [
+                                {
+                                  "parameter_id": 5,
+                                  "type": 5,
+                                  "name": "文字内容",
+                                  "value": "   开启装备自动升级。"
+                                }
+                              ]
+                            }
+                          ],
+                          "else_size": 0,
+                          "else": []
+                        },
+                        {
+                          "offset": 4685,
+                          "opcode": 1,
+                          "name": "子事件开始标志",
+                          "condition": {
+                            "offset": 4687,
+                            "opcode": 19,
+                            "name": "选项测试",
+                            "parameters": [
+                              {
+                                "parameter_id": 4,
+                                "type": 4,
+                                "name": "选项序号",
+                                "value": 2
+                              }
+                            ]
+                          },
+                          "then_size": 56,
+                          "then": [
+                            {
+                              "offset": 4697,
+                              "opcode": 119,
+                              "name": "变量运算",
+                              "parameters": [
+                                {
+                                  "parameter_id": 81,
+                                  "type": 81,
+                                  "name": "目标变量类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "目标变量编号",
+                                  "value": 4071
+                                },
+                                {
+                                  "parameter_id": 83,
+                                  "type": 83,
+                                  "name": "操作数类型",
+                                  "value": 2
+                                },
+                                {
+                                  "parameter_id": 82,
+                                  "type": 82,
+                                  "name": "运算符",
+                                  "value": 0
+                                },
+                                {
+                                  "parameter_id": 4,
+                                  "type": 4,
+                                  "name": "操作数",
+                                  "value": 4
+                                }
+                              ]
+                            },
+                            {
+                              "offset": 4723,
+                              "opcode": 22,
+                              "name": "多行文字显示",
+                              "parameters": [
+                                {
+                                  "parameter_id": 5,
+                                  "type": 5,
+                                  "name": "文字内容",
+                                  "value": "   不开启装备自动升级。"
+                                }
+                              ]
+                            }
+                          ],
+                          "else_size": 0,
+                          "else": []
+                        }
+                      ],
+                      "else_size": 0,
+                      "else": []
+                    }
+                  ],
+                  "else_size": 0,
+                  "else": []
+                },
+                {
+                  "offset": 4757,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 4759,
+                    "opcode": 19,
+                    "name": "选项测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 4,
+                        "type": 4,
+                        "name": "选项序号",
+                        "value": 2
+                      }
+                    ]
+                  },
+                  "then_size": 62,
+                  "then": [
+                    {
+                      "offset": 4769,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4071
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 4
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 4795,
+                      "opcode": 22,
+                      "name": "多行文字显示",
+                      "parameters": [
+                        {
+                          "parameter_id": 5,
+                          "type": 5,
+                          "name": "文字内容",
+                          "value": " 3.开启吃果模式。"
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 4817,
+                      "opcode": 11,
+                      "name": "变量赋值",
+                      "parameters": [
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "变量序号",
+                          "value": 1000
+                        },
+                        {
+                          "parameter_id": 39,
+                          "type": 39,
+                          "name": "变量值",
+                          "value": 1
+                        }
+                      ]
+                    }
+                  ],
+                  "else_size": 0,
+                  "else": []
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 4833,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 4841,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&昏头李\n请选择游戏难度。"
+                }
+              ]
+            },
+            {
+              "offset": 4870,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 4872,
+                "opcode": 18,
+                "name": "出现选择框",
+                "parameters": [
+                  {
+                    "parameter_id": 5,
+                    "type": 5,
+                    "name": "选项说明",
+                    "value": "[C79割草]（敌军能力系数降低为80%）\n[C1A休闲]（敌军能力系数降低为90%）\n普通（敌军能力系数为100%）\n[C26困难]（敌军能力提升为105%）\n[C29打铁]（敌军能力提升为115%）"
+                  },
+                  {
+                    "parameter_id": 2,
+                    "type": 2,
+                    "name": "武将序号2",
+                    "value": 1002
+                  }
+                ]
+              },
+              "then_size": 603,
+              "then": [
+                {
+                  "offset": 5043,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 5045,
+                    "opcode": 19,
+                    "name": "选项测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 4,
+                        "type": 4,
+                        "name": "选项序号",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  "then_size": 104,
+                  "then": [
+                    {
+                      "offset": 5055,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4033
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 80
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 5081,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4071
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 4
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 5107,
+                      "opcode": 22,
+                      "name": "多行文字显示",
+                      "parameters": [
+                        {
+                          "parameter_id": 5,
+                          "type": 5,
+                          "name": "文字内容",
+                          "value": " 4.您开启了割草难度。敌军能力系数降低为80%。\n"
+                        }
+                      ]
+                    }
+                  ],
+                  "else_size": 0,
+                  "else": []
+                },
+                {
+                  "offset": 5159,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 5161,
+                    "opcode": 19,
+                    "name": "选项测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 4,
+                        "type": 4,
+                        "name": "选项序号",
+                        "value": 2
+                      }
+                    ]
+                  },
+                  "then_size": 104,
+                  "then": [
+                    {
+                      "offset": 5171,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4033
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 90
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 5197,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4071
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 4
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 5223,
+                      "opcode": 22,
+                      "name": "多行文字显示",
+                      "parameters": [
+                        {
+                          "parameter_id": 5,
+                          "type": 5,
+                          "name": "文字内容",
+                          "value": " 4.您开启了休闲难度。敌军能力系数降低为90%。\n"
+                        }
+                      ]
+                    }
+                  ],
+                  "else_size": 0,
+                  "else": []
+                },
+                {
+                  "offset": 5275,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 5277,
+                    "opcode": 19,
+                    "name": "选项测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 4,
+                        "type": 4,
+                        "name": "选项序号",
+                        "value": 3
+                      }
+                    ]
+                  },
+                  "then_size": 99,
+                  "then": [
+                    {
+                      "offset": 5287,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4033
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 100
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 5313,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4071
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 4
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 5339,
+                      "opcode": 22,
+                      "name": "多行文字显示",
+                      "parameters": [
+                        {
+                          "parameter_id": 5,
+                          "type": 5,
+                          "name": "文字内容",
+                          "value": " 4.您开启了普通难度。敌军能力系数不变。\n"
+                        }
+                      ]
+                    }
+                  ],
+                  "else_size": 0,
+                  "else": []
+                },
+                {
+                  "offset": 5386,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 5388,
+                    "opcode": 19,
+                    "name": "选项测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 4,
+                        "type": 4,
+                        "name": "选项序号",
+                        "value": 4
+                      }
+                    ]
+                  },
+                  "then_size": 117,
+                  "then": [
+                    {
+                      "offset": 5398,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4033
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 105
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 5424,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4071
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 4
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 5450,
+                      "opcode": 22,
+                      "name": "多行文字显示",
+                      "parameters": [
+                        {
+                          "parameter_id": 5,
+                          "type": 5,
+                          "name": "文字内容",
+                          "value": " 4.您开启了困难难度。敌军能力系数提升为105%。\n"
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 5501,
+                      "opcode": 11,
+                      "name": "变量赋值",
+                      "parameters": [
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "变量序号",
+                          "value": 290
+                        },
+                        {
+                          "parameter_id": 39,
+                          "type": 39,
+                          "name": "变量值",
+                          "value": 1
+                        }
+                      ]
+                    }
+                  ],
+                  "else_size": 0,
+                  "else": []
+                },
+                {
+                  "offset": 5515,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 5517,
+                    "opcode": 19,
+                    "name": "选项测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 4,
+                        "type": 4,
+                        "name": "选项序号",
+                        "value": 5
+                      }
+                    ]
+                  },
+                  "then_size": 117,
+                  "then": [
+                    {
+                      "offset": 5527,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4033
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 115
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 5553,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4071
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 4
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 5579,
+                      "opcode": 22,
+                      "name": "多行文字显示",
+                      "parameters": [
+                        {
+                          "parameter_id": 5,
+                          "type": 5,
+                          "name": "文字内容",
+                          "value": " 4.您开启了打铁难度。敌军能力系数提升为115%。\n"
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 5630,
+                      "opcode": 11,
+                      "name": "变量赋值",
+                      "parameters": [
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "变量序号",
+                          "value": 291
+                        },
+                        {
+                          "parameter_id": 39,
+                          "type": 39,
+                          "name": "变量值",
+                          "value": 1
+                        }
+                      ]
+                    }
+                  ],
+                  "else_size": 0,
+                  "else": []
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 5646,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "offset": 5654,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&昏头李\n是否同意每关战前重新进行难度选择？"
+                }
+              ]
+            },
+            {
+              "offset": 5701,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 5703,
+                "opcode": 18,
+                "name": "出现选择框",
+                "parameters": [
+                  {
+                    "parameter_id": 5,
+                    "type": 5,
+                    "name": "选项说明",
+                    "value": "是\n否"
+                  },
+                  {
+                    "parameter_id": 2,
+                    "type": 2,
+                    "name": "武将序号2",
+                    "value": 1002
+                  }
+                ]
+              },
+              "then_size": 186,
+              "then": [
+                {
+                  "offset": 5719,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 5721,
+                    "opcode": 19,
+                    "name": "选项测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 4,
+                        "type": 4,
+                        "name": "选项序号",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  "then_size": 79,
+                  "then": [
+                    {
+                      "offset": 5731,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4071
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 4
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 5757,
+                      "opcode": 22,
+                      "name": "多行文字显示",
+                      "parameters": [
+                        {
+                          "parameter_id": 5,
+                          "type": 5,
+                          "name": "文字内容",
+                          "value": " 5.同意每关战前重新选择战场难度。\n"
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 5796,
+                      "opcode": 11,
+                      "name": "变量赋值",
+                      "parameters": [
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "变量序号",
+                          "value": 260
+                        },
+                        {
+                          "parameter_id": 39,
+                          "type": 39,
+                          "name": "变量值",
+                          "value": 1
+                        }
+                      ]
+                    }
+                  ],
+                  "else_size": 0,
+                  "else": []
+                },
+                {
+                  "offset": 5810,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 5812,
+                    "opcode": 19,
+                    "name": "选项测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 4,
+                        "type": 4,
+                        "name": "选项序号",
+                        "value": 2
+                      }
+                    ]
+                  },
+                  "then_size": 81,
+                  "then": [
+                    {
+                      "offset": 5822,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4071
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 4
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 5848,
+                      "opcode": 22,
+                      "name": "多行文字显示",
+                      "parameters": [
+                        {
+                          "parameter_id": 5,
+                          "type": 5,
+                          "name": "文字内容",
+                          "value": " 5.每关战前将无法重新选择战场难度。\n"
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 5889,
+                      "opcode": 11,
+                      "name": "变量赋值",
+                      "parameters": [
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "变量序号",
+                          "value": 261
+                        },
+                        {
+                          "parameter_id": 39,
+                          "type": 39,
+                          "name": "变量值",
+                          "value": 1
+                        }
+                      ]
+                    }
+                  ],
+                  "else_size": 0,
+                  "else": []
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 5905,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&昏头李\n是否开启人物等级板凳升级。\n"
+                }
+              ]
+            },
+            {
+              "offset": 5945,
+              "opcode": 1,
+              "name": "子事件开始标志",
+              "condition": {
+                "offset": 5947,
+                "opcode": 18,
+                "name": "出现选择框",
+                "parameters": [
+                  {
+                    "parameter_id": 5,
+                    "type": 5,
+                    "name": "选项说明",
+                    "value": "开启板凳升级\n关闭板凳升级"
+                  },
+                  {
+                    "parameter_id": 2,
+                    "type": 2,
+                    "name": "武将序号2",
+                    "value": 1002
+                  }
+                ]
+              },
+              "then_size": 135,
+              "then": [
+                {
+                  "offset": 5983,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 5985,
+                    "opcode": 19,
+                    "name": "选项测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 4,
+                        "type": 4,
+                        "name": "选项序号",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  "then_size": 60,
+                  "then": [
+                    {
+                      "offset": 5995,
+                      "opcode": 11,
+                      "name": "变量赋值",
+                      "parameters": [
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "变量序号",
+                          "value": 264
+                        },
+                        {
+                          "parameter_id": 39,
+                          "type": 39,
+                          "name": "变量值",
+                          "value": 1
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 6007,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4071
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 4
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 6033,
+                      "opcode": 22,
+                      "name": "多行文字显示",
+                      "parameters": [
+                        {
+                          "parameter_id": 5,
+                          "type": 5,
+                          "name": "文字内容",
+                          "value": " 6.开启板凳升级"
+                        }
+                      ]
+                    }
+                  ],
+                  "else_size": 0,
+                  "else": []
+                },
+                {
+                  "offset": 6055,
+                  "opcode": 1,
+                  "name": "子事件开始标志",
+                  "condition": {
+                    "offset": 6057,
+                    "opcode": 19,
+                    "name": "选项测试",
+                    "parameters": [
+                      {
+                        "parameter_id": 4,
+                        "type": 4,
+                        "name": "选项序号",
+                        "value": 2
+                      }
+                    ]
+                  },
+                  "then_size": 49,
+                  "then": [
+                    {
+                      "offset": 6067,
+                      "opcode": 119,
+                      "name": "变量运算",
+                      "parameters": [
+                        {
+                          "parameter_id": 81,
+                          "type": 81,
+                          "name": "目标变量类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "目标变量编号",
+                          "value": 4071
+                        },
+                        {
+                          "parameter_id": 83,
+                          "type": 83,
+                          "name": "操作数类型",
+                          "value": 2
+                        },
+                        {
+                          "parameter_id": 82,
+                          "type": 82,
+                          "name": "运算符",
+                          "value": 0
+                        },
+                        {
+                          "parameter_id": 4,
+                          "type": 4,
+                          "name": "操作数",
+                          "value": 4
+                        }
+                      ]
+                    },
+                    {
+                      "offset": 6093,
+                      "opcode": 22,
+                      "name": "多行文字显示",
+                      "parameters": [
+                        {
+                          "parameter_id": 5,
+                          "type": 5,
+                          "name": "文字内容",
+                          "value": "6.关闭板凳升级。"
+                        }
+                      ]
+                    }
+                  ],
+                  "else_size": 0,
+                  "else": []
+                }
+              ],
+              "else_size": 0,
+              "else": []
+            },
+            {
+              "offset": 6118,
+              "opcode": 20,
+              "name": "对话",
+              "parameters": [
+                {
+                  "parameter_id": 5,
+                  "type": 5,
+                  "name": "对话内容",
+                  "value": "&昏头李\n好，有关于游戏设定的选项已全部完成。"
+                }
+              ]
+            },
+            {
+              "offset": 6167,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 6175,
+              "opcode": 29,
+              "name": "调色板重设",
+              "parameters": []
+            },
+            {
+              "offset": 6177,
+              "opcode": 10,
+              "name": "初始化局部变量",
+              "parameters": []
+            },
+            {
+              "offset": 6179,
+              "opcode": 47,
+              "name": "清除场景中出现的人物",
+              "parameters": []
+            },
+            {
+              "offset": 6181,
+              "opcode": 8,
+              "name": "菜单处理",
+              "parameters": [
+                {
+                  "parameter_id": 46,
+                  "type": 46,
+                  "name": "可否控制0",
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "offset": 6187,
+              "opcode": 58,
+              "name": "钱、剧本、忠奸度设置",
+              "parameters": [
+                {
+                  "parameter_id": 40,
+                  "type": 40,
+                  "name": "设置哪个数字（0钱，1剧本，2忠奸度）1",
+                  "value": 2
+                },
+                {
+                  "parameter_id": 52,
+                  "type": 52,
+                  "name": "设定方式1",
+                  "value": 0
+                },
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "数值",
+                  "value": 50
+                }
+              ]
+            },
+            {
+              "offset": 6203,
+              "opcode": 47,
+              "name": "清除场景中出现的人物",
+              "parameters": []
+            },
+            {
+              "offset": 6205,
+              "opcode": 9,
+              "name": "延时",
+              "parameters": [
+                {
+                  "parameter_id": 4,
+                  "type": 4,
+                  "name": "时长",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "offset": 6213,
+              "opcode": 17,
+              "name": "剧本跳转",
+              "parameters": [
+                {
+                  "parameter_id": 55,
+                  "type": 55,
+                  "name": "跳过的剧本5",
+                  "value": 1
+                }
+              ]
+            }
+          ],
+          "trailing_bytes": "00 00"
+        }
+      ]
+    }
+  ],
+  "deployment_tables": [],
+  "summary": {
+    "section_count": 1,
+    "instruction_count": 206,
+    "unparsed_section_count": 0,
+    "deployment_instruction_count": 0,
+    "deployment": [],
+    "deployment_tables": [],
+    "text": [
+      "初始设定模板：\ndata内999号人物改为说书人（或游戏指导或你自己名字，什么都行）\ndata内1000号人物改为你（或者玩家1号之类的）\n记得对应头像也要改。",
+      "游戏介绍",
+      "                  [C09警告： ]\n\r\n      [C29如果你以购买方式或者从手游移植群那里 ]\n      [C29获得此游戏，]\n      [C29那么你真是倒了血霉了，]\r\n      [C29此游戏乃免费公开的电脑端游戏，]\n      [C29白花了冤枉钱，认识了狗贼。]\n      [C29请跟我一起大喊：]\n      [C29倒卖者和私自移植者死全家！！！]\n      [C29倒卖者和私自移植者死全家！！！]\n      [C29倒卖者和私自移植者死全家！！！]\n      [C29倒卖者和私自移植者死全家！！！]\n      [C29=谢谢=]\n\r\n\r\n",
+      "            [C09《李自成传》游戏介绍 ]\n\r\n",
+      " [C28【能力档位与对应成长参数】 ]\n\r\n  属性档位           合格能力         \n\r\n     6               102            \n     5                95             \n     4                80             \n     3                70             \n     2                50             \n     1                 0             \n",
+      "\n [C59【键盘快捷键说明】 ]\n\n 键盘1,2,3,4键可加速游戏运行，0键还原速度。\n 5键可选是否开启血条，\n 6键是否显示属性buff情况。\n 7键显示装备；\n 8键显示预估伤害等；\n 9键显示地形适性。\n e键在显示移动范围的情况下显示所有不可控单位的行动\n顺序。\n f键在显示移动范围的情况下显示这个单位对其敌对方势\n力的仇恨值（物理和策略只显示更高的）\n g键用红色半透明显示此单位处于哪些敌方势力的攻击\n范围内（敌对方在原地或仅需移动一次就可以攻击到）\n",
+      "\n [C08【游戏培养模式说明】 ]\n\n游戏内分为「功勋模式」与「吃果模式」两种游戏培\n养模式。\n玩家仅能在其中选择一种进行操作。\n",
+      " [C0B「功勋模式」 ]\n点击头像可以分配功勋，不打勾仅能提升功勋无法提升\n属性，只有打勾的能力才会提升，满足相应能力功勋需\n求额度后才能提升对应的能力属性。\n在战场上进行攻击、被攻击、防御、施放策略、承受策\n略及击杀敌军获得人头都可以获取到功勋。\n精进状态下获得的功勋值加倍。\n战斗中每节省一回合我军在场者五种功勋各增加2点。\n功勋模式不能通过果子进行培养。\n",
+      " [C29「吃果模式」 ]\n在果子模式下服用果子可以永久提升2点属性。\n贩卖店货可以获得珍珠，\n战前可使用珍珠兑换果子。",
+      "[C29 前置说明： ]\n[C29 必杀系统关闭； ] \n[C29 自动开启升级能力重算、转职能力重算； ]  \n[C29 开启ai智能走位；]  \n[C29 开启攻击方向伤害加成。]  \n\r\n",
+      "===================================================\n\n\n",
+      " 检索：查询你已开启或关闭的项目。\n",
+      " 历史情报排序",
+      "方向伤害加成、ai智能走位、禁围攻必杀",
+      "buff/debuff能同时显示",
+      "自动使用道具不消耗库存",
+      "自动开启能力升级重算和转职重算。",
+      "允许跟友军换位",
+      "关闭敌友成长",
+      "全模式下开启破百加成",
+      "杀敌数加成，默认0不开启，1开启。",
+      "&昏头李\n哈喽，感谢您观看大型连续奇幻历史剧\n《闯王李自成传》，我是该剧的总导演\n兼旁白——昏头李。",
+      "&昏头李\n接下来，请进行游戏的初始设定。",
+      "&昏头李\n是否开启杀敌加成？",
+      "是\n否",
+      " 1.开启杀敌加成。\n",
+      " 1.关闭杀敌加成。\n",
+      "&昏头李\n是否开启敌友成长？开启后敌军\n成长会随着每关的难度增加。",
+      "是\n否",
+      " 2.开启敌友成长。\n",
+      " 2.关闭敌友成长。\n",
+      "&昏头李\n请选择游戏培养模式。",
+      "「功勋模式」\n「吃果模式」",
+      " 3.开启功勋模式。",
+      "&昏头李\n是否开启功勋共享。\n",
+      "开启功勋共享\n关闭功勋共享",
+      "   开启功勋共享。",
+      "4047 = 功分配模式 1开启 0关闭",
+      "   关闭功勋共享。",
+      "&昏头李\n是否开启装备保底自动升级系统。\n",
+      "开启装备自动升级（卖装备不获得珍珠）\n不开启装备自动升级",
+      "   开启装备自动升级。",
+      "   不开启装备自动升级。",
+      " 3.开启吃果模式。",
+      "&昏头李\n请选择游戏难度。",
+      "[C79割草]（敌军能力系数降低为80%）\n[C1A休闲]（敌军能力系数降低为90%）\n普通（敌军能力系数为100%）\n[C26困难]（敌军能力提升为105%）\n[C29打铁]（敌军能力提升为115%）",
+      " 4.您开启了割草难度。敌军能力系数降低为80%。\n",
+      " 4.您开启了休闲难度。敌军能力系数降低为90%。\n",
+      " 4.您开启了普通难度。敌军能力系数不变。\n",
+      " 4.您开启了困难难度。敌军能力系数提升为105%。\n",
+      " 4.您开启了打铁难度。敌军能力系数提升为115%。\n",
+      "&昏头李\n是否同意每关战前重新进行难度选择？",
+      "是\n否",
+      " 5.同意每关战前重新选择战场难度。\n",
+      " 5.每关战前将无法重新选择战场难度。\n",
+      "&昏头李\n是否开启人物等级板凳升级。\n",
+      "开启板凳升级\n关闭板凳升级",
+      " 6.开启板凳升级",
+      "6.关闭板凳升级。",
+      "&昏头李\n好，有关于游戏设定的选项已全部完成。"
+    ]
+  }
+}

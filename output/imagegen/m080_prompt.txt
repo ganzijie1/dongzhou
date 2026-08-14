@@ -1,0 +1,7 @@
+Use case: historical-scene
+Asset type: grid-free tactical RPG battlefield base
+Primary request: Create the natural and paved ground beneath the Jin palace and Taoyuan escape scene in ancient Jiang.
+Scene/backdrop: muted palace garden ground, broad stone walkways, peach groves confined to the northern and southern outskirts, an open central area reserved for a programmatically overlaid palace compound, clear westward escape avenue.
+Style/medium: polished hand-painted classic Chinese tactical-RPG terrain, orthographic view, readable at 48-pixel logical cells, tense late-afternoon light.
+Composition/framing: landscape 2048x1152, detailed edge to edge, central and western lanes open and level.
+Constraints: natural and paved ground base only; no palace buildings, walls, gates, fences, troops, people, dogs, weapons, tents, text, UI, flags, supply icons, square tiles, or grid lines.

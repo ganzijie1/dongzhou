@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: Mengde tactical manor siege map
+Primary request: continuous-walled Jin noble manor with a broad south gate and open road for Xun Wu reinforcements.
+Style: classic Chinese tactical-RPG painted terrain, orthographic.
+Constraints: no units, text, UI, or visible grid; only the burned south gate is passable.

@@ -27,8 +27,8 @@ Lua::~Lua() {
 
 void Lua::RunFile(const std::string& filename) {
   if (luaL_loadfile(L, filename.c_str())) {
-    // TODO Throw appropriate exception;
-    throw "Loadfile error";
+    const char* error = lua_tostring(L, -1);
+    throw ScriptRuntimeException(error == nullptr ? "Lua file load failed" : error);
   }
   if (lua_pcall(L, 0, 0, 0)) {
     std::string message(lua_tostring(L, -1));
@@ -38,8 +38,8 @@ void Lua::RunFile(const std::string& filename) {
 
 void Lua::RunScript(const std::string& code) {
   if (luaL_loadstring(L, code.c_str())) {
-    // TODO Dump lua error (the std::string on the stack top)
-    throw "Loadfile error";
+    const char* error = lua_tostring(L, -1);
+    throw ScriptRuntimeException(error == nullptr ? "Lua script load failed" : error);
   }
   if (lua_pcall(L, 0, 0, 0)) {
     std::string message(lua_tostring(L, -1));

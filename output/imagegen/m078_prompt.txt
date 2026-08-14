@@ -1,0 +1,8 @@
+Use case: historical-scene
+Asset type: grid-free tactical RPG battlefield base
+Primary request: Create the open countryside battlefield at Daji in ancient Song, designed for a medium-scale clash between Zheng and Song armies.
+Scene/backdrop: broad late-spring grassland, a wide diagonal earthen road, shallow rolling ground, scattered natural woodland at the far north and south edges, open central deployment lanes.
+Style/medium: polished hand-painted classic Chinese tactical-RPG terrain, orthographic view, readable at 48-pixel logical cells.
+Composition/framing: landscape 2048x1152, detailed edge to edge, broad contiguous terrain masses and plenty of open maneuvering space.
+Constraints: natural landscape base only; no troops, people, animals, camps, tents, fences, walls, gates, buildings, text, UI, flags, supply icons, square tiles, or grid lines.
+

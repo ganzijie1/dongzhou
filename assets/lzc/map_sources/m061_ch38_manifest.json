@@ -1,0 +1,285 @@
+{
+  "map": "assets/lzc/map/m061.png",
+  "source_base": "output/imagegen/chapter38-wangcheng-base-gpt2.png",
+  "prompt_file": "output/imagegen/m061_prompt.txt",
+  "grid": [
+    23,
+    16
+  ],
+  "cell_pixels": 64,
+  "terrain_rows": [
+    "mmffffffggffffffggfffmm",
+    "mmffWWWWWWWWWWWWWWWffmm",
+    "mmffWiiiiiiiiiiiiiWfgmm",
+    "mmggWiiiiiiiiiiiiiWgfmm",
+    "mmffWihiiiiCiiiihiWffmm",
+    "mmffWiiiiiiiiiiiiiWffmm",
+    "mmffWibiiiiiiiiiiiWfgmm",
+    "mmggWiiiiiiiiiiiiiWgfmm",
+    "mmffWiiiiiiiiiiiiiWffmm",
+    "mmffWWWWWWGGGWWWWWWffmm",
+    "mmffggffffffggffffffgmm",
+    "FFggffffffggffffffggfFF",
+    "FFffffffggffffffggfffFF",
+    "FFffffggffffffggfffffFF",
+    "FFffggffffffggffffffgFF",
+    "FFggffffffggffffffggfFF"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "manually reviewed source-of-truth matrix with aligned structures",
+  "structure_regions": {
+    "wangcheng": [
+      [
+        4,
+        1
+      ],
+      [
+        18,
+        9
+      ]
+    ]
+  },
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "none",
+  "wall_cells": [
+    [
+      4,
+      1
+    ],
+    [
+      5,
+      1
+    ],
+    [
+      6,
+      1
+    ],
+    [
+      7,
+      1
+    ],
+    [
+      8,
+      1
+    ],
+    [
+      9,
+      1
+    ],
+    [
+      10,
+      1
+    ],
+    [
+      11,
+      1
+    ],
+    [
+      12,
+      1
+    ],
+    [
+      13,
+      1
+    ],
+    [
+      14,
+      1
+    ],
+    [
+      15,
+      1
+    ],
+    [
+      16,
+      1
+    ],
+    [
+      17,
+      1
+    ],
+    [
+      18,
+      1
+    ],
+    [
+      4,
+      2
+    ],
+    [
+      18,
+      2
+    ],
+    [
+      4,
+      3
+    ],
+    [
+      18,
+      3
+    ],
+    [
+      4,
+      4
+    ],
+    [
+      18,
+      4
+    ],
+    [
+      4,
+      5
+    ],
+    [
+      18,
+      5
+    ],
+    [
+      4,
+      6
+    ],
+    [
+      18,
+      6
+    ],
+    [
+      4,
+      7
+    ],
+    [
+      18,
+      7
+    ],
+    [
+      4,
+      8
+    ],
+    [
+      18,
+      8
+    ],
+    [
+      4,
+      9
+    ],
+    [
+      5,
+      9
+    ],
+    [
+      6,
+      9
+    ],
+    [
+      7,
+      9
+    ],
+    [
+      8,
+      9
+    ],
+    [
+      9,
+      9
+    ],
+    [
+      13,
+      9
+    ],
+    [
+      14,
+      9
+    ],
+    [
+      15,
+      9
+    ],
+    [
+      16,
+      9
+    ],
+    [
+      17,
+      9
+    ],
+    [
+      18,
+      9
+    ]
+  ],
+  "gates": [
+    {
+      "name": "south_gate",
+      "cells": [
+        [
+          10,
+          9
+        ],
+        [
+          11,
+          9
+        ],
+        [
+          12,
+          9
+        ]
+      ]
+    }
+  ],
+  "supply_sites": [
+    [
+      11,
+      4
+    ],
+    [
+      6,
+      6
+    ],
+    [
+      10,
+      9
+    ],
+    [
+      11,
+      9
+    ],
+    [
+      12,
+      9
+    ]
+  ],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "ZhouXiangWang38",
+      "force": 1,
+      "position": [
+        11,
+        4
+      ]
+    },
+    {
+      "name": "ChiDing38",
+      "force": 3,
+      "position": [
+        11,
+        12
+      ]
+    }
+  ],
+  "visual_grid_in_game": false,
+  "prompt": "Use case: stylized-concept. Asset type: grid-free base environment for a Chinese historical turn-based tactical RPG battlefield. Primary request: ancient Zhou royal capital outskirts during a civil-war evacuation, before any city structures are composited. Scene: broad packed-earth roads and muted spring grass, a large level rectangular plateau reserved in the upper-center for a walled royal city overlay, a clear winding escape road leading from that plateau toward the southeast edge, scattered low forest and rocky foothills only along outer borders, open maneuver ground outside the future south gate. Style: polished orthographic top-down late-1990s Chinese historical tactical RPG map, hand-painted pixel texture, natural soft terrain transitions, readable at 64 pixels per logical cell. Composition: landscape, no horizon, generous continuous traversable route to the southeast. Constraints: absolutely no walls, gates, buildings, camps, fences, tents, units, fire, text, UI, labels, or visible grid lines; no tile seams; no modern objects; no watermark."
+}

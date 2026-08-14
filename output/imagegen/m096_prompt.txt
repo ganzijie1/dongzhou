@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: Mengde tactical river battle-map base
+Primary request: broad Yangtze tributary, Caishi shallows, winding navigable channel, and open eastern bank reserved for Jiuzi fort.
+Style: classic Chinese tactical-RPG painted terrain, orthographic, natural water transitions.
+Constraints: no units, text, UI, or visible grid; deep and shallow water semantics remain source-of-truth overlays.

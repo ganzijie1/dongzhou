@@ -1,0 +1,380 @@
+{
+  "feature_backend": "DINOv3 dense 2x directional tokens plus handcrafted features",
+  "split": "grouped by complete reviewed maps",
+  "training_maps": [
+    "m059",
+    "m060",
+    "m061",
+    "m062",
+    "m063",
+    "m064",
+    "m067",
+    "m068",
+    "m069",
+    "m070",
+    "m071",
+    "m072",
+    "m073",
+    "m075",
+    "m077",
+    "m078",
+    "m080",
+    "m082",
+    "m083",
+    "m085",
+    "m088",
+    "m090"
+  ],
+  "validation_maps": [
+    "m058",
+    "m065",
+    "m074",
+    "m079",
+    "m087"
+  ],
+  "test_maps": [
+    "m066",
+    "m076",
+    "m081",
+    "m084",
+    "m086",
+    "m089",
+    "m091"
+  ],
+  "gate_threshold": 0.08458380576936897,
+  "training_cells": 20595,
+  "validation_cells": 4387,
+  "test_cells": 8409,
+  "validation": {
+    "macro_f1_supported": 0.548714506877975,
+    "minimum_class_f1": 0.0,
+    "structure_gate_recall": 0.9098837209302325,
+    "structure_gate_precision": 0.9513677811550152,
+    "classes": {
+      "f": {
+        "precision": 0.6182586094866797,
+        "recall": 0.8049915397631133,
+        "f1-score": 0.6993752296949651,
+        "support": 2364.0
+      },
+      "g": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 991.0
+      },
+      "F": {
+        "precision": 0.29368421052631577,
+        "recall": 0.544921875,
+        "f1-score": 0.3816689466484268,
+        "support": 512.0
+      },
+      "m": {
+        "precision": 0.23333333333333334,
+        "recall": 0.03977272727272727,
+        "f1-score": 0.06796116504854369,
+        "support": 176.0
+      },
+      "W": {
+        "precision": 0.8842975206611571,
+        "recall": 1.0,
+        "f1-score": 0.9385964912280702,
+        "support": 214.0
+      },
+      "C": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 3.0
+      },
+      "e": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 7.0
+      },
+      "P": {
+        "precision": 1.0,
+        "recall": 0.7403846153846154,
+        "f1-score": 0.850828729281768,
+        "support": 104.0
+      },
+      "~": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 16.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        1903,
+        0,
+        436,
+        12,
+        13,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        806,
+        0,
+        174,
+        8,
+        3,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        230,
+        0,
+        279,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        108,
+        0,
+        61,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        214,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        3,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        7,
+        0,
+        0
+      ],
+      [
+        15,
+        0,
+        0,
+        0,
+        12,
+        0,
+        0,
+        77,
+        0
+      ],
+      [
+        16,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ]
+  },
+  "held_out_real_test": {
+    "macro_f1_supported": 0.5377479157623096,
+    "minimum_class_f1": 0.0,
+    "structure_gate_recall": 0.6584867075664622,
+    "structure_gate_precision": 0.9969040247678018,
+    "classes": {
+      "f": {
+        "precision": 0.5797268389007734,
+        "recall": 0.85178916827853,
+        "f1-score": 0.6899050230098893,
+        "support": 4136.0
+      },
+      "g": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 1726.0
+      },
+      "F": {
+        "precision": 0.3226381461675579,
+        "recall": 0.4990808823529412,
+        "f1-score": 0.39191627571273907,
+        "support": 1088.0
+      },
+      "m": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 481.0
+      },
+      "W": {
+        "precision": 0.683291770573566,
+        "recall": 1.0,
+        "f1-score": 0.8118518518518518,
+        "support": 274.0
+      },
+      "C": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 3.0
+      },
+      "e": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 14.0
+      },
+      "P": {
+        "precision": 1.0,
+        "recall": 0.8976377952755905,
+        "f1-score": 0.946058091286307,
+        "support": 254.0
+      },
+      "~": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 433.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        3523,
+        2,
+        610,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1468,
+        0,
+        257,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        544,
+        0,
+        543,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        235,
+        0,
+        246,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        274,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        3,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        14,
+        0,
+        0
+      ],
+      [
+        16,
+        0,
+        1,
+        0,
+        9,
+        0,
+        0,
+        228,
+        0
+      ],
+      [
+        291,
+        0,
+        26,
+        0,
+        116,
+        0,
+        0,
+        0,
+        0
+      ]
+    ]
+  },
+  "unverified_real_classes": [
+    "s",
+    "v"
+  ],
+  "production_promotion": false,
+  "auto_apply": false
+}

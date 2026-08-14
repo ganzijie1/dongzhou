@@ -1,0 +1,7 @@
+Use case: historical-scene
+Asset type: grid-free tactical RPG battlefield base
+Primary request: Create the chaotic Yellow River retreat route after the Battle of Bi, with a local counterattack corridor for Jin troops returning to rescue a captive.
+Scene/backdrop: broad trampled grassland and abandoned wagon tracks south of a substantial horizontal river, muddy banks and reeds, low hills and sparse woods on the southern and eastern edges, open ground around scattered discarded equipment, and a broad shallow ferry corridor at the far northeast.
+Style/medium: polished hand-painted classic Chinese tactical-RPG terrain, orthographic view, readable at 48-pixel logical cells.
+Composition/framing: landscape 2048x1152, broad contiguous terrain masses, keep the southern counterattack route and northeast ferry approach clearly readable.
+Constraints: natural landscape only. No boats, troops, corpses, weapons, camps, tents, fences, walls, gates, buildings, flags, text, UI, supply icons, square tiles, or grid lines.

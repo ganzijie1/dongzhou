@@ -1,0 +1,128 @@
+{
+  "map": "assets/lzc/map/m093.png",
+  "source_base": "output/imagegen/chapter56-xinzhu-base-gpt2.png",
+  "prompt_file": "output/imagegen/m093_prompt.txt",
+  "grid": [
+    52,
+    34
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "rmmmmgffFwwwwwwwgffFmmmmmmmmmmmmmmmmmmmrrrrrrrrrrrrr",
+    "rmmmmffgfwwwwwwwffFgmmmmmmmmmmmmmmmmmmmrrrrrrrrrrrrr",
+    "rrmmmmgffFwwwwwwwgffFmmmmmmmmmmmmmmmmmmrrrrrrrrrrrrr",
+    "rrrmmmmfgffwwwwwwwfFgfmmmmmmmmmmmmmmmmmrrrrrrrrrrrrr",
+    "rrrrmmmmffFgwwwwwwwffFgmmmmmmmmmmmmmmmmrrrrrrrrrrrrr",
+    "rrrrmmmmfgffwwwwwwwfFgfmmmmmmmmmmmmmmmmrrrrrrrrrrrrr",
+    "rrrrrmmmmffFgwwwwwwwffFgmmmmmmmmmmmmmmmrrrrrrrrrrrrr",
+    "rrrrrrmmmmgffFwwwwwwwFgffmmmmmmmmmmmmmmrrrrrrrrrrrrr",
+    "rrrrrrrmmmmfFgfwwwwwwwfFgfmmmmmmmmmmmmmrrrrrrrrrrrrr",
+    "rrrrrrrmmmmgffFwwwwwwwFgffmmmmmmmmmmmmmrrrrrrrrrrrrr",
+    "rrrrrrrrmmmmfFgfwwwwwwwfFgfmmmmmmmmmmmmrrrrrrrrrrrrr",
+    "rrrrrrrrrmmmmffFgwwwwwwwgffgmmmmmmmmmmmrrrrrrrrrrrrr",
+    "rrrrrrrrrrmmmmFgffwwwwwwwFgffmmmmmmmmmmrrrrrrrrrrrrr",
+    "rrrrrrrrrrmmmmffFgwwwwwwwgffgmmmmmmmmmmrrrrrrrrrrrrr",
+    "rrrrrrrrrrrmmmmFgffwwwwwwwFgffmmmmmmmmmrrrrrrrrrrrrr",
+    "rrrrrrrrrrrrmmmmfFgfwwwwwwwffgfmmmmmmmmrrrrrrrrrrrrr",
+    "rrrrrrrrrrrrrmmmmgffgwwwwwwwgffFmmmmmmmrrrrrrrrrrrrr",
+    "rrrrrrrrrrrrrmmmmfFgfwwwwwwwffgfmmmmmmmrrrrrrrrrrrrr",
+    "rrrrrrrrrrrrrmmmmmgffgwwwwwwwgffFmmmmmmrrrrrrrrrrrrr",
+    "rrrrrrrrrrrrrmmmmmmFgffwwwwwwwfgffmmmmmrrrrrrrrrrrrr",
+    "rrrrrrrrrrrrrmmmmmmmffgfwwwwwwwffFgmmmmrrrrrrrrrrrrr",
+    "rrrrrrrrrrrrrmmmmmmmFgffwwwwwwwfgffmmmmrrrrrrrrrrrrr",
+    "rrrrrrrrrrrrrmmmmmmmmffgfwwwwwwwffFgmmmmrrrrrrrrrrrr",
+    "rrrrrrrrrrrrrmmmmmmmmmgffFwwwwwwwgfffmmmmrrrrrrrrrrr",
+    "rrrrrrrrrrrrrmmmmmmmmmmfgffwwwwwwwfFgfmmmmrrrrrrrrrr",
+    "rrrrrrrrrrrrrmmmmmmmmmmgffFwwwwwwwgfffmmmmrrrrrrrrrr",
+    "rrrrrrrrrrrrrmmmmmmmmmmmfgffwwwwwwwfFgfmmmmrrrrrrrrr",
+    "rrrrrrrrrrrrrmmmmmmmmmmmmffFgwwwwwwwfffgmmmmrrrrrrrr",
+    "rrrrrrrrrrrrrmmmmmmmmmmmmmgfffwwwwwwwFgffmmmmrrrrrrr",
+    "rrrrrrrrrrrrrmmmmmmmmmmmmmffFgwwwwwwwfffgmmmmrrrrrrr",
+    "rrrrrrrrrrrrrmmmmmmmmmmmmmmgfffwwwwwwwFgffmmmmrrrrrr",
+    "rrrrrrrrrrrrrmmmmmmmmmmmmmmmfFgfwwwwwwwffgfmmmmrrrrr",
+    "rrrrrrrrrrrrrmmmmmmmmmmmmmmmmfffgwwwwwwwgffFmmmmrrrr",
+    "rrrrrrrrrrrrrmmmmmmmmmmmmmmmmmFgffwwwwwwwfgffmmmmrrr"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "recomposed saved GPT Image 2 natural base plus reviewed programmatic source-of-truth geometry",
+  "structure_regions": {
+    "taiyin_road": [
+      [
+        8,
+        0
+      ],
+      [
+        42,
+        33
+      ]
+    ]
+  },
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [],
+  "supply_sites": [],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "LuanShu58",
+      "force": 1,
+      "position": [
+        12,
+        8
+      ]
+    },
+    {
+      "name": "XunYan58",
+      "force": 1,
+      "position": [
+        35,
+        25
+      ]
+    },
+    {
+      "name": "JinLiGong58",
+      "force": 3,
+      "position": [
+        25,
+        17
+      ]
+    },
+    {
+      "name": "XuTong59",
+      "force": 3,
+      "position": [
+        23,
+        15
+      ]
+    },
+    {
+      "name": "ChengHua59",
+      "force": 2,
+      "position": [
+        29,
+        21
+      ]
+    }
+  ],
+  "mission": {
+    "type": "taiyin_coup",
+    "capture": "JinLiGong58",
+    "defeat_first": "XuTong59"
+  },
+  "visual_grid_in_game": false
+}
