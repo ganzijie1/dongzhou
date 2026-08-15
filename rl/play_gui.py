@@ -2976,6 +2976,15 @@ PORTRAIT_INDEX_BY_HERO.update({'TianKaiJiang71': 35, 'GuYeZi71': 25, 'YingShuang
 SPEAKER_PORTRAIT_INDEX.update({'田开疆': 35, '古冶子': 25, '嬴爽': 35, '徐君': 7, '齐国甲士': 25, '齐国弓手': 33, '徐国甲士': 25, '徐国弓手': 33, '伍员': 49, '公子胜': 35, '皇甫讷': 49, '昭关守将': 25, '昭关甲士': 25, '昭关弓手': 33, '公子光': 7, '公子盖余': 35, '夏啮': 35, '魏越': 35, '胡国君': 7, '沈国君': 7, '吴军锐士': 25, '吴军弓手': 33, '楚属联军': 25, '楚属弓手': 33, '吴王阖闾': 7, '孙武': 49, '夫概': 35, '伯嚭': 49, '囊瓦': 49, '沈尹戌': 35, '唐成公': 7, '楚军甲士': 25, '楚军弓手': 33, '秦国援军': 35, '鲁定公': 7, '季孙斯': 49, '阳虎': 35, '阳越': 35, '公山不狃': 25, '叔孙辄': 49, '鲁宫甲士': 25, '鲁国叛军': 25, '叛军弓手': 33, '越王勾践': 7, '灵姑浮': 35, '范蠡': 49, '文种': 49, '伍子胥': 49, '专毅': 35, '吴王夫差': 7, '越国甲士': 25, '越国弓手': 33, '吴国甲士': 25, '吴国弓手': 33})
 HISTORICAL_DEATH_HEROES.update({"YingShuang71","XiaNie73","WeiYue73","ShenYinShu75","TangHou75","YangYue78","WuHelu79","ZhuanYi79"})
 
+
+# Dongzhou chapter 81 metadata
+_LARGE_BATTLE_MAPS["m127.png"]=(60,42,48)
+HERO_LABELS.update({'ChenQi81': '陈乞', 'BaoMu81': '鲍牧', 'GaoZhang81': '高张', 'GuoXia81': '国夏', 'QiClanGuard81': '齐国大夫家甲', 'QiClanArcher81': '齐国大夫弓手', 'GaoHouseGuard81': '高氏家甲', 'GaoHouseArcher81': '高氏弓手', 'GuoHouseGuard81': '国氏家甲', 'GuoHouseArcher81': '国氏弓手', 'GongZiYangSheng81': '公子阳生', 'XiShi81': '西施', 'YueNv81': '南林处女', 'ChenYin81': '陈音', 'ChenHeng81': '陈恒', 'ZiGong81': '子贡'})
+HERO_BIOS.update({'ChenQi81': '齐国陈氏宗主，联合鲍氏攻高、国二族，废安孺子而立齐悼公。', 'BaoMu81': '齐国鲍氏大夫，与陈乞共同攻高、国，后遭齐悼公猜忌诛杀。', 'GaoZhang81': '齐景公托孤重臣，与国夏辅佐安孺子，在高国之乱中战死。', 'GuoXia81': '齐景公托孤重臣，高张被杀后出奔莒国。', 'QiClanGuard81': '陈、鲍及齐国诸大夫召集的家甲。', 'QiClanArcher81': '陈、鲍及齐国诸大夫麾下弓手。', 'GaoHouseGuard81': '守卫高张府邸的齐国甲士。', 'GaoHouseArcher81': '守卫高张府邸的齐国弓手。', 'GuoHouseGuard81': '守卫国夏府邸的齐国甲士。', 'GuoHouseArcher81': '守卫国夏府邸的齐国弓手。', 'GongZiYangSheng81': '齐景公长子，被陈乞迎回临淄，废安孺子即位为齐悼公。', 'XiShi81': '越国苎萝山施氏女，被献入吴宫，成为越国美人计的关键人物。', 'YueNv81': '南林剑术高手，受越王聘请训练越军三千人。', 'ChenYin81': '避仇入越的楚国射师，为越国训练连弩手三千。', 'ChenHeng81': '陈乞之子，毒杀齐悼公，后被子贡说服移兵强吴。', 'ZiGong81': '孔子弟子端木赐，为救鲁周游齐、吴、越、晋。'})
+PORTRAIT_INDEX_BY_HERO.update({'ChenQi81': 49, 'BaoMu81': 35, 'GaoZhang81': 34, 'GuoXia81': 42, 'QiClanGuard81': 25, 'QiClanArcher81': 33, 'GaoHouseGuard81': 25, 'GaoHouseArcher81': 33, 'GuoHouseGuard81': 25, 'GuoHouseArcher81': 33, 'GongZiYangSheng81': 7, 'XiShi81': 21, 'YueNv81': 24, 'ChenYin81': 33, 'ChenHeng81': 49, 'ZiGong81': 45})
+SPEAKER_PORTRAIT_INDEX.update({'陈乞': 49, '鲍牧': 35, '高张': 34, '国夏': 42, '齐国大夫家甲': 25, '齐国大夫弓手': 33, '高氏家甲': 25, '高氏弓手': 33, '国氏家甲': 25, '国氏弓手': 33, '公子阳生': 7, '西施': 21, '南林处女': 24, '陈音': 33, '陈恒': 49, '子贡': 45})
+HISTORICAL_DEATH_HEROES.update({"GaoZhang81"})
+
 if _original_name == "__main__":
     if getattr(sys, "frozen", False) and "--scenario" not in sys.argv:
         sys.argv.extend(["--scenario", "dongzhou"])

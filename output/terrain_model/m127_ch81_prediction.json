@@ -1,0 +1,20 @@
+{
+  "map": "assets/lzc/map/m127.png",
+  "grid": [
+    60,
+    42
+  ],
+  "backend": "reviewed-contract-programmatic-source",
+  "threshold": 0.72,
+  "auto_apply": false,
+  "review_required": [],
+  "common_terrain_review": {
+    "classes": [
+      "f",
+      "g",
+      "F"
+    ],
+    "status": "manually reviewed against deterministic source geometry"
+  },
+  "note": "All walls, gates, sites, and deployments are source-owned and excluded from classifier overwrite."
+}

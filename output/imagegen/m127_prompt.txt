@@ -1,0 +1,6 @@
+Use case: historical-scene
+Asset type: Mengde tactical battle-map base
+Primary request: broad Linzi residential avenues with open western assembly ground and reserved eastern ground for two noble compounds.
+Style: classic Chinese tactical-RPG painted terrain, orthographic, muted late-Spring-and-Autumn city palette.
+Constraints: no walls, gates, buildings, units, text, UI, or visible grid in the base; structures are aligned overlays.
+Method: deterministic local raster composition because the built-in image generator was unavailable.

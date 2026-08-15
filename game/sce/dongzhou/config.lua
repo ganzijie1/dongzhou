@@ -1143,8 +1143,25 @@ gconfig = {
         ,{ id = "ChenCaiGuard70", class = "Infantry", stat = {89,94,87,91,89}, model = "infantry-1-red" }
         ,{ id = "ChenCaiArcher70", class = "Archer", stat = {88,94,91,91,90}, model = "archer-1-red" }
         ,{ id = "ChuPalaceGuard70", class = "Infantry", stat = {89,94,88,91,90}, model = "infantry-1-blue" }
-        ,{ id = "ChuPalaceArcher70", class = "Archer", stat = {88,93,91,91,89}, model = "archer-1-blue" }    },
+        ,{ id = "ChuPalaceArcher70", class = "Archer", stat = {88,93,91,91,89}, model = "archer-1-blue" }
+        ,{ id = "ChenQi81", class = "Strategist", stat = {94,90,97,95,93}, model = "Strategist-1-red" }
+        ,{ id = "BaoMu81", class = "Cavalry", stat = {94,90,97,95,93}, model = "cavalry-1-red" }
+        ,{ id = "GaoZhang81", class = "Cavalry", stat = {94,90,97,95,93}, model = "cavalry-1-blue" }
+        ,{ id = "GuoXia81", class = "Strategist", stat = {94,90,97,95,93}, model = "Strategist-1-blue" }
+        ,{ id = "QiClanGuard81", class = "Infantry", stat = {94,90,97,95,93}, model = "infantry-1-red" }
+        ,{ id = "QiClanArcher81", class = "Archer", stat = {94,90,97,95,93}, model = "archer-1-red" }
+        ,{ id = "GaoHouseGuard81", class = "Infantry", stat = {94,90,97,95,93}, model = "infantry-1-blue" }
+        ,{ id = "GaoHouseArcher81", class = "Archer", stat = {94,90,97,95,93}, model = "archer-1-blue" }
+        ,{ id = "GuoHouseGuard81", class = "Infantry", stat = {94,90,97,95,93}, model = "infantry-1-blue" }
+        ,{ id = "GuoHouseArcher81", class = "Archer", stat = {94,90,97,95,93}, model = "archer-1-blue" }
+        ,{ id = "GongZiYangSheng81", class = "Lord", stat = {94,90,97,95,93}, model = "lord-1-red" }
+        ,{ id = "XiShi81", class = "Support", stat = {94,90,97,95,93}, model = "support-1-red" }
+        ,{ id = "YueNv81", class = "Infantry", stat = {94,90,97,95,93}, model = "infantry-1-red" }
+        ,{ id = "ChenYin81", class = "Archer", stat = {94,90,97,95,93}, model = "archer-1-red" }
+        ,{ id = "ChenHeng81", class = "Strategist", stat = {94,90,97,95,93}, model = "Strategist-1-red" }
+        ,{ id = "ZiGong81", class = "Strategist", stat = {94,90,97,95,93}, model = "Strategist-1-red" }
+    },
     equipments = {},
     consumables = {},
-    stages = { "01", "02", "03", "03b", "04a", "04", "05", "06", "07", "07b", "08a", "08", "09", "10a", "10b", "11a", "11b", "11c", "12a", "12b", "13a", "13b", "14a", "14b", "15a", "16", "17", "18", "19a", "19b", "20a", "20b", "20c", "20d", "21a", "21b", "21c", "22", "23a", "23b", "24a", "24b", "25a", "25b", "26a", "26b", "27a", "27b", "28", "29", "30a", "30b", "31", "32", "33a", "33b", "34a", "34b", "35", "36a", "36b", "38a", "38b", "39", "40", "42", "43a", "43b", "44", "45a", "45b", "46a", "46b", "46c", "47a", "47b", "48a", "48b", "49", "50a", "50b", "50c", "51", "52", "53a", "53b", "54a", "54b", "55a", "55b", "56a", "56b", "57", "58", "59a", "59b", "60a", "60b", "60c", "61a", "61b", "61c", "62a", "62b", "62c", "63a", "63b", "64a", "64b", "65a", "65b", "65c", "66a", "66b", "66c", "66d", "66e", "67a", "67b", "68", "69", "70", "71", "72", "73", "75", "78", "79", "80" }
+    stages = { "01", "02", "03", "03b", "04a", "04", "05", "06", "07", "07b", "08a", "08", "09", "10a", "10b", "11a", "11b", "11c", "12a", "12b", "13a", "13b", "14a", "14b", "15a", "16", "17", "18", "19a", "19b", "20a", "20b", "20c", "20d", "21a", "21b", "21c", "22", "23a", "23b", "24a", "24b", "25a", "25b", "26a", "26b", "27a", "27b", "28", "29", "30a", "30b", "31", "32", "33a", "33b", "34a", "34b", "35", "36a", "36b", "38a", "38b", "39", "40", "42", "43a", "43b", "44", "45a", "45b", "46a", "46b", "46c", "47a", "47b", "48a", "48b", "49", "50a", "50b", "50c", "51", "52", "53a", "53b", "54a", "54b", "55a", "55b", "56a", "56b", "57", "58", "59a", "59b", "60a", "60b", "60c", "61a", "61b", "61c", "62a", "62b", "62c", "63a", "63b", "64a", "64b", "65a", "65b", "65c", "66a", "66b", "66c", "66d", "66e", "67a", "67b", "68", "69", "70", "71", "72", "73", "75", "78", "79", "80", "81" }
 }
