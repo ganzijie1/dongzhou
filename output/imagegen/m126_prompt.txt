@@ -1,0 +1,4 @@
+Use case: historical-scene
+Asset type: merged Fujiao and Huiji retreat map
+Primary request: western battlefield, broad water crossing, steep Huiji mountains and a continuous-walled mountain city.
+Style: classic Chinese tactical-RPG painted terrain, no grid or units.

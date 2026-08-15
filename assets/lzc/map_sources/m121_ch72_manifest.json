@@ -1,0 +1,283 @@
+{
+  "map": "assets/lzc/map/m121.png",
+  "source_base": "output/imagegen/chapter47-linghu-night-base-gpt2.png",
+  "prompt_file": "output/imagegen/m121_prompt.txt",
+  "grid": [
+    64,
+    36
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "mmmmmmmmmmmmmmmmmgggfggggfggggfggggfggggfggggfgfmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmggfggggfggggfggggfggggfggggfggfmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmgfggggfggggfggggfggggfggggfgggfmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmfggggfggggfggggfggggfggggfggggfmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmggggfggggfggggfggggfggggfggggffmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmgggfggggfggggfggggfggggfggggfgfmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmggfggggfggggfggggfggggfggggfggfmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmfggggfggggfggggfggggfggggfggggmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmggggfggggfggggfggggfggggfgCggfmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmgggfggggfggggfggggfggggfggggfgmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmggfggggfggggfggggfggggfggggfggmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmgfggggfggggfggggfggggfggggfgggmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmfggggfggggfggggfggggfggggfggggmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmggggfggggfggggfggggfggggfggggfmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmfggfggggfggggfggggfggggfggggfggmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmWWWWWWWWWWWWWGGWWWWWWWWWWWWWWWgmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmffggggfggggfggggfggggfggggfggggmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmfggggfggggfggggfggggfggggfggggfmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmfgggfggggfggggfggggfggggfggggfgmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmfggfggggfggggfggggfggggfggggfggmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmfgfggggfggggfggggfggggfggggfgggmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmggfggggfggggfggggfggggfggggfggfmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmgfggggfggggfggggfggggfggggfgggfmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmfggggfggggfggggfggggfggggfggggfmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmggggfggggfggggfggggfggggfggggffmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmgvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmgvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmgvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmgggfggggfggggfggggfggggfggggfgmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmggfggggfggggfggggfggggfggggfggmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmgfggggfggggfggggfggggfggggfgggmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmfggggfggggfggggfggggfggggfggggmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmggggfggggfggggfggggfggggfggggfmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmgggfggggfggggfggggfggggfggggfgmmmmmmmmmmmmmmmm",
+    "mmmmmmmmmmmmmmmmmmfgfggggfggggfggggfggggfggggfgggmmmmmmmmmmmmmmm"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m",
+      "v"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "recomposed saved GPT Image 2 natural base plus reviewed programmatic source-of-truth geometry",
+  "structure_regions": {
+    "south_approach": [
+      [
+        18,
+        16
+      ],
+      [
+        47,
+        35
+      ]
+    ],
+    "zhao_pass": [
+      [
+        18,
+        15
+      ],
+      [
+        47,
+        15
+      ]
+    ],
+    "north_escape": [
+      [
+        18,
+        0
+      ],
+      [
+        47,
+        14
+      ]
+    ]
+  },
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [
+    [
+      18,
+      15
+    ],
+    [
+      19,
+      15
+    ],
+    [
+      20,
+      15
+    ],
+    [
+      21,
+      15
+    ],
+    [
+      22,
+      15
+    ],
+    [
+      23,
+      15
+    ],
+    [
+      24,
+      15
+    ],
+    [
+      25,
+      15
+    ],
+    [
+      26,
+      15
+    ],
+    [
+      27,
+      15
+    ],
+    [
+      28,
+      15
+    ],
+    [
+      29,
+      15
+    ],
+    [
+      30,
+      15
+    ],
+    [
+      33,
+      15
+    ],
+    [
+      34,
+      15
+    ],
+    [
+      35,
+      15
+    ],
+    [
+      36,
+      15
+    ],
+    [
+      37,
+      15
+    ],
+    [
+      38,
+      15
+    ],
+    [
+      39,
+      15
+    ],
+    [
+      40,
+      15
+    ],
+    [
+      41,
+      15
+    ],
+    [
+      42,
+      15
+    ],
+    [
+      43,
+      15
+    ],
+    [
+      44,
+      15
+    ],
+    [
+      45,
+      15
+    ],
+    [
+      46,
+      15
+    ],
+    [
+      47,
+      15
+    ]
+  ],
+  "gates": [
+    {
+      "name": "zhao_pass_two_cell_gate",
+      "cells": [
+        [
+          31,
+          15
+        ],
+        [
+          32,
+          15
+        ]
+      ]
+    }
+  ],
+  "castle_cells": [
+    [
+      44,
+      8
+    ]
+  ],
+  "supply_sites": [
+    [
+      44,
+      8
+    ]
+  ],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "WuYuan72",
+      "force": 1,
+      "position": [
+        31,
+        32
+      ]
+    },
+    {
+      "name": "GongZiSheng72",
+      "force": 1,
+      "position": [
+        34,
+        32
+      ]
+    },
+    {
+      "name": "HuangFuNe72",
+      "force": 2,
+      "position": [
+        25,
+        20
+      ]
+    },
+    {
+      "name": "ZhaoGuanCaptain72",
+      "force": 3,
+      "position": [
+        31,
+        13
+      ]
+    }
+  ],
+  "mission": {
+    "type": "zhaoguan_escape",
+    "gate_name": "zhao_pass_two_cell_gate",
+    "escape_cell": [
+      32,
+      1
+    ]
+  },
+  "visual_grid_in_game": false
+}

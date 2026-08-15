@@ -1,0 +1,4 @@
+Use case: historical-scene
+Asset type: Lu capital rebellion map
+Primary request: continuous-walled capital, broad southern gate, palace road and three noble compounds.
+Style: classic Chinese tactical-RPG painted terrain, no grid or units.

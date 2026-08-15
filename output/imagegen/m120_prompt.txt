@@ -1,0 +1,4 @@
+Use case: historical-scene
+Asset type: broad Pusui frontier battle map
+Primary request: winding shallow river, open cavalry ground, and a continuous-walled Xu fort.
+Style: classic Chinese tactical-RPG painted terrain, no grid or units.

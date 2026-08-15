@@ -1,0 +1,204 @@
+{
+  "map": "assets/lzc/map/m122.png",
+  "source_base": "output/imagegen/chapter54-river-retreat-base-gpt2.png",
+  "prompt_file": "output/imagegen/m122_prompt.txt",
+  "grid": [
+    72,
+    44
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "FgfffFggffffggFffggffffFgfffFggfffggfFffggffffFgfffFgffffggfFffggfffgFff",
+    "ffggffffFgffffggfFfggfFffggffffFgfffggffFfggfFffggfffgFffffggffFfggfFfgg",
+    "gfFfggffffgFffffFgfffggffFfggffffgFfffgFffffggffFfggfffggFfffgFffffggffF",
+    "fggffFggffFfggffffgFfffggfffFggffFfggfffggFfffggfffFggffFggffffggFfffggf",
+    "fffgFfffggfffFggffffggFffggFfffggfffFggfffggfFffggFfffggfffFgffffggfFffg",
+    "gffffggFffggffffFgfffFggfffggfFffggffffFgfffFgffffggfFffggfffgFffffFgfff",
+    "fFgffffggfFfggfFffggffffFgfffggffFfggfFffggfffgFffffggffFfggfFfggffffgFf",
+    "fffgFffffFgfffggffFfggffffgFfvvvvvvvfggffFfggfffggFfffgFffffggffFggffffg",
+    "gffFfggffffgFfffggfffFggffFfgvvvvvvvfffggfffFggffFggffffggFfffggfffFgfff",
+    "wwgfffwwgfffwwgFffwwFfffwwfffvwwvvvvwwFffgwwfffgwwffFgwwffggwwffggwwfggf",
+    "FffggffffFgfffFggfffggfFffggfvvvvvvvfFgffffggfFffggfffgFffffFgffffggfFfg",
+    "ggfFfggfFffgCffffFgfffggffFfgvvvvvvvfffgFffffggffFfggfFfggCfffgFffffggff",
+    "ffFgfffggffFfggffffgFfffgFffffvvvvvvvgfffggFfffgFffffggffFggffffggFfffgF",
+    "ffffgFfffggfffFggffFfggfffggFfvvvvvvvFggffFggffffggFfffggfffFgfffFggffff",
+    "ggffffggFffggFfffggfffFggfffggvvvvvvvfffggfffFgffffggfFffggFffggffffFgff",
+    "ffFgfffFggfffggfFffggffffFgfffvvvvvvvgfFffggfffgFffffFgffffggfFfggffffgF",
+    "fFffggffffFgfffggffFfggfFffggfvvvvvvvfggffFfggfFfggffffgFffffggffFggffFf",
+    "ggffFfggffffgFfffgFffffggffFfggvvvvvvvffgFffffggffFggffffggFfffgFfffggff",
+    "ffggfffFggffFfggfffggFfffggfffFvvvvvvvffffggFfffggfffFgfffFggffffggFffgg",
+    "gFffggFfffggfffFggfffggfFffggFfvvvvvvvFgffffggfFffggFffggffffFgffffggfFf",
+    "FggfffggfFffggffffFgfffFgffffggvvvvvvvffgFffffFgffffggfFfggffffgFffffFgf",
+    "fffFgfffggffFfggfFffggfffgFffffvvvvvvvgfFfggffffgFffffggffFggffFfggffffg",
+    "gffffgFfffgFffffggffFfggfffggFffvvvvvvvggffFggffffggFfffgFfffggfffFggfff",
+    "FggffFfggfffggFfffggfffFggffFggfvvvvvvvffggfffFgfffFggffffggFffggffffFgf",
+    "fffggfffFggfffggfFffggFfffggfffFvvvvvvvfFffggFffggffffFgffffggfFfggfFffg",
+    "gfFffggffffFgfffFgffffggfFffggffvvvvvvvFgffffggfFfggffffgFffffFgfffggffF",
+    "fggffFfggfFffggfffgFffffggffFfggvvvvvvvffgFffffggffFggffFfggffffgFfffggf",
+    "fffgFffffggffFfggfffggFfffgFffffgvvvvvvvfffggFfffgFfffggfffFggffffggFffg",
+    "ggfffggFfffggfffFggffFggffffggFffvvvvvvvgfffFggffffggFffggffffFgfffFggff",
+    "fFggfffggfFffggFfffggfffFgffffggfvvvvvvvfggffffFgffffggfFfggfFffggffffFg",
+    "ffffFgfffFgffffggfFffggfffgFffffFvvvvvvvfFfggffffgFffffFgfffggffFfggffff",
+    "ggfFffggfffgFffffggffFfggfFfggfffvvvvvvvggffFggffFfggffffgFfffggfffFggff",
+    "ffggffFfggfffggFfffgFffffggffFggffvvvvvvvfgFfffggfffFggffffggFffggFfffgg",
+    "FfffggfffFggffCggffffggFfffggfffFgvvvvvvvfffggFffggffffFgCffFggfffggfFff",
+    "wwfFffwwFfffwwfffFwwfffgwwFffgwwffvvwwvvvgwwffggwwfggfwwfggfwwfFgfwwggff",
+    "ffFgffffggfFffggfffgFffffFgffffggfvvvvvvvfgFffffFgfffggffFfggffffgFfffgF",
+    "gfffgFffffggffFfggfFfggffffgFffffgvvvvvvvfFfggffffgFfffggfffFggffFfggfff",
+    "fggfffggFfffgFffffggffFggffffggFfffvvvvvvvfffFggffffggFffggFfffggfffFggf",
+    "ffFggffFggffffggFfffggfffFgfffFggffffggFffggffffFgfffFggfffggfFffggffffF",
+    "gFfffggfffFgffffggfFffggFffggffffFgffffggfFfggfFffggffffFgfffggffFfggfFf",
+    "fggfFffggfffgFffffFgffffggfFfggffffgFffffFgfffggffFfggffffgFfffgFffffggf",
+    "fffggffFfggfFfggffffgFffffggffFggffFfggffffgFfffggfffFggffFfggfffggFfffg",
+    "gFfffgFffffggffFggffffggFfffgFfffggfffFggffffggFffggFfffggfffFggfffggfFf",
+    "FggffffggFfffggfffFgfffFggffffggFffggffffFgfffFggfffggfFffggffffFgfffFgf"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m",
+      "v"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "recomposed saved GPT Image 2 natural base plus reviewed programmatic source-of-truth geometry",
+  "structure_regions": {
+    "wu_west": [
+      [
+        0,
+        9
+      ],
+      [
+        28,
+        35
+      ]
+    ],
+    "jifu_river": [
+      [
+        31,
+        7
+      ],
+      [
+        40,
+        37
+      ]
+    ],
+    "coalition_camps": [
+      [
+        44,
+        5
+      ],
+      [
+        68,
+        38
+      ]
+    ]
+  },
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [
+    [
+      12,
+      11
+    ],
+    [
+      14,
+      33
+    ],
+    [
+      57,
+      33
+    ],
+    [
+      58,
+      11
+    ]
+  ],
+  "supply_sites": [
+    [
+      12,
+      11
+    ],
+    [
+      14,
+      33
+    ],
+    [
+      57,
+      33
+    ],
+    [
+      58,
+      11
+    ]
+  ],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "JiGuang73",
+      "force": 1,
+      "position": [
+        8,
+        21
+      ]
+    },
+    {
+      "name": "GongZiGai73",
+      "force": 1,
+      "position": [
+        10,
+        24
+      ]
+    },
+    {
+      "name": "XiaNie73",
+      "force": 3,
+      "position": [
+        48,
+        13
+      ]
+    },
+    {
+      "name": "WeiYue73",
+      "force": 3,
+      "position": [
+        57,
+        31
+      ]
+    },
+    {
+      "name": "HuGong73",
+      "force": 3,
+      "position": [
+        58,
+        11
+      ]
+    },
+    {
+      "name": "ShenGong73",
+      "force": 3,
+      "position": [
+        57,
+        33
+      ]
+    }
+  ],
+  "mission": {
+    "type": "jifu_multi_army",
+    "condemned_vanguard": true,
+    "encirclement_targets": [
+      "HuGong73",
+      "ShenGong73"
+    ]
+  },
+  "visual_grid_in_game": false
+}

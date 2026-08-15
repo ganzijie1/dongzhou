@@ -1,0 +1,4 @@
+Use case: historical-scene
+Asset type: enormous merged Boju campaign map
+Primary request: Han River, Xiao/Dabie mountains, Boju plain, continuous-walled Ying capital and Junxiang relief front.
+Style: classic Chinese tactical-RPG painted terrain, no grid or units.

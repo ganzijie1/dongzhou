@@ -1,0 +1,4 @@
+Use case: historical-scene
+Asset type: Xieli river battle map
+Primary request: marshy river bend, Yue southwest camp, wooded Wu approach and open counterattack lanes.
+Style: classic Chinese tactical-RPG painted terrain, no grid or units.

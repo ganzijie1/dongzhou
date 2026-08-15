@@ -1,0 +1,186 @@
+{
+  "map": "assets/lzc/map/m125.png",
+  "source_base": "output/imagegen/chapter54-bi-base-gpt2.png",
+  "prompt_file": "output/imagegen/m125_prompt.txt",
+  "grid": [
+    62,
+    42
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "FgfffFggffffggFffggffffFgfffFggfffggfFffggffffFgfffFgffffggfFf",
+    "ffggffffFgffffggfFfggfFffggffffFgfffggffFfggfFffggfffgFffffggf",
+    "gfFfggffffgFffffFgfffggffFfggffffgFfffgFfffmwwmwwmwwmwwmwwmffg",
+    "fggffFggffFfggffffgFfffggfffFggffFfggfffggFwwmwwmwwmwwmwwmwfff",
+    "fffgFfffggfffFggffffggvvvvvvvvvggfffFggfffgwmwwmwwmwwmwwmwwFgf",
+    "gffffggFffggffffFgfffFvvvvvvvvvffggffffFgffmwwmwwmwwmwwmwwmffg",
+    "fFgffffggfFfggfFffggffvvvvvvvvvffFfggfFffggwwmwwmwwmwwmwwmwgfF",
+    "fffgFffffFgfffggffFfggvvvvvvvvvgFffffggffFfwmwwmwwmwwmwwmwwfgg",
+    "gffFfggffffgFfffggfffFgvvvvvvvvvfggFfffggffmwwmwwmwwmwwmwwmfff",
+    "fggfffFggffffggFffggFffvvvvvvvvvfffggfFffggwwmwwmwwmwwmwwmwgfF",
+    "FffggffffFgfffFggfffggfvvvvvvvvvFgfffFgffffwmwwmwwmwwmwwmwwfFg",
+    "ggfFfggfFffggffffFgfffgvvvvvvvvvffggfffgFffmwwmwwmwCmwwmwwmfff",
+    "ffFgfffggffFfggffffgFfffvvvvvvvvvfFfggfffggwwmwwmwwmwwmwwmwgff",
+    "ffffgFfffggfffFggffFfggfvvvvvvvvvgfffFggffFwmwwmwwmwwmwwmwwfFg",
+    "ggffffggFffggFfffggfffFgvvvvvvvvvfggFfffggfffFgffffggfFffggFff",
+    "ffFgfffFggfffggfFffggfffvvvvvvvvvfffggfFffggfffgFffffFgffffggf",
+    "fFffggffffFgfffggffFfggfFvvvvvvvvvffffggffFfggfFfggffffgFffffg",
+    "ggffFfggffffgFfffgFffffggvvvvvvvvvggFfffgFffffggffFggffffggFff",
+    "ffggfffFggffFfggfffggFfffvvvvvvvvvfFggffffggFfffggfffFgfffFggf",
+    "gFffggFfffggfffFggfffggfFvvvvvvvvvgfffFgffffggfFffggFffggffffF",
+    "FggfffggfFffggffffFgfffFgfvvvvvvvvvggfffgFffffFgffffggfFfggfff",
+    "fffFgfffggffFfggfFffggfffgvvvvvvvvvFfggfFfggffffgFffffggffFggf",
+    "gffffgFfffgFffffggffFfggffvvvvvvvvvffffggffFggffffggFfffgFfffg",
+    "FggffFfggfffggFfffggfffFggvvvvvvvvvggFfffggfffFgfffFggffffggFf",
+    "fffggfffFggfffggfFffggFfffgvvvvvvvvvfggfFffggFffggffffFgffffgg",
+    "gfFffggffffFgfffFgffffggfFfvvvvvvvvvfffFgffffggfFfggffffgFffff",
+    "fggffFfggfFffggfffgFffffggfvvvvvvvvvgffffgFffffggffFggffFfggff",
+    "fffgFffffggffFfggfffggFfffgvvvvvvvvvFggffffggFfffgFfffggfffFgg",
+    "ggfffggFfffggfffFggffFggffffvvvvvvvvvffFgfffFggffffggFffggffff",
+    "fFggfffggCFffggFfffggfffFgffvvvvvvvvvgFffggffffFgffffggfFfggfF",
+    "ffffFgfffFgffffggfFffggfffgFvvvvvvvvvfggfFfggffffgFffffFgfffgg",
+    "ggfFffggfffgFffffggffFfggfFfvvvvvvvvvfffggffFggffFfggffffgFfff",
+    "ffggffFfggfffggFfffgFffffggffvvvvvvvvvFfffgFfffggfffFggffffggF",
+    "FfffggfffFggffFggffffggFfffggvvvvvvvvvggffffggFffggffffFgfffFg",
+    "ggfFffggFfffggfffFgffffggfFffvvvvvvvvvffFgffffggfFfggfFffggfff",
+    "ffFgffffggfFffggfffgFffffFgffvvvvvvvvvffffgFffffFgfffggffFfggf",
+    "gfffgFffffggffFfggfFfggffffgFfvvvvvvvvvgffFfggffffgFfffggfffFg",
+    "fggfffggFfffgFffffggffFggffffgvvvvvvvvvfggfffFggffffggFffggFff",
+    "ffFggffFggffffggFfffggfffFgfffFggffffggFffggffffFgfffFggfffggf",
+    "gFfffggfffFgffffggfFffggFffggffffFgffffggfFfggfFffggffffFgfffg",
+    "fggfFffggfffgFffffFgffffggfFfggffffgFffffFgfffggffFfggffffgFff",
+    "fffggffFfggfFfggffffgFffffggffFggffFfggffffgFfffggfffFggffFfgg"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m",
+      "v"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "recomposed saved GPT Image 2 natural base plus reviewed programmatic source-of-truth geometry",
+  "structure_regions": {
+    "yue_southwest": [
+      [
+        2,
+        20
+      ],
+      [
+        23,
+        38
+      ]
+    ],
+    "xieli_river": [
+      [
+        24,
+        3
+      ],
+      [
+        39,
+        39
+      ]
+    ],
+    "wu_northeast": [
+      [
+        40,
+        2
+      ],
+      [
+        60,
+        21
+      ]
+    ]
+  },
+  "camp_icon_cells": [],
+  "camp_cells": [],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [
+    [
+      9,
+      29
+    ],
+    [
+      51,
+      11
+    ]
+  ],
+  "supply_sites": [
+    [
+      9,
+      29
+    ],
+    [
+      51,
+      11
+    ]
+  ],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "GouJian79",
+      "force": 1,
+      "position": [
+        9,
+        29
+      ]
+    },
+    {
+      "name": "LingGuFu79",
+      "force": 1,
+      "position": [
+        14,
+        26
+      ]
+    },
+    {
+      "name": "FanLi79",
+      "force": 1,
+      "position": [
+        11,
+        33
+      ]
+    },
+    {
+      "name": "WuHelu79",
+      "force": 3,
+      "position": [
+        51,
+        11
+      ]
+    },
+    {
+      "name": "WuZiXu79",
+      "force": 3,
+      "position": [
+        46,
+        15
+      ]
+    },
+    {
+      "name": "ZhuanYi79",
+      "force": 3,
+      "position": [
+        42,
+        18
+      ]
+    }
+  ],
+  "mission": {
+    "type": "xieli_counterattack",
+    "historical_duel": [
+      "LingGuFu79",
+      "WuHelu79"
+    ],
+    "withdrawal": "wu_king_wounded"
+  },
+  "visual_grid_in_game": false
+}

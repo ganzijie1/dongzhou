@@ -1,0 +1,4 @@
+Use case: historical-scene
+Asset type: wide Jifu multi-army battlefield
+Primary request: broken river corridor, four coalition camps, woods and open maneuver lanes.
+Style: classic Chinese tactical-RPG painted terrain, no grid or units.

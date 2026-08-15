@@ -1,0 +1,115 @@
+gally_hold_position=true
+gsupply_enabled=true
+gitems={{id="medicine",name="金疮药",hp=120,mp=0,price=120,initial=2},{id="spirit_powder",name="清心散",hp=0,mp=30,price=150,initial=1}}
+gcommanders={"WuHelu79","WuYuan72","SunWu75","FuGai75","BoPi75"}
+gevents_enabled=true
+gduel_enabled=false
+gduels={}
+gsites={{id="ying_palace",name="郢都王宫",position={15,48},restore_hp=25,restore_mp=15,rewards={{item="medicine",amount=2}}},{id="tang_camp",name="唐军营寨",position={70,12},restore_hp=20,restore_mp=10,rewards={}},{id="junxiang",name="军祥营地",position={74,50},restore_hp=20,restore_mp=10,rewards={}}}
+gstory={chapter="第七十五至七十七回",title="孙武子演阵斩美姬 申包胥哭秦庭复楚",battle_title="柏举大战",objective="依次击破柏举楚军、攻入郢都，再抵御秦楚援军并撤出战场。",map_asset="m123.png",
+ intro={
+  {speaker="",text="第七十四回中，囊瓦畏谤诛杀费无极与鄢将师，楚国却未能因此复振。蔡昭侯受囊瓦索裘，唐成公又被索马，蔡、唐遂决意导吴伐楚。"},
+  {speaker="",text="吴王阖闾任孙武为将、伍员为谋，夫概与伯嚭统军，水陆三万沿淮而上。蔡、唐军在汉东会合。"},
+  {speaker="孙武",text="楚军二十万而令不一。先弃舟登陆，使其不能料我进退；渡汉水后沿小别、大别山疾行，直取柏举。"},
+  {speaker="伍员",text="囊瓦贪而无谋，沈尹戌却是强敌。他若先毁吴舟再夹击，我军便危险，必须在两军会合前速破囊瓦。"},
+  {speaker="夫概",text="楚军阵脚已动。虽未得王命，我愿率本部五千先击其卒食之时；若一战破阵，全军随后压上。"},
+  {speaker="囊瓦",text="吴军远来，利在速战。若让沈尹戌独得破敌之功，我还有何面目执掌楚政？立即渡汉列阵！"},
+  {speaker="沈尹戌",text="不可！我军应坚守汉水，我率方城军毁其舟楫，再从背后夹击。子常若贪功先战，必败。"},
+  {speaker="军令",text="本关合并第75至77回。第一阶段击破柏举楚中军；第二阶段追击至郢都；第三阶段抵御申包胥请来的秦援军并安全撤出。"}
+ },
+ events={
+  {id="story_event_1",trigger="scripted",turn=0,hp_percent=0,speaker="孙武",text="先破囊瓦，再入郢都；秦援到来后不可恋战。"},
+  {id="story_event_2",trigger="scripted",turn=0,hp_percent=0,speaker="申包胥",text="秦兵已至，楚国尚有复国之望！"}
+ },
+ victory={
+  {speaker="",text="夫概五千人突击楚军食阵，阖闾见前军得手，下令全军渡汉。楚军五战五败，囊瓦弃军逃郑。"},
+  {speaker="",text="沈尹戌回军救郢，在雍澨三度击破吴军，终因伤重被围。他命吴句卑取下自己的首级，免遭吴军侮辱。"},
+  {speaker="",text="吴军攻入郢都，楚昭王先奔云梦，又转随国。伍员掘开楚平王墓，鞭尸三百，以报父兄之仇。"},
+  {speaker="申包胥",text="子能覆楚，我必能复楚。我要到秦庭痛哭，哪怕七日不饮不食，也要请来救兵。"},
+  {speaker="",text="申包胥哭秦庭七日，秦哀公终于发兵。秦楚联军在稷地击败夫概，唐成公战死，吴军腹背受敌。"},
+  {speaker="",text="越军趁机攻吴，夫概又先归国自立。阖闾不得不撤出楚境，楚昭王返回郢都。"},
+  {speaker="",text="楚昭王赏赐复国诸臣，申包胥却辞赏隐居。伍员与申包胥虽各为其主，仍彼此敬重。"},
+  {speaker="",text="这一场大战贯穿汉水、柏举、郢都与秦援反击。吴国虽破楚都，却没能灭楚，楚国也从此元气大伤。"},
+  {speaker="军令",text="柏举大战完成，获得3200金币。下一关：鲁国平叛。"}
+ },
+ defeat={{speaker="",text="具名我军将领被击退，或未能完成关卡目标，本关失败。"}}
+}
+local phase=1
+local function many(game,h,p,f)for _,v in ipairs(p)do game:generate_unit(h,1,f,v)end end
+function on_deploy(game)for _,h in ipairs(gcommanders)do game:appoint_hero(h,1)end end
+function on_begin(game)
+game:generate_unit("NangWa75",1,Enum.force.enemy,{60,30});game:generate_unit("ShenYinShu75",1,Enum.force.enemy,{56,37});game:generate_unit("TangHou75",1,Enum.force.ally,{70,12});many(game,"WuGuard73",{{78,25},{80,28},{81,32},{78,39},{85,25},{88,29},{88,37},{84,40}},Enum.force.own);many(game,"WuArcher73",{{77,31},{82,24},{89,33},{81,41}},Enum.force.own);many(game,"ChuGuard75",{{64,25},{66,28},{63,32},{65,36},{58,27},{58,34},{53,25},{52,39},{56,30},{47,36}},Enum.force.enemy);many(game,"ChuArcher75",{{62,23},{68,32},{60,39},{54,29},{59,34}},Enum.force.enemy)
+end
+function on_update(game)
+if phase==1 and not game:has_unit("NangWa75")and not game:has_unit("ShenYinShu75")then phase=2;many(game,"ChuGuard75",{{31,45},{31,49},{28,42},{27,54},{21,38},{18,57}},Enum.force.enemy);many(game,"ChuArcher75",{{32,43},{32,53},{24,41},{21,56}},Enum.force.enemy);game:push_cmd_speak(0,"柏举楚军已溃，囊瓦逃郑、沈尹戌战死。全军西进郢都！")elseif phase==2 and game:get_num_enemies_alive()==0 then phase=3;many(game,"QinRelief75",{{68,48},{72,45},{76,48},{80,51},{84,48},{74,54},{79,57},{85,55}},Enum.force.enemy);many(game,"ChuGuard75",{{65,52},{69,56},{82,45},{87,49}},Enum.force.enemy);game:push_cmd_speak(0,"申包胥哭秦庭七日，秦楚援军从稷地杀来！击退援军后沿东北道路撤离！")end
+end
+function on_victory(game)end function on_defeat(game)end
+function end_condition(game)
+ for _,h in ipairs(gcommanders)do if not game:has_unit(h)then return Enum.status.defeat end end if phase==3 and game:get_num_enemies_alive()==0 and game:is_unit_within("WuHelu79",{88,8},5)then return Enum.status.victory end return Enum.status.undecided
+end
+gstage={title_id="Dongzhou75",turn_limit=48,map={blocked_edges={},size={92,64},terrain={
+        "FgfffFggffffggFffggffffFgfffFggfvv~~~~~~~~~~~vvgfffFgffffggfFffggfffgFffffFgffffggfFfggffffg",
+        "ffggffffFgffffggfFfggfFffggffffFgvv~~~~~~~~~~~vvggfffgFffffggffFfggfFfggffffgFffffggffFggffF",
+        "gfFfggffffgFffffFgfffggffFfggffffgvv~~~~~~~~~~~vvfggfffggFfffgFffffggffFggffffggFfffgFfffggf",
+        "fggffFggffFfggffffgFfffggfffFggffFfvv~~~~~~~~~~~vvfFggffFggffffggFfffggfffFgfffFggffffggFffg",
+        "fffgFfffggfffFggffffggFffggFfffggfffvv~~~~~~~~~~~vvfffggfffFgffffggfFffggFffggffffFgffffggfF",
+        "gffffggFffggffffFgfffFggfffggfFffggfvv~~~~~~~~~~~vvgfFffggfffgFffffFgffffggfFfggffffgFffffFg",
+        "fFgffffggfmmrmmrmmrmmrmmrmmrmmgffFfggvv~~~~~~~~~~~vvggffFfggfFfggffffgFffffggffFggffFfggffff",
+        "fffgFffffFmrmmrmmrmmrmmrmmrmmrfgFffffgvv~~~~~~~~~~~vvfgFffffggffFggffffggFfffgFfffggfffFggff",
+        "gffFfggfffrmmrmmrmmrmmrmmrmmrmfffggFfffvv~~~~~~~~~~~vvffggFfffggfffFgfffFggffffggFffggffffFg",
+        "fggfffFggfmmrmmrmmrmmrmmrmmrmmggfffggfFvv~~~~~~~~~~~vvffffggfFffggFffggffffFgffffggfFfggfFff",
+        "FffggffffFmrmmrmmrmmrmmrmmrmmrffFgfffFgvv~~~~~~~~~~~vvgFffffFgffffggfFfggffffgFffffFgfffggff",
+        "ggfFfggfFfrmmrmmrmmrmmrmmrmmrmfFffggfffgvv~~~~~~~~~~~vvfggffffgFffffggffFggffFfggffffgFfffgg",
+        "ffFgfffggfmmrmmrmmrmmrmmrmmrmmggffFfggfffvv~~~~~~~~~~~vvfFggffffggFfffCFfffggfffFggffffggFff",
+        "ffffgFfffgmrmmrmmrmmrmmrmmrmmrffggfffFggffvv~~~~~~~~~~~vvfffFgfffFggffffggFffggffffFgfffFggf",
+        "ggffffggFfrmmrmmrmmrmmrmmrmmrmfFffggFfffggvv~~~~~~~~~~~vvggFffggffffFgffffggfFfggfFffggffffF",
+        "ffFgfffFggmmrmmrmmrmmrmmrmmrmmFgffffggfFffgvv~~~~~~~~~~~vvfggfFfggffffgFffffFgfffggffFfggfff",
+        "fFffggffffFgfffggffFfggfFffggfffgFffffggffFfvv~~~~~~~~~~~vvffggffFggffFfggffffgFfffggfffFggf",
+        "ggffFfggffffgFfffgFffffggffFfggfffggFfffgFfffvv~~~~~~~~~~~vvfffgFfffggfffFggffffggFffggFfffg",
+        "ffggfffFggffFfggfffggFfffggfffFgvvvvvvvvvvvvvvvvvvvvvvvvvvvggffffggFffggffffFgfffFggfffggfFf",
+        "gFffggFfffggfffFggfffggfFffggFfffvvvvvvvvvvvvvvvvvvvvvvvvvvffFgffffggfFfggfFffggffffFgfffggf",
+        "FggfffggfFffggffffFgfffFgffffggfFfvvvvvvvvvvvvvvvvvvvvvvvvvffffgFffffFgfffggffFfggffffgFfffg",
+        "fffFgfffggffFfggfFffggfffgFffffggfvvvvvvvvvvvvvvvvvvvvvvvvvggffFfggffffgFfffggfffFggffFfggff",
+        "gffffgFfffgFffffggffFfggfffggFfffgvvvvvvvvvvvvvvvvvvvvvvvvvffggfffFggffffggFffggFfffggfffFgg",
+        "FggffFfggfffggFfffggfffFggffFggffffgvv~~~~~~~~~~~vvFggffffggFffggffffFgfffFggfffggfFffggffff",
+        "fffggfffFggfffggfFffggFfffggfffFgffffvv~~~~~~~~~~~vvffFgffffggfFfggfFffggffffFgfffggffFfggfF",
+        "gfFffggffffFgfffFgffffggfFffggfffgFfffvv~~~~~~~~~~~vvfffgFffffFgfffggffFfggffffgFfffgFffffgg",
+        "fggffFfggfFffggfffgFffffggffFfggfFfggffvv~~~~~~~~~~~vvffFfggffffgFfffggfffFggffFfggfffggFfff",
+        "fffgFffffggffFfggfffggFfffgFffffggffFggvv~~~~~~~~~~~vvggfffFggffffggFffggFfffggfffFggfffggfF",
+        "ggfffggFfffggfffFggffFggffffggFfffggfffvv~~~~~~~~~~~vvffggffffFgfffFggfffggfFffggffffFgfffFg",
+        "fFggfffggfFffggFfffggfffFgffffggfFffggFfvv~~~~~~~~~~~vvfFfggfFffggffffFgfffggffFfggfFffggfff",
+        "ffffFgfffFgffffggfFffggfffgFffffFgffffggfvv~~~~~~~~~~~vvgfffggffFfggffffgFfffgFffffggffFfggf",
+        "ggfFffggfffgFffffggffFfggfFfggffffgFffffggvv~~~~~~~~~~~vvgFfffggfffFggffFfggfffggFfffggfffFg",
+        "ffggffFfggfffggFfffgFffffggffFggffffggFfffvv~~~~~~~~~~~vvffggFffggFfffggfffFggfffggfFffggFff",
+        "FfffggfffFggffFggffffggFfffggfffFgfffFggfffvv~~~~~~~~~~~vvffFggfffggfFffggffffFgfffFgffffggf",
+        "ggfFffggFfffggfffFgffffggfFffggFffggffffFgffvv~~~~~~~~~~~vvffffFgfffggffFfggfFffggfffgFffffg",
+        "ffFgffffggfFffggfffgFffffFgffffggfFfggffffgFfvv~~~~~~~~~~~vvgffffgFfffgFffffggffFfggfffggFff",
+        "gfffgFffffggffFfggfFfggffffgFfffvv~~~~~~~~~~~vvfffgFfffggfffFggffFfggfffggFfffggfffFggffFggf",
+        "fggfffggFfffgFffffggffFggffffggFfvv~~~~~~~~~~~vvffffggFffggFfffggfffFggfffggfFffggFfffggfffF",
+        "ffFggffFggffffggFfffggfffFgfffFggfvv~~~~~~~~~~~vvgfffFggfffggfFffggffffFgfffFgffffggfFffggff",
+        "gFffWWWWWWWWWWWWWWWWWWWWWWWWgffffFgvv~~~~~~~~~~~vvggffffFgfffggffFfggfFffggfffgFffffggffFfgg",
+        "fggfWiiiiiiiiiiiiiiiiiiiiiiWfggffffgvv~~~~~~~~~~~vvfggffffgFfffgFffffggffFfggfffggFfffgFffff",
+        "fffgWiiiiiiiiiiiiiiiiiiiiiiWffFggffFvv~~~~~~~~~~~vvffFggffFfggfffggFfffggfffFggffFggffffggFf",
+        "gFffWiiiiiiiiiiiiiiiiiiiiiiWgFfffggffvv~~~~~~~~~~~vvFfffggfffFggfffggfFffggFfffggfffFgffffgg",
+        "FggfWiiiiiiiiiiiiiiiiiiiiiiWffggFffggfvv~~~~~~~~~~~vvgfFffggffffFgfffFgffffggfFffggfffgFffff",
+        "fffFWiiiiiiiiiiiiiiiiiiiiiiWffffggfFfggvv~~~~~~~~~~~vvggffFfggfFffggfffgFffffggffFfggfFfggff",
+        "ggffWiiiiiiiiiiiiiiiiiiiiiiWgFffffFgfffvv~~~~~~~~~~~vvffgFffffggffFfggfffggFfffgFffffggffFgg",
+        "FfggWiiiiiiiiiiiiiiiiiiiiiiWFfggffffgFfvv~~~~~~~~~~~vvgfffggFfffggfffFggffFggffffggFfffggfff",
+        "ffffWiiiiiiiiiiiiiiiiiiiiiiWfffFggffffggvv~~~~~~~~~~~vvggfffggfFffggFfffggfffFgffffggfFffggF",
+        "ggFfWiiiiiiiiiiCiiiiiiiiiiiGggffffFgfffFgvv~~~~~~~~~~~vvfFgfffFgffffggfFffggfffgFffffFgffffg",
+        "ffggWiiiiiiiiiiiiiiiiiiiiiiGFfggfFffggffffvv~~~~~~~~~~~vvffggfffgFffffggffFfggfFfggffffgFfff",
+        "ffffWiiiiiiiiiiiiiiiiiiiiiiWgfffggffFfggffvv~~~~~~~~~~~vvffFfggfffggFfffgFCfffggffFggffffggF",
+        "ggffWiiiiiiiiiiiiiiiiiiiiiiWfgFfffggfffFggfvv~~~~~~~~~~~vvgfffFggffFggffffggFfffggfffFgfffFg",
+        "fFggWiiiiiiiiiiiiiiiiiiiiiiWfffggFffggFfffggvv~~~~~~~~~~~vvggFfffggfffFgffffggfFffggFffggfff",
+        "gfffWiiiiiiiiiiiiiiiiiiiiiiWgfffFggfffggfFffgvv~~~~~~~~~~~vvfggfFffggfffgFffffFgffffggfFfggf",
+        "fggFWiiiiiiiiiiiiiiiiiiiiiiWfggfvv~~~~~~~~~~~vvgfFffggfffgFffffggffFfggfFfggffffgFffffggffFg",
+        "fffgWiiiiiiiiiiiiiiiiiiiiiiWfFfggvv~~~~~~~~~~~vvggffFfggfffggFfffgFffffggffFggffffggFfffgFff",
+        "FfffWiiiiiiiiiiiiiiiiiiiiiiWgfffFgvv~~~~~~~~~~~vvfggfffFggffFggffffggFfffggfffFgfffFggffffgg",
+        "fggFWiiiiiiiiiiiiiiiiiiiiiiWfggFfffvv~~~~~~~~~~~vvffggFfffggfffFgffffggfFffggFffggffffFgffff",
+        "ffFgWiiiiiiiiiiiiiiiiiiiiiiWfffggfFfvv~~~~~~~~~~~vvfffggfFffggfffgFffffFgffffggfFfggffffgFff",
+        "gfffWWWWWWWWWWWWWWWWWWWWWWWWFgfffggfvv~~~~~~~~~~~vvFffffggffFfggfFfggffffgFffffggffFggffFfgg",
+        "fggffffgFffffFgfffggffFfggffffgFfffgFvv~~~~~~~~~~~vvggFfffgFffffggffFggffffggFfffgFfffggfffF",
+        "ffFggffFfggffffgFfffggfffFggffFfggfffgvv~~~~~~~~~~~vvFggffffggFfffggfffFgfffFggffffggFffggff",
+        "gFfffggfffFggffffggFffggFfffggfffFggfffvv~~~~~~~~~~~vvffFgffffggfFffggFffggffffFgffffggfFfgg",
+        "ffggFffggffffFgfffFggfffggfFffggffffFgfvv~~~~~~~~~~~vvgfffgFffffFgffffggfFfggffffgFffffFgfff",
+},file="map.bmp"},deploy={unselectables={{position={83,29},hero="WuHelu79"},{position={82,33},hero="WuYuan72"},{position={86,31},hero="SunWu75"},{position={80,36},hero="FuGai75"},{position={86,35},hero="BoPi75"}},num_required_selectables=0,selectables={}},rewards={equipments={},money=32000}}

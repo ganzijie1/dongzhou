@@ -1,0 +1,4 @@
+Use case: historical-scene
+Asset type: long Zhaoguan escape map
+Primary request: narrow mountain corridor, continuous pass wall, two-cell gate, river ford and northern escape road.
+Style: classic Chinese tactical-RPG painted terrain, no grid or units.
