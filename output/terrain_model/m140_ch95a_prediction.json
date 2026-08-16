@@ -1,0 +1,22 @@
+{
+  "map": "assets/lzc/map/m140.png",
+  "grid": [
+    48,
+    34
+  ],
+  "backend": "reviewed-contract-programmatic-source",
+  "threshold": 0.72,
+  "auto_apply": false,
+  "review_required": [],
+  "common_terrain_review": {
+    "classes": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "status": "reviewed against deterministic source geometry"
+  },
+  "note": "Structural classes and deployments are source-owned and excluded from classifier overwrite."
+}

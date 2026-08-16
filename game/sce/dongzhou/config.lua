@@ -1160,8 +1160,79 @@ gconfig = {
         ,{ id = "ChenYin81", class = "Archer", stat = {94,90,97,95,93}, model = "archer-1-red" }
         ,{ id = "ChenHeng81", class = "Strategist", stat = {94,90,97,95,93}, model = "Strategist-1-red" }
         ,{ id = "ZiGong81", class = "Strategist", stat = {94,90,97,95,93}, model = "Strategist-1-red" }
+
+        ,{ id = "LateZhouGuardOwn", class = "Infantry", stat = {96,94,96,95,94}, model = "infantry-1-red" }
+        ,{ id = "LateZhouArcherOwn", class = "Archer", stat = {96,94,96,95,94}, model = "archer-1-red" }
+        ,{ id = "LateZhouGuardEnemy", class = "Infantry", stat = {96,94,96,95,94}, model = "infantry-1-blue" }
+        ,{ id = "LateZhouArcherEnemy", class = "Archer", stat = {96,94,96,95,94}, model = "archer-1-blue" }
+        ,{ id = "XuMenChao82", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "GuoShu82", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "ZhaoWuXu84", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "ZhangMengTan84", class = "Strategist", stat = {96,94,96,95,94}, model = "Strategist-1-red" }
+        ,{ id = "ZhiBo84", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "LeYang85", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "XiMenBao85", class = "Strategist", stat = {96,94,96,95,94}, model = "Strategist-1-red" }
+        ,{ id = "ZhongShanJun85", class = "Lord", stat = {96,94,96,95,94}, model = "lord-1-blue" }
+        ,{ id = "WuQi86", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "LuMuGong86", class = "Lord", stat = {96,94,96,95,94}, model = "lord-1-red" }
+        ,{ id = "QiJiang86", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "ShangYang87", class = "Strategist", stat = {96,94,96,95,94}, model = "Strategist-1-red" }
+        ,{ id = "QinXiaoGong87", class = "Lord", stat = {96,94,96,95,94}, model = "lord-1-red" }
+        ,{ id = "ChuBianJiang87", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "TianJi88", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "SunBin88", class = "Strategist", stat = {96,94,96,95,94}, model = "Strategist-1-red" }
+        ,{ id = "PangJuan88", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "KuangZhang91", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "QiXuanWang91", class = "Lord", stat = {96,94,96,95,94}, model = "lord-1-red" }
+        ,{ id = "ZiZhi91", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "WeiZhang92", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "QinHuiWenWang92", class = "Lord", stat = {96,94,96,95,94}, model = "lord-1-red" }
+        ,{ id = "QuGai92", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "GongZiCheng93", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "LiDui93", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "ZhaoZhang93", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "MengChangJun94", class = "Strategist", stat = {96,94,96,95,94}, model = "Strategist-1-red" }
+        ,{ id = "QiMinWang94", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "SongKangWang94", class = "Lord", stat = {96,94,96,95,94}, model = "lord-1-blue" }
+        ,{ id = "LeYi95", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "YanZhaoWang95", class = "Lord", stat = {96,94,96,95,94}, model = "lord-1-red" }
+        ,{ id = "TianDan95", class = "Strategist", stat = {96,94,96,95,94}, model = "Strategist-1-red" }
+        ,{ id = "QiXiangWang95", class = "Lord", stat = {96,94,96,95,94}, model = "lord-1-red" }
+        ,{ id = "QiJie95", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "ZhaoShe96", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "LianPo96", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "HuShang96", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "BaiQi97", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "FanJu97", class = "Strategist", stat = {96,94,96,95,94}, model = "Strategist-1-red" }
+        ,{ id = "MangMao97", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "WangHe98", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "ZhaoKuo98", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "PingYuanJun99", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "WangLing99", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "XinLingJun100", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "ZhuHai100", class = "Strategist", stat = {96,94,96,95,94}, model = "Strategist-1-red" }
+        ,{ id = "QinJiang100", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "YueCheng101", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "LiFu101", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "PangNuan102", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "MengAo102", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "ZhaoDaoXiangWang102", class = "Lord", stat = {96,94,96,95,94}, model = "lord-1-red" }
+        ,{ id = "JuXin102", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "QinWangZheng103", class = "Lord", stat = {96,94,96,95,94}, model = "lord-1-red" }
+        ,{ id = "WangJian103", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "FanYuQi103", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "ChangPingJun104", class = "Strategist", stat = {96,94,96,95,94}, model = "Strategist-1-red" }
+        ,{ id = "LaoAi104", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "LiMu105", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "ZhaoCong105", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "HuanYi105", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "SiMaShang106", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "XiangYan107", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "LiXin107", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-blue" }
+        ,{ id = "MengTian108", class = "Cavalry", stat = {96,94,96,95,94}, model = "cavalry-1-red" }
+        ,{ id = "QiWangJian108", class = "Lord", stat = {96,94,96,95,94}, model = "lord-1-blue" }
     },
     equipments = {},
     consumables = {},
-    stages = { "01", "02", "03", "03b", "04a", "04", "05", "06", "07", "07b", "08a", "08", "09", "10a", "10b", "11a", "11b", "11c", "12a", "12b", "13a", "13b", "14a", "14b", "15a", "16", "17", "18", "19a", "19b", "20a", "20b", "20c", "20d", "21a", "21b", "21c", "22", "23a", "23b", "24a", "24b", "25a", "25b", "26a", "26b", "27a", "27b", "28", "29", "30a", "30b", "31", "32", "33a", "33b", "34a", "34b", "35", "36a", "36b", "38a", "38b", "39", "40", "42", "43a", "43b", "44", "45a", "45b", "46a", "46b", "46c", "47a", "47b", "48a", "48b", "49", "50a", "50b", "50c", "51", "52", "53a", "53b", "54a", "54b", "55a", "55b", "56a", "56b", "57", "58", "59a", "59b", "60a", "60b", "60c", "61a", "61b", "61c", "62a", "62b", "62c", "63a", "63b", "64a", "64b", "65a", "65b", "65c", "66a", "66b", "66c", "66d", "66e", "67a", "67b", "68", "69", "70", "71", "72", "73", "75", "78", "79", "80", "81" }
+    stages = { "01", "02", "03", "03b", "04a", "04", "05", "06", "07", "07b", "08a", "08", "09", "10a", "10b", "11a", "11b", "11c", "12a", "12b", "13a", "13b", "14a", "14b", "15a", "16", "17", "18", "19a", "19b", "20a", "20b", "20c", "20d", "21a", "21b", "21c", "22", "23a", "23b", "24a", "24b", "25a", "25b", "26a", "26b", "27a", "27b", "28", "29", "30a", "30b", "31", "32", "33a", "33b", "34a", "34b", "35", "36a", "36b", "38a", "38b", "39", "40", "42", "43a", "43b", "44", "45a", "45b", "46a", "46b", "46c", "47a", "47b", "48a", "48b", "49", "50a", "50b", "50c", "51", "52", "53a", "53b", "54a", "54b", "55a", "55b", "56a", "56b", "57", "58", "59a", "59b", "60a", "60b", "60c", "61a", "61b", "61c", "62a", "62b", "62c", "63a", "63b", "64a", "64b", "65a", "65b", "65c", "66a", "66b", "66c", "66d", "66e", "67a", "67b", "68", "69", "70", "71", "72", "73", "75", "78", "79", "80", "81", "82", "83", "84", "85", "86", "87", "88", "89", "91", "92", "93", "94", "95a", "95b", "96", "97", "98", "99", "100", "101", "102a", "102b", "103", "104", "105", "106", "107", "108" }
 }

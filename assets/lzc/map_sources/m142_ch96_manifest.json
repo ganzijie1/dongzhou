@@ -1,0 +1,470 @@
+{
+  "map": "assets/lzc/map/m142.png",
+  "source_base": "output/imagegen/m142_ch96_base.png",
+  "prompt_file": "output/imagegen/m142_prompt.txt",
+  "grid": [
+    56,
+    42
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "gffffgffgffffgffgffffgrrmrrffgffffgffgffffgffgffffgffgfg",
+    "ffgffffgffgffffgffgffffmrrmrgffgffffgffgffffgffgffffgffg",
+    "fgffgffffgffgffffgffgfffrmrrmfgffgffffgffgffffgffgffffgf",
+    "fgfgffgffffgffgffffgffgffrrmrrgfgffgffffgffgffffgffgffff",
+    "gffgfgffgffffgffgffffgffgfmrrmrfgfgffgffffgffgffffgffgff",
+    "ffgffgfgffgffffgffgffffgffgrmrrmffgfgffgffffgffgffffgffg",
+    "ffffgffgfgffgffffgffgffffgffrrmrrgffgfgffgffffgffgffffgf",
+    "fgffffgffgfgffgffffgffgffffgrmrrmffgffgfgffgffffgffgffff",
+    "gffgffffgffgfgffgffffgffgffffrrmrrfffgffgfgffgffffgffgff",
+    "ffgffgffffgffgfgffgffffgffgfffmrrmrffffgffgfgffgffffgffg",
+    "ffffgffgffffgffgfgffgffffgffgfrrmrrfgffffgffgfgffgffffgf",
+    "fgffffgffgffffgffgfgffgffffgffrmrrmgffgffffgffgfgffgffff",
+    "gffgffffgffgffffgffgfgffgffffgmrrmrffgffgffffgffgfgffgff",
+    "ffgffgffffgffgffffgffgfgffgffmrrmrgffffgffgffffgffgfgffg",
+    "ffffgffgffffgffgffffgffgfgffgrrmrrffgffffgffgffffgffgfgf",
+    "fgffffgffgffffgffgffffgffgfgrrmrrffgffgffffgffgffffgffgf",
+    "gffgffffgffgffffgffgffffgffrrmrrgffffgffgffffgffgffffgff",
+    "gfgffgffffgffgffffgffgffffrrmrrgffgffffgffgffffgffgffffg",
+    "ffgfgffgffffgffgffffgfmfffmfffmfffmfgffffgffgffffgffgfff",
+    "fgffgfgffgffffgffgfffmfffmfffmfffmffffgffffgffgffffgffgf",
+    "fffgffgfgffgffffgffgffffmfffmfffmffffgffgffffgffgffffgff",
+    "gffffgffgfgffgffffgffffmfffmfffmfffmfgfgffgffffgffgffffg",
+    "ffgffffgffgfgffgffffgfmfffmfffmfffmfgffgfgffgffffgffgfff",
+    "fgffgffffgffgfgffgfffmfffmfffmfffmffffgffgfgffgffffgffgf",
+    "fffgffgffffgffgfgffgffffmfffmfffmfffffffgffgfgffgffffgff",
+    "gffffgffgffffgffgfgffgrmrrmffgffffgffgffffgffgfgffgffffg",
+    "ffgffffgffgffffgffgfgffrrmrrgffgffffgffgffffgffgfgffgfff",
+    "fgffgffffgffgffffgffgfgfmrrmrfgffgffffgffgffffgffgfgffgf",
+    "fffgffgefffgffgffffgffgfrrmrrfffgffgffffgffgfffegffgfgff",
+    "gffffgffgffffgffgffffgffgmrrmrffffgffgffffgffgffffgffgfg",
+    "ffgffffgffgffffgffgffffgffrmrrmgffffgffgffffgffgffffgffg",
+    "fgffgffffgffgffffgffgffffgfrrmrrfgffffgffgffffgffgffffgf",
+    "fgfgffgffffgffgffffgffgffffgmrrmrffgffffgffgffffgffgffff",
+    "gffgfgffgffffgffgffffgffgffffrmrrmgffgffffgffgffffgffgff",
+    "ffgffgfgffgffffgffgffffgffgfffrrmrrfgffgffffgffgffffgffg",
+    "ffffgffgfgffgffffgffgffffgffgfrmrrmfgfgffgffffgffgffffgf",
+    "fgffffgffgfgffgffffgffgffffgffmrrmrgffgfgffgffffgffgffff",
+    "gffgffffgffgfgffgffffgffgffffgrrmrrffgffgfgffgffffgffgff",
+    "ffgffgffffgffgfgffgffffgffgffrrmrrgffffgffgfgffgffffgffg",
+    "ffffgffgffffgffgfgffgffffgffgrmrrmffgffffgffgfgffgffffgf",
+    "fgffffgffgffffgffgfgffgffffgrmrrmffgffgffffgffgfgffgffff",
+    "gffgffffgffgffffgffgfgffgffrmrrmgffffgffgffffgffgfgffgff"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "manually reviewed deterministic source geometry with programmatic structure ownership",
+  "structure_regions": {
+    "own_supply": [
+      [
+        7,
+        28
+      ],
+      [
+        7,
+        28
+      ]
+    ],
+    "enemy_supply": [
+      [
+        47,
+        28
+      ],
+      [
+        47,
+        28
+      ]
+    ]
+  },
+  "camp_icon_cells": [
+    [
+      7,
+      28
+    ],
+    [
+      47,
+      28
+    ]
+  ],
+  "camp_cells": [
+    [
+      7,
+      28
+    ],
+    [
+      47,
+      28
+    ]
+  ],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [],
+  "supply_sites": [
+    [
+      7,
+      28
+    ],
+    [
+      47,
+      28
+    ]
+  ],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "ZhaoShe96",
+      "force": 1,
+      "position": [
+        6,
+        21
+      ]
+    },
+    {
+      "name": "LianPo96",
+      "force": 1,
+      "position": [
+        7,
+        21
+      ]
+    },
+    {
+      "name": "HuShang96",
+      "force": 3,
+      "position": [
+        49,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        11,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        10,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        11,
+        20
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        11,
+        22
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        12,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        11,
+        23
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        12,
+        20
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        12,
+        22
+      ]
+    },
+    {
+      "name": "LateZhouArcherOwn",
+      "force": 1,
+      "position": [
+        14,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouArcherOwn",
+      "force": 1,
+      "position": [
+        13,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouArcherOwn",
+      "force": 1,
+      "position": [
+        14,
+        20
+      ]
+    },
+    {
+      "name": "LateZhouArcherOwn",
+      "force": 1,
+      "position": [
+        14,
+        22
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        45,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        44,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        45,
+        20
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        45,
+        22
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        46,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        45,
+        19
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        45,
+        23
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        46,
+        20
+      ]
+    },
+    {
+      "name": "LateZhouArcherEnemy",
+      "force": 3,
+      "position": [
+        42,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouArcherEnemy",
+      "force": 3,
+      "position": [
+        41,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouArcherEnemy",
+      "force": 3,
+      "position": [
+        42,
+        20
+      ]
+    },
+    {
+      "name": "LateZhouArcherEnemy",
+      "force": 3,
+      "position": [
+        42,
+        22
+      ]
+    }
+  ],
+  "mission": {
+    "battle": "阏与之战",
+    "outcome": "retreat",
+    "own_positions": [
+      [
+        6,
+        21
+      ],
+      [
+        7,
+        21
+      ]
+    ],
+    "enemy_position": [
+      49,
+      21
+    ],
+    "own_guards": [
+      [
+        11,
+        21
+      ],
+      [
+        10,
+        21
+      ],
+      [
+        11,
+        20
+      ],
+      [
+        11,
+        22
+      ],
+      [
+        12,
+        21
+      ],
+      [
+        11,
+        23
+      ],
+      [
+        12,
+        20
+      ],
+      [
+        12,
+        22
+      ]
+    ],
+    "own_archers": [
+      [
+        14,
+        21
+      ],
+      [
+        13,
+        21
+      ],
+      [
+        14,
+        20
+      ],
+      [
+        14,
+        22
+      ]
+    ],
+    "enemy_guards": [
+      [
+        45,
+        21
+      ],
+      [
+        44,
+        21
+      ],
+      [
+        45,
+        20
+      ],
+      [
+        45,
+        22
+      ],
+      [
+        46,
+        21
+      ],
+      [
+        45,
+        19
+      ],
+      [
+        45,
+        23
+      ],
+      [
+        46,
+        20
+      ]
+    ],
+    "enemy_archers": [
+      [
+        42,
+        21
+      ],
+      [
+        41,
+        21
+      ],
+      [
+        42,
+        20
+      ],
+      [
+        42,
+        22
+      ]
+    ],
+    "retreat_exit": [
+      55,
+      21
+    ]
+  },
+  "visual_grid_in_game": false
+}

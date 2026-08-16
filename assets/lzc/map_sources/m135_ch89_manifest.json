@@ -1,0 +1,466 @@
+{
+  "map": "assets/lzc/map/m135.png",
+  "source_base": "output/imagegen/m135_ch89_base.png",
+  "prompt_file": "output/imagegen/m135_prompt.txt",
+  "grid": [
+    60,
+    38
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "gfFgffffFffgffFfgffgffffgffFfgffgFfffgfFgffffFffgffffgffgfFf",
+    "gFgffgfFFFFFfgFfffgfFgffffFffgfgFfgffffgffgffFfgffgFfffgfFgf",
+    "fFgfgFFFFFFFFFfgfffFgffgffffgffgFgffgfFffgffFffffgFfgffffgff",
+    "FgffFFFFFFFFFFFffgfFffgffFffffgFfgfgfFgffffgffgfffFgffgfFffg",
+    "fffFFFFFFFFFFFFFgfFgffffFffgffffgffgfFffgffFfgffgFfffgfFgfff",
+    "gffFFFFFFFFFFFFFffgffgffFfgffgFfffgfFgfgffFffffgffgffffFffgf",
+    "ffFFFFFFFFFFFFFFFFffgffFffffgFfgffffgffgfgFfgfffFgffgfFffgff",
+    "fgFFFFFFFFFFFFFFFgffffgffgfffFgffgfFffgffFfgffgFfffgffgffffg",
+    "ffFFFFFFFFFFFFFFFffgffFfgffgFfffgfFgffffgffgfgfFgffffFffgffF",
+    "gfFFFFFFFFFFFFFFFfgffFffffgffgffffFffgffFfgffgFgffgfFffgffgf",
+    "ffFFFFFFFFFFFFFFFfgfgFfgfffFgffgfFffgffFffffgffgfgffFffffgFf",
+    "fgfFFFFFFFFFFFFFfgffFfgffgFfffgffgffffgFfgfffFgffgfFffgffFfg",
+    "fFfFFFFFFFFFFFFFfffgffgfgfFgffffFffgffFfgffgFfffgffgfgffgFff",
+    "FfffFFFFFFFFFFFfgffFfgffgFgffgfFffgffgffffgfFgffffFffgfgFfgf",
+    "FfgffFFFFFFFFFfgffFffffgffgfgffFffffgFfgfffFgffgfFffgffgfgff",
+    "fgffgFfFFFFFgffffgFfgfffFgffgfFffgffFfgffgffffgffFffffgFfgfg",
+    "fgfgfFgffffFffgffFfgffgFfffgffgfgffgFfffgfFgffffFffgffFfgffg",
+    "gffgFgffgfFffgffgffffgfFgffffFffgfgFfgfffFgffgffffgffgFfffgf",
+    "ffgffgfgffFffffgFfgfffFgffgfFffgffgfgffgfFffgffFffffgFfgfffF",
+    "fffFgffgfFffgffFfgffgffffgffFffffgFfgfgfFgffffFffgffffgffgfF",
+    "fgFfffgffgfgffgFfffgfFgffffFffgffFfgffgfgffgffFFFFFFFfffgfFg",
+    "gfFgffffFffgfgFfgfffFgffgffffgffgFfffgfFgfgffFFFFFFFFFffffgf",
+    "fFgffgfFffgffgfgffgfFffgffFffffgFfgfffFgffgfFFFFFFFFFFFgfFff",
+    "ffffgffFffffgFfgfgfFgffffFffgffffgffgfFffgfFFFFFFFFFFFFFFgff",
+    "FgffffFffgffFfgffgfgffgffFfgffgFfffgfFgfffFFFFFFFFFFFFFFFffg",
+    "gffgffffgffgFfffgfFgfgffFffffgFfgffffgffgfFFFFFFFFFFFFFFFfgf",
+    "ffgffFfeffgFfgfffFgffgfgffgfffFgffgfFffgfFFFFFFFFFFeFFFFFFff",
+    "ffffFffgffffgffgfFffgffFfgffgFfffgfFgffffFFFFFFFFFFFFFFFFFff",
+    "fgffFfgffgFfffgfFgffffFffgfgffgffffFffgffFFFFFFFFFFFFFFFFFfg",
+    "gffFffffgFfgffffgffgffFfgffgFgffgfFffgffFFFFFFFFFFFFFFFFFFgF",
+    "gfgffgfffFgffgfFffgffFffffgFfgfgffgffffgFFFFFFFFFFFFFFFFFFFf",
+    "ffFfgffgFfffgfFgffffgffgfffFgffgfFffgffFfgFFFFFFFFFFFFFFFgFf",
+    "fFffgfgffgffffFffgffFfgffgFfffgfFgfgffgfffFFFFFFFFFFFFFFFFfg",
+    "fFfgffgFgffgfFffgffFffffgffgffffFffgfgFfgffFFFFFFFFFFFFFgfff",
+    "FffffgFfgfgffgffffgFfgfffFgffgfFffgffFfgffgfFFFFFFFFFFFgFfgf",
+    "ffgfffFgffgfFffgffFfgffgFfffgffgffffgFfgfgfFgFFFFFFFFFfFfgff",
+    "fgffgFfffgfFgfgffgffffgfFgffffFffgffFfgffgFgffgFFFFFffgFfffg",
+    "fffgffgffffFffgfgFfgfffFgffgfFffgffgffffgfFgfgffFffffgFfgfff"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "manually reviewed deterministic source geometry with programmatic structure ownership",
+  "structure_regions": {
+    "own_supply": [
+      [
+        7,
+        26
+      ],
+      [
+        7,
+        26
+      ]
+    ],
+    "enemy_supply": [
+      [
+        51,
+        26
+      ],
+      [
+        51,
+        26
+      ]
+    ]
+  },
+  "camp_icon_cells": [
+    [
+      7,
+      26
+    ],
+    [
+      51,
+      26
+    ]
+  ],
+  "camp_cells": [
+    [
+      7,
+      26
+    ],
+    [
+      51,
+      26
+    ]
+  ],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [],
+  "supply_sites": [
+    [
+      7,
+      26
+    ],
+    [
+      51,
+      26
+    ]
+  ],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "TianJi88",
+      "force": 1,
+      "position": [
+        6,
+        19
+      ]
+    },
+    {
+      "name": "SunBin88",
+      "force": 1,
+      "position": [
+        5,
+        19
+      ]
+    },
+    {
+      "name": "PangJuan88",
+      "force": 3,
+      "position": [
+        53,
+        19
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        11,
+        19
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        10,
+        19
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        11,
+        18
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        11,
+        20
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        12,
+        19
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        11,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        12,
+        18
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        12,
+        20
+      ]
+    },
+    {
+      "name": "LateZhouArcherOwn",
+      "force": 1,
+      "position": [
+        14,
+        19
+      ]
+    },
+    {
+      "name": "LateZhouArcherOwn",
+      "force": 1,
+      "position": [
+        13,
+        19
+      ]
+    },
+    {
+      "name": "LateZhouArcherOwn",
+      "force": 1,
+      "position": [
+        14,
+        18
+      ]
+    },
+    {
+      "name": "LateZhouArcherOwn",
+      "force": 1,
+      "position": [
+        14,
+        20
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        49,
+        19
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        48,
+        19
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        49,
+        18
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        49,
+        20
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        50,
+        19
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        49,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        50,
+        18
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        50,
+        20
+      ]
+    },
+    {
+      "name": "LateZhouArcherEnemy",
+      "force": 3,
+      "position": [
+        46,
+        19
+      ]
+    },
+    {
+      "name": "LateZhouArcherEnemy",
+      "force": 3,
+      "position": [
+        45,
+        19
+      ]
+    },
+    {
+      "name": "LateZhouArcherEnemy",
+      "force": 3,
+      "position": [
+        46,
+        18
+      ]
+    },
+    {
+      "name": "LateZhouArcherEnemy",
+      "force": 3,
+      "position": [
+        46,
+        20
+      ]
+    }
+  ],
+  "mission": {
+    "battle": "马陵之战",
+    "outcome": "death",
+    "own_positions": [
+      [
+        6,
+        19
+      ],
+      [
+        5,
+        19
+      ]
+    ],
+    "enemy_position": [
+      53,
+      19
+    ],
+    "own_guards": [
+      [
+        11,
+        19
+      ],
+      [
+        10,
+        19
+      ],
+      [
+        11,
+        18
+      ],
+      [
+        11,
+        20
+      ],
+      [
+        12,
+        19
+      ],
+      [
+        11,
+        21
+      ],
+      [
+        12,
+        18
+      ],
+      [
+        12,
+        20
+      ]
+    ],
+    "own_archers": [
+      [
+        14,
+        19
+      ],
+      [
+        13,
+        19
+      ],
+      [
+        14,
+        18
+      ],
+      [
+        14,
+        20
+      ]
+    ],
+    "enemy_guards": [
+      [
+        49,
+        19
+      ],
+      [
+        48,
+        19
+      ],
+      [
+        49,
+        18
+      ],
+      [
+        49,
+        20
+      ],
+      [
+        50,
+        19
+      ],
+      [
+        49,
+        21
+      ],
+      [
+        50,
+        18
+      ],
+      [
+        50,
+        20
+      ]
+    ],
+    "enemy_archers": [
+      [
+        46,
+        19
+      ],
+      [
+        45,
+        19
+      ],
+      [
+        46,
+        18
+      ],
+      [
+        46,
+        20
+      ]
+    ],
+    "retreat_exit": [
+      59,
+      19
+    ]
+  },
+  "visual_grid_in_game": false
+}

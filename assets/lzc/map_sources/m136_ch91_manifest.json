@@ -1,0 +1,957 @@
+{
+  "map": "assets/lzc/map/m136.png",
+  "source_base": "output/imagegen/m136_ch91_base.png",
+  "prompt_file": "output/imagegen/m136_prompt.txt",
+  "grid": [
+    52,
+    42
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "ffFffffgffgfgffFffffgffgfffFgffgffffgffFfgffgffffgff",
+    "fFffgffffgffgFgffgffffgffFffffgffgffffFffgfgffgfffFg",
+    "fffgffgffffFffgfgffgffffFffgffffgffgFfffgffgfgffFfff",
+    "gffffgffgfFffgffgfgffgFfffgffgWWWWWWWWWWWWWWWWWWWWgf",
+    "ffgffffgFfgffffgffgfFffgffffgfWiiiiiiiiiiiiiiiiiiWff",
+    "fgffgfFffgffgffffgfFgfgffgffffWiiiiiiiiiiiiiiiiiiWfg",
+    "fffgfFgffffgffgffFfgffgfgffgfFWiiiiiiiiiiiiiiiiiiWfg",
+    "gffFfgffgffffgfFgffffgffgfgfFgWiiiiiiiiiiiiiiiiiiWgf",
+    "fFgffffgffgfffFgffgffffgffFfgfWiiiiiiiiiiiiiiiiiiWfF",
+    "FgffgffffgffFffffgffgfffFgffgfWiiiiiiiiiiiiiiiiiiWff",
+    "fgfgffgfffFgffgffffgffgFfffgffWiiiiiiiiiiiiiiiiiiWfg",
+    "gffgfgffgFfffgffgffffFffgffffgWiiiiiiiiiiiiiiiiiiWgf",
+    "ffgffgfFffgffffgffgFfffgffgfffWiiiiiiiiiiiiiiiiiiWff",
+    "ffffgFfgfgffgffffgFfgffffgffgfWiiiiiiiiiiiiiiiiiiWff",
+    "fgffFfgffgfgffgfFffgffgffffgFfWiiiiiiiiiiiiiiiiiiWfg",
+    "gfFgffffgffgfgFfgffffgffgffFfgWiiiiiiiiiiiiiiiiiiWgF",
+    "FfgffgffffgffFfgffgffffgfFgfffWiiiiiiiiiiiiiiiiiiWFf",
+    "ffffgffgfffFgffgfgffgffFfgffgfWiiiiiiiiiiiiCiiiiiWff",
+    "fgffffgffFffffgffgfgffFffffgffWiiiiiiiiiiiiiiiiiiWfg",
+    "gffgffffFffgffffgffgFgffgffffgWiiiiiiiiiiiiiiiiiiWgf",
+    "ffgffgFfffgffgffffFffgfgffgfffGiiiiiiiiiiiiiiiiiiGgf",
+    "ffffFffgffffgffgfFffgffgfgffgFGiiiiiiiiiiiiiiiiiiGff",
+    "fgfFffgffgffffgFfgffffgffgfFffWiiiiiiiiiiiiiiiiiiWfg",
+    "gFfgffffgffgfFffgffgffffgfFgfgWiiiiiiiiiiiiiiiiiiWFf",
+    "gfgffgffffgfFgffffgffgffFfgffgWiiiiiiiiiiiiiiiiiiWgf",
+    "ffgfgffgffFfgffgffffgfFgffffgfWiiiiiiiiiiiiCiiiiiWff",
+    "fgffgfgfFgffffgffgfffFgffgffffWiiiiiiiiiiiiiiiiiiWfg",
+    "fffgffgFgffgffffgffFffffgffgffWiiiiiiiiiiiiiiiiiiWff",
+    "gffffFfegfgffgfffFgffgffffgffgWiiiiiiiiiiiieiiiiiWgf",
+    "ffgFfffgffgfgffgFfffgffgffffFfWiiiiiiiiiiiiiiiiiiWff",
+    "fgFfgffffgffgfFffgffffgffgFfffWiiiiiiiiiiiiiiiiiiWfF",
+    "FffgffgffffgFfgfgffgffffgFfgffWiiiiiiiiiiiiiiiiiiWff",
+    "gffffgffgffFfgffgfgffgfFffgffgWiiiiiiiiiiiiiiiiiiWgf",
+    "ffgffffgfFgffffgffgfgFfgffffgfWiiiiiiiiiiiiiiiiiiWff",
+    "fgffgffFfgffgffffgffFfgffgffffWiiiiiiiiiiiiiiiiiiWfg",
+    "fffgffFffffgffgfffFgffgfgffgffWiiiiiiiiiiiiiiiiiiWfg",
+    "gfffFgffgffffgffFffffgffgfgffFWiiiiiiiiiiiiiiiiiiWgf",
+    "ffFffffgffgffffFffgffffgffgFgfWiiiiiiiiiiiiiiiiiiWff",
+    "fFffgffffgffgFfffgffgffffFffgfWWWWWWWWWWWWWWWWWWWWFf",
+    "fgfgffgffffFffgffffgffgfFffgffgfgffgFfffgffgffffFffg",
+    "gffgfgffgfFffgffgffffgFfgffffgffgfFffgffffgffgfFffgf",
+    "ffgffgfgFfgffffgffgfFffgffgffffgfFgfgffgffffgFfgffff"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "manually reviewed deterministic source geometry with programmatic structure ownership",
+  "structure_regions": {
+    "fortified_city": [
+      [
+        30,
+        3
+      ],
+      [
+        49,
+        38
+      ]
+    ],
+    "own_supply": [
+      [
+        7,
+        28
+      ],
+      [
+        7,
+        28
+      ]
+    ],
+    "enemy_supply": [
+      [
+        43,
+        28
+      ],
+      [
+        43,
+        28
+      ]
+    ]
+  },
+  "camp_icon_cells": [
+    [
+      7,
+      28
+    ],
+    [
+      43,
+      28
+    ]
+  ],
+  "camp_cells": [
+    [
+      7,
+      28
+    ],
+    [
+      43,
+      28
+    ]
+  ],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [
+    [
+      30,
+      3
+    ],
+    [
+      30,
+      4
+    ],
+    [
+      30,
+      5
+    ],
+    [
+      30,
+      6
+    ],
+    [
+      30,
+      7
+    ],
+    [
+      30,
+      8
+    ],
+    [
+      30,
+      9
+    ],
+    [
+      30,
+      10
+    ],
+    [
+      30,
+      11
+    ],
+    [
+      30,
+      12
+    ],
+    [
+      30,
+      13
+    ],
+    [
+      30,
+      14
+    ],
+    [
+      30,
+      15
+    ],
+    [
+      30,
+      16
+    ],
+    [
+      30,
+      17
+    ],
+    [
+      30,
+      18
+    ],
+    [
+      30,
+      19
+    ],
+    [
+      30,
+      22
+    ],
+    [
+      30,
+      23
+    ],
+    [
+      30,
+      24
+    ],
+    [
+      30,
+      25
+    ],
+    [
+      30,
+      26
+    ],
+    [
+      30,
+      27
+    ],
+    [
+      30,
+      28
+    ],
+    [
+      30,
+      29
+    ],
+    [
+      30,
+      30
+    ],
+    [
+      30,
+      31
+    ],
+    [
+      30,
+      32
+    ],
+    [
+      30,
+      33
+    ],
+    [
+      30,
+      34
+    ],
+    [
+      30,
+      35
+    ],
+    [
+      30,
+      36
+    ],
+    [
+      30,
+      37
+    ],
+    [
+      30,
+      38
+    ],
+    [
+      31,
+      3
+    ],
+    [
+      31,
+      38
+    ],
+    [
+      32,
+      3
+    ],
+    [
+      32,
+      38
+    ],
+    [
+      33,
+      3
+    ],
+    [
+      33,
+      38
+    ],
+    [
+      34,
+      3
+    ],
+    [
+      34,
+      38
+    ],
+    [
+      35,
+      3
+    ],
+    [
+      35,
+      38
+    ],
+    [
+      36,
+      3
+    ],
+    [
+      36,
+      38
+    ],
+    [
+      37,
+      3
+    ],
+    [
+      37,
+      38
+    ],
+    [
+      38,
+      3
+    ],
+    [
+      38,
+      38
+    ],
+    [
+      39,
+      3
+    ],
+    [
+      39,
+      38
+    ],
+    [
+      40,
+      3
+    ],
+    [
+      40,
+      38
+    ],
+    [
+      41,
+      3
+    ],
+    [
+      41,
+      38
+    ],
+    [
+      42,
+      3
+    ],
+    [
+      42,
+      38
+    ],
+    [
+      43,
+      3
+    ],
+    [
+      43,
+      38
+    ],
+    [
+      44,
+      3
+    ],
+    [
+      44,
+      38
+    ],
+    [
+      45,
+      3
+    ],
+    [
+      45,
+      38
+    ],
+    [
+      46,
+      3
+    ],
+    [
+      46,
+      38
+    ],
+    [
+      47,
+      3
+    ],
+    [
+      47,
+      38
+    ],
+    [
+      48,
+      3
+    ],
+    [
+      48,
+      38
+    ],
+    [
+      49,
+      3
+    ],
+    [
+      49,
+      4
+    ],
+    [
+      49,
+      5
+    ],
+    [
+      49,
+      6
+    ],
+    [
+      49,
+      7
+    ],
+    [
+      49,
+      8
+    ],
+    [
+      49,
+      9
+    ],
+    [
+      49,
+      10
+    ],
+    [
+      49,
+      11
+    ],
+    [
+      49,
+      12
+    ],
+    [
+      49,
+      13
+    ],
+    [
+      49,
+      14
+    ],
+    [
+      49,
+      15
+    ],
+    [
+      49,
+      16
+    ],
+    [
+      49,
+      17
+    ],
+    [
+      49,
+      18
+    ],
+    [
+      49,
+      19
+    ],
+    [
+      49,
+      22
+    ],
+    [
+      49,
+      23
+    ],
+    [
+      49,
+      24
+    ],
+    [
+      49,
+      25
+    ],
+    [
+      49,
+      26
+    ],
+    [
+      49,
+      27
+    ],
+    [
+      49,
+      28
+    ],
+    [
+      49,
+      29
+    ],
+    [
+      49,
+      30
+    ],
+    [
+      49,
+      31
+    ],
+    [
+      49,
+      32
+    ],
+    [
+      49,
+      33
+    ],
+    [
+      49,
+      34
+    ],
+    [
+      49,
+      35
+    ],
+    [
+      49,
+      36
+    ],
+    [
+      49,
+      37
+    ],
+    [
+      49,
+      38
+    ]
+  ],
+  "gates": [
+    {
+      "name": "west_gate",
+      "cells": [
+        [
+          30,
+          20
+        ],
+        [
+          30,
+          21
+        ]
+      ]
+    },
+    {
+      "name": "east_gate",
+      "cells": [
+        [
+          49,
+          20
+        ],
+        [
+          49,
+          21
+        ]
+      ]
+    }
+  ],
+  "castle_cells": [
+    [
+      43,
+      17
+    ],
+    [
+      43,
+      25
+    ]
+  ],
+  "supply_sites": [
+    [
+      7,
+      28
+    ],
+    [
+      30,
+      20
+    ],
+    [
+      30,
+      21
+    ],
+    [
+      43,
+      17
+    ],
+    [
+      43,
+      25
+    ],
+    [
+      43,
+      28
+    ],
+    [
+      49,
+      20
+    ],
+    [
+      49,
+      21
+    ]
+  ],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "KuangZhang91",
+      "force": 1,
+      "position": [
+        6,
+        21
+      ]
+    },
+    {
+      "name": "QiXuanWang91",
+      "force": 1,
+      "position": [
+        7,
+        21
+      ]
+    },
+    {
+      "name": "ZiZhi91",
+      "force": 3,
+      "position": [
+        42,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        11,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        10,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        11,
+        20
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        11,
+        22
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        12,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        11,
+        23
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        12,
+        20
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        12,
+        22
+      ]
+    },
+    {
+      "name": "LateZhouArcherOwn",
+      "force": 1,
+      "position": [
+        14,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouArcherOwn",
+      "force": 1,
+      "position": [
+        13,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouArcherOwn",
+      "force": 1,
+      "position": [
+        14,
+        20
+      ]
+    },
+    {
+      "name": "LateZhouArcherOwn",
+      "force": 1,
+      "position": [
+        14,
+        22
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        38,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        37,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        38,
+        20
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        38,
+        22
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        39,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        38,
+        23
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        39,
+        20
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        39,
+        22
+      ]
+    },
+    {
+      "name": "LateZhouArcherEnemy",
+      "force": 3,
+      "position": [
+        35,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouArcherEnemy",
+      "force": 3,
+      "position": [
+        34,
+        21
+      ]
+    },
+    {
+      "name": "LateZhouArcherEnemy",
+      "force": 3,
+      "position": [
+        35,
+        20
+      ]
+    },
+    {
+      "name": "LateZhouArcherEnemy",
+      "force": 3,
+      "position": [
+        35,
+        22
+      ]
+    }
+  ],
+  "mission": {
+    "battle": "齐军平燕",
+    "outcome": "death",
+    "own_positions": [
+      [
+        6,
+        21
+      ],
+      [
+        7,
+        21
+      ]
+    ],
+    "enemy_position": [
+      42,
+      21
+    ],
+    "own_guards": [
+      [
+        11,
+        21
+      ],
+      [
+        10,
+        21
+      ],
+      [
+        11,
+        20
+      ],
+      [
+        11,
+        22
+      ],
+      [
+        12,
+        21
+      ],
+      [
+        11,
+        23
+      ],
+      [
+        12,
+        20
+      ],
+      [
+        12,
+        22
+      ]
+    ],
+    "own_archers": [
+      [
+        14,
+        21
+      ],
+      [
+        13,
+        21
+      ],
+      [
+        14,
+        20
+      ],
+      [
+        14,
+        22
+      ]
+    ],
+    "enemy_guards": [
+      [
+        38,
+        21
+      ],
+      [
+        37,
+        21
+      ],
+      [
+        38,
+        20
+      ],
+      [
+        38,
+        22
+      ],
+      [
+        39,
+        21
+      ],
+      [
+        38,
+        23
+      ],
+      [
+        39,
+        20
+      ],
+      [
+        39,
+        22
+      ]
+    ],
+    "enemy_archers": [
+      [
+        35,
+        21
+      ],
+      [
+        34,
+        21
+      ],
+      [
+        35,
+        20
+      ],
+      [
+        35,
+        22
+      ]
+    ],
+    "retreat_exit": [
+      51,
+      21
+    ]
+  },
+  "visual_grid_in_game": false
+}

@@ -75,8 +75,8 @@ def main() -> None:
 
     config = (ROOT / "game/sce/dongzhou/config.lua").read_text(encoding="utf-8")
     gui = (ROOT / "rl/play_gui.py").read_text(encoding="utf-8")
-    assert CURRENT_DONGZHOU_STAGES[-3:] == ("79", "80", "81")
-    assert STAGE_TABLE_VERSION == 16
+    assert CURRENT_DONGZHOU_STAGES[CURRENT_DONGZHOU_STAGES.index("81") - 2:CURRENT_DONGZHOU_STAGES.index("81") + 1] == ("79", "80", "81")
+    assert STAGE_TABLE_VERSION >= 16
     assert '"79", "80", "81"' in config
     for hero in (
         "ChenQi81", "BaoMu81", "GaoZhang81", "GuoXia81", "QiClanGuard81", "QiClanArcher81",

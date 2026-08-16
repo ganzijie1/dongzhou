@@ -1,0 +1,5 @@
+Use case: historical-scene
+Asset type: Mengde tactical map for 华阴破秦
+Primary request: distinct mountain battlefield with broad readable terrain and reserved deployment zones.
+Constraints: no units, text, UI, or visible grid; structures are cell-aligned overlays.
+Method: deterministic local raster composition using repository terrain and structure assets because the built-in image generator is unavailable.
