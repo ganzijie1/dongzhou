@@ -18,7 +18,6 @@ STAGES = {
     "71": ("m120", "ch71", (52, 38)),
     "72": ("m121", "ch72", (64, 36)),
     "73": ("m122", "ch73", (72, 44)),
-    "75": ("m123", "ch75_77", (92, 64)),
     "78": ("m124", "ch78", (58, 42)),
     "79": ("m125", "ch79", (62, 42)),
     "80": ("m126", "ch80", (70, 50)),
@@ -50,12 +49,10 @@ def main() -> None:
     config = (ROOT / "game/sce/dongzhou/config.lua").read_text(encoding="utf-8")
     gui = (ROOT / "rl/play_gui.py").read_text(encoding="utf-8")
     first_stage = CURRENT_DONGZHOU_STAGES.index("71")
-    assert CURRENT_DONGZHOU_STAGES[first_stage:first_stage + len(STAGES)] == tuple(STAGES)
-    assert CURRENT_DONGZHOU_STAGES[first_stage + len(STAGES)] == "81"
+    positions = [CURRENT_DONGZHOU_STAGES.index(stage_id) for stage_id in STAGES]
+    assert positions == sorted(positions)
+    assert CURRENT_DONGZHOU_STAGES.index("80") < CURRENT_DONGZHOU_STAGES.index("81")
     assert STAGE_TABLE_VERSION >= 15
-    assert '"71", "72", "73", "75", "78", "79", "80"' in config
-    assert "第七十四回" in (ROOT / "game/sce/dongzhou/stage/75.lua").read_text(encoding="utf-8")
-    assert "第七十五至七十七回" in (ROOT / "game/sce/dongzhou/stage/75.lua").read_text(encoding="utf-8")
 
     for stage_id, (map_id, suffix, size) in STAGES.items():
         stage = (ROOT / f"game/sce/dongzhou/stage/{stage_id}.lua").read_text(encoding="utf-8")
@@ -77,9 +74,6 @@ def main() -> None:
 
     rows72 = stage_rows((ROOT / "game/sce/dongzhou/stage/72.lua").read_text(encoding="utf-8"))
     assert reachable(rows72, (31, 32), (32, 1))
-    rows75 = stage_rows((ROOT / "game/sce/dongzhou/stage/75.lua").read_text(encoding="utf-8"))
-    assert reachable(rows75, (83, 29), (15, 48))
-    assert reachable(rows75, (15, 48), (88, 8))
 
     expected_heroes = ("TianKaiJiang71", "WuYuan72", "JiGuang73", "SunWu75", "LuDingGong78", "GouJian79", "FuChai80")
     for hero in expected_heroes:
@@ -96,7 +90,7 @@ def main() -> None:
             illegal = [unit for unit in active if unit["terrain"] in {"Wall", "RockyMountain", "Water", "Fence"}]
             assert not illegal, (stage_id, [(unit.get("hero"), unit.get("position"), unit.get("terrain")) for unit in illegal])
 
-    print("chapters 71-80 ok: seven battle maps, merged 74-77 narrative, terrain contracts, saves, and runtime launches")
+    print("chapters 71-80 legacy stages ok: terrain contracts, saves, and runtime launches")
 
 
 if __name__ == "__main__":

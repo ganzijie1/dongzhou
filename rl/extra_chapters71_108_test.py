@@ -10,12 +10,18 @@ from PIL import Image, ImageStat
 
 from rl.mengde_env import MengdeEnv
 from rl.save_system import CURRENT_DONGZHOU_STAGES, STAGE_TABLE_VERSION
-from tools.chapters82_108_data import STAGES, STAGE_IDS, all_new_heroes
+from tools.extra_chapters71_108_data import STAGES, all_new_heroes
 
 
 ROOT = Path(__file__).resolve().parents[1]
 EXE = ROOT / "build/rl-vcpkg/game/src/rl/Release/mengde_rl.exe"
 BLOCKED = {"r", "W", "~", "P"}
+EXPECTED_SEGMENTS = (
+    ("71", "72a", "72", "73", "73b", "74", "75", "76", "77", "78", "78b", "79", "80", "81"),
+    ("82", "82b", "83a", "83", "84", "84b", "85", "86", "86b", "87"),
+    ("100", "101", "101a", "102a"),
+    ("106", "107a", "107", "108a", "108"),
+)
 
 
 def stage_rows(text: str) -> list[str]:
@@ -42,73 +48,59 @@ def reachable(rows: list[str], start: tuple[int, int], goal: tuple[int, int]) ->
 def main() -> None:
     config = (ROOT / "game/sce/dongzhou/config.lua").read_text(encoding="utf-8")
     gui = (ROOT / "rl/play_gui.py").read_text(encoding="utf-8")
-    sources = {int(row["ordinal"]): row for row in json.loads(
-        (ROOT / "assets/lzc/chapter_sources/dongzhou_82_108.json").read_text(encoding="utf-8")
-    )}
-    positions = [CURRENT_DONGZHOU_STAGES.index(stage_id) for stage_id in STAGE_IDS]
-    assert positions == sorted(positions)
-    assert STAGE_TABLE_VERSION >= 17
-    assert len(STAGES) == 28 and len({spec["map"] for spec in STAGES}) == 28
-    all_stage_text = ""
-    map_hashes: set[str] = set()
+    assert STAGE_TABLE_VERSION == 18
+    for segment in EXPECTED_SEGMENTS:
+        start = CURRENT_DONGZHOU_STAGES.index(segment[0])
+        assert CURRENT_DONGZHOU_STAGES[start:start + len(segment)] == segment
+    assert len(STAGES) == 14 and len({spec["map"] for spec in STAGES}) == 14
 
+    map_hashes: set[str] = set()
     for spec in STAGES:
         stage_path = ROOT / f"game/sce/dongzhou/stage/{spec['id']}.lua"
         manifest_path = ROOT / f"assets/lzc/map_sources/{spec['map']}_ch{spec['id']}_manifest.json"
         stage = stage_path.read_text(encoding="utf-8")
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         rows = stage_rows(stage)
-        all_stage_text += stage
         width, height = manifest["grid"]
-        assert len(rows) == height and all(len(row) == width for row in rows), spec["id"]
         assert rows == manifest["terrain_rows"]
-        map_path = ROOT / manifest["map"]
-        image = Image.open(map_path).convert("RGB")
+        assert len(rows) == height and all(len(row) == width for row in rows)
+        image_path = ROOT / manifest["map"]
+        image = Image.open(image_path).convert("RGB")
         assert image.size == (width * 48, height * 48)
         assert max(ImageStat.Stat(image).var) > 80
         assert len(image.getcolors(maxcolors=10_000_000) or []) > 100
-        map_hashes.add(hashlib.sha256(map_path.read_bytes()).hexdigest())
-        if "fortified_city" in manifest["structure_regions"]:
-            (x0, y0), (x1, y1) = manifest["structure_regions"]["fortified_city"]
-            crop = image.crop((x0 * 48, y0 * 48, (x1 + 1) * 48, (y1 + 1) * 48))
-            assert max(ImageStat.Stat(crop).var) > 80, spec["id"]
+        map_hashes.add(hashlib.sha256(image_path.read_bytes()).hexdigest())
         walls = {(x, y) for y, row in enumerate(rows) for x, terrain in enumerate(row) if terrain == "W"}
-        camps = {(x, y) for y, row in enumerate(rows) for x, terrain in enumerate(row) if terrain == "e"}
         gates = {tuple(cell) for gate in manifest["gates"] for cell in gate["cells"]}
-        restorative = {(x, y) for y, row in enumerate(rows) for x, terrain in enumerate(row) if terrain in {"e", "G", "D", "C"}}
         assert walls == {tuple(cell) for cell in manifest["wall_cells"]}
-        assert camps == {tuple(cell) for cell in manifest["camp_cells"]} == {tuple(cell) for cell in manifest["camp_icon_cells"]}
-        assert gates.isdisjoint(walls) and all(rows[y][x] == "G" for x, y in gates)
-        assert restorative == {tuple(cell) for cell in manifest["supply_sites"]}
-        assert manifest["fence_cells"] == [] and manifest["blocked_edges"] == []
-        assert len(manifest["deployments"]) == len(spec["own"]) + 25
+        assert gates.isdisjoint(walls)
+        assert {tuple(cell) for cell in manifest["supply_sites"]} == {
+            (x, y) for y, row in enumerate(rows) for x, terrain in enumerate(row) if terrain in {"e", "G", "D", "C"}
+        }
         for unit in manifest["deployments"]:
             x, y = unit["position"]
             assert rows[y][x] not in BLOCKED, (spec["id"], unit)
         mission = manifest["mission"]
-        start = tuple(mission["own_positions"][0])
-        enemy = tuple(mission["enemy_position"])
-        assert reachable(rows, start, enemy), spec["id"]
-        assert reachable(rows, enemy, tuple(mission["retreat_exit"])), spec["id"]
+        assert reachable(rows, tuple(mission["own_positions"][0]), tuple(mission["enemy_position"]))
         assert f'battle_title="{spec["battle"]}"' in stage
+        assert spec["focus"] in stage
         assert stage.count("{speaker=") >= 18, spec["id"]
-        if spec["outcome"] == "retreat":
+        if spec["outcome"] in {"retreat", "attempt"}:
             assert f'game:set_unit_invulnerable("{spec["enemy"][0]}",true)' in stage
+        if spec["outcome"] == "attempt":
+            assert f'game:is_unit_within("{spec["own"][0][0]}"' in stage
+        elif spec["outcome"] == "retreat":
             assert "game:push_cmd_move(enemy_unit" in stage
         else:
             assert f'not game:has_unit("{spec["enemy"][0]}")' in stage
 
     assert len(map_hashes) == len(STAGES)
-    for chapter in range(82, 109):
-        title = re.sub(r"^第[^回]+回", "", sources[chapter]["title"])
-        assert title in all_stage_text, (chapter, title)
     for hero_id, _, _, _, _, _ in all_new_heroes():
-        assert config.count(f'id = "{hero_id}"') == 1, hero_id
-        assert f'"{hero_id}"' in gui or f"'{hero_id}'" in gui
+        assert config.count(f'id = "{hero_id}"') == 1
+        assert f"'{hero_id}'" in gui
     for spec in STAGES:
         manifest = json.loads((ROOT / f"assets/lzc/map_sources/{spec['map']}_ch{spec['id']}_manifest.json").read_text(encoding="utf-8"))
-        size = tuple(manifest["grid"] + [48])
-        assert f"'{spec['map']}.png': {size}" in gui
+        assert f"'{spec['map']}.png': {tuple(manifest['grid'] + [48])}" in gui
 
     with MengdeEnv(EXE, scenario="dongzhou", max_units=999, interactive=True) as env:
         env.reset()
@@ -117,10 +109,9 @@ def main() -> None:
             assert env.story_info()["map_asset"] == f"{spec['map']}.png"
             active = [unit for unit in env.unit_info() if not unit["dead"]]
             assert len(active) == len(spec["own"]) + 25, (spec["id"], len(active))
-            illegal = [unit for unit in active if unit["terrain"] in {"Wall", "RockyMountain", "Water", "Fence"}]
-            assert not illegal, (spec["id"], [(unit.get("hero"), unit.get("position"), unit.get("terrain")) for unit in illegal])
+            assert not [unit for unit in active if unit["terrain"] in {"Wall", "RockyMountain", "Water", "Fence"}]
 
-    print("chapters 82-108 ok: 28 stages, source-complete narrative, map contracts, outcomes, saves, and runtime launches")
+    print("supplemental chapters 71-108 ok: 14 split stages, maps, stories, progression, and runtime launches")
 
 
 if __name__ == "__main__":

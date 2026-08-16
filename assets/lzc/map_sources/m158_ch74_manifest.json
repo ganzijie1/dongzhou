@@ -1,0 +1,450 @@
+{
+  "map": "assets/lzc/map/m158.png",
+  "source_base": "output/imagegen/m158_ch74_base.png",
+  "prompt_file": "output/imagegen/m158_prompt.txt",
+  "grid": [
+    56,
+    34
+  ],
+  "cell_pixels": 48,
+  "terrain_rows": [
+    "ffgffgffffgffgfgffgffffgf~~~fffgffgffffgffgfgffgffffgffg",
+    "ffffgffgffffgffgfgffgffff~~~gffffgffgffffgffgfgffgffffgf",
+    "fgffffgffgffffgffgfgffgff~~~ffgffffgffgffffgffgfgffgffff",
+    "gffgffffgffgffffgffgfgffgf~~~gffgffffgffgffffgffgfgffgff",
+    "ffgffgffffgffgffffgffgfgff~~~ffgffgffffgffgffffgffgfgffg",
+    "ffffgffgffffgffgffffgffgfg~~~ffffgffgffffgffgffffgffgfgf",
+    "fgffffgffgffffgffgffffgffgf~~~gffffgffgffffgffgffffgffgf",
+    "gffgffffgffgffffgffgffffgff~~~ffgffffgffgffffgffgffffgff",
+    "gfgffgffffgffgffffgffgffffg~~~fgffgffffgffgffffgffgffffg",
+    "ffgfgffgffffgffgffffgffgfff~~~fgfgffgffffgffgffffgffgfff",
+    "fgffgfgffgffffgffgffffgffgf~~~gffgfgffgffffgffgffffgffgf",
+    "fffgffgfgffgffffgffgffffgff~~~ffgffgfgffgffffgffgffffgff",
+    "gffffgffgfgffgffffgffgffffg~~~ffffgffgfgffgffffgffgffffg",
+    "ffgffffgffgfgffgffffgffgff~~~ffgffffgffgfgffgffffgffgfff",
+    "fgffgffffgffgfgffgffffgffg~~~fgffgffffgffgfgffgffffgffgf",
+    "fffgffgffffgffgfgffgffffgf~~~fffgffgffffgffgfgffgffffgff",
+    "gffffgffgffffgffgfgffgffffffffffffgffgffffgffgfgffgffffg",
+    "ffgffffgffgffffgffgfgfffffffffffffffgffgffffgffgfgffgfff",
+    "fgffgffffgffgffffgffgfgfffffffffffffffgffgffffgffgfgffgf",
+    "fffgffgffffgffgffffgffgf~~~gffffgffgffffgffgffffgffgfgff",
+    "gffffgffgffffgffgffffgff~~~ffgffffgffgffffgffgffffgffgfg",
+    "ffgffffgffgffffgffgffff~~~gfgffgffffgffgffffgffgffffgffg",
+    "fgffgffffgffgffffgffgff~~~ffgfgffgffffgffgffffgffgffffgf",
+    "fgfgffgffffgffgffffgffg~~~fgffgfgffgffffgffgffffgffgffff",
+    "gffgfgfegffffgffgffffgf~~~fffgffgfgffgffffgffgfeffgffgff",
+    "ffgffgfgffgffffgffgffff~~~gffffgffgfgffgffffgffgffffgffg",
+    "ffffgffgfgffgffffgffgff~~~ffgffffgffgfgffgffffgffgffffgf",
+    "fgffffgffgfgffgffffgffg~~~fgffgffffgffgfgffgffffgffgffff",
+    "gffgffffgffgfgffgffffgf~~~fffgffgffffgffgfgffgffffgffgff",
+    "ffgffgffffgffgfgffgffffg~~~ffffgffgffffgffgfgffgffffgffg",
+    "ffffgffgffffgffgfgffgfff~~~fgffffgffgffffgffgfgffgffffgf",
+    "fgffffgffgffffgffgfgffgf~~~gffgffffgffgffffgffgfgffgffff",
+    "gffgffffgffgffffgffgfgffg~~~fgffgffffgffgffffgffgfgffgff",
+    "ffgffgffffgffgffffgffgfgf~~~fffgffgffffgffgffffgffgfgffg"
+  ],
+  "terrain_protocol": {
+    "version": 2,
+    "blendable": [
+      "f",
+      "g",
+      "F",
+      "w",
+      "m"
+    ],
+    "structure_mixing": false
+  },
+  "terrain_layers": [],
+  "terrain_source": "manually reviewed deterministic source geometry with programmatic structure ownership",
+  "structure_regions": {
+    "own_supply": [
+      [
+        7,
+        24
+      ],
+      [
+        7,
+        24
+      ]
+    ],
+    "enemy_supply": [
+      [
+        47,
+        24
+      ],
+      [
+        47,
+        24
+      ]
+    ]
+  },
+  "camp_icon_cells": [
+    [
+      7,
+      24
+    ],
+    [
+      47,
+      24
+    ]
+  ],
+  "camp_cells": [
+    [
+      7,
+      24
+    ],
+    [
+      47,
+      24
+    ]
+  ],
+  "fence_cells": [],
+  "fence_geometry": "no fences in this battlefield",
+  "wall_cells": [],
+  "gates": [],
+  "castle_cells": [],
+  "supply_sites": [
+    [
+      7,
+      24
+    ],
+    [
+      47,
+      24
+    ]
+  ],
+  "blocked_edges": [],
+  "deployments": [
+    {
+      "name": "YaoLi74",
+      "force": 1,
+      "position": [
+        6,
+        17
+      ]
+    },
+    {
+      "name": "QingJi74",
+      "force": 3,
+      "position": [
+        49,
+        17
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        11,
+        17
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        10,
+        17
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        11,
+        16
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        11,
+        18
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        12,
+        17
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        12,
+        18
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        13,
+        17
+      ]
+    },
+    {
+      "name": "LateZhouGuardOwn",
+      "force": 1,
+      "position": [
+        9,
+        17
+      ]
+    },
+    {
+      "name": "LateZhouArcherOwn",
+      "force": 1,
+      "position": [
+        14,
+        17
+      ]
+    },
+    {
+      "name": "LateZhouArcherOwn",
+      "force": 1,
+      "position": [
+        14,
+        16
+      ]
+    },
+    {
+      "name": "LateZhouArcherOwn",
+      "force": 1,
+      "position": [
+        14,
+        18
+      ]
+    },
+    {
+      "name": "LateZhouArcherOwn",
+      "force": 1,
+      "position": [
+        15,
+        17
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        45,
+        17
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        44,
+        17
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        45,
+        16
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        45,
+        18
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        46,
+        17
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        45,
+        19
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        46,
+        16
+      ]
+    },
+    {
+      "name": "LateZhouGuardEnemy",
+      "force": 3,
+      "position": [
+        46,
+        18
+      ]
+    },
+    {
+      "name": "LateZhouArcherEnemy",
+      "force": 3,
+      "position": [
+        42,
+        17
+      ]
+    },
+    {
+      "name": "LateZhouArcherEnemy",
+      "force": 3,
+      "position": [
+        42,
+        16
+      ]
+    },
+    {
+      "name": "LateZhouArcherEnemy",
+      "force": 3,
+      "position": [
+        42,
+        18
+      ]
+    },
+    {
+      "name": "LateZhouArcherEnemy",
+      "force": 3,
+      "position": [
+        43,
+        17
+      ]
+    }
+  ],
+  "mission": {
+    "battle": "江上刺庆忌",
+    "outcome": "death",
+    "own_positions": [
+      [
+        6,
+        17
+      ]
+    ],
+    "enemy_position": [
+      49,
+      17
+    ],
+    "own_guards": [
+      [
+        11,
+        17
+      ],
+      [
+        10,
+        17
+      ],
+      [
+        11,
+        16
+      ],
+      [
+        11,
+        18
+      ],
+      [
+        12,
+        17
+      ],
+      [
+        12,
+        18
+      ],
+      [
+        13,
+        17
+      ],
+      [
+        9,
+        17
+      ]
+    ],
+    "own_archers": [
+      [
+        14,
+        17
+      ],
+      [
+        14,
+        16
+      ],
+      [
+        14,
+        18
+      ],
+      [
+        15,
+        17
+      ]
+    ],
+    "enemy_guards": [
+      [
+        45,
+        17
+      ],
+      [
+        44,
+        17
+      ],
+      [
+        45,
+        16
+      ],
+      [
+        45,
+        18
+      ],
+      [
+        46,
+        17
+      ],
+      [
+        45,
+        19
+      ],
+      [
+        46,
+        16
+      ],
+      [
+        46,
+        18
+      ]
+    ],
+    "enemy_archers": [
+      [
+        42,
+        17
+      ],
+      [
+        42,
+        16
+      ],
+      [
+        42,
+        18
+      ],
+      [
+        43,
+        17
+      ]
+    ],
+    "retreat_exit": [
+      55,
+      17
+    ]
+  },
+  "visual_grid_in_game": false
+}
