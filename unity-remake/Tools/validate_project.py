@@ -42,6 +42,11 @@ def main() -> None:
     assert Image.open(unity_map).size == (1536, 1152)
     scene_guid = re.search(r"guid: ([0-9a-f]{32})", (PROJECT / "Assets/Scenes/DongJiao.unity.meta").read_text()).group(1)
     assert scene_guid in (PROJECT / "ProjectSettings/EditorBuildSettings.asset").read_text()
+    scene = (PROJECT / "Assets/Scenes/DongJiao.unity").read_text(encoding="utf-8")
+    assert "m_Name: Main Camera" in scene
+    assert "m_Name: DongJiao Battle Controller" in scene
+    battle_script_guid = re.search(r"guid: ([0-9a-f]{32})", SCRIPT.with_suffix(".cs.meta").read_text()).group(1)
+    assert battle_script_guid in scene
     print("unity remake contract ok: source terrain, map, scene, gameplay systems, tests, and build settings")
 
 
