@@ -1,6 +1,5 @@
 #include "formulae.h"
 
-#include "cell.h"
 #include "map.h"
 #include "unit.h"
 #include "unit_class.h"
@@ -12,16 +11,10 @@ namespace core {
 Formulae::Formulae() {}
 
 int Formulae::ComputeBasicAttackDamage(Map* m, Unit* unit_atk, Unit* unit_def, int force) {
-  return ComputeBasicAttackDamageAt(m, unit_atk, unit_atk->GetPosition(), unit_def,
-                                    unit_def->GetPosition(), force);
-}
-
-int Formulae::ComputeBasicAttackDamageAt(Map* m, Unit* unit_atk, Vec2D atk_pos,
-                                         Unit* unit_def, Vec2D def_pos, int force) {
   const Attribute& a   = unit_atk->GetCurrentAttr();
   const Attribute& d   = unit_def->GetCurrentAttr();
-  int              atk = m->GetCell(atk_pos)->ApplyTerrainEffect(unit_atk->GetClassIndex(), a.atk);
-  int              def = m->GetCell(def_pos)->ApplyTerrainEffect(unit_def->GetClassIndex(), d.def);
+  int              atk = m->ApplyTerrainEffect(unit_atk, a.atk);
+  int              def = m->ApplyTerrainEffect(unit_def, d.def);
   int damage = ComputeDamageBase(atk, def, unit_atk->GetLevel(), force);
   return ApplyRatio(damage, ComputeClassAdvantage(unit_atk, unit_def));
 }

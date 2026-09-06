@@ -390,54 +390,11 @@ void PrintActions(RLEnvironment* env) {
     if (action.target_id != RLEnvironment::kNoTarget) {
       Unit* attacker = env->GetGame()->GetUnit(action.unit_id);
       Unit* defender = env->GetGame()->GetUnit(action.target_id);
-      int damage = 0;
-      int heal = 0;
-      int accuracy = 100;
-      int critical = 0;
-      int double_attack = 0;
-      int mp_cost = 0;
-      int counter_damage = 0;
-      int counter_accuracy = 0;
-      bool target_enemy = attacker->IsHostile(defender);
-      bool stat_modifier = false;
-      if (action.type == RLEnvironment::ActionType::kBasicAttack) {
-        damage = mengde::core::Formulae::ComputeBasicAttackDamageAt(
-            env->GetGame()->GetMap(), attacker, action.destination, defender,
-            defender->GetPosition());
-        accuracy = mengde::core::Formulae::ComputeBasicAttackAccuracy(attacker, defender);
-        critical = mengde::core::Formulae::ComputeBasicAttackCritical(attacker, defender);
-        double_attack = mengde::core::Formulae::ComputeBasicAttackDouble(attacker, defender);
-        if (defender->IsInRange(action.destination)) {
-          counter_damage = mengde::core::Formulae::ComputeBasicAttackDamageAt(
-              env->GetGame()->GetMap(), defender, defender->GetPosition(), attacker,
-              action.destination);
-          counter_accuracy = mengde::core::Formulae::ComputeBasicAttackAccuracy(defender, attacker);
-        }
-      } else if (action.type == RLEnvironment::ActionType::kMagic) {
-        Magic* magic = env->GetGame()->GetMagic(action.skill_id);
-        mp_cost = magic->GetMpCost();
-        accuracy = magic->CalcAccuracy(attacker, defender);
-        if (magic->IsTypeDeal()) damage = magic->CalcDamage(attacker, defender);
-        if (magic->IsTypeHeal()) heal = magic->CalcDamage(attacker, defender);
-        stat_modifier = !magic->IsTypeDeal() && !magic->IsTypeHeal();
-      }
-      const double hit_probability = static_cast<double>(accuracy) / 100.0;
-      double expected_damage = hit_probability * static_cast<double>(damage);
-      if (action.type == RLEnvironment::ActionType::kBasicAttack) {
-        expected_damage *= 1.0 + static_cast<double>(critical) / 200.0;
-        expected_damage *= 1.0 + 0.75 * static_cast<double>(double_attack) / 100.0;
-      }
-      const double expected_heal = hit_probability * static_cast<double>(heal);
-      std::cout << ",\"damage\":" << damage << ",\"heal\":" << heal
-                << ",\"accuracy\":" << accuracy << ",\"critical\":" << critical
-                << ",\"double\":" << double_attack << ",\"mp_cost\":" << mp_cost
-                << ",\"counter_damage\":" << counter_damage
-                << ",\"counter_accuracy\":" << counter_accuracy
-                << ",\"expected_damage\":" << expected_damage
-                << ",\"expected_heal\":" << expected_heal
-                << ",\"target_enemy\":" << (target_enemy ? "true" : "false")
-                << ",\"stat_modifier\":" << (stat_modifier ? "true" : "false")
-                << ",\"advantage\":"
+      const int damage = action.type == RLEnvironment::ActionType::kBasicAttack
+                             ? mengde::core::Formulae::ComputeBasicAttackDamage(env->GetGame()->GetMap(), attacker,
+                                                                                defender)
+                             : 0;
+      std::cout << ",\"damage\":" << damage << ",\"advantage\":"
                 << mengde::core::Formulae::ComputeClassAdvantage(attacker, defender);
     }
     std::cout << '}';

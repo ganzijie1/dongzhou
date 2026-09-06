@@ -1,8 +1,6 @@
 #ifndef MENGDE_CORE_FORMULAE_H_
 #define MENGDE_CORE_FORMULAE_H_
 
-#include "util/vec2d.h"
-
 namespace mengde {
 namespace core {
 
@@ -15,8 +13,6 @@ class Formulae {
 
  public:
   static int ComputeBasicAttackDamage(Map*, Unit*, Unit*, int = kDefaultRatio);
-  static int ComputeBasicAttackDamageAt(Map*, Unit*, Vec2D, Unit*, Vec2D,
-                                        int = kDefaultRatio);
   static int ComputeMagicDamage(Map*, Unit*, Unit*, int = kDefaultRatio);
   static int ComputeBasicAttackAccuracy(Unit*, Unit*, int = kDefaultRatio);
   static int ComputeMagicAccuracy(Unit*, Unit*, int = kDefaultRatio);

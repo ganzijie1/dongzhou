@@ -699,7 +699,7 @@ def run_shop_menu(screen, fonts, background, env):
             return "quit", env.supply_info()
     return _original_run_shop_menu(screen, fonts, background, env)
 
-# Playable enemy turns use rolling beam, then HAPPO/CQL if planning is unavailable.
+# All playable enemy decisions use HAPPO with a conservative CQL fallback.
 from rl.runtime_policy import RuntimeBattlePolicy
 
 
