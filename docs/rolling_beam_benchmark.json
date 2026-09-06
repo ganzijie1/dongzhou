@@ -1,0 +1,53 @@
+{
+  "protocol": "paired initial seeds; scripted own-force opponent",
+  "seeds": [
+    20260906,
+    20260907,
+    20260908,
+    20260909,
+    20260910,
+    20260911,
+    20260912,
+    20260913,
+    20260914,
+    20260915
+  ],
+  "configurations": {
+    "rolling_beam": {
+      "horizon": 2,
+      "beam_width": 6,
+      "scenario_count": 3,
+      "cvar_alpha": 0.25,
+      "max_actions_per_actor": 10,
+      "include_opponent_response": true
+    },
+    "one_step": {
+      "horizon": 1,
+      "beam_width": 32,
+      "scenario_count": 1,
+      "cvar_alpha": 1.0,
+      "max_actions_per_actor": 10,
+      "include_opponent_response": false
+    }
+  },
+  "results": {
+    "rolling_beam": {
+      "enemy_win_rate": 0.0,
+      "enemy_mean_return": -21.488232848000003,
+      "mean_actions": 31.3,
+      "enemy_attack_rate": 0.14010450333979746,
+      "planner_mean_ms": 33.470070547917025,
+      "planner_p95_ms": 51.97322499589063,
+      "mean_expanded_nodes": 53.15068493150685
+    },
+    "one_step": {
+      "enemy_win_rate": 0.0,
+      "enemy_mean_return": -22.177996040000004,
+      "mean_actions": 32.2,
+      "enemy_attack_rate": 0.06,
+      "planner_mean_ms": 1.699587671295102,
+      "planner_p95_ms": 2.233699990028981,
+      "mean_expanded_nodes": 10
+    }
+  }
+}

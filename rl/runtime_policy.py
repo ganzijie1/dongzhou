@@ -1,4 +1,4 @@
-"""Unified HAPPO-first, CQL-fallback policy used by the playable frontend."""
+"""Rolling-planner policy with learned-policy fallbacks for the frontend."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ import torch
 from rl.happo import HAPPO, happo_decision, normalized_role
 from rl.mappo import Decision, action_features, local_observation
 from rl.offline_rl import CQL
+from rl.rolling_beam import PlanResult, RollingBeamPlanner
 
 
 def _model_candidates(filename: str, experiment: str) -> tuple[Path, ...]:
@@ -37,16 +38,22 @@ def _first_model(filename: str, experiment: str) -> Path:
 
 
 class RuntimeBattlePolicy:
-    """Select native actions with HAPPO, falling back to conservative CQL."""
+    """Select native actions with rolling beam, HAPPO, then conservative CQL."""
 
     def __init__(
         self, *, happo_path: str | Path | None = None,
         cql_path: str | Path | None = None,
+        planner: RollingBeamPlanner | None = None,
+        enable_planner: bool = True,
     ) -> None:
         self.happo_path = Path(happo_path) if happo_path else None
         self.cql_path = Path(cql_path) if cql_path else None
         self.happo: HAPPO | None = None
         self.cql: CQL | None = None
+        self.planner = planner or RollingBeamPlanner()
+        self.enable_planner = enable_planner
+        self.last_plan: PlanResult | None = None
+        self.planner_error: Exception | None = None
         self.happo_error: Exception | None = None
         self.cql_error: Exception | None = None
         self.backend = "uninitialized"
@@ -126,6 +133,16 @@ class RuntimeBattlePolicy:
         width: int,
         height: int,
     ) -> int:
+        if self.enable_planner:
+            try:
+                self.last_plan = self.planner.choose(
+                    env, actions, width, height
+                )
+                self.planner_error = None
+                self.backend = "rolling-beam"
+                return self.last_plan.action_index
+            except (KeyError, TypeError, ValueError, RuntimeError) as error:
+                self.planner_error = error
         decision, role = self._decision(
             env, actions, observation, width, height
         )

@@ -24,7 +24,7 @@ def main() -> None:
             None, env, actions, observation,
             int(map_info["width"]), int(map_info["height"]),
         )
-        assert gui._runtime_battle_policy.backend == "happo"
+        assert gui._runtime_battle_policy.backend == "rolling-beam"
         assert any(int(action["index"]) == selected for action in actions)
         _, _, terminated, truncated, _ = env.step(selected)
         assert not terminated and not truncated
