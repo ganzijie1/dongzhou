@@ -40,3 +40,21 @@ This HAPPO baseline is clearly undertrained. The result only shows that a weak
 prior can hurt hybrid search; it does not compare mature HAPPO fairly against
 beam MPC. The runtime policy remains unchanged. Re-run this entry point with
 the established strong checkpoint before considering deployment.
+
+## Matched example benchmark
+
+The original online benchmark protocol was reproduced with 4,096 HAPPO
+environment steps, seed 2026, ten evaluation episodes, and a 100-action limit.
+Both beam variants used horizon 2, beam width 4, and four candidates per node.
+
+| Policy | Mean return | Win rate | Mean actions | Mean decision time |
+|---|---:|---:|---:|---:|
+| HAPPO | 24.222 | 100% | 22.6 | 3.34 ms |
+| Pure beam MPC | 15.665 | 60% | 63.4 | 78.84 ms |
+| HAPPO-prior beam MPC | 24.693 | 100% | 10.8 | 107.00 ms |
+
+This confirms that pure search does not replace HAPPO. The HAPPO prior makes
+the same search budget substantially stronger and cuts the completed battle's
+action count by 52.2%, while increasing per-decision latency by about 32 times
+over HAPPO alone. This is evidence for an optional teacher or difficult-state
+planner, not yet for replacing the multi-stage runtime policy.

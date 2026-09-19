@@ -32,7 +32,17 @@ def main() -> None:
         assert env.list_actions(), "restored root must reopen legal actions"
         assert int(env.snapshot()["current_force"]) == int(root["current_force"])
 
-    print("in-process restore reopens battle after speculative terminal branch")
+    with MengdeEnv(
+        EXECUTABLE, scenario="example", max_episode_actions=40,
+    ) as env:
+        env.reset(seed=2026)
+        root = env.snapshot()
+        action = int(env.list_actions()[0]["index"])
+        env.step(action)
+        env.restore(root, restart_process=False)
+        assert env.list_actions(), "example root must support in-process restore"
+
+    print("in-process restore supports terminal rollback and the example scenario")
 
 
 if __name__ == "__main__":

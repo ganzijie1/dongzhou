@@ -196,7 +196,7 @@ class Session {
   }
 
   void RecordCurrentCommanderProgress() {
-    if (!environment_) return;
+    if (!environment_ || scenario_id_ != "dongzhou") return;
     for (const auto& entry : CaptureOwnCommanderProgress()) {
       commander_progress_[entry.first] = entry.second;
     }
@@ -210,6 +210,7 @@ class Session {
   }
 
   void ApplyRestoredCommanderPenalties() {
+    if (scenario_id_ != "dongzhou") return;
     Game* game = environment_->GetGame();
     const std::vector<std::string> commander_ids =
         game->GetLuaScript()->GetVector<std::string>("gcommanders");
