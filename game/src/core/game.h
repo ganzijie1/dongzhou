@@ -78,7 +78,6 @@ class Game : public IDeployHelper {
   uint32_t      GetNumOwnsAlive();
   bool          CheckStatus();
   Status        GetStatus() const { return status_; }
-  void          RestoreStatus(Status status) { status_ = status; }
   Assets*       assets() { return assets_; }
 
   uint32_t      GetNumCommandersAlive();
