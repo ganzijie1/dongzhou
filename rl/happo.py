@@ -117,8 +117,29 @@ def happo_decision(
 ) -> Decision:
     legal = env.list_actions() if actions is None else actions
     agent_id, selected = select_agent_actions(legal)
-    units = env.unit_info()
+    return happo_decision_for_agent(
+        env, observation, width, height, legal, agent_id
+    )
+
+
+def happo_decision_for_agent(
+    env: MengdeEnv,
+    observation: np.ndarray,
+    width: int,
+    height: int,
+    actions: list[dict[str, Any]],
+    agent_id: int,
+    units: list[dict[str, Any]] | None = None,
+) -> Decision:
+    selected = [
+        action for action in actions if int(action["unit"]) == int(agent_id)
+    ]
+    if not selected:
+        raise ValueError(f"no legal actions for unit {agent_id}")
+    units = env.unit_info() if units is None else units
     basic = base_action_features(selected, units, width, height, agent_id)
+    # Preserve the trained feature distribution: team_ranged_shot is scoped to
+    # this actor's candidates, while blocker detection still sees every unit.
     tactical = tactical_action_features(
         selected, units, width, height, fast_path_features=True
     )
@@ -215,6 +236,16 @@ class HAPPO:
         distribution = Categorical(logits=logits)
         choice = torch.argmax(distribution.logits) if deterministic else distribution.sample()
         return int(choice), float(distribution.log_prob(choice))
+
+    @torch.no_grad()
+    def score(self, decision: Decision, role: str) -> np.ndarray:
+        """Return comparable within-unit log probabilities for legal actions."""
+        local = torch.as_tensor(decision.local, device=self.device).unsqueeze(0)
+        candidates = torch.as_tensor(
+            decision.candidates, device=self.device
+        ).unsqueeze(0)
+        logits = self.actors[normalized_role(role)](local, candidates)[0]
+        return torch.log_softmax(logits, dim=0).cpu().numpy()
 
     def _value(self, state: np.ndarray) -> float:
         with torch.no_grad():

@@ -1,4 +1,4 @@
-"""Unified HAPPO-first, CQL-fallback policy used by the playable frontend."""
+"""Joint-turn MAPF with HAPPO/CQL value priors for the playable frontend."""
 
 from __future__ import annotations
 
@@ -9,7 +9,8 @@ from typing import Any
 import numpy as np
 import torch
 
-from rl.happo import HAPPO, happo_decision, normalized_role
+from rl.happo import HAPPO, happo_decision_for_agent, normalized_role
+from rl.joint_turn_planner import JointTurnPlanner
 from rl.mappo import Decision, action_features, local_observation
 from rl.offline_rl import CQL
 
@@ -37,7 +38,7 @@ def _first_model(filename: str, experiment: str) -> Path:
 
 
 class RuntimeBattlePolicy:
-    """Select native actions with HAPPO, falling back to conservative CQL."""
+    """Coordinate all ready units while preserving native legal actions."""
 
     def __init__(
         self, *, happo_path: str | Path | None = None,
@@ -50,6 +51,12 @@ class RuntimeBattlePolicy:
         self.happo_error: Exception | None = None
         self.cql_error: Exception | None = None
         self.backend = "uninitialized"
+        self.planner = JointTurnPlanner()
+        self.last_plan_reason = "uninitialized"
+        self._map_signature: tuple[
+            int, int, tuple[str, ...], tuple[tuple[int, str, int], ...]
+        ] | None = None
+        self._movement_costs: dict[int, list[int]] = {}
 
     def _load_happo(self, state_features: int) -> HAPPO:
         if self.happo is not None:
@@ -82,20 +89,21 @@ class RuntimeBattlePolicy:
         return model
 
     @staticmethod
-    def _decision(
+    def _decision_for_agent(
         env,
         actions: list[dict[str, Any]],
         observation: np.ndarray,
         width: int,
         height: int,
+        agent_id: int,
+        units: list[dict[str, Any]] | None = None,
     ) -> tuple[Decision, str]:
-        if not actions:
-            raise ValueError("runtime policy received no legal actions")
-        agent_id = min(int(action["unit"]) for action in actions)
         selected = [
             action for action in actions if int(action["unit"]) == agent_id
         ]
-        units = env.unit_info()
+        if not selected:
+            raise ValueError(f"runtime policy found no actions for unit {agent_id}")
+        units = env.unit_info() if units is None else units
         unit = next(item for item in units if int(item["id"]) == agent_id)
         decision = Decision(
             agent_id=agent_id,
@@ -106,6 +114,102 @@ class RuntimeBattlePolicy:
             ),
         )
         return decision, normalized_role(str(unit["class"]))
+
+    def _happo_priors(
+        self,
+        model: HAPPO,
+        env,
+        actions: list[dict[str, Any]],
+        observation: np.ndarray,
+        width: int,
+        height: int,
+        units: list[dict[str, Any]],
+    ) -> dict[int, float]:
+        by_id = {int(unit["id"]): unit for unit in units}
+        priors: dict[int, float] = {}
+        for agent_id in sorted({int(action["unit"]) for action in actions}):
+            decision = happo_decision_for_agent(
+                env, observation, width, height, actions, agent_id, units
+            )
+            role = normalized_role(str(by_id[agent_id]["class"]))
+            values = model.score(decision, role)
+            scale = max(1e-6, float(np.std(values)))
+            normalized = (values - float(np.mean(values))) / scale
+            priors.update(
+                (int(action["index"]), float(value))
+                for action, value in zip(decision.actions, normalized)
+            )
+        return priors
+
+    def _cql_priors(
+        self,
+        model: CQL,
+        env,
+        actions: list[dict[str, Any]],
+        observation: np.ndarray,
+        width: int,
+        height: int,
+        units: list[dict[str, Any]],
+    ) -> dict[int, float]:
+        priors: dict[int, float] = {}
+        for agent_id in sorted({int(action["unit"]) for action in actions}):
+            decision, _ = self._decision_for_agent(
+                env, actions, observation, width, height, agent_id, units
+            )
+            values = model.score(observation, decision)
+            scale = max(1e-6, float(np.std(values)))
+            normalized = (values - float(np.mean(values))) / scale
+            priors.update(
+                (int(action["index"]), float(value))
+                for action, value in zip(decision.actions, normalized)
+            )
+        return priors
+
+    def _map_context(
+        self,
+        env,
+        units: list[dict[str, Any]],
+        actions: list[dict[str, Any]],
+        width: int,
+        height: int,
+    ) -> tuple[list[str], dict[int, list[int]]]:
+        try:
+            map_info = env.map_info()
+            terrain = [str(value) for value in map_info.get("terrain", [])]
+        except (AttributeError, KeyError, RuntimeError, ValueError):
+            terrain = []
+        roster_signature = tuple(
+            sorted(
+                (
+                    int(unit["id"]),
+                    str(unit.get("class", "")),
+                    int(unit.get("move", 0)),
+                )
+                for unit in units
+                if not bool(unit.get("dead", False))
+            )
+        )
+        signature = (width, height, tuple(terrain), roster_signature)
+        if signature != self._map_signature:
+            self._map_signature = signature
+            self._movement_costs.clear()
+            self.planner.reset()
+        ready_ids = {int(action["unit"]) for action in actions}
+        ready_units = [
+            unit for unit in units
+            if int(unit["id"]) in ready_ids
+            if not bool(unit.get("dead", False))
+            and not bool(unit.get("done", False))
+        ]
+        for unit in ready_units:
+            unit_id = int(unit["id"])
+            if unit_id in self._movement_costs:
+                continue
+            try:
+                self._movement_costs[unit_id] = list(env.movement_costs(unit_id))
+            except (AttributeError, KeyError, RuntimeError, ValueError):
+                continue
+        return terrain, dict(self._movement_costs)
 
     @staticmethod
     def _safe_action(actions: list[dict[str, Any]]) -> int:
@@ -126,27 +230,46 @@ class RuntimeBattlePolicy:
         width: int,
         height: int,
     ) -> int:
-        decision, role = self._decision(
-            env, actions, observation, width, height
+        if not actions:
+            raise ValueError("runtime policy received no legal actions")
+        units = env.unit_info()
+        terrain, movement_costs = self._map_context(
+            env, units, actions, width, height
         )
+        priors: dict[int, float] = {}
         if self.happo_error is None:
             try:
                 model = self._load_happo(len(observation))
-                happo_choice = happo_decision(
-                    env, observation, width, height, actions=actions
+                priors = self._happo_priors(
+                    model, env, actions, observation, width, height, units
                 )
-                choice, _ = model.choose(happo_choice, role, deterministic=True)
-                self.backend = "happo"
-                return int(happo_choice.actions[choice]["index"])
+                self.backend = "joint-mapf+happo"
             except (FileNotFoundError, KeyError, RuntimeError, ValueError) as error:
                 self.happo_error = error
-        if self.cql_error is None:
+        if not priors and self.cql_error is None:
             try:
                 model = self._load_cql(len(observation))
-                choice = model.choose(observation, decision)
-                self.backend = "cql"
-                return int(decision.actions[choice]["index"])
+                priors = self._cql_priors(
+                    model, env, actions, observation, width, height, units
+                )
+                self.backend = "joint-mapf+cql"
             except (FileNotFoundError, KeyError, RuntimeError, ValueError) as error:
                 self.cql_error = error
-        self.backend = "safe-wait"
-        return self._safe_action(actions)
+        if not priors:
+            self.backend = "joint-mapf"
+        try:
+            choice = self.planner.choose(
+                actions,
+                units,
+                width,
+                height,
+                terrain=terrain,
+                movement_costs=movement_costs,
+                action_priors=priors,
+            )
+            self.last_plan_reason = choice.reason
+            return choice.action_index
+        except (KeyError, RuntimeError, ValueError) as error:
+            self.last_plan_reason = f"planner-error:{error}"
+            self.backend = f"{self.backend}+legal-fallback"
+            return self._safe_action(actions)

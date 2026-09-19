@@ -90,6 +90,22 @@ def _in_attack_range(position: tuple[int, int], target: tuple[int, int], unit: d
     return relative in _attack_offsets(unit)
 
 
+def attack_offsets(unit: dict[str, Any]) -> tuple[tuple[int, int], ...]:
+    """Return the native attack mask in a planner-friendly immutable form."""
+    return _attack_offsets(unit)
+
+
+def attack_limits(unit: dict[str, Any]) -> tuple[int, int]:
+    """Return the minimum and maximum Manhattan radii of the attack mask."""
+    return _attack_limits(unit)
+
+
+def in_attack_range(
+    position: tuple[int, int], target: tuple[int, int], unit: dict[str, Any]
+) -> bool:
+    return _in_attack_range(position, target, unit)
+
+
 def _shortest_path(
     width: int,
     height: int,
@@ -198,6 +214,20 @@ def _ranged_path_blockers(
             blockers.setdefault(unit_id, set()).update(path)
             break
     return blockers
+
+
+def ranged_path_blockers(
+    units: Sequence[dict[str, Any]],
+    acting_force: int,
+    opponents: Sequence[dict[str, Any]],
+    width: int,
+    height: int,
+    movement_costs: dict[int, Sequence[int]] | None,
+) -> dict[int, set[tuple[int, int]]]:
+    """Expose exact Dijkstra blocker detection to the joint-turn planner."""
+    return _ranged_path_blockers(
+        units, acting_force, opponents, width, height, movement_costs
+    )
 
 
 def _local_ranged_blockers(

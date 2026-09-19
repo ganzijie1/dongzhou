@@ -268,6 +268,11 @@ class CQL:
 
     @torch.no_grad()
     def choose(self, state: np.ndarray, decision: Decision) -> int:
+        return int(np.argmax(self.score(state, decision)))
+
+    @torch.no_grad()
+    def score(self, state: np.ndarray, decision: Decision) -> np.ndarray:
+        """Return conservative Q values for every legal candidate."""
         state_tensor = torch.as_tensor(state, device=self.device).unsqueeze(0)
         candidates = torch.as_tensor(
             decision.candidates, device=self.device
@@ -275,7 +280,7 @@ class CQL:
         values = torch.minimum(
             self.q1(state_tensor, candidates), self.q2(state_tensor, candidates)
         )
-        return int(torch.argmax(values[0]))
+        return values[0].cpu().numpy()
 
     def save(self, path: str | Path) -> None:
         destination = Path(path); destination.parent.mkdir(parents=True, exist_ok=True)

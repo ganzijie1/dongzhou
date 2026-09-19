@@ -699,7 +699,7 @@ def run_shop_menu(screen, fonts, background, env):
             return "quit", env.supply_info()
     return _original_run_shop_menu(screen, fonts, background, env)
 
-# All playable enemy decisions use HAPPO with a conservative CQL fallback.
+# Enemy turns use reservation-based joint planning with HAPPO/CQL value priors.
 from rl.runtime_policy import RuntimeBattlePolicy
 
 
