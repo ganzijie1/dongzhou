@@ -404,6 +404,10 @@ void RLEnvironment::BeginRestore(uint16_t turn, Force force, uint32_t agent_acti
     }
   });
   game_->RestoreTurn(turn, force);
+  // In-process search may restore after a speculative branch reached victory
+  // or defeat. Match a clean process restore by reopening the battle before
+  // legal actions are rebuilt.
+  game_->RestoreStatus(Game::Status::kUndecided);
   agent_actions_ = agent_actions;
   truncated_     = truncated;
   visited_sites_.clear();

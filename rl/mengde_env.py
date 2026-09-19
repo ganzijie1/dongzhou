@@ -39,6 +39,7 @@ class MengdeEnv(gym.Env[np.ndarray, int]):
 
         self.max_units = max_units
         self.max_actions = max_actions
+        self.max_episode_actions = max_episode_actions
         if game_path is None:
             game_path = Path(__file__).resolve().parents[1] / "game"
         game_path = Path(game_path).resolve()
@@ -220,12 +221,16 @@ class MengdeEnv(gym.Env[np.ndarray, int]):
             unit["force"] = int(detail["force"])
         return snapshot
 
-    def restore(self, snapshot: dict[str, Any]) -> tuple[np.ndarray, dict[str, Any]]:
+    def restore(
+        self, snapshot: dict[str, Any], *, restart_process: bool = True
+    ) -> tuple[np.ndarray, dict[str, Any]]:
         """Restore a previously captured native battle snapshot."""
         # Scenario assets retain unit pointers across stage loads, so title-screen
-        # loads must start from a clean native process.
+        # loads must start from a clean native process. Search rollouts within the
+        # already loaded battle can opt into the faster in-process restore path.
         stage_index = int(snapshot["stage_index"])
-        self._restart_process(stage_index)
+        if restart_process:
+            self._restart_process(stage_index)
         if snapshot.get("_restart_merged_stage"):
             self._request(f"RESTORE_MONEY {int(snapshot.get('money', 500))}")
             for hero_id, progress in snapshot.get("commander_progress", {}).items():
