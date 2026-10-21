@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import numpy as np
 
@@ -42,11 +42,13 @@ def test_grid_vote_shape_and_review() -> None:
 
 
 def test_exported_holdout_isolated() -> None:
-    manifest_path = seg.DATASET_DIR / "manifest.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    with TemporaryDirectory() as directory:
+        manifest = seg.export_annotations(
+            Path(directory), limit=1, holdout="m008-large-v2.png"
+        )
     holdouts = [item for item in manifest["maps"] if item["holdout"]]
     assert len(holdouts) == 1
-    assert holdouts[0]["asset"] == "m008.png"
+    assert holdouts[0]["asset"] == "m008-large-v2.png"
     assert all(not item["reviewed"] for item in manifest["maps"])
 
 

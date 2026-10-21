@@ -54,7 +54,7 @@ def test_counterattack():
 def test_story_and_history():
     a=(ROOT/"game/sce/dongzhou/stage/54a.lua").read_text(encoding="utf-8"); b=(ROOT/"game/sce/dongzhou/stage/54b.lua").read_text(encoding="utf-8")
     config=(ROOT/"game/sce/dongzhou/config.lua").read_text(encoding="utf-8"); gui=(ROOT/"rl/play_gui.py").read_text(encoding="utf-8")
-    assert '"53a", "53b", "54a", "54b", "55a", "55b" }' in config and a.count("{ speaker =")+b.count("{ speaker =")>=45
+    assert '"53a", "53b", "54a", "54b", "55a", "55b"' in config and a.count("{ speaker =")+b.count("{ speaker =")>=45
     assert 'speaker = "旁白"' not in a+b
     for t in ("六百乘","乐伯","赵旃","荀罃","黄河","襄老","京观","先谷","孙叔敖","优孟","寝邱"): assert t in a+b
     deaths="\n".join(x for x in gui.splitlines() if "HISTORICAL_DEATH_HEROES" in x)

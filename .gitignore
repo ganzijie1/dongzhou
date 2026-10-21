@@ -26,4 +26,5 @@ __pycache__/
 /output/terrain_model/*
 !/output/terrain_model/*.json
 !/output/terrain_model/*.txt
+!/output/terrain_model/terrain_trusted_adapter.pt
 /.pytest_cache/

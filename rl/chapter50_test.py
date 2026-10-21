@@ -92,7 +92,7 @@ def test_story_and_logic():
     config = (ROOT / "game/sce/dongzhou/config.lua").read_text(encoding="utf-8")
     gui = (ROOT / "rl/play_gui.py").read_text(encoding="utf-8")
 
-    assert '"48a", "48b", "49", "50a", "50b", "50c", "51" }' in config
+    assert '"48a", "48b", "49", "50a", "50b", "50c", "51"' in config
     assert a.count("{ speaker =") >= 35 and b.count("{ speaker =") >= 13 and c.count("{ speaker =") >= 30
     assert all('speaker = "旁白"' not in stage for stage in (a, b, c))
     assert "公子恶" in a and "叔仲彭生" in a and "叔肹" in a

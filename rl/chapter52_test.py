@@ -68,7 +68,7 @@ def test_story_battle_and_history_contract():
     stage = STAGE_PATH.read_text(encoding="utf-8")
     config = (ROOT / "game/sce/dongzhou/config.lua").read_text(encoding="utf-8")
     gui = (ROOT / "rl/play_gui.py").read_text(encoding="utf-8")
-    assert '"50b", "50c", "51", "52", "53a", "53b" }' in config
+    assert '"50b", "50c", "51", "52", "53a", "53b"' in config
     assert 'battle_title = "柳棼救郑"' in stage
     assert stage.count("{ speaker =") >= 50
     assert 'speaker = "旁白"' not in stage

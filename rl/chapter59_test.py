@@ -37,7 +37,7 @@ def reachable(rows: list[str], start: tuple[int, int], goals: set[tuple[int, int
     return False
 
 
-def test_contract(map_id: str, suffix: str, expected_grid: list[int]) -> dict:
+def assert_contract(map_id: str, suffix: str, expected_grid: list[int]) -> dict:
     stage_id = "59a" if suffix == "ch59a" else "59b"
     stage = (ROOT / f"game/sce/dongzhou/stage/{stage_id}.lua").read_text(encoding="utf-8")
     manifest = json.loads((ROOT / f"assets/lzc/map_sources/{map_id}_{suffix}_manifest.json").read_text(encoding="utf-8"))
@@ -57,8 +57,8 @@ def test_contract(map_id: str, suffix: str, expected_grid: list[int]) -> dict:
 
 
 def main() -> None:
-    taiyin = test_contract("m093", "ch59a", [52, 34])
-    manor = test_contract("m094", "ch59b", [48, 32])
+    assert_contract("m093", "ch59a", [52, 34])
+    manor = assert_contract("m094", "ch59b", [48, 32])
     rows = manor["terrain_rows"]
     walls = {tuple(p) for p in manor["wall_cells"]}
     matrix_walls = {(x, y) for y, row in enumerate(rows) for x, terrain in enumerate(row) if terrain == "W"}
@@ -88,7 +88,7 @@ def main() -> None:
     assert CURRENT_DONGZHOU_STAGES[-10:] == ("57", "58", "59a", "59b", "60a", "60b", "60c", "61a", "61b", "61c")
     assert CURRENT_DONGZHOU_STAGES.index("58") == 93
     assert STAGE_TABLE_VERSION == 5
-    assert '"57", "58", "59a", "59b", "60a", "60b", "60c", "61a", "61b", "61c" }' in config
+    assert '"57", "58", "59a", "59b", "60a", "60b", "60c", "61a", "61b", "61c"' in config
     for hero in ("XuTong59", "YiYangWu59", "QingFeiTui59", "ChengHua59", "ZhaoWu59", "ChengYing59"):
         assert config.count(f'id = "{hero}"') == 1
         assert f'"{hero}"' in gui

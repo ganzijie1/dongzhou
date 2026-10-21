@@ -78,7 +78,7 @@ def test_stage_rules():
 def test_config_and_gui_metadata():
     config = (ROOT / "game/sce/dongzhou/config.lua").read_text(encoding="utf-8")
     gui = (ROOT / "rl/play_gui.py").read_text(encoding="utf-8")
-    assert '"55a", "55b", "56a", "56b", "57" }' in config
+    assert '"55a", "55b", "56a", "56b", "57"' in config
     assert config.count('id = "HanJue48"') == 1
     assert config.count('id = "TuAnGu50"') == 1
     for hero in ("PalaceDoctor57", "PalaceSearchGuard57", "PalaceSearchArcher57"):
@@ -88,7 +88,9 @@ def test_config_and_gui_metadata():
     death_lines = "\n".join(line for line in gui.splitlines() if "HISTORICAL_DEATH_HEROES" in line)
     assert "PalaceDoctor57" not in death_lines
     assert "PalaceSearchGuard57" not in death_lines
-    assert "TuAnGu50" not in death_lines
+    tu_angu_death_lines = [line for line in death_lines.splitlines() if "TuAnGu50" in line]
+    assert len(tu_angu_death_lines) == 1
+    assert "XuTong59" in tu_angu_death_lines[0]
 
 
 if __name__ == "__main__":

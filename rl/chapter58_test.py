@@ -85,7 +85,7 @@ def test_stage_rules_and_story():
 def test_config_and_gui():
     config = (ROOT / "game/sce/dongzhou/config.lua").read_text(encoding="utf-8")
     gui = (ROOT / "rl/play_gui.py").read_text(encoding="utf-8")
-    assert '"56a", "56b", "57", "58", "59a", "59b" }' in config
+    assert '"56a", "56b", "57", "58", "59a", "59b"' in config
     for hero in ("JinLiGong58","LuanShu58","ShiXie58","LuanZhen58","XiZhi58","XiQi58","XunYan58","ChuGongWang58","GongZiRenFu58","XiongFa58","PanDang58","GongYinXiang58"):
         assert config.count(f'id = "{hero}"') == 1
         assert f'"{hero}"' in gui

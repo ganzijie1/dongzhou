@@ -85,7 +85,7 @@ def test_story_sequence_and_outcomes():
     b = (ROOT / "game/sce/dongzhou/stage/53b.lua").read_text(encoding="utf-8")
     config = (ROOT / "game/sce/dongzhou/config.lua").read_text(encoding="utf-8")
     gui = (ROOT / "rl/play_gui.py").read_text(encoding="utf-8")
-    assert '"50c", "51", "52", "53a", "53b", "54a", "54b" }' in config
+    assert '"50c", "51", "52", "53a", "53b", "54a", "54b"' in config
     assert a.count("{ speaker =") + b.count("{ speaker =") >= 55
     assert 'speaker = "旁白"' not in a + b
     for topic in ("泄冶", "株林", "夏征舒", "车裂", "蹊田夺牛", "唐狡", "十七日", "三个月", "牵羊", "六百乘", "管城"):

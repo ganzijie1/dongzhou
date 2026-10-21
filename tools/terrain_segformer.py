@@ -518,7 +518,7 @@ def main() -> None:
     export = sub.add_parser("export")
     export.add_argument("--output", type=Path, default=DATASET_DIR)
     export.add_argument("--limit", type=int, default=19)
-    export.add_argument("--holdout", default="m008.png")
+    export.add_argument("--holdout", default="m008-large-v2.png")
     train_parser = sub.add_parser("train")
     train_parser.add_argument("--dataset", type=Path, default=DATASET_DIR)
     train_parser.add_argument("--source", type=Path, default=MODEL_SOURCE)

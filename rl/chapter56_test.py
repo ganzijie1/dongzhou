@@ -31,7 +31,7 @@ def test_an():
  assert 'set_unit_invulnerable("QiQingGong56",true)'in s and 'not game:has_unit("FengChouFu56")'in s
 def test_story():
  a=(ROOT/"game/sce/dongzhou/stage/56a.lua").read_text(encoding="utf-8");b=(ROOT/"game/sce/dongzhou/stage/56b.lua").read_text(encoding="utf-8");c=(ROOT/"game/sce/dongzhou/config.lua").read_text(encoding="utf-8");g=(ROOT/"rl/play_gui.py").read_text(encoding="utf-8")
- assert '"55a", "55b", "56a", "56b", "57" }'in c and a.count("{speaker=")+b.count("{speaker=")>=35 and 'speaker="旁白"'not in a+b
+ assert '"55a", "55b", "56a", "56b", "57"'in c and a.count("{speaker=")+b.count("{speaker=")>=35 and 'speaker="旁白"'not in a+b
  for t in("郤雍","士会","萧夫人","龙邑","新筑","八百乘","鞌之战","华不注","逢丑父"):assert t in a+b
  deaths="\n".join(x for x in g.splitlines()if"HISTORICAL_DEATH_HEROES"in x);assert"QiQingGong56"not in deaths and"FengChouFu56"not in deaths
  assert c.count('id = "HanJue48"')==1

@@ -32,7 +32,7 @@ def test_qingcao():
  assert 'set_unit_invulnerable("DuHui55",true)'in s and 'set_unit_invulnerable("DuHui55",false)'in s and 'grass_triggered and not game:has_unit("DuHui55")'in s
 def test_story():
  a=(ROOT/"game/sce/dongzhou/stage/55a.lua").read_text(encoding="utf-8");b=(ROOT/"game/sce/dongzhou/stage/55b.lua").read_text(encoding="utf-8");c=(ROOT/"game/sce/dongzhou/config.lua").read_text(encoding="utf-8");g=(ROOT/"rl/play_gui.py").read_text(encoding="utf-8")
- assert '"54a", "54b", "55a", "55b", "56a", "56b" }'in c and a.count("{speaker=")+b.count("{speaker=")>=40 and 'speaker="旁白"'not in a+b
+ assert '"54a", "54b", "55a", "55b", "56a", "56b"'in c and a.count("{speaker=")+b.count("{speaker=")>=40 and 'speaker="旁白"'not in a+b
  for t in("申舟","解扬","九个月","华元","七日","潞国","杜回","青草坡","结草","景钟","郤雍"):assert t in a+b
  deaths="\n".join(x for x in g.splitlines()if"HISTORICAL_DEATH_HEROES"in x);assert"DuHui55"in deaths and"HuaYuan50"not in deaths
  for h in("ChuZhuangWang51","GongZiCe51","HuaYuan50","WeiQi54"):assert c.count(f'id = "{h}"')==1

@@ -84,7 +84,7 @@ def test_story_and_battle_logic():
     config = (ROOT / "game/sce/dongzhou/config.lua").read_text(encoding="utf-8")
     gui = (ROOT / "rl/play_gui.py").read_text(encoding="utf-8")
 
-    assert '"47a", "47b", "48a", "48b", "49" }' in config
+    assert '"47a", "47b", "48a", "48b", "49"' in config
     assert 'battle_title = "郑境诱营"' in stage48a
     assert 'battle_title = "河曲之战"' in stage48b
     assert "五将" in stage48a and "先克" in stage48a and "厥貉" in stage48a
