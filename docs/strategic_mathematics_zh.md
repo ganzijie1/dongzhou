@@ -23,6 +23,9 @@
 | `rl/p6_games_dynamics.py` | 演化/合作博弈、最大熵逆强化学习、随机混杂系统 |
 | `rl/advanced_lattice_geometry.py` | 离散微积分、Poisson、各向异性测地线、形态重建与拓扑保持细化 |
 | `rl/graph_dynamics.py` | 连续图动力学、DeGroot 共识、Altafini 有符号网络与结构平衡 |
+| `rl/chapter1_planning_math.py` | 随机最短路、POSG 信念更新、事件触发控制、Fast Marching |
+| `rl/chapter1_structure_fields.py` | 超图 Laplacian、势场、反应扩散、相场、有限群表示与等变投影 |
+| `rl/chapter1_reliability_rare_math.py` | 吸收链、更新过程、系统可靠性、重要性采样、大偏差与有限约束验证 |
 
 所有排序和冲突处理都是确定性的，适合固定种子回放。无效概率、负容量、不平衡运输质量、非有限收益和求解失败会显式报错。
 
@@ -299,4 +302,39 @@ $$
 
 ```powershell
 python -m pytest rl/graph_dynamics_test.py -q
+```
+
+## 22. 第一章数学能力全覆盖
+
+第一章列出的 20 类数学已映射到可执行实现。已有能力直接复用，缺失能力由三个 `chapter1_*` 模块补齐：
+
+| 场景 | 数学 | 实现 |
+|---|---|---|
+| 多单位联合行动 | CP-SAT、MILP、QUBO、约束规划 | `classical_optimization.py`、`quantum_optimization.py` |
+| 路径与交通 | A*、MAPF、网络流、时空图 | `lattice_geometry.py`、`joint_turn_planner.py`、`strategic_flow.py` |
+| 隐藏敌情 | POMDP、POSG、贝叶斯滤波 | `belief_risk.py`、`p5_decision_math.py`、`FinitePOSG` |
+| 多回合随机规划 | MDP、随机最短路、MCTS | `nested_cvar_mdp()`、`stochastic_shortest_path()`、`alphazero.py` |
+| 主动对抗 | Stackelberg、随机博弈、微分博弈 | `advanced_game_math.py`、`p5_decision_math.py`、离散 HJ-Isaacs 递推 |
+| 风险与最坏情形 | CVaR、分布鲁棒优化、机会约束 | `belief_risk.py`、`safety_robust_math.py`、`uncertainty_math.py` |
+| 动态重规划 | MPC、混杂系统、事件触发控制 | `control_math.py`、`p6_games_dynamics.py`、`simulate_event_triggered_control()` |
+| 安全集 | HJ 可达性、控制屏障函数 | `safety_robust_math.py` |
+| 连续代价寻路 | Eikonal、Fast Marching | `fast_marching()`；各向异性离散近似仍在 `advanced_lattice_geometry.py` |
+| 阵型重构 | 最优传输、Wasserstein 几何 | `decision_math.py`、`safety_robust_math.py` |
+| 空间控制 | Voronoi、Delaunay、计算几何 | `random_geometry.py`、`discrete_geometry.py` |
+| 高阶协同 | 超图、超图 Laplacian | `normalized_hypergraph_laplacian()` |
+| 士气与命令 | 图动力学、DeGroot、Altafini | `graph_dynamics.py` |
+| 战场场模型 | 势场、反应扩散、相场 | `artificial_potential_force()`、`gray_scott_reaction_diffusion()`、`allen_cahn_phase_field()` |
+| 地形拓扑 | Morse、持久同调、TDA | `p6_structure_math.py`、`topology_flow_math.py` |
+| 对称性 | 群论、表示论、等变网络 | `permutation_representation()`、`invariant_group_average()`、`equivariant_linear_projection()` |
+| 侦察价值 | 信息论、互信息 | `uncertainty_math.py` |
+| 生存与损失 | 吸收马尔可夫链、更新过程、可靠性理论 | `analyze_absorbing_markov_chain()`、`discrete_renewal_process()`、系统可靠性函数 |
+| 极端条件 | 重要性采样、大偏差理论 | `importance_sampling_estimate()`、`bernoulli_large_deviation_rate()` |
+| 规则验证 | 时序逻辑、SMT、模型检验 | `online_selection_math.py`、`solve_finite_constraints()`、`p5_decision_math.py` |
+
+`solve_finite_constraints()` 是显式有限域上的精确、穷举式 SMT 风格验证器，不宣称支持通用一阶理论或无限域。Fast Marching 当前实现二维、各向同性、一阶迎风格式；零速度格为障碍。POSG 实现提供受联合动作控制的贝叶斯滤波和零和阶段博弈，不把阶段解冒充完整无限时域 POSG 解。
+
+这些能力遵循同一决策边界：几何、概率、场模型和拓扑只生成候选、代价或先验；CP-SAT/MILP/QUBO 负责联合选择；MAPF 与原生规则负责最终合法性验证。第一章新增定向回归为：
+
+```powershell
+python -m pytest rl/chapter1_mathematics_test.py -q
 ```
