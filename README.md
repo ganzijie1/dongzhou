@@ -53,7 +53,7 @@ For now we only have instructions for build.
 
 The Fire Emblem Mirror Mode method has been ported as a headless Gymnasium environment using the real mengde rule engine. It includes legal-action masking, demonstration recording, behavioral cloning, GAIL, and masked PPO. See [the Chinese RL guide](docs/reinforcement_learning_zh.md) for architecture, build, data collection, training, and evaluation commands.
 
-An optional strategic mathematics layer adds Bayesian beliefs, dynamic risk, constrained optimization, graph/topological methods, POMCP, model checking, DMD, sheaves, evolutionary/cooperative games, inverse learning, and advanced lattice geometry without expanding native legal actions. See [the Chinese strategic mathematics guide](docs/strategic_mathematics_zh.md).
+An optional strategic mathematics layer adds Bayesian beliefs, dynamic risk, constrained optimization, graph/topological methods, DeGroot and Altafini dynamics, POMCP, model checking, DMD, sheaves, evolutionary/cooperative games, inverse learning, and advanced lattice geometry without expanding native legal actions. See [the Chinese strategic mathematics guide](docs/strategic_mathematics_zh.md).
 
 ### How to Build
 

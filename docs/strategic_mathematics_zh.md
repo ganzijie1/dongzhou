@@ -22,6 +22,7 @@
 | `rl/p6_structure_math.py` | 细胞层、Morse/Reeb、Schrodinger 桥、信息几何、热带代数、拟阵 |
 | `rl/p6_games_dynamics.py` | 演化/合作博弈、最大熵逆强化学习、随机混杂系统 |
 | `rl/advanced_lattice_geometry.py` | 离散微积分、Poisson、各向异性测地线、形态重建与拓扑保持细化 |
+| `rl/graph_dynamics.py` | 连续图动力学、DeGroot 共识、Altafini 有符号网络与结构平衡 |
 
 所有排序和冲突处理都是确定性的，适合固定种子回放。无效概率、负容量、不平衡运输质量、非有限收益和求解失败会显式报错。
 
@@ -276,3 +277,26 @@ python -m pytest `
 ```
 
 定向回归覆盖 POMCP 行动选择、尾部风险、随机博弈、DTMC 可达性、序列 DR、DMD/EDMD、层一致性、Morse/Reeb、熵桥、信息几何、热带循环均值、拟阵、核仁、IRL、混杂切换以及格点数值/拓扑不变量。完整 RL 测试仍用于检查与既有规划器的兼容性。
+
+## 21. 图动力学、DeGroot 与 Altafini
+
+`graph_dynamics.py` 统一采用 $A_{ij}$ 表示节点 $j$ 对节点 $i$ 的影响。普通 Laplacian 使用 $L=D-A$，有符号 Laplacian 的度数使用绝对边权：
+
+$$
+(D_s)_{ii}=\sum_j|A_{ij}|,\qquad L_s=D_s-A.
+$$
+
+- 连续图动力学：`continuous_graph_dynamics()` 使用矩阵指数精确计算指定时刻的 $\dot x=-Lx$。普通图拒绝负权；Altafini 路径显式使用有符号 Laplacian。
+- DeGroot：`degroot_dynamics()` 要求非负行随机矩阵，返回完整轨迹、左稳态影响力、共识值、逐步共识误差、谱收缩率和 `ergodic` 诊断。周期矩阵或多重单位特征值不会被误报为收敛。
+- 稳态影响力：`stationary_influence()` 求解 $\pi^{\mathsf T}W=\pi^{\mathsf T}$ 与 $\sum_i\pi_i=1$，因此非对称信任网络的极限是加权共识，不假定为算术平均。
+- 结构平衡：`structural_balance()` 在有向有符号图上检查是否存在 $\sigma_i\in\{-1,+1\}$，使 $\sigma_iA_{ij}\sigma_j\ge0$，并返回两阵营符号和连通分量。
+- Altafini：`continuous_altafini_dynamics()` 与 `discrete_altafini_dynamics()` 分别处理连续和离散有符号传播。平衡网络返回 gauge 轨迹与二部共识误差；非平衡网络只报告状态范数，不虚构阵营划分。
+- 外部控制：`controlled_degroot_dynamics()` 实现 $x_{k+1}=Wx_k+Bu_k$，可选状态裁剪用于有限士气区间。裁剪使系统变为非线性，线性共识结论不能直接沿用。
+
+这些方法适合生成士气、命令、恐慌、情报判断和协同权重等低频状态。边权必须来自明确规则、日志估计或校准模型；负边应表示真正的反向状态作用，而不是普通伤害减益。传播结果只能作为动作先验，最终行动仍由 CP-SAT/MILP/QUBO、MAPF 和原生规则验证。
+
+新增验证：
+
+```powershell
+python -m pytest rl/graph_dynamics_test.py -q
+```
