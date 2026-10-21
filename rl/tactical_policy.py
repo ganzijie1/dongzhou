@@ -10,6 +10,8 @@ import numpy as np
 import torch
 from torch import nn
 
+from rl.lattice_geometry import LatticeCoordinate
+
 
 FEATURE_NAMES = (
     "wait",
@@ -63,7 +65,7 @@ def load_ranker(path: str | Path = DEFAULT_MODEL_PATH) -> TacticalRanker:
 
 
 def _distance(a: tuple[int, int], b: tuple[int, int]) -> int:
-    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+    return LatticeCoordinate.manhattan(a, b)
 
 
 def _attack_offsets(unit: dict[str, Any]) -> tuple[tuple[int, int], ...]:
@@ -130,8 +132,7 @@ def _shortest_path(
                 path.append(parent[path[-1]])
             path.reverse()
             return path
-        for dx, dy in ((0, -1), (-1, 0), (1, 0), (0, 1)):
-            nxt = (current[0] + dx, current[1] + dy)
+        for nxt in LatticeCoordinate.neighbors4(current):
             if not (0 <= nxt[0] < width and 0 <= nxt[1] < height):
                 continue
             if nxt in blocked and nxt != start:

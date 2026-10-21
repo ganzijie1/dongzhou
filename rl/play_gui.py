@@ -699,7 +699,7 @@ def run_shop_menu(screen, fonts, background, env):
             return "quit", env.supply_info()
     return _original_run_shop_menu(screen, fonts, background, env)
 
-# Enemy turns use reservation-based joint planning with HAPPO/CQL value priors.
+# Every enemy turn uses joint MAPF plus bounded lattice MFG/quantum-field priors.
 from rl.runtime_policy import RuntimeBattlePolicy
 
 

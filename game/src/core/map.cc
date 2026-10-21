@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "cell.h"
+#include "core/lattice_geometry.h"
 #include "core/path_tree.h"
 #include "unit.h"
 #include "unit_class.h"
@@ -82,11 +83,8 @@ void Map::SetTerrainBlend(Vec2D c, Terrain* primary, Terrain* secondary, uint8_t
 // Using Dijkstra Shortest Path Algorithm
 // ( O(N^2) where N is number of vertices )
 PathTree* Map::FindPath(Unit* unit, Vec2D dest) {
-  static const int kDNum   = 4;
-  static const int kDRow[] = {0, 0, -1, 1};
-  static const int kDCol[] = {-1, 1, 0, 0};
-  const int        N       = size_.x * size_.y;
-  const int        kInf    = 1 << 30;
+  const int N    = size_.x * size_.y;
+  const int kInf = 1 << 30;
 
   vector<int>       dist(N, kInf);
   vector<bool>      used(N, false);
@@ -132,13 +130,10 @@ PathTree* Map::FindPath(Unit* unit, Vec2D dest) {
       break;
     }
 
-    for (int i = 0; i < kDNum; i++) {
-      int   nr = vec_current.y + kDRow[i];
-      int   nc = vec_current.x + kDCol[i];
-      Vec2D nvec(nc, nr);
+    for (const Vec2D nvec : LatticeCoordinate::Neighbors4(vec_current)) {
       if (!IsValidCoords(nvec)) continue;
       if (IsEdgeBlocked(vec_current, nvec)) continue;
-      const int move_cost = grid_[nr][nc]->GetMoveCost(unit->GetClassIndex());
+      const int move_cost = grid_[nvec.y][nvec.x]->GetMoveCost(unit->GetClassIndex());
       if (move_cost >= 255) continue;
       int next     = SerializeVec2D(nvec);
       int new_dist = dist[current] + move_cost;
@@ -182,14 +177,9 @@ void Map::MoveUnit(Vec2D src, Vec2D dst) {
 void Map::EmptyCell(Vec2D c) { grid_[c.y][c.x]->Empty(); }
 
 bool Map::IsHostileAdjacent(Unit* unit, Vec2D coords) {
-  static const int kDNum   = 5;
-  static const int kDRow[] = {0, 0, 0, -1, 1};
-  static const int kDCol[] = {0, -1, 1, 0, 0};
-  for (int i = 0; i < kDNum; i++) {
-    int nr = coords.y + kDRow[i];
-    int nc = coords.x + kDCol[i];
-    if (!IsValidCoords({nc, nr})) continue;
-    Vec2D ncoords(nc, nr);
+  if (UnitInCell(coords) && unit->IsHostile(GetUnit(coords))) return true;
+  for (const Vec2D ncoords : LatticeCoordinate::Neighbors4(coords)) {
+    if (!IsValidCoords(ncoords)) continue;
     if (UnitInCell(ncoords)) {
       if (unit->IsHostile(GetUnit(ncoords))) return true;
     }
@@ -218,7 +208,7 @@ std::pair<int, int> Map::EdgeKey(Vec2D a, Vec2D b) const {
 void Map::BlockEdge(Vec2D a, Vec2D b) {
   ASSERT(IsValidCoords(a));
   ASSERT(IsValidCoords(b));
-  ASSERT(std::abs(a.x - b.x) + std::abs(a.y - b.y) == 1);
+  ASSERT(LatticeCoordinate::Manhattan(a, b) == 1);
   blocked_edges_.insert(EdgeKey(a, b));
 }
 

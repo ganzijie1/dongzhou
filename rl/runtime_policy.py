@@ -3,14 +3,19 @@
 from __future__ import annotations
 
 import sys
+from math import isfinite
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import numpy as np
 import torch
 
 from rl.happo import HAPPO, happo_decision_for_agent, normalized_role
 from rl.joint_turn_planner import JointTurnPlanner
+from rl.lattice_field_runtime import (
+    RuntimeLatticeFieldResult,
+    UniversalLatticeFieldController,
+)
 from rl.mappo import Decision, action_features, local_observation
 from rl.offline_rl import CQL
 
@@ -43,6 +48,8 @@ class RuntimeBattlePolicy:
     def __init__(
         self, *, happo_path: str | Path | None = None,
         cql_path: str | Path | None = None,
+        enable_lattice_fields: bool = True,
+        lattice_fields: UniversalLatticeFieldController | None = None,
     ) -> None:
         self.happo_path = Path(happo_path) if happo_path else None
         self.cql_path = Path(cql_path) if cql_path else None
@@ -50,6 +57,12 @@ class RuntimeBattlePolicy:
         self.cql: CQL | None = None
         self.happo_error: Exception | None = None
         self.cql_error: Exception | None = None
+        self.mfg_error: Exception | None = None
+        self.quantum_error: Exception | None = None
+        self.field_error: Exception | None = None
+        self.enable_lattice_fields = bool(enable_lattice_fields)
+        self.lattice_fields = lattice_fields or UniversalLatticeFieldController()
+        self.last_field_diagnostics: RuntimeLatticeFieldResult | None = None
         self.backend = "uninitialized"
         self.planner = JointTurnPlanner()
         self.last_plan_reason = "uninitialized"
@@ -194,6 +207,8 @@ class RuntimeBattlePolicy:
             self._map_signature = signature
             self._movement_costs.clear()
             self.planner.reset()
+            self.lattice_fields.reset()
+            self.last_field_diagnostics = None
         ready_ids = {int(action["unit"]) for action in actions}
         ready_units = [
             unit for unit in units
@@ -221,6 +236,31 @@ class RuntimeBattlePolicy:
             (action for action in selected if int(action["type"]) == 0), selected[0]
         )
         return int(wait["index"])
+
+    @staticmethod
+    def _optional_priors(
+        env,
+        actions: list[dict[str, Any]],
+        provider_name: str,
+    ) -> dict[int, float]:
+        """Read an optional tactical layer without expanding native legal actions."""
+        provider = getattr(env, provider_name, None)
+        if not callable(provider):
+            return {}
+        raw = provider(actions)
+        if not isinstance(raw, Mapping):
+            raise ValueError(f"{provider_name} must return a mapping")
+        legal = {int(action["index"]) for action in actions}
+        priors: dict[int, float] = {}
+        for action_index, value in raw.items():
+            index = int(action_index)
+            score = float(value)
+            if index not in legal:
+                raise ValueError(f"{provider_name} references illegal action {index}")
+            if not isfinite(score):
+                raise ValueError(f"{provider_name} values must be finite")
+            priors[index] = score
+        return priors
 
     def choose(
         self,
@@ -257,6 +297,46 @@ class RuntimeBattlePolicy:
                 self.cql_error = error
         if not priors:
             self.backend = "joint-mapf"
+        mfg_provider = callable(getattr(env, "mfg_action_priors", None))
+        quantum_provider = callable(getattr(env, "quantum_action_priors", None))
+        automatic_mfg: dict[int, float] = {}
+        automatic_quantum: dict[int, float] = {}
+        if self.enable_lattice_fields and not (mfg_provider and quantum_provider):
+            try:
+                field_result = self.lattice_fields.priors(
+                    actions,
+                    units,
+                    width,
+                    height,
+                    movement_costs=movement_costs,
+                )
+                self.last_field_diagnostics = field_result
+                automatic_mfg = dict(field_result.mfg_priors)
+                automatic_quantum = dict(field_result.quantum_priors)
+                self.field_error = None
+            except (ArithmeticError, KeyError, RuntimeError, TypeError, ValueError) as error:
+                self.field_error = error
+                self.last_field_diagnostics = None
+        mfg_priors = automatic_mfg
+        if mfg_provider:
+            try:
+                mfg_priors = self._optional_priors(env, actions, "mfg_action_priors")
+                self.mfg_error = None
+            except (AttributeError, KeyError, RuntimeError, TypeError, ValueError) as error:
+                self.mfg_error = error
+        if mfg_priors:
+            self.backend = f"{self.backend}+mfg"
+        quantum_priors = automatic_quantum
+        if quantum_provider:
+            try:
+                quantum_priors = self._optional_priors(
+                    env, actions, "quantum_action_priors"
+                )
+                self.quantum_error = None
+            except (AttributeError, KeyError, RuntimeError, TypeError, ValueError) as error:
+                self.quantum_error = error
+        if quantum_priors:
+            self.backend = f"{self.backend}+quantum"
         try:
             choice = self.planner.choose(
                 actions,
@@ -266,6 +346,8 @@ class RuntimeBattlePolicy:
                 terrain=terrain,
                 movement_costs=movement_costs,
                 action_priors=priors,
+                mfg_priors=mfg_priors,
+                quantum_priors=quantum_priors,
             )
             self.last_plan_reason = choice.reason
             return choice.action_index

@@ -274,6 +274,7 @@ def test_runtime_uses_rule_planner_without_models() -> None:
     policy = RuntimeBattlePolicy(
         happo_path="rl/models/missing-happo.pt",
         cql_path="rl/models/missing-cql.pt",
+        enable_lattice_fields=False,
     )
     selected = policy.choose(env, actions, np.zeros(132, dtype=np.float32), 10, 9)
     assert selected == 1

@@ -39,7 +39,9 @@ def main() -> None:
             )
 
             primary = RuntimeBattlePolicy(
-                happo_path=happo_path, cql_path=cql_path
+                happo_path=happo_path,
+                cql_path=cql_path,
+                enable_lattice_fields=False,
             )
             selected = primary.choose(
                 env, actions, observation, width, height
@@ -48,7 +50,9 @@ def main() -> None:
             assert any(int(item["index"]) == selected for item in actions)
 
             fallback = RuntimeBattlePolicy(
-                happo_path=root / "missing-happo.pt", cql_path=cql_path
+                happo_path=root / "missing-happo.pt",
+                cql_path=cql_path,
+                enable_lattice_fields=False,
             )
             selected = fallback.choose(
                 env, actions, observation, width, height

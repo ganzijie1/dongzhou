@@ -6,11 +6,14 @@ import json
 import os
 import subprocess
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping, Sequence
 
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
+
+if TYPE_CHECKING:
+    from rl.random_geometry import DeploymentResult
 
 
 class MengdeProtocolError(RuntimeError):
@@ -166,6 +169,118 @@ class MengdeEnv(gym.Env[np.ndarray, int]):
         """Return the unit class's movement cost for every map cell."""
         response = self._request(f"COSTS {int(unit_id)}")
         return [int(cost) for cost in response["costs"]]
+
+    def _native_traversable_cells(
+        self, unit_id: int
+    ) -> tuple[int, int, list[int], frozenset[tuple[int, int]]]:
+        map_data = self.map_info()
+        width, height = int(map_data["width"]), int(map_data["height"])
+        costs = self.movement_costs(unit_id)
+        if len(costs) != width * height:
+            raise MengdeProtocolError(
+                "native movement-cost grid has invalid dimensions"
+            )
+        traversable = frozenset(
+            (index % width, index // width)
+            for index, cost in enumerate(costs)
+            if int(cost) < 255
+        )
+        return width, height, costs, traversable
+
+    def sample_random_deployment(
+        self,
+        unit_id: int,
+        count: int,
+        seed: int,
+        *,
+        intensity: Mapping[tuple[int, int], float]
+        | Callable[[tuple[int, int]], float]
+        | None = None,
+        minimum_distance: float = 2.0,
+        protected: Iterable[tuple[int, int]] = (),
+        validators: Sequence[Callable[[tuple[tuple[int, int], ...]], bool]] = (),
+        safe_starts: Iterable[tuple[int, int]] = (),
+        safe_goals: Iterable[tuple[int, int]] = (),
+        influence_radius: int = 0,
+    ) -> DeploymentResult:
+        """Propose a reproducible deployment from the native terrain graph.
+
+        This method does not mutate the historical scenario.  Callers explicitly
+        apply accepted positions through their spawn or scenario-authoring path.
+        """
+        from rl.lattice_geometry import LatticeShape
+        from rl.random_geometry import (
+            LatticeGraph,
+            RandomDeploymentGenerator,
+            coverage_multiplicity,
+            safe_corridor_exists,
+        )
+
+        width, _, costs, traversable = self._native_traversable_cells(unit_id)
+        graph = LatticeGraph(
+            traversable,
+            {
+                cell: max(1.0, float(costs[cell[1] * width + cell[0]]))
+                for cell in traversable
+            },
+        )
+        occupied = {
+            (int(unit["x"]), int(unit["y"]))
+            for unit in self.unit_info()
+            if not bool(unit.get("dead", False))
+        }
+        hard_validators = list(validators)
+        start_cells, goal_cells = tuple(safe_starts), tuple(safe_goals)
+        if bool(start_cells) != bool(goal_cells):
+            raise ValueError("safe corridor requires both starts and goals")
+        if start_cells:
+            influence = LatticeShape.manhattan_ball(influence_radius)
+
+            def preserves_safe_corridor(layout: tuple[tuple[int, int], ...]) -> bool:
+                coverage = coverage_multiplicity(graph.cells, layout, influence)
+                return safe_corridor_exists(graph, start_cells, goal_cells, coverage)
+
+            hard_validators.append(preserves_safe_corridor)
+        weights = (
+            {cell: 1.0 for cell in traversable}
+            if intensity is None
+            else intensity
+        )
+        return RandomDeploymentGenerator(graph, seed).generate(
+            count,
+            weights,
+            minimum_distance,
+            forbidden=occupied | set(protected),
+            validators=hard_validators,
+        )
+
+    def analyze_discrete_map(
+        self, unit_id: int, unit_diameter: int = 1
+    ) -> dict[str, Any]:
+        """Analyze native passability as a digital-topology region."""
+        from rl.discrete_geometry import RegionAnalysis
+        from rl.lattice_geometry import LatticeRegion
+
+        width, height, _, traversable = self._native_traversable_cells(unit_id)
+        components = LatticeRegion.connected_components(traversable)
+        holes = RegionAnalysis.holes(traversable)
+        return {
+            "width": width,
+            "height": height,
+            "traversable_cells": len(traversable),
+            "component_count": len(components),
+            "articulation_points": sorted(
+                RegionAnalysis.articulation_points(traversable)
+            ),
+            "bridges": sorted(RegionAnalysis.bridges(traversable)),
+            "hole_count": len(holes),
+            "euler_characteristic": len(components) - len(holes),
+            "skeleton": sorted(RegionAnalysis.skeleton(traversable)),
+            "chokepoints": sorted(
+                RegionAnalysis.chokepoints(traversable, unit_diameter)
+            ),
+        }
+
     def supply_info(self) -> dict[str, Any]:
         """Return shared consumables and restorative map sites."""
         return self._request("SUPPLIES")

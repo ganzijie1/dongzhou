@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from heapq import heappop, heappush
 from math import inf
 from typing import Any, Mapping, Sequence
 
+from rl.lattice_geometry import (
+    Cell,
+    LatticeCoordinate,
+    SpaceTimeGrid,
+    weighted_shortest_path,
+)
 from rl.tactical_policy import (
     attack_limits,
     attack_offsets,
@@ -15,7 +20,6 @@ from rl.tactical_policy import (
 )
 
 
-Cell = tuple[int, int]
 Action = dict[str, Any]
 
 
@@ -24,7 +28,7 @@ def _position(item: Mapping[str, Any]) -> Cell:
 
 
 def _distance(a: Cell, b: Cell) -> int:
-    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+    return LatticeCoordinate.manhattan(a, b)
 
 
 def _same_side(left: int, right: int) -> bool:
@@ -45,36 +49,8 @@ def _weighted_path(
         return (start,)
     if costs is None or len(costs) != width * height:
         return (start, destination)
-    frontier: list[tuple[float, float, Cell]] = [
-        (float(_distance(start, destination)), 0.0, start)
-    ]
-    parents: dict[Cell, Cell] = {}
-    best = {start: 0.0}
-    while frontier:
-        _, spent, cell = heappop(frontier)
-        if spent != best.get(cell):
-            continue
-        if cell == destination:
-            path = [cell]
-            while path[-1] != start:
-                path.append(parents[path[-1]])
-            path.reverse()
-            return tuple(path)
-        for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0)):
-            neighbor = cell[0] + dx, cell[1] + dy
-            if not (0 <= neighbor[0] < width and 0 <= neighbor[1] < height):
-                continue
-            step = int(costs[neighbor[1] * width + neighbor[0]])
-            if step >= 255:
-                continue
-            candidate = spent + max(1, step)
-            if candidate >= best.get(neighbor, inf):
-                continue
-            best[neighbor] = candidate
-            parents[neighbor] = cell
-            estimate = candidate + _distance(neighbor, destination)
-            heappush(frontier, (estimate, candidate, neighbor))
-    return (start, destination)
+    path = weighted_shortest_path(start, destination, width, height, costs)
+    return path or (start, destination)
 
 
 @dataclass(frozen=True)
@@ -89,6 +65,8 @@ class PlannerConfig:
     risk_weight: float = 14.0
     distance_weight: float = 2.0
     prior_weight: float = 8.0
+    mfg_prior_weight: float = 8.0
+    quantum_prior_weight: float = 8.0
     wait_penalty: float = 4.0
     corridor_violation_penalty: float = 1000.0
     max_candidates_per_unit: int = 12
@@ -113,18 +91,8 @@ class CorridorReservation:
 
 
 @dataclass
-class TurnReservationTable:
-    destinations: dict[Cell, int] = field(default_factory=dict)
+class TurnReservationTable(SpaceTimeGrid):
     corridors: list[CorridorReservation] = field(default_factory=list)
-    vertices: dict[tuple[int, Cell], int] = field(default_factory=dict)
-    edges: dict[tuple[int, Cell, Cell], int] = field(default_factory=dict)
-
-    def reserve_destination(self, cell: Cell, unit_id: int) -> bool:
-        owner = self.destinations.get(cell)
-        if owner is not None and owner != unit_id:
-            return False
-        self.destinations[cell] = unit_id
-        return True
 
     def reserve_corridor(
         self, cells: Sequence[Cell], beneficiaries: Sequence[int]
@@ -144,59 +112,12 @@ class TurnReservationTable:
             for reservation in self.corridors
         )
 
-    def path_conflict(
-        self,
-        path: Sequence[Cell],
-        unit_id: int,
-        horizon: int,
-    ) -> bool:
-        if not path:
-            return False
-        owner = self.destinations.get(path[-1])
-        if owner is not None and owner != unit_id:
-            return True
-        clipped = tuple(path[: horizon + 1])
-        for time, cell in enumerate(clipped):
-            owner = self.vertices.get((time, cell))
-            if owner is not None and owner != unit_id:
-                return True
-            if time == 0:
-                continue
-            previous = clipped[time - 1]
-            reverse_owner = self.edges.get((time, cell, previous))
-            if reverse_owner is not None and reverse_owner != unit_id:
-                return True
-        temporal_destination = clipped[-1]
-        for time in range(len(clipped), horizon + 1):
-            owner = self.vertices.get((time, temporal_destination))
-            if owner is not None and owner != unit_id:
-                return True
-        return False
-
-    def reserve_path(
-        self,
-        path: Sequence[Cell],
-        unit_id: int,
-        horizon: int,
-    ) -> bool:
-        if not path or self.path_conflict(path, unit_id, horizon):
-            return False
-        clipped = tuple(path[: horizon + 1])
-        for time, cell in enumerate(clipped):
-            self.vertices[(time, cell)] = unit_id
-            if time:
-                self.edges[(time, clipped[time - 1], cell)] = unit_id
-        temporal_destination = clipped[-1]
-        for time in range(len(clipped), horizon + 1):
-            self.vertices[(time, temporal_destination)] = unit_id
-        return self.reserve_destination(path[-1], unit_id)
-
     def copy(self) -> "TurnReservationTable":
         return TurnReservationTable(
             destinations=dict(self.destinations),
-            corridors=list(self.corridors),
             vertices=dict(self.vertices),
             edges=dict(self.edges),
+            corridors=list(self.corridors),
         )
 
 
@@ -475,6 +396,8 @@ class JointTurnPlanner:
         blockers: Mapping[int, set[Cell]],
         assignments: Mapping[int, TacticalSlot],
         prior: float,
+        mfg_prior: float,
+        quantum_prior: float,
         reservations: TurnReservationTable,
         wait_age: int,
     ) -> tuple[float, str]:
@@ -489,9 +412,20 @@ class JointTurnPlanner:
         destination_threat = field.threat(destination)
         score = (
             self.config.prior_weight * float(prior)
+            + self.config.mfg_prior_weight * float(mfg_prior)
+            + self.config.quantum_prior_weight * float(quantum_prior)
             + self.config.wait_age_bonus * min(wait_age, self.config.max_wait_age)
         )
-        reason = "model-prior"
+        has_mfg = abs(mfg_prior) > 1e-12
+        has_quantum = abs(quantum_prior) > 1e-12
+        if has_mfg and has_quantum:
+            reason = "mfg+quantum-prior"
+        elif has_quantum:
+            reason = "quantum-prior"
+        elif has_mfg:
+            reason = "mfg-prior"
+        else:
+            reason = "model-prior"
 
         if reservations.corridor_blocked(unit_id, destination, ranged):
             return -self.config.corridor_violation_penalty, "corridor-blocked"
@@ -579,6 +513,8 @@ class JointTurnPlanner:
         terrain: Sequence[str] | None = None,
         movement_costs: Mapping[int, Sequence[int]] | None = None,
         action_priors: Mapping[int, float] | None = None,
+        mfg_priors: Mapping[int, float] | None = None,
+        quantum_priors: Mapping[int, float] | None = None,
     ) -> TurnPlan:
         if not actions:
             raise ValueError("joint-turn planner received no legal actions")
@@ -629,6 +565,8 @@ class JointTurnPlanner:
                 blockers,
                 assignments,
                 float((action_priors or {}).get(int(action["index"]), 0.0)),
+                float((mfg_priors or {}).get(int(action["index"]), 0.0)),
+                float((quantum_priors or {}).get(int(action["index"]), 0.0)),
                 self.memory.reservations,
                 self.memory.wait_age.get(unit_id, 0),
             )
