@@ -18,6 +18,10 @@
 | `rl/advanced_game_math.py` | Stackelberg 承诺博弈、有限扩展式博弈 CFR |
 | `rl/topology_flow_math.py` | 排队网络、Hodge 分解、持久同调、离散共形映射 |
 | `rl/sensitivity_math.py` | 精确 Shapley、Sobol 全局敏感度、GEV 极值理论 |
+| `rl/p5_decision_math.py` | POMCP、嵌套 CVaR、随机博弈、模型检验、离线评估、DMD/EDMD |
+| `rl/p6_structure_math.py` | 细胞层、Morse/Reeb、Schrodinger 桥、信息几何、热带代数、拟阵 |
+| `rl/p6_games_dynamics.py` | 演化/合作博弈、最大熵逆强化学习、随机混杂系统 |
+| `rl/advanced_lattice_geometry.py` | 离散微积分、Poisson、各向异性测地线、形态重建与拓扑保持细化 |
 
 所有排序和冲突处理都是确定性的，适合固定种子回放。无效概率、负容量、不平衡运输质量、非有限收益和求解失败会显式报错。
 
@@ -208,3 +212,67 @@ P4 方法默认是离线设计、回放解释或低频求解工具。CFR、精�
 ```powershell
 python -m pytest rl/priority_mathematics_test.py rl/strategic_mathematics_test.py rl/p3_p4_mathematics_test.py -q
 ```
+
+## 17. P5：信念空间规划、动态风险与数据驱动动力学
+
+- POMCP：`POMCPPlanner` 从根信念抽样，用 UCB 在历史树上选择动作，并通过生成模型完成状态转移、观测和回报采样。它返回访问次数、动作价值与最佳动作；样本数有限时不声称得到精确 POMDP 最优策略。
+- 时间一致动态风险：`nested_cvar_mdp()` 逐层嵌套条件 CVaR，而不是只在整条轨迹末端计算一次静态 CVaR。损失递推为
+
+$$
+V_t(s)=\min_a\operatorname{CVaR}_{\alpha}\left(c_t(s,a,S_{t+1})+V_{t+1}(S_{t+1})\mid s,a\right).
+$$
+
+- 零和随机博弈：`solve_discounted_zero_sum_stochastic_game()` 迭代 Shapley 算子，并在每个状态调用矩阵博弈求解器，输出状态价值和双方混合策略。
+- 概率模型检验：`dtmc_reachability()` 计算有限或无限时域 reach-avoid 概率，并在可达条件满足时求期望命中时间。它只接受显式 DTMC，不把经验频率自动当作已验证转移概率。
+- 最优停止：`finite_horizon_optimal_stopping()` 比较立即停止收益与继续价值，返回每个时刻/状态的停止集合。
+- 镜像下降：`ExponentiatedGradient` 在概率单纯形上做熵正则更新，保持非负与归一化。
+- 序列双重稳健离线评估：`sequential_doubly_robust_ope()` 组合重要性比与状态/动作价值基线。行为策略概率、目标策略概率、奖励和基线都必须来自真实记录或独立估计；实现不会补造缺失日志。
+- Koopman/DMD：`dynamic_mode_decomposition()` 从连续快照拟合线性演化模态；`extended_dynamic_mode_decomposition()` 在用户提供的观测字典上拟合 Koopman 近似。秩截断会显式保留，不能把短轨迹的拟合模态解释成已证实的物理规律。
+
+P5 默认用于信念规划、低频策略求解、回放评估与动力学辨识。只有经过预算和回放验证的结果才适合转换成在线先验。
+
+## 18. P6：层、拓扑结构、熵输运与高阶博弈
+
+- 细胞层与 Sheaf Laplacian：`CellularSheaf` 为顶点/边定义 stalk 和限制映射。余边界矩阵为 $\delta$，层拉普拉斯为
+
+$$
+L_{\mathcal F}=\delta^{\mathsf T}\delta.
+$$
+
+  `consistency_energy()` 计算局部信息不一致度，`global_sections()` 求全局一致截面，`diffuse()` 用 $\exp(-tL_{\mathcal F})$ 做一致性扩散。
+- 离散 Morse 与 Reeb 图：`discrete_morse_critical_points()` 根据 lower/upper link 连通分量识别极小、鞍点和极大；`discrete_reeb_graph()` 将相同标量水平的连通分量压缩成商图，用于地形关键结构和通道层级分析。
+- Schrodinger 桥：`schrodinger_bridge()` 对严格正的有限参考核做 Sinkhorn 缩放，寻找满足起止边缘分布的最小相对熵耦合。零质量或稀疏支持问题需先用专门的支持约束求解器处理。
+- 信息几何：分类分布提供 Fisher 信息矩阵、Fisher-Rao 距离、KL 散度和自然梯度更新。所有概率在计算前归一化，但零概率被拒绝，避免对数和度量奇异性被静默掩盖。
+- 热带代数：`max_plus_matmul()`、`max_plus_power()` 与 `max_plus_cycle_mean()` 表达最大加法动态规划和关键循环平均权重，可用于最长时序、瓶颈循环与离散事件系统分析。
+- 拟阵约束：`matroid_greedy()` 对合法拟阵求精确最大权独立集；`submodular_matroid_greedy()` 在拟阵约束下做单调次模贪心并返回逐步边际收益。独立性由外部 oracle 决定，错误 oracle 不会被数学层修复。
+- 演化与合作博弈：`replicator_dynamics()` 保持种群状态在概率单纯形内；`least_core_allocation()` 最小化最大联盟 excess；`nucleolus_allocation()` 对小型有限博弈逐层做 excess 的字典序最小化。
+- 最大熵逆强化学习：`maximum_entropy_irl()` 从等长状态示范估计线性奖励和软策略。它只解释给定特征与已知转移下的示范，不把相关性写成因果偏好。
+- 随机混杂系统：`StochasticHybridSystem` 将连续流、守卫条件、概率模式切换和 reset map 组合，并提供蒙特卡洛可达概率估计。概率结果必须连同样本量和随机种子解释。
+
+P6 是结构建模与离线分析层，不自动接管原生行动。Sheaf 限制映射、联盟价值、IRL 特征、混杂流和转移概率均要求调用者提供有来源的数据。
+
+## 19. 格点几何深化
+
+`advanced_lattice_geometry.py` 在已有坐标、射线、形态学、数字拓扑和 MAPF 合同之上增加以下能力：
+
+- `DiscreteFieldCalculus`：不规则方格域上的梯度、散度、图拉普拉斯与 Dirichlet 能量；外边界采用缺边的 Neumann 语义。
+- `solve_lattice_poisson()`：在四邻接域上求带 Dirichlet 边界的离散 Poisson 方程，并返回最大线性残差。每个连通分量必须至少有一个边界格。
+- `anisotropic_geodesic_distance()`：用每格对称正定度量张量计算各向异性测地距离和前驱路径；这是格点 Dijkstra 的 Eikonal 近似，不冒充连续快速行进法的高阶精度。
+- `signed_euclidean_distance()`：有限域上“内部为正、外部为负”的精确格心欧氏距离。
+- `morphological_reconstruction()`：受 mask 约束的测地膨胀，可删除与 marker 不连通的伪区域。
+- `topology_preserving_thinning()`：Zhang-Suen 数字细化，保留 8 邻接前景的拓扑骨架。
+- `lattice_topology_signature()`：统一输出面积、数字周长、连通分量、洞数与欧拉特征 $\chi=\beta_0-\beta_1$。
+
+这些函数使用与 `lattice_geometry.py` 相同的 `(x, y)` 格点表示，可直接消费原生可通行格集合，但不会改变碰撞、地形代价或单位占位规则。
+
+## 20. P5/P6 与格点回归
+
+```powershell
+python -m pytest `
+  rl/p5_decision_math_test.py `
+  rl/p6_structure_math_test.py `
+  rl/p6_games_dynamics_test.py `
+  rl/advanced_lattice_geometry_test.py -q
+```
+
+定向回归覆盖 POMCP 行动选择、尾部风险、随机博弈、DTMC 可达性、序列 DR、DMD/EDMD、层一致性、Morse/Reeb、熵桥、信息几何、热带循环均值、拟阵、核仁、IRL、混杂切换以及格点数值/拓扑不变量。完整 RL 测试仍用于检查与既有规划器的兼容性。
