@@ -46,7 +46,7 @@ def main() -> None:
             selected = primary.choose(
                 env, actions, observation, width, height
             )
-            assert primary.backend == "joint-mapf+happo"
+            assert primary.backend.startswith("joint-mapf+happo+cp-sat-")
             assert any(int(item["index"]) == selected for item in actions)
 
             fallback = RuntimeBattlePolicy(
@@ -57,7 +57,7 @@ def main() -> None:
             selected = fallback.choose(
                 env, actions, observation, width, height
             )
-            assert fallback.backend == "joint-mapf+cql"
+            assert fallback.backend.startswith("joint-mapf+cql+cp-sat-")
             assert any(int(item["index"]) == selected for item in actions)
     print(
         "runtime policy ok: joint MAPF uses HAPPO primary and CQL fallback "

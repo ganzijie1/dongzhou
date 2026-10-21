@@ -246,6 +246,6 @@ def test_runtime_adapter_exposes_both_fields_without_mutating_environment() -> N
         1,
     )
     assert selected == 1
-    assert policy.backend == "joint-mapf+mfg+quantum"
+    assert policy.backend == "joint-mapf+mfg+quantum+cp-sat-optimal"
     assert policy.last_plan_reason == "mfg+quantum-prior"
     assert not hasattr(base, "mfg_action_priors")

@@ -29,6 +29,8 @@ sys.excepthook = _report_unhandled
 import gymnasium  # noqa: E402,F401
 import numpy  # noqa: E402,F401
 import pygame  # noqa: E402,F401
+import scipy.optimize  # noqa: E402,F401
+from ortools.sat.python import cp_model  # noqa: E402,F401
 from rl import mengde_env, runtime_policy, save_system, smoke_test  # noqa: E402,F401
 from tools import e5_archive  # noqa: E402,F401
 from rl import play_gui  # noqa: E402

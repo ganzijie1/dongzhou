@@ -12,6 +12,12 @@ from rl.lattice_geometry import (
     SpaceTimeGrid,
     weighted_shortest_path,
 )
+from rl.quantum_optimization import (
+    QUBOAction,
+    QUBOError,
+    QUBOSolution,
+    TacticalQUBOOptimizer,
+)
 from rl.tactical_policy import (
     attack_limits,
     attack_offsets,
@@ -378,15 +384,31 @@ class UnitSlotAllocator:
 class JointTurnPlanner:
     """Prioritized MAPF that replans after every native sequential action."""
 
-    def __init__(self, config: PlannerConfig | None = None) -> None:
+    def __init__(
+        self,
+        config: PlannerConfig | None = None,
+        *,
+        qubo_optimizer: TacticalQUBOOptimizer | None = None,
+        enable_qubo: bool = True,
+    ) -> None:
         self.config = config or PlannerConfig()
         self.memory = PlannerMemory()
         self.metrics = PlannerMetrics()
         self.slot_generator = TacticalSlotGenerator(self.config)
         self.slot_allocator = UnitSlotAllocator()
+        self.enable_qubo = bool(enable_qubo)
+        self.qubo_optimizer = qubo_optimizer or TacticalQUBOOptimizer()
+        self.last_optimizer_solution: QUBOSolution | None = None
+        self.last_qubo_solution: QUBOSolution | None = None
+        self.last_optimizer_backend = "disabled" if not self.enable_qubo else "pending"
+        self.last_optimizer_error: Exception | None = None
 
     def reset(self) -> None:
         self.memory = PlannerMemory()
+        self.last_optimizer_solution = None
+        self.last_qubo_solution = None
+        self.last_optimizer_backend = "disabled" if not self.enable_qubo else "pending"
+        self.last_optimizer_error = None
 
     def _reason_and_score(
         self,
@@ -589,46 +611,112 @@ class JointTurnPlanner:
             ),
             reverse=True,
         )
-        reservations = self.memory.reservations.copy()
-        planned: list[PlannedAction] = []
+        base_reservations = self.memory.reservations.copy()
+        available: dict[int, list[tuple[float, str, Action, tuple[Cell, ...]]]] = {}
         for unit_id in ranked_units:
             candidates = sorted(
                 grouped[unit_id],
                 key=lambda value: (value[0], -int(value[2]["index"])),
                 reverse=True,
             )[: self.config.max_candidates_per_unit]
-            selected = None
+            valid = []
             for score, reason, action, path in candidates:
-                destination = _position(action)
-                if destination in reservations.destinations:
-                    continue
                 if reason == "corridor-blocked":
                     self.metrics.corridor_rejections += 1
                     continue
-                if reservations.path_conflict(
+                if base_reservations.path_conflict(
                     path, unit_id, self.config.time_horizon
                 ):
                     self.metrics.time_conflict_rejections += 1
                     continue
-                selected = (score, reason, action, path)
-                break
-            if selected is None:
-                continue
-            score, reason, action, path = selected
-            destination = _position(action)
-            reservations.reserve_path(
-                path, unit_id, self.config.time_horizon
-            )
-            planned.append(
-                PlannedAction(
-                    int(action["index"]),
-                    unit_id,
-                    destination,
-                    score,
-                    reason,
-                    path,
+                valid.append((score, reason, action, path))
+            if valid:
+                available[unit_id] = valid
+
+        planned: list[PlannedAction] = []
+        self.last_optimizer_solution = None
+        self.last_qubo_solution = None
+        self.last_optimizer_error = None
+        if self.enable_qubo and available:
+            try:
+                candidates_by_index = {
+                    int(action["index"]): (score, reason, action, path)
+                    for values in available.values()
+                    for score, reason, action, path in values
+                }
+                solution = self.qubo_optimizer.solve(
+                    [
+                        QUBOAction(
+                            action_index=int(action["index"]),
+                            unit_id=int(action["unit"]),
+                            utility=score,
+                            path=path,
+                        )
+                        for values in available.values()
+                        for score, _, action, path in values
+                    ]
                 )
-            )
+                candidate_reservations = base_reservations.copy()
+                candidate_plan: list[PlannedAction] = []
+                for action_index in solution.selected_actions:
+                    score, reason, action, path = candidates_by_index[action_index]
+                    unit_id = int(action["unit"])
+                    if not candidate_reservations.reserve_path(
+                        path, unit_id, self.config.time_horizon
+                    ):
+                        raise QUBOError("QUBO solution failed reservation validation")
+                    candidate_plan.append(
+                        PlannedAction(
+                            action_index,
+                            unit_id,
+                            _position(action),
+                            score,
+                            reason,
+                            path,
+                        )
+                    )
+                planned = candidate_plan
+                self.last_optimizer_solution = solution
+                self.last_qubo_solution = solution
+                self.last_optimizer_backend = solution.backend
+            except (
+                ArithmeticError,
+                KeyError,
+                RuntimeError,
+                TypeError,
+                ValueError,
+            ) as error:
+                self.last_optimizer_error = error
+                self.last_optimizer_backend = "qubo-mapf-fallback"
+        elif not self.enable_qubo:
+            self.last_optimizer_backend = "disabled"
+
+        if not planned:
+            reservations = base_reservations.copy()
+            for unit_id in ranked_units:
+                selected = None
+                for score, reason, action, path in available.get(unit_id, ()):
+                    if reservations.path_conflict(
+                        path, unit_id, self.config.time_horizon
+                    ):
+                        self.metrics.time_conflict_rejections += 1
+                        continue
+                    selected = (score, reason, action, path)
+                    break
+                if selected is None:
+                    continue
+                score, reason, action, path = selected
+                reservations.reserve_path(path, unit_id, self.config.time_horizon)
+                planned.append(
+                    PlannedAction(
+                        int(action["index"]),
+                        unit_id,
+                        _position(action),
+                        score,
+                        reason,
+                        path,
+                    )
+                )
         if not planned:
             fallback = min(actions, key=lambda action: int(action["index"]))
             planned.append(

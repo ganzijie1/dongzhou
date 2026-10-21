@@ -10,6 +10,11 @@ from typing import Any, Mapping
 import numpy as np
 import torch
 
+from rl.classical_optimization import (
+    ClassicalOptimizationConfig,
+    TacticalActionOptimizer,
+    TacticalOptimizationPortfolio,
+)
 from rl.happo import HAPPO, happo_decision_for_agent, normalized_role
 from rl.joint_turn_planner import JointTurnPlanner
 from rl.lattice_field_runtime import (
@@ -18,6 +23,7 @@ from rl.lattice_field_runtime import (
 )
 from rl.mappo import Decision, action_features, local_observation
 from rl.offline_rl import CQL
+from rl.quantum_optimization import TacticalQUBOOptimizer
 
 
 def _model_candidates(filename: str, experiment: str) -> tuple[Path, ...]:
@@ -50,7 +56,13 @@ class RuntimeBattlePolicy:
         cql_path: str | Path | None = None,
         enable_lattice_fields: bool = True,
         lattice_fields: UniversalLatticeFieldController | None = None,
+        enable_qubo_optimizer: bool = True,
+        qubo_optimizer: TacticalQUBOOptimizer | None = None,
+        action_optimizer: TacticalActionOptimizer | None = None,
+        optimization_backend: str = "auto",
     ) -> None:
+        if qubo_optimizer is not None and action_optimizer is not None:
+            raise ValueError("provide either qubo_optimizer or action_optimizer, not both")
         self.happo_path = Path(happo_path) if happo_path else None
         self.cql_path = Path(cql_path) if cql_path else None
         self.happo: HAPPO | None = None
@@ -62,9 +74,19 @@ class RuntimeBattlePolicy:
         self.field_error: Exception | None = None
         self.enable_lattice_fields = bool(enable_lattice_fields)
         self.lattice_fields = lattice_fields or UniversalLatticeFieldController()
+        self.enable_qubo_optimizer = bool(enable_qubo_optimizer)
+        self.optimization_backend = str(optimization_backend)
+        optimizer = action_optimizer or qubo_optimizer
+        if optimizer is None:
+            optimizer = TacticalOptimizationPortfolio(
+                ClassicalOptimizationConfig(backend=self.optimization_backend)
+            )
         self.last_field_diagnostics: RuntimeLatticeFieldResult | None = None
         self.backend = "uninitialized"
-        self.planner = JointTurnPlanner()
+        self.planner = JointTurnPlanner(
+            qubo_optimizer=optimizer,
+            enable_qubo=self.enable_qubo_optimizer,
+        )
         self.last_plan_reason = "uninitialized"
         self._map_signature: tuple[
             int, int, tuple[str, ...], tuple[tuple[int, str, int], ...]
@@ -350,6 +372,8 @@ class RuntimeBattlePolicy:
                 quantum_priors=quantum_priors,
             )
             self.last_plan_reason = choice.reason
+            if self.planner.last_optimizer_backend != "disabled":
+                self.backend = f"{self.backend}+{self.planner.last_optimizer_backend}"
             return choice.action_index
         except (KeyError, RuntimeError, ValueError) as error:
             self.last_plan_reason = f"planner-error:{error}"

@@ -205,5 +205,48 @@ def test_runtime_policy_can_explicitly_disable_automatic_fields() -> None:
         10,
         9,
     )
-    assert policy.backend == "joint-mapf"
+    assert policy.backend == "joint-mapf+cp-sat-optimal"
     assert policy.last_field_diagnostics is None
+
+
+def test_runtime_policy_can_disable_qubo_for_ablation() -> None:
+    environment = _Environment(10, 9)
+    actions = _actions(4, 10, 9)
+    policy = RuntimeBattlePolicy(
+        happo_path="rl/models/missing-happo.pt",
+        cql_path="rl/models/missing-cql.pt",
+        enable_lattice_fields=False,
+        enable_qubo_optimizer=False,
+    )
+    selected = policy.choose(
+        environment,
+        actions,
+        np.zeros(132, dtype=np.float32),
+        10,
+        9,
+    )
+    assert selected in {int(action["index"]) for action in actions}
+    assert policy.backend == "joint-mapf"
+    assert policy.planner.last_optimizer_backend == "disabled"
+
+
+def test_runtime_policy_can_pin_milp_backend() -> None:
+    environment = _Environment(10, 9)
+    actions = _actions(4, 10, 9)
+    policy = RuntimeBattlePolicy(
+        happo_path="rl/models/missing-happo.pt",
+        cql_path="rl/models/missing-cql.pt",
+        enable_lattice_fields=False,
+        optimization_backend="milp",
+    )
+    selected = policy.choose(
+        environment,
+        actions,
+        np.zeros(132, dtype=np.float32),
+        10,
+        9,
+    )
+    assert selected in {int(action["index"]) for action in actions}
+    assert policy.backend == "joint-mapf+milp-optimal"
+    assert policy.planner.last_optimizer_solution is not None
+    assert policy.planner.last_optimizer_solution.optimal

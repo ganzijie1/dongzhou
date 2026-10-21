@@ -229,12 +229,15 @@ def test_conflicting_unit_uses_local_alternative() -> None:
         action(2, 2, 1, 2, 1),
     ]
     costs = {1: [1] * 15, 2: [1] * 15}
-    plan = JointTurnPlanner().plan(
+    planner = JointTurnPlanner()
+    plan = planner.plan(
         actions, units, 5, 3, movement_costs=costs
     )
     by_unit = {item.unit_id: item for item in plan.actions}
     assert by_unit[1].destination == (2, 0)
     assert by_unit[2].destination == (2, 1)
+    assert planner.last_optimizer_backend == "qubo-exact"
+    assert planner.last_qubo_solution is not None
 
 
 class FakeEnv:
@@ -278,7 +281,7 @@ def test_runtime_uses_rule_planner_without_models() -> None:
     )
     selected = policy.choose(env, actions, np.zeros(132, dtype=np.float32), 10, 9)
     assert selected == 1
-    assert policy.backend == "joint-mapf"
+    assert policy.backend == "joint-mapf+cp-sat-optimal"
     assert policy.last_plan_reason == "retreat"
 
 

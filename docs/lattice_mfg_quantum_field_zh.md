@@ -126,15 +126,16 @@ choice = runtime_policy.choose(runtime_env, actions, observation, width, height)
 运行时策略按顺序组合：
 
 ```text
-HAPPO/CQL 模型先验 + MFG 先验 + 量子场先验 + MAPF 合法性
+HAPPO/CQL 模型先验 + MFG 先验 + 量子场先验
+-> CP-SAT / MILP / QUBO 联合动作优化 -> MAPF 合法性复核
 ```
 
-后端状态会显示 `+mfg` 和 `+quantum`。若提供器返回非法动作编号、非有限数或非映射，运行时会禁用该提供器，并继续使用原有规划器。
+后端状态会显示 `+mfg`、`+quantum` 和实际优化后端。若提供器返回非法动作编号、非有限数或非映射，运行时会禁用该提供器，并继续使用原有规划器。CP-SAT、MILP、QUBO、外部 QAOA/退火采样器和回退规则见 `docs/quantum_computing_wargame_zh.md`。
 
 ## 5. 验证
 
 ```powershell
-python -m pytest rl/lattice_mfg_test.py rl/quantum_lattice_field_test.py rl/quantum_tactics_test.py rl/joint_turn_planner_test.py -q
+python -m pytest rl/lattice_mfg_test.py rl/quantum_lattice_field_test.py rl/quantum_tactics_test.py rl/quantum_optimization_test.py rl/joint_turn_planner_test.py -q
 ```
 
 覆盖内容包括：
@@ -145,4 +146,5 @@ python -m pytest rl/lattice_mfg_test.py rl/quantum_lattice_field_test.py rl/quan
 - 规范相位、退相干和指数维度防护；
 - MFG—量子场双向耦合；
 - 联合规划器与运行时适配器；
+- QUBO 编译、全局动作组合、外部采样验证与经典回退；
 - 既有量子战术和 MAPF 回归。

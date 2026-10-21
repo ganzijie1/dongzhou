@@ -203,5 +203,5 @@ def test_runtime_policy_accepts_optional_quantum_provider() -> None:
         3,
     )
     assert selected == 1
-    assert policy.backend == "joint-mapf+quantum"
+    assert policy.backend == "joint-mapf+quantum+cp-sat-optimal"
     assert policy.last_plan_reason == "quantum-prior"
