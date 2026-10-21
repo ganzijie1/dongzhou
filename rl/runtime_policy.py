@@ -24,6 +24,7 @@ from rl.lattice_field_runtime import (
 from rl.mappo import Decision, action_features, local_observation
 from rl.offline_rl import CQL
 from rl.quantum_optimization import TacticalQUBOOptimizer
+from rl.strategic_math import StrategicMathAdvisor, StrategicMathDiagnostics
 
 
 def _model_candidates(filename: str, experiment: str) -> tuple[Path, ...]:
@@ -60,6 +61,8 @@ class RuntimeBattlePolicy:
         qubo_optimizer: TacticalQUBOOptimizer | None = None,
         action_optimizer: TacticalActionOptimizer | None = None,
         optimization_backend: str = "auto",
+        enable_strategic_math: bool = False,
+        strategic_math: StrategicMathAdvisor | None = None,
     ) -> None:
         if qubo_optimizer is not None and action_optimizer is not None:
             raise ValueError("provide either qubo_optimizer or action_optimizer, not both")
@@ -75,6 +78,10 @@ class RuntimeBattlePolicy:
         self.enable_lattice_fields = bool(enable_lattice_fields)
         self.lattice_fields = lattice_fields or UniversalLatticeFieldController()
         self.enable_qubo_optimizer = bool(enable_qubo_optimizer)
+        self.enable_strategic_math = bool(enable_strategic_math)
+        self.strategic_math = strategic_math or StrategicMathAdvisor()
+        self.strategic_math_error: Exception | None = None
+        self.last_strategic_math: StrategicMathDiagnostics | None = None
         self.optimization_backend = str(optimization_backend)
         optimizer = action_optimizer or qubo_optimizer
         if optimizer is None:
@@ -230,7 +237,9 @@ class RuntimeBattlePolicy:
             self._movement_costs.clear()
             self.planner.reset()
             self.lattice_fields.reset()
+            self.strategic_math.reset()
             self.last_field_diagnostics = None
+            self.last_strategic_math = None
         ready_ids = {int(action["unit"]) for action in actions}
         ready_units = [
             unit for unit in units
@@ -359,6 +368,51 @@ class RuntimeBattlePolicy:
                 self.quantum_error = error
         if quantum_priors:
             self.backend = f"{self.backend}+quantum"
+        math_priors: dict[int, float] = {}
+        if self.enable_strategic_math:
+            try:
+                context_provider = getattr(env, "strategic_math_context", None)
+                context = context_provider(actions) if callable(context_provider) else {}
+                if context is None:
+                    context = {}
+                if not isinstance(context, Mapping):
+                    raise ValueError("strategic_math_context must return a mapping")
+                passable = set(context.get("passable_cells", ()))
+                if not passable and movement_costs:
+                    passable = {
+                        (index % width, index // width)
+                        for costs in movement_costs.values()
+                        for index, cost in enumerate(costs)
+                        if int(cost) < 255
+                    }
+                supply_sites = context.get("supply_sites", ())
+                if not supply_sites:
+                    try:
+                        supply_sites = [
+                            (int(site["x"]), int(site["y"]))
+                            for site in env.supply_info().get("sites", ())
+                        ]
+                    except (AttributeError, KeyError, RuntimeError, TypeError, ValueError):
+                        supply_sites = ()
+                diagnostics = self.strategic_math.action_priors(
+                    actions,
+                    units,
+                    width,
+                    height,
+                    passable_cells=passable or None,
+                    visible_cells=context.get("visible_cells", ()),
+                    supply_sites=supply_sites,
+                    formation_targets=context.get("formation_targets"),
+                    opponent_payoffs=context.get("opponent_payoffs"),
+                )
+                math_priors = dict(diagnostics.priors)
+                self.last_strategic_math = diagnostics
+                self.strategic_math_error = None
+                if math_priors:
+                    self.backend = f"{self.backend}+math"
+            except (ArithmeticError, KeyError, RuntimeError, TypeError, ValueError) as error:
+                self.strategic_math_error = error
+                self.last_strategic_math = None
         try:
             choice = self.planner.choose(
                 actions,
@@ -370,6 +424,7 @@ class RuntimeBattlePolicy:
                 action_priors=priors,
                 mfg_priors=mfg_priors,
                 quantum_priors=quantum_priors,
+                math_priors=math_priors,
             )
             self.last_plan_reason = choice.reason
             if self.planner.last_optimizer_backend != "disabled":

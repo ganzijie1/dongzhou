@@ -73,6 +73,7 @@ class PlannerConfig:
     prior_weight: float = 8.0
     mfg_prior_weight: float = 8.0
     quantum_prior_weight: float = 8.0
+    math_prior_weight: float = 6.0
     wait_penalty: float = 4.0
     corridor_violation_penalty: float = 1000.0
     max_candidates_per_unit: int = 12
@@ -420,6 +421,7 @@ class JointTurnPlanner:
         prior: float,
         mfg_prior: float,
         quantum_prior: float,
+        math_prior: float,
         reservations: TurnReservationTable,
         wait_age: int,
     ) -> tuple[float, str]:
@@ -436,12 +438,20 @@ class JointTurnPlanner:
             self.config.prior_weight * float(prior)
             + self.config.mfg_prior_weight * float(mfg_prior)
             + self.config.quantum_prior_weight * float(quantum_prior)
+            + self.config.math_prior_weight * float(math_prior)
             + self.config.wait_age_bonus * min(wait_age, self.config.max_wait_age)
         )
         has_mfg = abs(mfg_prior) > 1e-12
         has_quantum = abs(quantum_prior) > 1e-12
-        if has_mfg and has_quantum:
+        has_math = abs(math_prior) > 1e-12
+        if has_mfg and has_quantum and has_math:
+            reason = "mfg+quantum+math-prior"
+        elif has_mfg and has_quantum:
             reason = "mfg+quantum-prior"
+        elif has_math and (has_mfg or has_quantum):
+            reason = "field+math-prior"
+        elif has_math:
+            reason = "math-prior"
         elif has_quantum:
             reason = "quantum-prior"
         elif has_mfg:
@@ -537,6 +547,7 @@ class JointTurnPlanner:
         action_priors: Mapping[int, float] | None = None,
         mfg_priors: Mapping[int, float] | None = None,
         quantum_priors: Mapping[int, float] | None = None,
+        math_priors: Mapping[int, float] | None = None,
     ) -> TurnPlan:
         if not actions:
             raise ValueError("joint-turn planner received no legal actions")
@@ -589,6 +600,7 @@ class JointTurnPlanner:
                 float((action_priors or {}).get(int(action["index"]), 0.0)),
                 float((mfg_priors or {}).get(int(action["index"]), 0.0)),
                 float((quantum_priors or {}).get(int(action["index"]), 0.0)),
+                float((math_priors or {}).get(int(action["index"]), 0.0)),
                 self.memory.reservations,
                 self.memory.wait_age.get(unit_id, 0),
             )
