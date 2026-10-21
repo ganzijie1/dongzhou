@@ -269,6 +269,46 @@ def test_strategic_advisor_rewards_information_gain_for_hidden_enemy() -> None:
     assert result.priors[0] > result.priors[1]
 
 
+def test_strategic_advisor_uses_reachability_and_barrier_context() -> None:
+    advisor = StrategicMathAdvisor(
+        StrategicMathConfig(
+            risk_weight=0.0,
+            pareto_bonus=0.0,
+            supply_weight=0.0,
+            transport_weight=0.0,
+            spectral_weight=0.0,
+            robust_weight=0.0,
+            game_strategy_weight=0.0,
+            information_weight=0.0,
+            survival_weight=0.0,
+            chance_violation_weight=0.0,
+            reachability_weight=1.0,
+            barrier_weight=1.0,
+            barrier_alpha=0.2,
+        )
+    )
+    units = [
+        {"id": 1, "force": 1, "x": 0, "y": 0, "hp": 100, "dead": False},
+    ]
+    actions = [
+        {"index": 0, "unit": 1, "type": 1, "x": 1, "y": 0},
+        {"index": 1, "unit": 1, "type": 1, "x": 2, "y": 0},
+    ]
+    result = advisor.action_priors(
+        actions,
+        units,
+        3,
+        1,
+        passable_cells={(0, 0), (1, 0), (2, 0)},
+        reachability_values={(1, 0): 1.0, (2, 0): 0.0},
+        barrier_values={(0, 0): 1.0, (1, 0): 1.0, (2, 0): -1.0},
+    )
+    assert result.components[0]["reachability"] == 1.0
+    assert result.components[0]["barrier_violation"] == 0.0
+    assert result.components[1]["barrier_violation"] > 0.0
+    assert result.priors[0] > result.priors[1]
+
+
 def main() -> None:
     test_bayesian_prediction_and_negative_observation()
     test_cvar_entropic_risk_and_loss_convolution()
@@ -280,6 +320,7 @@ def main() -> None:
     test_strategic_advisor_penalizes_tail_risk_and_uses_all_layers()
     test_runtime_strategic_math_opt_in_preserves_legal_actions()
     test_strategic_advisor_rewards_information_gain_for_hidden_enemy()
+    test_strategic_advisor_uses_reachability_and_barrier_context()
     print("strategic mathematics ok: beliefs, risk, flow, Pareto, OT, spectra, game")
 
 

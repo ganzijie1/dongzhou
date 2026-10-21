@@ -55,6 +55,9 @@ class StrategicMathConfig:
     information_weight: float = 0.4
     survival_weight: float = 0.75
     chance_violation_weight: float = 2.0
+    reachability_weight: float = 0.5
+    barrier_weight: float = 1.0
+    barrier_alpha: float = 0.2
     max_fatal_probability: float = 0.25
     scouting_radius: int = 2
     max_risk_events: int = 12
@@ -77,6 +80,8 @@ class StrategicMathConfig:
             self.information_weight,
             self.survival_weight,
             self.chance_violation_weight,
+            self.reachability_weight,
+            self.barrier_weight,
         )
         if any(not isfinite(value) or value < 0.0 for value in weights):
             raise ValueError("strategic math weights must be finite and non-negative")
@@ -84,6 +89,8 @@ class StrategicMathConfig:
             raise ValueError("max_risk_events must be positive")
         if not 0.0 <= self.max_fatal_probability <= 1.0:
             raise ValueError("max_fatal_probability must be in [0, 1]")
+        if not 0.0 < self.barrier_alpha <= 1.0:
+            raise ValueError("barrier_alpha must be in (0, 1]")
         if self.scouting_radius < 0:
             raise ValueError("scouting_radius must be non-negative")
 
@@ -276,6 +283,8 @@ class StrategicMathAdvisor:
         supply_sites: Iterable[Cell] = (),
         formation_targets: Sequence[Cell] | Mapping[int, Cell] | None = None,
         opponent_payoffs: Mapping[int, Sequence[float]] | None = None,
+        reachability_values: Mapping[Cell, float] | None = None,
+        barrier_values: Mapping[Cell, float] | None = None,
     ) -> StrategicMathDiagnostics:
         if not actions:
             raise ValueError("strategic math needs legal actions")
@@ -385,6 +394,19 @@ class StrategicMathAdvisor:
             target = targets.get(int(action["unit"]))
             if target is not None:
                 transport = -float(LatticeCoordinate.manhattan(destination, target))
+            reachability = float((reachability_values or {}).get(destination, 0.0))
+            current_position = _position(by_id[int(action["unit"])])
+            current_barrier = float((barrier_values or {}).get(current_position, 0.0))
+            destination_barrier = float(
+                (barrier_values or {}).get(destination, current_barrier)
+            )
+            if not all(
+                map(isfinite, (reachability, current_barrier, destination_barrier))
+            ):
+                raise ValueError("reachability and barrier values must be finite")
+            barrier_margin = destination_barrier - (
+                1.0 - self.config.barrier_alpha
+            ) * current_barrier
             components[action_index] = {
                 "cvar": risk,
                 "supply_flow": supply,
@@ -397,6 +419,9 @@ class StrategicMathAdvisor:
                 "chance_violation": max(
                     0.0, fatal_probability - self.config.max_fatal_probability
                 ),
+                "reachability": reachability,
+                "barrier_margin": barrier_margin,
+                "barrier_violation": max(0.0, -barrier_margin),
             }
 
         pareto_actions: set[int] = set()
@@ -445,6 +470,8 @@ class StrategicMathAdvisor:
                 + self.config.information_weight * part["information_gain"]
                 + self.config.survival_weight * part["survival_probability"]
                 - self.config.chance_violation_weight * part["chance_violation"]
+                + self.config.reachability_weight * part["reachability"]
+                - self.config.barrier_weight * part["barrier_violation"]
             )
         priors = self._center_by_unit(raw, actions)
         return StrategicMathDiagnostics(

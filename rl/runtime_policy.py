@@ -404,6 +404,8 @@ class RuntimeBattlePolicy:
                     supply_sites=supply_sites,
                     formation_targets=context.get("formation_targets"),
                     opponent_payoffs=context.get("opponent_payoffs"),
+                    reachability_values=context.get("reachability_values"),
+                    barrier_values=context.get("barrier_values"),
                 )
                 math_priors = dict(diagnostics.priors)
                 self.last_strategic_math = diagnostics

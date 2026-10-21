@@ -1,4 +1,4 @@
-# 战术数学层：信念、风险、补给流、多目标、最优传输、谱图与鲁棒博弈
+# 战术数学层：从可信决策到拓扑、博弈与敏感度分析
 
 本实现为原生合法动作增加一个可选的数学先验层。它不修改地图规则、伤害结算、占位和行动点，也不创建新动作。最终动作仍由 `JointTurnPlanner`、CP-SAT/MILP/QUBO 与 MAPF 合法性检查决定。
 
@@ -13,6 +13,11 @@
 | `rl/uncertainty_math.py` | 粒子滤波、信息增益、机会约束、分类与回归共形预测 |
 | `rl/control_math.py` | 离散 MPC、Dirichlet 对手模型、Kaplan-Meier 生存分析、最大权匹配 |
 | `rl/causal_math.py` | 双重稳健平均处理效应，用于回放和消融评估 |
+| `rl/safety_robust_math.py` | HJ 鲁棒可达性、控制屏障函数、Wasserstein DRO、网络阻断 |
+| `rl/online_selection_math.py` | 次模选择、CUSUM 变点、UCB1、STL 时序逻辑 |
+| `rl/advanced_game_math.py` | Stackelberg 承诺博弈、有限扩展式博弈 CFR |
+| `rl/topology_flow_math.py` | 排队网络、Hodge 分解、持久同调、离散共形映射 |
+| `rl/sensitivity_math.py` | 精确 Shapley、Sobol 全局敏感度、GEV 极值理论 |
 
 所有排序和冲突处理都是确定性的，适合固定种子回放。无效概率、负容量、不平衡运输质量、非有限收益和求解失败会显式报错。
 
@@ -123,6 +128,8 @@ def strategic_math_context(actions):
         "supply_sites": {(x, y), ...},
         "formation_targets": [(x, y), ...],
         "opponent_payoffs": {action_index: [payoff_1, payoff_2, ...]},
+        "reachability_values": {(x, y): robust_reachability, ...},
+        "barrier_values": {(x, y): safety_margin, ...},
     }
 ```
 
@@ -170,8 +177,34 @@ python -m pytest rl/joint_turn_planner_test.py rl/runtime_policy_test.py -q
 
 P1/P2 中需要历史样本的模块不会自动伪造训练数据。对手后验必须来自真实敌方动作，生存曲线必须包含阵亡/删失记录，共形阈值必须来自独立校准集，因果估计必须提供真实处理、结果和倾向概率。
 
+## 15. P3：安全、鲁棒、选择与在线适应
+
+- Hamilton-Jacobi 可达性：`hamilton_jacobi_reachability()` 对有限状态的控制-扰动博弈做后向递推。某状态只有在存在一个控制，使所有允许扰动后的状态都进入上一层胜集时才算鲁棒可达。
+- 控制屏障函数：`control_barrier_filter()` 使用离散条件 $h(x^+)\ge(1-\alpha)h(x)$ 标出安全动作和屏障裕量。在线顾问可读取 `barrier_values`，按违规量惩罚候选动作。
+- Wasserstein 分布鲁棒优化：`wasserstein_worst_case_expectation()` 在有限 1-Wasserstein 球内求最坏期望损失，同时返回对抗分布与运输计划，便于审计保守性来自哪里。
+- 双层网络阻断：`solve_network_interdiction()` 枚举小规模候选边，外层选择阻断，内层重新求最大流；候选边超过配置上限会拒绝精确求解，避免指数复杂度误入热路径。
+- 次模优化：`greedy_submodular_maximize()` 为侦察点、技能覆盖和传感器布置提供单调次模目标下的贪心选择，并返回每步边际收益。
+- 在线变化与学习：`CUSUMChangeDetector` 检测敌方策略均值变化；`UCB1Bandit` 在多个策略臂间做确定性探索-利用。它们只消费实际观测和奖励，不生成虚构样本。
+- 时序逻辑：`stl_always()`、`stl_eventually()`、`stl_until()` 和 `TemporalRequirement` 输出定量鲁棒度，用于“全程守住”“时限内到达”“坚持到援军抵达”等约束。
+
+`reachability_values` 与 `barrier_values` 是环境可选上下文。缺失时两项贡献为零，不改变既有决策。数学层仍只调整合法动作的先验，不绕过原生规则。
+
+## 16. P4：博弈、流形拓扑、归因与尾部风险
+
+- Stackelberg 博弈：`solve_stackelberg_game()` 枚举跟随者最优响应并解线性规划，返回乐观破同分假设下的领导者承诺策略。
+- 反事实遗憾最小化：`CounterfactualRegretMinimizer` 在有限双人零和扩展式博弈上累计信息集遗憾与平均策略，可表达同时行动、隐藏信息和序贯诱导。
+- 排队论：`mm1_queue()` 给出单瓶颈利用率、排队长度和等待时间；`jackson_network()` 解开放 Jackson 网络流量方程。到达率不小于服务率时明确报告不稳定。
+- Hodge 分解：`hodge_decomposition()` 将有向边流分为梯度、面旋度与调和分量，用于区分目标驱动推进、局部绕圈和全局环流。
+- 持久同调：`persistent_homology()` 对顶点、边、三角形过滤复形计算 $H_0/H_1$ 区间，识别跨尺度稳定的连通分量与包围洞结构。
+- 共形几何：`discrete_conformal_map()` 用余切权重调和参数化网格，并报告每个三角形的奇异值畸变；`corridor_modulus()` 量化长宽比。它适合地图参数化和形状比较，不替代碰撞或寻路。
+- Shapley 归因：`exact_shapley_values()` 对小规模协作因素做精确子集枚举，满足效率性，解释伤害、地形、补给等因素的边际贡献。默认限制参与者数量以控制 $2^n$ 复杂度。
+- Sobol 敏感度：`sobol_sensitivity()` 使用独立 Saltelli/Jansen 采样估计一阶与总效应。有限样本估计不强制裁剪到 $[0,1]$，因此采样误差和模型不稳定不会被隐藏。
+- 极值理论：`fit_block_maxima()` 拟合 GEV 区块极大值并提供重现水平，只接受有限、非恒定的真实极值样本；它不外推论文或回放中不存在的结论。
+
+P4 方法默认是离线设计、回放解释或低频求解工具。CFR、精确 Shapley、持久同调、Sobol 和 GEV 不进入逐动作热路径。
+
 新增验证：
 
 ```powershell
-python -m pytest rl/priority_mathematics_test.py rl/strategic_mathematics_test.py -q
+python -m pytest rl/priority_mathematics_test.py rl/strategic_mathematics_test.py rl/p3_p4_mathematics_test.py -q
 ```
