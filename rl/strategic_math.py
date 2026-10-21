@@ -26,6 +26,7 @@ from rl.decision_math import (
 from rl.lattice_geometry import Cell, LatticeCoordinate
 from rl.strategic_flow import CapacityNetwork
 from rl.tactical_policy import attack_offsets
+from rl.uncertainty_math import binary_entropy
 
 
 Action = Mapping[str, Any]
@@ -51,6 +52,11 @@ class StrategicMathConfig:
     spectral_weight: float = 0.25
     robust_weight: float = 0.5
     game_strategy_weight: float = 1.0
+    information_weight: float = 0.4
+    survival_weight: float = 0.75
+    chance_violation_weight: float = 2.0
+    max_fatal_probability: float = 0.25
+    scouting_radius: int = 2
     max_risk_events: int = 12
     max_flow_cells: int = 256
     max_spectral_cells: int = 256
@@ -68,11 +74,18 @@ class StrategicMathConfig:
             self.spectral_weight,
             self.robust_weight,
             self.game_strategy_weight,
+            self.information_weight,
+            self.survival_weight,
+            self.chance_violation_weight,
         )
         if any(not isfinite(value) or value < 0.0 for value in weights):
             raise ValueError("strategic math weights must be finite and non-negative")
         if self.max_risk_events <= 0:
             raise ValueError("max_risk_events must be positive")
+        if not 0.0 <= self.max_fatal_probability <= 1.0:
+            raise ValueError("max_fatal_probability must be in [0, 1]")
+        if self.scouting_radius < 0:
+            raise ValueError("scouting_radius must be non-negative")
 
 
 @dataclass(frozen=True)
@@ -189,6 +202,20 @@ class StrategicMathAdvisor:
             residual = sum(chance * loss for chance, loss in events[self.config.max_risk_events :])
             events = retained + ([(1.0, residual)] if residual > 0.0 else [])
         return bernoulli_loss_distribution(events)
+
+    def _scouting_information(self, destination: Cell) -> float:
+        """Information gained by a perfect presence/absence check near a cell."""
+
+        information = 0.0
+        for belief in self.beliefs.beliefs.values():
+            detection_probability = sum(
+                mass
+                for cell, mass in belief.probabilities.items()
+                if LatticeCoordinate.manhattan(destination, cell)
+                <= self.config.scouting_radius
+            )
+            information += binary_entropy(min(1.0, max(0.0, detection_probability)))
+        return information
 
     @staticmethod
     def _transport_targets(
@@ -328,6 +355,14 @@ class StrategicMathAdvisor:
             risk = conditional_value_at_risk(
                 losses, self.config.cvar_alpha, probabilities
             )
+            hit_points = max(1.0, float(by_id[int(action["unit"])].get("hp", 1.0)))
+            fatal_probability = sum(
+                probability
+                for loss, probability in zip(losses, probabilities)
+                if loss >= hit_points
+            )
+            survival_probability = 1.0 - fatal_probability
+            information_gain = self._scouting_information(destination)
             damage = float(action.get("expected_damage", action.get("damage", 0.0)))
             enemy_distance = min(
                 (
@@ -356,6 +391,12 @@ class StrategicMathAdvisor:
                 "transport": transport,
                 "spectral_separator": spectral_scores.get(destination, 0.0),
                 "robust_worst_case": robust,
+                "information_gain": information_gain,
+                "fatal_probability": fatal_probability,
+                "survival_probability": survival_probability,
+                "chance_violation": max(
+                    0.0, fatal_probability - self.config.max_fatal_probability
+                ),
             }
 
         pareto_actions: set[int] = set()
@@ -401,6 +442,9 @@ class StrategicMathAdvisor:
                 + self.config.spectral_weight * part["spectral_separator"]
                 + self.config.robust_weight * part["robust_worst_case"]
                 + self.config.game_strategy_weight * mixed
+                + self.config.information_weight * part["information_gain"]
+                + self.config.survival_weight * part["survival_probability"]
+                - self.config.chance_violation_weight * part["chance_violation"]
             )
         priors = self._center_by_unit(raw, actions)
         return StrategicMathDiagnostics(

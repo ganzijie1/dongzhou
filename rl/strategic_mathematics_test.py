@@ -22,7 +22,7 @@ from rl.decision_math import (
     solve_zero_sum_game,
 )
 from rl.strategic_flow import CapacityNetwork, Commodity, solve_multi_commodity_flow
-from rl.strategic_math import StrategicMathAdvisor
+from rl.strategic_math import StrategicMathAdvisor, StrategicMathConfig
 from rl.runtime_policy import RuntimeBattlePolicy
 
 
@@ -157,6 +157,10 @@ def test_strategic_advisor_penalizes_tail_risk_and_uses_all_layers() -> None:
         opponent_payoffs={0: (0.0, -1.0), 1: (-100.0, -50.0)},
     )
     assert result.components[1]["cvar"] > result.components[0]["cvar"]
+    assert result.components[1]["fatal_probability"] == 1.0
+    assert result.components[1]["chance_violation"] > 0.0
+    assert result.components[0]["survival_probability"] == 1.0
+    assert "information_gain" in result.components[0]
     assert result.priors[0] > result.priors[1]
     assert result.transport_targets == {1: (0, 0)}
     assert result.algebraic_connectivity is not None
@@ -215,6 +219,56 @@ def test_runtime_strategic_math_opt_in_preserves_legal_actions() -> None:
     assert policy.strategic_math_error is None
 
 
+def test_strategic_advisor_rewards_information_gain_for_hidden_enemy() -> None:
+    advisor = StrategicMathAdvisor(
+        StrategicMathConfig(
+            risk_weight=0.0,
+            pareto_bonus=0.0,
+            supply_weight=0.0,
+            transport_weight=0.0,
+            spectral_weight=0.0,
+            robust_weight=0.0,
+            game_strategy_weight=0.0,
+            information_weight=1.0,
+            survival_weight=0.0,
+            chance_violation_weight=0.0,
+            scouting_radius=0,
+        )
+    )
+    advisor.beliefs.beliefs[2] = DiscreteBelief({(1, 0): 0.5, (3, 0): 0.5})
+    advisor.enemy_profiles[2] = {"id": 2, "atk": 0, "attack_offsets": ()}
+    advisor.previous_force = 1
+    advisor.previous_ready = frozenset({1})
+    units = [
+        {"id": 1, "force": 1, "x": 0, "y": 0, "hp": 100, "dead": False},
+        {
+            "id": 2,
+            "force": 4,
+            "x": 1,
+            "y": 0,
+            "hp": 100,
+            "dead": False,
+            "hidden": True,
+            "visible": False,
+            "attack_offsets": (),
+        },
+    ]
+    actions = [
+        {"index": 0, "unit": 1, "type": 1, "x": 1, "y": 0},
+        {"index": 1, "unit": 1, "type": 1, "x": 2, "y": 0},
+    ]
+    result = advisor.action_priors(
+        actions,
+        units,
+        4,
+        1,
+        passable_cells={(0, 0), (1, 0), (2, 0), (3, 0)},
+    )
+    assert isclose(result.components[0]["information_gain"], 1.0)
+    assert isclose(result.components[1]["information_gain"], 0.0)
+    assert result.priors[0] > result.priors[1]
+
+
 def main() -> None:
     test_bayesian_prediction_and_negative_observation()
     test_cvar_entropic_risk_and_loss_convolution()
@@ -225,6 +279,7 @@ def main() -> None:
     test_zero_sum_game_finds_mixed_equilibrium()
     test_strategic_advisor_penalizes_tail_risk_and_uses_all_layers()
     test_runtime_strategic_math_opt_in_preserves_legal_actions()
+    test_strategic_advisor_rewards_information_gain_for_hidden_enemy()
     print("strategic mathematics ok: beliefs, risk, flow, Pareto, OT, spectra, game")
 
 

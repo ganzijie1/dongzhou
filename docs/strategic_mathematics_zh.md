@@ -10,6 +10,9 @@
 | `rl/strategic_flow.py` | 最大流、最小割、多源流、共享容量多商品流 |
 | `rl/decision_math.py` | Pareto 前沿、epsilon 字典序、最优传输、谱图、零和博弈 |
 | `rl/strategic_math.py` | 状态化顾问，将全部数学结果转换为动作先验 |
+| `rl/uncertainty_math.py` | 粒子滤波、信息增益、机会约束、分类与回归共形预测 |
+| `rl/control_math.py` | 离散 MPC、Dirichlet 对手模型、Kaplan-Meier 生存分析、最大权匹配 |
+| `rl/causal_math.py` | 双重稳健平均处理效应，用于回放和消融评估 |
 
 所有排序和冲突处理都是确定性的，适合固定种子回放。无效概率、负容量、不平衡运输质量、非有限收益和求解失败会显式报错。
 
@@ -141,3 +144,34 @@ python -m pytest rl/joint_turn_planner_test.py rl/runtime_policy_test.py -q
 ```
 
 测试覆盖概率归一化与负观测、CVaR 尾部、多商品共享容量、Pareto 支配、运输边际、谱分割与有效电阻、零和混合均衡、顾问风险降权，以及运行时只选择原生合法动作。
+
+## 12. P0：敌情、风险、侦察与瓶颈
+
+- POMDP 信念：`BayesianGridTracker` 提供精确有限网格滤波；`ParticleBeliefTracker` 用于状态空间过大时的采样近似。
+- CMDP 风险：`evaluate_chance_constraint()` 同时返回超限概率、CVaR 和可行性。在线顾问以 `fatal_probability`、`chance_violation` 约束高伤亡动作。
+- 信息论侦察：`expected_information_gain()` 计算互信息；在线顾问根据隐藏敌军信念计算目的格的完美探测信息量。
+- 战场瓶颈：`CapacityNetwork.max_flow()` 返回最大流及最小割边，供粮道、关隘和撤退路线分析。
+
+## 13. P1：多回合控制与任务分配
+
+- 最优传输：`optimal_transport()` 生成编队到目标阵位的最小总代价搬运方案。
+- MPC：`DiscreteMPC.solve()` 在有限时域内计算动作序列，只执行 `first_action`，下一回合用新状态重新求解。
+- 对手建模：`DirichletOpponentModel` 按上下文累计敌方行动，输出带先验平滑的后验预测，而不是把少量样本当成确定规律。
+- 生存分析：`KaplanMeierEstimator` 从阵亡和删失回放估计生存率及离散危险率。
+- 匹配：`maximum_weight_matching()` 为单位、攻击目标、治疗对象和阵位求最大权一对一分配；在线战术槽继续复用 `UnitSlotAllocator`。
+
+## 14. P2：全局优化、群体、可信度与因果
+
+- MILP/CP-SAT：`TacticalOptimizationPortfolio` 在共享动作约束模型上选择 CP-SAT、SciPy MILP 或验证过的 QUBO 回退。
+- 谱图论：`SpectralGraph` 输出代数连通度、Fiedler 分割、有效电阻和电阻中心性。
+- 均值场博弈：`LatticeMFG` 与 `MultiPopulationLatticeMFG` 用后向 Bellman、前向 Kolmogorov 固定点处理大规模拥堵和多兵种相互作用。
+- 共形预测：`SplitConformalClassifier` 输出类别集合，`SplitConformalRegressor` 输出对称区间；二者必须使用独立校准集，不把模型置信度冒充覆盖保证。
+- 因果推断：`doubly_robust_ate()` 联合倾向概率与结果模型，评估某个策略模块在回放中的平均因果效应及置信区间。
+
+P1/P2 中需要历史样本的模块不会自动伪造训练数据。对手后验必须来自真实敌方动作，生存曲线必须包含阵亡/删失记录，共形阈值必须来自独立校准集，因果估计必须提供真实处理、结果和倾向概率。
+
+新增验证：
+
+```powershell
+python -m pytest rl/priority_mathematics_test.py rl/strategic_mathematics_test.py -q
+```
