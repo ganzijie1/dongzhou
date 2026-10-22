@@ -118,23 +118,13 @@ img {
   color: rgba(255, 255, 255, 0.78);
 }
 
-.site-nav a,
-.header-link {
+.site-nav a {
   transition: color 160ms ease;
 }
 
 .site-nav a:hover,
-.site-nav a:focus-visible,
-.header-link:hover,
-.header-link:focus-visible {
+.site-nav a:focus-visible {
   color: var(--copper-bright);
-}
-
-.header-link {
-  justify-self: end;
-  padding-bottom: 3px;
-  font-size: 14px;
-  border-bottom: 1px solid currentColor;
 }
 
 .hero {
@@ -782,10 +772,6 @@ img {
   .brand-mark {
     width: 30px;
     height: 30px;
-  }
-
-  .header-link {
-    font-size: 12px;
   }
 
   .hero {
