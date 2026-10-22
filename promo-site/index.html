@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="《东周列国志》历史回合制战棋游戏宣传页。跨越春秋战国，在城池、山川、营寨与朝堂之间运筹决胜。">
+    <meta name="theme-color" content="#171b18">
+    <title>东周列国志｜历史回合制战棋</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到主要内容</a>
+
+    <header class="site-header" data-header>
+      <a class="brand" href="#top" aria-label="返回东周列国志首页">
+        <span class="brand-mark" aria-hidden="true">周</span>
+        <span>东周列国志</span>
+      </a>
+      <nav class="site-nav" aria-label="页面导航">
+        <a href="#chronicle">列国长卷</a>
+        <a href="#battlefields">山河战场</a>
+        <a href="#systems">运筹之道</a>
+        <a href="#open-source">开源计划</a>
+      </nav>
+      <a class="header-link" href="https://github.com/ganzijie1/dongzhou" target="_blank" rel="noreferrer">查看源码</a>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="top" aria-labelledby="hero-title">
+        <img class="hero-image" src="assets/hero-song-capital.webp" alt="宋都城门与城外军营组成的东周战场">
+        <div class="hero-shade" aria-hidden="true"></div>
+        <div class="hero-content">
+          <p class="eyebrow">春秋战国 · 历史回合制战棋</p>
+          <h1 id="hero-title">东周列国志</h1>
+          <p class="hero-lead">从王室东迁到六国归秦。踏入一百余章乱世长卷，在真实人物、历史转折与多地形战场之间，决定每一次进军、坚守与取舍。</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#battlefields">进入山河战场</a>
+            <a class="button button-quiet" href="#chronicle">展开列国长卷</a>
+          </div>
+        </div>
+        <div class="hero-roster" aria-label="游戏角色阵容">
+          <img src="assets/portrait-lord.png" alt="诸侯角色头像">
+          <img src="assets/portrait-general.png" alt="将军角色头像">
+          <img src="assets/portrait-strategist.png" alt="谋士角色头像">
+        </div>
+        <a class="scroll-cue" href="#facts">向下浏览<span aria-hidden="true"></span></a>
+      </section>
+
+      <section class="facts" id="facts" aria-label="项目数据">
+        <div class="fact">
+          <strong>172</strong>
+          <span>关卡脚本</span>
+        </div>
+        <div class="fact">
+          <strong>180</strong>
+          <span>地图素材</span>
+        </div>
+        <div class="fact">
+          <strong>14</strong>
+          <span>战斗单位体系</span>
+        </div>
+        <div class="fact">
+          <strong>1–108</strong>
+          <span>历史章节跨度</span>
+        </div>
+      </section>
+
+      <section class="chronicle section" id="chronicle">
+        <div class="section-heading" data-reveal>
+          <p class="eyebrow">一卷山河，百年兵锋</p>
+          <h2>不是背景板，而是一部可以走入的列国史</h2>
+          <p>历史事件、人物命运与战术关卡连续展开。你面对的不只是下一支敌军，也是在礼崩乐坏的时代里不断变化的盟约、粮道和人心。</p>
+        </div>
+
+        <div class="era-track" data-reveal>
+          <article>
+            <span class="era-index">01</span>
+            <p class="era-date">王室东迁</p>
+            <h3>秩序裂开第一道缝隙</h3>
+            <p>旧礼仍在，诸侯已各怀锋芒。守城、勤王与初次会盟构成故事的起点。</p>
+          </article>
+          <article>
+            <span class="era-index">02</span>
+            <p class="era-date">春秋争霸</p>
+            <h3>盟书与兵车同时抵达</h3>
+            <p>山谷伏击、河岸对峙、诸侯联军。战场目标随历史局势改变，而非只有歼灭。</p>
+          </article>
+          <article>
+            <span class="era-index">03</span>
+            <p class="era-date">战国纵横</p>
+            <h3>变法、合纵与连横</h3>
+            <p>更大的地图、更密集的势力关系，以及必须跨回合权衡的兵力和补给。</p>
+          </article>
+          <article>
+            <span class="era-index">04</span>
+            <p class="era-date">六国归秦</p>
+            <h3>旧时代的最后一役</h3>
+            <p>名将与谋臣走向各自结局，列国长卷在统一战争中收束。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="battlefields section" id="battlefields">
+        <div class="battlefield-copy" data-reveal>
+          <p class="eyebrow">山河即规则</p>
+          <h2>每张地图，都先讲地势，再讲胜负</h2>
+          <p>城门决定突破口，河流切断阵线，山脊遮蔽行军，营寨重塑攻守。真实地图素材直接来自游戏工程。</p>
+          <div class="battle-tabs" role="tablist" aria-label="选择战场">
+            <button class="battle-tab is-active" type="button" role="tab" aria-selected="true" data-scene="city">宋都攻防</button>
+            <button class="battle-tab" type="button" role="tab" aria-selected="false" data-scene="camp">山地营寨</button>
+            <button class="battle-tab" type="button" role="tab" aria-selected="false" data-scene="river">河谷对阵</button>
+            <button class="battle-tab" type="button" role="tab" aria-selected="false" data-scene="plain">旷野决战</button>
+          </div>
+        </div>
+
+        <figure class="battle-stage" data-reveal>
+          <img data-battle-image src="assets/battle-city.webp" alt="宋都城门与军营战场">
+          <figcaption>
+            <span data-battle-kicker>城池 · 营帐 · 正面突破</span>
+            <strong data-battle-title>宋都攻防</strong>
+            <p data-battle-description>城门压缩正面，营区提供整备空间；进攻路线清晰，但每一步都暴露在守军视野中。</p>
+          </figcaption>
+        </figure>
+      </section>
+
+      <section class="systems section" id="systems">
+        <div class="systems-intro" data-reveal>
+          <p class="eyebrow">运筹之道</p>
+          <h2>局面不是一道算术题</h2>
+          <p>合法行动、地形代价、目标优先级、敌情不确定性与长期风险共同进入决策。复杂计算藏在幕后，玩家看到的是清晰、可复盘的战术选择。</p>
+        </div>
+
+        <div class="system-list">
+          <article data-reveal>
+            <span>壹</span>
+            <div>
+              <h3>多目标战术</h3>
+              <p>护送、坚守、突围、占点与歼敌可以同时存在。主将生存和历史条件不会被简单伤害数字淹没。</p>
+            </div>
+          </article>
+          <article data-reveal>
+            <span>贰</span>
+            <div>
+              <h3>协同行动</h3>
+              <p>步兵、骑兵、战车、弓手与谋士共享有限空间；编队、路径和目标分配需要彼此让路。</p>
+            </div>
+          </article>
+          <article data-reveal>
+            <span>叁</span>
+            <div>
+              <h3>可信敌情</h3>
+              <p>侦察得到的是证据，不是全知视角。风险、后验与反事实分析保留不确定性，也保留误判的代价。</p>
+            </div>
+          </article>
+          <article data-reveal>
+            <span>肆</span>
+            <div>
+              <h3>规则守门</h3>
+              <p>所有策略最终回到原生行动、占位、碰撞和胜负条件。数学层提供建议，但不能创造非法动作。</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="arms" aria-labelledby="arms-title">
+        <div class="arms-copy" data-reveal>
+          <p class="eyebrow">列阵</p>
+          <h2 id="arms-title">兵种不同，职责也不同</h2>
+        </div>
+        <div class="unit-line" data-reveal>
+          <div><img src="assets/unit-lord.png" alt="主将单位"><span>主将</span></div>
+          <div><img src="assets/unit-chariot.png" alt="战车单位"><span>战车</span></div>
+          <div><img src="assets/unit-cavalry.png" alt="骑兵单位"><span>骑兵</span></div>
+          <div><img src="assets/unit-archer.png" alt="弓手单位"><span>弓手</span></div>
+          <div><img src="assets/unit-strategist.png" alt="谋士单位"><span>谋士</span></div>
+        </div>
+      </section>
+
+      <section class="open-source section" id="open-source">
+        <img src="assets/battle-camp.webp" alt="山林、岩地与营寨交错的战场">
+        <div class="open-source-content" data-reveal>
+          <p class="eyebrow">持续生长的开源战场</p>
+          <h2>历史剧本、原生规则与智能决策，共用同一套可验证工程</h2>
+          <p>项目公开关卡脚本、战场资源、训练环境与数学决策模块。你可以阅读实现、运行测试，也可以继续扩展新的章节与战役。</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="https://github.com/ganzijie1/dongzhou" target="_blank" rel="noreferrer">前往 GitHub</a>
+            <a class="button button-quiet" href="#top">回到卷首</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>东周列国志 · 历史回合制战棋</span>
+      <span>基于 mengde 引擎持续开发</span>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
