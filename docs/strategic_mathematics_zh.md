@@ -26,6 +26,9 @@
 | `rl/chapter1_planning_math.py` | 随机最短路、POSG 信念更新、事件触发控制、Fast Marching |
 | `rl/chapter1_structure_fields.py` | 超图 Laplacian、势场、反应扩散、相场、有限群表示与等变投影 |
 | `rl/chapter1_reliability_rare_math.py` | 吸收链、更新过程、系统可靠性、重要性采样、大偏差与有限约束验证 |
+| `rl/p7_political_campaign_math.py` | 因子图/DBN、信号博弈、时变多层网络、Hawkes、随机库存与跨期物流 |
+| `rl/p8_adaptive_mechanism_math.py` | VCG、契约设计、LinUCB、Whittle 指数、高斯过程、在线共形与 E-process |
+| `rl/p9_dynamic_topology_tensor_math.py` | 图序列精确 H0 Zigzag、图 Ricci 曲率、多关系张量 HOSVD |
 
 所有排序和冲突处理都是确定性的，适合固定种子回放。无效概率、负容量、不平衡运输质量、非有限收益和求解失败会显式报错。
 
@@ -337,4 +340,39 @@ python -m pytest rl/graph_dynamics_test.py -q
 
 ```powershell
 python -m pytest rl/chapter1_mathematics_test.py -q
+```
+
+## 23. P7：政治推断、外交信号、事件连锁与长期后勤
+
+- 因子图与动态贝叶斯网络：`DiscreteFactorGraph` 对有界离散模型做精确枚举边缘化，超过显式组合预算时拒绝运行；`FiniteDynamicBayesianFilter` 对有限隐藏状态执行预测和观测校正，可用于忠诚、阴谋、疾病与援军状态。后验只来自调用方给出的先验、转移和似然。
+- 信号博弈：`pure_signaling_equilibria()` 枚举有限纯策略完美贝叶斯均衡。路径上信念使用 Bayes 法则，离轨行动必须存在使其成为最优响应的信念。它不宣称求解一般混合策略或连续类型信号博弈。
+- 时变多层网络：`TemporalMultilayerNetwork` 分开保存宗族、盟约、敌对、贸易和指挥等关系层，输出聚合快照、节点强度、时间波动、谱半径及带同节点层间耦合的 supra-adjacency。
+- Hawkes 事件过程：`ExponentialHawkesProcess` 使用多元指数核描述谣言、叛乱、会盟和战争的自激连锁，输出条件强度、对数似然、分支率和稳定条件下的平稳强度。强度是统计风险，不是剧情必然触发器。
+- 随机库存：`solve_stochastic_inventory()` 对整数需求、有限订货能力和丢失销售模型做有限时域动态规划，显式计入订货、持有、缺货和期末残值。
+- 跨期物流：`solve_dynamic_inventory_flow()` 在时间展开网络上联合优化库存、运输、缺供与弃置。运输有容量、成本和整数期旅行时间；当前模型是确定性 LP，随机性由库存动态规划或外部情景层处理。
+
+## 24. P8：激励机制、自适应资源分配与序贯可信度
+
+- VCG：`vcg_mechanism()` 在有限结果集合上最大化申报总福利，并返回 Clarke pivot 外部性支付与个体效用。真实性结论依赖准线性效用、正确结果集合和真实申报，不能直接外推到串谋或预算约束场景。
+- 契约理论：`solve_limited_liability_contract()` 以线性规划求使指定行动满足激励相容与参与约束的最小期望工资，工资非负且结果概率必须显式提供。
+- 上下文臂：`LinUCBBandit` 为斥候、外交官和军队分配维护每个臂的线性回报估计与置信上界，只从真实上下文和奖励更新。
+- Restless bandit：`whittle_indices()` 对两状态折扣臂计算被动补贴下的 Whittle 指数，并单独返回 indexability 数值诊断。非 indexable 模型不能依据指数得到经典策略保证。
+- 高斯过程与贝叶斯优化：`GaussianProcessRegressor` 使用精确 RBF 后验输出均值和标准差，`propose()` 在调用方提供的有限候选集中以期望改进选点。核、噪声和样本决定不确定度，不能把后验当作真实威胁场。
+- 在线共形：`AdaptiveConformalRegressor` 使用滚动残差与自适应误覆盖率形成序贯区间。漂移下的自适应是工程校准机制，不自动继承静态交换性样本的有限样本覆盖定理。
+- E-process：`BernoulliMixtureEProcess` 对固定 Bernoulli 零假设累计 beta 混合似然比，并用历史最大 E-value 支持随时有效的拒绝规则。观测若不满足条件零假设，保证不成立。
+
+## 25. P9：动态图拓扑、网络曲率与多关系张量
+
+- H0 Zigzag 持久同调：`graph_h0_zigzag_persistence()` 接受固定顶点、边逐步增删且每步包含关系明确的图序列。实现从各时刻连通分量构造 A 型 quiver 表示，通过子区间 limit-to-colimit 广义秩及 Möbius 反演得到精确 H0 区间重数。当前不计算 H1 及更高维 Zigzag 条形码。
+- Forman-Ricci 曲率：`forman_ricci_curvature()` 输出无权图边的组合曲率，用低成本指标识别局部树状瓶颈。
+- Ollivier-Ricci 曲率：`ollivier_ricci_curvature()` 在每条边的懒惰随机游走测度之间求精确有限最优传输，得到局部收缩曲率。实现适合小图离线分析，不进入逐动作热路径。
+- 多关系张量：`multirelational_hosvd()` 对“人物乘人物乘关系（乘时间）”张量执行截断高阶 SVD，返回核心张量、各模因子、重构和相对误差。潜在因子只表示低秩结构，不能直接命名为真实阵营或因果关系。
+
+P7-P9 默认用于低频战略推断、离线分析、回放解释和参数校准。任何输出若转为在线动作先验，仍必须经过现有 CP-SAT/MILP/QUBO 联合选择、MAPF 和原生规则验证。定向回归为：
+
+```powershell
+python -m pytest `
+  rl/p7_political_campaign_math_test.py `
+  rl/p8_adaptive_mechanism_math_test.py `
+  rl/p9_dynamic_topology_tensor_math_test.py -q
 ```
