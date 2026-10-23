@@ -34,6 +34,7 @@
 | `rl/p12_graph_network_matching_math.py` | 图信号与图小波、动态 SBM、网络形成、稳定匹配、5v5 组队/英雄/动态任务匹配 |
 | `rl/p13_metric_persistence_spacetime_math.py` | Wasserstein/GW/FGW/GH、持久层、多参数持久性、时空与随机格点动力学 |
 | `rl/p14_tensor_completion_math.py` | SNN、CP、Tucker、TT、t-SVD/TNN 张量补全与缺失机制诊断 |
+| `rl/p15_inverse_optimization_math.py` | 逆线性规划、逆 MDP/IRL、逆 Stackelberg 参数反演与激励反应映射 |
 
 所有排序和冲突处理都是确定性的，适合固定种子回放。无效概率、负容量、不平衡运输质量、非有限收益和求解失败会显式报错。
 
@@ -441,4 +442,24 @@ python -m pytest `
   rl/p12_graph_network_matching_math_test.py `
   rl/p13_metric_persistence_spacetime_math_test.py `
   rl/p14_tensor_completion_math_test.py -q
+```
+
+## 31. P15：逆线性规划、逆 MDP 与逆 Stackelberg
+
+- KKT 逆线性规划：`inverse_linear_program()` 接受一个或多个已观测最优解及各自的线性可行域，在活动约束法锥的交集中寻找最接近参考代价的目标系数，并返回每次观测的对偶乘子、原始可行性、驻点与互补残差。参考代价或显式分量归一化负责处理正比例缩放不唯一性。
+- 逆约束：`inverse_linear_rhs()` 在约束法向量已知时，将参考右端项投影到包含全部观测的最近可行边界；调用方可声明观测在哪些约束上活动，冲突的活动边界会显式失败。
+- 带噪声揭示偏好：`fit_revealed_linear_cost()` 只需要“选择结果优于候选替代”的有限比较，通过软间隔 LP 反演共同线性代价。它同样适用于没有连续 KKT 表达的逆组合优化，并显式返回逐比较松弛量和比较矩阵秩。
+- 逆 MDP：`inverse_mdp_policy()` 对有限折扣 MDP 和完整确定性观测策略建立策略评价后的线性优势约束，反演状态-动作特征权重，返回奖励、价值、全部动作优势、松弛量和可辨识秩。轨迹型最大熵 IRL 继续复用 `p6_games_dynamics.maximum_entropy_irl()`。
+- 占用测度：`discounted_occupancy()` 精确解折扣状态访问线性系统，返回未归一化状态/状态-动作占用及可选特征期望，可用于学徒学习、策略比较和回放审计。
+- 奖励等价类：`potential_based_reward_shaping()` 对状态-动作或状态-动作-后继奖励应用势函数塑形。逆 MDP 权重不唯一时，调用方必须结合该等价关系、特征秩和外部先验解释结果，不能把某组权重称为唯一真实动机。
+- 贝叶斯逆 MDP：`bayesian_inverse_mdp()` 在调用方给出的有限奖励假设和先验上做精确后验更新，用最优 Q 值上的 Boltzmann 行动似然解释部分状态-动作演示，并返回后验、MAP、后验均值、证据和各假设行动概率。它不声称覆盖连续参数空间。
+- 理性跟随者反演：`inverse_stackelberg_follower_utility()` 从多个领导者混合承诺与跟随者响应建立最佳响应不等式，估计线性收益权重，并返回后悔值、软约束松弛和信息秩。
+- 有限理性跟随者反演：`inverse_logit_stackelberg_utility()` 在固定理性精度下最大化 Logit 响应似然，输出每条观测的选择概率、正则化负对数似然、收敛状态和信息秩。理性精度与收益尺度不能同时从相同行为中任意识别，因此精度是调用方显式参数。
+- 激励型逆 Stackelberg：`solve_incentive_stackelberg()` 精确枚举有限反应映射，即领导者承诺“跟随者选择每个行动时我如何反应”，随后按 strong 或 weak 破同分规则求跟随者最佳响应与领导者最优承诺。指数规模由 `max_profiles` 明确限制，超限时拒绝伪装成通用大规模算法。
+- 运行边界：P15 是离线校准、回放解释和候选参数层，不从故事文本猜测收益，不把相关性当因果，也不自动覆盖原生战斗 AI。进入在线决策前仍需经过既有联合规划、MAPF 和规则合法性检查。
+
+P15 定向回归为：
+
+```powershell
+python -m pytest rl/p15_inverse_optimization_math_test.py -q
 ```
