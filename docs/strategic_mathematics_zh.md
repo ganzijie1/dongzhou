@@ -29,6 +29,11 @@
 | `rl/p7_political_campaign_math.py` | 因子图/DBN、信号博弈、时变多层网络、Hawkes、随机库存与跨期物流 |
 | `rl/p8_adaptive_mechanism_math.py` | VCG、契约设计、LinUCB、Whittle 指数、高斯过程、在线共形与 E-process |
 | `rl/p9_dynamic_topology_tensor_math.py` | 图序列精确 H0 Zigzag、图 Ricci 曲率、多关系张量 HOSVD |
+| `rl/p10_uncertainty_epistemic_causal_math.py` | Credal Set、Dempster-Shafer、动态认知逻辑、AGM、QRE/认知层级、SCM、VOI |
+| `rl/p11_stochastic_decomposition_math.py` | 情景树、两阶段随机规划、Benders、列生成/Dantzig-Wolfe、SDDP、多面体与割平面 |
+| `rl/p12_graph_network_matching_math.py` | 图信号与图小波、动态 SBM、网络形成、稳定匹配、5v5 组队/英雄/动态任务匹配 |
+| `rl/p13_metric_persistence_spacetime_math.py` | Wasserstein/GW/FGW/GH、持久层、多参数持久性、时空与随机格点动力学 |
+| `rl/p14_tensor_completion_math.py` | SNN、CP、Tucker、TT、t-SVD/TNN 张量补全与缺失机制诊断 |
 
 所有排序和冲突处理都是确定性的，适合固定种子回放。无效概率、负容量、不平衡运输质量、非有限收益和求解失败会显式报错。
 
@@ -375,4 +380,65 @@ python -m pytest `
   rl/p7_political_campaign_math_test.py `
   rl/p8_adaptive_mechanism_math_test.py `
   rl/p9_dynamic_topology_tensor_math_test.py -q
+```
+
+## 26. P10：不精确概率、证据、信念与因果决策
+
+- 不精确概率：`CredalSet` 用有限概率多面体的顶点表示计算事件概率和期望的上下界，并支持 maximin 行动。它不声称有限顶点能表达任意无限维 Credal Set。
+- Dempster-Shafer：`MassFunction` 实现 belief、plausibility、pignistic probability 和归一化 Dempster 合成，同时返回冲突质量；全冲突时显式失败。
+- 动态认知逻辑：`EpistemicModel` 在有限 Kripke 模型上计算知识、公共知识和公开宣告更新。可访问关系由调用者提供，不自动推断角色真实认知。
+- AGM 信念修正：`RankedBeliefState` 使用有限 Grove 排序实现 revision 与 contraction，满足该有限排序语义，而不是通用命题逻辑定理证明器。
+- 有限理性博弈：`logit_qre()` 求双人有限博弈的阻尼 Logit QRE 固定点；`cognitive_hierarchy()` 使用截断 Poisson 层级权重和 Logit 响应。结果依赖温度、层级分布和初始化。
+- 结构因果模型：`StructuralCausalModel` 验证有限 DAG，执行前向模拟、`do` 干预、固定个体反事实和 ATE。结构方程、外生样本及可识别性假设必须由调用方给出。
+- 信息价值：`expected_value_of_perfect_information()` 与 `expected_value_of_sample_information()` 只从显式状态概率、行动收益、信号似然和采样成本计算 VOI，不补写未知收益。
+
+## 27. P11：随机规划、分解优化与割平面
+
+- 情景树与多阶段 LP：`ScenarioTree` 校验唯一根、逐层父子关系、每处分支概率和路径概率；`solve_multistage_scenario_tree_lp()` 为每个信息节点建立唯一决策块，以节点共享历史自然实施非预见性，并支持任意深度的局部及父子连接线性约束。
+- 两阶段随机规划：`solve_two_stage_stochastic_lp()` 构造确定性等价 LP；`solve_two_stage_benders()` 使用逐情景最优性割实现 L-shaped 分解，并与确定性等价解交叉验证。
+- Benders 边界：当前实现要求非负追索成本和相对完全追索；追索不可行或无界会显式报错，不伪造可行性割。
+- Dantzig-Wolfe/列生成：`column_generation()` 解等式受限主问题，从定价回调加入负约化成本列，并检测重复负价列造成的停滞。定价器的完整性由调用方负责。
+- SDDP：`sddp_inventory()` 是标量库存的专用实现，使用 LP 对偶生成分段线性下界；它不是任意维、多风险度量 SDDP 的通用替代。
+- 多面体与割：`Polyhedron` 支持小型满维顶点枚举，`chvatal_gomory_cut()` 与 `minimal_cover_cut()` 生成可审计有效不等式，`solve_binary_linear_program()` 用于小型基准核验。
+
+## 28. P12：图信号、动态网络与匹配博弈
+
+- 图信号处理：`GraphSignalProcessor` 对无向非负加权图计算组合/归一化 Laplacian、图傅里叶变换、谱滤波、热核、图小波和总变差。谱结果只对调用方给出的图和权重成立。
+- 动态随机块模型：`simulate_dynamic_sbm()` 生成 Markov 社区与动态图；`estimate_dynamic_sbm()` 在社区标签已知时估计块概率和转移矩阵；`dynamic_sbm_log_likelihood()` 给出完整数据似然。当前不把标签未知时的社区发现冒充为已实现。
+- 网络形成：`ConnectionsNetwork` 实现 Jackson-Wolinsky connections utility，并逐边检查单边删边和双边加边的成对稳定性偏离。
+- 稳定匹配：`deferred_acceptance()` 支持不完整偏好和接收方容量，`blocking_pairs()` 独立检查阻挡对。固定优先级下的经典稳定性不外推到同伴外部性或不可拆组排。
+- 5v5 组队与位置：`optimize_two_team_roles()` 用 MILP 实现两队位置容量、玩家唯一性、组排同队、二元协同线性化和逐位置公平差约束。
+- 英雄层：`optimize_hero_lineup()` 实现每人一英雄、同队唯一、禁选、个人候选池、职责最低覆盖和英雄对协同。敌方克制或顺序 BP 只有在调用方显式转成价值或额外阶段时才会进入模型。
+- 局内任务层：`optimize_dynamic_tasks()` 在时间展开 MILP 中处理任务最小/最大人数、显式 idle 状态和分配切换成本，输出逐时刻任务及真实切换数。
+
+## 29. P13：几何距离、广义持久性与时空随机格点
+
+- 四种距离：`wasserstein_distance()` 求有限离散最优传输 LP；`gromov_wasserstein_distance()` 和 `fused_gromov_wasserstein_distance()` 用条件梯度求平方结构失真的局部解；`finite_gromov_hausdorff_distance()` 在显式候选预算内枚举有限对应并给出精确 GH 值。
+- 距离边界：GW/FGW 非凸，返回给定初始化下的收敛结果，不保证全局最优；GH 枚举是小规模离线算法，超过 `max_candidates` 会拒绝运行。
+- 多参数持久性：`MultiparameterPersistenceModule` 校验网格 cover map 维度和交换方块，计算 Hilbert 函数、秩不变量和单调 fibered path 的秩摘要；它不把多参数模块错误压成普通条形码。
+- 持久层：`PersistentSheafSequence` 复用 `CellularSheaf`，要求调用方显式提供相邻零阶上链映射，验证全局截面被映到全局截面，再计算持久 Betti 数与层 Laplacian 谱。
+- Zigzag：动态图边增删的精确 H0 Zigzag 继续由 `p9_dynamic_topology_tensor_math.py` 提供；当前不宣称 H1 或任意层 Zigzag 已实现。
+- 时空格点：`minkowski_interval()`、`causally_precedes()`、`time_expanded_shortest_path()` 和 `explicit_graph_diffusion_step()` 分别提供离散因果锥、动态阻塞寻路和带 CFL 检查的显式扩散。既有 `SpaceTimeGrid` 继续负责顶点、终点和换位冲突预留。
+- 随机格点：`site_percolation()`、`bond_percolation()`、`conductance_laplacian()`、`effective_resistance()`、`first_passage_time()` 与 `estimate_spectral_dimension()` 覆盖渗流、随机介质传播和谱统计；既有 `random_geometry.py` 继续负责点过程、Voronoi、Delaunay 和部署约束。
+- 空间格点：坐标、邻域、射线、形态学、Pick/Ehrhart、Poisson、各向异性测地线及数字拓扑继续由 `lattice_geometry.py` 与 `advanced_lattice_geometry.py` 提供，不复制第二套坐标语义。
+
+## 30. P14：张量补全与缺失机制
+
+- 掩码与诊断：`missingness_diagnostics()` 区分观测值与缺失值，报告观测率、各模式最低覆盖、全缺纤维和全缺切片；`completion_metrics()` 和 `inverse_propensity_weighted_loss()` 提供外部评估与倾向修正损失。
+- SNN：`complete_snn_halrtc()` 用 ADMM 和各模展开奇异值软阈值最小化核范数之和，适合小型离线张量。
+- CP：`complete_cp_weighted()` 只遍历观测坐标，使用解析梯度拟合正则化 CP 因子，并允许异方差权重。
+- Tucker：`complete_tucker_projection()` 交替执行截断 HOSVD 投影与观测一致性投影；已有 `multirelational_hosvd()` 仍只负责完整张量分解。
+- Tensor Train：`tensor_train_svd()` 返回 TT 核和截断误差，`complete_tensor_train_projection()` 在 TT 低秩集合与观测约束之间迭代投影。
+- t-SVD/TNN：`tubal_nuclear_prox()` 在第三模 FFT 切片上做奇异值软阈值，`complete_tubal_tnn()` 用 ADMM 完成三阶张量。
+- 恢复边界：低秩不等于可辨识。整条纤维缺失、高相干、MNAR、秩选择错误或信息量不足时，算法可能有多个同样符合观测的解；接口只返回数值解和诊断，不编造未观测真值或不确定性保证。
+
+P10-P14 的定向回归为：
+
+```powershell
+python -m pytest `
+  rl/p10_uncertainty_epistemic_causal_math_test.py `
+  rl/p11_stochastic_decomposition_math_test.py `
+  rl/p12_graph_network_matching_math_test.py `
+  rl/p13_metric_persistence_spacetime_math_test.py `
+  rl/p14_tensor_completion_math_test.py -q
 ```
