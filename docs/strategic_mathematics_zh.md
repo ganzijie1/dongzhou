@@ -35,6 +35,14 @@
 | `rl/p13_metric_persistence_spacetime_math.py` | Wasserstein/GW/FGW/GH、持久层、多参数持久性、时空与随机格点动力学 |
 | `rl/p14_tensor_completion_math.py` | SNN、CP、Tucker、TT、t-SVD/TNN 张量补全与缺失机制诊断 |
 | `rl/p15_inverse_optimization_math.py` | 逆线性规划、逆 MDP/IRL、逆 Stackelberg 参数反演与激励反应映射 |
+| `rl/p16_multiagent_game_math.py` | Dec-POMDP、序列形式、CFR+、Double Oracle/PSRO、CE/CCE、多跟随者与动态 Stackelberg |
+| `rl/p17_bilevel_active_learning_math.py` | 双层 LP、KKT/MPEC、隐式超梯度、可微 QP/LP、主动偏好学习、最优实验设计与置信域 |
+| `rl/p18_robust_distributional_mdp_math.py` | TV/KL/Wasserstein 鲁棒 MDP、分布型 Bellman、指数风险、reach-avoid、鲁棒占用与策略切换 |
+| `rl/p19_dynamic_topology_graphon_math.py` | H0/H1/H2 持久与 Zigzag、vineyard、Mapper、未知标签动态 SBM、Graphon 与高阶扩散 |
+| `rl/p20_controlled_koopman_causal_math.py` | DMDc/EDMDc、Koopman MPC、Perron-Frobenius、可行核、因果发现、ICP 与敏感性界 |
+| `rl/p21_adaptive_safe_economic_math.py` | 生存概率、有限情景鲁棒控制、鲁棒可行核、在线检测与切换、Perron-Frobenius 投入产出、时序回放因果与跨关卡诊断 |
+| `rl/p22_equilibrium_control_continuation_math.py` | LMDP/KL Control、QRE 与通用均衡隐式灵敏度、分布鲁棒 Nash/Stackelberg、伪弧长延拓与分岔诊断 |
+| `rl/p23_regime_rare_event_math.py` | BOCPD、显式持续时间 HSMM、Adaptive Multilevel Splitting、Subset Simulation |
 
 所有排序和冲突处理都是确定性的，适合固定种子回放。无效概率、负容量、不平衡运输质量、非有限收益和求解失败会显式报错。
 
@@ -369,7 +377,7 @@ python -m pytest rl/chapter1_mathematics_test.py -q
 
 ## 25. P9：动态图拓扑、网络曲率与多关系张量
 
-- H0 Zigzag 持久同调：`graph_h0_zigzag_persistence()` 接受固定顶点、边逐步增删且每步包含关系明确的图序列。实现从各时刻连通分量构造 A 型 quiver 表示，通过子区间 limit-to-colimit 广义秩及 Möbius 反演得到精确 H0 区间重数。当前不计算 H1 及更高维 Zigzag 条形码。
+- H0 Zigzag 持久同调：`graph_h0_zigzag_persistence()` 接受固定顶点、边逐步增删且每步包含关系明确的图序列。实现从各时刻连通分量构造 A 型 quiver 表示，通过子区间 limit-to-colimit 广义秩及 Möbius 反演得到精确 H0 区间重数。该 P9 图接口仅计算 H0；一般复形的 H1/H2 Zigzag 条形码由 P19 的 `zigzag_persistence()` 提供。
 - Forman-Ricci 曲率：`forman_ricci_curvature()` 输出无权图边的组合曲率，用低成本指标识别局部树状瓶颈。
 - Ollivier-Ricci 曲率：`ollivier_ricci_curvature()` 在每条边的懒惰随机游走测度之间求精确有限最优传输，得到局部收缩曲率。实现适合小图离线分析，不进入逐动作热路径。
 - 多关系张量：`multirelational_hosvd()` 对“人物乘人物乘关系（乘时间）”张量执行截断高阶 SVD，返回核心张量、各模因子、重构和相对误差。潜在因子只表示低秩结构，不能直接命名为真实阵营或因果关系。
@@ -405,7 +413,7 @@ python -m pytest `
 ## 28. P12：图信号、动态网络与匹配博弈
 
 - 图信号处理：`GraphSignalProcessor` 对无向非负加权图计算组合/归一化 Laplacian、图傅里叶变换、谱滤波、热核、图小波和总变差。谱结果只对调用方给出的图和权重成立。
-- 动态随机块模型：`simulate_dynamic_sbm()` 生成 Markov 社区与动态图；`estimate_dynamic_sbm()` 在社区标签已知时估计块概率和转移矩阵；`dynamic_sbm_log_likelihood()` 给出完整数据似然。当前不把标签未知时的社区发现冒充为已实现。
+- 动态随机块模型：`simulate_dynamic_sbm()` 生成 Markov 社区与动态图；`estimate_dynamic_sbm()` 在社区标签已知时估计块概率和转移矩阵；`dynamic_sbm_log_likelihood()` 给出完整数据似然。标签未知时的谱估计与跨时刻标签对齐由 P19 的 `estimate_dynamic_sbm_unknown_labels()` 提供。
 - 网络形成：`ConnectionsNetwork` 实现 Jackson-Wolinsky connections utility，并逐边检查单边删边和双边加边的成对稳定性偏离。
 - 稳定匹配：`deferred_acceptance()` 支持不完整偏好和接收方容量，`blocking_pairs()` 独立检查阻挡对。固定优先级下的经典稳定性不外推到同伴外部性或不可拆组排。
 - 5v5 组队与位置：`optimize_two_team_roles()` 用 MILP 实现两队位置容量、玩家唯一性、组排同队、二元协同线性化和逐位置公平差约束。
@@ -418,7 +426,7 @@ python -m pytest `
 - 距离边界：GW/FGW 非凸，返回给定初始化下的收敛结果，不保证全局最优；GH 枚举是小规模离线算法，超过 `max_candidates` 会拒绝运行。
 - 多参数持久性：`MultiparameterPersistenceModule` 校验网格 cover map 维度和交换方块，计算 Hilbert 函数、秩不变量和单调 fibered path 的秩摘要；它不把多参数模块错误压成普通条形码。
 - 持久层：`PersistentSheafSequence` 复用 `CellularSheaf`，要求调用方显式提供相邻零阶上链映射，验证全局截面被映到全局截面，再计算持久 Betti 数与层 Laplacian 谱。
-- Zigzag：动态图边增删的精确 H0 Zigzag 继续由 `p9_dynamic_topology_tensor_math.py` 提供；当前不宣称 H1 或任意层 Zigzag 已实现。
+- Zigzag：动态图边增删的精确 H0 Zigzag 继续由 `p9_dynamic_topology_tensor_math.py` 提供；P19 的 `zigzag_persistence()` 进一步从 GF(2) 链复形、同调诱导映射和广义秩计算 H0/H1/H2 区间分解。
 - 时空格点：`minkowski_interval()`、`causally_precedes()`、`time_expanded_shortest_path()` 和 `explicit_graph_diffusion_step()` 分别提供离散因果锥、动态阻塞寻路和带 CFL 检查的显式扩散。既有 `SpaceTimeGrid` 继续负责顶点、终点和换位冲突预留。
 - 随机格点：`site_percolation()`、`bond_percolation()`、`conductance_laplacian()`、`effective_resistance()`、`first_passage_time()` 与 `estimate_spectral_dimension()` 覆盖渗流、随机介质传播和谱统计；既有 `random_geometry.py` 继续负责点过程、Voronoi、Delaunay 和部署约束。
 - 空间格点：坐标、邻域、射线、形态学、Pick/Ehrhart、Poisson、各向异性测地线及数字拓扑继续由 `lattice_geometry.py` 与 `advanced_lattice_geometry.py` 提供，不复制第二套坐标语义。
@@ -463,3 +471,95 @@ P15 定向回归为：
 ```powershell
 python -m pytest rl/p15_inverse_optimization_math_test.py -q
 ```
+
+## 32. P16：多智能体不完全信息与均衡求解
+
+- Dec-POMDP：`FiniteDecPOMDP` 校验有限联合转移与联合观测核，提供公共后验更新，并精确评估由各智能体局部观测历史索引的确定性策略树。它面向有限时域小模型，不冒充无限时域 Dec-POMDP 通用求解器。
+- 序列形式：`solve_sequence_form_zero_sum()` 直接接受双方 realization-plan 流守恒矩阵，以一对原始/对偶 LP 求零和扩展式博弈，返回实现计划、博弈值、对偶间隙和流残差。
+- CFR+：`cfr_plus_zero_sum()` 对有限零和矩阵实施正部累积遗憾与线性平均，单独报告 exploitability；原有 `CounterfactualRegretMinimizer` 继续负责树上的普通 CFR。
+- Double Oracle/PSRO：`double_oracle_zero_sum()` 和 `psro_zero_sum()` 在显式有限策略库上反复求受限 Nash 元博弈并加入精确纯最佳响应，保留种群及 exploitability 轨迹。
+- 相关均衡：`correlated_equilibrium()` 以激励约束 LP 求福利最大的 CE 或 CCE；`multiplicative_weights_bimatrix()` 用全信息乘法权重生成经验联合分布，并返回双方平均外部遗憾和 CCE 偏差。
+- 多跟随者 Stackelberg：`solve_multi_follower_stackelberg()` 枚举跟随者联合纯响应，以单边偏离约束确保该响应是 Nash 均衡，再优化领导者混合承诺。其破同分语义是乐观型。
+- 动态 Stackelberg：`solve_dynamic_stackelberg()` 枚举有限时域确定性 Markov 领导者承诺，对每个承诺用反向动态规划求跟随者最佳响应，支持 strong/weak 破同分并设置 `max_policies`。
+
+## 33. P17：双层优化、可微求解与主动逆学习
+
+- 双层 LP：`solve_finite_bilevel_linear()` 对离散上层选择逐一求下层 LP，并在下层最优面上执行 optimistic/pessimistic 破同分。连续上层或非凸下层不在该有限枚举器的保证范围内。
+- KKT/MPEC：`linear_program_kkt_certificate()` 独立计算原始、对偶、驻点和互补残差，用于审计把下层问题改写成 MPEC 后的候选解。
+- 隐式超梯度：`implicit_hypergradient()` 使用隐函数定理计算下层最优点对参数的灵敏度；病态 Hessian 会切换到伪逆并显式报告条件数。
+- 可微 QP/LP：`equality_qp_sensitivity()` 对严格凸等式 QP 的 KKT 系统求解并求导；`linear_program_active_set_sensitivity()` 在固定活动集假设下计算顶点 Jacobian、秩、零度和残差。活动集变化处不可直接沿用局部导数。
+- 主动偏好与 IRL：`logistic_preference_fisher_information()` 计算成对 Logit 查询的期望 Fisher 信息；`expected_information_gain()` 对有限假设和实验似然计算互信息；`active_irl_query()` 进一步从奖励权重假设和轨迹特征差构造 Boltzmann 选择似然，选择最能区分奖励的演示对。
+- 最优实验设计：`greedy_optimal_design()` 对秩一信息增量执行 D-optimal 或 A-optimal 贪心选样，返回完整信息矩阵、目标历史和条件数。
+- 置信域：`wald_confidence_ellipsoid()` 在可辨识子空间构造 Wald 椭球，并把不可辨识零空间作为无界圆柱方向返回，避免伪造唯一参数。
+
+## 34. P18：鲁棒、分布型与风险敏感 MDP
+
+- 模糊集合：`worst_case_discrete_expectation()` 对有限分布精确或数值求解 TV、KL 与 Wasserstein 球内最坏期望，并返回实际对手分布和模糊距离。
+- 鲁棒 MDP：`robust_value_iteration()` 假设 state-action rectangular 模糊集合，逐状态动作调用最坏期望，返回鲁棒价值、策略和最坏转移核。非矩形跨状态耦合不由该 Bellman 递推覆盖。
+- 分布型 Bellman：`categorical_bellman_projection()` 实现 C51 固定支撑投影；`quantile_bellman_targets()` 与 `quantile_huber_loss()` 提供分位数回归目标和损失。
+- 风险敏感控制：`entropic_risk_value_iteration()` 使用指数确定性等价递推；`discrete_cvar()` 对有限分布精确处理上下尾及边界原子的分数质量。
+- 随机 reach-avoid：`stochastic_reach_avoid()` 用有限时域动态规划最大化先到目标、避开失败集的概率。
+- 鲁棒占用测度：`robust_reward_occupancy_lp()` 在固定转移和多个奖励情景下最大化最坏折扣回报，返回占用、恢复策略、各情景回报与流守恒残差。
+- 在线切换：`PageHinkleyPolicySwitcher` 对损失上漂移做单侧 Page-Hinkley 检测并循环切换候选策略；阈值仍需用真实回放校准。
+
+## 35. P19：高阶动态拓扑、未知社区与 Graphon
+
+- 普通持久同调：`persistent_homology()` 用标准 GF(2) 边界列约化计算 H0/H1/H2 区间，要求调用方提供面闭合且过滤值单调的有限单纯复形。
+- 高阶 Zigzag：`zigzag_persistence()` 对相邻包含方向可前可后的复形序列计算 H0/H1/H2 同调空间及诱导映射，再通过子区间 limit-to-colimit 广义秩和 Möbius 反演得到精确区间重数。
+- Vineyard 与 Mapper：`match_persistence_diagrams()` 用瓶颈型 L-infinity 代价匹配相邻图；`mapper_graph()` 在一维 cover 上做半径连通分量聚类并按共享样本连边。
+- 未知标签动态 SBM：`estimate_dynamic_sbm_unknown_labels()` 对每个动态图快照做谱嵌入与 KMeans，再以最大重叠跨时刻对齐标签，估计块概率、标签转移和完整数据似然。它是谱估计器，不是全贝叶斯后验。
+- Graphon：`histogram_graphon_estimate()` 按度或外部分数排序后估计分块 graphon；`graphon_logit_mean_field()` 求二元行动 Logit 图极限固定点并报告收敛残差。
+- 高阶扩散：`hodge_laplacian()` 构造 0/1/2 维定向组合 Hodge Laplacian；`simplicial_heat_diffusion()` 使用矩阵指数扩散顶点、边或面上的 cochain 信号。
+
+## 36. P20：受控 Koopman、转移算子与因果发现
+
+- DMDc/EDMDc：`dynamic_mode_decomposition_with_control()` 从列快照拟合线性状态与控制矩阵；`extended_dynamic_mode_decomposition_with_control()` 在调用方给出的有限观测字典上做岭回归升维。两者返回相对残差，不把短轨迹拟合当作真实物理定律。
+- Koopman MPC：`koopman_mpc()` 在有限控制候选集上枚举升维线性模型的二次 MPC，显式限制控制序列数量。
+- Perron-Frobenius：`ulam_transfer_operator()` 将状态转移样本投影到矩形分箱，估计 Ulam Markov 算子、平稳分布、样本分箱和越界数量。
+- Viability Kernel：`stochastic_viability_kernel()` 迭代删除无法以指定单步概率留在当前集合中的状态，返回最大受控不变子集与逐状态可行动作。
+- NOTEARS：`notears_linear()` 以增广拉格朗日优化线性结构方程的光滑无环约束，并返回阈值化 DAG、无环残差、拟合损失和收敛状态。
+- 条件独立：`partial_correlation_test()` 提供高斯偏相关检验；`pc_skeleton()` 逐阶条件化删除独立边并保存 separating set，当前不执行 v-structure 和 Meek 定向。
+- 不变因果预测：`invariant_causal_prediction()` 枚举小型线性预测变量子集，以跨环境残差均值和方差检验筛选不变集合并取交集。结论依赖环境干预充分性、线性和残差检验假设。
+- 敏感性界：`omitted_variable_sensitivity()` 用 partial-R2 给出遗漏混杂偏差与置信区间；`discounted_model_transfer_bound()` 用 simulation lemma 控制奖励和转移误差引起的折扣价值偏差。
+
+## 37. P21：非平稳安全控制、经济转移算子与回放迁移
+
+- 生存概率：`finite_horizon_survival_probability()` 最大化有限时域内始终留在安全集的概率；`infinite_horizon_survival_probability()` 从安全集指示函数递减迭代到最大不动点，并报告收敛残差。它们与“目标先达”的 reach-avoid 事件保持区分。
+- 有限情景鲁棒控制：`scenario_robust_value_iteration()` 对 state-action rectangular 的有限转移/奖励情景执行最坏情景 Bellman 迭代；`robust_viability_kernel()` 要求同一动作在所有给定情景下满足留存概率阈值。全局固定情景或跨状态耦合不确定性不在其保证范围内。
+- 在线适应：`TwoSidedCUSUMDetector` 检测相对已校准均值的上下漂移；`FixedSharePolicySelector` 以固定共享指数权重追踪非平稳策略专家，并用最小驻留时间和切换优势抑制抖动。只有单策略反馈时不能使用其全信息更新假设。
+- Perron-Frobenius：`perron_frobenius_analysis()` 返回非负方阵的谱半径、左右 Perron 向量、不可约性与残差；`leontief_input_output_analysis()` 在统一列投入约定下求 Leontief 逆、总产出、劳动价值和可选工资增广系统的最大利润率。经济解释仅对显式假设成立。
+- 回放时序图：`lagged_replay_design()` 保证滞后特征不跨局；`lagged_conditional_independence_graph()` 用联合线性回归和 t 检验给出 `[lag, source, target]` 候选边、效应、p 值与条件数。它是预测候选而非因果证明。
+- 跨关卡迁移：先由 P20 `invariant_causal_prediction()` 筛选不变候选，再由 `cross_environment_transfer_diagnostics()` 留一关卡拟合并报告各环境 RMSE、系数和离散度，防止平均性能掩盖单关卡失效。
+
+## 38. P22：线性可解控制、可微均衡与分岔延拓
+
+- LMDP/KL Control：`finite_horizon_lmdp()` 以 log-sum-exp 稳定求解有限时域 soft Bellman，并保持被动转移支持集；`average_cost_lmdp()` 解 Perron 特征问题并返回平均成本、受控转移和特征残差。
+- 均衡隐式微分：`implicit_equilibrium_sensitivity()` 对局部 Nash、VI、KKT 或 Stackelberg 残差系统求灵敏度，报告秩、最小奇异值、条件数、伪逆使用和线性残差。
+- Logit QRE：`solve_bimatrix_logit_qre()` 在非冗余 log-odds 坐标求双矩阵 QRE，并对双方理性强度做隐式求导。多解时只解释当前初值选中的分支。
+- 分布鲁棒博弈：`finite_distributionally_robust_nash()` 对有限模糊分布顶点精确枚举纯鲁棒 Nash；`finite_distributionally_robust_stackelberg()` 支持 optimistic/pessimistic 跟随者破同分并枚举纯领导者决策。
+- 均衡延拓：`pseudo_arclength_continuation()` 以切向预测和增广 Newton 校正穿过简单折叠，返回路径、残差、最小奇异值、步长与折叠候选。
+- 分岔诊断：`classify_static_bifurcation()` 检查秩、左右核和横截量；`detect_dynamic_bifurcations()` 区分连续时间稳态/Hopf 与离散时间稳态/flip/Neimark-Sacker 候选。候选标签不替代高阶非退化证明。
+
+## 39. P23：在线阶段检测与稀有事件模拟
+
+- BOCPD：`BayesianOnlineChangePointDetector` 对已知观测方差的 Normal-Normal 段模型维护 run-length 后验、变点概率、MAP 段长、预测证据和截断质量，全程使用归一化对数消息。
+- HSMM：`hsmm_forward()` 对显式持续时间段做 log-domain 前向递推；`hsmm_viterbi()` 返回逐帧状态、段区间和最优对数概率。持续时间上界和段级转移语义由调用方明确提供。
+- AMS：`adaptive_multilevel_splitting()` 通过反应坐标、固定淘汰数、越级前缀复制和原动力学续跑估计路径稀有事件，同时报告谱系集中度与并列层级。
+- Subset Simulation：`subset_simulation()` 以自适应分位层和条件随机游走 Metropolis 估计高维失败概率，返回各层实际条件概率、接受率和最终条件样本。正式报告仍需独立重复和有效样本量分析。
+- 联合接入：BOCPD 负责在线漂移告警，HSMM 负责阶段与持续时间，LMDP 提供合法支持集内的平滑先验，延拓分析版本临界点，AMS/Subset Simulation 评估路径型与输入型极端风险。全部结果仍需经过规则、动作掩码、联合规划和回放验证。
+
+P16-P23 定向回归为：
+
+```powershell
+python -m pytest `
+  rl/p16_multiagent_game_math_test.py `
+  rl/p17_bilevel_active_learning_math_test.py `
+  rl/p18_robust_distributional_mdp_math_test.py `
+  rl/p19_dynamic_topology_graphon_math_test.py `
+  rl/p20_controlled_koopman_causal_math_test.py `
+  rl/p21_adaptive_safe_economic_math_test.py `
+  rl/p22_equilibrium_control_continuation_math_test.py `
+  rl/p23_regime_rare_event_math_test.py -q
+```
+
+P16-P20 的完整公式见 `docs/p16_p20_advanced_math_zh.md`，P21 见 `docs/p21_adaptive_safe_economic_math_zh.md`，P22-P23 见 `docs/p22_p23_equilibrium_regime_rare_math_zh.md`。这些模块默认属于离线分析、校准或低频规划层；任何结果进入实战动作前仍必须通过原生合法动作、联合规划、MAPF 和战斗规则检查。
