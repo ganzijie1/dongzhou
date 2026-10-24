@@ -548,7 +548,19 @@ python -m pytest rl/p15_inverse_optimization_math_test.py -q
 - Subset Simulation：`subset_simulation()` 以自适应分位层和条件随机游走 Metropolis 估计高维失败概率，返回各层实际条件概率、接受率和最终条件样本。正式报告仍需独立重复和有效样本量分析。
 - 联合接入：BOCPD 负责在线漂移告警，HSMM 负责阶段与持续时间，LMDP 提供合法支持集内的平滑先验，延拓分析版本临界点，AMS/Subset Simulation 评估路径型与输入型极端风险。全部结果仍需经过规则、动作掩码、联合规划和回放验证。
 
-P16-P23 定向回归为：
+## 40. P24-P30：信念规划、随机博弈、约束控制与统计保证
+
+- P24 `p24_belief_space_planning_math.py`：精确 alpha-vector、PBVI、POMCPOW、DESPOT 情景规划、联合状态/对手类型信念更新与有限层级 Logit 推理。
+- P25 `p25_stochastic_game_math.py`：零和矩阵博弈、折扣/平均回报 Shapley 迭代、一般和策略评估、MPE gap、纯 MPE 枚举与阶段势结构残差。
+- P26 `p26_factor_graph_distributed_math.py`：Sum-Product/LBP、Junction Tree、Max-Sum/DCOP 与共识 ADMM；树上精确性与环图近似性分开报告。
+- P27 `p27_constrained_budgeted_mdp_math.py`：折扣占用测度 CMDP、预算影子价格、策略复核、逐路径整数预算动态规划与 Pareto 剪枝。
+- P28 `p28_continuous_time_mdp_math.py`：CTMDP uniformization、折扣/平均回报控制、固定策略评估与 Poisson 瞬态传播。
+- P29 `p29_extreme_tail_importance_math.py`：GEV、POT/GPD、经验及理论尾相关、带防御混合的交叉熵重要抽样与有效样本量。
+- P30 `p30_finite_sample_guarantees_math.py`：PAC-MDP 声称审计、PAC-Bayes-kl、经验 Bernstein、anytime confidence sequence、CRC、漂移加权共形阈值与权重 ESS。
+
+完整公式、游戏映射与假设边界见 `docs/p24_p30_planning_risk_guarantees_zh.md`。P24-P30 继续遵守“候选建议不等于可执行动作”的边界：所有输出必须经过原生合法动作、资源、碰撞、联合规划、MAPF 与回放验收。
+
+P16-P30 定向回归为：
 
 ```powershell
 python -m pytest `
@@ -559,7 +571,14 @@ python -m pytest `
   rl/p20_controlled_koopman_causal_math_test.py `
   rl/p21_adaptive_safe_economic_math_test.py `
   rl/p22_equilibrium_control_continuation_math_test.py `
-  rl/p23_regime_rare_event_math_test.py -q
+  rl/p23_regime_rare_event_math_test.py `
+  rl/p24_belief_space_planning_math_test.py `
+  rl/p25_stochastic_game_math_test.py `
+  rl/p26_factor_graph_distributed_math_test.py `
+  rl/p27_constrained_budgeted_mdp_math_test.py `
+  rl/p28_continuous_time_mdp_math_test.py `
+  rl/p29_extreme_tail_importance_math_test.py `
+  rl/p30_finite_sample_guarantees_math_test.py -q
 ```
 
-P16-P20 的完整公式见 `docs/p16_p20_advanced_math_zh.md`，P21 见 `docs/p21_adaptive_safe_economic_math_zh.md`，P22-P23 见 `docs/p22_p23_equilibrium_regime_rare_math_zh.md`。这些模块默认属于离线分析、校准或低频规划层；任何结果进入实战动作前仍必须通过原生合法动作、联合规划、MAPF 和战斗规则检查。
+P16-P20 的完整公式见 `docs/p16_p20_advanced_math_zh.md`，P21 见 `docs/p21_adaptive_safe_economic_math_zh.md`，P22-P23 见 `docs/p22_p23_equilibrium_regime_rare_math_zh.md`，P24-P30 见 `docs/p24_p30_planning_risk_guarantees_zh.md`。这些模块默认属于离线分析、校准或低频规划层；任何结果进入实战动作前仍必须通过原生合法动作、联合规划、MAPF 和战斗规则检查。
