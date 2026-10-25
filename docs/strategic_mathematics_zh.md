@@ -582,3 +582,17 @@ python -m pytest `
 ```
 
 P16-P20 的完整公式见 `docs/p16_p20_advanced_math_zh.md`，P21 见 `docs/p21_adaptive_safe_economic_math_zh.md`，P22-P23 见 `docs/p22_p23_equilibrium_regime_rare_math_zh.md`，P24-P30 见 `docs/p24_p30_planning_risk_guarantees_zh.md`。这些模块默认属于离线分析、校准或低频规划层；任何结果进入实战动作前仍必须通过原生合法动作、联合规划、MAPF 和战斗规则检查。
+
+## 41. P31-P39：优化、分散信息、离线 RL、机制、风险与系统验证
+
+- P31 `p31_variational_stochastic_optimization_math.py`：Mirror Descent、Extragradient、Optimistic Gradient、Minty/Stampacchia gap、Proximal Point、Douglas-Rachford、Robbins-Monro、两时间尺度递推、Polyak-Ruppert 与经验稳定性诊断。
+- P32 `p32_common_information_game_math.py`：公共 belief、occupancy-state、双智能体 Dec-POMDP policy graph 与 Bayesian correlated equilibrium LP。
+- P33 `p33_offline_reinforcement_learning_math.py`：tabular FQE/FQI/CQL、折扣占用测度比、unsupported mass、concentrability、边缘重要性价值与 Bellman completeness 投影残差。
+- P34 `p34_bayesian_mechanism_contract_math.py`：VCG、正则 i.i.d. Myerson 保留价拍卖、DSIC/BIC/interim-IR 审计和隐藏行动合同 LP。
+- P35 `p35_large_deviation_risk_math.py`：离散 Donsker-Varadhan 对偶、KL 风险、Cramér/Chernoff、Freidlin-Wentzell 路径作用量、风险敏感有限时域 DP 与指数倾斜 ESS。
+- P36 `p36_probabilistic_model_checking_math.py`：DTMC/MDP 可达、PCTL bounded-until、CTMC uniformization、CSL 时限可达、固定样本 SMC 与 SPRT。
+- P37 `p37_master_mean_field_control_math.py`：有限状态 MFG、经验 Lions 导数、Master Equation 残差、MFC 社会边际成本和有限玩家误差/速率诊断。
+- P38 `p38_stochastic_network_calculus_math.py`：min-plus、服务串联、backlog/delay、随机违约分裂、有效带宽/容量、常数服务尾界与 Markov 调制流量。
+- P39 `p39_quantum_game_math.py`：密度矩阵、部分迹、CPTP、POVM、EWL、CHSH、退极化和有限量子策略 Nash 审计。
+
+完整接口、游戏映射、数学边界和 P31-P39 回归命令见 `docs/p31_p39_optimization_mechanism_risk_systems_zh.md`。这些模块扩展分析与候选生成能力，不扩展原生合法动作集合。
