@@ -611,3 +611,19 @@ P16-P20 的完整公式见 `docs/p16_p20_advanced_math_zh.md`，P21 见 `docs/p2
 - P49 `p49_dynamic_mechanism_elicitation_math.py`：承诺效用、动态 IC/IR 审计、pivot 外部性、proper scoring 与 peer prediction 支付。
 
 完整公式映射、适用边界、联合流程和 P40-P49 回归命令见 `docs/p40_p49_dynamic_risk_evolution_uq_mechanism_zh.md`。这十个模块继续属于分析、校准和候选生成层，所有输出进入实战前仍需通过原生合法动作、资源、碰撞、联合规划、MAPF 与回放验收。
+
+## 43. P50-P60：可达安全、状态估计、并发、随机流与多目标价值
+
+- P50 `p50_reachability_pursuit_evasion_math.py`：离散最坏情形 BRT、随机 reach-avoid 动态规划与恒速拦截时间。
+- P51 `p51_clf_cbf_safety_math.py`：控制仿射 CLF/CBF 约束、带 CLF 松弛的最小改动安全过滤与高阶障碍递推。
+- P52 `p52_state_estimation_math.py`：EKF、无迹变换、粒子重采样、IMM 混合与 H-infinity 信息滤波。
+- P53 `p53_marked_point_process_math.py`：自激/互激/抑制标记强度、Hawkes 似然、补偿过程与分枝比。
+- P54 `p54_spatial_point_process_math.py`：PPP、Thomas 聚簇、有限 DPP、覆盖概率、接触距离与最近邻距离。
+- P55 `p55_reachability_graph_math.py`：可达域、避险最短路、强连通分量、对抗吸引域与最大目标可达概率。
+- P56 `p56_deadlock_livelock_math.py`：等待环、轨迹绕数、周期、方向翻转及卡墙、绕塔、发呆等综合诊断。
+- P57 `p57_timed_automata_petri_math.py`：时间自动机轨迹验证、Petri 网使能/发射/可达/死锁/P-invariant 与随机事件竞争。
+- P58 `p58_queueing_heavy_traffic_math.py`：Little、M/M/1、Jackson、Kingman、流体队列、反射布朗近似与平方根配置。
+- P59 `p59_wasserstein_fokker_planck_math.py`：一维 Wasserstein、自由能、Fisher 信息、Gaussian JKO 与无通量 Fokker-Planck 基准步。
+- P60 `p60_multiobjective_value_math.py`：Pareto 前沿、集合值 Bellman 备份、Chebyshev 标量化和二维超体积。
+
+完整接口、假设边界、联合接入顺序和 P50-P60 回归命令见 `docs/p50_p60_reachability_concurrency_flow_multiobjective_zh.md`。这些工具不自动扩大原生动作集：P50/P55 生成可达候选，P51 过滤连续控制，P56/P57 监视运行时异常，P60 只在合法安全候选中做多目标选择。
