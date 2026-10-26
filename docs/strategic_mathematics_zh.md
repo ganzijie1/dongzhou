@@ -596,3 +596,18 @@ P16-P20 的完整公式见 `docs/p16_p20_advanced_math_zh.md`，P21 见 `docs/p2
 - P39 `p39_quantum_game_math.py`：密度矩阵、部分迹、CPTP、POVM、EWL、CHSH、退极化和有限量子策略 Nash 审计。
 
 完整接口、游戏映射、数学边界和 P31-P39 回归命令见 `docs/p31_p39_optimization_mechanism_risk_systems_zh.md`。这些模块扩展分析与候选生成能力，不扩展原生合法动作集合。
+
+## 42. P40-P49：动态风险、因果评估、混合动力、演化、拥塞与机制
+
+- P40 `p40_dynamic_risk_bsde_math.py`：离散 CVaR、熵风险、固定策略 Nested CVaR 与信息分区离散 BSDE。
+- P41 `p41_restless_bandit_index_math.py`：Gittins 退休指数、Whittle 补贴指数、indexability 诊断与容量选择。
+- P42 `p42_sequential_causal_ope_math.py`：序贯 g-formula、PDIS、序贯 DR、近端 bridge 分数、隐藏混杂敏感性与权重 ESS。
+- P43 `p43_pdmp_math.py`：积分风险率事件时刻、线性强度闭式反演、PDMP 生成元、受控 HJB backup 与时间重标度量。
+- P44 `p44_evolutionary_dynamics_math.py`：复制子、突变选择、Logit 响应、纯 ESS、平稳分布与小状态阻力树。
+- P45 `p45_congestion_wardrop_poa_math.py`：平行仿射 Wardrop/社会最优、VI gap、Rosenthal 势、PoA 与 smoothness 上界。
+- P46 `p46_polynomial_sos_moment_math.py`：多项式评价、SOS Gram 重构、矩阵/局部化矩阵与 flat-extension 数值诊断。
+- P47 `p47_blackwell_adversarial_bandit_math.py`：EXP3、外部/交换 regret、Blackwell 目标集动作、partial-monitoring 全局可观测性与校准误差。
+- P48 `p48_uncertainty_quantification_math.py`：正交 PCE 统计、动态 Sobol、Smolyak 层级集合、MLMC 分配与估计。
+- P49 `p49_dynamic_mechanism_elicitation_math.py`：承诺效用、动态 IC/IR 审计、pivot 外部性、proper scoring 与 peer prediction 支付。
+
+完整公式映射、适用边界、联合流程和 P40-P49 回归命令见 `docs/p40_p49_dynamic_risk_evolution_uq_mechanism_zh.md`。这十个模块继续属于分析、校准和候选生成层，所有输出进入实战前仍需通过原生合法动作、资源、碰撞、联合规划、MAPF 与回放验收。
