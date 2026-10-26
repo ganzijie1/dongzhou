@@ -627,3 +627,17 @@ P16-P20 的完整公式见 `docs/p16_p20_advanced_math_zh.md`，P21 见 `docs/p2
 - P60 `p60_multiobjective_value_math.py`：Pareto 前沿、集合值 Bellman 备份、Chebyshev 标量化和二维超体积。
 
 完整接口、假设边界、联合接入顺序和 P50-P60 回归命令见 `docs/p50_p60_reachability_concurrency_flow_multiobjective_zh.md`。这些工具不自动扩大原生动作集：P50/P55 生成可达候选，P51 过滤连续控制，P56/P57 监视运行时异常，P60 只在合法安全候选中做多目标选择。
+
+## 44. P61-P69：协同路径、跟踪、鲁棒控制、概率流与可组合验证
+
+- P61 `p61_multi_agent_path_conflict_math.py`：CBS/ECBS 冲突、预约表与连续时间碰撞检测。
+- P62 `p62_random_finite_set_tracking_math.py`：JPDA、PHD 更新与多假设剪枝。
+- P63 `p63_robust_stochastic_mpc_math.py`：Tube MPC 不变盒、约束收紧、场景与机会约束诊断。
+- P64 `p64_hybrid_switching_system_math.py`：Saltation Matrix、驻留时间、切换 Lyapunov、模式轨迹与 Zeno 告警。
+- P65 `p65_anisotropic_dynamic_field_math.py`：Randers 有向代价、各向异性比、动态碰撞势与速度融合。
+- P66 `p66_event_network_control_math.py`：AoI、丢包保持、量化、事件触发与数据率下界。
+- P67 `p67_benamou_brenier_bridge_math.py`：连续性方程、Benamou-Brenier 作用量、Sinkhorn 和概率流。
+- P68 `p68_supervisory_control_math.py`：可控性、可观测性、最大可控子语言与监督器事件使能。
+- P69 `p69_contract_barrier_composition_math.py`：Assume-Guarantee 契约、Barrier 样本审计和可组合风险界。
+
+完整公式、游戏映射、适用边界和 P61-P69 回归命令见 `docs/p61_p69_composable_control_transport_tracking_zh.md`。推荐数据流为“P62/P66 状态估计 -> P65/P67 候选生成 -> P61/P63 路径与鲁棒约束 -> P64/P68 模式和事件监督 -> P69 契约与风险验收”；所有输出进入实战前仍需通过原生合法动作与回放验证。
