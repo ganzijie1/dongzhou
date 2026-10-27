@@ -641,3 +641,18 @@ P16-P20 的完整公式见 `docs/p16_p20_advanced_math_zh.md`，P21 见 `docs/p2
 - P69 `p69_contract_barrier_composition_math.py`：Assume-Guarantee 契约、Barrier 样本审计和可组合风险界。
 
 完整公式、游戏映射、适用边界和 P61-P69 回归命令见 `docs/p61_p69_composable_control_transport_tracking_zh.md`。推荐数据流为“P62/P66 状态估计 -> P65/P67 候选生成 -> P61/P63 路径与鲁棒约束 -> P64/P68 模式和事件监督 -> P69 契约与风险验收”；所有输出进入实战前仍需通过原生合法动作与回放验证。
+
+## 45. P70-P79：几何控制、安全学习与分布式监督
+
+- P70 `p70_contraction_incremental_stability_math.py`：收缩度量、增量稳定性、测地能量与反馈。
+- P71 `p71_set_reachability_math.py`：Zonotope、Constrained Zonotope、支撑函数与 Taylor Model。
+- P72：保留给 STL 时序逻辑路线，本批未占用。
+- P73 `p73_path_integral_control_math.py`：KL Control、控制即推断、风险敏感权重与 MPPI。
+- P74 `p74_differential_dynamic_programming_math.py`：iLQR、DDP、SQP 残差与反馈律。
+- P75 `p75_information_geometry_math.py`：Fisher-Rao、自然梯度、镜像流与概率单纯形测地线。
+- P76 `p76_path_signature_rough_math.py`：Path Signature、log-signature、shuffle 校验与 CDE 离散积分。
+- P77 `p77_safe_bayesian_optimization_math.py`：GP、EI/UCB、SafeOpt 与多保真 BO。
+- P78 `p78_byzantine_resilient_estimation_math.py`：W-MSR、鲁棒聚合、攻击检测与稀疏可观测性。
+- P79 `p79_decentralized_supervisory_control_math.py`：coobservability、分布式监督、diagnosability 与 opacity。
+
+完整接口、游戏接入顺序和适用边界见 `docs/p70_p79_geometry_learning_security_zh.md`。
