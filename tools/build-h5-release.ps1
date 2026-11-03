@@ -47,13 +47,14 @@ try {
     }
 
     if (Test-Path -LiteralPath $OutputPath) { Remove-Item -LiteralPath $OutputPath -Force }
-    & tar.exe -a -cf $OutputPath -C $staging .
+    $rootEntries = @(Get-ChildItem -LiteralPath $staging | ForEach-Object { $_.Name })
+    & tar.exe -a -cf $OutputPath -C $staging @rootEntries
     if ($LASTEXITCODE -ne 0) { throw "System ZIP creation failed" }
 
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $archive = [System.IO.Compression.ZipFile]::OpenRead($OutputPath)
     try {
-        $names = @($archive.Entries | ForEach-Object { $_.FullName.Replace("\", "/").TrimStart(".", "/") })
+        $names = @($archive.Entries | ForEach-Object { $_.FullName.Replace("\", "/") })
         foreach ($required in @("index.html", "game.js", "game-systems.js", "scenario/difficulty-profiles.json", "audio/dialogue-manifest.json")) {
             if ($names -notcontains $required) { throw "Release archive missing: $required" }
         }
