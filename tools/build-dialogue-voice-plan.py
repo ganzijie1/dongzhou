@@ -30,17 +30,21 @@ FIRST_CHAPTER_OVERRIDES = {
         "gender": "male",
         "ageBand": "late_middle",
         "role": "ruler",
-        "ageBasis": "剧情发生在周宣王在位第三十九年，出生年不详；按长期在位阶段作晚年君主处理。",
+        "ageBasis": "《史记·周本纪》称太子静在召公家长大，共和十四年后即位；本关跨宣王三十九年至四十六年，因此即使按共和初年尚幼的下限估计，此时也已年过五旬。",
         "ageConfidence": "medium",
-        "identityDirection": "晚年君主，中低音，久居上位而不靠咆哮维持威势，疲惫与疑惧只在停顿中显露。",
+        "estimatedAgeRange": "宣王三十九年约53-65岁以上；四十六年约60-72岁以上",
+        "ageSources": ["《史记·周本纪》共和十四年、太子静长于召公家", "《史记·周本纪》宣王三十九年千亩之败", "《东周列国志》第一回宣王三十九年至四十六年"],
+        "identityDirection": "年过五旬的男性君主，明确的低沉男中音；气息仍完整，但经历长期在位与千亩败绩后已有疲惫和猜忌。威势来自判断与停顿，不是青年公子式的轻快、漂亮或玩世不恭。",
     },
     "伯阳父": {
         "gender": "male",
-        "ageBand": "elder",
+        "ageBand": "mature",
         "role": "scholar_minister",
-        "ageBasis": "周室资深史官形象；确切年龄无可靠记载，按剧情中的阅历与职掌保守推断。",
+        "ageBasis": "《国语·周语上》记伯阳父在幽王二年仍以太史身份论三川震；小说把他前置到宣王三十九年，约早九年。此时应是能长期任职的成熟男性史官，但没有证据把他处理成衰老者。",
         "ageConfidence": "low",
-        "identityDirection": "年长史官，声音清瘦而稳定，解释灾异时审慎，不作神秘腔。",
+        "estimatedAgeRange": "约45-60岁，仅为任职跨度下的宽区间推测",
+        "ageSources": ["《国语·周语上》幽王二年伯阳父论三川震", "《东周列国志》第一回宣王三十九年太史伯阳父"],
+        "identityDirection": "四十至六十岁的成熟男性史官，清晰的中低男声，理性、干燥而稳定；解释灾异像在向君主陈述判断，不用老婆婆声、柔弱气声、神秘腔或衰老颤音。",
     },
     "杜伯": {
         "gender": "male",
@@ -70,9 +74,11 @@ FIRST_CHAPTER_OVERRIDES = {
         "gender": "male",
         "ageBand": "adult",
         "role": "commoner",
-        "ageBasis": "剧情仅能确认其为已婚成年乡民，无法进一步确定年龄。",
+        "ageBasis": "剧情能确认他是携妻入城售卖桑弓箕袋、能独自远行逃难的已婚成年乡民；没有确切年龄记载。",
         "ageConfidence": "high",
-        "identityDirection": "成年平民，朴素自然，遭逢惨变时惊惧急切但不舞台化。",
+        "estimatedAgeRange": "约30-50岁，仅依据婚姻、劳作与逃难能力作宽区间推测",
+        "ageSources": ["《东周列国志》第一回乡民夫妇入城售卖桑弓箕袋、妻被处死、本人逃亡"],
+        "identityDirection": "三十至五十岁的男性乡民和体力劳作者，中低男声，不是明亮轻快的现代都市青年。妻子刚被官府无理处死，他正仓皇逃命：惊惧、悲痛和被权力压住的愤怒落在短促呼吸、迟疑与压低的重音里；不要广告腔、偶像剧腔、少年感、滑稽农民腔或夸张哭喊。",
     },
 }
 
@@ -194,6 +200,52 @@ def identity_direction(gender: str, age_band: str, role: str, variant: int) -> s
     return f"{gender_text}，{age}；{role_text}；{resonance}。"
 
 
+def hard_acoustic_constraint(gender: str, age_band: str) -> str:
+    if gender == "male":
+        age_target = {
+            "child": "a naturally young male child voice",
+            "young_adult": "a clearly male young-adult voice, not androgynous",
+            "adult": "a clearly adult male voice with stable chest resonance",
+            "mature": "a mature male baritone or low tenor with full breath support",
+            "late_middle": "a late-middle-aged male baritone with a lower center of gravity",
+            "elder": "an older male voice with full breath support, never a grandmother voice",
+        }[age_band]
+        return (
+            f"HARD ACOUSTIC CONSTRAINT: the speaker is male; use {age_target}. "
+            "Never generate a female, grandmotherly, falsetto, breathy-high, boyish, or androgynous voice."
+        )
+    return (
+        "HARD ACOUSTIC CONSTRAINT: the speaker is female; use a natural female vocal identity matching the stated age. "
+        "Never generate a male, falsetto imitation, or age-inappropriate voice."
+    )
+
+
+def conservative_age_range(age_band: str) -> str:
+    return {
+        "child": "少年阶段；缺少可核验生年，不给具体岁数",
+        "young_adult": "青年阶段；缺少可核验生年，不给具体岁数",
+        "adult": "成年阶段；缺少可核验生年，不给具体岁数",
+        "mature": "成熟至中年阶段；缺少可核验生年，不给具体岁数",
+        "late_middle": "晚中年阶段；缺少可核验生年，不给具体岁数",
+        "elder": "老年阶段；缺少可核验生年，不给具体岁数",
+    }[age_band]
+
+
+def social_performance_constraint(role: str) -> str:
+    return {
+        "ruler": "权力位置高，语气由决断、停顿和他人服从构成，不采用浮夸贵公子或暴君模板。",
+        "royal_woman": "处于宗法和宫廷礼制中，表达需结合处境，不套用柔弱、妖媚或宫斗模板。",
+        "royal_heir": "受礼制约束但权力尚不稳，区分礼仪训练、个人判断与处境压力。",
+        "military": "军旅身份通过命令效率、呼吸和现场压力体现，不用持续吼叫或粗嗓模板。",
+        "commoner_or_attendant": "结合劳作、服役及权力距离表现，不用现代客服腔、都市青年腔或滑稽底层模板。",
+        "scholar_minister": "以论理、观察和对君主的风险判断体现身份，不用神秘算命腔或说教播音腔。",
+        "senior_minister": "资深臣僚的分量来自判断和进谏风险，不用衰弱老人或脸谱忠臣腔。",
+        "senior_general": "资深统帅保持完整气息和指令清晰度，不把年龄等同于虚弱或沙哑。",
+        "minister_or_gentry": "结合礼制、政治风险与对话对象表达，不使用统一士大夫播音模板。",
+        "commoner": "结合劳作、家庭损失和官府压力表达，不用现代都市青年、广告或滑稽农民模板。",
+    }.get(role, "依据场景中的权力关系和现实后果表达，不使用职业脸谱腔。")
+
+
 def make_card(speaker: str, texts: list[str], stage_context: str) -> dict:
     if speaker in FIRST_CHAPTER_OVERRIDES:
         data = dict(FIRST_CHAPTER_OVERRIDES[speaker])
@@ -210,9 +262,16 @@ def make_card(speaker: str, texts: list[str], stage_context: str) -> dict:
             "ageConfidence": age_confidence,
         }
         data["identityDirection"] = identity_direction(gender, age_band, role, int(stable_hash(speaker, 4), 16))
+    data.setdefault("estimatedAgeRange", conservative_age_range(data["ageBand"]))
+    data.setdefault("ageSources", ["本地关卡剧情文本与角色职掌；未发现可核验的精确生年"])
+    data["identityReviewStatus"] = "manual_historical_review" if speaker in FIRST_CHAPTER_OVERRIDES else "inferred_requires_review"
+    data["genderConfidence"] = "high" if gender_basis in {"manual_historical_review", "name_or_title"} else "low"
+    data["socialPerformanceConstraint"] = social_performance_constraint(data["role"])
     direction = data["identityDirection"]
+    acoustic_constraint = hard_acoustic_constraint(data["gender"], data["ageBand"])
     instruction = (
-        f"为中国先秦历史叙事游戏设计角色声音。人物：{speaker}。{direction}"
+        f"{acoustic_constraint} 为中国先秦历史叙事游戏设计角色声音。人物：{speaker}。{direction}"
+        f"社会处境：{data['socialPerformanceConstraint']}"
         "使用自然现代普通话承载古代称谓，句读清楚，表演克制且有人际对象感。"
         f"禁止：{'、'.join(FORBIDDEN_STYLE)}。不模仿任何现实演员、主播或名人。"
     )
@@ -225,6 +284,7 @@ def make_card(speaker: str, texts: list[str], stage_context: str) -> dict:
         "lineCount": len(texts),
         "referenceText": REFERENCE_TEXT,
         "voiceDesignInstruction": instruction,
+        "hardAcousticConstraint": acoustic_constraint,
         "forbiddenStyle": FORBIDDEN_STYLE,
         "referenceFile": f"output/voice-production/references/{stable_hash(speaker, 16)}.wav",
     }
@@ -335,12 +395,24 @@ def context_instruction(card: dict, context: dict, delivery: dict) -> str:
     scene = scene_labels.get(context["scene"], "历史叙事场景")
     relationship = relationship_labels.get(context["relationship"], "对场内人物")
     return (
+        f"{card['hardAcousticConstraint']} This constraint outranks emotion and acting style. "
         f"保持角色身份：{card['identityDirection']}"
+        f"年龄目标：{card['estimatedAgeRange']}；社会处境：{card['socialPerformanceConstraint']}"
         f"场景：{scene}；关系：{relationship}。前文：{previous}。此句之后：{following}。"
         f"此句功能：{act_labels.get(context['speechAct'], act_labels['statement'])}。"
         f"情绪强度约{delivery['intensity']:.2f}，语速倍率约{delivery['pace']:.2f}，"
         "用自然停顿、重音和气息表达，不改变性别、年龄与固定声纹。"
     )
+
+
+def extract_time_markers(turns: list[dict]) -> list[str]:
+    markers: list[str] = []
+    pattern = re.compile(r"(?:在位)?[一二三四五六七八九十百〇零两\d]{1,5}年|多年后|数年后|三年后|当年|次年|翌年|晚年|年老|尚幼")
+    for turn in turns:
+        for marker in pattern.findall(turn.get("text", "")):
+            if marker not in markers:
+                markers.append(marker)
+    return markers
 
 
 def main() -> None:
@@ -419,6 +491,18 @@ def main() -> None:
             "relationship": relationship,
             "previousTurns": previous_turns,
             "nextTurns": next_turns,
+            "historicalSituation": {
+                "chapter": occurrence["chapter"],
+                "stageTitle": occurrence["stageTitle"],
+                "timeMarkers": extract_time_markers(timeline[max(0, timeline_index - 5):timeline_index + 2]),
+            },
+            "speakerAtScene": {
+                "ageBand": card["ageBand"],
+                "estimatedAgeRange": card["estimatedAgeRange"],
+                "ageConfidence": card["ageConfidence"],
+                "identityReviewStatus": card["identityReviewStatus"],
+                "socialPerformanceConstraint": card["socialPerformanceConstraint"],
+            },
         }
         context["synthesisInstruction"] = context_instruction(card, context, delivery)
         occurrence_ref = {
@@ -459,6 +543,8 @@ def main() -> None:
             "unknownAgeRule": "Do not invent a numeric age; retain an explicit low-confidence inference label.",
             "contextVariantRule": "Runtime currently resolves speaker plus text; synthesize the first occurrence and retain all alternate contexts for review.",
             "promotionRule": "Custom candidates cannot replace shipped audio until identity, text, prosody and gender review gates pass.",
+            "historicalReviewRule": "Every speaker carries age evidence, confidence, social-position direction and review status; inferred cards remain explicitly pending.",
+            "sceneAgeRule": "Each occurrence stores chapter time markers and the age target in force for that scene; long-lived characters must not rely on an unchanging numeric age.",
         },
         "summary": {
             "campaignStages": len(campaign.get("stages", [])),
@@ -468,6 +554,9 @@ def main() -> None:
             "uniqueCharacterAudio": len(unique_entries),
             "excludedOccurrences": sum(excluded_counts.values()),
             "excludedBySpeaker": dict(excluded_counts),
+            "ageBandCounts": dict(sorted(Counter(card["ageBand"] for card in cards.values()).items())),
+            "identityReviewCounts": dict(sorted(Counter(card["identityReviewStatus"] for card in cards.values()).items())),
+            "genderConfidenceCounts": dict(sorted(Counter(card["genderConfidence"] for card in cards.values()).items())),
         },
         "entries": list(unique_entries.values()),
         "occurrences": occurrence_refs,

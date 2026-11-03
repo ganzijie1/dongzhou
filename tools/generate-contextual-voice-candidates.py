@@ -36,6 +36,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--plan-only", action="store_true", help="Write the review queue without loading Qwen.")
+    parser.add_argument("--analyze-only", action="store_true", help="Re-score existing candidates without loading Qwen.")
     return parser.parse_args()
 
 
@@ -76,8 +77,22 @@ def load_model(device: str):
     return model
 
 
-def analyze_audio(waveform, sample_rate: int, text: str, delivery: dict) -> dict:
+def pitch_sanity_range(card: dict) -> tuple[float, float]:
+    if card.get("gender") == "female":
+        return (135.0, 285.0)
+    return {
+        "child": (120.0, 260.0),
+        "young_adult": (75.0, 205.0),
+        "adult": (70.0, 190.0),
+        "mature": (65.0, 175.0),
+        "late_middle": (60.0, 165.0),
+        "elder": (60.0, 165.0),
+    }.get(card.get("ageBand"), (65.0, 190.0))
+
+
+def analyze_audio(waveform, sample_rate: int, text: str, delivery: dict, card: dict) -> dict:
     import numpy as np
+    import librosa
 
     audio = np.asarray(waveform, dtype=np.float32).reshape(-1)
     duration = len(audio) / sample_rate
@@ -86,6 +101,12 @@ def analyze_audio(waveform, sample_rate: int, text: str, delivery: dict) -> dict
     clipping = float(np.mean(np.abs(audio) >= 0.995)) if len(audio) else 1.0
     silence = float(np.mean(np.abs(audio) < 0.003)) if len(audio) else 1.0
     chars_per_second = len(text.strip()) / max(duration, 0.001)
+    frame_rms = librosa.feature.rms(y=audio, frame_length=2048, hop_length=512)[0]
+    spectral_centroid = librosa.feature.spectral_centroid(y=audio, sr=sample_rate)[0]
+    spectral_flatness = librosa.feature.spectral_flatness(y=audio)[0]
+    harmonic = librosa.effects.harmonic(audio)
+    harmonic_ratio = float(np.sqrt(np.mean(np.square(harmonic))) / max(rms, 1e-6))
+    rms_variation = float(np.std(frame_rms) / max(np.mean(frame_rms), 1e-6))
 
     # Historical dramatic Mandarin is normally more deliberate than news reading.
     target_cps = 3.6 * float(delivery.get("pace", 1.0))
@@ -105,6 +126,21 @@ def analyze_audio(waveform, sample_rate: int, text: str, delivery: dict) -> dict
         quality_score *= 0.1
     if silence > 0.78:
         quality_score *= 0.4
+    f0, _, _ = librosa.pyin(audio, fmin=55.0, fmax=400.0, sr=sample_rate)
+    voiced_f0 = f0[np.isfinite(f0)]
+    median_f0 = float(np.median(voiced_f0)) if len(voiced_f0) else 0.0
+    f0_p90 = float(np.quantile(voiced_f0, 0.9)) if len(voiced_f0) else 0.0
+    f0_min, f0_max = pitch_sanity_range(card)
+    if not median_f0:
+        pitch_score = 0.0
+        pitch_pass = False
+    elif f0_min <= median_f0 <= f0_max:
+        pitch_score = 1.0
+        pitch_pass = True
+    else:
+        distance = (f0_min - median_f0) / f0_min if median_f0 < f0_min else (median_f0 - f0_max) / f0_max
+        pitch_score = math.exp(-5.0 * distance)
+        pitch_pass = False
     return {
         "duration": round(duration, 3),
         "peak": round(peak, 6),
@@ -116,6 +152,19 @@ def analyze_audio(waveform, sample_rate: int, text: str, delivery: dict) -> dict
         "prosodyScore": round(prosody_score, 4),
         "qualityScore": round(quality_score, 4),
         "durationGate": duration_ok,
+        "medianF0Hz": round(median_f0, 2),
+        "f0P90Hz": round(f0_p90, 2),
+        "pitchSanityRangeHz": [f0_min, f0_max],
+        "pitchSanityScore": round(pitch_score, 4),
+        "pitchSanityGate": pitch_pass,
+        "pitchCaveat": "F0 is an anomaly screen, not a gender or age classifier.",
+        "voiceQuality": {
+            "medianSpectralCentroidHz": round(float(np.median(spectral_centroid)), 2),
+            "medianSpectralFlatness": round(float(np.median(spectral_flatness)), 6),
+            "harmonicEnergyRatio": round(harmonic_ratio, 4),
+            "rmsVariation": round(rms_variation, 4),
+        },
+        "voiceQualityCaveat": "Spectral and harmonic measures describe breathiness/brightness/roughness proxies; they do not determine sex, age, class, or acting quality.",
     }
 
 
@@ -136,6 +185,7 @@ def empty_record(entry: dict, card: dict, candidates: int) -> dict:
             "identity": "pending_speaker_embedding",
             "gender": "pending_human_reference_review",
             "prosody": "pending_generation",
+            "pitchSanity": "pending_generation",
         },
         "promotionEligible": False,
     }
@@ -152,7 +202,8 @@ def write_index(records: list[dict], plan_only: bool) -> None:
         "policy": {
             "isolation": "Candidates are written under output and never overwrite web-game audio.",
             "ranking": "Automatic quality and prosody scores only; missing ASR, identity, and gender gates are not imputed.",
-            "promotion": "All four gates plus explicit review approval are required before deployment.",
+            "promotion": "Every automatic and human-review gate plus explicit approval is required before deployment.",
+            "pitch": "Median F0 is only an anomaly veto; it is never treated as a gender, age, or character classifier.",
         },
         "entries": records,
     }
@@ -190,9 +241,13 @@ def main() -> None:
         return
 
     import soundfile as sf
-    import torch
 
-    model = load_model(args.device)
+    model = None
+    torch = None
+    if not args.analyze_only:
+        import torch as torch_module
+        torch = torch_module
+        model = load_model(args.device)
     try:
         for line_index, (entry, record) in enumerate(zip(entries, records), start=1):
             entry_dir = OUTPUT_ROOT / entry["id"]
@@ -203,6 +258,8 @@ def main() -> None:
                 if path.exists() and not args.force:
                     waveform, sample_rate = sf.read(path, dtype="float32")
                 else:
+                    if args.analyze_only:
+                        raise RuntimeError(f"Analyze-only candidate is missing: {path}")
                     seed = seed_for(f"{entry['id']}|{candidate_index}")
                     torch.manual_seed(seed)
                     if torch.cuda.is_available():
@@ -213,22 +270,27 @@ def main() -> None:
                     )
                     waveform = wavs[0]
                     sf.write(path, waveform, sample_rate)
-                analysis = analyze_audio(waveform, sample_rate, entry["text"], entry["delivery"])
+                card = cards_by_id[entry["voiceCardId"]]
+                analysis = analyze_audio(waveform, sample_rate, entry["text"], entry["delivery"], card)
                 record["candidates"].append({
                     "candidate": candidate_index,
                     "seed": seed_for(f"{entry['id']}|{candidate_index}"),
                     "file": str(path.relative_to(ROOT)).replace("\\", "/"),
                     "analysis": analysis,
-                    "automaticRankScore": round(0.55 * analysis["prosodyScore"] + 0.45 * analysis["qualityScore"], 4),
+                    "automaticRankScore": round(
+                        0.40 * analysis["prosodyScore"] + 0.25 * analysis["qualityScore"] + 0.35 * analysis["pitchSanityScore"], 4
+                    ),
                 })
             record["candidates"].sort(key=lambda item: item["automaticRankScore"], reverse=True)
             record["gates"]["prosody"] = "pass" if record["candidates"][0]["analysis"]["prosodyScore"] >= 0.55 else "fail"
+            record["gates"]["pitchSanity"] = "pass" if record["candidates"][0]["analysis"]["pitchSanityGate"] else "fail"
             write_index(all_records, False)
             print(f"[{line_index}/{len(entries)}] {entry['speaker']} {entry['id']}", flush=True)
     finally:
-        del model
+        if model is not None:
+            del model
         gc.collect()
-        if torch.cuda.is_available():
+        if torch is not None and torch.cuda.is_available():
             torch.cuda.empty_cache()
     write_index(all_records, False)
 

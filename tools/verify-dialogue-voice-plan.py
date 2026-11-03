@@ -36,7 +36,7 @@ def main() -> None:
         raise RuntimeError("Occurrence references an unknown voice-plan entry")
     if any(entry["voiceCardId"] not in cards_by_id for entry in entries):
         raise RuntimeError("Voice-plan entry references an unknown character card")
-    required_context_fields = {"id", "scene", "speechAct", "relationship", "previousTurns", "nextTurns", "synthesisInstruction"}
+    required_context_fields = {"id", "scene", "speechAct", "relationship", "previousTurns", "nextTurns", "historicalSituation", "speakerAtScene", "synthesisInstruction"}
     for entry in entries:
         context = entry.get("context") or {}
         missing = required_context_fields - context.keys()
@@ -49,7 +49,7 @@ def main() -> None:
             raise RuntimeError(f"Entry {entry['id']} has incomplete delivery controls")
     if len({card["speaker"] for card in cards}) != len(cards):
         raise RuntimeError("Duplicate character voice cards")
-    required_card_fields = {"ageBand", "ageBasis", "ageConfidence", "role", "voiceDesignInstruction", "forbiddenStyle"}
+    required_card_fields = {"ageBand", "estimatedAgeRange", "ageBasis", "ageSources", "ageConfidence", "role", "identityReviewStatus", "genderConfidence", "socialPerformanceConstraint", "voiceDesignInstruction", "hardAcousticConstraint", "forbiddenStyle"}
     for card in cards:
         missing = required_card_fields - card.keys()
         if missing:
@@ -58,13 +58,16 @@ def main() -> None:
             raise RuntimeError(f"Card {card['speaker']} lacks anti-caricature constraints")
     for speaker in ("杜伯", "左儒", "伯阳父", "尹吉甫"):
         card = next(item for item in cards if item["speaker"] == speaker)
-        if card["ageBand"] != "elder":
-            raise RuntimeError(f"First-chapter senior minister is not elder-directed: {speaker}")
+        expected = "mature" if speaker == "伯阳父" else "elder"
+        if card["ageBand"] != expected:
+            raise RuntimeError(f"First-chapter historical age direction mismatch for {speaker}: expected {expected}")
 
     expected_occurrences = plan["summary"]["characterLineOccurrences"]
     if expected_occurrences != len(occurrences):
         raise RuntimeError("Character occurrence count mismatch")
     stage_counts = Counter(item["stageId"] for item in occurrences)
+    if sum(plan["summary"].get("identityReviewCounts", {}).values()) != len(cards):
+        raise RuntimeError("Identity review summary does not cover every speaker")
     print(json.dumps({
         "result": "PASS",
         "stages": plan["summary"]["campaignStages"],
