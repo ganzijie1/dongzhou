@@ -21,7 +21,7 @@ def main() -> None:
     index = json.loads(INDEX_PATH.read_text(encoding="utf-8"))
     cards = json.loads(CARDS_PATH.read_text(encoding="utf-8"))["cards"]
     cards_by_id = {card["id"]: card for card in cards}
-    if index.get("schemaVersion") != 1:
+    if index.get("schemaVersion") != 2:
         raise RuntimeError("Unsupported contextual candidate index")
     if not index.get("entries"):
         raise RuntimeError("Contextual candidate index is empty")
@@ -38,6 +38,11 @@ def main() -> None:
             raise RuntimeError(f"Missing context instruction: {entry.get('entryId')}")
         for name, status in (entry.get("gates") or {}).items():
             gates[f"{name}:{status}"] += 1
+        required_gates = {"text", "identity", "humanReview", "calibration", "waveform", "prosody"}
+        if not required_gates.issubset(entry.get("gates") or {}):
+            raise RuntimeError(f"Missing review gates: {entry.get('entryId')}")
+        if "pitchSanity" in entry["gates"] or "gender" in entry["gates"]:
+            raise RuntimeError(f"Pitch or demographic classifier leaked into promotion gates: {entry.get('entryId')}")
         pending = any(status != "pass" for status in (entry.get("gates") or {}).values())
         if pending and entry.get("promotionEligible"):
             raise RuntimeError(f"Pending candidate marked promotion eligible: {entry.get('entryId')}")
@@ -54,8 +59,15 @@ def main() -> None:
             if "web-game" in relative.parts:
                 raise RuntimeError(f"Unreviewed candidate leaked into shipped assets: {relative}")
             analysis = candidate.get("analysis") or {}
-            if not analysis.get("durationGate") or analysis.get("qualityScore", 0) <= 0:
+            required_analysis = {"speechTiming", "pauseStructure", "breathProxy", "energy", "pitch", "voiceQuality"}
+            if not required_analysis.issubset(analysis):
+                raise RuntimeError(f"Incomplete multidimensional analysis: {relative}")
+            if not analysis.get("waveformGate") or analysis.get("qualityScore", 0) <= 0:
                 raise RuntimeError(f"Invalid candidate audio: {relative}")
+            if analysis["breathProxy"].get("reviewStatus") != "pending_human_confirmation":
+                raise RuntimeError(f"Unconfirmed breath proxy treated as fact: {relative}")
+            if "warning" not in analysis["pitch"] or "classifier" not in analysis["pitch"].get("caveat", ""):
+                raise RuntimeError(f"Pitch caveat missing: {relative}")
             candidate_count += 1
     print(json.dumps({
         "result": "PASS",
@@ -63,6 +75,8 @@ def main() -> None:
         "candidates": candidate_count,
         "gates": dict(sorted(gates.items())),
         "promotionBlockedWhilePending": True,
+        "pitchExcludedFromPromotionGates": True,
+        "breathRequiresHumanConfirmation": True,
     }, ensure_ascii=False, indent=2))
 
 
