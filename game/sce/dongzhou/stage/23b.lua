@@ -102,7 +102,7 @@ gstage = {
             "rFgggrrrrgggggggFrr",
             "rrgggggrrrgggggggFr",
             "rrrggggggggggggFrrr",
-            "rrrgeggggggggggFrrrr",
+            "rrrgeggggggggggFrrr",
             "rrrrFFFFFFFFFFFrrrr"
         }, file = "map.bmp"
     },

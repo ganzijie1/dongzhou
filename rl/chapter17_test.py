@@ -44,7 +44,7 @@ def main() -> None:
             for y in range(0, 7) for x in range(2, 17)
         )
 
-        env._request("LOAD_STAGE 26")
+        env._request("LOAD_STAGE 27")
         story = env.story_info()
         assert story["chapter"] == "第十七回"
         assert story["battle_title"] == "亳城平乱"

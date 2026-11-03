@@ -14,7 +14,7 @@ def action_types(env: MengdeEnv) -> set[int]:
 def main() -> None:
     executable = Path("build/rl-vcpkg/game/src/rl/Release/mengde_rl.exe")
     with MengdeEnv(executable, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 25")
+        env._request("LOAD_STAGE 26")
 
         story = env.story_info()
         assert story["chapter"] == "第十六回"

@@ -18,7 +18,7 @@ def main() -> None:
     assert not Path("game/sce/dongzhou/stage/37.lua").exists()
 
     with MengdeEnv(EXECUTABLE, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 60")
+        env._request("LOAD_STAGE 61")
         story = env.story_info()
         victory = story["victory"]
         text = "\n".join(entry["text"] for entry in victory)

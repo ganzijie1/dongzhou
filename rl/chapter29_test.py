@@ -23,7 +23,7 @@ def wait_once(env: MengdeEnv) -> tuple:
 
 def main() -> None:
     with MengdeEnv(EXECUTABLE, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 49")
+        env._request("LOAD_STAGE 50")
         story = env.story_info()
         assert story["chapter"] == "第二十九回"
         assert story["title"] == "晋惠公大诛群臣 管夷吾病榻论相"
@@ -74,14 +74,14 @@ def main() -> None:
         assert (int(units["GuanYiWu29"]["x"]), int(units["GuanYiWu29"]["y"])) == (18, 11)
         assert units["GuanYiWu29"]["terrain"] not in IMPASSABLE
 
-        env._request("LOAD_STAGE 49")
+        env._request("LOAD_STAGE 50")
         victory = env.snapshot()
         next(unit for unit in victory["units"] if unit["name"] == "YiLuoRongLord29")["hp"] = 0
         env.restore(victory)
         _, _, terminated, truncated, info = wait_once(env)
         assert terminated and not truncated and int(info["status"]) == 3
 
-        env._request("LOAD_STAGE 49")
+        env._request("LOAD_STAGE 50")
         defeat = env.snapshot()
         next(unit for unit in defeat["units"] if unit["name"] == "ZhouXiangWang29")["hp"] = 0
         env.restore(defeat)

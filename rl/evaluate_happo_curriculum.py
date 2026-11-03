@@ -12,6 +12,7 @@ import torch
 from rl.happo import HAPPO, decision_role, happo_decision
 
 from rl.mengde_env import MengdeEnv
+from rl.train_happo_dongzhou import DONGZHOU_STAGE_COUNT
 
 
 VICTORY = 3
@@ -22,7 +23,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--executable", type=Path, required=True)
     parser.add_argument("--model", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--stage-count", type=int, default=41)
+    parser.add_argument("--stage-count", type=int, default=DONGZHOU_STAGE_COUNT)
     parser.add_argument("--episodes", type=int, default=1)
     parser.add_argument("--max-episode-actions", type=int, default=120)
     parser.add_argument("--seed", type=int, default=2026)

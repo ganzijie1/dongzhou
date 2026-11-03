@@ -18,7 +18,7 @@ IMPASSABLE = {"Wall", "RockyMountain", "Water", "Fence"}
 def main() -> None:
     executable = Path("build/rl-vcpkg/game/src/rl/Release/mengde_rl.exe")
     with MengdeEnv(executable, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 44")
+        env._request("LOAD_STAGE 45")
         for offset, (chapter, battle, asset, intro_count, victory_count) in enumerate(EXPECTED):
             if offset:
                 assert env.next_stage() is not None
@@ -56,7 +56,7 @@ def main() -> None:
                         by_name["ChiBan26"][0]["terrain"]) == (9, 1, "Camp")
                 assert terrain.count("RockyMountain") > 20
 
-        env._request("LOAD_STAGE 44")
+        env._request("LOAD_STAGE 45")
         snapshot = env.snapshot()
         for unit in snapshot["units"]:
             if unit["name"] == "MengMingShi26":
@@ -72,7 +72,7 @@ def main() -> None:
         inherited = next(unit for unit in env.snapshot()["units"] if unit["name"] == "MengMingShi26")
         assert (int(inherited["level"]), int(inherited["exp"])) == (7, 41)
 
-        env._request("LOAD_STAGE 45")
+        env._request("LOAD_STAGE 46")
         snapshot = env.snapshot()
         chiban = next(unit for unit in snapshot["units"] if unit["name"] == "ChiBan26")
         chiban.update({"dead": True, "hp": 0})

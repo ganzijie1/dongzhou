@@ -1,0 +1,77 @@
+{
+  "id": "pcgrl-masui",
+  "file": "pcgrl_masui.lua",
+  "isProcedural": true,
+  "chapter": "史实演武·非主线",
+  "title": "前578年 晋率诸侯伐秦",
+  "battleTitle": "麻隧之战·生成演武",
+  "objective": "击破成差与不更女父；晋厉公退场则失败",
+  "mapAsset": "m007-camp-v5.png",
+  "turnLimit": 24,
+  "commanders": ["JinLiGong58", "LuanShu58", "ShiXie58", "HanJue48", "XiQi58", "XiZhi58", "XunYing54"],
+  "items": [
+    {"id": "medicine", "name": "金疮药", "hp": 120, "mp": 0, "price": 120, "initial": 2},
+    {"id": "spirit_powder", "name": "清心散", "hp": 0, "mp": 30, "price": 150, "initial": 1}
+  ],
+  "sites": [],
+  "duels": [],
+  "flags": {"supply": false, "duel": false, "events": true},
+  "story": {
+    "chapter": "史实演武·非主线",
+    "title": "前578年 晋率诸侯伐秦",
+    "battle_title": "麻隧之战·生成演武",
+    "objective": "击破成差与不更女父；晋厉公退场则失败",
+    "map_asset": "m007-camp-v5.png",
+    "intro": [
+      {"speaker": "旁白", "text": "鲁成公十三年，晋厉公使吕相绝秦，随后会齐、宋、卫、郑、曹、邾、滕及鲁师伐秦。"},
+      {"speaker": "军令", "text": "《左传》记晋军四军将佐齐整，与诸侯之师战于麻隧；秦师败绩，成差与不更女父被获。"},
+      {"speaker": "演武说明", "text": "史籍未载此战细部阵形。当前地形与部署间距由端侧 PCGRL、WFC 和规则校验生成，仅作战术推演，不作为史实结论。"},
+      {"speaker": "栾书", "text": "诸军乘和，先稳住中路，再分翼迫秦阵。勿使诸侯之师彼此隔绝。"}
+    ],
+    "victory": [
+      {"speaker": "旁白", "text": "秦师败绩，晋与诸侯之师获成差及不更女父。联军随后渡泾，至侯丽而还。"}
+    ],
+    "defeat": [
+      {"speaker": "旁白", "text": "联军阵势失和，未能完成麻隧演武目标。"}
+    ]
+  },
+  "stage": {
+    "title_id": "PcgrlMasuiExercise",
+    "turn_limit": 24,
+    "map": {
+      "blocked_edges": [],
+      "size": [19, 14],
+      "terrain": [
+        "FrrrrfrrffffrffrrFF",
+        "rFFrrrfrffffffrrFFF",
+        "FrFrffrrrfffffrFFFF",
+        "FFrffffrFFrFFrfrfrF",
+        "FFFFFffrFfFfffFFFFF",
+        "FFffffffrFFFrFfffrF",
+        "rfffffffrffffffffff",
+        "frfffffffffffffffff",
+        "FFffffffFFFFFFffrrF",
+        "FFrFFfffFfFfffFFFFF",
+        "FFrffffFFFFFFffffrF",
+        "FFFFrfffffffffrFFFF",
+        "FFFrrfffffffffrrFFF",
+        "FFrrrffffffffffrrFF"
+      ],
+      "file": "generated"
+    },
+    "deploy": {
+      "unselectables": [
+        {"position": [2, 6], "hero": "JinLiGong58"},
+        {"position": [3, 4], "hero": "LuanShu58"},
+        {"position": [3, 6], "hero": "ShiXie58"},
+        {"position": [3, 8], "hero": "HanJue48"},
+        {"position": [4, 3], "hero": "XiQi58"},
+        {"position": [4, 9], "hero": "XiZhi58"},
+        {"position": [5, 5], "hero": "XunYing54"}
+      ],
+      "num_required_selectables": 0,
+      "selectables": []
+    },
+    "rewards": {"equipments": [], "money": 0}
+  }
+}

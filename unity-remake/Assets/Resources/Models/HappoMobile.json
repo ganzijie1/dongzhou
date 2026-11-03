@@ -1,0 +1,94 @@
+{
+  "format": "onnx",
+  "opset": 15,
+  "model": "HappoMobile.onnx",
+  "model_bytes": 393035,
+  "model_sha256": "e7310bd63dc843970f6fe570ebf0924b76dbe21717c2d5db8c69068b5047b697",
+  "source_checkpoint": "rl\\models\\mobile-candidate\\happo.pt",
+  "source_checkpoint_sha256": "2f5530f6b8b635df4de4863b53b70ffd933c9657db26f95b8b17d25daf7cce28",
+  "local_features": 20,
+  "candidate_features": 34,
+  "max_candidates": 256,
+  "roles": [
+    "Lord",
+    "King",
+    "Infantry",
+    "Cavalry",
+    "Archer",
+    "Strategist",
+    "Support",
+    "Artillery",
+    "Fighter",
+    "Bandit",
+    "Other"
+  ],
+  "trained_roles": [
+    "King",
+    "Infantry",
+    "Cavalry",
+    "Strategist"
+  ],
+  "untrained_role_behavior": "equal legal logits; deterministic first legal action",
+  "inputs": [
+    "local",
+    "candidates",
+    "legal_mask",
+    "role_one_hot"
+  ],
+  "output": "logits",
+  "selection": "argmax over legal candidates",
+  "invalid_logit": -10000.0,
+  "validation": {
+    "provider": "CPUExecutionProvider",
+    "runs": 200,
+    "host_only": true,
+    "p50_ms": 0.8608,
+    "p95_ms": 2.1938749999999985,
+    "p99_ms": 9.619305,
+    "max_abs_error": 2.86102294921875e-06,
+    "argmax_matches_all_roles": true
+  },
+  "release_evaluation": {
+    "scope": "enemy policy versus the same deterministic scripted player",
+    "battle_stages": 169,
+    "episodes_per_stage": 3,
+    "scripted_baseline": {
+      "enemy_win_rate": 0.0,
+      "enemy_win_rate_ci95": [
+        0.0,
+        0.007520139315200641
+      ],
+      "enemy_mean_return": 2.2400000000000015,
+      "mean_actions": 160.0,
+      "timeout_rate": 1.0,
+      "stage_win_rate_p10": 0.0,
+      "stage_win_rate_p50": 0.0,
+      "episodes": 507.0
+    },
+    "happo": {
+      "enemy_win_rate": 1.0,
+      "enemy_win_rate_ci95": [
+        0.9924798606847993,
+        1.0
+      ],
+      "enemy_mean_return": 12.35358755765286,
+      "mean_actions": 43.43984220907298,
+      "timeout_rate": 0.0,
+      "stage_win_rate_p10": 1.0,
+      "stage_win_rate_p50": 1.0,
+      "episodes": 507.0
+    },
+    "delta": {
+      "enemy_win_rate": 1.0,
+      "enemy_mean_return": 10.113587557652858
+    },
+    "release_gate": {
+      "beats_scripted_baseline": true,
+      "multiple_seeds": true,
+      "timeout_rate_at_most_5_percent": true,
+      "balanced_against_scripted_player": false,
+      "requires_runtime_fallback_for_untrained_roles": true,
+      "status": "pass-with-runtime-calibration-required"
+    }
+  }
+}

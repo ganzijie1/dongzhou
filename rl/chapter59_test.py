@@ -86,7 +86,7 @@ def main() -> None:
     config = (ROOT / "game/sce/dongzhou/config.lua").read_text(encoding="utf-8")
     gui = (ROOT / "rl/play_gui.py").read_text(encoding="utf-8")
     assert CURRENT_DONGZHOU_STAGES[-10:] == ("57", "58", "59a", "59b", "60a", "60b", "60c", "61a", "61b", "61c")
-    assert CURRENT_DONGZHOU_STAGES.index("58") == 93
+    assert CURRENT_DONGZHOU_STAGES.index("58") == 94
     assert STAGE_TABLE_VERSION == 5
     assert '"57", "58", "59a", "59b", "60a", "60b", "60c", "61a", "61b", "61c"' in config
     for hero in ("XuTong59", "YiYangWu59", "QingFeiTui59", "ChengHua59", "ZhaoWu59", "ChengYing59"):

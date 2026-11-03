@@ -20,7 +20,7 @@ def main() -> None:
     with MengdeEnv(
         executable, scenario="dongzhou", max_episode_actions=100, interactive=True
     ) as env:
-        env._request("LOAD_STAGE 42")
+        env._request("LOAD_STAGE 43")
         for offset, (chapter, battle, asset, intro_count, victory_count) in enumerate(EXPECTED):
             if offset:
                 assert env.next_stage() is not None
@@ -69,7 +69,7 @@ def main() -> None:
                     (9, 0), (6, 2), (9, 4), (15, 10)
                 }
 
-        env._request("LOAD_STAGE 42")
+        env._request("LOAD_STAGE 43")
         snapshot = env.snapshot()
         for unit in snapshot["units"]:
             if unit["name"] in {"XiayangCaptain25", "ZhouZhiQiao25"}:
@@ -78,7 +78,7 @@ def main() -> None:
         _, _, terminated, _, info = env.step(int(env.list_actions()[0]["index"]))
         assert terminated and int(info["status"]) == 3
 
-        env._request("LOAD_STAGE 43")
+        env._request("LOAD_STAGE 44")
         snapshot = env.snapshot()
         captain = next(unit for unit in snapshot["units"] if unit["name"] == "YuCapitalCaptain25")
         captain.update({"dead": True, "hp": 0})
@@ -88,7 +88,7 @@ def main() -> None:
         _, _, terminated, _, info = env.step(int(env.list_actions()[0]["index"]))
         assert terminated and int(info["status"]) == 3
 
-        env._request("LOAD_STAGE 43")
+        env._request("LOAD_STAGE 44")
         env.restore(env.snapshot())
         steps = 0
         while not any(unit["name"] == "YuGong25" for unit in env.unit_info()):

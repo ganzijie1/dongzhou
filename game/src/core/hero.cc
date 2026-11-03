@@ -9,7 +9,7 @@ namespace core {
 Hero::Hero(const HeroTemplate* hero_tpl, uint16_t level)
     : hero_tpl_(hero_tpl),
       equipment_set_(new EquipmentSet(this)),
-      level_(level, 0),
+      level_(std::max<uint16_t>(1, std::min<uint16_t>(Level::kMaxLevel, level)), 0),
       hero_attr_(hero_tpl->GetHeroStat()),
       unit_attr_(),
       unit_pure_attr_(),
@@ -45,12 +45,14 @@ const AttackRange& Hero::GetAttackRange() const { return hero_tpl_->GetAttackRan
 const Attribute& Hero::GetHeroStatBase() const { return hero_tpl_->GetHeroStat(); }
 
 void Hero::LevelUp() {
+  if (level_.level >= Level::kMaxLevel) return;
   level_.level++;
   UpdateStat();
 }
 
 void Hero::RestoreProgress(uint16_t level, uint16_t exp) {
-  level_ = Level(level, exp);
+  const uint16_t safe_level = std::max<uint16_t>(1, std::min<uint16_t>(Level::kMaxLevel, level));
+  level_ = Level(safe_level, safe_level >= Level::kMaxLevel ? 0 : exp % Level::kExpLimit);
   UpdateStat();
 }
 

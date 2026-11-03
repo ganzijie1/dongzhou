@@ -10,7 +10,7 @@ from rl.mengde_env import MengdeEnv
 def main() -> None:
     executable = Path("build/rl-vcpkg/game/src/rl/Release/mengde_rl.exe")
     with MengdeEnv(executable, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 36")
+        env._request("LOAD_STAGE 37")
         assert env.next_stage() is not None
         story = env.story_info()
         assert story["chapter"] == "第二十二回"

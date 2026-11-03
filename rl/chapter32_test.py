@@ -24,7 +24,7 @@ def wait_once(env: MengdeEnv) -> tuple:
 
 def main() -> None:
     with MengdeEnv(EXECUTABLE, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 53")
+        env._request("LOAD_STAGE 54")
         story = env.story_info()
         assert story["chapter"] == "第三十二回"
         assert story["title"] == "晏蛾儿逾墙殉节 群公子大闹朝堂"
@@ -74,7 +74,7 @@ def main() -> None:
         assert all(unit["terrain"] not in IMPASSABLE for unit in units)
 
         # Cui Yao cannot substitute for the named heir at the exit.
-        env._request("LOAD_STAGE 53")
+        env._request("LOAD_STAGE 54")
         companion_exit = env.snapshot()
         next(unit for unit in companion_exit["units"] if unit["name"] == "CuiYao32").update(
             {"x": 18, "y": 6}
@@ -84,7 +84,7 @@ def main() -> None:
         assert not terminated
 
         # Gongzi Zhao himself reaching the road outside the east gate wins.
-        env._request("LOAD_STAGE 53")
+        env._request("LOAD_STAGE 54")
         heir_exit = env.snapshot()
         next(unit for unit in heir_exit["units"] if unit["name"] == "GongZiZhao32").update(
             {"x": 18, "y": 6}

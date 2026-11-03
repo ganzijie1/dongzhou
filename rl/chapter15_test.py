@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from rl.mengde_env import MengdeEnv
-from rl.save_system import read_slot
+from rl.save_system import STAGE_TABLE_VERSION, read_slot
 
 
 def assert_units(env: MengdeEnv, expected: dict[str, tuple[str, int]]) -> None:
@@ -18,12 +18,12 @@ def assert_units(env: MengdeEnv, expected: dict[str, tuple[str, int]]) -> None:
 def main() -> None:
     requested_save = read_slot(2)
     assert requested_save is not None
-    assert requested_save["stage_table_version"] == 2
+    assert requested_save["stage_table_version"] == STAGE_TABLE_VERSION
     assert 0 <= int(requested_save["battle"]["stage_index"]) < 95
 
     third_battle_save = read_slot(4)
     assert third_battle_save is not None
-    assert third_battle_save["stage_table_version"] == 2
+    assert third_battle_save["stage_table_version"] == STAGE_TABLE_VERSION
     assert third_battle_save["metadata"]["battle_title"] == "四国复镐"
     assert int(third_battle_save["battle"]["stage_index"]) == 3
     executable = Path("build/rl-vcpkg/game/src/rl/Release/mengde_rl.exe")
@@ -45,6 +45,12 @@ def main() -> None:
 
         assert env.next_stage() is not None
         story = env.story_info()
+        assert story["chapter"] == "第十五回·下"
+        assert story["battle_title"] == "汶阳断后"
+        assert story["map_asset"] == "m023.png"
+
+        assert env.next_stage() is not None
+        story = env.story_info()
         assert story["chapter"] == "第十六回"
         assert story["battle_title"] == "长勺鼓阵"
         assert story["map_asset"] == "m025.png"
@@ -53,10 +59,10 @@ def main() -> None:
             "BaoShuYa16": ("Strategist", 4), "QiVanguard16": ("Cavalry", 4),
         })
     root = Path("assets/lzc/map")
-    for name in ("m022.png", "m025.png"):
+    for name in ("m022.png", "m023.png", "m025.png"):
         image = root / name
         assert image.stat().st_size > 1_000_000
-    print("chapter 15-16 ok: merged battle, requested saves, transition, roles, and maps")
+    print("chapter 15-16 ok: split battles, requested saves, transition, roles, and maps")
 
 
 if __name__ == "__main__":

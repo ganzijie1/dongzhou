@@ -27,7 +27,7 @@ def main() -> None:
     ))
 
     with MengdeEnv(EXECUTABLE, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 65")
+        env._request("LOAD_STAGE 66")
         story = env.story_info()
         assert story["chapter"] == "\u7b2c\u56db\u5341\u4e8c\u56de"
         assert story["title"] == "\u5468\u8944\u738b\u6cb3\u9633\u53d7\u89d0 \u536b\u5143\u54ba\u516c\u9986\u5bf9\u72f1"

@@ -31,7 +31,7 @@ def assert_spawns_passable(env: MengdeEnv) -> None:
 
 def main() -> None:
     with MengdeEnv(EXECUTABLE, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 50")
+        env._request("LOAD_STAGE 51")
         story = env.story_info()
         assert story["chapter"] == "第三十回·上"
         assert story["battle_title"] == "缘陵救杞"
@@ -60,7 +60,7 @@ def main() -> None:
         _, _, terminated, truncated, result = wait_once(env)
         assert terminated and not truncated and int(result["status"]) == 3
 
-        env._request("LOAD_STAGE 51")
+        env._request("LOAD_STAGE 52")
         story = env.story_info()
         assert story["chapter"] == "第三十回·下"
         assert story["battle_title"] == "韩原大战"
@@ -83,7 +83,7 @@ def main() -> None:
         wild = [unit for unit in living(env) if unit["name"] in {"WildWarrior30", "WildArcher30"}]
         assert len(wild) == 3 and all(unit["terrain"] not in IMPASSABLE for unit in wild)
 
-        env._request("LOAD_STAGE 51")
+        env._request("LOAD_STAGE 52")
         duel = env.snapshot()
         next(unit for unit in duel["units"] if unit["name"] == "BaiYiBing30").update({"x": 9, "y": 5})
         env.restore(duel)

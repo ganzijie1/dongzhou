@@ -23,7 +23,7 @@ def main() -> None:
             (9, 7, "Gate"),
         }
 
-        env._request("LOAD_STAGE 26")
+        env._request("LOAD_STAGE 27")
         assert env.next_stage() is not None
         story = env.story_info()
         assert story["chapter"] == "第十八回"

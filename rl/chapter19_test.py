@@ -11,7 +11,7 @@ from rl.mengde_env import MengdeEnv
 def main() -> None:
     executable = Path("build/rl-vcpkg/game/src/rl/Release/mengde_rl.exe")
     with MengdeEnv(executable, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 28")
+        env._request("LOAD_STAGE 29")
         first = env.story_info()
         assert first["chapter"] == "第十九回·上"
         assert first["battle_title"] == "栎城复郑"

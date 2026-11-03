@@ -1,0 +1,70 @@
+{
+  "id": "map-elites-chuisha",
+  "file": "map_elites_chuisha.lua",
+  "isProcedural": true,
+  "chapter": "史实演武·非主线",
+  "title": "前301年 齐韩魏联军攻楚",
+  "battleTitle": "垂沙之战·MAP-Elites演武",
+  "objective": "渡过沘水并击破楚将唐蔑；匡章退场则失败",
+  "mapAsset": "m007-camp-v5.png",
+  "turnLimit": 22,
+  "commanders": ["KuangZhang91", "GongSunXiChuisha", "BaoYuanChuisha"],
+  "items": [
+    {"id": "medicine", "name": "金疮药", "hp": 120, "mp": 0, "price": 120, "initial": 2},
+    {"id": "spirit_powder", "name": "清心散", "hp": 0, "mp": 30, "price": 150, "initial": 1}
+  ],
+  "sites": [],
+  "duels": [],
+  "flags": {"supply": false, "duel": false, "events": true},
+  "story": {
+    "chapter": "史实演武·非主线",
+    "title": "前301年 齐韩魏联军攻楚",
+    "battle_title": "垂沙之战·MAP-Elites演武",
+    "objective": "渡过沘水并击破楚将唐蔑；匡章退场则失败",
+    "map_asset": "m007-camp-v5.png",
+    "intro": [
+      {"speaker": "史官", "text": "《史记·秦本纪》载，齐使章子、魏使公孙喜、韩使暴鸢共攻楚方城，取唐眜。这里的章子即匡章。"},
+      {"speaker": "军报", "text": "《吕氏春秋·处方》记双方夹沘水相持六月。齐军难以近水侦察，后来从刍者处得知：楚军重兵所守皆为浅处，守备薄处反是深水。"},
+      {"speaker": "匡章", "text": "可战与不可战，不由催令。先辨水势与守备，再择路渡河。"},
+      {"speaker": "演武说明", "text": "本战只把夹水相持、浅渡守备与夜袭写入史实约束。渡点数量、地形覆盖、双方部署和战斗数值由受约束 MAP-Elites 生成，是战术实验，不是史实复原。"}
+    ],
+    "events": [
+      {"id": "chuisha_turn_3", "runtime": true, "trigger": "turn", "turn": 3, "speaker": "刍者", "text": "楚军重守之处，正是可涉的浅水；守备稀处反而水深。请将军察其虚实。"},
+      {"id": "chuisha_tang_low", "runtime": true, "trigger": "unit_hp_below", "unit": "TangMieChuisha", "hp_percent": 0.45, "speaker": "唐蔑", "text": "渡口既失，诸部收拢，不可再让联军扩张突破口！"}
+    ],
+    "victory": [
+      {"speaker": "史官", "text": "《吕氏春秋》记匡章选练士卒，夜袭楚军重守的浅渡，唐蔑败亡。演武到此收束；地图细节与战损不作史实结论。"}
+    ],
+    "defeat": [
+      {"speaker": "史官", "text": "联军未能完成渡河演武目标。本次生成地图仍可凭种子复现并纳入失败原因分析。"}
+    ]
+  },
+  "stage": {
+    "title_id": "MapElitesChuishaExercise",
+    "turn_limit": 22,
+    "map": {
+      "blocked_edges": [],
+      "size": [19, 14],
+      "terrain": [
+        "ffffffffffffgffgfff", "fffffffgfffgfffffff", "fgffffffffgffffggff", "fffffffffffffffgfgf",
+        "fffffffffffffffffff", "ffffffffffffffffFgf", "~~v~~~~~~~~~~~~~v~~", "~~v~~~~~~~~~~~~~v~~",
+        "ffffffffffgffffffgf", "gfffffffffffffffgff", "fffffgfffffffffffff", "ffffffffFffffgfffff",
+        "fgffFffffffffffffgf", "ffffffffffffgffffff"
+      ],
+      "file": "generated"
+    },
+    "deploy": {
+      "unselectables": [
+        {"position": [2, 2], "hero": "KuangZhang91"},
+        {"position": [3, 3], "hero": "GongSunXiChuisha"},
+        {"position": [4, 2], "hero": "BaoYuanChuisha"},
+        {"position": [5, 3], "hero": "QiHanWeiGuard"},
+        {"position": [6, 2], "hero": "QiHanWeiGuard"},
+        {"position": [7, 3], "hero": "QiHanWeiArcher"}
+      ],
+      "num_required_selectables": 0,
+      "selectables": []
+    },
+    "rewards": {"equipments": [], "money": 0}
+  }
+}

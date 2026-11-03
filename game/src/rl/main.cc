@@ -32,6 +32,16 @@ using mengde::core::Attribute;
 
 namespace {
 
+const uint16_t kCampaignMaxLevel = 60;
+const uint32_t kCampaignStageCount = 172;
+const uint16_t kCommanderLeadCap = 2;
+
+uint16_t CampaignRecommendedLevel(uint32_t zero_based_stage_index) {
+  const uint32_t capped_index = std::min<uint32_t>(zero_based_stage_index, kCampaignStageCount - 1);
+  return static_cast<uint16_t>(1 +
+      capped_index * (kCampaignMaxLevel - 1) / (kCampaignStageCount - 1));
+}
+
 std::string JsonString(const std::string& value) {
   std::ostringstream out;
   out << '"';
@@ -67,14 +77,13 @@ class Session {
     if (!game->SubmitDeploy()) {
       throw std::runtime_error("headless RL requires a stage with automatic deployment");
     }
-    if (scenario_id_ == "dongzhou") SetStageLevel(game, 1);
+    if (scenario_id_ == "dongzhou") SetStageLevel(game, CampaignRecommendedLevel(stage_index));
     environment_.reset(new RLEnvironment(game, max_units_, max_actions_, !interactive_));
     if (scenario_id_ == "dongzhou") RecordCurrentCommanderProgress();
   }
 
   bool NextStage() {
     if (!scenario_->HasNextStage()) return false;
-    const uint16_t next_level = scenario_id_ == "dongzhou" ? RoundedOwnLevel() : 1;
     if (scenario_id_ == "dongzhou") RecordCurrentCommanderProgress();
     std::map<std::string, uint32_t> inventory = environment_->GetInventoryCounts();
     money_ += environment_->GetGame()->GetLuaScript()->GetOpt<uint32_t>(
@@ -100,6 +109,7 @@ class Session {
       throw std::runtime_error("headless RL requires a stage with automatic deployment");
     }
     if (scenario_id_ == "dongzhou") {
+      const uint16_t next_level = CampaignRecommendedLevel(scenario_->GetStageNo());
       PrepareTrainingCandidates(game, next_level);
       SetStageProgress(game, next_level, commander_progress_);
     }
@@ -309,8 +319,10 @@ class Session {
         if (named_commander) {
           const auto carried = carried_progress.find(ProgressionKey(unit->GetId()));
           if (carried != carried_progress.end()) {
-            level = carried->second.level;
-            exp = carried->second.exp;
+            const uint16_t commander_cap = std::min<uint16_t>(
+                kCampaignMaxLevel, static_cast<uint16_t>(average_level + kCommanderLeadCap));
+            level = std::max<uint16_t>(1, std::min<uint16_t>(commander_cap, carried->second.level));
+            exp = carried->second.level > commander_cap ? 0 : carried->second.exp;
             training_penalty = carried->second.training_penalty;
           }
         }
@@ -319,25 +331,6 @@ class Session {
       RestoreFullProgress(unit, level, exp);
     });
   }
-  uint16_t RoundedOwnLevel() const {
-    Game* game = environment_->GetGame();
-    const std::vector<std::string> commander_ids =
-        game->GetLuaScript()->GetVector<std::string>("gcommanders");
-    uint32_t sum = 0;
-    uint32_t count = 0;
-    game->ForEachUnitIdxConst([&](uint32_t, const Unit* unit) {
-      if (unit->GetForce() != mengde::core::Force::kOwn) return;
-      bool named_commander = false;
-      for (const std::string& id : commander_ids) {
-        if (unit->GetId() == id) named_commander = true;
-      }
-      if (!named_commander) return;
-      sum += unit->GetLevel();
-      ++count;
-    });
-    return count == 0 ? 1 : static_cast<uint16_t>((sum + count / 2) / count);
-  }
-
   static void SetStageLevel(Game* game, uint16_t level) {
     game->ForEachUnit([&](Unit* unit) {
       RestoreFullProgress(unit, level, 0);

@@ -1,0 +1,1460 @@
+{
+  "schemaVersion": "chuisha-map-elites-1",
+  "battle": "垂沙之战",
+  "year": "前301年",
+  "historicalBoundary": "夹沘水相持、浅渡守备观察与夜袭来自《吕氏春秋·处方》；其余地形、部署与数值均为演武生成，不作为史实结论。",
+  "dimensions": {
+    "x": "routeCount",
+    "y": "defenseAdvantage",
+    "bins": [
+      5,
+      5
+    ]
+  },
+  "grid": [
+    19,
+    14
+  ],
+  "riverRows": [
+    6,
+    7
+  ],
+  "sources": {
+    "history": [
+      "https://ctext.org/lv-shi-chun-qiu/chu-fang/zh",
+      "https://ctext.org/shiji/qin-ben-ji/zh"
+    ],
+    "algorithm": [
+      "https://arxiv.org/abs/1504.04909",
+      "https://arxiv.org/abs/1907.04053",
+      "https://arxiv.org/abs/1806.04718"
+    ]
+  },
+  "entries": [
+    {
+      "cell": [
+        0,
+        0
+      ],
+      "routeCount": 1,
+      "defenseAdvantage": 0.0,
+      "quality": 0.75932,
+      "rows": [
+        "ffgfffffffgFfffggff",
+        "ffgffffffffgfffffff",
+        "fffffffffffffffffff",
+        "fffffffffffffFffffg",
+        "fFfffffffffFffgFfff",
+        "ffffffFfffffffffgff",
+        "~~~~~~~~v~~~~~~~~~~",
+        "~~~~~~~~v~~~~~~~~~~",
+        "fffffffffffffffffff",
+        "fffffffffffffffffff",
+        "ffgfffffffgffffffff",
+        "ffgffffffffffffffff",
+        "ffffffgffffffffgfff",
+        "fffffffffffffffffff"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            8,
+            1
+          ]
+        ],
+        "defense": 0.0,
+        "texture_seed": 1729949055
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 230,
+        "route_spacing": 0.55,
+        "strategy_diversity": 1.0,
+        "readability": 0.989098,
+        "flank_span": 0.25,
+        "route_costs": [
+          1.04
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        0,
+        1
+      ],
+      "routeCount": 1,
+      "defenseAdvantage": 0.2,
+      "quality": 0.754959,
+      "rows": [
+        "fffffffffffffffffff",
+        "fgfffffffgfffffgfff",
+        "ffffffffffgffffffff",
+        "ffffffffffffffgffff",
+        "fffffffffffffFfffff",
+        "fffffffgfffffffffff",
+        "~~~~~~~~~~~~~~v~~~~",
+        "~~~~~~~~~~~~~~v~~~~",
+        "fffffffffffFffFffff",
+        "fffffffffffffffffff",
+        "fFffffffffffffFfgff",
+        "fffffffffffffffffff",
+        "fgffffffffffffffgff",
+        "ffffgfffgffgfffffff"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            14,
+            1
+          ]
+        ],
+        "defense": 0.08333804082664253,
+        "texture_seed": 1965167739
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 230,
+        "route_spacing": 0.55,
+        "strategy_diversity": 1.0,
+        "readability": 0.967293,
+        "flank_span": 0.25,
+        "route_costs": [
+          3.38
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        0,
+        2
+      ],
+      "routeCount": 1,
+      "defenseAdvantage": 0.4,
+      "quality": 0.750598,
+      "rows": [
+        "ffffffgfffgffFfffff",
+        "fffFfffffffffffffff",
+        "fffgfffffffgfffffff",
+        "fffffffffffffffffff",
+        "fffffffffffffffffff",
+        "fffffffffgFffffffff",
+        "~~~~~~~~~~~~~~~v~~~",
+        "~~~~~~~~~~~~~~~v~~~",
+        "ffffffffffffffFFFff",
+        "ffffffffffffgfFFFff",
+        "ffffffffgfffffFfFff",
+        "gffffffffffffffffff",
+        "fFfffffffffffgfffff",
+        "ggfffffffffffffffff"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            15,
+            1
+          ]
+        ],
+        "defense": 0.40081645106536223,
+        "texture_seed": 1963364111
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 230,
+        "route_spacing": 0.55,
+        "strategy_diversity": 1.0,
+        "readability": 0.945489,
+        "flank_span": 0.25,
+        "route_costs": [
+          9.62
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        0,
+        3
+      ],
+      "routeCount": 1,
+      "defenseAdvantage": 0.6,
+      "quality": 0.746237,
+      "rows": [
+        "ffgffffffffffffffff",
+        "fffffffgfffffgffffg",
+        "fffffffffFgffffffff",
+        "fgffgffffffffffffff",
+        "ffffffffffffgffffFf",
+        "fffffffffffFffgffff",
+        "~~~v~~~~~~~~~~~~~~~",
+        "~~~v~~~~~~~~~~~~~~~",
+        "fFFFFfgfffffffffffg",
+        "fgmmFFfffffgfffffff",
+        "ffFFmFfffffffffffff",
+        "Fffffffffffffffffff",
+        "ffffgffffffFFffffff",
+        "gfgfffffffFffffffff"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            3,
+            1
+          ]
+        ],
+        "defense": 0.5944307433608966,
+        "texture_seed": 1119218687
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 230,
+        "route_spacing": 0.55,
+        "strategy_diversity": 1.0,
+        "readability": 0.923684,
+        "flank_span": 0.25,
+        "route_costs": [
+          12.21
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        0,
+        4
+      ],
+      "routeCount": 1,
+      "defenseAdvantage": 0.8,
+      "quality": 0.741876,
+      "rows": [
+        "ffffgfffffffFffffff",
+        "Fffffffffffffffffff",
+        "gffgfffgffgffffffff",
+        "ffffffffffffffgfgff",
+        "ffffffffffffFffffgf",
+        "ffffffffffffffffffg",
+        "~~~v~~~~~~~~~~~~~~~",
+        "~~~v~~~~~~~~~~~~~~~",
+        "fFFmmFfffffffffffFf",
+        "fmmFFFfffggfffgFfff",
+        "ffFFFFffffffffffffg",
+        "ffffffgffffffffgfff",
+        "ffffffffFfffffgffff",
+        "ffffffFfffffgffffff"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            3,
+            1
+          ]
+        ],
+        "defense": 0.6837799180853166,
+        "texture_seed": 1351288902
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 230,
+        "route_spacing": 0.55,
+        "strategy_diversity": 1.0,
+        "readability": 0.90188,
+        "flank_span": 0.25,
+        "route_costs": [
+          12.21
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        1,
+        0
+      ],
+      "routeCount": 2,
+      "defenseAdvantage": 0.0,
+      "quality": 0.995639,
+      "rows": [
+        "ffffffffffffgffgfff",
+        "fffffffgfffgfffffff",
+        "fgffffffffgffffggff",
+        "fffffffffffffffgfgf",
+        "fffffffffffffffffff",
+        "ffffffffffffffffFgf",
+        "~~v~~~~~~~~~~~~~v~~",
+        "~~v~~~~~~~~~~~~~v~~",
+        "ffffffffffgffffffgf",
+        "gfffffffffffffffgff",
+        "fffffgfffffffffffff",
+        "ffffffffFffffgfffff",
+        "fgffFffffffffffffgf",
+        "ffffffffffffgffffff"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            2,
+            1
+          ],
+          [
+            16,
+            1
+          ]
+        ],
+        "defense": 0.0,
+        "texture_seed": 539712210
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 232,
+        "route_spacing": 1.0,
+        "strategy_diversity": 1.0,
+        "readability": 0.978195,
+        "flank_span": 1.0,
+        "route_costs": [
+          1.5,
+          1.86
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        1,
+        1
+      ],
+      "routeCount": 2,
+      "defenseAdvantage": 0.2,
+      "quality": 0.991278,
+      "rows": [
+        "fffffffffffffffffff",
+        "ffffffffffgffffffff",
+        "ffffffffffgffffffff",
+        "fffffffffffffffffff",
+        "fffffffgffgffffffff",
+        "fffffffgffffgffffff",
+        "~~v~~~~~~~~~~~~~v~~",
+        "~~v~~~~~~~~~~~~~v~~",
+        "ffFffffffffffffffgf",
+        "ffFfffffffffffFffff",
+        "fffffffffgffffffFgf",
+        "fgfffffffffffffffff",
+        "fffffffffffffffffff",
+        "ffffffFffffffffffff"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            2,
+            1
+          ],
+          [
+            16,
+            1
+          ]
+        ],
+        "defense": 0.15365543018375394,
+        "texture_seed": 1389543515
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 232,
+        "route_spacing": 1.0,
+        "strategy_diversity": 1.0,
+        "readability": 0.956391,
+        "flank_span": 1.0,
+        "route_costs": [
+          3.5,
+          2.86
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        1,
+        2
+      ],
+      "routeCount": 2,
+      "defenseAdvantage": 0.4,
+      "quality": 0.986917,
+      "rows": [
+        "FffgfffffFfffffffff",
+        "fffffffffffgfffffff",
+        "gffffffffffffffgfff",
+        "fffffffffffffffffff",
+        "fffffffffffffffffgf",
+        "fffffffffffffffffff",
+        "~~v~~~~~~~~~~~~~v~~",
+        "~~v~~~~~~~~~~~~~v~~",
+        "fFFffffgffffffffFFf",
+        "ffFfffffffffffffFff",
+        "ffFffffffgffffffFff",
+        "ffffffffffFfffffffg",
+        "ffffffffgffffffgFff",
+        "fffffgffffffffffffg"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            2,
+            1
+          ],
+          [
+            16,
+            1
+          ]
+        ],
+        "defense": 0.40081645106536223,
+        "texture_seed": 2003716234
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 232,
+        "route_spacing": 1.0,
+        "strategy_diversity": 1.0,
+        "readability": 0.934586,
+        "flank_span": 1.0,
+        "route_costs": [
+          5.5,
+          5.86
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        1,
+        3
+      ],
+      "routeCount": 2,
+      "defenseAdvantage": 0.6,
+      "quality": 0.982556,
+      "rows": [
+        "ffffffffffffffffgff",
+        "fffffffffffffffffgf",
+        "fffffffffffffffffff",
+        "fffffffffffffffffFf",
+        "ffffffffffffgffffff",
+        "ffffffffffffffffgff",
+        "~~v~~~~~~~~~~~~~v~~",
+        "~~v~~~~~~~~~~~~~v~~",
+        "ffmfffffffffffffFmf",
+        "ffFFfffffffffffFFFf",
+        "fFFFfffgfgffffffmff",
+        "ffffgffgffgffffffff",
+        "ffffffgfffgfffffgff",
+        "fffffffffffffffffff"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            2,
+            1
+          ],
+          [
+            16,
+            1
+          ]
+        ],
+        "defense": 0.5477362424897427,
+        "texture_seed": 1533768194
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 232,
+        "route_spacing": 1.0,
+        "strategy_diversity": 1.0,
+        "readability": 0.912782,
+        "flank_span": 1.0,
+        "route_costs": [
+          8.15,
+          9.16
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        1,
+        4
+      ],
+      "routeCount": 2,
+      "defenseAdvantage": 0.8,
+      "quality": 0.978195,
+      "rows": [
+        "fffffffffgfffffffff",
+        "ffffgffffffgfffffff",
+        "fffffffffffffffffff",
+        "ffffffffffffffffffF",
+        "ffffffFffFffffffffg",
+        "gffffffffffffffffff",
+        "~~v~~~~~~~~~~~~~v~~",
+        "~~v~~~~~~~~~~~~~v~~",
+        "fFFFffFffffffffmFFF",
+        "ffmFfffgfffffffmFFf",
+        "fFmfffgfgfffffffFgf",
+        "fffffgfffffgfffgfff",
+        "fFffgffffffffffffff",
+        "ffffffffffffffgfffg"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            2,
+            1
+          ],
+          [
+            16,
+            1
+          ]
+        ],
+        "defense": 0.6958488901458239,
+        "texture_seed": 1196964826
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 232,
+        "route_spacing": 1.0,
+        "strategy_diversity": 1.0,
+        "readability": 0.890977,
+        "flank_span": 1.0,
+        "route_costs": [
+          9.8,
+          10.16
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        2,
+        0
+      ],
+      "routeCount": 3,
+      "defenseAdvantage": 0.0,
+      "quality": 0.993459,
+      "rows": [
+        "gffffffffffffffffgf",
+        "ffgffffffffffffffff",
+        "gffffffffFfgfffffff",
+        "fffffffffffffffffff",
+        "fffffFfffffffFfffff",
+        "ffffffggffffFffffff",
+        "~~v~~~~~~v~~~~~~v~~",
+        "~~v~~~~~~v~~~~~~v~~",
+        "gfffffffffffffffffg",
+        "fffffgffffffffffgff",
+        "fffffgfffffffffffff",
+        "ffffffffffffffffffg",
+        "ffffffffffffgffffff",
+        "fffgfffffgfffffffff"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            2,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            16,
+            1
+          ]
+        ],
+        "defense": 0.005654077708626248,
+        "texture_seed": 119906075
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 234,
+        "route_spacing": 1.0,
+        "strategy_diversity": 1.0,
+        "readability": 0.967293,
+        "flank_span": 1.0,
+        "route_costs": [
+          1.5,
+          1.08,
+          1.86
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        2,
+        1
+      ],
+      "routeCount": 3,
+      "defenseAdvantage": 0.2,
+      "quality": 0.989098,
+      "rows": [
+        "ffffgffgfffffffffff",
+        "ffffgffffffffffgfff",
+        "ffffffffffffFfffgff",
+        "fffffffffffffffffff",
+        "fffffffffffffffffff",
+        "fffffffffffffgfffff",
+        "~~v~~~~~~v~~~~~~v~~",
+        "~~v~~~~~~v~~~~~~v~~",
+        "ffffffgffFfffffffff",
+        "ffFfffffgffffffffff",
+        "ffFffffffFffffffgff",
+        "fffgfffffffffffffff",
+        "fffffffffffffffFfff",
+        "fFffffFffffffffffff"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            2,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            16,
+            1
+          ]
+        ],
+        "defense": 0.22224576783835154,
+        "texture_seed": 1001629076
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 234,
+        "route_spacing": 1.0,
+        "strategy_diversity": 1.0,
+        "readability": 0.945489,
+        "flank_span": 1.0,
+        "route_costs": [
+          3.5,
+          3.08,
+          1.86
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        2,
+        2
+      ],
+      "routeCount": 3,
+      "defenseAdvantage": 0.4,
+      "quality": 0.984737,
+      "rows": [
+        "gffffffffffffgffffg",
+        "FfffffgffffFffgffff",
+        "ffffffffffffffffFff",
+        "ffffgffffffffffffff",
+        "ffffffggfffffffffff",
+        "ffffgffgfffffFfffff",
+        "~~v~~~~~~v~~~~~~v~~",
+        "~~v~~~~~~v~~~~~~v~~",
+        "ffFffffffFffffffFff",
+        "ffFffffffFfffffffff",
+        "ffFfgffffFffffffFff",
+        "fffffFfffffffffgfff",
+        "fffffffffffffffffff",
+        "ffffffffffffffffffg"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            2,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            16,
+            1
+          ]
+        ],
+        "defense": 0.38262112737744736,
+        "texture_seed": 298690049
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 234,
+        "route_spacing": 1.0,
+        "strategy_diversity": 1.0,
+        "readability": 0.923684,
+        "flank_span": 1.0,
+        "route_costs": [
+          4.5,
+          4.08,
+          3.86
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        2,
+        3
+      ],
+      "routeCount": 3,
+      "defenseAdvantage": 0.6,
+      "quality": 0.980376,
+      "rows": [
+        "gfffffffgffffffffff",
+        "fffffffFffffffffgff",
+        "fffffgfgfffffgfffff",
+        "fffffffffffffffffff",
+        "fffffffffFfffffffff",
+        "ffFfffffgffffffffff",
+        "~~v~~~~~~v~~~~~~v~~",
+        "~~v~~~~~~v~~~~~~v~~",
+        "ffmffffffmffffgfFff",
+        "ffFfffgffFffFfffFff",
+        "ffmfFfffgFFfffffFff",
+        "ffgfffffgffffffffff",
+        "fffffffgffgffffffff",
+        "fffffffffffgffffffg"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            2,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            16,
+            1
+          ]
+        ],
+        "defense": 0.5194620786422408,
+        "texture_seed": 106303987
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 234,
+        "route_spacing": 1.0,
+        "strategy_diversity": 1.0,
+        "readability": 0.90188,
+        "flank_span": 1.0,
+        "route_costs": [
+          5.8,
+          5.73,
+          4.86
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        2,
+        4
+      ],
+      "routeCount": 3,
+      "defenseAdvantage": 0.8,
+      "quality": 0.976015,
+      "rows": [
+        "fffffffffffffffffff",
+        "gfffffffgfffffFgfff",
+        "ffffffffffffffffgFf",
+        "ffffffffffffffffgff",
+        "fgffffffffgffffffff",
+        "fffgfffffffffgfffff",
+        "~~v~~~~~~v~~~~~~v~~",
+        "~~v~~~~~~v~~~~~~v~~",
+        "ffFffffffFffffffmff",
+        "ffFFffgfFmfffFfmFgf",
+        "fFFffffFfmFfffffFff",
+        "ffffffffffFffFfffff",
+        "fffffffgFfffffffffg",
+        "FffffFfgffffffffffg"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            2,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            16,
+            1
+          ]
+        ],
+        "defense": 0.7072362565136624,
+        "texture_seed": 380105999
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 234,
+        "route_spacing": 1.0,
+        "strategy_diversity": 1.0,
+        "readability": 0.880075,
+        "flank_span": 1.0,
+        "route_costs": [
+          6.5,
+          7.38,
+          7.16
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        3,
+        0
+      ],
+      "routeCount": 4,
+      "defenseAdvantage": 0.0,
+      "quality": 0.937707,
+      "rows": [
+        "fffffffffffffffffff",
+        "ffffffffffffffffffF",
+        "fffffffgfgfffffffgf",
+        "gfffffFfgffgfffffff",
+        "fffffffffffffffffff",
+        "fffffffffgffgffffff",
+        "~~~~v~~v~~v~~v~~~~~",
+        "~~~~v~~v~~v~~v~~~~~",
+        "ffffffgfffffffffgff",
+        "fffffffffffffffffff",
+        "fffffgfffffffffffff",
+        "ffffffffffgffffffff",
+        "fffffffffffffFfffff",
+        "ffffffffffggfffffff"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            4,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            13,
+            1
+          ]
+        ],
+        "defense": 0.004678746762367125,
+        "texture_seed": 2105052343
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 236,
+        "route_spacing": 1.0,
+        "strategy_diversity": 1.0,
+        "readability": 0.956391,
+        "flank_span": 0.642857,
+        "route_costs": [
+          1.02,
+          1.0,
+          1.12,
+          1.24
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        3,
+        1
+      ],
+      "routeCount": 4,
+      "defenseAdvantage": 0.35,
+      "quality": 0.962218,
+      "rows": [
+        "fffffffffffffffffff",
+        "fffffffffgffffffgff",
+        "fgffffffgffffffffff",
+        "ffffffffffffffgffgf",
+        "ffffgffffffffffffff",
+        "fgfffFfffffgFffffff",
+        "~~v~~~v~~~v~~~v~~~~",
+        "~~v~~~v~~~v~~~v~~~~",
+        "ffffffFfffFfffFffff",
+        "ffFfffFfffFfffFffff",
+        "ffffffffffffffgfffg",
+        "ffffffffffFffffffgf",
+        "ffffffgfffgffffffff",
+        "ffffffffFffffffffff"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            2,
+            1
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            14,
+            1
+          ]
+        ],
+        "defense": 0.35471383409690954,
+        "texture_seed": 711123740
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 236,
+        "route_spacing": 1.0,
+        "strategy_diversity": 1.0,
+        "readability": 0.918233,
+        "flank_span": 0.857143,
+        "route_costs": [
+          2.5,
+          2.96,
+          3.12,
+          3.38
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        3,
+        2
+      ],
+      "routeCount": 4,
+      "defenseAdvantage": 0.4,
+      "quality": 0.961128,
+      "rows": [
+        "ffffffffgffffffffff",
+        "fffffffffgfgfffffff",
+        "ffffffffffffffffgff",
+        "ffffffffffgfgffffff",
+        "fffffFfffffffffffff",
+        "ffffffffffffgfgffff",
+        "~~v~~~v~~~v~~~v~~~~",
+        "~~v~~~v~~~v~~~v~~~~",
+        "ffFfffFffFFfffFffff",
+        "ffffffFfffgfffFffff",
+        "fggfffffffffffFffff",
+        "ffffgfffFffffffffff",
+        "fgffffffffffggfffff",
+        "fffffffffffffffffff"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            2,
+            1
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            14,
+            1
+          ]
+        ],
+        "defense": 0.3478052557951744,
+        "texture_seed": 1660954154
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 236,
+        "route_spacing": 1.0,
+        "strategy_diversity": 1.0,
+        "readability": 0.912782,
+        "flank_span": 0.857143,
+        "route_costs": [
+          2.5,
+          2.96,
+          3.12,
+          4.38
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        3,
+        3
+      ],
+      "routeCount": 4,
+      "defenseAdvantage": 0.6,
+      "quality": 0.898018,
+      "rows": [
+        "fffffffffffgfffffff",
+        "fffffffffggfffffffg",
+        "ffffffffffffffgffgf",
+        "ffffFffffgffgffffff",
+        "Fffffffgffffffgffff",
+        "fffffffffffgfffffff",
+        "~~~~v~~~vv~~~v~~v~~",
+        "~~~~v~~~vv~~~v~~v~~",
+        "ggffFfffFFfffmffFff",
+        "ffffFggfmFffgmffFfg",
+        "ffffFfgfffffgfffffF",
+        "fffffffffffffffffff",
+        "fffffffffffFffffffg",
+        "fgfffffffffffffgfff"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            4,
+            1
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            13,
+            1
+          ],
+          [
+            16,
+            1
+          ]
+        ],
+        "defense": 0.5671774125008724,
+        "texture_seed": 674177121
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 238,
+        "route_spacing": 0.797969,
+        "strategy_diversity": 1.0,
+        "readability": 0.880075,
+        "flank_span": 0.857143,
+        "route_costs": [
+          4.02,
+          4.96,
+          4.54,
+          3.86
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        3,
+        4
+      ],
+      "routeCount": 4,
+      "defenseAdvantage": 0.8,
+      "quality": 0.903979,
+      "rows": [
+        "fffffffffffffffffgf",
+        "ffffgfffffffgffgffg",
+        "ffffffffffffffgfgff",
+        "fffffffffffffffffff",
+        "ffffffffgffffffgfff",
+        "fffffffffffffggfFff",
+        "~~v~~~v~~v~~~v~~~~~",
+        "~~v~~~v~~v~~~v~~~~~",
+        "ffFfffFfFFfffmfffff",
+        "fgFgffmFfFfffFmffff",
+        "fFFfffFffmffffFfgff",
+        "fffgfffffffffffffff",
+        "gffffgfffffffffffff",
+        "ffffffffFfffffgffff"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            2,
+            1
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            13,
+            1
+          ]
+        ],
+        "defense": 0.8074212849800433,
+        "texture_seed": 12831353
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 236,
+        "route_spacing": 0.865313,
+        "strategy_diversity": 1.0,
+        "readability": 0.869173,
+        "flank_span": 0.785714,
+        "route_costs": [
+          5.5,
+          5.61,
+          5.73,
+          6.54
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        4,
+        0
+      ],
+      "routeCount": 5,
+      "defenseAdvantage": 0.0,
+      "quality": 0.967669,
+      "rows": [
+        "ffFffffffffffffffff",
+        "Fffffgfffgfffffffgf",
+        "ffffffffgfffffffgff",
+        "fFfffffffffffffffff",
+        "fffffffffffffffffff",
+        "fffffffffffffffgfff",
+        "~~~~v~~v~~v~~v~~v~~",
+        "~~~~v~~v~~v~~v~~v~~",
+        "ffffffffffgfffgffgg",
+        "ffgffffffffffffffff",
+        "fffffffffffffffffff",
+        "ffffFfffffgFfffffff",
+        "fffFfffffffffffffff",
+        "ffffffffffffffFFfff"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            4,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            13,
+            1
+          ],
+          [
+            16,
+            1
+          ]
+        ],
+        "defense": 0.0,
+        "texture_seed": 697157820
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 238,
+        "route_spacing": 1.0,
+        "strategy_diversity": 1.0,
+        "readability": 0.945489,
+        "flank_span": 0.857143,
+        "route_costs": [
+          1.02,
+          1.0,
+          1.12,
+          1.24,
+          1.86
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        4,
+        1
+      ],
+      "routeCount": 5,
+      "defenseAdvantage": 0.2,
+      "quality": 0.963308,
+      "rows": [
+        "fffgfffffFfffffffff",
+        "fffffffggfffffggfff",
+        "ffffffffffffgffffff",
+        "fffffffffffffffffff",
+        "gffffffffffffffffff",
+        "gfffffffffffffgffff",
+        "~~~~v~~v~~v~~v~~v~~",
+        "~~~~v~~v~~v~~v~~v~~",
+        "ffgffffffFfffffffff",
+        "ffffFfffgfffFffffff",
+        "gffffgfFffgffffffff",
+        "fffffffffffffffffgF",
+        "fffffffffffffgfffff",
+        "ffFfffffffffffffffg"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            4,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            13,
+            1
+          ],
+          [
+            16,
+            1
+          ]
+        ],
+        "defense": 0.11582466651117167,
+        "texture_seed": 829723137
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 238,
+        "route_spacing": 1.0,
+        "strategy_diversity": 1.0,
+        "readability": 0.923684,
+        "flank_span": 0.857143,
+        "route_costs": [
+          2.02,
+          2.0,
+          2.12,
+          2.24,
+          1.86
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        4,
+        2
+      ],
+      "routeCount": 5,
+      "defenseAdvantage": 0.4,
+      "quality": 0.958947,
+      "rows": [
+        "fffffgffffffffffffg",
+        "ffffffffffgffffffff",
+        "fffffgfffffffffffff",
+        "fgffffffffffgffffff",
+        "ffffffFfffgffffffgf",
+        "ffgggffffffffgfgfff",
+        "~~~~v~~v~~v~~v~~v~~",
+        "~~~~v~~v~~v~~v~~v~~",
+        "ffffFffffffggFffFff",
+        "ffffffgFfggffFffFfg",
+        "fgfffffgffFfffgfFff",
+        "ffffffFffffffffffff",
+        "fffgfffgfffffffffff",
+        "fffffffgffffgffffff"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            4,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            13,
+            1
+          ],
+          [
+            16,
+            1
+          ]
+        ],
+        "defense": 0.40913334893873915,
+        "texture_seed": 2028429776
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 238,
+        "route_spacing": 1.0,
+        "strategy_diversity": 1.0,
+        "readability": 0.90188,
+        "flank_span": 0.857143,
+        "route_costs": [
+          2.02,
+          2.0,
+          2.12,
+          3.24,
+          4.86
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        4,
+        3
+      ],
+      "routeCount": 5,
+      "defenseAdvantage": 0.65,
+      "quality": 0.953496,
+      "rows": [
+        "fffffFfffffffffffff",
+        "fffffffffffffffffff",
+        "fffffffffffffffffff",
+        "Ffffgfffgffffffffgf",
+        "ffffffffffffgffffff",
+        "fffffffffffffffFfff",
+        "~~~~v~~v~~v~~v~~v~~",
+        "~~~~v~~v~~v~~v~~v~~",
+        "ffFfFffFfgFffFffgff",
+        "ffffFffmfgmgfFfgFff",
+        "ffffFFfmfffffffffff",
+        "fgffffffffffffffffg",
+        "fffgfgfffffffffffff",
+        "fffffgfffffffffffff"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            4,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            13,
+            1
+          ],
+          [
+            16,
+            1
+          ]
+        ],
+        "defense": 0.5671774125008724,
+        "texture_seed": 157007524
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 238,
+        "route_spacing": 1.0,
+        "strategy_diversity": 1.0,
+        "readability": 0.874624,
+        "flank_span": 0.857143,
+        "route_costs": [
+          5.02,
+          5.3,
+          3.77,
+          3.24,
+          2.86
+        ],
+        "repair_count": 0
+      }
+    },
+    {
+      "cell": [
+        4,
+        4
+      ],
+      "routeCount": 5,
+      "defenseAdvantage": 0.8,
+      "quality": 0.882726,
+      "rows": [
+        "fffffffffgfffffffff",
+        "ffffffffffffgffffff",
+        "ffffffffffffffFffff",
+        "fffffffffffffffffff",
+        "ffFffffffffffffffff",
+        "fffffffffFfffffffff",
+        "~~~~v~~v~~v~~v~~v~~",
+        "~~~~v~~v~~v~~v~~v~~",
+        "ffffFffFffFgfFFfmff",
+        "fffFFffFffmffFffFff",
+        "fffgmffmffFfffffFff",
+        "ffgfffffffffffffffg",
+        "fffffffffffffffffgf",
+        "ffffffffFgffffffffg"
+      ],
+      "genome": {
+        "crossings": [
+          [
+            4,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            13,
+            1
+          ],
+          [
+            16,
+            1
+          ]
+        ],
+        "defense": 0.7526062374040307,
+        "texture_seed": 1009920040
+      },
+      "metrics": {
+        "hard_valid": true,
+        "reachable_cells": 238,
+        "route_spacing": 1.0,
+        "strategy_diversity": 0.75,
+        "readability": 0.858271,
+        "flank_span": 0.857143,
+        "route_costs": [
+          5.67,
+          4.65,
+          4.77,
+          4.24,
+          5.51
+        ],
+        "repair_count": 0
+      }
+    }
+  ]
+}

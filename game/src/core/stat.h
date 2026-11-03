@@ -92,6 +92,7 @@ struct HpMp {
 
 struct Level {
   static const uint16_t kExpLimit = 100;
+  static const uint16_t kMaxLevel = 60;
 
   uint16_t level;
   uint16_t exp;

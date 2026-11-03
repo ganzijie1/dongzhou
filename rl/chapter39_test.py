@@ -23,7 +23,7 @@ def main():
         (root / "assets/lzc/map_sources/m063_ch39_manifest.json").read_text(encoding="utf-8")
     )
     with MengdeEnv(EXE, scenario="dongzhou", interactive=True, max_episode_actions=100) as env:
-        env._request("LOAD_STAGE 63")
+        env._request("LOAD_STAGE 64")
         story = env.story_info()
         assert story["chapter"] == "第三十九回"
         assert story["map_asset"] == "m063.png"

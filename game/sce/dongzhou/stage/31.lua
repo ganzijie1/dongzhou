@@ -98,7 +98,7 @@ gstage = {
             "FggggfffffffffggggF",
             "FgggfgfgggggggggggF",
             "FggggggggggggggFggF",
-            "FFFgFFFFFFFFFFFFrFrF"
+            "FFFgFFFFFFFFFFFrFrF"
         }, file = "map.bmp"
     },
     deploy = {

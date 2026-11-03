@@ -1,0 +1,38 @@
+{
+  "evaluator": "deterministic-rule-agent-v1",
+  "limitation": "Rule-agent annihilation proxy; not HAPPO and not human playtest evidence.",
+  "maps": 1080,
+  "games": 2160,
+  "timeout_rate": 0,
+  "decisive_rate": 1,
+  "unique_terrain_rate": 1,
+  "mirrored_outcome_disagreement_rate": 0.6175925925925926,
+  "by_difficulty": {
+    "easy": {
+      "games": 720,
+      "timeout_rate": 0,
+      "own_win_rate": 0.5805555555555556,
+      "mean_turns": 19.504166666666666
+    },
+    "medium": {
+      "games": 720,
+      "timeout_rate": 0,
+      "own_win_rate": 0.5916666666666667,
+      "mean_turns": 20.369444444444444
+    },
+    "hard": {
+      "games": 720,
+      "timeout_rate": 0,
+      "own_win_rate": 0.5486111111111112,
+      "mean_turns": 22.20138888888889
+    }
+  },
+  "gates": {
+    "timeout_at_most_5_percent": true,
+    "decisive_at_least_95_percent": true,
+    "unique_terrain_at_least_90_percent": true,
+    "no_rule_agent_side_collapse": true,
+    "hard_maps_take_longer_than_easy": true
+  },
+  "result": "PASS"
+}

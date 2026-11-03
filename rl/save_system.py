@@ -13,11 +13,11 @@ from typing import Any
 SAVE_FORMAT = "mengde-battle-save"
 SAVE_VERSION = 1
 SLOT_COUNT = 6
-STAGE_TABLE_VERSION = 18
+STAGE_TABLE_VERSION = 19
 CURRENT_DONGZHOU_STAGES = (
-    "01","02","03","03b","04a","04","05","06","07","07b","08a","08","09","10a","10b","11a","11b","11c","12a","12b","13a","13b","14a","14b","15a","16","17","18","19a","19b","20a","20b","20c","20d","21a","21b","21c","22","23a","23b","24a","24b","25a","25b","26a","26b","27a","27b","28","29","30a","30b","31","32","33a","33b","34a","34b","35","36a","36b","38a","38b","39","40","42","43a","43b","44","45a","45b","46a","46b","46c","47a","47b","48a","48b","49","50a","50b","50c","51","52","53a","53b","54a","54b","55a","55b","56a","56b","57","58","59a","59b","60a","60b","60c","61a","61b","61c","62a","62b","62c","63a","63b","64a","64b","65a","65b","65c","66a","66b","66c","66d","66e","67a","67b","68","69","70","71","72a","72","73","73b","74","75","76","77","78","78b","79","80","81","82","82b","83a","83","84","84b","85","86","86b","87","88","89","91","92","93","94","95a","95b","96","97","98","99","100","101","101a","102a","102b","103","104","105","106","107a","107","108a","108"
+    "01","02","03","03b","04a","04","05","06","07","07b","08a","08","09","10a","10b","11a","11b","11c","12a","12b","13a","13b","14a","14b","15a","15b","16","17","18","19a","19b","20a","20b","20c","20d","21a","21b","21c","22","23a","23b","24a","24b","25a","25b","26a","26b","27a","27b","28","29","30a","30b","31","32","33a","33b","34a","34b","35","36a","36b","38a","38b","39","40","42","43a","43b","44","45a","45b","46a","46b","46c","47a","47b","48a","48b","49","50a","50b","50c","51","52","53a","53b","54a","54b","55a","55b","56a","56b","57","58","59a","59b","60a","60b","60c","61a","61b","61c","62a","62b","62c","63a","63b","64a","64b","65a","65b","65c","66a","66b","66c","66d","66e","67a","67b","68","69","70","71","72a","72","73","73b","74","75","76","77","78","78b","79","80","81","82","82b","83a","83","84","84b","85","86","86b","87","88","89","91","92","93","94","95a","95b","96","97","98","99","100","101","101a","102a","102b","103","104","105","106","107a","107","108a","108"
 )
-LEGACY_STAGE_TITLES = {"乾时伏击":"15a","汶阳断后":"15a","邲之战":"54a","河口夺俘":"54b","城濮之战":"40","鄢陵交锋":"58","鄢陵之战":"58"}
+LEGACY_STAGE_TITLES = {"乾时伏击":"15a","汶阳断后":"15b","邲之战":"54a","河口夺俘":"54b","城濮之战":"40","鄢陵交锋":"58","鄢陵之战":"58"}
 
 
 def _migrate_stage_reference(payload: dict[str, Any]) -> None:
@@ -29,13 +29,10 @@ def _migrate_stage_reference(payload: dict[str, Any]) -> None:
     if stage_id in CURRENT_DONGZHOU_STAGES:
         battle["stage_index"] = CURRENT_DONGZHOU_STAGES.index(stage_id)
         battle["stage_id"] = stage_id
-    elif int(payload.get("stage_table_version", 1)) < 2:
+    elif int(payload.get("stage_table_version", 1)) < 19:
         old_index = int(battle.get("stage_index", 0))
-        battle["stage_index"] = old_index if old_index <= 24 else old_index - 1
-    if str(metadata.get("battle_title", "")) == "汶阳断后":
-        battle["stage_index"] = CURRENT_DONGZHOU_STAGES.index("15a")
-        battle["stage_id"] = "15a"
-        battle["_restart_merged_stage"] = True
+        old_table_version = int(payload.get("stage_table_version", 1))
+        battle["stage_index"] = old_index if old_table_version < 2 or old_index <= 24 else old_index + 1
     payload["stage_table_version"] = STAGE_TABLE_VERSION
 if getattr(sys, "frozen", False):
     DEFAULT_SAVE_DIR = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "Ekgd" / "saves"

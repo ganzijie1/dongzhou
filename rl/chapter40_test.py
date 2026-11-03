@@ -37,7 +37,7 @@ def main():
     assert sum(17 <= x < 47 and 4 <= y < 26 for x, y in enemy_positions) >= 15
 
     with MengdeEnv(EXE, scenario="dongzhou", interactive=True, max_episode_actions=100) as env:
-        env._request("LOAD_STAGE 64")
+        env._request("LOAD_STAGE 65")
         story = env.story_info()
         assert story["chapter"] == "\u7b2c\u56db\u5341\u3001\u56db\u5341\u4e00\u56de"
         assert story["battle_title"] == "\u57ce\u6fee\u4e4b\u6218"
@@ -90,7 +90,7 @@ def main():
 
         requested_save = read_slot(1)
         assert requested_save is not None
-        assert int(requested_save["battle"]["stage_index"]) == 64
+        assert int(requested_save["battle"]["stage_index"]) == 65
         env.restore(requested_save["battle"])
         restored = living(env)
         assert len(restored) == 72

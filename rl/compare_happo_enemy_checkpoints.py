@@ -18,6 +18,7 @@ from rl.mappo import (
     select_agent_actions,
 )
 from rl.mengde_env import MengdeEnv
+from rl.train_happo_dongzhou import DONGZHOU_STAGE_COUNT
 from rl.train_happo_dongzhou import ENEMY_FORCE, scripted_action
 
 
@@ -49,7 +50,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--legacy", type=Path, required=True)
     parser.add_argument("--curriculum", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--stage-count", type=int, default=41)
+    parser.add_argument("--stage-count", type=int, default=DONGZHOU_STAGE_COUNT)
     parser.add_argument("--max-episode-actions", type=int, default=160)
     parser.add_argument("--seed", type=int, default=902026)
     return parser.parse_args()

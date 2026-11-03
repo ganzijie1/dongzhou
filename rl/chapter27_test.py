@@ -22,7 +22,7 @@ def action(env: MengdeEnv) -> int:
 def main() -> None:
     executable = Path("build/rl-vcpkg/game/src/rl/Release/mengde_rl.exe")
     with MengdeEnv(executable, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 46")
+        env._request("LOAD_STAGE 47")
         for offset, (chapter, battle, asset, intro_count, victory_count) in enumerate(EXPECTED):
             if offset:
                 assert env.next_stage() is not None
@@ -64,7 +64,7 @@ def main() -> None:
                 assert by_name["JieZiTui27"][0]["class"] == "Infantry"
 
         # A companion at the exit must not substitute for Chong Er.
-        env._request("LOAD_STAGE 46")
+        env._request("LOAD_STAGE 47")
         companion_exit = env.snapshot()
         hu_yan = next(unit for unit in companion_exit["units"] if unit["name"] == "HuYan27")
         hu_yan.update({"x": 18, "y": 5})
@@ -73,7 +73,7 @@ def main() -> None:
         assert not terminated
 
         # Chong Er himself at the exit wins and carries his progression forward.
-        env._request("LOAD_STAGE 46")
+        env._request("LOAD_STAGE 47")
         chonger_exit = env.snapshot()
         chonger = next(unit for unit in chonger_exit["units"] if unit["name"] == "ChongEr27")
         chonger.update({"x": 18, "y": 5, "level": 7, "exp": 41})
@@ -86,7 +86,7 @@ def main() -> None:
         assert (int(inherited["level"]), int(inherited["exp"])) == (7, 41)
 
         # The Caisang defense ends at turn ten even if Bo Di is still active.
-        env._request("LOAD_STAGE 47")
+        env._request("LOAD_STAGE 48")
         turn_ten = env.snapshot()
         turn_ten["turn_current"] = 10
         env.restore(turn_ten)

@@ -28,3 +28,10 @@ __pycache__/
 !/output/terrain_model/*.txt
 !/output/terrain_model/terrain_trusted_adapter.pt
 /.pytest_cache/
+/android-app/.gradle/
+/android-app/build/
+/android-app/app/build/
+/android-app/local.properties
+/*.zip
+/promo-site-qa-*.png
+/web-game/qa-*.png

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DongZhou.UnityRemake.Mobile;
 using UnityEngine;
 
 namespace DongZhou.UnityRemake
@@ -38,9 +39,17 @@ namespace DongZhou.UnityRemake
             public int MaxHp;
             public int Move;
             public int Power;
+            public int RoleIndex;
             public bool Acted;
             public bool Moved;
             public bool Alive => Hp > 0;
+        }
+
+        private sealed class EnemyAction
+        {
+            public int Type;
+            public Vector2Int Destination;
+            public Unit Target;
         }
 
         private static readonly Vector2Int[] Directions =
@@ -118,15 +127,15 @@ namespace DongZhou.UnityRemake
         private void ResetBattle()
         {
             units.Clear();
-            AddUnit("杜伯", false, 2, 6, 130, 5, 44);
-            AddUnit("左儒", false, 2, 8, 120, 5, 34);
-            AddUnit("周宣王", true, 16, 1, 145, 5, 37);
-            AddUnit("尹吉甫", true, 15, 1, 110, 4, 29);
-            AddUnit("召虎", true, 17, 1, 125, 5, 34);
-            AddUnit("王师甲士", true, 12, 1, 100, 4, 25);
-            AddUnit("王师甲士", true, 15, 2, 100, 4, 25);
-            AddUnit("王师甲士", true, 17, 2, 100, 4, 25);
-            AddUnit("王师甲士", true, 17, 3, 100, 4, 25);
+            AddUnit("杜伯", false, 2, 6, 130, 5, 44, 3);
+            AddUnit("左儒", false, 2, 8, 120, 5, 34, 5);
+            AddUnit("周宣王", true, 16, 1, 145, 5, 37, 1);
+            AddUnit("尹吉甫", true, 15, 1, 110, 4, 29, 5);
+            AddUnit("召虎", true, 17, 1, 125, 5, 34, 3);
+            AddUnit("王师甲士", true, 12, 1, 100, 4, 25, 2);
+            AddUnit("王师甲士", true, 15, 2, 100, 4, 25, 2);
+            AddUnit("王师甲士", true, 17, 2, 100, 4, 25, 2);
+            AddUnit("王师甲士", true, 17, 3, 100, 4, 25, 2);
             battleLog.Clear();
             claimedSites.Clear();
             reachable.Clear();
@@ -145,9 +154,13 @@ namespace DongZhou.UnityRemake
             AddLog("东郊猎场怪风骤起，白马素车现于王师之前。", new Color(0.93f, 0.82f, 0.56f));
         }
 
-        private void AddUnit(string name, bool enemy, int x, int y, int hp, int move, int power)
+        private void AddUnit(string name, bool enemy, int x, int y, int hp, int move, int power, int roleIndex)
         {
-            units.Add(new Unit { Name = name, Enemy = enemy, Cell = new Vector2Int(x, y), Hp = hp, MaxHp = hp, Move = move, Power = power });
+            units.Add(new Unit
+            {
+                Name = name, Enemy = enemy, Cell = new Vector2Int(x, y), Hp = hp,
+                MaxHp = hp, Move = move, Power = power, RoleIndex = roleIndex
+            });
         }
 
         private void OnGUI()
@@ -475,12 +488,10 @@ namespace DongZhou.UnityRemake
         {
             foreach (Unit enemy in units.Where(item => item.Enemy && item.Alive).ToList())
             {
-                Unit target = units.Where(item => !item.Enemy && item.Alive).OrderBy(item => DongJiaoRules.Distance(item.Cell, enemy.Cell)).FirstOrDefault();
-                if (target == null) break;
-                if (DongJiaoRules.Distance(enemy.Cell, target.Cell) > 1)
-                    MoveToward(enemy, target.Cell);
-                if (DongJiaoRules.Distance(enemy.Cell, target.Cell) == 1)
-                    Attack(enemy, target, true);
+                List<EnemyAction> actions = BuildEnemyActions(enemy);
+                if (actions.Count == 0) break;
+                int choice = SelectEnemyAction(enemy, actions);
+                ExecuteEnemyAction(enemy, actions[Mathf.Clamp(choice, 0, actions.Count - 1)]);
                 CheckEndConditions();
                 if (battleEnded) return;
             }
@@ -499,7 +510,146 @@ namespace DongZhou.UnityRemake
             status = "我军行动：选择杜伯或左儒";
         }
 
+        private List<EnemyAction> BuildEnemyActions(Unit enemy)
+        {
+            List<Unit> targets = units.Where(item => !item.Enemy && item.Alive)
+                .OrderBy(item => DongJiaoRules.Distance(item.Cell, enemy.Cell)).ToList();
+            var actions = new List<EnemyAction>();
+            if (targets.Count == 0) return actions;
+
+            // Keep the old nearest-target behavior first as the deterministic fallback.
+            Unit nearest = targets[0];
+            Vector2Int fallbackDestination = FindMoveDestination(enemy, nearest.Cell);
+            actions.Add(new EnemyAction
+            {
+                Type = DongJiaoRules.Distance(fallbackDestination, nearest.Cell) == 1 ? 2 : 1,
+                Destination = fallbackDestination,
+                Target = DongJiaoRules.Distance(fallbackDestination, nearest.Cell) == 1 ? nearest : null
+            });
+
+            foreach (Unit target in targets)
+            {
+                Vector2Int destination = FindMoveDestination(enemy, target.Cell);
+                int type = DongJiaoRules.Distance(destination, target.Cell) == 1 ? 2 : 1;
+                if (!actions.Any(action => action.Type == type && action.Destination == destination && action.Target == (type == 2 ? target : null)))
+                    actions.Add(new EnemyAction { Type = type, Destination = destination, Target = type == 2 ? target : null });
+            }
+            actions.Add(new EnemyAction { Type = 0, Destination = enemy.Cell });
+            return actions;
+        }
+
+        private int SelectEnemyAction(Unit enemy, List<EnemyAction> actions)
+        {
+            HappoSentisPolicy policy = HappoSentisPolicy.Instance;
+            if (policy == null) return 0;
+            float[] local = BuildLocalFeatures(enemy);
+            float[] candidates = BuildCandidateFeatures(enemy, actions);
+            bool[] legal = Enumerable.Repeat(true, actions.Count).ToArray();
+            int choice = policy.SelectAction(local, candidates, legal, enemy.RoleIndex, out HappoSelectionDiagnostics diagnostics);
+            if (diagnostics.UsedFallback && diagnostics.FallbackReason != HappoFallbackReason.ModelUnavailable)
+                Debug.LogWarning($"HAPPO action fallback: {diagnostics.FallbackReason}");
+            return choice;
+        }
+
+        private float[] BuildLocalFeatures(Unit actor)
+        {
+            float friendlyHp = units.Where(item => item.Enemy && item.Alive).Sum(item => item.Hp);
+            float opposingHp = units.Where(item => !item.Enemy && item.Alive).Sum(item => item.Hp);
+            return new[]
+            {
+                turn / 18f,
+                friendlyHp / Mathf.Max(1f, opposingHp),
+                DongJiaoRules.Width / 64f,
+                DongJiaoRules.Height / 64f,
+                1f, 0f, 0f, 1f, 1f, 0f,
+                actor.Cell.x / (float)(DongJiaoRules.Width - 1),
+                actor.Cell.y / (float)(DongJiaoRules.Height - 1),
+                actor.Hp / (float)Mathf.Max(1, actor.MaxHp),
+                0f,
+                actor.Power / 500f,
+                actor.Power / 500f,
+                actor.Move / 20f,
+                actor.Power / 500f,
+                actor.Power / 500f,
+                actor.Move / 20f
+            };
+        }
+
+        private float[] BuildCandidateFeatures(Unit actor, List<EnemyAction> actions)
+        {
+            var result = new float[actions.Count * HappoPolicyContract.CandidateFeatureCount];
+            List<Unit> targets = actions.Where(action => action.Target != null).Select(action => action.Target).Distinct().ToList();
+            float minHp = targets.Count == 0 ? 0f : targets.Min(target => target.Hp / (float)Mathf.Max(1, target.MaxHp));
+            float maxHp = targets.Count == 0 ? 0f : targets.Max(target => target.Hp / (float)Mathf.Max(1, target.MaxHp));
+            float minPower = targets.Count == 0 ? 0f : targets.Min(target => target.Power);
+            float maxPower = targets.Count == 0 ? 0f : targets.Max(target => target.Power);
+
+            for (int row = 0; row < actions.Count; row++)
+            {
+                EnemyAction action = actions[row];
+                int start = row * HappoPolicyContract.CandidateFeatureCount;
+                result[start + Mathf.Clamp(action.Type, 0, 3)] = 1f;
+                result[start + 4] = action.Destination.x / (float)(DongJiaoRules.Width - 1);
+                result[start + 5] = action.Destination.y / (float)(DongJiaoRules.Height - 1);
+                result[start + 6] = DongJiaoRules.Distance(actor.Cell, action.Destination) /
+                    (float)(DongJiaoRules.Width + DongJiaoRules.Height - 2);
+                if (action.Target != null)
+                {
+                    result[start + 7] = 1f;
+                    result[start + 8] = (action.Target.Cell.x - action.Destination.x) / (float)(DongJiaoRules.Width - 1);
+                    result[start + 9] = (action.Target.Cell.y - action.Destination.y) / (float)(DongJiaoRules.Height - 1);
+                    result[start + 10] = action.Target.Hp / (float)Mathf.Max(1, action.Target.MaxHp);
+                    result[start + 11] = 1f;
+                }
+                result[start + 13] = 1f;
+
+                int tactical = start + 14;
+                result[tactical + Mathf.Clamp(action.Type, 0, 3)] = 1f;
+                result[tactical + 4] = action.Type == 2 ? Mathf.Min(1f, actor.Power / 160f) : 0f;
+                result[tactical + 7] = actor.Hp / (float)Mathf.Max(1, actor.MaxHp);
+                int currentDistance = NearestPlayerDistance(actor.Cell);
+                int destinationDistance = NearestPlayerDistance(action.Destination);
+                float delta = (currentDistance - destinationDistance) / 12f;
+                result[tactical + 9] = Mathf.Max(0f, delta);
+                result[tactical + 10] = Mathf.Max(0f, -delta);
+                result[tactical + 11] = units.Any(unit => !unit.Enemy && unit.Alive && DongJiaoRules.Distance(action.Destination, unit.Cell) == 1) ? 1f : 0f;
+                result[tactical + 14] = action.Type == 2 ? 1f : 0f;
+                result[tactical + 19] = actor.Hp < actor.MaxHp * 0.35f ? 1f : 0f;
+                if (action.Target == null) continue;
+
+                float hp = action.Target.Hp / (float)Mathf.Max(1, action.Target.MaxHp);
+                result[tactical + 6] = Weakness(hp, minHp, maxHp);
+                result[tactical + 7] = Weakness(action.Target.Power, minPower, maxPower);
+                result[tactical + 8] = result[tactical + 7];
+                result[tactical + 12] = hp <= minHp + 1e-6f ? 1f : 0f;
+                result[tactical + 18] = action.Target.Power <= minPower + 1e-6f ? 1f : 0f;
+                result[tactical + 19] = result[tactical + 18];
+            }
+            return result;
+        }
+
+        private int NearestPlayerDistance(Vector2Int cell) => units
+            .Where(item => !item.Enemy && item.Alive)
+            .Select(item => DongJiaoRules.Distance(cell, item.Cell))
+            .DefaultIfEmpty(0).Min();
+
+        private static float Weakness(float value, float minimum, float maximum) =>
+            maximum <= minimum ? 0.5f : (maximum - value) / (maximum - minimum);
+
+        private void ExecuteEnemyAction(Unit actor, EnemyAction action)
+        {
+            actor.Cell = action.Destination;
+            if (action.Type == 2 && action.Target != null && action.Target.Alive &&
+                DongJiaoRules.Distance(actor.Cell, action.Target.Cell) == 1)
+                Attack(actor, action.Target, true);
+        }
+
         private void MoveToward(Unit unit, Vector2Int goal)
+        {
+            unit.Cell = FindMoveDestination(unit, goal);
+        }
+
+        private Vector2Int FindMoveDestination(Unit unit, Vector2Int goal)
         {
             var queue = new Queue<Vector2Int>();
             var previous = new Dictionary<Vector2Int, Vector2Int>();
@@ -538,8 +688,9 @@ namespace DongZhou.UnityRemake
                 destination = previous[destination];
             }
             path.Reverse();
-            if (path.Count > 0)
-                unit.Cell = path[Mathf.Min(unit.Move - 1, path.Count - 1)];
+            return path.Count > 0
+                ? path[Mathf.Min(unit.Move - 1, path.Count - 1)]
+                : unit.Cell;
         }
         private void ClaimSupply(Unit unit)
         {

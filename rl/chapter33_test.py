@@ -24,7 +24,7 @@ def wait_once(env: MengdeEnv) -> tuple:
 
 def main() -> None:
     with MengdeEnv(EXECUTABLE, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 54")
+        env._request("LOAD_STAGE 55")
         story = env.story_info()
         assert story["chapter"] == "第三十三回·上"
         assert story["title"] == "宋公伐齐纳子昭 楚人伏兵劫盟主"
@@ -119,7 +119,7 @@ def main() -> None:
         assert not terminated
 
         # Gongzi Muyi himself reaching the south road wins.
-        env._request("LOAD_STAGE 55")
+        env._request("LOAD_STAGE 56")
         muyi_exit = env.snapshot()
         next(unit for unit in muyi_exit["units"] if unit["name"] == "GongZiMuYi33").update(
             {"x": 9, "y": 13}

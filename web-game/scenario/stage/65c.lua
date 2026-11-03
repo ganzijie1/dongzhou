@@ -1,0 +1,92 @@
+gally_hold_position=true
+gsupply_enabled=true
+gitems={{id="medicine",name="金疮药",hp=120,mp=0,price=120,initial=2},{id="spirit_powder",name="清心散",hp=0,mp=30,price=150,initial=1}}
+gcommanders={"NingXi65","YouZaiGu65","BeiGongYi65","GongSunDing61"}
+gevents_enabled=true
+gduel_enabled=false
+gduels={}
+gsites={{id="sun_hall",name="孙氏正堂",position={16,13},restore_hp=25,restore_mp=15,rewards={{item="medicine",amount=1}}},{id="sun_store",name="孙氏府库",position={23,29},restore_hp=20,restore_mp=10,rewards={}},{id="wei_palace",name="卫国宫城",position={56,13},restore_hp=25,restore_mp=20,rewards={}}}
+gstory={chapter="第六十五回·下",title="弑齐光崔庆专权 纳卫衎甯喜擅政",battle_title="帝丘复君",objective="攻破孙氏府与卫宫，迎卫献公复位。",map_asset="m110.png",
+ intro={
+  {speaker="",text="卫献公衎被逐多年。宁殖临终命其子宁喜迎故君复位，以洗去宁氏参与逐君的污名。"},
+  {speaker="",text="献公据夷仪，许诺复国后政事尽归宁喜。公子鱄为双方作证，宁喜遂开始联络石恶、北宫遗等人。"},
+  {speaker="右宰谷",text="献公言语仍如旧日，未必守约；但孙嘉出使、孙林父与孙蒯皆在戚邑，如今只有孙襄守帝丘。"},
+  {speaker="宁喜",text="父命不可违。先攻孙氏府，夺其家甲；若一次不成，夜间趁孙襄伤重再攻。"},
+  {speaker="褚带",text="孙氏府墙坚厚，家甲千人。弓手轮番守楼，宁氏休想靠一次冲锋破门。"},
+  {speaker="公孙丁",text="孙襄若出门追击，我可在街口以箭截住。他一倒，孙氏家甲必乱。"},
+  {speaker="卫殇公",text="寡人在位十三年并无失德。宁喜若敢擅废君主，便是真正的叛臣。"},
+  {speaker="军令",text="先击退孙襄；随后夜破孙氏府，击退褚带；最后进入卫宫，击退卫殇公与世子角。雍鉏按原著逃往戚邑。"}
+ },
+ events={
+  {id="story_event_1",trigger="scripted",turn=0,hp_percent=0,speaker="公孙丁",text="孙襄追出府门，正是放箭之时！"},
+  {id="story_event_2",trigger="scripted",turn=0,hp_percent=0,speaker="宁喜",text="孙襄已死，三更再攻孙府！"},
+  {id="story_event_3",trigger="scripted",turn=0,hp_percent=0,speaker="卫殇公",text="宁喜擅杀世臣，寡人宁死不受废位之辱！"}
+ },
+ victory={
+  {speaker="",text="右宰谷初攻孙府不利，孙襄出门追击，被公孙丁一箭射中胸口，回府后伤重而死。"},
+  {speaker="",text="宁喜三更再攻，孙氏家甲因无主而溃散。雍鉏越后墙逃往戚邑，褚带被乱军杀死。"},
+  {speaker="",text="宁喜持孙襄首级入宫，逼卫殇公退位。殇公与世子角反抗失败，最终都被杀死。"},
+  {speaker="",text="卫献公三日赶回帝丘复位，允许太叔仪为殇公治丧，并任宁喜独相卫国。"},
+  {speaker="",text="孙林父以戚邑附晋，故意把三百晋国守卒置于茅氏，企图借卫军袭晋激怒晋国。"},
+  {speaker="",text="宁喜没有识破其计，命殖绰率千人袭击茅氏；战斗胜负留待下一回。"},
+  {speaker="军令",text="帝丘复君完成，获得1200金币。第六十五回结束。"}
+ },
+ defeat={{speaker="",text="宁喜、右宰谷、北宫遗、公孙丁任一被击退，或超过三十回合，失败。"}}
+}
+local phase=1
+local function many(game,h,p,f)for _,v in ipairs(p)do game:generate_unit(h,1,f,v)end end
+function on_deploy(game)for _,h in ipairs(gcommanders)do game:appoint_hero(h,1)end end
+function on_begin(game)game:generate_unit("SunXiang65",1,Enum.force.enemy,{27,21});game:generate_unit("ChuDai65",1,Enum.force.enemy,{23,29});game:set_unit_invulnerable("ChuDai65",true);game:generate_unit("YongChu65",1,Enum.force.enemy,{16,13});game:set_unit_invulnerable("YongChu65",true);game:generate_unit("WeiShangGong65",1,Enum.force.enemy,{56,13});game:set_unit_invulnerable("WeiShangGong65",true);game:generate_unit("TaiZiJiao65",1,Enum.force.enemy,{58,18});game:set_unit_invulnerable("TaiZiJiao65",true);many(game,"SunHouseGuard65",{{26,18},{26,24},{20,20},{20,25},{14,19},{14,25}},Enum.force.enemy);many(game,"SunHouseArcher65",{{25,16},{25,27},{18,16},{18,30}},Enum.force.enemy);many(game,"NingHouseGuard65",{{33,18},{33,21},{33,25},{37,18},{37,26}},Enum.force.own)end
+function on_update(game)if phase==1 and not game:has_unit("SunXiang65")then phase=2;game:set_unit_invulnerable("ChuDai65",false);game:push_cmd_speak(0,"孙襄中箭身亡，孙氏家甲已经动摇。三更再攻内门，击退褚带！")end if phase==2 and not game:has_unit("ChuDai65")then phase=3;game:set_unit_invulnerable("WeiShangGong65",false);game:set_unit_invulnerable("TaiZiJiao65",false);game:push_cmd_speak(0,"孙府已破，雍鉏越墙逃往戚邑。宁氏诸军转向卫宫，迫使殇公退位！")end end
+function on_victory(game)end function on_defeat(game)end
+function end_condition(game)for _,h in ipairs(gcommanders)do if not game:has_unit(h)then return Enum.status.defeat end end if phase==3 and not game:has_unit("WeiShangGong65") and not game:has_unit("TaiZiJiao65")then return Enum.status.victory end return Enum.status.undecided end
+gstage={title_id="DiqiuRestoration65",turn_limit=30,map={blocked_edges={},size={70,48},terrain={
+        "FgfffFggffffggFffggffffFgfffFggfffggfFffggffffFgfffFgffffggfFffggfffgF",
+        "ffggffffFgffffggfFfggfFffggffffFgfffggffFfggfFffggfffgFffffggffFfggfFf",
+        "gfFfggffffgFffffFgfffggffFfggffffgFfffgFffffggffFfggfffggFfffgFffffggf",
+        "fggffFggffFfggffffgFfffggfffFggffFfggfffggFfffggfffFggffFggffffggFfffg",
+        "fffgFfffggfffFggffffggFffggFfffggfffFggfffggfFffggFfffggfffFgffffggfFf",
+        "gffffggFffggffffFgfffFggfffggfFffggffffFgfffFWWWWWWWWWWWWWWWWWWWWWWWgf",
+        "fFgfWWWWWWWWWWWWWWWWWWWWWWWWWWWffFfggfFffggffWhiiiiiiihiiiiiiihiiiiWfg",
+        "fffgWiiiiiihiiiiiiihiiiiiiihiiWgFffffggffFfggWiiiiihiiiiiiihiiiiiiiWff",
+        "gffFWiiihiiiiiiihiiiiiiihiiiiiWffggFfffggfffFWiihiiiiiiihiiiiiiihiiWgf",
+        "fggfWhiiiiiiihiiiiiiihiiiiiiihWgfffggfFffggFfWiiiiiiihiiiiiiihiiiiiWfg",
+        "FffgWiiiiihiiiiiiihiiiiiiihiiiWfFgfffFgffffggWiiiihiiiiiiihiiiiiiihWfF",
+        "ggfFWiihiiiiiiihiiiiiiihiiiiiiWFffggfffgFffffWihiiiiiiihiiiiiiihiiiWgg",
+        "ffFgWiiiiiiihiiiiiiihiiiiiiihiWgffFfggfffggFfWiiiiiihiiiiiiihiiiiiiWff",
+        "ffffWiiiihiiiiiiChiiiiiiihiiiiWfggfffFggffFggWiiihiiiiiiChiiiiiiihiWff",
+        "ggffWihiiiiiiihiiiiiiihiiiiiiiWFffggFfffggfffWhiiiiiiihiiiiiiihiiiiWFg",
+        "ffFgWiiiiiihiiiiiiihiiiiiiihiiWgffffggfFffggfWiiiiihiiiiiiihiiiiiiiWff",
+        "fFffWiiihiiiiiiihiiiiiiihiiiiiWfgFffffggffFfgWiihiiiiiiihiiiiiiihiiWff",
+        "ggffWhiiiiiiihiiiiiiihiiiiiiihWfffggFfffgFfffWiiiiiiihiiiiiiihiiiiiWgg",
+        "ffggWiiiiihiiiiiiihiiiiiiihiiiWggffFggffffggFWiiiihiiiiiiihiiiiiiihWff",
+        "gFffWiihiiiiiiihiiiiiiihiiiiiiWffggfffFgffffgWihiiiiiiihiiiiiiihiiiWgf",
+        "FggfWiiiiiiihiiiiiiihiiiiiiihiWfFffggfffgFfffWiiiiiihiiiiiiihiiiiiiWfF",
+        "fffFWiiiihiiiiiiihiiiiiiihiiiiGggffFfggfFfggfWiiihiiiiiiihiiiiiiihiWff",
+        "gfffWihiiiiiiihiiiiiiihiiiiiiiGffgFffffggffFgGhiiiiiiihiiiiiiihiiiiWgf",
+        "FggfWiiiiiihiiiiiiihiiiiiiihiiWffffggFfffggffGiiiiihiiiiiiihiiiiiiiWfF",
+        "fffgWiiihiiiiiiihiiiiiiihiiiiiWFgffffggfFffggWiihiiiiiiihiiiiiiihiiWFf",
+        "gfFfWhiiiiiiihiiiiiiihiiiiiiihWffgFffffFgffffWiiiiiiihiiiiiiihiiiiiWgf",
+        "fggfWiiiiihiiiiiiihiiiiiiihiiiWgfFfggffffgFffWiiiihiiiiiiihiiiiiiihWfg",
+        "fffgWiihiiiiiiihiiiiiiihiiiiiiWfggffFggffffggWihiiiiiiihiiiiiiihiiiWFf",
+        "ggffWiiiiiiihiiiiiiihiiiiiiihiWfffggfffFgfffFWiiiiiihiiiiiiihiiiiiiWgg",
+        "fFggWiiiihiiiiiiihiiiiiCihiiiiWgfFffggFffggffWiiihiiiiiiihiiiiiiihiWff",
+        "ffffWihiiiiiiihiiiiiiihiiiiiiiWfFgffffggfFfggWhiiiiiiihiiiiiiihiiiiWff",
+        "ggfFWiiiiiihiiiiiiihiiiiiiihiiWfffgFffffggffFWiiiiihiiiiiiihiiiiiiiWgg",
+        "ffggWiiihiiiiiiihiiiiiiihiiiiiWgffffggFfffgFfWiihiiiiiiihiiiiiiihiiWff",
+        "FfffWhiiiiiiihiiiiiiihiiiiiiihWfFgfffFggffffgWiiiiiiihiiiiiiihiiiiiWfF",
+        "ggfFWiiiiihiiiiiiihiiiiiiihiiiWFffggffffFgfffWiiiihiiiiiiihiiiiiiihWgg",
+        "ffFgWiihiiiiiiihiiiiiiihiiiiiiWggfFfggffffgFfWihiiiiiiihiiiiiiihiiiWff",
+        "gfffWiiiiiiihiiiiiiihiiiiiiihiWffggffFggffFfgWiiiiiihiiiiiiihiiiiiiWgf",
+        "fggfWiiiihiiiiiiihiiiiiiihiiiiWFfffgFfffggfffWiiihiiiiiiihiiiiiiihiWFg",
+        "ffFgWihiiiiiiihiiiiiiihiiiiiiiWggffffggFffggfWhiiiiiiihiiiiiiihiiiiWff",
+        "gFffWWWWWWWWWWWWWWWWWWWWWWWWWWWffFgffffggfFfgWiiiiihiiiiiiihiiiiiiiWgf",
+        "fggfFffggfffgFffffFgffffggfFfggffffgFffffFgffWWWWWWWWWWWWWWWWWWWWWWWfg",
+        "fffggffFfggfFfggffffgFffffggffFggffFfggffffgFfffggfffFggffFfggfffggFff",
+        "gFfffgFffffggffFggffffggFfffgFfffggfffFggffffggFffggFfffggfffFggfffggf",
+        "FggffffggFfffggfffFgfffFggffffggFffggffffFgfffFggfffggfFffggffffFgfffF",
+        "fffFgffffggfFffggFffggffffFgffffggfFfggfFffggffffFgfffggffFfggfFffggff",
+        "ggfffgFffffFgffffggfFfggffffgFffffFgfffggffFfggffffgFfffgFffffggffFfgg",
+        "FfggfFfggffffgFffffggffFggffFfggffffgFfffggfffFggffFfggfffggFfffggfffF",
+        "ffffggffFggffffggFfffgFfffggfffFggffffggFffggFfffggfffFggfffggfFffggFf",
+},file="map.bmp"},deploy={unselectables={{position={35,19},hero="NingXi65"},{position={35,23},hero="YouZaiGu65"},{position={38,20},hero="BeiGongYi65"},{position={38,24},hero="GongSunDing61"}},num_required_selectables=0,selectables={}},rewards={equipments={},money=12000}}

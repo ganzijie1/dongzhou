@@ -1,0 +1,27 @@
+{
+  "env_version": "dongzhou-web-172-v1",
+  "schema_version": "happo-local20-candidate34-v1",
+  "policy_version": "happo-2026-11-02",
+  "guard_version": "legal-mask-hash-timeout-difficulty-blend-role-fallback-replay-v4",
+  "model": "HappoMobile.onnx",
+  "model_sha256": "e7310bd63dc843970f6fe570ebf0924b76dbe21717c2d5db8c69068b5047b697",
+  "stage_count": 172,
+  "battle_map_count": 169,
+  "inference_budget_ms": 12,
+  "fallback": "deterministic nearest-target scripted AI",
+  "release_gate": "3 seeds per 169 battle stages; runtime calibration required",
+  "profile_schema_version": 4,
+  "replay_schema_version": "dongzhou-replay-v1",
+  "pcgrl": {
+    "scenario": "Masui historical exercise (not campaign stage 173)",
+    "schema_version": "pcgrl-wide19x14-cell9-tile4-v1",
+    "policy_version": "pcgrl-masui-2026-11-02",
+    "model": "PcgrlMasui.onnx",
+    "model_sha256": "ded525499ec83e9d3b58d1bf14b89cf621b8cd962726238367482b958b070ada",
+    "map_size": [19, 14],
+    "inference_budget_ms": 35,
+    "postprocess": "seeded Simple Tiled WFC + independent hard validation + <=64-cell repair",
+    "agent_evaluation": "1080 maps / 2160 mirrored deterministic rule-agent battles",
+    "fallback": "verified Masui exercise template"
+  }
+}

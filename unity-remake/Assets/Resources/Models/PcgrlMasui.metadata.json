@@ -1,0 +1,37 @@
+{
+  "model_version": "pcgrl-masui-2026-11-02",
+  "schema_version": "pcgrl-wide19x14-cell9-tile4-v1",
+  "width": 19,
+  "height": 14,
+  "features": 9,
+  "tiles": 4,
+  "training_algorithm": "safe-prior warm start + REINFORCE over PCGRL functional metrics",
+  "source_inspiration": [
+    "https://github.com/amidos2006/gym-pcgrl",
+    "https://github.com/smearle/control-pcgrl"
+  ],
+  "model_sha256": "ded525499ec83e9d3b58d1bf14b89cf621b8cd962726238367482b958b070ada",
+  "model_bytes": 7161,
+  "evaluation": {
+    "policy": {
+      "samples": 360,
+      "valid_rate": 0.0,
+      "connected_rate": 0.9972222222222222,
+      "mean_reward": 7.808427010662929,
+      "mean_ratio_error": 0.018680451127819554,
+      "mean_spawn_clear": 0.9833333333333333
+    },
+    "random": {
+      "samples": 360,
+      "valid_rate": 0.0,
+      "connected_rate": 0.05,
+      "mean_reward": 3.3092129999747972,
+      "mean_ratio_error": 0.0178734335839599,
+      "mean_spawn_clear": 0.8096743295019156
+    },
+    "gate": {
+      "passed": true,
+      "criteria": "connectivity +0.25 and reward higher than random baseline; obstacle-ratio MAE <= 0.11"
+    }
+  }
+}

@@ -20,7 +20,7 @@ IMPASSABLE = {"Wall", "RockyMountain", "Water", "Fence"}
 def main() -> None:
     executable = Path("build/rl-vcpkg/game/src/rl/Release/mengde_rl.exe")
     with MengdeEnv(executable, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 34")
+        env._request("LOAD_STAGE 35")
         for offset, (chapter, battle, asset) in enumerate(EXPECTED):
             if offset:
                 assert env.next_stage() is not None

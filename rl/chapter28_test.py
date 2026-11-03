@@ -23,7 +23,7 @@ def units_by_name(env: MengdeEnv) -> dict[str, dict]:
 def main() -> None:
     executable = Path("build/rl-vcpkg/game/src/rl/Release/mengde_rl.exe")
     with MengdeEnv(executable, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 48")
+        env._request("LOAD_STAGE 49")
         story = env.story_info()
         assert story["chapter"] == "第二十八回"
         assert story["title"] == "里克两弑孤主 穆公一平晋乱"

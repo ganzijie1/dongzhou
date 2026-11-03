@@ -222,6 +222,7 @@ class HAPPO:
         self.target_aux_coef = target_aux_coef
         self.rng = np.random.default_rng(seed)
         self._bootstrap_value = 0.0
+        self.observed_roles: set[str] = set()
 
     @torch.no_grad()
     def choose(
@@ -367,6 +368,9 @@ class HAPPO:
         epochs: int = 4,
         batch_size: int = 128,
     ) -> dict[str, Any]:
+        if not transitions:
+            raise ValueError("HAPPO update requires at least one transition")
+        self.observed_roles.update(normalized_role(item.role) for item in transitions)
         advantages, returns = self._advantages(transitions)
         old_log_probs = np.asarray([item.log_prob for item in transitions], dtype=np.float32)
         choices = np.asarray([item.choice for item in transitions], dtype=np.int64)
@@ -503,6 +507,9 @@ class HAPPO:
                 "actors": self.actors.state_dict(),
                 "critic": self.critic.state_dict(),
                 "roles": ROLE_NAMES,
+                "trained_roles": tuple(
+                    role for role in ROLE_NAMES if role in self.observed_roles
+                ),
                 "action_features": HAPPO_ACTION_FEATURES,
                 "target_priority_features": TARGET_FEATURE_NAMES,
                 "value_normalization": "popart",

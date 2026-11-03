@@ -24,7 +24,7 @@ def by_name(env: MengdeEnv) -> dict[str, dict]:
 
 def main() -> None:
     with MengdeEnv(EXECUTABLE, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 58")
+        env._request("LOAD_STAGE 59")
         story = env.story_info()
         assert story["chapter"] == "第三十五回"
         assert story["title"] == "晋重耳周游列国 秦怀嬴重婚公子"

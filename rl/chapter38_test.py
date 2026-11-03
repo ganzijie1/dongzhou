@@ -35,7 +35,7 @@ def main():
     }
 
     with MengdeEnv(EXE, scenario="dongzhou", interactive=True, max_episode_actions=100) as env:
-        env._request("LOAD_STAGE 61")
+        env._request("LOAD_STAGE 62")
         story = env.story_info()
         assert story["map_asset"] == "m061.png"
         assert len(story["intro"]) >= 20 and len(story["victory"]) >= 15
@@ -52,7 +52,7 @@ def main():
         assert terminated and not truncated and int(result["status"]) == 3
 
     with MengdeEnv(EXE, scenario="dongzhou", interactive=True, max_episode_actions=100) as env:
-        env._request("LOAD_STAGE 62")
+        env._request("LOAD_STAGE 63")
         story = env.story_info()
         assert story["map_asset"] == "m062.png"
         assert len(story["intro"]) >= 18 and len(story["victory"]) >= 23

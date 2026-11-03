@@ -132,13 +132,14 @@ void Unit::GainExp(Unit* object) {
 }
 
 void Unit::GainExp(uint16_t exp) {
-  if (force_ != Force::kOwn || IsDead() || exp == 0) return;
+  if (force_ != Force::kOwn || IsDead() || exp == 0 || hero_->GetLevel() >= Level::kMaxLevel) return;
   uint32_t total = static_cast<uint32_t>(hero_->GetExp()) + exp;
   uint16_t level = hero_->GetLevel();
-  while (total >= Level::kExpLimit) {
+  while (total >= Level::kExpLimit && level < Level::kMaxLevel) {
     total -= Level::kExpLimit;
     ++level;
   }
+  if (level >= Level::kMaxLevel) total = 0;
   hero_->RestoreProgress(level, static_cast<uint16_t>(total));
   UpdateStat();
 }

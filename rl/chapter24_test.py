@@ -18,7 +18,7 @@ IMPASSABLE = {"Wall", "RockyMountain", "Water", "Fence"}
 def main() -> None:
     executable = Path("build/rl-vcpkg/game/src/rl/Release/mengde_rl.exe")
     with MengdeEnv(executable, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 40")
+        env._request("LOAD_STAGE 41")
         for offset, (chapter, battle, asset, intro_count, victory_count) in enumerate(EXPECTED):
             if offset:
                 assert env.next_stage() is not None
@@ -74,7 +74,7 @@ def main() -> None:
                     (9, 1), (13, 2), (9, 4), (4, 12), (14, 12)
                 }
 
-        env._request("LOAD_STAGE 40")
+        env._request("LOAD_STAGE 41")
         snapshot = env.snapshot()
         for unit in snapshot["units"]:
             if unit["name"] in {"XinmiGateCaptain24", "ZhengGateGuard24"}:
@@ -83,7 +83,7 @@ def main() -> None:
         _, _, terminated, _, info = env.step(int(env.list_actions()[0]["index"]))
         assert terminated and int(info["status"]) == 3
 
-        env._request("LOAD_STAGE 41")
+        env._request("LOAD_STAGE 42")
         snapshot = env.snapshot()
         qi = next(unit for unit in snapshot["units"] if unit["name"] == "QiHuanGong24")
         chu = next(unit for unit in snapshot["units"] if unit["name"] == "ChuChengWang24")
@@ -102,7 +102,7 @@ def main() -> None:
         _, _, terminated, _, info = env.step(int(attack["index"]))
         assert terminated and int(info["status"]) == 3
 
-        env._request("LOAD_STAGE 41")
+        env._request("LOAD_STAGE 42")
         snapshot = env.snapshot()
         xu = next(unit for unit in snapshot["units"] if unit["name"] == "XuXiGong24")
         xu.update({"dead": True, "hp": 0})

@@ -24,7 +24,7 @@ def wait_once(env: MengdeEnv) -> tuple:
 
 def main() -> None:
     with MengdeEnv(EXECUTABLE, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 56")
+        env._request("LOAD_STAGE 57")
         story = env.story_info()
         assert story["chapter"] == "第三十四回·上"
         assert story["title"] == "宋襄公假仁失众 齐姜氏乘醉遣夫"
@@ -112,7 +112,7 @@ def main() -> None:
         assert not terminated
 
         # An escort at the exit cannot substitute for the named ruler.
-        env._request("LOAD_STAGE 57")
+        env._request("LOAD_STAGE 58")
         escort_exit = env.snapshot()
         escort_exit["turn_current"] = 3
         next(unit for unit in escort_exit["units"] if unit["name"] == "SongGuard33").update(
@@ -122,7 +122,7 @@ def main() -> None:
         _, _, terminated, _, _ = wait_once(env)
         assert not terminated
 
-        env._request("LOAD_STAGE 57")
+        env._request("LOAD_STAGE 58")
         ruler_exit = env.snapshot()
         ruler_exit["turn_current"] = 3
         next(unit for unit in ruler_exit["units"] if unit["name"] == "SongXiangGong33").update(

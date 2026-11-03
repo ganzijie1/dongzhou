@@ -1,0 +1,553 @@
+{
+  "schemaVersion": 1,
+  "method": {
+    "principles": [
+      "用因果链和人物意图组织场景，不按编年材料逐条复述",
+      "开战前只交代即时目标，关键关系在战中随局势揭示，战后交代人物代价与下一章悬念",
+      "正史记载、编年解释与文学演绎分层保存，不把演义细节冒充确定史实",
+      "人物台词必须同时推进任务、暴露立场或改变关系，不能只复述旁白"
+    ],
+    "research": [
+      {
+        "title": "Narrative Planning: Balancing Plot and Character",
+        "url": "https://arxiv.org/abs/1401.3841",
+        "use": "以因果进展和角色意图作为每个剧情节点的硬约束"
+      },
+      {
+        "title": "Ontologically Faithful Generation of Non-Player Character Dialogues",
+        "url": "https://arxiv.org/abs/2212.10618",
+        "use": "让台词服从关卡目标、人物关系和史料事实，而非只追求文采"
+      }
+    ]
+  },
+  "stages": {
+    "01": {
+      "source_basis": [
+        {
+          "tier": "史实骨架",
+          "work": "《史记·周本纪》",
+          "url": "https://ctext.org/shiji/zhou-ben-ji",
+          "scope": "千亩之败、童谣及褒姒来历"
+        },
+        {
+          "tier": "文学演绎",
+          "work": "《东周列国志》第一回",
+          "url": "https://zh.wikisource.org/zh-hans/东周列国志/第001回",
+          "scope": "杜伯、左儒化厉索命；按传奇关卡处理，不标成正史结论"
+        }
+      ],
+      "events": [
+        {
+          "id": "01-turn-2-doubt",
+          "runtime": true,
+          "trigger": "turn",
+          "turn": 2,
+          "speaker": "尹吉甫",
+          "text": "护军只看见两名刺客，我看见的却是三年前没有说完的那场廷辩。大王，今日若仍只命军士放箭，旧案便再无开口之日。"
+        },
+        {
+          "id": "01-royal-guard-falls",
+          "runtime": true,
+          "trigger": "enemy_remaining",
+          "count": 3,
+          "speaker": "左儒",
+          "text": "他们护的是王驾，我们讨的是公道。不要滥伤军士，直取那位不肯听谏的人！"
+        }
+      ]
+    },
+    "02": {
+      "source_basis": [
+        {
+          "tier": "史实骨架",
+          "work": "《史记·周本纪》",
+          "url": "https://ctext.org/shiji/zhou-ben-ji",
+          "scope": "三川竭、岐山崩、废申后与宜臼、立伯服、烽火失信、犬戎之祸"
+        },
+        {
+          "tier": "文学演绎",
+          "work": "《东周列国志》第二回",
+          "url": "https://zh.wikisource.org/zh-hans/东周列国志/第002回",
+          "scope": "褒珦获罪、洪德献褒姒、宫廷冲突等戏剧细节"
+        }
+      ],
+      "intro": [
+        {
+          "speaker": "旁白",
+          "text": "宣王死后，太子宫涅即位，是为周幽王。老臣相继凋零，朝堂上肯把坏消息说到底的人越来越少。"
+        },
+        {
+          "speaker": "岐山守臣",
+          "text": "泾、河、洛三川同日震动，岐山又有崩裂之声。沿岸井泉浑浊，已有百姓弃屋外逃！"
+        },
+        {
+          "speaker": "伯阳父",
+          "text": "山川不是替人预言的巫具，却是国家赖以生存的根本。水源闭塞、民居压毁，十年之内若不修政，祸必从人事而成。"
+        },
+        {
+          "speaker": "周幽王",
+          "text": "寡人问的是吉凶，不是听你借山川讥刺朝政。赈济之事交有司办理，不必搅扰宫中。"
+        },
+        {
+          "speaker": "虢石父",
+          "text": "大王明断。灾异自有时数，若人人都借此议政，朝廷威令才是真要崩塌。"
+        },
+        {
+          "speaker": "褒珦",
+          "text": "道路已断，百姓已伤，臣所奏不是天意，是眼前的人命。若连灾情也只能说成祥瑞，朝堂还剩谁替大王看见天下？"
+        },
+        {
+          "speaker": "旁白",
+          "text": "褒珦因此下狱。三年间，群臣看懂了沉默比直言安全；褒地的家人却不能等他死在牢中。"
+        },
+        {
+          "speaker": "洪德",
+          "text": "父亲无兵可救，也无罪可赎。我只能把大王想要的送进去，换一个肯开牢门的口谕。"
+        },
+        {
+          "speaker": "褒姒",
+          "text": "你用我救父，我不怪你。只是进了王宫以后，人人都会替我安排来历、笑容和罪名，恐怕再没人问我愿不愿意。"
+        },
+        {
+          "speaker": "旁白",
+          "text": "褒姒入宫，褒珦获释。幽王宠爱她，又立其子伯服；旧太子宜臼与母亲申后由此成了宫廷中必须被移开的障碍。"
+        },
+        {
+          "speaker": "申后",
+          "text": "我争的不是一座宫室。宜臼受册为太子，关系宗庙继承；今日能因宠爱废嫡，明日谁还相信天子的册命？"
+        },
+        {
+          "speaker": "虢石父",
+          "text": "册命出于天子，也可由天子更改。宜臼久居申国，母族势重；立伯服，正可免外戚挟持王室。"
+        },
+        {
+          "speaker": "周幽王",
+          "text": "废申后，去宜臼，立褒姒为后、伯服为太子。再以旧册相争者，便是不认今日之王命。"
+        },
+        {
+          "speaker": "褒姒",
+          "text": "后位并不能让宫门外的议论停下。大王说天下都听王命，可这座宫里，我听见的只有人人怕说真话。"
+        },
+        {
+          "speaker": "旁白",
+          "text": "幽王想换她一笑，也想借一场盛大的服从证明王命仍旧有效。虢石父把目光投向骊山烽燧。"
+        },
+        {
+          "speaker": "虢石父",
+          "text": "烽火一起，畿内诸侯必连夜来援。大王可让王后亲眼看见：一声鼓响，千乘万骑都为天子奔走。"
+        },
+        {
+          "speaker": "郑伯友",
+          "text": "烽燧不是戏具，是边民与诸侯拿性命守成的信约。今夜若把信用烧尽，真正的敌兵来时，再高的火也召不回援军。"
+        },
+        {
+          "speaker": "周幽王",
+          "text": "寡人只是校阅诸侯响应，何来失信？传令骊山举烽、擂鼓，看看谁敢迟到！"
+        },
+        {
+          "speaker": "旁白",
+          "text": "诸侯仓促赶到，只见骊宫灯火与宴席。有人愤怒，有人畏惧，更多人把这次受骗记进了下一次是否发兵的盘算。"
+        },
+        {
+          "speaker": "褒姒",
+          "text": "他们披甲疾驰而来，却只等到一句各自回国。大王要看的服从，原来与我一样，都是被摆在席前给人观看的。"
+        },
+        {
+          "speaker": "旁白",
+          "text": "褒姒终于发笑，楼下却无人应声。幽王赏虢石父千金；诸侯沉默退去，王室号令从此多了一次被怀疑的理由。"
+        },
+        {
+          "speaker": "申侯",
+          "text": "废后、逐太子已使申国蒙辱，如今又命兵来讨。臣若坐等宜臼被杀，便负女儿与外孙；可若借戎兵入周，也将负天下。"
+        },
+        {
+          "speaker": "虢石父",
+          "text": "申侯这番话正说明他已有二心。请大王先发制人，削爵兴师，免得他以故太子号召诸侯。"
+        },
+        {
+          "speaker": "周幽王",
+          "text": "命虢石父整顿兵车，讨伐申国。烽火能召来的兵，寡人自己的王师也能征服。"
+        },
+        {
+          "speaker": "旁白",
+          "text": "灾情被压成谣言，册命变成私爱，烽火耗尽信用，申侯又被逼到犬戎一边。西周之亡不是一笑造成，而是一连串选择终于合流。"
+        },
+        {
+          "speaker": "下回预告",
+          "text": "第三回：真正的烽火燃起时，郑桓公为何仍要率兵赴死？"
+        }
+      ]
+    },
+    "03": {
+      "source_basis": [
+        {
+          "tier": "史实骨架",
+          "work": "《史记·周本纪》",
+          "url": "https://ctext.org/shiji/zhou-ben-ji",
+          "scope": "申侯联合犬戎、幽王骊山被杀、诸侯立宜臼"
+        },
+        {
+          "tier": "文学演绎",
+          "work": "《东周列国志》第三回",
+          "url": "https://zh.wikisource.org/zh-hans/东周列国志/第003回",
+          "scope": "镐京攻防、郑桓公死战等战场调度"
+        }
+      ],
+      "events": [
+        {
+          "id": "03-turn-2-empty-beacon",
+          "runtime": true,
+          "trigger": "turn",
+          "turn": 2,
+          "speaker": "周幽王",
+          "text": "烽烟已经越过骊山，为何东方大道仍不见诸侯旗号？再添柴薪，把鼓擂到他们听见为止！"
+        },
+        {
+          "id": "03-youwang-wounded",
+          "runtime": true,
+          "trigger": "unit_hp_below",
+          "unit": "ZhouYouWang",
+          "hp_percent": 0.5,
+          "speaker": "虢石父",
+          "text": "大王先撤！臣当初说诸侯会来，却没算到他们宁肯背负不勤王之名，也不肯再信这道烽火。"
+        },
+        {
+          "id": "03-turn-6-last-stand",
+          "runtime": true,
+          "trigger": "turn",
+          "turn": 6,
+          "speaker": "郑桓公",
+          "text": "我守的不是幽王一人的过失，是王城中的宗庙与百姓。诸侯可以恨他，犬戎却不能因此任意屠城！"
+        }
+      ]
+    },
+    "03b": {
+      "source_basis": [
+        {
+          "tier": "史实骨架",
+          "work": "《史记·周本纪》《秦本纪》",
+          "url": "https://ctext.org/shiji/qin-ben-ji",
+          "scope": "诸侯立平王、平王东迁、秦襄公护送受封"
+        },
+        {
+          "tier": "文学演绎",
+          "work": "《东周列国志》第三回",
+          "url": "https://zh.wikisource.org/zh-hans/东周列国志/第003回",
+          "scope": "四国复镐与撤军细节"
+        }
+      ]
+    },
+    "04": {
+      "source_basis": [
+        {
+          "tier": "编年史实",
+          "work": "《左传·隐公元年》",
+          "url": "https://ctext.org/chun-qiu-zuo-zhuan/yin-gong",
+          "scope": "郑伯克段于鄢、段出奔共、颍考叔黄泉相见"
+        },
+        {
+          "tier": "文学演绎",
+          "work": "《东周列国志》第四回",
+          "url": "https://zh.wikisource.org/zh-hans/东周列国志/第004回",
+          "scope": "共城追击与人物对白；不采用段自刎为确定史实"
+        }
+      ],
+      "events": [
+        {
+          "id": "04-turn-2-two-rulers",
+          "runtime": true,
+          "trigger": "turn",
+          "turn": 2,
+          "speaker": "公子吕",
+          "text": "京邑兵赋、边鄙号令都曾出自段手，城中百姓分不清谁才是君。今日若只攻城不申明军令，胜了也会留下两个郑国。"
+        },
+        {
+          "id": "04-duan-half-hp",
+          "runtime": true,
+          "trigger": "unit_hp_below",
+          "unit": "GongShuDuan",
+          "hp_percent": 0.5,
+          "speaker": "共叔段",
+          "text": "母亲说国人都会归我，城门一开却无人接应。兄长等的不是今日一战，他等的是我把所有退路亲手走绝。"
+        }
+      ],
+      "victory": [
+        {
+          "speaker": "共叔段",
+          "text": "京邑已失，鄢地又破，再战只会让随从替我送死。撤往共地，从此不再以郑国号令诸城！"
+        },
+        {
+          "speaker": "旁白",
+          "text": "《左传》只记共叔段败后出奔共地，并未记他死于此役。本关的追击到此结束，兄弟之争却把武姜留在了胜者面前。"
+        },
+        {
+          "speaker": "郑庄公",
+          "text": "段可以远走，母亲暗启城门之事却不能不问。将武姜安置于颍地；不及黄泉，寡人不再与她相见！"
+        },
+        {
+          "speaker": "旁白",
+          "text": "誓言出口，庄公很快后悔。可他既以国君之名责人背约，自己便不能先把公开说过的话当作无物。"
+        },
+        {
+          "speaker": "颍考叔",
+          "text": "主公要守誓，也要尽孝。掘地见泉，在地室相见，既不改旧言，也给母子留一条回头路。"
+        },
+        {
+          "speaker": "郑庄公",
+          "text": "寤生不孝，久缺定省。儿今日来见，不求忘掉旧事，只求母亲还肯认我这个儿子。"
+        },
+        {
+          "speaker": "武姜",
+          "text": "我偏爱段，替他求城、应他开门，险些使兄弟相残。你肯走到泉下，是给我认错的机会。"
+        },
+        {
+          "speaker": "旁白",
+          "text": "母子一同升出地室。庄公赢下国权，却要靠颍考叔提醒才学会如何收束胜利；段之子公孙滑则已逃往卫国借兵。"
+        },
+        {
+          "speaker": "下回预告",
+          "text": "第五回：王室与郑国互换质子，君臣之间的猜疑将变成下一场战争。"
+        }
+      ]
+    },
+    "04a": {
+      "source_basis": [
+        {
+          "tier": "史实骨架",
+          "work": "《史记·秦本纪》",
+          "url": "https://ctext.org/shiji/qin-ben-ji",
+          "scope": "秦襄公救周、护送东迁、受封诸侯及岐西之地"
+        },
+        {
+          "tier": "文学演绎",
+          "work": "《东周列国志》第四回",
+          "url": "https://zh.wikisource.org/zh-hans/东周列国志/第004回",
+          "scope": "岐丰逐戎的具体战场人物与调度"
+        }
+      ],
+      "events": [
+        {
+          "id": "04a-turn-2-land-and-people",
+          "runtime": true,
+          "trigger": "turn",
+          "turn": 2,
+          "speaker": "秦襄公",
+          "text": "平王赐的是尚未收复的土地。若只想着封疆，便会把这里仍在逃难的周民也当成战利品；各部入村不得扰民。"
+        },
+        {
+          "id": "04a-boding-defeated",
+          "runtime": true,
+          "trigger": "unit_defeated",
+          "unit": "BoDing41",
+          "speaker": "满也速",
+          "text": "伯丁守的谷口已经丢了！秦人不是来抢一阵便走，他们要沿渭水筑城，把退路一寸寸变成国土。"
+        }
+      ]
+    },
+    "05": {
+      "source_basis": [
+        {
+          "tier": "编年史实",
+          "work": "《左传·隐公三年至四年》",
+          "url": "https://ctext.org/chun-qiu-zuo-zhuan/yin-gong",
+          "scope": "周郑交质、州吁弑君、联军伐郑"
+        },
+        {
+          "tier": "文学演绎",
+          "work": "《东周列国志》第五回",
+          "url": "https://zh.wikisource.org/zh-hans/东周列国志/第005回",
+          "scope": "东门诱敌与联军心理描写"
+        }
+      ],
+      "events": [
+        {
+          "id": "05-turn-2-coalition-cracks",
+          "runtime": true,
+          "trigger": "turn",
+          "turn": 2,
+          "speaker": "公子吕",
+          "text": "宋军盯着公子冯，鲁军只认公子翚的私令，陈蔡又不肯先登。眼前看似五国同阵，其实每面旗都在等别人先流血。"
+        },
+        {
+          "id": "05-zhouyu-half-hp",
+          "runtime": true,
+          "trigger": "unit_hp_below",
+          "unit": "ZhouXu5",
+          "hp_percent": 0.5,
+          "speaker": "州吁",
+          "text": "不准退！我若不能带一场胜仗回卫国，国人就会继续问我凭什么坐在君位上。"
+        }
+      ]
+    },
+    "06": {
+      "source_basis": [
+        {
+          "tier": "编年史实",
+          "work": "《左传·隐公四年至十年》",
+          "url": "https://ctext.org/chun-qiu-zuo-zhuan/yin-gong",
+          "scope": "石碏除州吁与石厚、郑宋陈之间的战事"
+        },
+        {
+          "tier": "文学演绎",
+          "work": "《东周列国志》第六回",
+          "url": "https://zh.wikisource.org/zh-hans/东周列国志/第006回",
+          "scope": "假王命伐宋与郜城攻防"
+        }
+      ],
+      "events": [
+        {
+          "id": "06-turn-2-false-command",
+          "runtime": true,
+          "trigger": "turn",
+          "turn": 2,
+          "speaker": "颍考叔",
+          "text": "军中都说此役奉了王命，可那十二端彩缯并不是讨宋诏书。既借天子名义出兵，就更要约束军士，不可让百姓替这句话受罪。"
+        },
+        {
+          "id": "06-commander-defeated",
+          "runtime": true,
+          "trigger": "unit_defeated",
+          "unit": "GaoCityCommander6",
+          "speaker": "公子吕",
+          "text": "守将已退，开门受降！不要追杀弃械之卒，郑军要的是逼宋撤兵，不是把郜城变成空城。"
+        }
+      ]
+    },
+    "07": {
+      "source_basis": [
+        {
+          "tier": "编年史实",
+          "work": "《左传·隐公十年》",
+          "url": "https://ctext.org/chun-qiu-zuo-zhuan/yin-gong",
+          "scope": "宋、卫入郑及郑师败诸侯之兵"
+        },
+        {
+          "tier": "文学演绎",
+          "work": "《东周列国志》第七回",
+          "url": "https://zh.wikisource.org/zh-hans/东周列国志/第007回",
+          "scope": "戴城夜袭的具体计策与人物对白"
+        }
+      ],
+      "events": [
+        {
+          "id": "07-turn-2-night-signals",
+          "runtime": true,
+          "trigger": "turn",
+          "turn": 2,
+          "speaker": "郑庄公",
+          "text": "三处营火看着相连，军令却互不相属。先击宋营，逼卫蔡离位来救；我们夺的不是一座寨，是他们彼此信任的那一刻。"
+        },
+        {
+          "id": "07-enemy-three",
+          "runtime": true,
+          "trigger": "enemy_remaining",
+          "count": 3,
+          "speaker": "颍考叔",
+          "text": "敌军已经各自奔逃，别把夜袭打成追杀。收拢降卒、清点辎重，天亮以前必须让三国知道郑军为何而来。"
+        }
+      ]
+    },
+    "07b": {
+      "source_basis": [
+        {
+          "tier": "编年史实",
+          "work": "《左传·隐公十一年》",
+          "url": "https://ctext.org/chun-qiu-zuo-zhuan/yin-gong",
+          "scope": "齐鲁郑伐许、颍考叔中箭、许叔居许东偏"
+        },
+        {
+          "tier": "文学演绎",
+          "work": "《东周列国志》第七回",
+          "url": "https://zh.wikisource.org/zh-hans/东周列国志/第007回",
+          "scope": "公孙阏暗射与攻城对白"
+        }
+      ],
+      "events": [
+        {
+          "id": "07b-turn-2-banner-cost",
+          "runtime": true,
+          "trigger": "turn",
+          "turn": 2,
+          "speaker": "瑕叔盈",
+          "text": "颍将军倒下时，众人先看见的是旗。若让它落地，他的死只会变成全军溃散；我举旗不是抢他的功，是不让暗箭替许城守住城门。"
+        },
+        {
+          "id": "07b-baili-defeated",
+          "runtime": true,
+          "trigger": "unit_defeated",
+          "unit": "BaiLi72",
+          "speaker": "郑庄公",
+          "text": "百里已经失守，许叔的宗祀仍要保全。传令三军止于宫门，敢趁乱侵掠民居者，以军法论处。"
+        }
+      ]
+    },
+    "08": {
+      "source_basis": [
+        {
+          "tier": "编年史实",
+          "work": "《左传·桓公六年》",
+          "url": "https://ctext.org/chun-qiu-zuo-zhuan/huan-gong",
+          "scope": "北戎伐齐、郑太子忽救齐、大败戎师及辞婚"
+        },
+        {
+          "tier": "文学演绎",
+          "work": "《东周列国志》第八回",
+          "url": "https://zh.wikisource.org/zh-hans/东周列国志/第008回",
+          "scope": "鹊山双伏与大良、小良战场细节"
+        }
+      ],
+      "events": [
+        {
+          "id": "08-turn-2-hold-the-net",
+          "runtime": true,
+          "trigger": "turn",
+          "turn": 2,
+          "speaker": "世子忽",
+          "text": "小良求快，大良求稳，两军一前一后。先放前队穿过东门再起伏兵；谁为抢功提前出阵，谁就替北戎打开缺口。"
+        },
+        {
+          "id": "08-daliang-half-hp",
+          "runtime": true,
+          "trigger": "unit_hp_below",
+          "unit": "DaLiang8",
+          "hp_percent": 0.5,
+          "speaker": "高渠弥",
+          "text": "北戎后队已经回头救援，正说明两军首尾不能相顾。世子守住北口，别让眼前的胜势变成一场无序追逐！"
+        }
+      ]
+    },
+    "08a": {
+      "source_basis": [
+        {
+          "tier": "编年史实",
+          "work": "《左传·桓公二年》",
+          "url": "https://ctext.org/chun-qiu-zuo-zhuan/huan-gong",
+          "scope": "华督攻孔氏、弑宋殇公、立公子冯"
+        },
+        {
+          "tier": "文学演绎",
+          "work": "《东周列国志》第八回",
+          "url": "https://zh.wikisource.org/zh-hans/东周列国志/第008回",
+          "scope": "华督煽动军民与宫门兵变细节"
+        }
+      ],
+      "events": [
+        {
+          "id": "08a-turn-2-private-desire",
+          "runtime": true,
+          "trigger": "turn",
+          "turn": 2,
+          "speaker": "孔父嘉",
+          "text": "你口口声声说七年十一战，却把乱兵先引到我家门前。华督，你要的是宋国休兵，还是我死后无人能护住妻室？"
+        },
+        {
+          "id": "08a-kongfu-falls",
+          "runtime": true,
+          "trigger": "unit_defeated",
+          "unit": "KongFuJia81",
+          "speaker": "华督",
+          "text": "孔父嘉已死，军心不能停！转攻宫门，今日若让殇公活着收回禁军，我们每个人都会以叛逆论罪。"
+        }
+      ]
+    }
+  }
+}

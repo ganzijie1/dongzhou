@@ -24,7 +24,7 @@ def wait_once(env: MengdeEnv) -> tuple:
 
 def main() -> None:
     with MengdeEnv(EXECUTABLE, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 52")
+        env._request("LOAD_STAGE 53")
         story = env.story_info()
         assert story["chapter"] == "第三十一回"
         assert story["title"] == "晋惠公怒杀庆郑 介子推割股啖君"
@@ -61,7 +61,7 @@ def main() -> None:
         assert sum(unit["name"] == "Assassin31" for unit in pursuers) == 2
 
         # A companion reaching the exit must not substitute for Chong Er.
-        env._request("LOAD_STAGE 52")
+        env._request("LOAD_STAGE 53")
         companion_exit = env.snapshot()
         next(unit for unit in companion_exit["units"] if unit["name"] == "HuYan27").update(
             {"x": 17, "y": 1}
@@ -71,7 +71,7 @@ def main() -> None:
         assert not terminated
 
         # Only Chong Er at the northeast exit completes the battle.
-        env._request("LOAD_STAGE 52")
+        env._request("LOAD_STAGE 53")
         escaped = env.snapshot()
         next(unit for unit in escaped["units"] if unit["name"] == "ChongEr27").update(
             {"x": 17, "y": 1}

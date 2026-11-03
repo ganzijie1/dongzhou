@@ -20,13 +20,14 @@ from rl.tactical_policy import action_features as tactical_action_features
 
 DEFEAT = 4
 ENEMY_FORCE = 4
+DONGZHOU_STAGE_COUNT = 172
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--executable", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--stage-count", type=int, default=41)
+    parser.add_argument("--stage-count", type=int, default=DONGZHOU_STAGE_COUNT)
     parser.add_argument("--passes", type=int, default=8)
     parser.add_argument("--steps-per-stage", type=int, default=128)
     parser.add_argument("--stages-per-update", type=int, default=5)

@@ -1,0 +1,2 @@
+-keep class ai.onnxruntime.** { *; }
+-keepclassmembers class com.deepsignal.dongzhou.HappoBridge { *; }

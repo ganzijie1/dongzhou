@@ -19,7 +19,7 @@ EXPECTED = (
 def main() -> None:
     executable = Path("build/rl-vcpkg/game/src/rl/Release/mengde_rl.exe")
     with MengdeEnv(executable, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 30")
+        env._request("LOAD_STAGE 31")
         for offset, (chapter, battle, asset, intro_count, victory_count) in enumerate(EXPECTED):
             if offset:
                 assert env.next_stage() is not None

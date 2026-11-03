@@ -1,0 +1,17 @@
+{
+  "model_sha256": "ded525499ec83e9d3b58d1bf14b89cf621b8cd962726238367482b958b070ada",
+  "sampling_contract": "Android deterministic Gumbel sampling",
+  "samples": 360,
+  "difficulty_samples": {
+    "easy": 120,
+    "medium": 120,
+    "hard": 120
+  },
+  "pipeline": "PCGRL candidate -> Simple Tiled WFC -> hard validator -> <=64-cell repair -> verified template fallback",
+  "hard_validation_pass_rate": 1.0,
+  "fallback_rate": 0.0,
+  "mean_repairs": 29.31111111111111,
+  "wfc_contradictions": 0,
+  "failures": 0,
+  "result": "PASS"
+}

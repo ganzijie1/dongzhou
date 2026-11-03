@@ -1,0 +1,498 @@
+{
+  "schema_version": "dongzhou-map-density-v1",
+  "method": {
+    "render_cell_pixels": 32,
+    "mode": "balanced-compact",
+    "scale": 0.58,
+    "saturation": 0.86,
+    "contrast": 0.9,
+    "edge_threshold": 0.12,
+    "structural_terrains": [
+      "C",
+      "D",
+      "G",
+      "P",
+      "W",
+      "b",
+      "c",
+      "e",
+      "h",
+      "r",
+      "v",
+      "~"
+    ],
+    "detail_preserved_terrains": [
+      "C",
+      "D",
+      "G",
+      "P",
+      "W",
+      "b",
+      "c",
+      "e",
+      "h"
+    ],
+    "boundary_preserved_terrains": [
+      "r",
+      "v",
+      "~"
+    ],
+    "note": "Offline image metrics are release screening only; they do not prove gameplay improvement."
+  },
+  "thresholds": {
+    "median_edge_reduction_min": 0.15,
+    "median_hf_reduction_min": 0.2,
+    "structural_fidelity_min": 0.995
+  },
+  "summary": {
+    "stages": 172,
+    "maps": 169,
+    "median_edge_reduction": 0.7672247320910086,
+    "median_hf_reduction": 0.46881998561251514,
+    "minimum_structural_fidelity": 1.0
+  },
+  "densest_stages": [
+    {
+      "stage_id": "27b",
+      "stage_index": 49,
+      "map_asset": "m047.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 36,
+      "detail_preserved_cells": 0,
+      "before": {
+        "edge_density": 0.23863986444855206,
+        "hf_energy_ratio": 0.2575230598449707
+      },
+      "after": {
+        "edge_density": 0.054905182446772095,
+        "hf_energy_ratio": 0.09448973834514618
+      },
+      "edge_reduction": 0.7699245154465423,
+      "hf_reduction": 0.633082418320017,
+      "structural_fidelity": 1.0
+    },
+    {
+      "stage_id": "23b",
+      "stage_index": 41,
+      "map_asset": "m039.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 106,
+      "detail_preserved_cells": 2,
+      "before": {
+        "edge_density": 0.18631494783866792,
+        "hf_energy_ratio": 0.2404470592737198
+      },
+      "after": {
+        "edge_density": 0.030687615808310278,
+        "hf_energy_ratio": 0.08882586658000946
+      },
+      "edge_reduction": 0.8352917134974966,
+      "hf_reduction": 0.630580357903683,
+      "structural_fidelity": 1.0
+    },
+    {
+      "stage_id": "26a",
+      "stage_index": 46,
+      "map_asset": "m044.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 74,
+      "detail_preserved_cells": 2,
+      "before": {
+        "edge_density": 0.16784988806898268,
+        "hf_energy_ratio": 0.2290685474872589
+      },
+      "after": {
+        "edge_density": 0.03147541663212006,
+        "hf_energy_ratio": 0.08235717564821243
+      },
+      "edge_reduction": 0.8124787749683554,
+      "hf_reduction": 0.6404692981571674,
+      "structural_fidelity": 1.0
+    },
+    {
+      "stage_id": "11c",
+      "stage_index": 18,
+      "map_asset": "m015.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 2,
+      "detail_preserved_cells": 2,
+      "before": {
+        "edge_density": 0.10133732653303286,
+        "hf_energy_ratio": 0.2921721935272217
+      },
+      "after": {
+        "edge_density": 0.008825317281461274,
+        "hf_energy_ratio": 0.09026511013507843
+      },
+      "edge_reduction": 0.9129114850036577,
+      "hf_reduction": 0.6910550964985365,
+      "structural_fidelity": 1.0
+    },
+    {
+      "stage_id": "13a",
+      "stage_index": 21,
+      "map_asset": "m018.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 0,
+      "detail_preserved_cells": 0,
+      "before": {
+        "edge_density": 0.09806743421052631,
+        "hf_energy_ratio": 0.2818865180015564
+      },
+      "after": {
+        "edge_density": 0.01986533717105263,
+        "hf_energy_ratio": 0.11175666749477386
+      },
+      "edge_reduction": 0.7974318658280923,
+      "hf_reduction": 0.6035402179321083,
+      "structural_fidelity": 1.0
+    },
+    {
+      "stage_id": "12b",
+      "stage_index": 20,
+      "map_asset": "m017.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 2,
+      "detail_preserved_cells": 2,
+      "before": {
+        "edge_density": 0.08261549638239829,
+        "hf_energy_ratio": 0.2912980616092682
+      },
+      "after": {
+        "edge_density": 0.005911961807614755,
+        "hf_energy_ratio": 0.08957190811634064
+      },
+      "edge_reduction": 0.9284400376867512,
+      "hf_reduction": 0.6925077097269269,
+      "structural_fidelity": 1.0
+    },
+    {
+      "stage_id": "02",
+      "stage_index": 2,
+      "map_asset": "m001.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 0,
+      "detail_preserved_cells": 0,
+      "before": {
+        "edge_density": 0.04476033834586466,
+        "hf_energy_ratio": 0.32638394832611084
+      },
+      "after": {
+        "edge_density": 0.007397644501879699,
+        "hf_energy_ratio": 0.142191544175148
+      },
+      "edge_reduction": 0.8347276902887139,
+      "hf_reduction": 0.5643427169001722,
+      "structural_fidelity": 1.0
+    },
+    {
+      "stage_id": "25a",
+      "stage_index": 44,
+      "map_asset": "m042.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 30,
+      "detail_preserved_cells": 30,
+      "before": {
+        "edge_density": 0.1412375387309713,
+        "hf_energy_ratio": 0.2249956578016281
+      },
+      "after": {
+        "edge_density": 0.03145207463289775,
+        "hf_energy_ratio": 0.08812949806451797
+      },
+      "edge_reduction": 0.7773107991296312,
+      "hf_reduction": 0.6083057827621763,
+      "structural_fidelity": 1.0
+    },
+    {
+      "stage_id": "20b",
+      "stage_index": 33,
+      "map_asset": "m031.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 38,
+      "detail_preserved_cells": 24,
+      "before": {
+        "edge_density": 0.12490818146839694,
+        "hf_energy_ratio": 0.23942439258098602
+      },
+      "after": {
+        "edge_density": 0.017637902689845743,
+        "hf_energy_ratio": 0.08752661198377609
+      },
+      "edge_reduction": 0.85879305516662,
+      "hf_reduction": 0.634429011011608,
+      "structural_fidelity": 1.0
+    },
+    {
+      "stage_id": "16",
+      "stage_index": 27,
+      "map_asset": "m025.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 2,
+      "detail_preserved_cells": 2,
+      "before": {
+        "edge_density": 0.0839832167002728,
+        "hf_energy_ratio": 0.2787576913833618
+      },
+      "after": {
+        "edge_density": 0.009903925987427351,
+        "hf_energy_ratio": 0.10877577215433121
+      },
+      "edge_reduction": 0.882072557154206,
+      "hf_reduction": 0.6097837816975704,
+      "structural_fidelity": 1.0
+    },
+    {
+      "stage_id": "19a",
+      "stage_index": 30,
+      "map_asset": "m028.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 34,
+      "detail_preserved_cells": 34,
+      "before": {
+        "edge_density": 0.11360093864547292,
+        "hf_energy_ratio": 0.22253982722759247
+      },
+      "after": {
+        "edge_density": 0.020918262478161077,
+        "hf_energy_ratio": 0.08662492036819458
+      },
+      "edge_reduction": 0.8158618869915941,
+      "hf_reduction": 0.6107441915122775,
+      "structural_fidelity": 1.0
+    },
+    {
+      "stage_id": "24b",
+      "stage_index": 43,
+      "map_asset": "m041.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 34,
+      "detail_preserved_cells": 34,
+      "before": {
+        "edge_density": 0.08321630416167151,
+        "hf_energy_ratio": 0.24851194024085999
+      },
+      "after": {
+        "edge_density": 0.008678712108237712,
+        "hf_energy_ratio": 0.08747280389070511
+      },
+      "edge_reduction": 0.8957089936200864,
+      "hf_reduction": 0.6480136777093057,
+      "structural_fidelity": 1.0
+    },
+    {
+      "stage_id": "20a",
+      "stage_index": 32,
+      "map_asset": "m030.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 31,
+      "detail_preserved_cells": 31,
+      "before": {
+        "edge_density": 0.11341679312089024,
+        "hf_energy_ratio": 0.21233871579170227
+      },
+      "after": {
+        "edge_density": 0.020257966616084977,
+        "hf_energy_ratio": 0.08702868968248367
+      },
+      "edge_reduction": 0.8213847697625153,
+      "hf_reduction": 0.5901421492637445,
+      "structural_fidelity": 1.0
+    },
+    {
+      "stage_id": "30a",
+      "stage_index": 52,
+      "map_asset": "m050.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 91,
+      "detail_preserved_cells": 44,
+      "before": {
+        "edge_density": 0.10420433996383363,
+        "hf_energy_ratio": 0.21994009613990784
+      },
+      "after": {
+        "edge_density": 0.011452682338758288,
+        "hf_energy_ratio": 0.08616423606872559
+      },
+      "edge_reduction": 0.8900939985538684,
+      "hf_reduction": 0.6082377084444167,
+      "structural_fidelity": 1.0
+    },
+    {
+      "stage_id": "42",
+      "stage_index": 67,
+      "map_asset": "m049.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 0,
+      "detail_preserved_cells": 0,
+      "before": {
+        "edge_density": 0.13262893562030076,
+        "hf_energy_ratio": 0.18719837069511414
+      },
+      "after": {
+        "edge_density": 0.023125440554511278,
+        "hf_energy_ratio": 0.06609825789928436
+      },
+      "edge_reduction": 0.8256380446216022,
+      "hf_reduction": 0.6469079423402827,
+      "structural_fidelity": 1.0
+    },
+    {
+      "stage_id": "29",
+      "stage_index": 51,
+      "map_asset": "m049.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 56,
+      "detail_preserved_cells": 47,
+      "before": {
+        "edge_density": 0.13525181239543874,
+        "hf_energy_ratio": 0.18213613331317902
+      },
+      "after": {
+        "edge_density": 0.02625810049420226,
+        "hf_energy_ratio": 0.06498906761407852
+      },
+      "edge_reduction": 0.8058576810976044,
+      "hf_reduction": 0.6431841039343288,
+      "structural_fidelity": 1.0
+    },
+    {
+      "stage_id": "23a",
+      "stage_index": 40,
+      "map_asset": "m038.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 62,
+      "detail_preserved_cells": 2,
+      "before": {
+        "edge_density": 0.04009981886911325,
+        "hf_energy_ratio": 0.27487751841545105
+      },
+      "after": {
+        "edge_density": 0.0010828476925500079,
+        "hf_energy_ratio": 0.08328064531087875
+      },
+      "edge_reduction": 0.9729961949183749,
+      "hf_reduction": 0.6970263490773806,
+      "structural_fidelity": 1.0
+    },
+    {
+      "stage_id": "27a",
+      "stage_index": 48,
+      "map_asset": "m046.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 50,
+      "detail_preserved_cells": 44,
+      "before": {
+        "edge_density": 0.13077124134197113,
+        "hf_energy_ratio": 0.1812335103750229
+      },
+      "after": {
+        "edge_density": 0.02394376715269869,
+        "hf_energy_ratio": 0.06551846861839294
+      },
+      "edge_reduction": 0.8169034192304947,
+      "hf_reduction": 0.638485904274453,
+      "structural_fidelity": 1.0
+    },
+    {
+      "stage_id": "20c",
+      "stage_index": 34,
+      "map_asset": "m032.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 53,
+      "detail_preserved_cells": 49,
+      "before": {
+        "edge_density": 0.08459198756822317,
+        "hf_energy_ratio": 0.22045154869556427
+      },
+      "after": {
+        "edge_density": 0.008442616737416616,
+        "hf_energy_ratio": 0.08754359930753708
+      },
+      "edge_reduction": 0.9001960235228228,
+      "hf_reduction": 0.602889615312108,
+      "structural_fidelity": 1.0
+    },
+    {
+      "stage_id": "34a",
+      "stage_index": 58,
+      "map_asset": "m056.webp",
+      "logical_size": [
+        19,
+        14
+      ],
+      "structural_cells": 46,
+      "detail_preserved_cells": 46,
+      "before": {
+        "edge_density": 0.11979071883530482,
+        "hf_energy_ratio": 0.16723455488681793
+      },
+      "after": {
+        "edge_density": 0.03156960873521383,
+        "hf_energy_ratio": 0.0697157233953476
+      },
+      "edge_reduction": 0.7364603114318268,
+      "hf_reduction": 0.5831260863370596,
+      "structural_fidelity": 1.0
+    }
+  ],
+  "failures": [],
+  "result": "PASS"
+}

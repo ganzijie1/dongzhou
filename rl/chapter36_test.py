@@ -53,7 +53,7 @@ def main() -> None:
     }
 
     with MengdeEnv(EXECUTABLE, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 59")
+        env._request("LOAD_STAGE 60")
         story = env.story_info()
         assert story["chapter"] == "第三十六回·上"
         assert story["battle_title"] == "令狐破城"
@@ -92,7 +92,7 @@ def main() -> None:
         assert terminated and not truncated and int(result["status"]) == 3
 
     with MengdeEnv(EXECUTABLE, scenario="dongzhou", interactive=True) as env:
-        env._request("LOAD_STAGE 60")
+        env._request("LOAD_STAGE 61")
         story = env.story_info()
         assert story["chapter"] == "第三十六回·下"
         assert story["battle_title"] == "绛宫火变"
