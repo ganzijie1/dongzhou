@@ -371,9 +371,10 @@ button:focus-visible {
   overflow: visible; border-bottom: 1px solid rgba(198,162,85,.42); background: #10120e;
 }
 .focus-map { position: absolute; inset: 0; z-index: -2; overflow: hidden; }
-.focus-map::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,12,9,.2), rgba(10,12,9,.76) 46%, rgba(10,12,9,.96) 74%), linear-gradient(0deg, rgba(10,12,9,.88), transparent 65%); }
-.focus-map img { width: 61%; height: 100%; object-fit: cover; object-position: center; filter: saturate(.72) contrast(1.06); }
+.focus-map::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(8,11,8,.18), rgba(8,11,8,.34) 44%, rgba(8,11,8,.52) 78%, rgba(8,11,8,.42)), linear-gradient(0deg, rgba(8,11,8,.62), transparent 64%); }
+.focus-map img { width: 100%; height: 100%; object-fit: cover; object-position: center; filter: saturate(.82) contrast(1.03) brightness(.9); }
 .focus-copy { grid-column: 2; align-self: center; padding: 42px 42px 40px 28px; }
+.focus-copy > * { text-shadow: 0 2px 5px rgba(0,0,0,.9); }
 .focus-copy > p:first-child { margin: 0 0 8px; color: #d1ad5c; font-size: 11px; letter-spacing: 0; }
 .focus-copy h2 { margin: 0; color: #f0e5c7; font-family: "STKaiti", "KaiTi", serif; font-size: 52px; line-height: 1.05; }
 .focus-copy > strong { display: block; margin-top: 12px; color: #cdbd92; font-size: 13px; font-weight: 500; }
@@ -503,7 +504,7 @@ button:focus-visible {
   .campaign-toolbar { grid-template-columns: 1fr 150px; padding: 10px 14px; }
   .campaign-focus { min-height: 430px; grid-template-columns: minmax(0, 1fr) 128px; }
   .focus-map img { width: 100%; }
-  .focus-map::after { background: linear-gradient(90deg, rgba(9,11,8,.82), rgba(9,11,8,.94) 70%), linear-gradient(0deg, rgba(9,11,8,.9), transparent); }
+  .focus-map::after { background: linear-gradient(90deg, rgba(9,11,8,.28), rgba(9,11,8,.56) 72%), linear-gradient(0deg, rgba(9,11,8,.58), transparent 68%); }
   .focus-copy { grid-column: 1; padding: 38px 24px; }
   .exercise-actions { width: min(420px, calc(100vw - 176px)); }
   .focus-copy h2 { font-size: 44px; }
@@ -523,8 +524,8 @@ button:focus-visible {
     flex-direction: column;
     padding-top: 210px;
   }
-  .focus-map { height: 250px; }
-  .focus-map::after { background: linear-gradient(0deg, #10120e 0%, rgba(10,12,9,.24) 78%); }
+  .focus-map { height: auto; }
+  .focus-map::after { background: linear-gradient(90deg, rgba(9,11,8,.22), rgba(9,11,8,.48)), linear-gradient(0deg, rgba(9,11,8,.64), rgba(9,11,8,.08) 76%); }
   .focus-map img { width: 100%; }
   .focus-copy { min-width: 0; align-self: stretch; padding: 24px 18px 18px; }
   .focus-copy h2 { font-size: 40px; overflow-wrap: anywhere; }
@@ -585,8 +586,8 @@ button:focus-visible {
   .story-footer > div { display: flex; gap: 6px; }
   .story-footer .large-button { min-width: 80px; padding-inline: 12px; }
   .campaign-focus { flex: none; min-height: 0; display: flex; flex-direction: column; padding-top: 148px; }
-  .focus-map { height: 190px; }
-  .focus-map::after { background: linear-gradient(0deg, #10120e 0%, rgba(10,12,9,.28) 75%); }
+  .focus-map { height: auto; }
+  .focus-map::after { background: linear-gradient(0deg, rgba(9,11,8,.66), rgba(9,11,8,.08) 76%); }
   .focus-map img { width: 100%; }
   .focus-copy { align-self: stretch; padding: 20px 16px 16px; }
   .focus-copy h2 { font-size: 38px; }

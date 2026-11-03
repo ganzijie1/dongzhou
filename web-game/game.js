@@ -266,9 +266,9 @@
     $("#focusRank").textContent = `当前 ${profile.armyRank} · 建议 ${recommendedLevel}`;
     const assessment = assessStage(record);
     $("#focusRisk").textContent = difficultyRiskLabel(assessment);
-    $("#focusEvidence").textContent = assessment.confidence === "calibrated"
-      ? `${assessment.evidence.episodes} 局已校准`
-      : assessment.confidence === "limited" ? `${assessment.evidence.episodes} 局有限样本` : "冷启动先验";
+    $("#focusEvidence").textContent = assessment.evidence.episodes
+      ? `${assessment.evidence.episodes} 战 ${assessment.evidence.wins} 胜`
+      : "尚未交锋";
     $("#focusMap").src = mapPath(record);
     $("#focusMap").alt = `${record.battleTitle}战场`;
     $("#focusStageButton").textContent = isSaved ? "继续战局" : isCompleted ? "重温此战" : "出兵此战";
@@ -341,8 +341,8 @@
   }
 
   function difficultyRiskLabel(assessment) {
-    const labels = { narrative: "剧情", low: "低风险", guarded: "谨慎", high: "高风险", severe: "严峻" };
-    return labels[assessment?.riskBand] || "待评估";
+    const labels = { narrative: "剧情", low: "敌势较弱", guarded: "势均力敌", high: "敌军强盛", severe: "险战" };
+    return labels[assessment?.riskBand] || "尚待探明";
   }
 
   function openCampaign() {

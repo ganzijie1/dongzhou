@@ -5,7 +5,7 @@ const { chromium } = require(path.resolve(__dirname, "..", "tmp", "playwright", 
 
 const ROOT = path.resolve(__dirname, "..");
 const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
-const URL = process.argv[2] || "http://127.0.0.1:8765/index.html?v=20261103-13";
+const URL = process.argv[2] || "http://127.0.0.1:8765/index.html?v=20261103-14";
 
 async function openPage(browser, viewport) {
   const page = await browser.newPage({ viewport });
@@ -25,6 +25,9 @@ async function main() {
     const councilBefore = await desktop.page.evaluate(() => ({
       viewport: innerWidth,
       bodyWidth: document.body.scrollWidth,
+      focusWidth: document.querySelector(".campaign-focus").getBoundingClientRect().width,
+      focusMapWidth: document.querySelector("#focusMap").getBoundingClientRect().width,
+      focusAssessment: document.querySelector(".focus-assessment").textContent,
       formationCount: document.querySelectorAll("[data-formation]").length,
       activeFormation: document.querySelector("[data-formation].active")?.dataset.formation,
       vanguardCount: document.querySelector("#vanguardSelect").options.length,
@@ -133,6 +136,8 @@ async function main() {
         title: rect("#focusBattleTitle"),
         actions: rect(".focus-actions"),
         facts: rect(".focus-facts"),
+        map: rect("#focusMap"),
+        assessment: document.querySelector(".focus-assessment").textContent,
         titleText: document.querySelector("#focusBattleTitle").textContent.trim()
       };
     });
@@ -165,11 +170,14 @@ async function main() {
     if (new Set([attackFrameA, attackFrameB, attackFrameC]).size < 2 || attackFrameA === attackFrameC || !(attackResult.targetHp < attackSetup.targetHp) || attackResult.attacks < 1) problems.push("attack animation or damage persistence invalid");
     if (mobileLayout.bodyWidth > mobileLayout.viewport + 1 || mobileLayout.council.left < 0 || mobileLayout.council.right > mobileLayout.viewport + 1) problems.push("mobile council overflow");
     if (!mobileLayout.dailyVisible) problems.push("mobile daily challenge hidden");
+    const modelJargon = /高风险|冷启动先验|有限样本|已校准|风险|证据/;
+    if (councilBefore.focusMapWidth < councilBefore.focusWidth - 1 || modelJargon.test(councilBefore.focusAssessment)) problems.push("desktop campaign focus is dark or exposes model jargon");
     if (compactLayout.bodyWidth > compactLayout.viewport + 1
       || compactLayout.copy.left < 0 || compactLayout.copy.right > compactLayout.viewport + 1
       || compactLayout.title.width < 1 || compactLayout.title.height < 1 || !compactLayout.titleText
       || compactLayout.actions.width < 1 || compactLayout.facts.top < compactLayout.copy.bottom - 1
-      || compactLayout.focus.bottom < compactLayout.facts.bottom - 1) problems.push("compact campaign focus clipped or out of order");
+      || compactLayout.focus.bottom < compactLayout.facts.bottom - 1
+      || compactLayout.map.width < compactLayout.focus.width - 1 || modelJargon.test(compactLayout.assessment)) problems.push("compact campaign focus clipped, dark, or exposes model jargon");
     const realFailures = [...desktop.failed, ...compact.failed, ...mobile.failed].filter((item) => !item.includes("net::ERR_ABORTED"));
     problems.push(...desktop.errors, ...compact.errors, ...mobile.errors, ...realFailures);
     console.log(JSON.stringify({ result: problems.length ? "FAIL" : "PASS", councilBefore, formationAfter, spriteResources, moveFrames: [moveFrameA, moveFrameB, moveFrameC], savedMove, attackFrames: [attackFrameA, attackFrameB, attackFrameC], attackSetup, attackResult, battle, compactLayout, mobileLayout, problems }, null, 2));
