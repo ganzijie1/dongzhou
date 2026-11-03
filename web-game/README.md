@@ -23,3 +23,13 @@ node tools/verify-web-release.js
 ```
 
 发布包需要保持 `index.html` 位于 ZIP 根目录。浏览器 Lua 运行时使用 Fengari，许可证见 `vendor/LICENSE`。
+
+## 生成发布 ZIP
+
+在仓库根目录执行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-h5-release.ps1
+```
+
+脚本会先执行发布门禁，再生成 `dongzhou-h5-release-final-YYYYMMDD.zip`。发布包只包含运行时引用的配音、地图、关卡和前端文件；配音生产计划、声线卡、QA 截图及未引用候选不会进入交付包。

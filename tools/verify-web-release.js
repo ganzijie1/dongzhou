@@ -11,22 +11,25 @@ const mapIndex = JSON.parse(fs.readFileSync(path.join(WEB, "assets", "maps", "in
 const pcgrlTemplate = JSON.parse(fs.readFileSync(path.join(WEB, "scenario", "pcgrl-masui.json"), "utf8"));
 const mapElitesTemplate = JSON.parse(fs.readFileSync(path.join(WEB, "scenario", "map-elites-chuisha.json"), "utf8"));
 const mapElitesArchive = JSON.parse(fs.readFileSync(path.join(WEB, "scenario", "map-elites-chuisha.archive.json"), "utf8"));
+const difficultyProfiles = JSON.parse(fs.readFileSync(path.join(WEB, "scenario", "difficulty-profiles.json"), "utf8"));
 const mapElitesRuntime = require(path.join(WEB, "map-elites.js"));
 const densityReport = JSON.parse(fs.readFileSync(path.join(ROOT, "docs", "map-visual-density-report.json"), "utf8"));
 const gameSystems = require(path.join(WEB, "game-systems.js"));
+const voiceManifest = JSON.parse(fs.readFileSync(path.join(WEB, "audio", "dialogue-manifest.json"), "utf8"));
 const errors = [];
 const warnings = [];
 
 const asArray = (value) => Array.isArray(value) ? value : Object.values(value || {});
 const fail = (message) => errors.push(message);
 
-function folderBytes(folder) {
-  let total = 0;
+function folderFiles(folder) {
+  const files = [];
   for (const entry of fs.readdirSync(folder, { withFileTypes: true })) {
     const file = path.join(folder, entry.name);
-    total += entry.isDirectory() ? folderBytes(file) : fs.statSync(file).size;
+    if (entry.isDirectory()) files.push(...folderFiles(file));
+    else files.push(file);
   }
-  return total;
+  return files;
 }
 
 if (campaign.sourceStageCount !== 172 || campaign.stageCount !== 172 || campaign.stages.length !== 172) {
@@ -47,6 +50,16 @@ if (asArray(mapElitesArchive.entries).some((entry) => !mapElitesRuntime.validate
 if (Object.keys(gameSystems.SKILLS).length !== 7) fail("七职业战技契约不完整");
 if (gameSystems.PROFILE_VERSION < 5) fail("存档未升级到地图细节设置契约 v5");
 if (Object.keys(gameSystems.EQUIPMENT).length < 7) fail("前十二章装备成长契约不完整");
+if (Object.keys(difficultyProfiles.profiles || {}).length !== 172) fail("运行时难度画像不是 172 关");
+if (gameSystems.effectiveUnitLevel(1, "enemy", { armyRank: 60 }, 172, "hard") !== gameSystems.PROGRESSION.maxLevel) fail("最终关敌军等级未达到成长上限");
+for (const stageProfile of Object.values(difficultyProfiles.profiles || {})) {
+  if (stageProfile.objectiveType === "narrative") continue;
+  const player = gameSystems.normalizeProfile({ armyRank: stageProfile.recommendedLevel }, []);
+  const easy = gameSystems.stageDifficultyAssessment(stageProfile, player, "easy").riskScore;
+  const medium = gameSystems.stageDifficultyAssessment(stageProfile, player, "medium").riskScore;
+  const hard = gameSystems.stageDifficultyAssessment(stageProfile, player, "hard").riskScore;
+  if (!(easy < medium && medium < hard)) fail(`${stageProfile.id} 三档难度风险不单调：${easy}/${medium}/${hard}`);
+}
 if (!gameSystems.REPLAY_SCHEMA) fail("缺少版本化战斗回放契约");
 if (gameSystems.MAP_DETAIL_MODES.length !== 3) fail("地图细节三档契约不完整");
 if (!["W", "G", "P", "C", "~", "r"].every((char) => gameSystems.isStructuralTerrain(char))) fail("结构地形保真契约不完整");
@@ -87,11 +100,25 @@ for (const record of campaign.stages) {
   if (!record.smoke || record.smoke.initialEndCondition == null) fail(`${record.id} 缺少首轮结束条件结果`);
 }
 
-for (const required of ["index.html", "styles.css", "game.js", "game-systems.js", "runtime.js", "pcgrl.js", "map-elites.js", "scenario/pcgrl-masui.json", "scenario/stage/pcgrl_masui.lua", "scenario/map-elites-chuisha.json", "scenario/map-elites-chuisha.archive.json", "scenario/stage/map_elites_chuisha.lua", "vendor/fengari-web.js", "vendor/LICENSE"]) {
+for (const required of ["index.html", "styles.css", "game.js", "game-systems.js", "runtime.js", "pcgrl.js", "map-elites.js", "scenario/difficulty-profiles.json", "scenario/pcgrl-masui.json", "scenario/stage/pcgrl_masui.lua", "scenario/map-elites-chuisha.json", "scenario/map-elites-chuisha.archive.json", "scenario/stage/map_elites_chuisha.lua", "vendor/fengari-web.js", "vendor/LICENSE"]) {
   if (!fs.existsSync(path.join(WEB, required))) fail(`缺少发布文件：${required}`);
 }
 
-const bytes = folderBytes(WEB);
+const releaseFiles = new Set();
+for (const relative of ["index.html", "styles.css", "game.js", "game-systems.js", "runtime.js", "pcgrl.js", "map-elites.js", "README.md", "audio/dialogue-manifest.json"]) {
+  releaseFiles.add(path.join(WEB, relative));
+}
+for (const folder of ["assets", "scenario", "vendor"]) {
+  for (const file of folderFiles(path.join(WEB, folder))) releaseFiles.add(file);
+}
+const normalizedVoiceManifest = gameSystems.normalizeVoiceManifest(voiceManifest);
+if (normalizedVoiceManifest.entries.length !== asArray(voiceManifest.entries).length) fail("配音清单包含不安全或无效路径");
+for (const entry of normalizedVoiceManifest.entries) {
+  const file = path.resolve(WEB, entry.file);
+  if (!file.startsWith(`${WEB}${path.sep}`) || !fs.existsSync(file)) fail(`配音发布文件缺失：${entry.file}`);
+  else releaseFiles.add(file);
+}
+const bytes = [...releaseFiles].reduce((sum, file) => sum + fs.statSync(file).size, 0);
 const uploadLimit = 200 * 1024 * 1024;
 if (bytes >= uploadLimit) fail(`发布目录超过 200 MB：${(bytes / 1024 / 1024).toFixed(2)} MB`);
 
@@ -104,11 +131,13 @@ const summary = {
   runtimeDialogueCount,
   classSkills: Object.keys(gameSystems.SKILLS).length,
   equipment: Object.keys(gameSystems.EQUIPMENT).length,
+  difficultyProfiles: Object.keys(difficultyProfiles.profiles || {}).length,
   replaySchema: gameSystems.REPLAY_SCHEMA,
   profileVersion: gameSystems.PROFILE_VERSION,
   mapDensity: densityReport.summary,
   mapElitesArchiveCells: mapElitesArchive.entries.length,
   releaseBytes: bytes,
+  releaseFiles: releaseFiles.size,
   releaseMiB: Number((bytes / 1024 / 1024).toFixed(2)),
   warnings: [...new Set(warnings)].length,
   errors: errors.length,
