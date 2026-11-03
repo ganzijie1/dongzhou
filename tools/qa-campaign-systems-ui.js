@@ -5,7 +5,7 @@ const { chromium } = require(path.resolve(__dirname, "..", "tmp", "playwright", 
 
 const ROOT = path.resolve(__dirname, "..");
 const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
-const URL = process.argv[2] || "http://127.0.0.1:8765/index.html?v=20261103-12";
+const URL = process.argv[2] || "http://127.0.0.1:8765/index.html?v=20261103-13";
 
 async function openPage(browser, viewport) {
   const page = await browser.newPage({ viewport });
@@ -119,6 +119,25 @@ async function main() {
     });
     await desktop.page.screenshot({ path: path.join(ROOT, "web-game", "qa-unit-actions-desktop.png"), fullPage: false });
 
+    const compact = await openPage(browser, { width: 703, height: 900 });
+    const compactLayout = await compact.page.evaluate(() => {
+      const rect = (selector) => {
+        const box = document.querySelector(selector).getBoundingClientRect();
+        return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height };
+      };
+      return {
+        viewport: innerWidth,
+        bodyWidth: document.body.scrollWidth,
+        focus: rect(".campaign-focus"),
+        copy: rect(".focus-copy"),
+        title: rect("#focusBattleTitle"),
+        actions: rect(".focus-actions"),
+        facts: rect(".focus-facts"),
+        titleText: document.querySelector("#focusBattleTitle").textContent.trim()
+      };
+    });
+    await compact.page.locator(".campaign-focus").screenshot({ path: path.join(ROOT, "web-game", "qa-campaign-focus-compact.png") });
+
     const mobile = await openPage(browser, { width: 390, height: 844 });
     await mobile.page.locator(".war-council").scrollIntoViewIfNeeded();
     await mobile.page.locator(".war-council").screenshot({ path: path.join(ROOT, "web-game", "qa-war-council-mobile.png") });
@@ -146,9 +165,14 @@ async function main() {
     if (new Set([attackFrameA, attackFrameB, attackFrameC]).size < 2 || attackFrameA === attackFrameC || !(attackResult.targetHp < attackSetup.targetHp) || attackResult.attacks < 1) problems.push("attack animation or damage persistence invalid");
     if (mobileLayout.bodyWidth > mobileLayout.viewport + 1 || mobileLayout.council.left < 0 || mobileLayout.council.right > mobileLayout.viewport + 1) problems.push("mobile council overflow");
     if (!mobileLayout.dailyVisible) problems.push("mobile daily challenge hidden");
-    const realFailures = [...desktop.failed, ...mobile.failed].filter((item) => !item.includes("net::ERR_ABORTED"));
-    problems.push(...desktop.errors, ...mobile.errors, ...realFailures);
-    console.log(JSON.stringify({ result: problems.length ? "FAIL" : "PASS", councilBefore, formationAfter, spriteResources, moveFrames: [moveFrameA, moveFrameB, moveFrameC], savedMove, attackFrames: [attackFrameA, attackFrameB, attackFrameC], attackSetup, attackResult, battle, mobileLayout, problems }, null, 2));
+    if (compactLayout.bodyWidth > compactLayout.viewport + 1
+      || compactLayout.copy.left < 0 || compactLayout.copy.right > compactLayout.viewport + 1
+      || compactLayout.title.width < 1 || compactLayout.title.height < 1 || !compactLayout.titleText
+      || compactLayout.actions.width < 1 || compactLayout.facts.top < compactLayout.copy.bottom - 1
+      || compactLayout.focus.bottom < compactLayout.facts.bottom - 1) problems.push("compact campaign focus clipped or out of order");
+    const realFailures = [...desktop.failed, ...compact.failed, ...mobile.failed].filter((item) => !item.includes("net::ERR_ABORTED"));
+    problems.push(...desktop.errors, ...compact.errors, ...mobile.errors, ...realFailures);
+    console.log(JSON.stringify({ result: problems.length ? "FAIL" : "PASS", councilBefore, formationAfter, spriteResources, moveFrames: [moveFrameA, moveFrameB, moveFrameC], savedMove, attackFrames: [attackFrameA, attackFrameB, attackFrameC], attackSetup, attackResult, battle, compactLayout, mobileLayout, problems }, null, 2));
     if (problems.length) process.exitCode = 1;
   } finally {
     await browser.close();

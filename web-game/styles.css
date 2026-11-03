@@ -515,6 +515,36 @@ button:focus-visible {
   .campaign-footer { padding-inline: 14px; }
 }
 
+@media (max-width: 720px) {
+  .campaign-focus {
+    flex: none;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding-top: 210px;
+  }
+  .focus-map { height: 250px; }
+  .focus-map::after { background: linear-gradient(0deg, #10120e 0%, rgba(10,12,9,.24) 78%); }
+  .focus-map img { width: 100%; }
+  .focus-copy { min-width: 0; align-self: stretch; padding: 24px 18px 18px; }
+  .focus-copy h2 { font-size: 40px; overflow-wrap: anywhere; }
+  .focus-actions { flex-wrap: wrap; }
+  .focus-actions > .large-button, .exercise-menu { flex: 1 1 150px; }
+  .exercise-menu { width: auto; min-width: 0; margin-left: 0; }
+  .exercise-actions { width: min(420px, calc(100vw - 36px)); }
+  .focus-facts {
+    align-self: stretch;
+    padding: 0 18px 20px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    background: transparent;
+    border: 0;
+  }
+  .focus-facts div { min-width: 0; padding: 12px 8px; border-right: 1px solid rgba(221,205,161,.13); border-bottom: 0; }
+  .focus-facts div:last-child { border-right: 0; }
+  .focus-facts dd { overflow-wrap: anywhere; font-size: 14px; }
+}
+
 @media (max-width: 560px) {
   .war-council-heading { display: grid; }
   .campaign-resources { width: 100%; }
