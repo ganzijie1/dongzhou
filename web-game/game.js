@@ -22,7 +22,7 @@
   };
   const CLASS_LABELS = { Lord: "君主", King: "王者", Infantry: "步兵", Cavalry: "骑兵", Archer: "弓兵", Strategist: "军师", Support: "辅臣" };
   const UNIT_IMAGES = {
-    Lord: "unit-lord.png", King: "unit-lord.png", Infantry: "unit-chariot.png", Cavalry: "unit-cavalry.png",
+    Lord: "unit-lord.png", King: "unit-lord.png", Infantry: "unit-infantry-red.svg", Cavalry: "unit-cavalry.png",
     Archer: "unit-archer.png", Strategist: "unit-strategist.png", Support: "unit-strategist.png"
   };
   const TEAM_LABELS = { own: "我军", ally: "友军", enemy: "敌军" };
@@ -66,6 +66,8 @@
   let storyAudio = null;
   let storyAudioSerial = 0;
   let replaySelection = null;
+  let animationSerial = 0;
+  const unitAnimations = new Map();
   const imageCache = new Map();
 
   const canvas = $("#battleCanvas");
@@ -97,6 +99,16 @@
       imageCache.set(name, image);
     }
     return imageCache.get(name);
+  }
+
+  function unitImageFor(unit) {
+    const model = String(unit?.model || heroById.get(unit?.heroId)?.model || "").toLowerCase();
+    if (model.includes("infantry")) return model.endsWith("blue") ? "unit-infantry-blue.svg" : model.endsWith("red") ? "unit-infantry-red.svg" : unit?.team === "enemy" ? "unit-infantry-blue.svg" : "unit-infantry-red.svg";
+    if (model.includes("cavalry")) return "unit-cavalry.png";
+    if (model.includes("archer")) return "unit-archer.png";
+    if (model.includes("strategist") || model.includes("support")) return "unit-strategist.png";
+    if (model.includes("lord")) return "unit-lord.png";
+    return UNIT_IMAGES[unit?.classId] || UNIT_IMAGES.Infantry;
   }
 
   async function boot() {
@@ -369,6 +381,7 @@
     selectedSkillId = null;
     inspectionId = null;
     reachable.clear();
+    unitAnimations.clear();
     unitSerial = 0;
     mapZoom = 1;
     updateZoom();
@@ -396,7 +409,10 @@
       state.assistMedicineRemaining = state.assist.medicine;
       state.inventory.medicine = Number(state.inventory.medicine || 0) + state.assist.medicine;
     }
-    state.units.forEach((unit) => { unit.effects ||= []; });
+    state.units.forEach((unit) => {
+      unit.effects ||= [];
+      unit.model ||= heroById.get(unit.heroId)?.model || "infantry-1-red";
+    });
     unitSerial = Math.max(0, ...state.units.map((unit) => Number(String(unit.id).match(/-(\d+)$/)?.[1] || 0)));
     setStatus("正在列阵");
     updateStageHeader();
@@ -652,7 +668,7 @@
     const maxMp = Number(unitClass.mp?.[0] || 10) + Number(unitClass.mp?.[1] || 1) * Math.max(0, level - 1) + equipment.maxMp + formation.maxMp;
     const id = `${heroId}-${++unitSerial}`;
     state.units.push({
-      id, heroId, name: displayName(heroId), team, level, classId: hero.class, x, y,
+      id, heroId, name: displayName(heroId), team, level, classId: hero.class, model: hero.model || "infantry-1-red", x, y,
       hp: maxHp, maxHp, mp: maxMp, maxMp, move: Number(unitClass.move || 5) + equipment.move + formation.move,
       power: Math.round((15.5 + Number(hero.stat?.[1] || 70) * .34 + growth.power + equipment.power) * difficultyModifiers.power * formation.power),
       defense: Math.round((8 + Number(hero.stat?.[2] || 70) * .22 + growth.defense + equipment.defense) * difficultyModifiers.defense * formation.defense),
@@ -673,6 +689,45 @@
 
   function getUnit(id) {
     return state.units.find((unit) => unit.id === id) || null;
+  }
+
+  function playUnitAnimation(unit, type, duration = 240, payload = {}) {
+    if (!unit || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return Promise.resolve();
+    const previous = unitAnimations.get(unit.id);
+    if (previous) previous.resolve?.();
+    const id = ++animationSerial;
+    return new Promise((resolve) => {
+      const animation = { id, type, start: performance.now(), duration, progress: 0, resolve, ...payload };
+      unitAnimations.set(unit.id, animation);
+      const tick = (now) => {
+        const current = unitAnimations.get(unit.id);
+        if (!current || current.id !== id) { resolve(); return; }
+        current.progress = clamp((now - current.start) / Math.max(1, current.duration), 0, 1);
+        requestRender();
+        if (current.progress < 1) requestAnimationFrame(tick);
+        else {
+          unitAnimations.delete(unit.id);
+          requestRender();
+          resolve();
+        }
+      };
+      requestAnimationFrame(tick);
+    });
+  }
+
+  function moveUnitAnimated(unit, x, y, duration = 260) {
+    const fromX = unit.x; const fromY = unit.y;
+    unit.x = x; unit.y = y;
+    if (fromX === x && fromY === y) return Promise.resolve();
+    return playUnitAnimation(unit, "move", duration, { fromX, fromY, toX: x, toY: y });
+  }
+
+  function attackAnimation(unit, target, type = "attack") {
+    return playUnitAnimation(unit, type, type === "skill" ? 320 : 220, { targetX: target?.x ?? unit.x, targetY: target?.y ?? unit.y });
+  }
+
+  function reactionAnimation(unit, defeated = false, healed = false) {
+    return playUnitAnimation(unit, defeated ? "defeat" : healed ? "heal" : "hit", defeated ? 360 : 240);
   }
 
   function unitAt(x, y, ignoreId = null) {
@@ -697,7 +752,7 @@
       if (restoring) return;
       const [x, y] = luaPoint(position);
       const unit = resolveUnits(ref).find((item) => item.hp > 0);
-      if (unit && !unitAt(x, y, unit.id)) { unit.x = x; unit.y = y; }
+      if (unit && !unitAt(x, y, unit.id)) void moveUnitAnimated(unit, x, y, 300);
     },
     is_unit_within(ref, position, radius) {
       const [x, y] = luaPoint(position);
@@ -838,7 +893,7 @@
     if (clicked) inspectionId = clicked.id;
     if (!selected || selected.acted) { updateUI(); return; }
     if (clicked && canAttack(selected, clicked)) {
-      performAttack(selected, clicked, true);
+      await performAttack(selected, clicked, true);
       selected.acted = true;
       state.stats.attacks++;
       recordEvent("attack", { actor: selected.heroId, target: clicked.heroId, x, y });
@@ -853,7 +908,8 @@
     }
     const destination = reachable.get(pointKey(x, y));
     if (!clicked && destination && !selected.moved) {
-      selected.x = x; selected.y = y; selected.moved = true;
+      await moveUnitAnimated(selected, x, y);
+      selected.moved = true;
       state.stats.moves++;
       recordEvent("move", { unit: selected.heroId, x, y });
       advanceTutorial("move");
@@ -871,8 +927,10 @@
     const skill = systems.skillForUnit(actor);
     if (!skill || skill.id !== selectedSkillId) { selectedSkillId = null; updateUI(); return; }
     if (!systems.skillTargetValid(actor, target, skill)) { showNotice("目标或距离不符合战技要求"); return; }
+    await attackAnimation(actor, target, "skill");
     const result = systems.applySkill(actor, target, skill);
     if (!result.ok) { showNotice(result.reason === "insufficient-mp" ? "谋略不足" : "战技无法施放"); return; }
+    await reactionAnimation(target, Boolean(result.defeated), result.kind === "heal" || result.kind === "buff");
     actor.acted = true;
     state.stats.skills++;
     recordEvent("skill", { actor: actor.heroId, target: target.heroId, skill: skill.id, result: result.kind, amount: result.amount || 0 });
@@ -894,12 +952,14 @@
     updateUI();
   }
 
-  function performAttack(attacker, defender, allowCounter) {
+  async function performAttack(attacker, defender, allowCounter) {
     const duel = asList(stageRecord.duels).find((entry) => entry.attacker === attacker.heroId && entry.defender === defender.heroId);
     const duelKey = duel ? `${duel.attacker}:${duel.defender}` : null;
     if (duel && !state.triggeredDuels.includes(duelKey)) {
       state.triggeredDuels.push(duelKey);
+      await attackAnimation(attacker, defender);
       defender.hp = 0;
+      await reactionAnimation(defender, true);
       state.stats.defeated++;
       recordEvent("combat", { actor: attacker.heroId, target: defender.heroId, damage: defender.maxHp, duel: true });
       log(duel.text || `${attacker.name}阵前击退${defender.name}。`, "event");
@@ -908,14 +968,18 @@
       return;
     }
     if (defender.invulnerable) {
+      await attackAnimation(attacker, defender);
+      await reactionAnimation(defender);
       log(`${defender.name}尚有剧情护卫，本次攻击未能破阵。`, "event");
       recordEvent("combat", { actor: attacker.heroId, target: defender.heroId, damage: 0, invulnerable: true });
       return;
     }
     const terrainGuard = terrainDefense(defender);
     const terrainAttack = terrainAttackBonus(attacker);
+    await attackAnimation(attacker, defender);
     const damage = Math.max(8, systems.effectivePower(attacker) + terrainAttack - Math.round(systems.effectiveDefense(defender) * .42) - terrainGuard + randomInt(-4, 5));
     defender.hp = Math.max(0, defender.hp - damage);
+    await reactionAnimation(defender, defender.hp <= 0);
     recordEvent("combat", { actor: attacker.heroId, target: defender.heroId, damage, defenderHp: defender.hp });
     log(`${attacker.name}攻击${defender.name}，造成 ${damage} 点伤害。`, attacker.team === "enemy" ? "bad" : "good");
     if (defender.hp <= 0) {
@@ -924,8 +988,10 @@
       return;
     }
     if (allowCounter && canAttack(defender, attacker) && !attacker.invulnerable) {
+      await attackAnimation(defender, attacker);
       const counter = Math.max(6, Math.round(systems.effectivePower(defender) * .58 - systems.effectiveDefense(attacker) * .25 + randomInt(-3, 3)));
       attacker.hp = Math.max(0, attacker.hp - counter);
+      await reactionAnimation(attacker, attacker.hp <= 0);
       log(`${defender.name}反击，${attacker.name}损失 ${counter} 点兵力。`, attacker.team === "own" ? "bad" : "good");
     }
   }
@@ -1083,20 +1149,19 @@
       targets.sort((a, b) => manhattan(actor, a) - manhattan(actor, b));
       const action = team === "enemy" ? chooseHappoAction(actor, targets) : null;
       if (action) {
-        actor.x = action.x;
-        actor.y = action.y;
+        await moveUnitAnimated(actor, action.x, action.y, 220);
         const target = action.targetId ? getUnit(action.targetId) : null;
-        if (target && canAttack(actor, target)) performAttack(actor, target, true);
+        if (target && canAttack(actor, target)) await performAttack(actor, target, true);
       } else {
         let target = targets[0];
         if (!canAttack(actor, target)) {
           const options = [...calculateReachable(actor).values()];
           options.sort((a, b) => manhattan(a, target) - manhattan(b, target) || a.cost - b.cost);
           const destination = options[0];
-          if (destination) { actor.x = destination.x; actor.y = destination.y; }
+          if (destination) await moveUnitAnimated(actor, destination.x, destination.y, 220);
         }
         target = targets.filter((unit) => canAttack(actor, unit)).sort((a, b) => a.hp - b.hp)[0];
-        if (target) performAttack(actor, target, true);
+        if (target) await performAttack(actor, target, true);
       }
       recordEvent("ai_action", { team, unit: actor.heroId, x: actor.x, y: actor.y });
       inspectionId = actor.id;
@@ -1560,7 +1625,7 @@
     $("#roster").innerHTML = state.units.filter((unit) => unit.team === "own").map((unit) => {
       const ratio = Math.max(0, unit.hp / unit.maxHp);
       return `<button class="roster-card ${selectedId === unit.id ? "selected" : ""}" data-unit-id="${unit.id}" type="button" ${unit.hp <= 0 ? "disabled" : ""}>
-        <img src="assets/${UNIT_IMAGES[unit.classId] || UNIT_IMAGES.Infantry}" alt=""><span><span class="roster-name"><span>${escapeHtml(unit.name)}${unit.vanguard ? " · 先锋" : ""}</span><small>${unit.hp <= 0 ? "阵亡" : unit.wounded ? "负伤出阵" : unit.undersupplied ? "缺粮" : unit.acted ? "已行动" : CLASS_LABELS[unit.classId] || unit.classId}</small></span>
+        <img src="assets/${unitImageFor(unit)}" alt=""><span><span class="roster-name"><span>${escapeHtml(unit.name)}${unit.vanguard ? " · 先锋" : ""}</span><small>${unit.hp <= 0 ? "阵亡" : unit.wounded ? "负伤出阵" : unit.undersupplied ? "缺粮" : unit.acted ? "已行动" : CLASS_LABELS[unit.classId] || unit.classId}</small></span>
         <span class="health-track"><span class="health-fill ${ratio <= .25 ? "low" : ratio <= .5 ? "mid" : ""}" style="width:${ratio * 100}%"></span></span><span class="health-label">兵力 ${Math.max(0, unit.hp)} / ${unit.maxHp} · 谋略 ${unit.mp}/${unit.maxMp}</span></span></button>`;
     }).join("");
     document.querySelectorAll("[data-unit-id]").forEach((button) => button.addEventListener("click", () => selectUnit(getUnit(button.dataset.unitId))));
@@ -1759,7 +1824,7 @@
     drawSites(cellW, cellH);
     drawGrid(cellW, cellH, width, height);
     drawBoardCursor(cellW, cellH);
-    for (const unit of activeUnits()) drawUnit(unit, cellW, cellH);
+    for (const unit of state.units.filter((item) => item.hp > 0 || unitAnimations.has(item.id))) drawUnit(unit, cellW, cellH);
   }
 
   function drawTerrainBase(cellW, cellH) {
@@ -1851,24 +1916,48 @@
   }
 
   function drawUnit(unit, cellW, cellH) {
-    const cx = (unit.x + .5) * cellW; const cy = (unit.y + .5) * cellH; const radius = Math.min(cellW, cellH) * .36;
+    const animation = unitAnimations.get(unit.id);
+    const progress = clamp(Number(animation?.progress || 0), 0, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    let renderX = unit.x; let renderY = unit.y; let alpha = 1;
+    if (animation?.type === "move") {
+      renderX = animation.fromX + (animation.toX - animation.fromX) * eased;
+      renderY = animation.fromY + (animation.toY - animation.fromY) * eased;
+    } else if (["attack", "skill"].includes(animation?.type)) {
+      const dx = Number(animation.targetX || 0) - unit.x; const dy = Number(animation.targetY || 0) - unit.y;
+      const distance = Math.max(1, Math.hypot(dx, dy)); const thrust = Math.sin(progress * Math.PI) * (animation.type === "skill" ? .18 : .3);
+      renderX += dx / distance * thrust; renderY += dy / distance * thrust;
+    } else if (animation?.type === "hit") {
+      renderX += Math.sin(progress * Math.PI * 6) * (1 - progress) * .1;
+    } else if (animation?.type === "heal") {
+      renderY -= Math.sin(progress * Math.PI) * .1;
+    } else if (animation?.type === "defeat") {
+      renderY += eased * .16; alpha = 1 - eased;
+    }
+    const cx = (renderX + .5) * cellW; const cy = (renderY + .5) * cellH; const radius = Math.min(cellW, cellH) * .36;
     const colors = { own: ["#8f3028", "#e28b77"], ally: ["#8a6a24", "#e4c66d"], enemy: ["#2e577e", "#79a7d2"] }[unit.team];
     const haloAlpha = currentMapDetailProfile().unitHalo;
+    ctx.save(); ctx.globalAlpha = alpha;
     ctx.save(); ctx.fillStyle = `rgba(246,237,205,${haloAlpha})`; ctx.strokeStyle = "rgba(18,14,9,.72)"; ctx.lineWidth = Math.max(2, radius * .09);
     ctx.beginPath(); ctx.arc(cx, cy, radius * 1.17, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
     ctx.save(); ctx.shadowColor = "rgba(0,0,0,.6)"; ctx.shadowBlur = radius * .22; ctx.fillStyle = colors[0];
     ctx.strokeStyle = selectedId === unit.id ? "#ffe291" : inspectionId === unit.id ? "#fff3cc" : colors[1]; ctx.lineWidth = selectedId === unit.id ? 5 : 3;
     ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
-    const image = getImage(UNIT_IMAGES[unit.classId] || UNIT_IMAGES.Infantry);
+    const image = getImage(unitImageFor(unit));
     if (image.complete && image.naturalWidth) { const size = radius * 1.38; ctx.drawImage(image, cx - size / 2, cy - size / 2, size, size); }
-    const ratio = Math.max(0, unit.hp / unit.maxHp); const barW = cellW * .74; const barH = Math.max(4, cellH * .07); const barX = cx - barW / 2; const barY = (unit.y + .88) * cellH;
+    if (["skill", "heal"].includes(animation?.type)) {
+      ctx.save(); ctx.strokeStyle = animation.type === "heal" ? `rgba(107,190,108,${1 - progress})` : `rgba(232,190,82,${1 - progress})`; ctx.lineWidth = Math.max(2, radius * .08);
+      ctx.beginPath(); ctx.arc(cx, cy, radius * (1.05 + progress * .5), 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    }
+    const ratio = Math.max(0, unit.hp / unit.maxHp); const barW = cellW * .74; const barH = Math.max(4, cellH * .07); const barX = cx - barW / 2; const barY = (renderY + .88) * cellH;
     ctx.fillStyle = "rgba(8,10,8,.9)"; ctx.fillRect(barX, barY, barW, barH); ctx.fillStyle = ratio > .5 ? "#6ca461" : ratio > .25 ? "#c19442" : "#b7483f"; ctx.fillRect(barX + 1, barY + 1, Math.max(0, (barW - 2) * ratio), barH - 2);
     if (cellW >= 42 || selectedId === unit.id || inspectionId === unit.id) {
       ctx.font = `700 ${Math.max(10, Math.floor(cellW * .18))}px "Microsoft YaHei", sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "bottom"; ctx.lineWidth = 3; ctx.strokeStyle = "rgba(8,10,8,.85)";
-      const label = unit.name.length > 6 ? unit.name.slice(0, 6) : unit.name; ctx.strokeText(label, cx, (unit.y + .12) * cellH); ctx.fillStyle = "#fff8e6"; ctx.fillText(label, cx, (unit.y + .12) * cellH);
+      const label = unit.name.length > 6 ? unit.name.slice(0, 6) : unit.name; ctx.strokeText(label, cx, (renderY + .12) * cellH); ctx.fillStyle = "#fff8e6"; ctx.fillText(label, cx, (renderY + .12) * cellH);
     }
     if (unit.acted && unit.team === "own") { ctx.fillStyle = "rgba(8,10,8,.42)"; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill(); }
     if (unit.invulnerable) { ctx.strokeStyle = "rgba(255,226,130,.9)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, radius * 1.12, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.restore();
   }
 
   function updateZoom(delta = 0) {
