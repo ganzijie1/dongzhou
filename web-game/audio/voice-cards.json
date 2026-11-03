@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "referencePolicy": "One designed reference per named speaker, then reusable Base-model cloning for identity consistency.",
+  "schemaVersion": 2,
+  "referencePolicy": "One historically reviewed identity reference per speaker; contextual candidates remain separate until acoustic and human review.",
   "cards": [
     {
       "id": "spk-22115492b989",

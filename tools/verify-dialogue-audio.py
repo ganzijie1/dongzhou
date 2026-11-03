@@ -100,7 +100,7 @@ def main() -> None:
     total_duration = 0.0
     backend_counts: dict[str, int] = {}
 
-    if manifest.get("schemaVersion") not in {1, 2}:
+    if manifest.get("schemaVersion") not in {1, 2, 3}:
         raise RuntimeError("Unsupported dialogue manifest schema")
     if not entries:
         raise RuntimeError("Dialogue manifest has no entries")
@@ -116,11 +116,11 @@ def main() -> None:
             raise RuntimeError(f"Dialogue does not match campaign text: {line_key}")
         if manifest.get("narrationExcluded") and line_key[0] in EXCLUDED_SPEAKERS:
             raise RuntimeError(f"Narration or system text must not be voiced: {line_key}")
-        if manifest.get("schemaVersion") == 2 and (not entry.get("ageBand") or not entry.get("ageBasis")):
+        if manifest.get("schemaVersion") in {2, 3} and (not entry.get("ageBand") or not entry.get("ageBasis")):
             raise RuntimeError(f"Missing age provenance for {entry_id}")
-        if manifest.get("schemaVersion") == 2:
+        if manifest.get("schemaVersion") in {2, 3}:
             backend = str(entry.get("backend", ""))
-            if backend not in {"qwen3-tts-voice-design-clone", "edge-tts"}:
+            if backend not in {"qwen3-tts-voice-design-clone", "qwen3-tts-contextual-voice-design", "edge-tts"}:
                 raise RuntimeError(f"Missing or unsupported render backend for {entry_id}: {backend}")
             backend_counts[backend] = backend_counts.get(backend, 0) + 1
             card_id = str(entry.get("voiceCardId", ""))
@@ -142,6 +142,12 @@ def main() -> None:
                 raise RuntimeError(
                     f"Unreviewed custom voice for {entry_id}; Qwen voices require a human acoustic gender review"
                 )
+            elif backend == "qwen3-tts-contextual-voice-design":
+                review = entry.get("voiceReview") or {}
+                required_gates = {"text": "pass", "identity": "pass", "prosody": "pass", "gender": "pass", "humanApproval": "approved"}
+                failed = {key: value for key, value in required_gates.items() if review.get(key) != value}
+                if failed:
+                    raise RuntimeError(f"Contextual voice lacks promotion gates for {entry_id}: {failed}")
 
         relative = Path(str(entry.get("file", "")))
         if relative.is_absolute() or ".." in relative.parts or relative.suffix.lower() != ".ogg":

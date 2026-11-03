@@ -26,8 +26,8 @@ def main() -> None:
     cards_by_id = {card["id"]: card for card in cards}
     entry_ids = {entry["id"] for entry in entries}
 
-    if plan.get("schemaVersion") != 2:
-        raise RuntimeError("Voice plan schema must be 2")
+    if plan.get("schemaVersion") != 3:
+        raise RuntimeError("Voice plan schema must be 3")
     if len(entry_ids) != len(entries):
         raise RuntimeError("Duplicate voice-plan entry IDs")
     if any(entry["speaker"] in EXCLUDED for entry in entries):
@@ -36,6 +36,17 @@ def main() -> None:
         raise RuntimeError("Occurrence references an unknown voice-plan entry")
     if any(entry["voiceCardId"] not in cards_by_id for entry in entries):
         raise RuntimeError("Voice-plan entry references an unknown character card")
+    required_context_fields = {"id", "scene", "speechAct", "relationship", "previousTurns", "nextTurns", "synthesisInstruction"}
+    for entry in entries:
+        context = entry.get("context") or {}
+        missing = required_context_fields - context.keys()
+        if missing:
+            raise RuntimeError(f"Entry {entry['id']} is missing context fields: {sorted(missing)}")
+        if not entry.get("contextVariantIds"):
+            raise RuntimeError(f"Entry {entry['id']} has no context variants")
+        delivery = entry.get("delivery") or {}
+        if not {"emotion", "intensity", "pace", "pauseStrength", "dominance"}.issubset(delivery):
+            raise RuntimeError(f"Entry {entry['id']} has incomplete delivery controls")
     if len({card["speaker"] for card in cards}) != len(cards):
         raise RuntimeError("Duplicate character voice cards")
     required_card_fields = {"ageBand", "ageBasis", "ageConfidence", "role", "voiceDesignInstruction", "forbiddenStyle"}
@@ -64,6 +75,8 @@ def main() -> None:
         "stage_01_lines": stage_counts["01"],
         "narration_excluded": True,
         "anti_caricature_rules": True,
+        "context_compilation": True,
+        "gated_custom_voice_promotion": True,
     }, ensure_ascii=False, indent=2))
 
 

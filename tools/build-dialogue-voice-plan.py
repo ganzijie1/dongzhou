@@ -230,7 +230,55 @@ def make_card(speaker: str, texts: list[str], stage_context: str) -> dict:
     }
 
 
-def infer_delivery(text: str, section: str) -> dict:
+def infer_speech_act(text: str, section: str) -> str:
+    if section == "defeat":
+        return "concede_or_withdraw"
+    if re.search(r"传旨|速|快|退|守住|拿下|斩|杀|不得|务必", text):
+        return "command"
+    if re.search(r"不可久留|快走|逃|避开|小心", text):
+        return "flee_or_warning"
+    if re.search(r"？|何以|为何|岂|可曾|怎", text):
+        return "question_or_challenge"
+    if re.search(r"臣愿|请|望|恳|相谏|不可", text):
+        return "appeal_or_remonstrance"
+    if re.search(r"报|知|见|闻|前方|已经|无踪", text):
+        return "report"
+    if re.search(r"必|誓|偿还|血债|昭雪", text):
+        return "vow_or_accusation"
+    return "statement"
+
+
+def infer_scene(section: str, text: str, stage_title: str) -> str:
+    if section == "victory":
+        return "battle_resolution"
+    if section == "defeat":
+        return "failed_withdrawal"
+    if re.search(r"王驾|围猎|军士|弓|箭|攻|守|退", text):
+        return "field_or_battle"
+    if re.search(r"臣|百官|传旨|入朝|寡人|大王", text):
+        return "court_or_audience"
+    if re.search(r"妻|乡民|入城|河边|宫女", text):
+        return "civilian_incident"
+    return f"historical_narrative:{stage_title}" if stage_title else "historical_narrative"
+
+
+def infer_relationship(speaker: str, previous_speaker: str, card: dict, previous_card: dict | None) -> str:
+    if not previous_speaker or previous_speaker in EXCLUDED_SPEAKERS:
+        return "addresses_scene"
+    if previous_speaker == speaker:
+        return "continues_own_turn"
+    role = card.get("role", "")
+    previous_role = (previous_card or {}).get("role", "")
+    if role == "ruler":
+        return "ruler_to_subject"
+    if previous_role == "ruler" and role in {"senior_minister", "senior_general", "scholar_minister", "minister_or_gentry"}:
+        return "subject_to_ruler"
+    if role in {"military", "senior_general"} or previous_role in {"military", "senior_general"}:
+        return "military_counterpart"
+    return "historical_counterpart"
+
+
+def infer_delivery(text: str, section: str, speech_act: str = "statement") -> dict:
     if re.search(r"……|\.\.\.$", text):
         emotion, intensity = "subdued_or_fading", 0.35
     elif re.search(r"死|亡|冤|哭|痛|悲|恨", text):
@@ -243,11 +291,56 @@ def infer_delivery(text: str, section: str) -> dict:
         emotion, intensity = "restrained", 0.38
     if section == "defeat":
         emotion, intensity = "defeat_without_melodrama", min(intensity, 0.45)
+    pace = 1.08 if speech_act in {"command", "flee_or_warning"} else 0.92 if emotion in {"subdued_or_fading", "grief_or_grievance", "defeat_without_melodrama"} else 1.0
+    pause = 0.68 if speech_act in {"appeal_or_remonstrance", "vow_or_accusation"} else 0.45
+    dominance = 0.72 if speech_act in {"command", "vow_or_accusation"} else 0.48
     return {
         "emotion": emotion,
         "intensity": intensity,
+        "pace": pace,
+        "pauseStrength": pause,
+        "dominance": dominance,
         "performanceRule": "保持角色固定声纹；情绪作用于停顿、重音和语速，不通过改变年龄、方言或夸张音色表现。",
     }
+
+
+def context_instruction(card: dict, context: dict, delivery: dict) -> str:
+    act_labels = {
+        "command": "下达命令，重点清楚，避免持续高声",
+        "flee_or_warning": "在悲痛中急于离开或示警，语速可以加快但不要喊成口号",
+        "question_or_challenge": "向明确对象追问，句尾有压力但不表演化",
+        "appeal_or_remonstrance": "以论理进谏，克制中保留急迫",
+        "report": "报告所见，信息层次清楚",
+        "vow_or_accusation": "陈明誓言或控诉，以停顿和重音表现决绝",
+        "concede_or_withdraw": "受挫后收束气息，不哭腔、不拖长",
+        "statement": "自然陈述，对场内人物说话而非对观众播报",
+    }
+    scene_labels = {
+        "court_or_audience": "朝堂或君臣议事",
+        "field_or_battle": "军阵或野外冲突",
+        "civilian_incident": "民间突发事件",
+        "battle_resolution": "战斗结果已明",
+        "failed_withdrawal": "行动受挫撤退",
+    }
+    relationship_labels = {
+        "addresses_scene": "向在场众人发言",
+        "continues_own_turn": "继续自己的上一轮发言",
+        "ruler_to_subject": "君主对臣属",
+        "subject_to_ruler": "臣属对君主",
+        "military_counterpart": "军阵中的对手或同僚",
+        "historical_counterpart": "对场内另一人物",
+    }
+    previous = "；".join(f"{turn['speaker']}：{turn['text'][:42]}" for turn in context["previousTurns"][-2:]) or "无"
+    following = "；".join(f"{turn['speaker']}：{turn['text'][:42]}" for turn in context["nextTurns"][:1]) or "无"
+    scene = scene_labels.get(context["scene"], "历史叙事场景")
+    relationship = relationship_labels.get(context["relationship"], "对场内人物")
+    return (
+        f"保持角色身份：{card['identityDirection']}"
+        f"场景：{scene}；关系：{relationship}。前文：{previous}。此句之后：{following}。"
+        f"此句功能：{act_labels.get(context['speechAct'], act_labels['statement'])}。"
+        f"情绪强度约{delivery['intensity']:.2f}，语速倍率约{delivery['pace']:.2f}，"
+        "用自然停顿、重音和气息表达，不改变性别、年龄与固定声纹。"
+    )
 
 
 def main() -> None:
@@ -257,6 +350,7 @@ def main() -> None:
     occurrences: list[dict] = []
     speaker_texts: dict[str, list[str]] = defaultdict(list)
     speaker_contexts: dict[str, list[str]] = defaultdict(list)
+    stage_timelines: dict[str, list[dict]] = defaultdict(list)
     excluded_counts: Counter[str] = Counter()
 
     for stage in story_stages:
@@ -269,16 +363,25 @@ def main() -> None:
                 if not text:
                     continue
                 stage_entries.append({"speaker": speaker, "text": text})
-                if speaker in EXCLUDED_SPEAKERS:
-                    excluded_counts[speaker or "<empty_narration>"] += 1
-                    continue
                 for chunk_index, chunk in enumerate(split_story_text(text)):
+                    timeline = stage_timelines[str(stage.get("id") or "")]
+                    timeline_index = len(timeline)
+                    timeline.append({
+                        "speaker": speaker or "旁白",
+                        "text": chunk,
+                        "section": section,
+                    })
+                    if speaker in EXCLUDED_SPEAKERS:
+                        excluded_counts[speaker or "<empty_narration>"] += 1
+                        continue
                     occurrence = {
                         "stageId": str(stage.get("id") or ""),
                         "chapter": str(story.get("chapter") or stage.get("chapter") or ""),
+                        "stageTitle": str(story.get("title") or stage.get("title") or ""),
                         "section": section,
                         "sourceIndex": source_index,
                         "chunkIndex": chunk_index,
+                        "timelineIndex": timeline_index,
                         "speaker": speaker,
                         "text": chunk,
                     }
@@ -297,10 +400,38 @@ def main() -> None:
     for occurrence in occurrences:
         key = f"{occurrence['speaker']}\0{occurrence['text']}"
         entry_id = f"line-{stable_hash(key)}"
-        occurrence_refs.append({**occurrence, "entryId": entry_id})
-        if key in unique_entries:
-            continue
         card = cards[occurrence["speaker"]]
+        timeline = stage_timelines[occurrence["stageId"]]
+        timeline_index = occurrence["timelineIndex"]
+        previous_turns = timeline[max(0, timeline_index - 3):timeline_index]
+        next_turns = timeline[timeline_index + 1:timeline_index + 3]
+        previous_speaker = previous_turns[-1]["speaker"] if previous_turns else ""
+        speech_act = infer_speech_act(occurrence["text"], occurrence["section"])
+        delivery = infer_delivery(occurrence["text"], occurrence["section"], speech_act)
+        relationship = infer_relationship(
+            occurrence["speaker"], previous_speaker, card,
+            cards.get(previous_speaker),
+        )
+        context = {
+            "id": f"ctx-{stable_hash('|'.join((occurrence['stageId'], occurrence['section'], str(timeline_index), occurrence['speaker'], occurrence['text'])), 12)}",
+            "scene": infer_scene(occurrence["section"], occurrence["text"], occurrence["stageTitle"]),
+            "speechAct": speech_act,
+            "relationship": relationship,
+            "previousTurns": previous_turns,
+            "nextTurns": next_turns,
+        }
+        context["synthesisInstruction"] = context_instruction(card, context, delivery)
+        occurrence_ref = {
+            **{k: occurrence[k] for k in ("stageId", "chapter", "stageTitle", "section", "sourceIndex", "chunkIndex", "timelineIndex", "speaker", "text")},
+            "entryId": entry_id,
+            "contextId": context["id"],
+        }
+        occurrence_refs.append(occurrence_ref)
+        if key in unique_entries:
+            existing = unique_entries[key]
+            if context["id"] not in existing["contextVariantIds"]:
+                existing["contextVariantIds"].append(context["id"])
+            continue
         unique_entries[key] = {
             "id": entry_id,
             "speaker": occurrence["speaker"],
@@ -308,22 +439,26 @@ def main() -> None:
             "voiceCardId": card["id"],
             "file": f"audio/dialogue/full/{entry_id[5:7]}/{entry_id}.ogg",
             "firstOccurrence": {k: occurrence[k] for k in ("stageId", "chapter", "section", "sourceIndex", "chunkIndex")},
-            "delivery": infer_delivery(occurrence["text"], occurrence["section"]),
+            "delivery": delivery,
+            "context": context,
+            "contextVariantIds": [context["id"]],
         }
 
     plan = {
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "source": [str(CAMPAIGN_PATH.relative_to(ROOT)).replace("\\", "/"), *(str(path.relative_to(ROOT)).replace("\\", "/") for path in EXTRA_STORY_PATHS)],
         "modelPlan": {
             "voiceDesign": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
             "voiceClone": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
-            "method": "design-reference-then-clone",
+            "method": "context-compiled-multi-candidate-with-gated-promotion",
         },
         "policy": {
             "excludedSpeakers": sorted(EXCLUDED_SPEAKERS),
             "narrationExcluded": True,
             "ageEvidenceOrder": ["explicit stage text", "historical override", "role-based conservative inference"],
             "unknownAgeRule": "Do not invent a numeric age; retain an explicit low-confidence inference label.",
+            "contextVariantRule": "Runtime currently resolves speaker plus text; synthesize the first occurrence and retain all alternate contexts for review.",
+            "promotionRule": "Custom candidates cannot replace shipped audio until identity, text, prosody and gender review gates pass.",
         },
         "summary": {
             "campaignStages": len(campaign.get("stages", [])),
@@ -338,8 +473,8 @@ def main() -> None:
         "occurrences": occurrence_refs,
     }
     card_document = {
-        "schemaVersion": 1,
-        "referencePolicy": "One designed reference per named speaker, then reusable Base-model cloning for identity consistency.",
+        "schemaVersion": 2,
+        "referencePolicy": "One historically reviewed identity reference per speaker; contextual candidates remain separate until acoustic and human review.",
         "cards": list(cards.values()),
     }
     PLAN_PATH.parent.mkdir(parents=True, exist_ok=True)
