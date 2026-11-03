@@ -328,6 +328,10 @@ button:focus-visible {
 .focus-copy h2 { margin: 0; color: #f0e5c7; font-family: "STKaiti", "KaiTi", serif; font-size: 52px; line-height: 1.05; }
 .focus-copy > strong { display: block; margin-top: 12px; color: #cdbd92; font-size: 13px; font-weight: 500; }
 .focus-copy > p:not(:first-child) { margin: 8px 0 0; color: #aaa596; font-size: 13px; line-height: 1.65; }
+.focus-assessment { display: flex; gap: 22px; margin-top: 12px; }
+.focus-assessment span { display: grid; grid-template-columns: auto auto; align-items: baseline; gap: 8px; }
+.focus-assessment small { color: #79786f; font-size: 9px; }
+.focus-assessment strong { color: #d8cda9; font-family: "STKaiti", "KaiTi", serif; font-size: 15px; font-weight: 500; }
 .focus-order { margin-top: 23px; padding-left: 14px; border-left: 3px solid #b78e3e; }
 .focus-order span { color: #9e8957; font-size: 10px; }
 .focus-order p { margin: 5px 0 0; color: #e1d8c0; font-size: 14px; line-height: 1.55; }

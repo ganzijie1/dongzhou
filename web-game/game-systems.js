@@ -6,26 +6,29 @@
   "use strict";
 
   const PROFILE_VERSION = 7;
-  const TELEMETRY_SCHEMA = "dongzhou-battle-v2";
+  const TELEMETRY_SCHEMA = "dongzhou-battle-v3";
   const REPLAY_SCHEMA = "dongzhou-replay-v1";
   const POLICY_VERSION = "happo-2026-11-02";
-  const RUNTIME_VERSION = "dongzhou-web-0.5.0";
+  const RUNTIME_VERSION = "dongzhou-web-0.6.0";
   const DIFFICULTIES = ["easy", "medium", "hard"];
   const DIFFICULTY_PRESETS = Object.freeze({
     easy: Object.freeze({
       id: "easy", enemyLevelOffset: -2, enemyHpMultiplier: 0.85,
       enemyPowerMultiplier: 0.88, enemyDefenseMultiplier: 0.90,
-      aiPolicyRate: 0.30, turnLimitMultiplier: 1.25, rewardMultiplier: 0.85
+      aiPolicyRate: 0.30, turnLimitMultiplier: 1.25, rewardMultiplier: 0.85,
+      structuralRiskOffset: -12
     }),
     medium: Object.freeze({
       id: "medium", enemyLevelOffset: 0, enemyHpMultiplier: 1,
       enemyPowerMultiplier: 1, enemyDefenseMultiplier: 1,
-      aiPolicyRate: 0.65, turnLimitMultiplier: 1, rewardMultiplier: 1
+      aiPolicyRate: 0.65, turnLimitMultiplier: 1, rewardMultiplier: 1,
+      structuralRiskOffset: 0
     }),
     hard: Object.freeze({
       id: "hard", enemyLevelOffset: 2, enemyHpMultiplier: 1.12,
       enemyPowerMultiplier: 1.12, enemyDefenseMultiplier: 1.08,
-      aiPolicyRate: 1, turnLimitMultiplier: 1, rewardMultiplier: 1.2
+      aiPolicyRate: 1, turnLimitMultiplier: 1, rewardMultiplier: 1.2,
+      structuralRiskOffset: 14
     })
   });
   const MAP_DETAIL_MODES = ["calm", "balanced", "original"];
@@ -233,7 +236,7 @@
     const base = Math.max(1, Number(scriptedLevel || 1));
     if (team === "own") return Math.max(base, Number(profile?.armyRank || 1));
     const offset = difficultyPreset(difficulty).enemyLevelOffset;
-    return Math.max(base, clamp(recommendedStageLevel(stageIndex) + offset, 1, 30));
+    return Math.max(base, clamp(recommendedStageLevel(stageIndex) + offset, 1, PROGRESSION.maxLevel));
   }
 
   function masteryForHero(profile, heroId) {
@@ -367,6 +370,77 @@
     }));
   }
 
+  function difficultyRiskBand(score, objectiveType = "defeat") {
+    if (objectiveType === "narrative") return "narrative";
+    if (score < 30) return "low";
+    if (score < 50) return "guarded";
+    if (score < 70) return "high";
+    return "severe";
+  }
+
+  function stageDifficultyAssessment(stageProfile, profile, difficulty = "medium") {
+    const source = stageProfile || {};
+    const objectiveType = String(source.objectiveType || "defeat");
+    const stageId = String(source.id || source.stage_id || "");
+    const stageIndex = Number(source.index || source.stage_index || 1);
+    const recommendedLevel = Number(source.recommendedLevel || recommendedStageLevel(stageIndex));
+    const armyRank = clamp(Number(profile?.armyRank || 1), 1, PROGRESSION.maxLevel);
+    const levelDelta = armyRank - recommendedLevel;
+    const preset = difficultyPreset(difficulty);
+    const equipment = equipmentBonuses(profile);
+    const equipmentMitigation = clamp(
+      equipment.power * 0.35 + equipment.defense * 0.3 + equipment.move * 2 + equipment.maxMp * 0.12,
+      0, 10
+    );
+    const recent = (profile?.battleHistory || [])
+      .filter((record) => !record.procedural && record.difficulty === preset.id)
+      .slice(-12);
+    const recentReward = recent.length
+      ? recent.reduce((sum, record) => sum + clamp(Number(record.reward_total || 0), 0, 1), 0) / recent.length
+      : null;
+    const formAdjustment = recentReward == null ? 0 : clamp((0.55 - recentReward) * 18, -6, 6);
+    const staticRisk = objectiveType === "narrative" ? 0 : clamp(Number(source.structuralRisk || 35), 0, 100);
+    const coldStartRisk = objectiveType === "narrative" ? 0 : clamp(
+      staticRisk + preset.structuralRiskOffset - levelDelta * 6 - equipmentMitigation + formAdjustment,
+      0, 100
+    );
+    const matching = (profile?.battleHistory || []).filter((record) =>
+      String(record.stage_id || "") === stageId && record.difficulty === preset.id);
+    const wins = matching.filter((record) => record.won).length;
+    const episodes = matching.length;
+    const observedSuccessRate = episodes ? (wins + 1) / (episodes + 2) : null;
+    const observedRisk = observedSuccessRate == null ? null : (1 - observedSuccessRate) * 100;
+    const evidenceWeight = episodes ? Math.min(0.7, episodes / 20 * 0.7) : 0;
+    const riskScore = observedRisk == null
+      ? coldStartRisk
+      : clamp(coldStartRisk * (1 - evidenceWeight) + observedRisk * evidenceWeight, 0, 100);
+    const ci95 = episodes ? wilsonInterval(wins, episodes) : [0, 1];
+    const confidence = episodes >= 20 ? "calibrated" : episodes >= 5 ? "limited" : "cold-start";
+    return {
+      stageId,
+      stageIndex,
+      difficulty: preset.id,
+      objectiveType,
+      recommendedLevel,
+      armyRank,
+      levelDelta,
+      staticRisk,
+      coldStartRisk,
+      riskScore: Number(riskScore.toFixed(1)),
+      riskBand: difficultyRiskBand(riskScore, objectiveType),
+      confidence,
+      evidence: { episodes, wins, observedSuccessRate, ci95, recentEpisodes: recent.length, recentReward },
+      adjustments: {
+        difficulty: preset.structuralRiskOffset,
+        level: -levelDelta * 6,
+        equipment: Number((-equipmentMitigation).toFixed(1)),
+        recentForm: Number(formAdjustment.toFixed(1)),
+        observedWeight: Number(evidenceWeight.toFixed(3))
+      },
+      flags: Array.isArray(source.flags) ? [...source.flags] : []
+    };
+  }
+
   function completeBattle(rawProfile, stage, outcome) {
     const profile = normalizeProfile(rawProfile, outcome.stages || []);
     const startingArmyRank = profile.armyRank;
@@ -452,6 +526,7 @@
       , map_seed: Number.isFinite(Number(outcome.mapSeed)) ? Number(outcome.mapSeed) : null
       , objective_type: outcome.objectiveType || "scripted"
       , coins_earned: coinsEarned
+      , preflight_assessment: outcome.difficultyAssessment || null
     };
     if (profile.settings.telemetryEnabled) profile.battleHistory = [...profile.battleHistory, record].slice(-200);
     if (profile.settings.telemetryEnabled && outcome.replay) {
@@ -617,7 +692,7 @@
     armyRankForClears, armyXpForClears, heroLevelCap, heroLevelFromXp, unitGrowthBonuses,
     difficultyPreset, effectiveTurnLimit, unitDifficultyModifiers,
     equipmentBonuses, availableEquipment, buyEquipment, equipItem, buySupply,
-    battleReward, selectDifficulty, wilsonInterval, difficultyCalibration, completeBattle, canonicalHeroId,
+    battleReward, selectDifficulty, wilsonInterval, difficultyCalibration, difficultyRiskBand, stageDifficultyAssessment, completeBattle, canonicalHeroId,
     skillForUnit, skillTargetValid, effectivePower, effectiveDefense, applySkill, tickEffects, storyEventMatches,
     splitStoryText, normalizeStoryEntries, portraitForSpeaker, normalizeVoiceManifest, resolveStoryVoice,
     mapDetailProfile, isStructuralTerrain, preservesMapDetail, isBarrierTerrain

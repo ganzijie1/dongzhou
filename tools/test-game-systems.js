@@ -44,6 +44,32 @@ assert.ok(systems.effectiveUnitLevel(1, "enemy", profile, 30, "easy")
   < systems.effectiveUnitLevel(1, "enemy", profile, 30, "medium"));
 assert.ok(systems.effectiveUnitLevel(1, "enemy", profile, 30, "medium")
   < systems.effectiveUnitLevel(1, "enemy", profile, 30, "hard"));
+assert.equal(systems.effectiveUnitLevel(1, "enemy", profile, 172, "medium"), 60);
+assert.equal(systems.effectiveUnitLevel(1, "enemy", profile, 172, "hard"), 60);
+assert.equal(systems.effectiveUnitLevel(1, "enemy", profile, 172, "easy"), 58);
+
+const stageProfile = {
+  id: "stage-risk", index: 30, objectiveType: "defeat", recommendedLevel: 11,
+  structuralRisk: 58, flags: ["enemy-ratio-high"]
+};
+const coldProfile = systems.normalizeProfile({ armyRank: 11 }, stages);
+const coldMedium = systems.stageDifficultyAssessment(stageProfile, coldProfile, "medium");
+assert.equal(coldMedium.confidence, "cold-start");
+assert.equal(coldMedium.evidence.observedSuccessRate, null);
+assert.deepEqual(coldMedium.evidence.ci95, [0, 1]);
+assert.ok(systems.stageDifficultyAssessment(stageProfile, coldProfile, "easy").riskScore < coldMedium.riskScore);
+assert.ok(systems.stageDifficultyAssessment(stageProfile, coldProfile, "hard").riskScore > coldMedium.riskScore);
+const calibratedProfile = systems.normalizeProfile({
+  armyRank: 11,
+  battleHistory: Array.from({ length: 20 }, (_, index) => ({
+    stage_id: "stage-risk", difficulty: "medium", won: index < 16, reward_total: 0.7, procedural: false
+  }))
+}, stages);
+const calibrated = systems.stageDifficultyAssessment(stageProfile, calibratedProfile, "medium");
+assert.equal(calibrated.confidence, "calibrated");
+assert.equal(calibrated.evidence.episodes, 20);
+assert.ok(calibrated.evidence.ci95[0] < calibrated.evidence.observedSuccessRate);
+assert.ok(calibrated.riskScore < coldMedium.riskScore);
 
 for (let index = 0; index < 50; index++) {
   profile = systems.completeBattle(profile, stages[0], {

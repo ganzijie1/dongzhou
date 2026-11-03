@@ -1,7 +1,8 @@
 {
-  "generatedAt": "2026-11-03T07:12:57.910Z",
+  "generatedAt": "2026-11-03T12:34:32.671Z",
   "method": "Static triage only. structuralRisk is not a player difficulty estimate.",
   "methodSource": "https://my.feishu.cn/docx/AD99dmVLHoUjLIxBFEzcXl4tnZd",
+  "difficultyPredictionSource": "https://my.feishu.cn/docx/Q4uddpasdoijcPxWurfcrJGZnEe",
   "progressionContract": {
     "maxLevel": 60,
     "stagesPerLevel": 3,
@@ -24,7 +25,8 @@
       "enemyDefenseMultiplier": 0.9,
       "aiPolicyRate": 0.3,
       "turnLimitMultiplier": 1.25,
-      "rewardMultiplier": 0.85
+      "rewardMultiplier": 0.85,
+      "structuralRiskOffset": -12
     },
     "medium": {
       "id": "medium",
@@ -34,7 +36,8 @@
       "enemyDefenseMultiplier": 1,
       "aiPolicyRate": 0.65,
       "turnLimitMultiplier": 1,
-      "rewardMultiplier": 1
+      "rewardMultiplier": 1,
+      "structuralRiskOffset": 0
     },
     "hard": {
       "id": "hard",
@@ -44,7 +47,8 @@
       "enemyDefenseMultiplier": 1.08,
       "aiPolicyRate": 1,
       "turnLimitMultiplier": 1,
-      "rewardMultiplier": 1.2
+      "rewardMultiplier": 1.2,
+      "structuralRiskOffset": 14
     }
   },
   "pcgrlGeometryLimits": {

@@ -1,0 +1,3407 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-03T12:34:32.671Z",
+  "method": "Cold-start structural priors. Runtime battle history is required for player-calibrated success estimates.",
+  "sources": [
+    "https://my.feishu.cn/docx/AD99dmVLHoUjLIxBFEzcXl4tnZd",
+    "https://my.feishu.cn/docx/Q4uddpasdoijcPxWurfcrJGZnEe"
+  ],
+  "profiles": {
+    "16": {
+      "id": "16",
+      "index": 27,
+      "objectiveType": "defend",
+      "recommendedLevel": 9,
+      "structuralRisk": 21.6,
+      "flags": [
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 7,
+        "enemyUnits": 8,
+        "enemyRatio": 1.143,
+        "turnLimit": 18,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 7,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.299
+      }
+    },
+    "17": {
+      "id": "17",
+      "index": 28,
+      "objectiveType": "defeat",
+      "recommendedLevel": 10,
+      "structuralRisk": 27.3,
+      "flags": [
+        "bottleneck-p90"
+      ],
+      "metrics": {
+        "ownUnits": 6,
+        "enemyUnits": 8,
+        "enemyRatio": 1.333,
+        "turnLimit": 20,
+        "barrierRatio": 0.214,
+        "minDeploymentDistance": 5,
+        "articulationRatio": 0.014,
+        "terrainTransitionRatio": 0.311
+      }
+    },
+    "18": {
+      "id": "18",
+      "index": 29,
+      "objectiveType": "defeat",
+      "recommendedLevel": 10,
+      "structuralRisk": 18.8,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 9,
+        "enemyUnits": 8,
+        "enemyRatio": 0.889,
+        "turnLimit": 20,
+        "barrierRatio": 0.214,
+        "minDeploymentDistance": 8,
+        "articulationRatio": 0.005,
+        "terrainTransitionRatio": 0.204
+      }
+    },
+    "22": {
+      "id": "22",
+      "index": 39,
+      "objectiveType": "defeat",
+      "recommendedLevel": 14,
+      "structuralRisk": 31.3,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 4,
+        "enemyUnits": 6,
+        "enemyRatio": 1.5,
+        "turnLimit": 16,
+        "barrierRatio": 0.233,
+        "minDeploymentDistance": 11,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.313
+      }
+    },
+    "28": {
+      "id": "28",
+      "index": 50,
+      "objectiveType": "defeat",
+      "recommendedLevel": 17,
+      "structuralRisk": 27.5,
+      "flags": [
+        "bottleneck-p90"
+      ],
+      "metrics": {
+        "ownUnits": 9,
+        "enemyUnits": 12,
+        "enemyRatio": 1.333,
+        "turnLimit": 20,
+        "barrierRatio": 0.192,
+        "minDeploymentDistance": 1,
+        "articulationRatio": 0.042,
+        "terrainTransitionRatio": 0.311
+      }
+    },
+    "29": {
+      "id": "29",
+      "index": 51,
+      "objectiveType": "defend",
+      "recommendedLevel": 18,
+      "structuralRisk": 36.1,
+      "flags": [
+        "barrier-density-p90",
+        "bottleneck-p90"
+      ],
+      "metrics": {
+        "ownUnits": 15,
+        "enemyUnits": 11,
+        "enemyRatio": 0.733,
+        "turnLimit": 18,
+        "barrierRatio": 0.462,
+        "minDeploymentDistance": 2,
+        "articulationRatio": 0.14,
+        "terrainTransitionRatio": 0.275
+      }
+    },
+    "31": {
+      "id": "31",
+      "index": 54,
+      "objectiveType": "narrative",
+      "recommendedLevel": 19,
+      "structuralRisk": 0,
+      "flags": [
+        "narrative-only"
+      ],
+      "metrics": {
+        "ownUnits": 10,
+        "enemyUnits": 0,
+        "enemyRatio": 0,
+        "turnLimit": 14,
+        "barrierRatio": 0.011,
+        "minDeploymentDistance": 0,
+        "articulationRatio": 0.008,
+        "terrainTransitionRatio": 0.271
+      }
+    },
+    "32": {
+      "id": "32",
+      "index": 55,
+      "objectiveType": "escort",
+      "recommendedLevel": 19,
+      "structuralRisk": 61.2,
+      "flags": [
+        "enemy-ratio-high",
+        "barrier-density-p90",
+        "bottleneck-p90",
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 4,
+        "enemyUnits": 8,
+        "enemyRatio": 2,
+        "turnLimit": 12,
+        "barrierRatio": 0.718,
+        "minDeploymentDistance": 6,
+        "articulationRatio": 0.12,
+        "terrainTransitionRatio": 0.377
+      }
+    },
+    "35": {
+      "id": "35",
+      "index": 60,
+      "objectiveType": "defeat",
+      "recommendedLevel": 21,
+      "structuralRisk": 5.4,
+      "flags": [
+        "enemy-ratio-low"
+      ],
+      "metrics": {
+        "ownUnits": 7,
+        "enemyUnits": 1,
+        "enemyRatio": 0.143,
+        "turnLimit": 12,
+        "barrierRatio": 0.043,
+        "minDeploymentDistance": 11,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.197
+      }
+    },
+    "39": {
+      "id": "39",
+      "index": 65,
+      "objectiveType": "defeat",
+      "recommendedLevel": 23,
+      "structuralRisk": 27.1,
+      "flags": [
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 16,
+        "enemyUnits": 14,
+        "enemyRatio": 0.875,
+        "turnLimit": 26,
+        "barrierRatio": 0.394,
+        "minDeploymentDistance": 2,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.408
+      }
+    },
+    "40": {
+      "id": "40",
+      "index": 66,
+      "objectiveType": "defend",
+      "recommendedLevel": 23,
+      "structuralRisk": 42.5,
+      "flags": [
+        "enemy-ratio-high",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 22,
+        "enemyUnits": 50,
+        "enemyRatio": 2.273,
+        "turnLimit": 50,
+        "barrierRatio": 0.054,
+        "minDeploymentDistance": 10,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.539
+      }
+    },
+    "42": {
+      "id": "42",
+      "index": 67,
+      "objectiveType": "narrative",
+      "recommendedLevel": 23,
+      "structuralRisk": 0,
+      "flags": [
+        "narrative-only"
+      ],
+      "metrics": {
+        "ownUnits": 2,
+        "enemyUnits": 0,
+        "enemyRatio": 0,
+        "turnLimit": 99,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 0,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.172
+      }
+    },
+    "44": {
+      "id": "44",
+      "index": 70,
+      "objectiveType": "defend",
+      "recommendedLevel": 24,
+      "structuralRisk": 42.9,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 10,
+        "enemyUnits": 13,
+        "enemyRatio": 1.3,
+        "turnLimit": 12,
+        "barrierRatio": 0.353,
+        "minDeploymentDistance": 5,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.462
+      }
+    },
+    "49": {
+      "id": "49",
+      "index": 80,
+      "objectiveType": "escape",
+      "recommendedLevel": 28,
+      "structuralRisk": 21.4,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 12,
+        "enemyRatio": 0.857,
+        "turnLimit": 22,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 20,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.495
+      }
+    },
+    "51": {
+      "id": "51",
+      "index": 84,
+      "objectiveType": "escape",
+      "recommendedLevel": 29,
+      "structuralRisk": 21.8,
+      "flags": [
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 30,
+        "enemyUnits": 25,
+        "enemyRatio": 0.833,
+        "turnLimit": 26,
+        "barrierRatio": 0.081,
+        "minDeploymentDistance": 1,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.486
+      }
+    },
+    "52": {
+      "id": "52",
+      "index": 85,
+      "objectiveType": "defend",
+      "recommendedLevel": 29,
+      "structuralRisk": 20,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 21,
+        "enemyUnits": 21,
+        "enemyRatio": 1,
+        "turnLimit": 25,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 2,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.528
+      }
+    },
+    "57": {
+      "id": "57",
+      "index": 94,
+      "objectiveType": "escort",
+      "recommendedLevel": 33,
+      "structuralRisk": 69.8,
+      "flags": [
+        "enemy-ratio-high",
+        "barrier-density-p90",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 2,
+        "enemyUnits": 13,
+        "enemyRatio": 6.5,
+        "turnLimit": 20,
+        "barrierRatio": 0.444,
+        "minDeploymentDistance": 8,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.332
+      }
+    },
+    "58": {
+      "id": "58",
+      "index": 95,
+      "objectiveType": "defend",
+      "recommendedLevel": 33,
+      "structuralRisk": 24.1,
+      "flags": [
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 21,
+        "enemyUnits": 26,
+        "enemyRatio": 1.238,
+        "turnLimit": 32,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 16,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.45
+      }
+    },
+    "68": {
+      "id": "68",
+      "index": 121,
+      "objectiveType": "defeat",
+      "recommendedLevel": 42,
+      "structuralRisk": 33.7,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 12,
+        "enemyUnits": 15,
+        "enemyRatio": 1.25,
+        "turnLimit": 24,
+        "barrierRatio": 0.371,
+        "minDeploymentDistance": 4,
+        "articulationRatio": 0.011,
+        "terrainTransitionRatio": 0.351
+      }
+    },
+    "69": {
+      "id": "69",
+      "index": 122,
+      "objectiveType": "defeat",
+      "recommendedLevel": 42,
+      "structuralRisk": 43.3,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 11,
+        "enemyUnits": 21,
+        "enemyRatio": 1.909,
+        "turnLimit": 28,
+        "barrierRatio": 0.414,
+        "minDeploymentDistance": 6,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.363
+      }
+    },
+    "70": {
+      "id": "70",
+      "index": 123,
+      "objectiveType": "escape",
+      "recommendedLevel": 43,
+      "structuralRisk": 37.6,
+      "flags": [
+        "deployment-components-disconnected",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 16,
+        "enemyUnits": 16,
+        "enemyRatio": 1,
+        "turnLimit": 26,
+        "barrierRatio": 0.393,
+        "minDeploymentDistance": 4,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.387
+      }
+    },
+    "71": {
+      "id": "71",
+      "index": 124,
+      "objectiveType": "defeat",
+      "recommendedLevel": 43,
+      "structuralRisk": 31.5,
+      "flags": [
+        "texture-transition-p90"
+      ],
+      "metrics": {
+        "ownUnits": 8,
+        "enemyUnits": 12,
+        "enemyRatio": 1.5,
+        "turnLimit": 24,
+        "barrierRatio": 0.144,
+        "minDeploymentDistance": 23,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.565
+      }
+    },
+    "72": {
+      "id": "72",
+      "index": 125,
+      "objectiveType": "escort",
+      "recommendedLevel": 43,
+      "structuralRisk": 29.5,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 3,
+        "enemyUnits": 5,
+        "enemyRatio": 1.667,
+        "turnLimit": 26,
+        "barrierRatio": 0.012,
+        "minDeploymentDistance": 8,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.205
+      }
+    },
+    "73": {
+      "id": "73",
+      "index": 127,
+      "objectiveType": "defeat",
+      "recommendedLevel": 44,
+      "structuralRisk": 28.4,
+      "flags": [
+        "texture-transition-p90"
+      ],
+      "metrics": {
+        "ownUnits": 11,
+        "enemyUnits": 19,
+        "enemyRatio": 1.727,
+        "turnLimit": 30,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 32,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.622
+      }
+    },
+    "74": {
+      "id": "74",
+      "index": 129,
+      "objectiveType": "defeat",
+      "recommendedLevel": 45,
+      "structuralRisk": 17.3,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 13,
+        "enemyUnits": 13,
+        "enemyRatio": 1,
+        "turnLimit": 36,
+        "barrierRatio": 0.049,
+        "minDeploymentDistance": 27,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.501
+      }
+    },
+    "75": {
+      "id": "75",
+      "index": 130,
+      "objectiveType": "escape",
+      "recommendedLevel": 45,
+      "structuralRisk": 23.1,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 16,
+        "enemyUnits": 13,
+        "enemyRatio": 0.813,
+        "turnLimit": 36,
+        "barrierRatio": 0.046,
+        "minDeploymentDistance": 31,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.503
+      }
+    },
+    "76": {
+      "id": "76",
+      "index": 131,
+      "objectiveType": "capture",
+      "recommendedLevel": 45,
+      "structuralRisk": 33.3,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 15,
+        "enemyUnits": 13,
+        "enemyRatio": 0.867,
+        "turnLimit": 36,
+        "barrierRatio": 0.326,
+        "minDeploymentDistance": 20,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.444
+      }
+    },
+    "77": {
+      "id": "77",
+      "index": 132,
+      "objectiveType": "defeat",
+      "recommendedLevel": 46,
+      "structuralRisk": 17.2,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.05,
+        "minDeploymentDistance": 23,
+        "articulationRatio": 0.005,
+        "terrainTransitionRatio": 0.537
+      }
+    },
+    "78": {
+      "id": "78",
+      "index": 133,
+      "objectiveType": "defeat",
+      "recommendedLevel": 46,
+      "structuralRisk": 37.4,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 8,
+        "enemyUnits": 12,
+        "enemyRatio": 1.5,
+        "turnLimit": 32,
+        "barrierRatio": 0.367,
+        "minDeploymentDistance": 10,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.408
+      }
+    },
+    "79": {
+      "id": "79",
+      "index": 135,
+      "objectiveType": "escape",
+      "recommendedLevel": 47,
+      "structuralRisk": 31,
+      "flags": [
+        "texture-transition-p90"
+      ],
+      "metrics": {
+        "ownUnits": 11,
+        "enemyUnits": 15,
+        "enemyRatio": 1.364,
+        "turnLimit": 28,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 29,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.592
+      }
+    },
+    "80": {
+      "id": "80",
+      "index": 136,
+      "objectiveType": "escort",
+      "recommendedLevel": 47,
+      "structuralRisk": 37.2,
+      "flags": [
+        "bottleneck-p90",
+        "texture-transition-p90"
+      ],
+      "metrics": {
+        "ownUnits": 12,
+        "enemyUnits": 14,
+        "enemyRatio": 1.167,
+        "turnLimit": 26,
+        "barrierRatio": 0.193,
+        "minDeploymentDistance": 3,
+        "articulationRatio": 0.022,
+        "terrainTransitionRatio": 0.541
+      }
+    },
+    "81": {
+      "id": "81",
+      "index": 137,
+      "objectiveType": "defeat",
+      "recommendedLevel": 47,
+      "structuralRisk": 38.2,
+      "flags": [
+        "barrier-density-p90",
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 16,
+        "enemyUnits": 26,
+        "enemyRatio": 1.625,
+        "turnLimit": 30,
+        "barrierRatio": 0.641,
+        "minDeploymentDistance": 14,
+        "articulationRatio": 0.002,
+        "terrainTransitionRatio": 0.274
+      }
+    },
+    "82": {
+      "id": "82",
+      "index": 138,
+      "objectiveType": "defeat",
+      "recommendedLevel": 48,
+      "structuralRisk": 15.8,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.057,
+        "minDeploymentDistance": 18,
+        "articulationRatio": 0.001,
+        "terrainTransitionRatio": 0.499
+      }
+    },
+    "83": {
+      "id": "83",
+      "index": 140,
+      "objectiveType": "defeat",
+      "recommendedLevel": 48,
+      "structuralRisk": 15,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 15,
+        "enemyUnits": 13,
+        "enemyRatio": 0.867,
+        "turnLimit": 36,
+        "barrierRatio": 0.053,
+        "minDeploymentDistance": 23,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.5
+      }
+    },
+    "84": {
+      "id": "84",
+      "index": 142,
+      "objectiveType": "defend",
+      "recommendedLevel": 49,
+      "structuralRisk": 34,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.276,
+        "minDeploymentDistance": 27,
+        "articulationRatio": 0.006,
+        "terrainTransitionRatio": 0.413
+      }
+    },
+    "85": {
+      "id": "85",
+      "index": 144,
+      "objectiveType": "defeat",
+      "recommendedLevel": 50,
+      "structuralRisk": 17.2,
+      "flags": [
+        "texture-transition-p90"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.042,
+        "minDeploymentDistance": 31,
+        "articulationRatio": 0.005,
+        "terrainTransitionRatio": 0.541
+      }
+    },
+    "86": {
+      "id": "86",
+      "index": 145,
+      "objectiveType": "defend",
+      "recommendedLevel": 50,
+      "structuralRisk": 21.7,
+      "flags": [
+        "texture-transition-p90"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 19,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.596
+      }
+    },
+    "87": {
+      "id": "87",
+      "index": 147,
+      "objectiveType": "capture",
+      "recommendedLevel": 51,
+      "structuralRisk": 22.4,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.054,
+        "minDeploymentDistance": 23,
+        "articulationRatio": 0.005,
+        "terrainTransitionRatio": 0.537
+      }
+    },
+    "88": {
+      "id": "88",
+      "index": 148,
+      "objectiveType": "escape",
+      "recommendedLevel": 51,
+      "structuralRisk": 22.1,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 27,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.507
+      }
+    },
+    "89": {
+      "id": "89",
+      "index": 149,
+      "objectiveType": "defeat",
+      "recommendedLevel": 52,
+      "structuralRisk": 14.4,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 31,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.527
+      }
+    },
+    "91": {
+      "id": "91",
+      "index": 150,
+      "objectiveType": "defeat",
+      "recommendedLevel": 52,
+      "structuralRisk": 28.9,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.326,
+        "minDeploymentDistance": 20,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.44
+      }
+    },
+    "92": {
+      "id": "92",
+      "index": 151,
+      "objectiveType": "defeat",
+      "recommendedLevel": 52,
+      "structuralRisk": 15.9,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.053,
+        "minDeploymentDistance": 23,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.499
+      }
+    },
+    "93": {
+      "id": "93",
+      "index": 152,
+      "objectiveType": "capture",
+      "recommendedLevel": 53,
+      "structuralRisk": 32.5,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.278,
+        "minDeploymentDistance": 28,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.463
+      }
+    },
+    "94": {
+      "id": "94",
+      "index": 153,
+      "objectiveType": "defeat",
+      "recommendedLevel": 53,
+      "structuralRisk": 27.4,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.265,
+        "minDeploymentDistance": 33,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.469
+      }
+    },
+    "96": {
+      "id": "96",
+      "index": 156,
+      "objectiveType": "defeat",
+      "recommendedLevel": 54,
+      "structuralRisk": 17.6,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.051,
+        "minDeploymentDistance": 27,
+        "articulationRatio": 0.005,
+        "terrainTransitionRatio": 0.537
+      }
+    },
+    "97": {
+      "id": "97",
+      "index": 157,
+      "objectiveType": "escape",
+      "recommendedLevel": 54,
+      "structuralRisk": 23.9,
+      "flags": [
+        "texture-transition-p90"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 31,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.598
+      }
+    },
+    "98": {
+      "id": "98",
+      "index": 158,
+      "objectiveType": "defeat",
+      "recommendedLevel": 55,
+      "structuralRisk": 14.3,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.021,
+        "minDeploymentDistance": 19,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.522
+      }
+    },
+    "99": {
+      "id": "99",
+      "index": 159,
+      "objectiveType": "defend",
+      "recommendedLevel": 55,
+      "structuralRisk": 35.7,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.303,
+        "minDeploymentDistance": 25,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.452
+      }
+    },
+    "100": {
+      "id": "100",
+      "index": 160,
+      "objectiveType": "capture",
+      "recommendedLevel": 55,
+      "structuralRisk": 21.6,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.049,
+        "minDeploymentDistance": 27,
+        "articulationRatio": 0.001,
+        "terrainTransitionRatio": 0.503
+      }
+    },
+    "101": {
+      "id": "101",
+      "index": 161,
+      "objectiveType": "defeat",
+      "recommendedLevel": 56,
+      "structuralRisk": 15.5,
+      "flags": [
+        "texture-transition-p90"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 31,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.596
+      }
+    },
+    "103": {
+      "id": "103",
+      "index": 165,
+      "objectiveType": "defeat",
+      "recommendedLevel": 57,
+      "structuralRisk": 27.9,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.278,
+        "minDeploymentDistance": 28,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.466
+      }
+    },
+    "104": {
+      "id": "104",
+      "index": 166,
+      "objectiveType": "defeat",
+      "recommendedLevel": 57,
+      "structuralRisk": 27.5,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.265,
+        "minDeploymentDistance": 33,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.472
+      }
+    },
+    "105": {
+      "id": "105",
+      "index": 167,
+      "objectiveType": "defend",
+      "recommendedLevel": 58,
+      "structuralRisk": 24.1,
+      "flags": [
+        "texture-transition-p90"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.056,
+        "minDeploymentDistance": 18,
+        "articulationRatio": 0.006,
+        "terrainTransitionRatio": 0.541
+      }
+    },
+    "106": {
+      "id": "106",
+      "index": 168,
+      "objectiveType": "defend",
+      "recommendedLevel": 58,
+      "structuralRisk": 24.2,
+      "flags": [
+        "texture-transition-p90"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.05,
+        "minDeploymentDistance": 23,
+        "articulationRatio": 0.005,
+        "terrainTransitionRatio": 0.541
+      }
+    },
+    "107": {
+      "id": "107",
+      "index": 169,
+      "objectiveType": "defend",
+      "recommendedLevel": 58,
+      "structuralRisk": 21.4,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 27,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.523
+      }
+    },
+    "108": {
+      "id": "108",
+      "index": 171,
+      "objectiveType": "capture",
+      "recommendedLevel": 59,
+      "structuralRisk": 31.8,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.254,
+        "minDeploymentDistance": 31,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.48
+      }
+    },
+    "01": {
+      "id": "01",
+      "index": 1,
+      "objectiveType": "defeat",
+      "recommendedLevel": 1,
+      "structuralRisk": 53.4,
+      "flags": [
+        "enemy-ratio-high",
+        "bottleneck-p90"
+      ],
+      "metrics": {
+        "ownUnits": 2,
+        "enemyUnits": 7,
+        "enemyRatio": 3.5,
+        "turnLimit": 18,
+        "barrierRatio": 0.177,
+        "minDeploymentDistance": 15,
+        "articulationRatio": 0.018,
+        "terrainTransitionRatio": 0.337
+      }
+    },
+    "02": {
+      "id": "02",
+      "index": 2,
+      "objectiveType": "narrative",
+      "recommendedLevel": 1,
+      "structuralRisk": 0,
+      "flags": [
+        "narrative-only"
+      ],
+      "metrics": {
+        "ownUnits": 2,
+        "enemyUnits": 0,
+        "enemyRatio": 0,
+        "turnLimit": 99,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 0,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.315
+      }
+    },
+    "03": {
+      "id": "03",
+      "index": 3,
+      "objectiveType": "escort",
+      "recommendedLevel": 1,
+      "structuralRisk": 62.5,
+      "flags": [
+        "enemy-ratio-high",
+        "bottleneck-p90",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 8,
+        "enemyUnits": 20,
+        "enemyRatio": 2.5,
+        "turnLimit": 12,
+        "barrierRatio": 0.296,
+        "minDeploymentDistance": 1,
+        "articulationRatio": 0.047,
+        "terrainTransitionRatio": 0.403
+      }
+    },
+    "03b": {
+      "id": "03b",
+      "index": 4,
+      "objectiveType": "defend",
+      "recommendedLevel": 2,
+      "structuralRisk": 43.1,
+      "flags": [
+        "bottleneck-p90",
+        "deployment-components-disconnected",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 5,
+        "enemyUnits": 7,
+        "enemyRatio": 1.4,
+        "turnLimit": 22,
+        "barrierRatio": 0.342,
+        "minDeploymentDistance": 9,
+        "articulationRatio": 0.023,
+        "terrainTransitionRatio": 0.315
+      }
+    },
+    "04": {
+      "id": "04",
+      "index": 5,
+      "objectiveType": "capture",
+      "recommendedLevel": 2,
+      "structuralRisk": 63.2,
+      "flags": [
+        "enemy-ratio-high",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 4,
+        "enemyUnits": 13,
+        "enemyRatio": 3.25,
+        "turnLimit": 20,
+        "barrierRatio": 0.436,
+        "minDeploymentDistance": 6,
+        "articulationRatio": 0.007,
+        "terrainTransitionRatio": 0.246
+      }
+    },
+    "04a": {
+      "id": "04a",
+      "index": 6,
+      "objectiveType": "defeat",
+      "recommendedLevel": 2,
+      "structuralRisk": 26.5,
+      "flags": [
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 4,
+        "enemyUnits": 7,
+        "enemyRatio": 1.75,
+        "turnLimit": 20,
+        "barrierRatio": 0.053,
+        "minDeploymentDistance": 15,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.343
+      }
+    },
+    "05": {
+      "id": "05",
+      "index": 7,
+      "objectiveType": "defeat",
+      "recommendedLevel": 3,
+      "structuralRisk": 26.9,
+      "flags": [
+        "enemy-ratio-high"
+      ],
+      "metrics": {
+        "ownUnits": 4,
+        "enemyUnits": 8,
+        "enemyRatio": 2,
+        "turnLimit": 18,
+        "barrierRatio": 0.038,
+        "minDeploymentDistance": 7,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.255
+      }
+    },
+    "06": {
+      "id": "06",
+      "index": 8,
+      "objectiveType": "capture",
+      "recommendedLevel": 3,
+      "structuralRisk": 48.1,
+      "flags": [
+        "enemy-ratio-high"
+      ],
+      "metrics": {
+        "ownUnits": 4,
+        "enemyUnits": 10,
+        "enemyRatio": 2.5,
+        "turnLimit": 20,
+        "barrierRatio": 0.185,
+        "minDeploymentDistance": 15,
+        "articulationRatio": 0.007,
+        "terrainTransitionRatio": 0.201
+      }
+    },
+    "07": {
+      "id": "07",
+      "index": 9,
+      "objectiveType": "defeat",
+      "recommendedLevel": 3,
+      "structuralRisk": 28.2,
+      "flags": [
+        "deployment-components-disconnected",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 4,
+        "enemyUnits": 6,
+        "enemyRatio": 1.5,
+        "turnLimit": 18,
+        "barrierRatio": 0.214,
+        "minDeploymentDistance": 8,
+        "articulationRatio": 0.005,
+        "terrainTransitionRatio": 0.204
+      }
+    },
+    "07b": {
+      "id": "07b",
+      "index": 10,
+      "objectiveType": "capture",
+      "recommendedLevel": 4,
+      "structuralRisk": 20.7,
+      "flags": [
+        "bottleneck-p90"
+      ],
+      "metrics": {
+        "ownUnits": 7,
+        "enemyUnits": 7,
+        "enemyRatio": 1,
+        "turnLimit": 24,
+        "barrierRatio": 0.09,
+        "minDeploymentDistance": 5,
+        "articulationRatio": 0.017,
+        "terrainTransitionRatio": 0.303
+      }
+    },
+    "08": {
+      "id": "08",
+      "index": 11,
+      "objectiveType": "defeat",
+      "recommendedLevel": 4,
+      "structuralRisk": 20.1,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 5,
+        "enemyUnits": 8,
+        "enemyRatio": 1.6,
+        "turnLimit": 22,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 15,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.267
+      }
+    },
+    "08a": {
+      "id": "08a",
+      "index": 12,
+      "objectiveType": "capture",
+      "recommendedLevel": 4,
+      "structuralRisk": 44.4,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 4,
+        "enemyUnits": 7,
+        "enemyRatio": 1.75,
+        "turnLimit": 18,
+        "barrierRatio": 0.338,
+        "minDeploymentDistance": 11,
+        "articulationRatio": 0.011,
+        "terrainTransitionRatio": 0.15
+      }
+    },
+    "09": {
+      "id": "09",
+      "index": 13,
+      "objectiveType": "defeat",
+      "recommendedLevel": 5,
+      "structuralRisk": 25,
+      "flags": [
+        "enemy-ratio-high"
+      ],
+      "metrics": {
+        "ownUnits": 6,
+        "enemyUnits": 12,
+        "enemyRatio": 2,
+        "turnLimit": 24,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 6,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.289
+      }
+    },
+    "10a": {
+      "id": "10a",
+      "index": 14,
+      "objectiveType": "defeat",
+      "recommendedLevel": 5,
+      "structuralRisk": 42.6,
+      "flags": [
+        "enemy-ratio-high",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 1,
+        "enemyUnits": 5,
+        "enemyRatio": 5,
+        "turnLimit": 16,
+        "barrierRatio": 0.008,
+        "minDeploymentDistance": 13,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.291
+      }
+    },
+    "10b": {
+      "id": "10b",
+      "index": 15,
+      "objectiveType": "defeat",
+      "recommendedLevel": 5,
+      "structuralRisk": 16.2,
+      "flags": [
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 6,
+        "enemyUnits": 7,
+        "enemyRatio": 1.167,
+        "turnLimit": 22,
+        "barrierRatio": 0.041,
+        "minDeploymentDistance": 10,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.357
+      }
+    },
+    "11a": {
+      "id": "11a",
+      "index": 16,
+      "objectiveType": "capture",
+      "recommendedLevel": 6,
+      "structuralRisk": 14.2,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 9,
+        "enemyUnits": 6,
+        "enemyRatio": 0.667,
+        "turnLimit": 22,
+        "barrierRatio": 0.068,
+        "minDeploymentDistance": 6,
+        "articulationRatio": 0.004,
+        "terrainTransitionRatio": 0.327
+      }
+    },
+    "11b": {
+      "id": "11b",
+      "index": 17,
+      "objectiveType": "defeat",
+      "recommendedLevel": 6,
+      "structuralRisk": 7.2,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 10,
+        "enemyUnits": 7,
+        "enemyRatio": 0.7,
+        "turnLimit": 26,
+        "barrierRatio": 0.041,
+        "minDeploymentDistance": 4,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.297
+      }
+    },
+    "11c": {
+      "id": "11c",
+      "index": 18,
+      "objectiveType": "defeat",
+      "recommendedLevel": 6,
+      "structuralRisk": 4.9,
+      "flags": [
+        "enemy-ratio-low"
+      ],
+      "metrics": {
+        "ownUnits": 3,
+        "enemyUnits": 1,
+        "enemyRatio": 0.333,
+        "turnLimit": 16,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 15,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.311
+      }
+    },
+    "12a": {
+      "id": "12a",
+      "index": 19,
+      "objectiveType": "defend",
+      "recommendedLevel": 7,
+      "structuralRisk": 31.3,
+      "flags": [
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 4,
+        "enemyUnits": 7,
+        "enemyRatio": 1.75,
+        "turnLimit": 24,
+        "barrierRatio": 0.041,
+        "minDeploymentDistance": 12,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.297
+      }
+    },
+    "12b": {
+      "id": "12b",
+      "index": 20,
+      "objectiveType": "defeat",
+      "recommendedLevel": 7,
+      "structuralRisk": 34.4,
+      "flags": [
+        "enemy-ratio-high",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 2,
+        "enemyUnits": 5,
+        "enemyRatio": 2.5,
+        "turnLimit": 18,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 12,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.311
+      }
+    },
+    "13a": {
+      "id": "13a",
+      "index": 21,
+      "objectiveType": "narrative",
+      "recommendedLevel": 7,
+      "structuralRisk": 0,
+      "flags": [
+        "narrative-only"
+      ],
+      "metrics": {
+        "ownUnits": 2,
+        "enemyUnits": 1,
+        "enemyRatio": 0.5,
+        "turnLimit": 99,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 4,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.172
+      }
+    },
+    "13b": {
+      "id": "13b",
+      "index": 22,
+      "objectiveType": "defeat",
+      "recommendedLevel": 8,
+      "structuralRisk": 19.5,
+      "flags": [
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 3,
+        "enemyUnits": 5,
+        "enemyRatio": 1.667,
+        "turnLimit": 18,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 7,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.224
+      }
+    },
+    "14a": {
+      "id": "14a",
+      "index": 23,
+      "objectiveType": "defend",
+      "recommendedLevel": 8,
+      "structuralRisk": 21.6,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 8,
+        "enemyUnits": 8,
+        "enemyRatio": 1,
+        "turnLimit": 22,
+        "barrierRatio": 0.068,
+        "minDeploymentDistance": 8,
+        "articulationRatio": 0.012,
+        "terrainTransitionRatio": 0.289
+      }
+    },
+    "14b": {
+      "id": "14b",
+      "index": 24,
+      "objectiveType": "defeat",
+      "recommendedLevel": 8,
+      "structuralRisk": 26.2,
+      "flags": [
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 4,
+        "enemyUnits": 7,
+        "enemyRatio": 1.75,
+        "turnLimit": 18,
+        "barrierRatio": 0.068,
+        "minDeploymentDistance": 8,
+        "articulationRatio": 0.012,
+        "terrainTransitionRatio": 0.287
+      }
+    },
+    "15a": {
+      "id": "15a",
+      "index": 25,
+      "objectiveType": "defeat",
+      "recommendedLevel": 9,
+      "structuralRisk": 17.2,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 7,
+        "enemyUnits": 9,
+        "enemyRatio": 1.286,
+        "turnLimit": 22,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 6,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.265
+      }
+    },
+    "15b": {
+      "id": "15b",
+      "index": 26,
+      "objectiveType": "defeat",
+      "recommendedLevel": 9,
+      "structuralRisk": 26.5,
+      "flags": [
+        "enemy-ratio-high"
+      ],
+      "metrics": {
+        "ownUnits": 4,
+        "enemyUnits": 8,
+        "enemyRatio": 2,
+        "turnLimit": 18,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 7,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.353
+      }
+    },
+    "19a": {
+      "id": "19a",
+      "index": 30,
+      "objectiveType": "defeat",
+      "recommendedLevel": 11,
+      "structuralRisk": 31.3,
+      "flags": [
+        "bottleneck-p90",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 4,
+        "enemyUnits": 7,
+        "enemyRatio": 1.75,
+        "turnLimit": 20,
+        "barrierRatio": 0.188,
+        "minDeploymentDistance": 9,
+        "articulationRatio": 0.014,
+        "terrainTransitionRatio": 0.192
+      }
+    },
+    "19b": {
+      "id": "19b",
+      "index": 31,
+      "objectiveType": "defeat",
+      "recommendedLevel": 11,
+      "structuralRisk": 36.3,
+      "flags": [
+        "barrier-density-p90",
+        "bottleneck-p90"
+      ],
+      "metrics": {
+        "ownUnits": 7,
+        "enemyUnits": 11,
+        "enemyRatio": 1.571,
+        "turnLimit": 24,
+        "barrierRatio": 0.444,
+        "minDeploymentDistance": 4,
+        "articulationRatio": 0.014,
+        "terrainTransitionRatio": 0.23
+      }
+    },
+    "20a": {
+      "id": "20a",
+      "index": 32,
+      "objectiveType": "defeat",
+      "recommendedLevel": 11,
+      "structuralRisk": 34.3,
+      "flags": [
+        "enemy-ratio-high"
+      ],
+      "metrics": {
+        "ownUnits": 4,
+        "enemyUnits": 8,
+        "enemyRatio": 2,
+        "turnLimit": 20,
+        "barrierRatio": 0.195,
+        "minDeploymentDistance": 6,
+        "articulationRatio": 0.005,
+        "terrainTransitionRatio": 0.162
+      }
+    },
+    "20b": {
+      "id": "20b",
+      "index": 33,
+      "objectiveType": "defeat",
+      "recommendedLevel": 12,
+      "structuralRisk": 26.3,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 4,
+        "enemyUnits": 7,
+        "enemyRatio": 1.75,
+        "turnLimit": 20,
+        "barrierRatio": 0.102,
+        "minDeploymentDistance": 10,
+        "articulationRatio": 0.004,
+        "terrainTransitionRatio": 0.186
+      }
+    },
+    "20c": {
+      "id": "20c",
+      "index": 34,
+      "objectiveType": "capture",
+      "recommendedLevel": 12,
+      "structuralRisk": 34.8,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 5,
+        "enemyUnits": 9,
+        "enemyRatio": 1.8,
+        "turnLimit": 24,
+        "barrierRatio": 0.139,
+        "minDeploymentDistance": 4,
+        "articulationRatio": 0.009,
+        "terrainTransitionRatio": 0.313
+      }
+    },
+    "20d": {
+      "id": "20d",
+      "index": 35,
+      "objectiveType": "defeat",
+      "recommendedLevel": 12,
+      "structuralRisk": 48.8,
+      "flags": [
+        "enemy-ratio-high",
+        "barrier-density-p90",
+        "bottleneck-p90",
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 4,
+        "enemyUnits": 8,
+        "enemyRatio": 2,
+        "turnLimit": 20,
+        "barrierRatio": 0.914,
+        "minDeploymentDistance": 5,
+        "articulationRatio": 0.739,
+        "terrainTransitionRatio": 0.273
+      }
+    },
+    "21a": {
+      "id": "21a",
+      "index": 36,
+      "objectiveType": "defeat",
+      "recommendedLevel": 13,
+      "structuralRisk": 37.8,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 6,
+        "enemyUnits": 11,
+        "enemyRatio": 1.833,
+        "turnLimit": 18,
+        "barrierRatio": 0.233,
+        "minDeploymentDistance": 7,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.343
+      }
+    },
+    "21b": {
+      "id": "21b",
+      "index": 37,
+      "objectiveType": "capture",
+      "recommendedLevel": 13,
+      "structuralRisk": 43.2,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 6,
+        "enemyUnits": 9,
+        "enemyRatio": 1.5,
+        "turnLimit": 20,
+        "barrierRatio": 0.331,
+        "minDeploymentDistance": 7,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.381
+      }
+    },
+    "21c": {
+      "id": "21c",
+      "index": 38,
+      "objectiveType": "defeat",
+      "recommendedLevel": 13,
+      "structuralRisk": 29.3,
+      "flags": [
+        "barrier-density-p90",
+        "bottleneck-p90",
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 10,
+        "enemyUnits": 9,
+        "enemyRatio": 0.9,
+        "turnLimit": 22,
+        "barrierRatio": 0.538,
+        "minDeploymentDistance": 1,
+        "articulationRatio": 0.033,
+        "terrainTransitionRatio": 0.24
+      }
+    },
+    "23a": {
+      "id": "23a",
+      "index": 40,
+      "objectiveType": "defend",
+      "recommendedLevel": 14,
+      "structuralRisk": 24.6,
+      "flags": [
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 9,
+        "enemyUnits": 5,
+        "enemyRatio": 0.556,
+        "turnLimit": 8,
+        "barrierRatio": 0.226,
+        "minDeploymentDistance": 7,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.337
+      }
+    },
+    "23b": {
+      "id": "23b",
+      "index": 41,
+      "objectiveType": "defend",
+      "recommendedLevel": 14,
+      "structuralRisk": 41.2,
+      "flags": [
+        "bottleneck-p90"
+      ],
+      "metrics": {
+        "ownUnits": 4,
+        "enemyUnits": 5,
+        "enemyRatio": 1.25,
+        "turnLimit": 18,
+        "barrierRatio": 0.391,
+        "minDeploymentDistance": 9,
+        "articulationRatio": 0.025,
+        "terrainTransitionRatio": 0.279
+      }
+    },
+    "24a": {
+      "id": "24a",
+      "index": 42,
+      "objectiveType": "defeat",
+      "recommendedLevel": 15,
+      "structuralRisk": 22.1,
+      "flags": [
+        "bottleneck-p90"
+      ],
+      "metrics": {
+        "ownUnits": 8,
+        "enemyUnits": 8,
+        "enemyRatio": 1,
+        "turnLimit": 18,
+        "barrierRatio": 0.214,
+        "minDeploymentDistance": 4,
+        "articulationRatio": 0.014,
+        "terrainTransitionRatio": 0.311
+      }
+    },
+    "24b": {
+      "id": "24b",
+      "index": 43,
+      "objectiveType": "defeat",
+      "recommendedLevel": 15,
+      "structuralRisk": 14.6,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 12,
+        "enemyUnits": 8,
+        "enemyRatio": 0.667,
+        "turnLimit": 18,
+        "barrierRatio": 0.214,
+        "minDeploymentDistance": 3,
+        "articulationRatio": 0.005,
+        "terrainTransitionRatio": 0.204
+      }
+    },
+    "25a": {
+      "id": "25a",
+      "index": 44,
+      "objectiveType": "defeat",
+      "recommendedLevel": 15,
+      "structuralRisk": 17.3,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 8,
+        "enemyUnits": 6,
+        "enemyRatio": 0.75,
+        "turnLimit": 18,
+        "barrierRatio": 0.199,
+        "minDeploymentDistance": 7,
+        "articulationRatio": 0.005,
+        "terrainTransitionRatio": 0.301
+      }
+    },
+    "25b": {
+      "id": "25b",
+      "index": 45,
+      "objectiveType": "capture",
+      "recommendedLevel": 16,
+      "structuralRisk": 30,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 5,
+        "enemyUnits": 6,
+        "enemyRatio": 1.2,
+        "turnLimit": 16,
+        "barrierRatio": 0.195,
+        "minDeploymentDistance": 11,
+        "articulationRatio": 0.005,
+        "terrainTransitionRatio": 0.301
+      }
+    },
+    "26a": {
+      "id": "26a",
+      "index": 46,
+      "objectiveType": "defeat",
+      "recommendedLevel": 16,
+      "structuralRisk": 27.3,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 6,
+        "enemyUnits": 7,
+        "enemyRatio": 1.167,
+        "turnLimit": 18,
+        "barrierRatio": 0.271,
+        "minDeploymentDistance": 9,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.297
+      }
+    },
+    "26b": {
+      "id": "26b",
+      "index": 47,
+      "objectiveType": "defeat",
+      "recommendedLevel": 16,
+      "structuralRisk": 25.5,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 7,
+        "enemyUnits": 7,
+        "enemyRatio": 1,
+        "turnLimit": 20,
+        "barrierRatio": 0.282,
+        "minDeploymentDistance": 8,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.333
+      }
+    },
+    "27a": {
+      "id": "27a",
+      "index": 48,
+      "objectiveType": "escort",
+      "recommendedLevel": 17,
+      "structuralRisk": 53,
+      "flags": [
+        "barrier-density-p90",
+        "bottleneck-p90",
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 5,
+        "enemyUnits": 8,
+        "enemyRatio": 1.6,
+        "turnLimit": 16,
+        "barrierRatio": 0.489,
+        "minDeploymentDistance": 4,
+        "articulationRatio": 0.221,
+        "terrainTransitionRatio": 0.297
+      }
+    },
+    "27b": {
+      "id": "27b",
+      "index": 49,
+      "objectiveType": "defend",
+      "recommendedLevel": 17,
+      "structuralRisk": 21.3,
+      "flags": [
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 13,
+        "enemyUnits": 10,
+        "enemyRatio": 0.769,
+        "turnLimit": 14,
+        "barrierRatio": 0.135,
+        "minDeploymentDistance": 7,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.297
+      }
+    },
+    "30a": {
+      "id": "30a",
+      "index": 52,
+      "objectiveType": "escort",
+      "recommendedLevel": 18,
+      "structuralRisk": 42,
+      "flags": [
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 6,
+        "enemyUnits": 10,
+        "enemyRatio": 1.667,
+        "turnLimit": 20,
+        "barrierRatio": 0.226,
+        "minDeploymentDistance": 5,
+        "articulationRatio": 0.005,
+        "terrainTransitionRatio": 0.297
+      }
+    },
+    "30b": {
+      "id": "30b",
+      "index": 53,
+      "objectiveType": "defeat",
+      "recommendedLevel": 18,
+      "structuralRisk": 24.8,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 10,
+        "enemyUnits": 15,
+        "enemyRatio": 1.5,
+        "turnLimit": 22,
+        "barrierRatio": 0.135,
+        "minDeploymentDistance": 7,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.301
+      }
+    },
+    "33a": {
+      "id": "33a",
+      "index": 56,
+      "objectiveType": "escort",
+      "recommendedLevel": 19,
+      "structuralRisk": 20.9,
+      "flags": [
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 11,
+        "enemyUnits": 9,
+        "enemyRatio": 0.818,
+        "turnLimit": 18,
+        "barrierRatio": 0.068,
+        "minDeploymentDistance": 6,
+        "articulationRatio": 0.004,
+        "terrainTransitionRatio": 0.208
+      }
+    },
+    "33b": {
+      "id": "33b",
+      "index": 57,
+      "objectiveType": "escort",
+      "recommendedLevel": 20,
+      "structuralRisk": 41.6,
+      "flags": [
+        "enemy-ratio-high",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 4,
+        "enemyUnits": 9,
+        "enemyRatio": 2.25,
+        "turnLimit": 10,
+        "barrierRatio": 0.053,
+        "minDeploymentDistance": 2,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.236
+      }
+    },
+    "34a": {
+      "id": "34a",
+      "index": 58,
+      "objectiveType": "defend",
+      "recommendedLevel": 20,
+      "structuralRisk": 34.9,
+      "flags": [
+        "deployment-components-disconnected",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 7,
+        "enemyUnits": 7,
+        "enemyRatio": 1,
+        "turnLimit": 8,
+        "barrierRatio": 0.368,
+        "minDeploymentDistance": 3,
+        "articulationRatio": 0.006,
+        "terrainTransitionRatio": 0.238
+      }
+    },
+    "34b": {
+      "id": "34b",
+      "index": 59,
+      "objectiveType": "escort",
+      "recommendedLevel": 21,
+      "structuralRisk": 23.6,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 10,
+        "enemyUnits": 7,
+        "enemyRatio": 0.7,
+        "turnLimit": 12,
+        "barrierRatio": 0.143,
+        "minDeploymentDistance": 6,
+        "articulationRatio": 0.009,
+        "terrainTransitionRatio": 0.251
+      }
+    },
+    "36a": {
+      "id": "36a",
+      "index": 61,
+      "objectiveType": "capture",
+      "recommendedLevel": 21,
+      "structuralRisk": 31.6,
+      "flags": [
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 10,
+        "enemyUnits": 10,
+        "enemyRatio": 1,
+        "turnLimit": 20,
+        "barrierRatio": 0.308,
+        "minDeploymentDistance": 4,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.362
+      }
+    },
+    "36b": {
+      "id": "36b",
+      "index": 62,
+      "objectiveType": "defend",
+      "recommendedLevel": 22,
+      "structuralRisk": 46,
+      "flags": [
+        "barrier-density-p90",
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 6,
+        "enemyUnits": 10,
+        "enemyRatio": 1.667,
+        "turnLimit": 12,
+        "barrierRatio": 0.67,
+        "minDeploymentDistance": 2,
+        "articulationRatio": 0.01,
+        "terrainTransitionRatio": 0.33
+      }
+    },
+    "38a": {
+      "id": "38a",
+      "index": 63,
+      "objectiveType": "escort",
+      "recommendedLevel": 22,
+      "structuralRisk": 40.1,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 8,
+        "enemyUnits": 9,
+        "enemyRatio": 1.125,
+        "turnLimit": 14,
+        "barrierRatio": 0.348,
+        "minDeploymentDistance": 2,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.35
+      }
+    },
+    "38b": {
+      "id": "38b",
+      "index": 64,
+      "objectiveType": "defend",
+      "recommendedLevel": 22,
+      "structuralRisk": 47.6,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 9,
+        "enemyUnits": 16,
+        "enemyRatio": 1.778,
+        "turnLimit": 30,
+        "barrierRatio": 0.407,
+        "minDeploymentDistance": 4,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.38
+      }
+    },
+    "43a": {
+      "id": "43a",
+      "index": 68,
+      "objectiveType": "defeat",
+      "recommendedLevel": 24,
+      "structuralRisk": 26.8,
+      "flags": [
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 11,
+        "enemyUnits": 11,
+        "enemyRatio": 1,
+        "turnLimit": 30,
+        "barrierRatio": 0.264,
+        "minDeploymentDistance": 5,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.505
+      }
+    },
+    "43b": {
+      "id": "43b",
+      "index": 69,
+      "objectiveType": "narrative",
+      "recommendedLevel": 24,
+      "structuralRisk": 0,
+      "flags": [
+        "narrative-only"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 0,
+        "enemyRatio": 0,
+        "turnLimit": 12,
+        "barrierRatio": 0.283,
+        "minDeploymentDistance": 0,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.501
+      }
+    },
+    "45a": {
+      "id": "45a",
+      "index": 71,
+      "objectiveType": "defeat",
+      "recommendedLevel": 25,
+      "structuralRisk": 25.7,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 27,
+        "enemyUnits": 22,
+        "enemyRatio": 0.815,
+        "turnLimit": 24,
+        "barrierRatio": 0.321,
+        "minDeploymentDistance": 2,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.403
+      }
+    },
+    "45b": {
+      "id": "45b",
+      "index": 72,
+      "objectiveType": "narrative",
+      "recommendedLevel": 25,
+      "structuralRisk": 0,
+      "flags": [
+        "narrative-only"
+      ],
+      "metrics": {
+        "ownUnits": 6,
+        "enemyUnits": 11,
+        "enemyRatio": 1.833,
+        "turnLimit": 20,
+        "barrierRatio": 0.058,
+        "minDeploymentDistance": 12,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.475
+      }
+    },
+    "46a": {
+      "id": "46a",
+      "index": 73,
+      "objectiveType": "narrative",
+      "recommendedLevel": 25,
+      "structuralRisk": 0,
+      "flags": [
+        "narrative-only"
+      ],
+      "metrics": {
+        "ownUnits": 18,
+        "enemyUnits": 12,
+        "enemyRatio": 0.667,
+        "turnLimit": 18,
+        "barrierRatio": 0.049,
+        "minDeploymentDistance": 11,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.577
+      }
+    },
+    "46b": {
+      "id": "46b",
+      "index": 74,
+      "objectiveType": "escape",
+      "recommendedLevel": 26,
+      "structuralRisk": 42.5,
+      "flags": [
+        "bottleneck-p90",
+        "texture-transition-p90",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 12,
+        "enemyUnits": 23,
+        "enemyRatio": 1.917,
+        "turnLimit": 22,
+        "barrierRatio": 0.045,
+        "minDeploymentDistance": 18,
+        "articulationRatio": 0.024,
+        "terrainTransitionRatio": 0.657
+      }
+    },
+    "46c": {
+      "id": "46c",
+      "index": 75,
+      "objectiveType": "defeat",
+      "recommendedLevel": 26,
+      "structuralRisk": 32.1,
+      "flags": [
+        "bottleneck-p90",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 17,
+        "enemyUnits": 15,
+        "enemyRatio": 0.882,
+        "turnLimit": 28,
+        "barrierRatio": 0.391,
+        "minDeploymentDistance": 4,
+        "articulationRatio": 0.047,
+        "terrainTransitionRatio": 0.481
+      }
+    },
+    "47a": {
+      "id": "47a",
+      "index": 76,
+      "objectiveType": "defeat",
+      "recommendedLevel": 26,
+      "structuralRisk": 34,
+      "flags": [
+        "enemy-ratio-high",
+        "texture-transition-p90",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 7,
+        "enemyUnits": 15,
+        "enemyRatio": 2.143,
+        "turnLimit": 22,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 17,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.65
+      }
+    },
+    "47b": {
+      "id": "47b",
+      "index": 77,
+      "objectiveType": "escape",
+      "recommendedLevel": 27,
+      "structuralRisk": 29,
+      "flags": [
+        "texture-transition-p90"
+      ],
+      "metrics": {
+        "ownUnits": 17,
+        "enemyUnits": 24,
+        "enemyRatio": 1.412,
+        "turnLimit": 24,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 8,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.555
+      }
+    },
+    "48a": {
+      "id": "48a",
+      "index": 78,
+      "objectiveType": "capture",
+      "recommendedLevel": 27,
+      "structuralRisk": 28.6,
+      "flags": [
+        "texture-transition-p90"
+      ],
+      "metrics": {
+        "ownUnits": 11,
+        "enemyUnits": 17,
+        "enemyRatio": 1.545,
+        "turnLimit": 24,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 12,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.657
+      }
+    },
+    "48b": {
+      "id": "48b",
+      "index": 79,
+      "objectiveType": "defend",
+      "recommendedLevel": 27,
+      "structuralRisk": 25.7,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 30,
+        "enemyUnits": 26,
+        "enemyRatio": 0.867,
+        "turnLimit": 28,
+        "barrierRatio": 0.093,
+        "minDeploymentDistance": 20,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.538
+      }
+    },
+    "50a": {
+      "id": "50a",
+      "index": 81,
+      "objectiveType": "defeat",
+      "recommendedLevel": 28,
+      "structuralRisk": 19.5,
+      "flags": [
+        "texture-transition-p90"
+      ],
+      "metrics": {
+        "ownUnits": 15,
+        "enemyUnits": 18,
+        "enemyRatio": 1.2,
+        "turnLimit": 22,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 18,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.602
+      }
+    },
+    "50b": {
+      "id": "50b",
+      "index": 82,
+      "objectiveType": "defend",
+      "recommendedLevel": 28,
+      "structuralRisk": 36.9,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 16,
+        "enemyUnits": 23,
+        "enemyRatio": 1.438,
+        "turnLimit": 20,
+        "barrierRatio": 0.201,
+        "minDeploymentDistance": 7,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.459
+      }
+    },
+    "50c": {
+      "id": "50c",
+      "index": 83,
+      "objectiveType": "escort",
+      "recommendedLevel": 29,
+      "structuralRisk": 69.9,
+      "flags": [
+        "enemy-ratio-high",
+        "barrier-density-p90",
+        "deployment-components-disconnected",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 2,
+        "enemyUnits": 20,
+        "enemyRatio": 10,
+        "turnLimit": 18,
+        "barrierRatio": 0.484,
+        "minDeploymentDistance": 4,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.375
+      }
+    },
+    "53a": {
+      "id": "53a",
+      "index": 86,
+      "objectiveType": "defeat",
+      "recommendedLevel": 30,
+      "structuralRisk": 25.3,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 18,
+        "enemyUnits": 15,
+        "enemyRatio": 0.833,
+        "turnLimit": 22,
+        "barrierRatio": 0.288,
+        "minDeploymentDistance": 16,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.391
+      }
+    },
+    "53b": {
+      "id": "53b",
+      "index": 87,
+      "objectiveType": "defeat",
+      "recommendedLevel": 30,
+      "structuralRisk": 29.9,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 24,
+        "enemyUnits": 24,
+        "enemyRatio": 1,
+        "turnLimit": 28,
+        "barrierRatio": 0.376,
+        "minDeploymentDistance": 8,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.39
+      }
+    },
+    "54a": {
+      "id": "54a",
+      "index": 88,
+      "objectiveType": "defeat",
+      "recommendedLevel": 31,
+      "structuralRisk": 15.9,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 19,
+        "enemyUnits": 20,
+        "enemyRatio": 1.053,
+        "turnLimit": 30,
+        "barrierRatio": 0.025,
+        "minDeploymentDistance": 12,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.486
+      }
+    },
+    "54b": {
+      "id": "54b",
+      "index": 89,
+      "objectiveType": "defeat",
+      "recommendedLevel": 31,
+      "structuralRisk": 23.8,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 9,
+        "enemyUnits": 12,
+        "enemyRatio": 1.333,
+        "turnLimit": 20,
+        "barrierRatio": 0.08,
+        "minDeploymentDistance": 20,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.435
+      }
+    },
+    "55a": {
+      "id": "55a",
+      "index": 90,
+      "objectiveType": "defend",
+      "recommendedLevel": 31,
+      "structuralRisk": 31.8,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 18,
+        "enemyUnits": 13,
+        "enemyRatio": 0.722,
+        "turnLimit": 26,
+        "barrierRatio": 0.35,
+        "minDeploymentDistance": 7,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.339
+      }
+    },
+    "55b": {
+      "id": "55b",
+      "index": 91,
+      "objectiveType": "defeat",
+      "recommendedLevel": 32,
+      "structuralRisk": 14,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 12,
+        "enemyUnits": 11,
+        "enemyRatio": 0.917,
+        "turnLimit": 22,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 23,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.439
+      }
+    },
+    "56a": {
+      "id": "56a",
+      "index": 92,
+      "objectiveType": "defend",
+      "recommendedLevel": 32,
+      "structuralRisk": 32.6,
+      "flags": [
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 7,
+        "enemyUnits": 12,
+        "enemyRatio": 1.714,
+        "turnLimit": 18,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 10,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.493
+      }
+    },
+    "56b": {
+      "id": "56b",
+      "index": 93,
+      "objectiveType": "defeat",
+      "recommendedLevel": 32,
+      "structuralRisk": 16.1,
+      "flags": [
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 18,
+        "enemyUnits": 17,
+        "enemyRatio": 0.944,
+        "turnLimit": 30,
+        "barrierRatio": 0.042,
+        "minDeploymentDistance": 17,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.486
+      }
+    },
+    "59a": {
+      "id": "59a",
+      "index": 96,
+      "objectiveType": "defeat",
+      "recommendedLevel": 33,
+      "structuralRisk": 25.2,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 13,
+        "enemyUnits": 12,
+        "enemyRatio": 0.923,
+        "turnLimit": 22,
+        "barrierRatio": 0.403,
+        "minDeploymentDistance": 2,
+        "articulationRatio": 0.001,
+        "terrainTransitionRatio": 0.185
+      }
+    },
+    "59b": {
+      "id": "59b",
+      "index": 97,
+      "objectiveType": "narrative",
+      "recommendedLevel": 34,
+      "structuralRisk": 0,
+      "flags": [
+        "narrative-only"
+      ],
+      "metrics": {
+        "ownUnits": 9,
+        "enemyUnits": 13,
+        "enemyRatio": 1.444,
+        "turnLimit": 24,
+        "barrierRatio": 0.391,
+        "minDeploymentDistance": 5,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.483
+      }
+    },
+    "60a": {
+      "id": "60a",
+      "index": 98,
+      "objectiveType": "capture",
+      "recommendedLevel": 34,
+      "structuralRisk": 39.1,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 16,
+        "enemyUnits": 19,
+        "enemyRatio": 1.188,
+        "turnLimit": 30,
+        "barrierRatio": 0.367,
+        "minDeploymentDistance": 7,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.434
+      }
+    },
+    "60b": {
+      "id": "60b",
+      "index": 99,
+      "objectiveType": "defeat",
+      "recommendedLevel": 34,
+      "structuralRisk": 40.3,
+      "flags": [
+        "barrier-density-p90"
+      ],
+      "metrics": {
+        "ownUnits": 8,
+        "enemyUnits": 15,
+        "enemyRatio": 1.875,
+        "turnLimit": 28,
+        "barrierRatio": 0.446,
+        "minDeploymentDistance": 8,
+        "articulationRatio": 0.001,
+        "terrainTransitionRatio": 0.128
+      }
+    },
+    "60c": {
+      "id": "60c",
+      "index": 100,
+      "objectiveType": "defend",
+      "recommendedLevel": 35,
+      "structuralRisk": 39.3,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 15,
+        "enemyUnits": 18,
+        "enemyRatio": 1.2,
+        "turnLimit": 28,
+        "barrierRatio": 0.412,
+        "minDeploymentDistance": 4,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.376
+      }
+    },
+    "61a": {
+      "id": "61a",
+      "index": 101,
+      "objectiveType": "defeat",
+      "recommendedLevel": 35,
+      "structuralRisk": 47,
+      "flags": [
+        "enemy-ratio-high",
+        "deployment-components-disconnected",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 7,
+        "enemyUnits": 15,
+        "enemyRatio": 2.143,
+        "turnLimit": 24,
+        "barrierRatio": 0.364,
+        "minDeploymentDistance": 5,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.421
+      }
+    },
+    "61b": {
+      "id": "61b",
+      "index": 102,
+      "objectiveType": "defeat",
+      "recommendedLevel": 35,
+      "structuralRisk": 50.9,
+      "flags": [
+        "enemy-ratio-high",
+        "texture-transition-p90",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 2,
+        "enemyUnits": 15,
+        "enemyRatio": 7.5,
+        "turnLimit": 24,
+        "barrierRatio": 0.087,
+        "minDeploymentDistance": 14,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.605
+      }
+    },
+    "61c": {
+      "id": "61c",
+      "index": 103,
+      "objectiveType": "escort",
+      "recommendedLevel": 36,
+      "structuralRisk": 42.8,
+      "flags": [
+        "deployment-components-disconnected",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 5,
+        "enemyUnits": 8,
+        "enemyRatio": 1.6,
+        "turnLimit": 28,
+        "barrierRatio": 0.215,
+        "minDeploymentDistance": 6,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.485
+      }
+    },
+    "62a": {
+      "id": "62a",
+      "index": 104,
+      "objectiveType": "defend",
+      "recommendedLevel": 36,
+      "structuralRisk": 49.8,
+      "flags": [
+        "enemy-ratio-high"
+      ],
+      "metrics": {
+        "ownUnits": 15,
+        "enemyUnits": 32,
+        "enemyRatio": 2.133,
+        "turnLimit": 40,
+        "barrierRatio": 0.251,
+        "minDeploymentDistance": 6,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.47
+      }
+    },
+    "62b": {
+      "id": "62b",
+      "index": 105,
+      "objectiveType": "defeat",
+      "recommendedLevel": 36,
+      "structuralRisk": 59.3,
+      "flags": [
+        "enemy-ratio-high",
+        "barrier-density-p90",
+        "deployment-components-disconnected",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 4,
+        "enemyUnits": 16,
+        "enemyRatio": 4,
+        "turnLimit": 28,
+        "barrierRatio": 0.468,
+        "minDeploymentDistance": 2,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.386
+      }
+    },
+    "62c": {
+      "id": "62c",
+      "index": 106,
+      "objectiveType": "defeat",
+      "recommendedLevel": 37,
+      "structuralRisk": 28.8,
+      "flags": [
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 5,
+        "enemyUnits": 3,
+        "enemyRatio": 0.6,
+        "turnLimit": 22,
+        "barrierRatio": 0.345,
+        "minDeploymentDistance": 14,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.467
+      }
+    },
+    "63a": {
+      "id": "63a",
+      "index": 107,
+      "objectiveType": "escort",
+      "recommendedLevel": 37,
+      "structuralRisk": 42.5,
+      "flags": [
+        "barrier-density-p90",
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 15,
+        "enemyUnits": 18,
+        "enemyRatio": 1.2,
+        "turnLimit": 30,
+        "barrierRatio": 0.78,
+        "minDeploymentDistance": 5,
+        "articulationRatio": 0.002,
+        "terrainTransitionRatio": 0.331
+      }
+    },
+    "63b": {
+      "id": "63b",
+      "index": 108,
+      "objectiveType": "capture",
+      "recommendedLevel": 37,
+      "structuralRisk": 62.4,
+      "flags": [
+        "enemy-ratio-high",
+        "barrier-density-p90",
+        "deployment-components-disconnected",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 8,
+        "enemyUnits": 22,
+        "enemyRatio": 2.75,
+        "turnLimit": 32,
+        "barrierRatio": 0.454,
+        "minDeploymentDistance": 7,
+        "articulationRatio": 0.001,
+        "terrainTransitionRatio": 0.464
+      }
+    },
+    "64a": {
+      "id": "64a",
+      "index": 109,
+      "objectiveType": "escort",
+      "recommendedLevel": 38,
+      "structuralRisk": 26.1,
+      "flags": [
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 9,
+        "enemyUnits": 11,
+        "enemyRatio": 1.222,
+        "turnLimit": 24,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 7,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.472
+      }
+    },
+    "64b": {
+      "id": "64b",
+      "index": 110,
+      "objectiveType": "defeat",
+      "recommendedLevel": 38,
+      "structuralRisk": 52.7,
+      "flags": [
+        "enemy-ratio-high",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 3,
+        "enemyUnits": 23,
+        "enemyRatio": 7.667,
+        "turnLimit": 28,
+        "barrierRatio": 0.174,
+        "minDeploymentDistance": 12,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.471
+      }
+    },
+    "65a": {
+      "id": "65a",
+      "index": 111,
+      "objectiveType": "defeat",
+      "recommendedLevel": 38,
+      "structuralRisk": 26.6,
+      "flags": [
+        "barrier-density-p90",
+        "deployment-components-disconnected",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 12,
+        "enemyUnits": 9,
+        "enemyRatio": 0.75,
+        "turnLimit": 22,
+        "barrierRatio": 0.504,
+        "minDeploymentDistance": 3,
+        "articulationRatio": 0.004,
+        "terrainTransitionRatio": 0.464
+      }
+    },
+    "65b": {
+      "id": "65b",
+      "index": 112,
+      "objectiveType": "defeat",
+      "recommendedLevel": 39,
+      "structuralRisk": 51.1,
+      "flags": [
+        "enemy-ratio-high",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 4,
+        "enemyUnits": 10,
+        "enemyRatio": 2.5,
+        "turnLimit": 18,
+        "barrierRatio": 0.275,
+        "minDeploymentDistance": 9,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.519
+      }
+    },
+    "65c": {
+      "id": "65c",
+      "index": 113,
+      "objectiveType": "capture",
+      "recommendedLevel": 39,
+      "structuralRisk": 47,
+      "flags": [
+        "barrier-density-p90",
+        "deployment-components-disconnected",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 9,
+        "enemyUnits": 15,
+        "enemyRatio": 1.667,
+        "turnLimit": 30,
+        "barrierRatio": 0.461,
+        "minDeploymentDistance": 6,
+        "articulationRatio": 0.001,
+        "terrainTransitionRatio": 0.479
+      }
+    },
+    "66a": {
+      "id": "66a",
+      "index": 114,
+      "objectiveType": "defeat",
+      "recommendedLevel": 39,
+      "structuralRisk": 14.9,
+      "flags": [
+        "texture-transition-p90",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 7,
+        "enemyUnits": 6,
+        "enemyRatio": 0.857,
+        "turnLimit": 20,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 15,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.62
+      }
+    },
+    "66b": {
+      "id": "66b",
+      "index": 115,
+      "objectiveType": "defeat",
+      "recommendedLevel": 40,
+      "structuralRisk": 43.4,
+      "flags": [
+        "barrier-density-p90",
+        "deployment-components-disconnected",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 5,
+        "enemyUnits": 9,
+        "enemyRatio": 1.8,
+        "turnLimit": 18,
+        "barrierRatio": 0.466,
+        "minDeploymentDistance": 7,
+        "articulationRatio": 0.001,
+        "terrainTransitionRatio": 0.484
+      }
+    },
+    "66c": {
+      "id": "66c",
+      "index": 116,
+      "objectiveType": "defeat",
+      "recommendedLevel": 40,
+      "structuralRisk": 36.5,
+      "flags": [
+        "barrier-density-p90",
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 6,
+        "enemyUnits": 8,
+        "enemyRatio": 1.333,
+        "turnLimit": 18,
+        "barrierRatio": 0.504,
+        "minDeploymentDistance": 8,
+        "articulationRatio": 0.004,
+        "terrainTransitionRatio": 0.464
+      }
+    },
+    "66d": {
+      "id": "66d",
+      "index": 117,
+      "objectiveType": "defeat",
+      "recommendedLevel": 41,
+      "structuralRisk": 17.7,
+      "flags": [
+        "texture-transition-p90"
+      ],
+      "metrics": {
+        "ownUnits": 10,
+        "enemyUnits": 12,
+        "enemyRatio": 1.2,
+        "turnLimit": 28,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 11,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.554
+      }
+    },
+    "66e": {
+      "id": "66e",
+      "index": 118,
+      "objectiveType": "defeat",
+      "recommendedLevel": 41,
+      "structuralRisk": 23.5,
+      "flags": [
+        "texture-transition-p90"
+      ],
+      "metrics": {
+        "ownUnits": 6,
+        "enemyUnits": 8,
+        "enemyRatio": 1.333,
+        "turnLimit": 18,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 25,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.612
+      }
+    },
+    "67a": {
+      "id": "67a",
+      "index": 119,
+      "objectiveType": "defeat",
+      "recommendedLevel": 41,
+      "structuralRisk": 25,
+      "flags": [
+        "bottleneck-p90"
+      ],
+      "metrics": {
+        "ownUnits": 10,
+        "enemyUnits": 7,
+        "enemyRatio": 0.7,
+        "turnLimit": 28,
+        "barrierRatio": 0.441,
+        "minDeploymentDistance": 2,
+        "articulationRatio": 0.014,
+        "terrainTransitionRatio": 0.374
+      }
+    },
+    "67b": {
+      "id": "67b",
+      "index": 120,
+      "objectiveType": "defend",
+      "recommendedLevel": 42,
+      "structuralRisk": 37.7,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 13,
+        "enemyUnits": 13,
+        "enemyRatio": 1,
+        "turnLimit": 22,
+        "barrierRatio": 0.381,
+        "minDeploymentDistance": 5,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.462
+      }
+    },
+    "72a": {
+      "id": "72a",
+      "index": 126,
+      "objectiveType": "escort",
+      "recommendedLevel": 44,
+      "structuralRisk": 24.4,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 13,
+        "enemyUnits": 13,
+        "enemyRatio": 1,
+        "turnLimit": 36,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 19,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.505
+      }
+    },
+    "73b": {
+      "id": "73b",
+      "index": 128,
+      "objectiveType": "defeat",
+      "recommendedLevel": 44,
+      "structuralRisk": 28.3,
+      "flags": [
+        "deployment-components-disconnected",
+        "adjacent-force-ratio-jump"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.303,
+        "minDeploymentDistance": 25,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.454
+      }
+    },
+    "78b": {
+      "id": "78b",
+      "index": 134,
+      "objectiveType": "defend",
+      "recommendedLevel": 46,
+      "structuralRisk": 34.9,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.278,
+        "minDeploymentDistance": 28,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.469
+      }
+    },
+    "82b": {
+      "id": "82b",
+      "index": 139,
+      "objectiveType": "defeat",
+      "recommendedLevel": 48,
+      "structuralRisk": 28.9,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 13,
+        "enemyUnits": 13,
+        "enemyRatio": 1,
+        "turnLimit": 36,
+        "barrierRatio": 0.265,
+        "minDeploymentDistance": 33,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.471
+      }
+    },
+    "83a": {
+      "id": "83a",
+      "index": 141,
+      "objectiveType": "defeat",
+      "recommendedLevel": 49,
+      "structuralRisk": 29.3,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 13,
+        "enemyUnits": 13,
+        "enemyRatio": 1,
+        "turnLimit": 36,
+        "barrierRatio": 0.313,
+        "minDeploymentDistance": 19,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.451
+      }
+    },
+    "84b": {
+      "id": "84b",
+      "index": 143,
+      "objectiveType": "escort",
+      "recommendedLevel": 49,
+      "structuralRisk": 24.8,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 13,
+        "enemyUnits": 13,
+        "enemyRatio": 1,
+        "turnLimit": 36,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 23,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.507
+      }
+    },
+    "86b": {
+      "id": "86b",
+      "index": 146,
+      "objectiveType": "capture",
+      "recommendedLevel": 51,
+      "structuralRisk": 23.6,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 13,
+        "enemyUnits": 13,
+        "enemyRatio": 1,
+        "turnLimit": 36,
+        "barrierRatio": 0.049,
+        "minDeploymentDistance": 27,
+        "articulationRatio": 0.005,
+        "terrainTransitionRatio": 0.538
+      }
+    },
+    "95a": {
+      "id": "95a",
+      "index": 154,
+      "objectiveType": "defeat",
+      "recommendedLevel": 53,
+      "structuralRisk": 14.6,
+      "flags": [
+        "texture-transition-p90"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0,
+        "minDeploymentDistance": 18,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.598
+      }
+    },
+    "95b": {
+      "id": "95b",
+      "index": 155,
+      "objectiveType": "defeat",
+      "recommendedLevel": 54,
+      "structuralRisk": 28,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.297,
+        "minDeploymentDistance": 24,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.454
+      }
+    },
+    "101a": {
+      "id": "101a",
+      "index": 162,
+      "objectiveType": "defeat",
+      "recommendedLevel": 56,
+      "structuralRisk": 26.8,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.254,
+        "minDeploymentDistance": 31,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.478
+      }
+    },
+    "102a": {
+      "id": "102a",
+      "index": 163,
+      "objectiveType": "defeat",
+      "recommendedLevel": 56,
+      "structuralRisk": 17.3,
+      "flags": [
+        "texture-transition-p90"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.059,
+        "minDeploymentDistance": 19,
+        "articulationRatio": 0.005,
+        "terrainTransitionRatio": 0.541
+      }
+    },
+    "102b": {
+      "id": "102b",
+      "index": 164,
+      "objectiveType": "defeat",
+      "recommendedLevel": 57,
+      "structuralRisk": 15.9,
+      "flags": [],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.053,
+        "minDeploymentDistance": 23,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.499
+      }
+    },
+    "107a": {
+      "id": "107a",
+      "index": 170,
+      "objectiveType": "defeat",
+      "recommendedLevel": 59,
+      "structuralRisk": 30.2,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 13,
+        "enemyUnits": 13,
+        "enemyRatio": 1,
+        "turnLimit": 36,
+        "barrierRatio": 0.32,
+        "minDeploymentDistance": 21,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.449
+      }
+    },
+    "108a": {
+      "id": "108a",
+      "index": 172,
+      "objectiveType": "defeat",
+      "recommendedLevel": 60,
+      "structuralRisk": 28.3,
+      "flags": [
+        "deployment-components-disconnected"
+      ],
+      "metrics": {
+        "ownUnits": 14,
+        "enemyUnits": 13,
+        "enemyRatio": 0.929,
+        "turnLimit": 36,
+        "barrierRatio": 0.303,
+        "minDeploymentDistance": 25,
+        "articulationRatio": 0,
+        "terrainTransitionRatio": 0.453
+      }
+    }
+  }
+}

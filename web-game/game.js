@@ -32,6 +32,7 @@
   let pcgrlTemplate;
   let mapElitesTemplate;
   let mapElitesArchive;
+  let difficultyProfiles = { profiles: {} };
   let voiceManifest = { entries: [] };
   let runtime;
   let profile = readJson(PROFILE_KEY, { completed: [], lastStage: null });
@@ -100,14 +101,16 @@
   async function boot() {
     try {
       setLoading(12, "正在校验列国谱系");
-      [campaign, config, pcgrlTemplate, mapElitesTemplate, mapElitesArchive, voiceManifest] = await Promise.all([
+      [campaign, config, pcgrlTemplate, mapElitesTemplate, mapElitesArchive, voiceManifest, difficultyProfiles] = await Promise.all([
         fetch("scenario/campaign.json").then(checkResponse).then((response) => response.json()),
         fetch("scenario/config.json").then(checkResponse).then((response) => response.json()),
         fetch("scenario/pcgrl-masui.json").then(checkResponse).then((response) => response.json()),
         fetch("scenario/map-elites-chuisha.json").then(checkResponse).then((response) => response.json()),
         fetch("scenario/map-elites-chuisha.archive.json").then(checkResponse).then((response) => response.json()),
         fetch("audio/dialogue-manifest.json").then(checkResponse).then((response) => response.json())
-          .catch(() => ({ schemaVersion: 1, entries: [] }))
+          .catch(() => ({ schemaVersion: 1, entries: [] })),
+        fetch("scenario/difficulty-profiles.json").then(checkResponse).then((response) => response.json())
+          .catch(() => ({ schemaVersion: 1, profiles: {} }))
       ]);
       voiceManifest = systems.normalizeVoiceManifest(voiceManifest);
       setLoading(54, "正在装载战役规则");
@@ -170,10 +173,12 @@
       const recommendedLevel = systems.recommendedStageLevel(record.index);
       const underleveled = profile.armyRank < recommendedLevel;
       const turnLimit = systems.effectiveTurnLimit(record.turnLimit, profile.settings.battleDifficulty);
+      const assessment = assessStage(record);
+      const riskLabel = difficultyRiskLabel(assessment);
       return `
       <button class="stage-card ${completed.has(record.id) ? "completed" : ""} ${unlocked ? "" : "locked"} ${underleveled ? "underleveled" : ""}" ${unlocked ? `data-stage-id="${record.id}"` : "disabled"} type="button">
         <span class="stage-thumb"><img loading="lazy" src="${mapPath(record)}" alt=""><i>${completed.has(record.id) ? "已克" : unlocked ? String(record.index).padStart(3, "0") : "未解锁"}</i></span>
-        <span class="stage-copy"><small>${escapeHtml(record.chapter)} · ${turnLimit} 回合 · 建议 ${recommendedLevel} 级</small><strong>${escapeHtml(record.battleTitle)}</strong><span>${escapeHtml(record.title)}</span><em>${escapeHtml(record.objective)}</em></span>
+        <span class="stage-copy"><small>${escapeHtml(record.chapter)} · ${turnLimit} 回合 · 建议 ${recommendedLevel} 级 · ${riskLabel}</small><strong>${escapeHtml(record.battleTitle)}</strong><span>${escapeHtml(record.title)}</span><em>${escapeHtml(record.objective)}</em></span>
       </button>`;
     }).join("") || '<div class="empty-search">没有符合条件的战役</div>';
     document.querySelectorAll("[data-stage-id]").forEach((button) => button.addEventListener("click", () => startStage(button.dataset.stageId)));
@@ -244,6 +249,11 @@
     $("#focusStatus").textContent = isSaved ? `第 ${saved.turn || 1} 回合` : isCompleted ? "已克" : "未出阵";
     const recommendedLevel = systems.recommendedStageLevel(record.index);
     $("#focusRank").textContent = `当前 ${profile.armyRank} · 建议 ${recommendedLevel}`;
+    const assessment = assessStage(record);
+    $("#focusRisk").textContent = difficultyRiskLabel(assessment);
+    $("#focusEvidence").textContent = assessment.confidence === "calibrated"
+      ? `${assessment.evidence.episodes} 局已校准`
+      : assessment.confidence === "limited" ? `${assessment.evidence.episodes} 局有限样本` : "冷启动先验";
     $("#focusMap").src = mapPath(record);
     $("#focusMap").alt = `${record.battleTitle}战场`;
     $("#focusStageButton").textContent = isSaved ? "继续战局" : isCompleted ? "重温此战" : "出兵此战";
@@ -253,6 +263,26 @@
 
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char]);
+  }
+
+  function difficultyProfileFor(record) {
+    return difficultyProfiles?.profiles?.[record?.id] || {
+      id: record?.id,
+      index: record?.index,
+      objectiveType: record?.isProcedural ? "procedural" : "defeat",
+      recommendedLevel: systems.recommendedStageLevel(record?.index),
+      structuralRisk: 35,
+      flags: ["runtime-profile-missing"]
+    };
+  }
+
+  function assessStage(record, difficulty = profile.settings.battleDifficulty) {
+    return systems.stageDifficultyAssessment(difficultyProfileFor(record), profile, difficulty);
+  }
+
+  function difficultyRiskLabel(assessment) {
+    const labels = { narrative: "剧情", low: "低风险", guarded: "谨慎", high: "高风险", severe: "严峻" };
+    return labels[assessment?.riskBand] || "待评估";
   }
 
   function openCampaign() {
@@ -296,6 +326,7 @@
     updateZoom();
     state = savedState || freshState(record);
     if (options.procedural) state.procedural = options.procedural;
+    state.difficultyAssessment ||= assessStage(record, state.procedural?.difficulty || state.difficulty || profile.settings.battleDifficulty);
     state.logs ||= [];
     state.stats ||= { attacks: 0, defeated: 0, supplies: 0, skills: 0, moves: 0, policyDecisions: 0, policyFallbacks: 0 };
     state.stats.skills ||= 0;
@@ -1194,6 +1225,7 @@
       eventCounts: state.eventCounts,
       mapSeed: state.procedural?.seed,
       objectiveType: state.procedural?.objectiveType || "scripted",
+      difficultyAssessment: state.difficultyAssessment,
       replay: {
         stage_id: stageRecord.id,
         started_at: state.startedAt,

@@ -9,6 +9,7 @@ const pcgrlTemplate = require("../web-game/scenario/pcgrl-masui.json");
 const happo = require("../unity-remake/Assets/Resources/Models/HappoMobile.json");
 const level60SmokePath = path.join(__dirname, "..", "output", "happo_level60_smoke15.json");
 const level60Smoke = fs.existsSync(level60SmokePath) ? JSON.parse(fs.readFileSync(level60SmokePath, "utf8")) : null;
+const difficultyPredictionSource = "https://my.feishu.cn/docx/Q4uddpasdoijcPxWurfcrJGZnEe";
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const round = (value, digits = 3) => Number(Number(value).toFixed(digits));
@@ -254,6 +255,7 @@ const report = {
   generatedAt: new Date().toISOString(),
   method: "Static triage only. structuralRisk is not a player difficulty estimate.",
   methodSource: "https://my.feishu.cn/docx/AD99dmVLHoUjLIxBFEzcXl4tnZd",
+  difficultyPredictionSource,
   progressionContract: systems.PROGRESSION,
   battleDifficultyContract: systems.DIFFICULTY_PRESETS,
   pcgrlGeometryLimits: pcgrl.GEOMETRY_LIMITS,
@@ -303,6 +305,31 @@ const report = {
 const docsDir = path.join(__dirname, "..", "docs");
 fs.mkdirSync(docsDir, { recursive: true });
 fs.writeFileSync(path.join(docsDir, "stage-difficulty-audit.json"), `${JSON.stringify(report, null, 2)}\n`);
+const runtimeProfiles = {
+  schemaVersion: 1,
+  generatedAt: report.generatedAt,
+  method: "Cold-start structural priors. Runtime battle history is required for player-calibrated success estimates.",
+  sources: [report.methodSource, difficultyPredictionSource],
+  profiles: Object.fromEntries(rows.map((row) => [row.id, {
+    id: row.id,
+    index: row.index,
+    objectiveType: row.objectiveType,
+    recommendedLevel: row.recommendedLevel,
+    structuralRisk: row.structuralRisk,
+    flags: row.flags,
+    metrics: {
+      ownUnits: row.ownUnits,
+      enemyUnits: row.enemyUnits,
+      enemyRatio: row.enemyRatio,
+      turnLimit: row.turnLimit,
+      barrierRatio: row.barrierRatio,
+      minDeploymentDistance: row.minDeploymentDistance,
+      articulationRatio: row.articulationRatio,
+      terrainTransitionRatio: row.terrainTransitionRatio
+    }
+  }]))
+};
+fs.writeFileSync(path.join(__dirname, "..", "web-game", "scenario", "difficulty-profiles.json"), `${JSON.stringify(runtimeProfiles, null, 2)}\n`);
 
 const table = topRisk.slice(0, 15).map((row) =>
   `| ${row.index} | ${row.battleTitle} | ${row.recommendedLevel} | ${row.ownUnits}:${row.enemyUnits} | ${row.enemyRatio} | ${row.turnLimit} | ${row.barrierRatio} | ${row.terrainTransitionRatio} | ${row.articulationRatio} | ${row.structuralRisk} | ${row.flags.join(", ") || "-"} |`
@@ -317,6 +344,8 @@ const markdown = `# 东周列国志 172 关难度结构审计
 
 方法依据：[离散几何优化：数学模型、核心算法与工程实践](${report.methodSource})
 
+难度预测依据：[小游戏关卡难度预测：方法、数据与工程实践综述](${difficultyPredictionSource})
+
 ## 结论
 
 - 已先建立统一成长基线：主线 172 关按 1–60 级展开，军阶约每 3 个首通提升一级，最终战前达到 60 级；武将熟练度最多领先军阶 2 级。
@@ -328,6 +357,7 @@ const markdown = `# 东周列国志 172 关难度结构审计
 - 60 级新基线的 14 个战斗关单种子烟测仍为 HAPPO 敌胜率 ${(Number(level60Smoke?.happo?.enemy_win_rate || 0) * 100).toFixed(0)}%、脚本敌胜率 ${(Number(level60Smoke?.scripted_baseline?.enemy_win_rate || 0) * 100).toFixed(0)}%，脚本超时率 ${(Number(level60Smoke?.scripted_baseline?.timeout_rate || 0) * 100).toFixed(0)}%。它只验证运行契约，不作为平衡置信结论。
 - 已引入离散几何的网格图指标：地形标签总变差（相邻格标签切换率）、地形斑块密度、可通行连通分量和割点比例。它们分别对应纹理过密、碎片化、不可达和单通道瓶颈风险。
 - PCGRL 离散几何修复在 ${pcgrlGeometryValidation.cases} 个三档种子用例中通过 ${pcgrlGeometryValidation.valid} 个，回退 ${pcgrlGeometryValidation.fallback} 个；最坏地形切换率 ${pcgrlGeometryValidation.worst.transitionRatio}、斑块密度 ${pcgrlGeometryValidation.worst.patchDensity}、割点率 ${pcgrlGeometryValidation.worst.articulationRatio}。
+- 运行时现在将结构风险作为冷启动先验，并按玩家军阶、装备、所选难度和同关实战记录逐步校准；少于 5 局标记为冷启动，5–19 局为有限证据，至少 20 局才标记为已校准。
 
 ## 结构风险最高的 15 关
 
