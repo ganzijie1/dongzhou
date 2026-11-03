@@ -65,6 +65,7 @@
   let audioContext = null;
   let storyAudio = null;
   let storyAudioSerial = 0;
+  let replaySelection = null;
   const imageCache = new Map();
 
   const canvas = $("#battleCanvas");
@@ -172,7 +173,8 @@
       const unlocked = systems.isStageUnlocked(record, profile, campaign.stages);
       const recommendedLevel = systems.recommendedStageLevel(record.index);
       const underleveled = profile.armyRank < recommendedLevel;
-      const turnLimit = systems.effectiveTurnLimit(record.turnLimit, profile.settings.battleDifficulty);
+      const assist = systems.retryAssist(profile, record.id);
+      const turnLimit = systems.effectiveTurnLimit(record.turnLimit, profile.settings.battleDifficulty, assist.active);
       const assessment = assessStage(record);
       const riskLabel = difficultyRiskLabel(assessment);
       return `
@@ -181,7 +183,7 @@
         <span class="stage-copy"><small>${escapeHtml(record.chapter)} · ${turnLimit} 回合 · 建议 ${recommendedLevel} 级 · ${riskLabel}</small><strong>${escapeHtml(record.battleTitle)}</strong><span>${escapeHtml(record.title)}</span><em>${escapeHtml(record.objective)}</em></span>
       </button>`;
     }).join("") || '<div class="empty-search">没有符合条件的战役</div>';
-    document.querySelectorAll("[data-stage-id]").forEach((button) => button.addEventListener("click", () => startStage(button.dataset.stageId)));
+    document.querySelectorAll("#stageGrid [data-stage-id]").forEach((button) => button.addEventListener("click", () => startStage(button.dataset.stageId)));
     const completedCount = completed.size;
     $("#progressText").textContent = `已完成 ${completedCount} / ${campaign.stageCount}`;
     $("#progressBar").style.width = `${completedCount / campaign.stageCount * 100}%`;
@@ -245,7 +247,8 @@
     $("#focusStory").textContent = record.title;
     $("#focusObjective").textContent = record.objective;
     $("#focusIndex").textContent = record.isProcedural ? `演武 / ${campaign.stageCount}` : `${String(record.index).padStart(3, "0")} / ${campaign.stageCount}`;
-    $("#focusTurns").textContent = `${systems.effectiveTurnLimit(record.turnLimit, profile.settings.battleDifficulty)} 回合`;
+    const assist = systems.retryAssist(profile, record.id);
+    $("#focusTurns").textContent = `${systems.effectiveTurnLimit(record.turnLimit, profile.settings.battleDifficulty, assist.active)} 回合${assist.active ? " · 援助" : ""}`;
     $("#focusStatus").textContent = isSaved ? `第 ${saved.turn || 1} 回合` : isCompleted ? "已克" : "未出阵";
     const recommendedLevel = systems.recommendedStageLevel(record.index);
     $("#focusRank").textContent = `当前 ${profile.armyRank} · 建议 ${recommendedLevel}`;
@@ -259,6 +262,51 @@
     $("#focusStageButton").textContent = isSaved ? "继续战局" : isCompleted ? "重温此战" : "出兵此战";
     $("#focusStageButton").dataset.stageId = record.id;
     $("#focusStageButton").dataset.saved = isSaved ? "true" : "false";
+    renderWarCouncil(record);
+  }
+
+  function stageOwnHeroes(record) {
+    const entries = [...asList(record?.stage?.deploy?.unselectables), ...asList(record?.stage?.deploy?.selectables)];
+    return [...new Set(entries.filter((entry) => entry?.hero && (!entry.force || entry.force === "own")).map((entry) => String(entry.hero)))];
+  }
+
+  function renderWarCouncil(record) {
+    const resources = profile.campaignResources;
+    const wounded = Object.keys(profile.woundedHeroes || {}).length;
+    $("#provisionsCount").textContent = `${resources.provisions} / 200`;
+    $("#moraleCount").textContent = `${resources.morale} / 100`;
+    $("#woundedCount").textContent = wounded;
+    document.querySelectorAll("[data-formation]").forEach((button) => button.classList.toggle("active", button.dataset.formation === profile.formation));
+    const candidates = stageOwnHeroes(record);
+    const selected = candidates.includes(profile.stageVanguards[record.id]) ? profile.stageVanguards[record.id] : candidates[0] || "";
+    if (selected) profile.stageVanguards[record.id] = selected;
+    $("#vanguardSelect").innerHTML = candidates.length
+      ? candidates.map((heroId) => {
+        const mastery = systems.masteryForHero(profile, heroId);
+        const woundedMark = profile.woundedHeroes[systems.canonicalHeroId(heroId)] ? " · 负伤" : "";
+        return `<option value="${escapeHtml(heroId)}" ${heroId === selected ? "selected" : ""}>${escapeHtml(displayName(heroId))} · ${mastery.level}级${woundedMark}</option>`;
+      }).join("")
+      : '<option value="">本关由史实阵容出战</option>';
+    $("#vanguardSelect").disabled = !candidates.length;
+    const assist = systems.retryAssist(profile, record.id);
+    $("#assistToggle").checked = profile.settings.transparentAssist;
+    $("#assistStatus").textContent = assist.eligible
+      ? `已连续失利 ${assist.failures} 次：+15% 回合、+1 金疮药、临时士气 +8，首通铜钱 -10%`
+      : `已失败 ${assist.failures} 次；连续失败两次后自动生效`;
+    $("#restArmyButton").disabled = profile.coins < 120 || (resources.provisions >= 200 && resources.morale >= 100 && !wounded);
+    const daily = systems.dailyChallenge(new Date().toLocaleDateString("sv-SE"));
+    $("#dailyChallengeMeta").textContent = `${daily.date} · 固定种子 ${daily.seed} · ${{ easy: "简单", medium: "标准", hard: "艰难" }[daily.difficulty]}`;
+    renderRecentReplays();
+  }
+
+  function renderRecentReplays() {
+    const recent = [...(profile.replays || [])].slice(-5).reverse();
+    $("#recentReplays").innerHTML = recent.length ? recent.map((replay, index) => {
+      const summary = replay.summary || {};
+      const title = findStageRecord(replay.stage_id)?.battleTitle || replay.stage_id || "未名战局";
+      return `<button class="replay-row" type="button" data-replay-index="${profile.replays.length - 1 - index}"><span><strong>${escapeHtml(title)}</strong><small>${summary.turns || 0} 回合 · ${escapeHtml(summary.difficulty || replay.difficulty || "medium")} · ${(replay.events || []).length} 事件</small></span><em>${summary.won ? "告捷" : "失利"}</em></button>`;
+    }).join("") : '<div class="replay-empty">完成一场战斗后可在此复盘</div>';
+    document.querySelectorAll("[data-replay-index]").forEach((button) => button.addEventListener("click", () => openReplay(Number(button.dataset.replayIndex))));
   }
 
   function escapeHtml(value) {
@@ -326,6 +374,9 @@
     updateZoom();
     state = savedState || freshState(record);
     if (options.procedural) state.procedural = options.procedural;
+    state.assist ||= systems.retryAssist(profile, record.id);
+    const objectiveType = state.procedural?.objectiveType ? "procedural" : difficultyProfileFor(record).objectiveType;
+    state.mission ||= { contract: systems.missionContract(objectiveType), phaseIndex: 0, progress: 0, milestones: [] };
     state.difficultyAssessment ||= assessStage(record, state.procedural?.difficulty || state.difficulty || profile.settings.battleDifficulty);
     state.logs ||= [];
     state.stats ||= { attacks: 0, defeated: 0, supplies: 0, skills: 0, moves: 0, policyDecisions: 0, policyFallbacks: 0 };
@@ -341,6 +392,10 @@
     state.claimedSites ||= [];
     state.triggeredDuels ||= [];
     state.inventory ||= { ...profile.inventory };
+    if (!savedState && state.assist.active) {
+      state.assistMedicineRemaining = state.assist.medicine;
+      state.inventory.medicine = Number(state.inventory.medicine || 0) + state.assist.medicine;
+    }
     state.units.forEach((unit) => { unit.effects ||= []; });
     unitSerial = Math.max(0, ...state.units.map((unit) => Number(String(unit.id).match(/-(\d+)$/)?.[1] || 0)));
     setStatus("正在列阵");
@@ -358,6 +413,10 @@
     if (!savedState) {
       const preset = systems.difficultyPreset(battleDifficulty());
       log(`难度：${{ easy: "简单", medium: "标准", hard: "艰难" }[preset.id]}；敌军等级 ${preset.enemyLevelOffset >= 0 ? "+" : ""}${preset.enemyLevelOffset}，生命 ×${preset.enemyHpMultiplier}，攻击 ×${preset.enemyPowerMultiplier}，防御 ×${preset.enemyDefenseMultiplier}。`, "event");
+      const formation = systems.FORMATION_PRESETS[profile.formation];
+      const vanguard = profile.stageVanguards[record.id];
+      log(`军议：${formation.name}${vanguard ? `；${displayName(vanguard)}任先锋` : ""}；军粮 ${profile.campaignResources.provisions}，士气 ${profile.campaignResources.morale}${profile.campaignResources.provisions < 40 ? "；缺粮导致兵力与攻击下降" : ""}。`, "event");
+      if (state.assist.active) log(`连续失利援助已启用：回合上限 +15%，临时金疮药 +1、士气 +8；首通铜钱 -10%。`, "event");
     }
     if (savedState) {
       for (let turn = 1; turn <= state.turn; turn++) {
@@ -382,6 +441,7 @@
     state.phase = state.result ? "ended" : "player";
     state.initialOwnCount ||= state.units.filter((unit) => unit.team === "own").length;
     state.initialEnemyCount ||= state.units.filter((unit) => unit.team === "enemy").length;
+    state.initialAllyCount ||= state.units.filter((unit) => unit.team === "ally").length;
     loadStageMap();
     saveBattle(false);
     updateUI();
@@ -459,6 +519,32 @@
     }
   }
 
+  async function startDailyChallenge() {
+    if (enemyRunning || !mapElitesTemplate || !mapElitesArchive) return;
+    const button = $("#dailyChallengeButton");
+    const challenge = systems.dailyChallenge(new Date().toLocaleDateString("sv-SE"));
+    button.disabled = true;
+    button.textContent = "正在生成";
+    try {
+      const generated = DongzhouMapElitesRuntime.selectElite(mapElitesArchive, challenge.difficulty, challenge.seed);
+      await startStage(mapElitesTemplate.id, null, {
+        procedural: {
+          terrain: generated.rows,
+          difficulty: challenge.difficulty,
+          seed: challenge.seed,
+          objectiveType: "daily-map-elites",
+          daily: challenge.date,
+          meta: generated.meta,
+          decision: { difficulty: challenge.difficulty, behaviorProbability: 1, source: "daily-fixed-seed" }
+        }
+      });
+      showNotice(`${challenge.date} 每日演武 · 全体玩家同一种子`);
+    } finally {
+      button.disabled = false;
+      button.textContent = "今日挑战";
+    }
+  }
+
   function syncProceduralButton() {
     $("#proceduralButton").textContent = $("#proceduralMode").value === "pcgrl" ? "生成麻隧演武" : "生成垂沙演武";
   }
@@ -470,6 +556,8 @@
   }
 
   function freshState(record) {
+    const assist = systems.retryAssist(profile, record.id);
+    const contract = systems.missionContract(difficultyProfileFor(record).objectiveType);
     return {
       stageId: record.id,
       turn: 1,
@@ -486,6 +574,9 @@
       eventLog: [], eventCounts: {}, itemsUsed: {}, storySkipped: false, triggeredStoryEvents: [],
       startedAt: Date.now(),
       difficulty: profile.settings.battleDifficulty,
+      assist,
+      assistMedicineRemaining: 0,
+      mission: { contract, phaseIndex: 0, progress: 0, milestones: [] },
       logs: [{ text: `${record.battleTitle}：两军列阵。`, tone: "event" }]
     };
   }
@@ -500,7 +591,7 @@
 
   function updateStageHeader() {
     $("#stageHeading").textContent = `${stageRecord.chapter} · ${stageRecord.battleTitle}`;
-    $("#objectiveText").textContent = stageRecord.objective;
+    updateMissionDisplay();
     const difficultyLabel = { easy: "简单", medium: "标准", hard: "艰难" }[battleDifficulty()] || "标准";
     $("#terrainText").textContent = state?.procedural ? `${stageRecord.battleTitle} · ${difficultyLabel}` : `${stageRecord.chapter} · ${stageRecord.battleTitle} · ${difficultyLabel}`;
   }
@@ -538,7 +629,7 @@
   }
 
   function battleTurnLimit() {
-    return systems.effectiveTurnLimit(stageRecord?.turnLimit || 1, battleDifficulty());
+    return systems.effectiveTurnLimit(stageRecord?.turnLimit || 1, battleDifficulty(), state?.assist?.active);
   }
 
   function spawnUnit(heroId, level, team, rawPosition) {
@@ -553,16 +644,21 @@
     const equipment = team === "own" ? systems.equipmentBonuses(profile) : { power: 0, defense: 0, move: 0, maxMp: 0 };
     const growth = systems.unitGrowthBonuses(level);
     const difficultyModifiers = systems.unitDifficultyModifiers(team, battleDifficulty());
-    const maxHp = Math.round((Number(unitClass.hp?.[0] || 100) + Number(unitClass.hp?.[1] || 5) * Math.max(0, level - 1)) * difficultyModifiers.hp);
-    const maxMp = Number(unitClass.mp?.[0] || 10) + Number(unitClass.mp?.[1] || 1) * Math.max(0, level - 1) + equipment.maxMp;
+    const battleProfile = state.assist?.active
+      ? { ...profile, campaignResources: { ...profile.campaignResources, morale: Math.min(100, profile.campaignResources.morale + state.assist.morale) } }
+      : profile;
+    const formation = team === "own" ? systems.formationModifiers(battleProfile, heroId, hero.class, stageRecord.id) : { hp: 1, power: 1, defense: 1, move: 0, maxMp: 0, wounded: false, vanguard: false };
+    const maxHp = Math.round((Number(unitClass.hp?.[0] || 100) + Number(unitClass.hp?.[1] || 5) * Math.max(0, level - 1)) * difficultyModifiers.hp * formation.hp);
+    const maxMp = Number(unitClass.mp?.[0] || 10) + Number(unitClass.mp?.[1] || 1) * Math.max(0, level - 1) + equipment.maxMp + formation.maxMp;
     const id = `${heroId}-${++unitSerial}`;
     state.units.push({
       id, heroId, name: displayName(heroId), team, level, classId: hero.class, x, y,
-      hp: maxHp, maxHp, mp: maxMp, maxMp, move: Number(unitClass.move || 5) + equipment.move,
-      power: Math.round((15.5 + Number(hero.stat?.[1] || 70) * .34 + growth.power + equipment.power) * difficultyModifiers.power),
-      defense: Math.round((8 + Number(hero.stat?.[2] || 70) * .22 + growth.defense + equipment.defense) * difficultyModifiers.defense),
+      hp: maxHp, maxHp, mp: maxMp, maxMp, move: Number(unitClass.move || 5) + equipment.move + formation.move,
+      power: Math.round((15.5 + Number(hero.stat?.[1] || 70) * .34 + growth.power + equipment.power) * difficultyModifiers.power * formation.power),
+      defense: Math.round((8 + Number(hero.stat?.[2] || 70) * .22 + growth.defense + equipment.defense) * difficultyModifiers.defense * formation.defense),
       attackRange: unitClass.attack_range || "Adjacent4", acted: false, moved: false,
-      invulnerable: false, direction: null, effects: []
+      invulnerable: false, direction: null, effects: [], wounded: formation.wounded, vanguard: formation.vanguard, undersupplied: formation.undersupplied,
+      skillRank: systems.heroSkillRank(level)
     });
     return id;
   }
@@ -817,7 +913,8 @@
       return;
     }
     const terrainGuard = terrainDefense(defender);
-    const damage = Math.max(8, systems.effectivePower(attacker) - Math.round(systems.effectiveDefense(defender) * .42) - terrainGuard + randomInt(-4, 5));
+    const terrainAttack = terrainAttackBonus(attacker);
+    const damage = Math.max(8, systems.effectivePower(attacker) + terrainAttack - Math.round(systems.effectiveDefense(defender) * .42) - terrainGuard + randomInt(-4, 5));
     defender.hp = Math.max(0, defender.hp - damage);
     recordEvent("combat", { actor: attacker.heroId, target: defender.heroId, damage, defenderHp: defender.hp });
     log(`${attacker.name}攻击${defender.name}，造成 ${damage} 点伤害。`, attacker.team === "enemy" ? "bad" : "good");
@@ -836,6 +933,13 @@
   function terrainDefense(unit) {
     const char = terrainRows()[unit.y]?.[unit.x];
     return ["F", "m", "r", "W", "C", "G"].includes(char) ? 5 : ["e", "c", "b"].includes(char) ? 3 : 0;
+  }
+
+  function terrainAttackBonus(unit) {
+    const char = terrainRows()[unit.y]?.[unit.x];
+    if (unit.classId === "Archer" && ["m", "G", "W"].includes(char)) return 4;
+    if (unit.classId === "Cavalry" && ["r", "~"].includes(char)) return -5;
+    return 0;
   }
 
   function randomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
@@ -879,6 +983,7 @@
     const before = unit.hp;
     unit.hp = Math.min(unit.maxHp, unit.hp + Number(medicine?.hp || 60));
     state.inventory.medicine--;
+    if (Number(state.assistMedicineRemaining || 0) > 0) state.assistMedicineRemaining--;
     profile.inventory.medicine = Math.min(profile.inventory.medicine, state.inventory.medicine);
     writeJson(PROFILE_KEY, profile);
     state.itemsUsed.medicine = Number(state.itemsUsed.medicine || 0) + 1;
@@ -1212,8 +1317,9 @@
       totalOwn: state.initialOwnCount || ownUnits.length,
       totalEnemy: state.initialEnemyCount || state.units.filter((unit) => unit.team === "enemy").length,
       ownLosses: ownUnits.filter((unit) => unit.hp <= 0).length,
+      ownDefeatedHeroes: ownUnits.filter((unit) => unit.hp <= 0).map((unit) => unit.heroId),
       supplies: state.stats.supplies,
-      inventoryRemaining: state.inventory,
+      inventoryRemaining: { ...state.inventory, medicine: Math.max(0, Number(state.inventory.medicine || 0) - Number(state.assistMedicineRemaining || 0)) },
       ownHeroes: ownUnits.map((unit) => unit.heroId),
       difficulty: battleDifficulty(),
       policyDecisions: state.stats.policyDecisions,
@@ -1224,7 +1330,8 @@
       itemsUsed: state.itemsUsed,
       eventCounts: state.eventCounts,
       mapSeed: state.procedural?.seed,
-      objectiveType: state.procedural?.objectiveType || "scripted",
+      objectiveType: state.mission?.contract?.id || state.procedural?.objectiveType || "scripted",
+      assistActive: Boolean(state.assist?.active),
       difficultyAssessment: state.difficultyAssessment,
       replay: {
         stage_id: stageRecord.id,
@@ -1246,6 +1353,7 @@
     writeJson(PROFILE_KEY, profile);
     if (progression.rankUps) log(`军阶提升至 ${profile.armyRank}，全军基础战力提高。`, "event");
     if (progression.coinsEarned) log(`首通获得 ${progression.coinsEarned} 铜钱与军需补给。`, "event");
+    log(`军势结算：军粮 ${profile.campaignResources.provisions}，士气 ${profile.campaignResources.morale}，伤兵 ${Object.keys(profile.woundedHeroes).length}。`, "event");
     for (const update of progression.masteryUpdates.filter((entry) => entry.xpEarned > 0)) {
       log(`${displayName(update.heroId)} 熟练度 +${update.xpEarned}${update.leveled ? `，升至 ${update.level} 级` : ""}`, "event");
     }
@@ -1267,7 +1375,8 @@
       ["用时", `${Math.min(state.turn, battleTurnLimit())} 回合`], ["击破", `${state.stats.defeated} 部`],
       ["战技", `${state.stats.skills} 次`], ["补给", `${state.stats.supplies} 处`],
       ["军阶", `${profile.armyRank}`], ["铜钱", `+${state.result.progression?.coinsEarned || 0}`],
-      ["评估", `${Math.round(reward * 100)}`], ["难度", { easy: "简单", medium: "标准", hard: "艰难" }[battleDifficulty()] || "标准"]
+      ["评估", `${Math.round(reward * 100)}`], ["难度", { easy: "简单", medium: "标准", hard: "艰难" }[battleDifficulty()] || "标准"],
+      ["军粮", `${profile.campaignResources.provisions}`], ["士气", `${profile.campaignResources.morale}`], ["伤兵", `${Object.keys(profile.woundedHeroes).length}`]
     ].map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join("");
     const next = stageRecord.isProcedural ? null : campaign.stages[stageRecord.index];
     $("#resultNextButton").hidden = !next;
@@ -1381,8 +1490,48 @@
     button.setAttribute("aria-label", `${collapsed ? "展开" : "收起"}${label}`);
   }
 
+  function missionProgress() {
+    if (!state?.mission) return 0;
+    if (state.result?.won) return 1;
+    const id = state.mission.contract?.id;
+    if (id === "capture") {
+      const total = Math.max(1, asList(stageRecord?.sites).length);
+      return clamp((state.claimedSites?.length || 0) / total, 0, 1);
+    }
+    if (["defend", "escort", "escape"].includes(id)) {
+      const turnProgress = clamp((Number(state.turn || 1) - 1) / Math.max(1, battleTurnLimit() - 1), 0, .95);
+      if (id !== "escort") return turnProgress;
+      const allyRatio = activeUnits("ally").length / Math.max(1, state.initialAllyCount || activeUnits("ally").length || 1);
+      return clamp(turnProgress * (.7 + .3 * allyRatio), 0, .95);
+    }
+    if (id === "narrative") return clamp((Number(state.turn || 1) - 1) / Math.max(1, battleTurnLimit() - 1), 0, .95);
+    const initial = Math.max(1, Number(state.initialEnemyCount || activeUnits("enemy").length || 1));
+    return clamp((initial - activeUnits("enemy").length) / initial, 0, 1);
+  }
+
+  function updateMissionDisplay(trackMilestone = false) {
+    if (!state?.mission || !stageRecord) return;
+    const progress = missionProgress();
+    const phases = state.mission.contract?.phases || ["接战", "推进", "决胜"];
+    const phaseIndex = state.result?.won ? phases.length - 1 : Math.min(phases.length - 1, Math.floor(progress * phases.length));
+    if (trackMilestone && phaseIndex > Number(state.mission.phaseIndex || 0)) {
+      for (let index = Number(state.mission.phaseIndex || 0) + 1; index <= phaseIndex; index++) {
+        const phase = phases[index];
+        if (!state.mission.milestones.includes(phase)) {
+          state.mission.milestones.push(phase);
+          log(`战局阶段推进：${phase}。`, "event");
+          recordEvent("mission_phase", { phase, progress: Math.round(progress * 100) });
+        }
+      }
+    }
+    state.mission.phaseIndex = phaseIndex;
+    state.mission.progress = progress;
+    $("#objectiveText").textContent = `${stageRecord.objective}\n${state.mission.contract.name} · ${phases[phaseIndex]} · ${Math.round(progress * 100)}%`;
+  }
+
   function updateUI() {
     if (!state || !stageRecord) return;
+    updateMissionDisplay(true);
     $("#turnLabel").textContent = `第 ${Math.min(state.turn, battleTurnLimit())} / ${battleTurnLimit()} 回合`;
     const phaseText = { player: "我军行动", ally: "友军行动", enemy: "敌军行动", ended: "战役结束" }[state.phase] || "待命";
     $("#phaseBadge").textContent = phaseText;
@@ -1411,7 +1560,7 @@
     $("#roster").innerHTML = state.units.filter((unit) => unit.team === "own").map((unit) => {
       const ratio = Math.max(0, unit.hp / unit.maxHp);
       return `<button class="roster-card ${selectedId === unit.id ? "selected" : ""}" data-unit-id="${unit.id}" type="button" ${unit.hp <= 0 ? "disabled" : ""}>
-        <img src="assets/${UNIT_IMAGES[unit.classId] || UNIT_IMAGES.Infantry}" alt=""><span><span class="roster-name"><span>${escapeHtml(unit.name)}</span><small>${unit.hp <= 0 ? "阵亡" : unit.acted ? "已行动" : CLASS_LABELS[unit.classId] || unit.classId}</small></span>
+        <img src="assets/${UNIT_IMAGES[unit.classId] || UNIT_IMAGES.Infantry}" alt=""><span><span class="roster-name"><span>${escapeHtml(unit.name)}${unit.vanguard ? " · 先锋" : ""}</span><small>${unit.hp <= 0 ? "阵亡" : unit.wounded ? "负伤出阵" : unit.undersupplied ? "缺粮" : unit.acted ? "已行动" : CLASS_LABELS[unit.classId] || unit.classId}</small></span>
         <span class="health-track"><span class="health-fill ${ratio <= .25 ? "low" : ratio <= .5 ? "mid" : ""}" style="width:${ratio * 100}%"></span></span><span class="health-label">兵力 ${Math.max(0, unit.hp)} / ${unit.maxHp} · 谋略 ${unit.mp}/${unit.maxMp}</span></span></button>`;
     }).join("");
     document.querySelectorAll("[data-unit-id]").forEach((button) => button.addEventListener("click", () => selectUnit(getUnit(button.dataset.unitId))));
@@ -1423,8 +1572,9 @@
     if (!unit) { container.className = "unit-detail empty"; container.innerHTML = '<div class="detail-placeholder">选择单位查看军情</div>'; return; }
     container.className = "unit-detail";
     const portrait = unit.classId === "King" || unit.classId === "Lord" ? "portrait-lord.png" : ["Strategist", "Support"].includes(unit.classId) ? "portrait-strategist.png" : "portrait-general.png";
-    container.innerHTML = `<div class="detail-head"><img src="assets/${portrait}" alt=""><div><h3>${escapeHtml(unit.name)}</h3><p>${TEAM_LABELS[unit.team]} · ${CLASS_LABELS[unit.classId] || unit.classId}</p></div></div>
-      <div class="detail-grid"><div><span>兵力</span><strong>${Math.max(0, unit.hp)} / ${unit.maxHp}</strong></div><div><span>谋略</span><strong>${unit.mp} / ${unit.maxMp}</strong></div><div><span>移动</span><strong>${unit.move}</strong></div><div><span>攻击</span><strong>${systems.effectivePower(unit)}</strong></div><div><span>防御</span><strong>${systems.effectiveDefense(unit)}</strong></div><div><span>等级</span><strong>${unit.level}</strong></div></div>`;
+    const skill = systems.skillForUnit(unit);
+    container.innerHTML = `<div class="detail-head"><img src="assets/${portrait}" alt=""><div><h3>${escapeHtml(unit.name)}</h3><p>${TEAM_LABELS[unit.team]} · ${CLASS_LABELS[unit.classId] || unit.classId}${unit.vanguard ? " · 先锋" : ""}${unit.wounded ? " · 负伤" : ""}</p></div></div>
+      <div class="detail-grid"><div><span>兵力</span><strong>${Math.max(0, unit.hp)} / ${unit.maxHp}</strong></div><div><span>谋略</span><strong>${unit.mp} / ${unit.maxMp}</strong></div><div><span>移动</span><strong>${unit.move}</strong></div><div><span>攻击</span><strong>${systems.effectivePower(unit)}</strong></div><div><span>防御</span><strong>${systems.effectiveDefense(unit)}</strong></div><div><span>等级</span><strong>${unit.level}</strong></div><div><span>战技</span><strong>${skill ? `${skill.name} · ${unit.skillRank || 1}阶` : "无"}</strong></div><div><span>阵型</span><strong>${unit.team === "own" ? systems.FORMATION_PRESETS[profile.formation].name : "敌阵"}</strong></div></div>`;
   }
 
   function renderLog() {
@@ -1766,6 +1916,46 @@
     setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
+  function downloadJson(payload, filename) {
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  function openReplay(index) {
+    const replay = profile.replays?.[index];
+    if (!replay) return;
+    replaySelection = replay;
+    const summary = replay.summary || {};
+    const record = findStageRecord(replay.stage_id);
+    $("#replayTitle").textContent = record?.battleTitle || replay.stage_id || "战局回放";
+    const events = replay.events || [];
+    $("#replayDetails").innerHTML = `<div class="replay-summary">
+      <div><span>结果</span><strong>${summary.won ? "告捷" : "失利"}</strong></div>
+      <div><span>回合</span><strong>${summary.turns || 0}</strong></div>
+      <div><span>阵型</span><strong>${escapeHtml(systems.FORMATION_PRESETS[summary.formation]?.name || summary.formation || "中军持衡")}</strong></div>
+      <div><span>事件</span><strong>${events.length}</strong></div>
+    </div><ol class="replay-events">${events.length ? events.map((event) => `<li><span>第 ${Number(event.turn || 0)} 回合</span><b>${escapeHtml(event.type || "event")}</b><span>${escapeHtml(replayEventText(event))}</span></li>`).join("") : "<li><span>无逐步事件</span></li>"}</ol>`;
+    $("#replayModal").hidden = false;
+  }
+
+  function replayEventText(event) {
+    if (event.type === "move") return `${displayName(event.unit)} → (${Number(event.x || 0) + 1}, ${Number(event.y || 0) + 1})`;
+    if (["attack", "combat", "skill"].includes(event.type)) return `${displayName(event.actor)} → ${displayName(event.target)}${event.damage ? ` · ${event.damage} 伤害` : ""}`;
+    if (event.type === "mission_phase") return `${event.phase} · ${event.progress}%`;
+    return Object.entries(event).filter(([key]) => !["type", "t_ms", "turn"].includes(key)).map(([key, value]) => `${key}: ${value}`).join(" · ") || "战局状态更新";
+  }
+
+  function exportSelectedReplay() {
+    if (!replaySelection) return;
+    const date = new Date().toISOString().slice(0, 10);
+    downloadJson(replaySelection, `dongzhou-replay-${replaySelection.stage_id || "battle"}-${date}.json`);
+  }
+
   function clearLearningData() {
     if (!window.confirm("清除本机战斗记录与难度学习参数？关卡进度和军阶会保留。")) return;
     profile.battleHistory = [];
@@ -1809,6 +1999,36 @@
     });
     $("#focusArchiveButton").addEventListener("click", () => $("#campaignArchive").scrollIntoView({ behavior: "smooth", block: "start" }));
     $("#proceduralButton").addEventListener("click", startProceduralStage);
+    $("#dailyChallengeButton").addEventListener("click", startDailyChallenge);
+    document.querySelectorAll("[data-formation]").forEach((button) => button.addEventListener("click", () => {
+      profile.formation = button.dataset.formation;
+      writeJson(PROFILE_KEY, profile);
+      renderCampaign();
+      showNotice(`已采用${systems.FORMATION_PRESETS[profile.formation].name}`);
+    }));
+    $("#vanguardSelect").addEventListener("change", (event) => {
+      const record = findStageRecord($("#focusStageButton").dataset.stageId);
+      if (!record || !event.currentTarget.value) return;
+      profile.stageVanguards[record.id] = event.currentTarget.value;
+      writeJson(PROFILE_KEY, profile);
+      renderCampaign();
+      showNotice(`${displayName(event.currentTarget.value)}已任本关先锋`);
+    });
+    $("#assistToggle").addEventListener("change", (event) => {
+      profile.settings.transparentAssist = event.currentTarget.checked;
+      writeJson(PROFILE_KEY, profile);
+      renderCampaign();
+    });
+    $("#restArmyButton").addEventListener("click", () => {
+      const result = systems.restArmy(profile, campaign.stages);
+      if (!result.ok) { showNotice("铜钱不足，无法休整"); return; }
+      profile = result.profile;
+      writeJson(PROFILE_KEY, profile);
+      renderCampaign();
+      showNotice("全军休整：军粮 +30、士气 +20，伤势恢复一阶段");
+    });
+    $("#closeReplayButton").addEventListener("click", () => { $("#replayModal").hidden = true; replaySelection = null; });
+    $("#exportReplayButton").addEventListener("click", exportSelectedReplay);
     $("#proceduralMode").addEventListener("change", syncProceduralButton);
     $("#exerciseMenuButton").addEventListener("click", () => setExerciseMenu($("#exercisePanel").hidden));
     document.addEventListener("click", (event) => {
@@ -1880,6 +2100,7 @@
     window.addEventListener("keydown", (event) => {
       if (event.key !== "Escape") return;
       if (!$("#exercisePanel").hidden) setExerciseMenu(false);
+      else if (!$("#replayModal").hidden) { $("#replayModal").hidden = true; replaySelection = null; }
       else if (!$("#storyModal").hidden) advanceStory(true);
       else if (selectedSkillId) { selectedSkillId = null; updateUI(); }
     });

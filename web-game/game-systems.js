@@ -5,11 +5,11 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const PROFILE_VERSION = 7;
-  const TELEMETRY_SCHEMA = "dongzhou-battle-v3";
+  const PROFILE_VERSION = 8;
+  const TELEMETRY_SCHEMA = "dongzhou-battle-v4";
   const REPLAY_SCHEMA = "dongzhou-replay-v1";
   const POLICY_VERSION = "happo-2026-11-02";
-  const RUNTIME_VERSION = "dongzhou-web-0.6.0";
+  const RUNTIME_VERSION = "dongzhou-web-0.7.0";
   const DIFFICULTIES = ["easy", "medium", "hard"];
   const DIFFICULTY_PRESETS = Object.freeze({
     easy: Object.freeze({
@@ -32,6 +32,12 @@
     })
   });
   const MAP_DETAIL_MODES = ["calm", "balanced", "original"];
+  const FORMATION_PRESETS = Object.freeze({
+    balanced: Object.freeze({ id: "balanced", name: "中军持衡", power: 1, defense: 1, hp: 1, move: 0, maxMp: 0 }),
+    assault: Object.freeze({ id: "assault", name: "前军锐进", power: 1.08, defense: 0.94, hp: 1, move: 0, maxMp: 0 }),
+    bulwark: Object.freeze({ id: "bulwark", name: "坚营固守", power: 0.95, defense: 1.1, hp: 1.06, move: 0, maxMp: 0 }),
+    maneuver: Object.freeze({ id: "maneuver", name: "迂回游击", power: 1.02, defense: 0.97, hp: 1, move: 1, maxMp: 2 })
+  });
   const STRUCTURE_DETAIL_TERRAINS = new Set(["W", "c", "b", "e", "G", "D", "P", "h", "C"]);
   const BARRIER_TERRAINS = new Set(["r", "~", "v"]);
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -158,6 +164,14 @@
       tutorial: { completed: Boolean(source.tutorial?.completed), dismissed: Boolean(source.tutorial?.dismissed) },
       battleHistory,
       difficultyBandit: { ...normalizeBandit(source.difficultyBandit), enabled: source.settings?.telemetryEnabled !== false && source.difficultyBandit?.enabled !== false },
+      formation: FORMATION_PRESETS[source.formation] ? source.formation : "balanced",
+      stageVanguards: source.stageVanguards && typeof source.stageVanguards === "object" ? { ...source.stageVanguards } : {},
+      stageFailures: Object.fromEntries(Object.entries(source.stageFailures || {}).map(([id, count]) => [String(id), clamp(Number(count || 0), 0, 99)])),
+      woundedHeroes: Object.fromEntries(Object.entries(source.woundedHeroes || {}).map(([id, battles]) => [canonicalHeroId(id), clamp(Number(battles || 0), 0, 3)]).filter(([, battles]) => battles > 0)),
+      campaignResources: {
+        provisions: clamp(Number(source.campaignResources?.provisions ?? 100), 0, 200),
+        morale: clamp(Number(source.campaignResources?.morale ?? 70), 0, 100)
+      },
       settings: {
         ...source.settings,
         battleDifficulty: ["easy", "medium", "hard"].includes(source.settings?.battleDifficulty)
@@ -166,6 +180,7 @@
           ? source.settings.mapDetail : "balanced",
         telemetryEnabled: source.settings?.telemetryEnabled !== false,
         feedbackEnabled: source.settings?.feedbackEnabled !== false,
+        transparentAssist: source.settings?.transparentAssist !== false,
         voiceEnabled: source.settings?.voiceEnabled !== false,
         voiceVolume: clamp(Number.isFinite(Number(source.settings?.voiceVolume)) ? Number(source.settings.voiceVolume) : 0.85, 0, 1)
       },
@@ -216,10 +231,11 @@
     return DIFFICULTY_PRESETS[difficulty] || DIFFICULTY_PRESETS.medium;
   }
 
-  function effectiveTurnLimit(baseLimit, difficulty) {
+  function effectiveTurnLimit(baseLimit, difficulty, assistActive = false) {
     const base = Math.max(1, Number(baseLimit || 1));
     if (base >= 90) return base;
-    return Math.max(base, Math.ceil(base * difficultyPreset(difficulty).turnLimitMultiplier));
+    const assistMultiplier = assistActive ? 1.15 : 1;
+    return Math.max(base, Math.ceil(base * difficultyPreset(difficulty).turnLimitMultiplier * assistMultiplier));
   }
 
   function unitDifficultyModifiers(team, difficulty) {
@@ -264,6 +280,73 @@
   function unitGrowthBonuses(level) {
     const gainedLevels = clamp(Number(level || 1), 1, PROGRESSION.maxLevel) - 1;
     return { power: gainedLevels * 1.5, defense: gainedLevels * 0.8 };
+  }
+
+  function formationModifiers(profile, heroId, classId, stageId) {
+    const preset = FORMATION_PRESETS[profile?.formation] || FORMATION_PRESETS.balanced;
+    const morale = clamp(Number(profile?.campaignResources?.morale ?? 70), 0, 100);
+    const provisions = clamp(Number(profile?.campaignResources?.provisions ?? 100), 0, 200);
+    const moraleFactor = clamp(1 + (morale - 50) / 500, 0.9, 1.1);
+    const provisionFactor = provisions < 40 ? clamp(0.92 + provisions / 500, 0.92, 1) : 1;
+    const wounded = Number(profile?.woundedHeroes?.[canonicalHeroId(heroId)] || 0) > 0;
+    const vanguard = canonicalHeroId(profile?.stageVanguards?.[String(stageId)] || "") === canonicalHeroId(heroId);
+    const mobileClass = classId === "Cavalry" || classId === "Archer";
+    return {
+      formation: preset.id,
+      power: preset.power * moraleFactor * provisionFactor * (wounded ? 0.95 : 1) * (vanguard ? 1.08 : 1),
+      defense: preset.defense * moraleFactor,
+      hp: preset.hp * provisionFactor * (wounded ? 0.8 : 1),
+      move: preset.id === "maneuver" && mobileClass ? preset.move : 0,
+      maxMp: preset.maxMp + (vanguard ? 3 : 0),
+      wounded,
+      vanguard,
+      undersupplied: provisions < 40
+    };
+  }
+
+  function heroSkillRank(level) {
+    const safeLevel = clamp(Number(level || 1), 1, PROGRESSION.maxLevel);
+    return safeLevel >= 40 ? 3 : safeLevel >= 20 ? 2 : 1;
+  }
+
+  function retryAssist(profile, stageId) {
+    const failures = Number(profile?.stageFailures?.[String(stageId)] || 0);
+    const eligible = failures >= 2;
+    const active = eligible && profile?.settings?.transparentAssist !== false;
+    return { eligible, active, failures, turnMultiplier: active ? 1.15 : 1, medicine: active ? 1 : 0, morale: active ? 8 : 0, rewardMultiplier: active ? 0.9 : 1 };
+  }
+
+  function restArmy(rawProfile, stages = []) {
+    const profile = normalizeProfile(rawProfile, stages);
+    const cost = 120;
+    if (profile.coins < cost) return { ok: false, reason: "insufficient-coins", profile };
+    profile.coins -= cost;
+    profile.campaignResources.provisions = clamp(profile.campaignResources.provisions + 30, 0, 200);
+    profile.campaignResources.morale = clamp(profile.campaignResources.morale + 20, 0, 100);
+    for (const heroId of Object.keys(profile.woundedHeroes)) {
+      profile.woundedHeroes[heroId] -= 1;
+      if (profile.woundedHeroes[heroId] <= 0) delete profile.woundedHeroes[heroId];
+    }
+    return { ok: true, profile, cost };
+  }
+
+  function missionContract(objectiveType) {
+    return ({
+      defeat: { id: "defeat", name: "歼敌", phases: ["接敌", "破阵", "肃清"] },
+      capture: { id: "capture", name: "夺隘", phases: ["开路", "夺取", "固守"] },
+      defend: { id: "defend", name: "坚守", phases: ["列阵", "承压", "待援"] },
+      escort: { id: "escort", name: "护送", phases: ["清道", "护行", "接应"] },
+      escape: { id: "escape", name: "突围", phases: ["聚兵", "破口", "脱离"] },
+      narrative: { id: "narrative", name: "史事", phases: ["见证"] },
+      procedural: { id: "procedural", name: "演武", phases: ["试探", "应变", "决胜"] }
+    })[objectiveType] || { id: "scripted", name: "军令", phases: ["接战", "推进", "决胜"] };
+  }
+
+  function dailyChallenge(dateValue = new Date()) {
+    const date = typeof dateValue === "string" ? dateValue.slice(0, 10) : dateValue.toISOString().slice(0, 10);
+    let seed = 2166136261;
+    for (const char of date) { seed ^= char.charCodeAt(0); seed = Math.imul(seed, 16777619); }
+    return { date, seed: seed >>> 1, difficulty: ["easy", "medium", "hard"][(seed >>> 8) % 3] };
   }
 
   function availableEquipment(profile) {
@@ -457,7 +540,7 @@
       rankUps = Math.max(0, profile.armyRank - previousRank);
       profile.armyXp = armyXpForClears(profile.completed.length, profile.armyRank);
       const rawMoney = Number(stage?.stage?.rewards?.money || 10000);
-      const difficultyMultiplier = difficultyPreset(outcome.difficulty).rewardMultiplier;
+      const difficultyMultiplier = difficultyPreset(outcome.difficulty).rewardMultiplier * (outcome.assistActive ? 0.9 : 1);
       coinsEarned = Math.round(clamp(rawMoney / 100, 80, 300) * difficultyMultiplier);
       profile.coins += coinsEarned;
       if (Number(stage.index || 0) <= 12 && Number(stage.index || 0) % 3 === 0) profile.inventory.spirit_powder += 1;
@@ -488,6 +571,20 @@
       profile.heroMastery[key] = current;
       masteryUpdates.push({ heroId: key, level: current.level, xp: current.xp, xpEarned: current.xp - beforeXp, cap, leveled: current.level > before });
     }
+    for (const heroId of Object.keys(profile.woundedHeroes)) {
+      profile.woundedHeroes[heroId] -= 1;
+      if (profile.woundedHeroes[heroId] <= 0) delete profile.woundedHeroes[heroId];
+    }
+    for (const heroId of [...new Set(outcome.ownDefeatedHeroes || [])]) profile.woundedHeroes[canonicalHeroId(heroId)] = 2;
+    if (outcome.won) profile.stageFailures[String(stage.id)] = 0;
+    else profile.stageFailures[String(stage.id)] = clamp(Number(profile.stageFailures[String(stage.id)] || 0) + 1, 0, 99);
+    const resourcesBefore = { ...profile.campaignResources };
+    const provisionCost = Math.ceil(Math.max(1, Number(outcome.totalOwn || 1)) * 1.5 + Math.max(1, Number(outcome.turns || 1)) * 0.35);
+    const provisionGain = Number(outcome.supplies || 0) * 6 + (outcome.won ? 4 : 0);
+    profile.campaignResources.provisions = clamp(profile.campaignResources.provisions - provisionCost + provisionGain, 0, 200);
+    const lossRatio = Number(outcome.ownLosses || 0) / Math.max(1, Number(outcome.totalOwn || 1));
+    const moraleDelta = (outcome.won ? 8 : -12) - Math.round(lossRatio * 8);
+    profile.campaignResources.morale = clamp(profile.campaignResources.morale + moraleDelta, 0, 100);
     const decision = outcome.decision || null;
     const record = {
       schema_version: TELEMETRY_SCHEMA,
@@ -527,6 +624,14 @@
       , objective_type: outcome.objectiveType || "scripted"
       , coins_earned: coinsEarned
       , preflight_assessment: outcome.difficultyAssessment || null
+      , formation: profile.formation
+      , vanguard: profile.stageVanguards?.[String(stage.id)] || null
+      , assist_active: Boolean(outcome.assistActive)
+      , campaign_resources_before: resourcesBefore
+      , campaign_resources_after: { ...profile.campaignResources }
+      , provision_cost: provisionCost
+      , morale_delta: moraleDelta
+      , wounded_heroes: [...new Set(outcome.ownDefeatedHeroes || [])].map(canonicalHeroId)
     };
     if (profile.settings.telemetryEnabled) profile.battleHistory = [...profile.battleHistory, record].slice(-200);
     if (profile.settings.telemetryEnabled && outcome.replay) {
@@ -544,7 +649,19 @@
   }
 
   function skillForUnit(unit) {
-    return unit ? SKILLS[unit.classId] || null : null;
+    const base = unit ? SKILLS[unit.classId] || null : null;
+    if (!base) return null;
+    const rank = clamp(Number(unit.skillRank || heroSkillRank(unit.level)), 1, 3);
+    const scalar = 1 + (rank - 1) * 0.18;
+    return {
+      ...base,
+      rank,
+      name: `${base.name}${rank > 1 ? `·${["", "精", "极"][rank - 1]}` : ""}`,
+      cost: Math.max(1, base.cost - (rank >= 3 ? 1 : 0)),
+      amount: base.amount ? Math.round(base.amount * scalar) : base.amount,
+      power: base.power ? Math.round(base.power * scalar) : base.power,
+      defense: base.defense ? Math.round(base.defense * scalar) : base.defense
+    };
   }
 
   function sameSide(left, right) {
@@ -687,9 +804,9 @@
   }
 
   return {
-    PROFILE_VERSION, TELEMETRY_SCHEMA, REPLAY_SCHEMA, POLICY_VERSION, RUNTIME_VERSION, DIFFICULTIES, DIFFICULTY_PRESETS, MAP_DETAIL_MODES, SKILLS, EQUIPMENT, EQUIPMENT_SLOTS, PROGRESSION,
+    PROFILE_VERSION, TELEMETRY_SCHEMA, REPLAY_SCHEMA, POLICY_VERSION, RUNTIME_VERSION, DIFFICULTIES, DIFFICULTY_PRESETS, MAP_DETAIL_MODES, FORMATION_PRESETS, SKILLS, EQUIPMENT, EQUIPMENT_SLOTS, PROGRESSION,
     normalizeProfile, unlockedThrough, isStageUnlocked, recommendedStageLevel, effectiveUnitLevel, effectiveHeroLevel, masteryForHero,
-    armyRankForClears, armyXpForClears, heroLevelCap, heroLevelFromXp, unitGrowthBonuses,
+    armyRankForClears, armyXpForClears, heroLevelCap, heroLevelFromXp, unitGrowthBonuses, formationModifiers, heroSkillRank, retryAssist, restArmy, missionContract, dailyChallenge,
     difficultyPreset, effectiveTurnLimit, unitDifficultyModifiers,
     equipmentBonuses, availableEquipment, buyEquipment, equipItem, buySupply,
     battleReward, selectDifficulty, wilsonInterval, difficultyCalibration, difficultyRiskBand, stageDifficultyAssessment, completeBattle, canonicalHeroId,

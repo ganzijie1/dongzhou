@@ -5,7 +5,7 @@ const systems = require("../web-game/game-systems.js");
 
 const stages = Array.from({ length: 12 }, (_, index) => ({ id: `stage-${index + 1}`, index: index + 1 }));
 const migrated = systems.normalizeProfile({ completed: ["stage-1", "stage-2", "stage-3", "stage-4", "stage-5", "stage-6"] }, stages);
-assert.equal(migrated.schemaVersion, 7);
+assert.equal(migrated.schemaVersion, 8);
 assert.equal(migrated.armyRank, 3);
 assert.equal(systems.isStageUnlocked(stages[6], migrated, stages), true);
 assert.equal(systems.isStageUnlocked(stages[7], migrated, stages), false);
@@ -37,6 +37,7 @@ assert.equal(systems.difficultyPreset("easy").enemyLevelOffset, -2);
 assert.equal(systems.difficultyPreset("hard").enemyLevelOffset, 2);
 assert.equal(systems.effectiveTurnLimit(20, "easy"), 25);
 assert.equal(systems.effectiveTurnLimit(20, "hard"), 20);
+assert.equal(systems.effectiveTurnLimit(20, "hard", true), 23);
 assert.equal(systems.effectiveTurnLimit(99, "easy"), 99);
 assert.deepEqual(systems.unitDifficultyModifiers("own", "hard"), { hp: 1, power: 1, defense: 1 });
 assert.deepEqual(systems.unitDifficultyModifiers("enemy", "hard"), { hp: 1.12, power: 1.12, defense: 1.08 });
@@ -47,6 +48,48 @@ assert.ok(systems.effectiveUnitLevel(1, "enemy", profile, 30, "medium")
 assert.equal(systems.effectiveUnitLevel(1, "enemy", profile, 172, "medium"), 60);
 assert.equal(systems.effectiveUnitLevel(1, "enemy", profile, 172, "hard"), 60);
 assert.equal(systems.effectiveUnitLevel(1, "enemy", profile, 172, "easy"), 58);
+
+const campaignProfile = systems.normalizeProfile({
+  formation: "assault",
+  stageVanguards: { "stage-1": "DuBo1" },
+  stageFailures: { "stage-1": 2 },
+  woundedHeroes: { DuBo: 2 },
+  campaignResources: { provisions: 80, morale: 60 }
+}, stages);
+const formation = systems.formationModifiers(campaignProfile, "DuBo1", "Infantry", "stage-1");
+assert.equal(formation.formation, "assault");
+assert.equal(formation.vanguard, true);
+assert.equal(formation.wounded, true);
+assert.ok(formation.power > 1);
+assert.equal(systems.heroSkillRank(1), 1);
+assert.equal(systems.heroSkillRank(20), 2);
+assert.equal(systems.heroSkillRank(40), 3);
+assert.equal(systems.retryAssist(campaignProfile, "stage-1").active, true);
+assert.equal(systems.retryAssist(campaignProfile, "stage-2").active, false);
+assert.deepEqual(systems.missionContract("escort").phases, ["清道", "护行", "接应"]);
+assert.equal(systems.dailyChallenge("2026-11-03").seed, systems.dailyChallenge("2026-11-03").seed);
+assert.notEqual(systems.dailyChallenge("2026-11-03").seed, systems.dailyChallenge("2026-11-04").seed);
+const rested = systems.restArmy({ ...campaignProfile, coins: 200 }, stages);
+assert.equal(rested.ok, true);
+assert.equal(rested.profile.coins, 80);
+assert.equal(rested.profile.campaignResources.provisions, 110);
+assert.equal(rested.profile.woundedHeroes.DuBo, 1);
+const undersupplied = systems.formationModifiers(systems.normalizeProfile({ campaignResources: { provisions: 0, morale: 70 } }, stages), "DuBo", "Infantry", "stage-1");
+assert.equal(undersupplied.undersupplied, true);
+assert.ok(undersupplied.hp < 1 && undersupplied.power < 1.1);
+const failedCampaign = systems.completeBattle(campaignProfile, stages[0], {
+  stages, won: false, turns: 18, turnLimit: 18, totalOwn: 2, ownLosses: 1,
+  ownHeroes: ["DuBo", "ZuoRu"], ownDefeatedHeroes: ["DuBo"], difficulty: "medium"
+});
+assert.equal(failedCampaign.profile.stageFailures["stage-1"], 3);
+assert.equal(failedCampaign.profile.woundedHeroes.DuBo, 2);
+assert.ok(failedCampaign.profile.campaignResources.provisions < 80);
+assert.ok(failedCampaign.profile.campaignResources.morale < 60);
+const assistedClear = systems.completeBattle(systems.normalizeProfile({ stageFailures: { "stage-1": 2 } }, stages), stages[0], {
+  stages, won: true, turns: 8, turnLimit: 18, totalOwn: 2, ownLosses: 0,
+  ownHeroes: ["DuBo"], difficulty: "medium", assistActive: true
+});
+assert.equal(assistedClear.coinsEarned, 90);
 
 const stageProfile = {
   id: "stage-risk", index: 30, objectiveType: "defeat", recommendedLevel: 11,

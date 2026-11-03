@@ -7,7 +7,7 @@
     <meta name="description" content="《东周列国志》全章节浏览器回合制战棋。">
     <title>东周列国志 · H5 战棋</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%236c211c'/><text x='32' y='44' text-anchor='middle' font-size='40' fill='%23f2dfaa'>周</text></svg>">
-    <link rel="stylesheet" href="styles.css?v=20261103-9">
+    <link rel="stylesheet" href="styles.css?v=20261103-10">
   </head>
   <body>
     <div id="loadingScreen" class="loading-screen">
@@ -141,6 +141,34 @@
           <div><dt>军阶</dt><dd id="focusRank">1 · 0/600</dd></div>
         </dl>
       </section>
+      <section class="war-council" aria-labelledby="warCouncilTitle">
+        <div class="war-council-main">
+          <div class="war-council-heading">
+            <div><span>战前军议</span><h2 id="warCouncilTitle">阵型与军势</h2></div>
+            <dl class="campaign-resources">
+              <div><dt>军粮</dt><dd id="provisionsCount">100</dd></div>
+              <div><dt>士气</dt><dd id="moraleCount">70</dd></div>
+              <div><dt>伤兵</dt><dd id="woundedCount">0</dd></div>
+            </dl>
+          </div>
+          <div class="formation-control" role="group" aria-label="选择出阵阵型">
+            <button type="button" data-formation="balanced">中军持衡<small>攻守均衡</small></button>
+            <button type="button" data-formation="assault">前军锐进<small>强攻弱守</small></button>
+            <button type="button" data-formation="bulwark">坚营固守<small>兵力防御</small></button>
+            <button type="button" data-formation="maneuver">迂回游击<small>机动谋略</small></button>
+          </div>
+          <div class="council-fields">
+            <label><span>本关先锋</span><select id="vanguardSelect" aria-label="选择本关先锋"></select></label>
+            <label class="assist-setting"><input id="assistToggle" type="checkbox"><span><strong>连续失利援助</strong><small id="assistStatus">失败两次后可用，启用时奖励略减</small></span></label>
+            <button id="restArmyButton" class="large-button" type="button">全军休整 · 120 铜钱</button>
+          </div>
+        </div>
+        <div class="war-records">
+          <div class="war-records-heading"><div><span>军府战史</span><h2>回放与每日演武</h2></div><button id="dailyChallengeButton" class="large-button primary" type="button">今日挑战</button></div>
+          <p id="dailyChallengeMeta" class="daily-meta"></p>
+          <div id="recentReplays" class="recent-replays"></div>
+        </div>
+      </section>
       <section class="quartermaster" aria-labelledby="quartermasterTitle">
         <div class="quartermaster-summary">
           <div><span>军需整备</span><h2 id="quartermasterTitle">府库与军械</h2></div>
@@ -186,11 +214,19 @@
       </section>
     </div>
 
+    <div id="replayModal" class="overlay compact-overlay" hidden>
+      <section class="replay-dialog" role="dialog" aria-modal="true" aria-labelledby="replayTitle">
+        <div class="replay-dialog-heading"><div><span>本地战史</span><h2 id="replayTitle">战局回放</h2></div><button id="closeReplayButton" class="icon-button" type="button" aria-label="关闭回放">×</button></div>
+        <div id="replayDetails" class="replay-details"></div>
+        <div class="dialog-actions"><button id="exportReplayButton" class="large-button primary" type="button">导出回放 JSON</button></div>
+      </section>
+    </div>
+
     <script src="vendor/fengari-web.js"></script>
     <script src="runtime.js"></script>
     <script src="pcgrl.js"></script>
     <script src="map-elites.js"></script>
-    <script src="game-systems.js?v=20261103-5"></script>
-    <script src="game.js?v=20261103-10"></script>
+    <script src="game-systems.js?v=20261103-6"></script>
+    <script src="game.js?v=20261103-11"></script>
   </body>
 </html>
