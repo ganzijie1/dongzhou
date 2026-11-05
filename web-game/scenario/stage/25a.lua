@@ -131,7 +131,7 @@ function on_update(game)
     if not pass_exchange_spoken and game:is_force_within(Enum.force.own, {9, 5}, 2) then
         pass_exchange_spoken = true
         game:push_cmd_speak(zhou_zhiqiao_id, "下阳是上阳门户，关门若失，虢国便无险可守！弓手集中射击中央道路！")
-        game:push_cmd_speak(0, "城墙不能跨越！弓手压住城头，步卒沿中央道路夺门，不要堵住后队射界！")
+        game:push_cmd_speak(0, "城墙难越！弓手压住城头，步卒沿中央道路夺门，前队让出射路！")
     end
 end
 function on_victory(game) end

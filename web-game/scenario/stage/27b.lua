@@ -142,8 +142,8 @@ end
 function on_update(game)
     if not caisang_clash_spoken and game:is_force_within(Enum.force.enemy, {9, 7}, 3) then
         caisang_clash_spoken = true
-        game:push_cmd_speak(bodi_id, "采桑守军就在前面！近战前队不要堵住两格射界，让弓手先压低其兵力！")
-        game:push_cmd_speak(0, "晋军开始展开。保持中央道路畅通，弓手与骑兵按次序反击！")
+        game:push_cmd_speak(bodi_id, "采桑守军就在前面！前队散开，让弓手先压住他们！")
+        game:push_cmd_speak(0, "晋军已经展开。守住中央道路，弓手压阵，骑兵伺机反击！")
     end
     if not recall_spoken and game:get_turn_current() >= 10 then
         recall_spoken = true

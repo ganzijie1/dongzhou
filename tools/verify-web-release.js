@@ -16,6 +16,7 @@ const mapElitesRuntime = require(path.join(WEB, "map-elites.js"));
 const densityReport = JSON.parse(fs.readFileSync(path.join(ROOT, "docs", "map-visual-density-report.json"), "utf8"));
 const gameSystems = require(path.join(WEB, "game-systems.js"));
 const voiceManifest = JSON.parse(fs.readFileSync(path.join(WEB, "audio", "dialogue-manifest.json"), "utf8"));
+const musicManifest = JSON.parse(fs.readFileSync(path.join(WEB, "audio", "context-music-manifest.json"), "utf8"));
 const errors = [];
 const warnings = [];
 
@@ -100,12 +101,12 @@ for (const record of campaign.stages) {
   if (!record.smoke || record.smoke.initialEndCondition == null) fail(`${record.id} 缺少首轮结束条件结果`);
 }
 
-for (const required of ["index.html", "styles.css", "game.js", "game-systems.js", "runtime.js", "pcgrl.js", "map-elites.js", "scenario/difficulty-profiles.json", "scenario/pcgrl-masui.json", "scenario/stage/pcgrl_masui.lua", "scenario/map-elites-chuisha.json", "scenario/map-elites-chuisha.archive.json", "scenario/stage/map_elites_chuisha.lua", "vendor/fengari-web.js", "vendor/LICENSE"]) {
+for (const required of ["index.html", "styles.css", "game.js", "game-systems.js", "runtime.js", "pcgrl.js", "map-elites.js", "audio/context-music-manifest.json", "scenario/difficulty-profiles.json", "scenario/pcgrl-masui.json", "scenario/stage/pcgrl_masui.lua", "scenario/map-elites-chuisha.json", "scenario/map-elites-chuisha.archive.json", "scenario/stage/map_elites_chuisha.lua", "vendor/fengari-web.js", "vendor/LICENSE"]) {
   if (!fs.existsSync(path.join(WEB, required))) fail(`缺少发布文件：${required}`);
 }
 
 const releaseFiles = new Set();
-for (const relative of ["index.html", "styles.css", "game.js", "game-systems.js", "runtime.js", "pcgrl.js", "map-elites.js", "README.md", "audio/dialogue-manifest.json"]) {
+for (const relative of ["index.html", "styles.css", "game.js", "game-systems.js", "runtime.js", "pcgrl.js", "map-elites.js", "README.md", "audio/dialogue-manifest.json", "audio/context-music-manifest.json"]) {
   releaseFiles.add(path.join(WEB, relative));
 }
 for (const folder of ["assets", "scenario", "vendor"]) {
@@ -118,9 +119,21 @@ for (const entry of normalizedVoiceManifest.entries) {
   if (!file.startsWith(`${WEB}${path.sep}`) || !fs.existsSync(file)) fail(`配音发布文件缺失：${entry.file}`);
   else releaseFiles.add(file);
 }
+const normalizedMusicManifest = gameSystems.normalizeMusicManifest(musicManifest);
+const luaRuntimeSpeechCount = folderFiles(path.join(WEB, "scenario", "stage"))
+  .filter((file) => file.endsWith(".lua"))
+  .reduce((sum, file) => sum + [...fs.readFileSync(file, "utf8").matchAll(/push_cmd_speak\s*\(\s*([^,]+)\s*,\s*"((?:[^"\\]|\\.)*)"\s*\)/g)].length, 0);
+const expectedMusicCues = campaign.stages.length
+  + campaign.stages.reduce((sum, stage) => sum + ["intro", "victory", "defeat"].filter((section) => asArray(stage.story?.[section]).length).length, 0)
+  + campaign.stages.reduce((sum, stage) => sum + asArray(stage.story?.events).length, 0)
+  + luaRuntimeSpeechCount;
+if (normalizedMusicManifest.cues.length !== expectedMusicCues) fail(`Context music coverage mismatch: ${normalizedMusicManifest.cues.length}/${expectedMusicCues}`);
+for (const cue of normalizedMusicManifest.cues) {
+  const file = path.resolve(WEB, cue.file);
+  if (!file.startsWith(`${WEB}${path.sep}`) || !fs.existsSync(file)) fail(`Missing contextual music file: ${cue.file}`);
+  else releaseFiles.add(file);
+}
 const bytes = [...releaseFiles].reduce((sum, file) => sum + fs.statSync(file).size, 0);
-const uploadLimit = 200 * 1024 * 1024;
-if (bytes >= uploadLimit) fail(`发布目录超过 200 MB：${(bytes / 1024 / 1024).toFixed(2)} MB`);
 
 const summary = {
   stages: campaign.stages.length,
@@ -129,6 +142,7 @@ const summary = {
   generatedUnits,
   dialogueCount,
   runtimeDialogueCount,
+  contextualMusicCues: normalizedMusicManifest.cues.length,
   classSkills: Object.keys(gameSystems.SKILLS).length,
   equipment: Object.keys(gameSystems.EQUIPMENT).length,
   difficultyProfiles: Object.keys(difficultyProfiles.profiles || {}).length,

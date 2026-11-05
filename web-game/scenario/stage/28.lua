@@ -174,8 +174,8 @@ function on_update(game)
     end
     if not court_gate_spoken and game:is_force_within(Enum.force.own, {9, 7}, 2) then
         court_gate_spoken = true
-        game:push_cmd_speak(liangwu_id, "关闭朝门已经来不及了！步卒堵住两格通道，弓手从门内齐射！")
-        game:push_cmd_speak(0, "宫墙无法跨越，从两格朝门轮换进兵，不要让前排堵死后队！")
+        game:push_cmd_speak(liangwu_id, "关闭朝门已经来不及了！步卒堵住门道，弓手从门内齐射！")
+        game:push_cmd_speak(0, "宫墙难越，从朝门轮换进兵，前队得手便向两侧散开！")
     end
     if not liangwu_spoken and not game:has_unit("LiangWu28") then
         liangwu_spoken = true

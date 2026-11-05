@@ -6,7 +6,9 @@ from __future__ import annotations
 import argparse
 import gc
 import hashlib
+import importlib.util
 import json
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,6 +21,7 @@ WORKSPACE = ROOT.parent
 PLAN_PATH = ROOT / "web-game" / "audio" / "dialogue-production-plan.json"
 CARDS_PATH = ROOT / "web-game" / "audio" / "voice-cards.json"
 MODEL_PATH = WORKSPACE / ".tools" / "models" / "Qwen3-TTS-12Hz-1.7B-VoiceDesign"
+QWEN_PYTHON = WORKSPACE / ".tools" / "venvs" / "qwen3-tts" / "Scripts" / "python.exe"
 OUTPUT_ROOT = ROOT / "output" / "voice-production" / "contextual-candidates"
 INDEX_PATH = ROOT / "output" / "voice-production" / "contextual-candidate-index.json"
 
@@ -126,11 +129,16 @@ def write_index(records: list[dict], plan_only: bool) -> None:
 
 def main() -> None:
     args = parse_args()
+    if not args.plan_only and not args.analyze_only and importlib.util.find_spec("qwen_tts") is None:
+        if not QWEN_PYTHON.exists():
+            raise RuntimeError("Qwen TTS runtime is missing; install qwen-tts in the project voice environment")
+        result = subprocess.run([str(QWEN_PYTHON), str(Path(__file__).resolve()), *sys.argv[1:]])
+        raise SystemExit(result.returncode)
     if args.candidates < 1:
         raise RuntimeError("--candidates must be positive")
     plan = json.loads(PLAN_PATH.read_text(encoding="utf-8"))
-    if plan.get("schemaVersion") != 3:
-        raise RuntimeError("Rebuild the voice plan with schema 3 before contextual synthesis")
+    if plan.get("schemaVersion") != 4:
+        raise RuntimeError("Rebuild the voice plan with schema 4 before contextual synthesis")
     cards = json.loads(CARDS_PATH.read_text(encoding="utf-8"))["cards"]
     cards_by_id = {card["id"]: card for card in cards}
     stages = None if args.stages.strip().lower() == "all" else {item.strip() for item in args.stages.split(",") if item.strip()}

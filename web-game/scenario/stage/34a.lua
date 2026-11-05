@@ -128,7 +128,7 @@ function on_update(game)
         game:generate_unit("ChuGuard34", 1, Enum.force.enemy, {15, 9})
         game:generate_unit("ChuArcher34", 1, Enum.force.enemy, {7, 10})
         game:generate_unit("ChuArcher34", 1, Enum.force.enemy, {11, 10})
-        game:push_cmd_speak(0, "第三回合，楚军最后一批攻城兵赶到；守住本回合，楚军便会因伤亡过大而退兵。")
+        game:push_cmd_speak(0, "楚军最后一批攻城兵已经赶到！守住这一轮猛攻，他们便无力再战！")
     end
 end
 

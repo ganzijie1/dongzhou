@@ -92,7 +92,7 @@ function on_begin(game)
  many(game,"SongCityArcher55",{{33,12},{33,24},{38,14},{38,22},{46,14},{46,22}},Enum.force.enemy)
 end
 function on_update(game)
- if not siege_started and not game:has_unit("SongGateGuard55")then siege_started=true;siege_turn=game:get_turn_current();game:push_cmd_speak(0,"西门外防线已破，维持五回合围攻态势。")end
+ if not siege_started and not game:has_unit("SongGateGuard55")then siege_started=true;siege_turn=game:get_turn_current();game:push_cmd_speak(0,"西门外防线已破！围住城门，轮番施压，不得给守军喘息之机！")end
  if siege_started and not peace_ready and game:get_turn_current()>=siege_turn+5 then peace_ready=true;game:push_cmd_speak(0,"双方粮尽，华元今夜将潜入子反土堙议和。")end
 end
 function on_victory(game)end function on_defeat(game)end

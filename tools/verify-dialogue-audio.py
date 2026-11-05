@@ -10,6 +10,8 @@ import re
 import subprocess
 from pathlib import Path
 
+from runtime_speech import extract_runtime_speech
+
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "web-game" / "audio" / "dialogue-manifest.json"
@@ -17,6 +19,7 @@ CAMPAIGN_PATH = ROOT / "web-game" / "scenario" / "campaign.json"
 EXTRA_STORY_PATHS = (ROOT / "web-game" / "scenario" / "map-elites-chuisha.json",)
 PLAN_PATH = ROOT / "web-game" / "audio" / "dialogue-production-plan.json"
 CARDS_PATH = ROOT / "web-game" / "audio" / "voice-cards.json"
+STAGE_DIR = ROOT / "web-game" / "scenario" / "stage"
 EDGE_VOICE_GENDERS = {
     "zh-CN-XiaoxiaoNeural": "female",
     "zh-CN-XiaoyiNeural": "female",
@@ -75,6 +78,7 @@ def campaign_lines() -> set[tuple[str, str]]:
     stages = list(campaign["stages"])
     stages.extend(json.loads(path.read_text(encoding="utf-8")) for path in EXTRA_STORY_PATHS if path.exists())
     lines: set[tuple[str, str]] = set()
+    story_speakers: set[str] = set()
     for stage in stages:
         for section in ("intro", "events", "victory", "defeat"):
             raw = stage.get("story", {}).get(section, [])
@@ -82,8 +86,16 @@ def campaign_lines() -> set[tuple[str, str]]:
             for entry in entries:
                 speaker = str(entry.get("speaker") or "旁白")
                 text = str(entry.get("text") or "")
+                if speaker not in EXCLUDED_SPEAKERS:
+                    story_speakers.add(speaker)
                 lines.add((speaker, text))
                 lines.update((speaker, chunk) for chunk in split_story_text(text))
+    for stage in campaign["stages"]:
+        for runtime_call in extract_runtime_speech(stage, STAGE_DIR, sorted(story_speakers)):
+            speaker = runtime_call["speaker"]
+            text = runtime_call["text"]
+            lines.add((speaker, text))
+            lines.update((speaker, chunk) for chunk in split_story_text(text))
     return lines
 
 
@@ -100,7 +112,7 @@ def main() -> None:
     total_duration = 0.0
     backend_counts: dict[str, int] = {}
 
-    if manifest.get("schemaVersion") not in {1, 2, 3}:
+    if manifest.get("schemaVersion") not in {1, 2, 3, 4, 5}:
         raise RuntimeError("Unsupported dialogue manifest schema")
     if not entries:
         raise RuntimeError("Dialogue manifest has no entries")
@@ -116,9 +128,14 @@ def main() -> None:
             raise RuntimeError(f"Dialogue does not match campaign text: {line_key}")
         if manifest.get("narrationExcluded") and line_key[0] in EXCLUDED_SPEAKERS:
             raise RuntimeError(f"Narration or system text must not be voiced: {line_key}")
-        if manifest.get("schemaVersion") in {2, 3} and (not entry.get("ageBand") or not entry.get("ageBasis")):
+        if manifest.get("schemaVersion") in {2, 3, 4, 5} and (not entry.get("ageBand") or not entry.get("ageBasis")):
             raise RuntimeError(f"Missing age provenance for {entry_id}")
-        if manifest.get("schemaVersion") in {2, 3}:
+        if manifest.get("schemaVersion") in {4, 5}:
+            if not entry.get("contextId") or not entry.get("firstOccurrence") or not entry.get("occurrences"):
+                raise RuntimeError(f"Missing contextual selectors for {entry_id}")
+            if not entry.get("styleAnchor"):
+                raise RuntimeError(f"Missing style anchor for {entry_id}")
+        if manifest.get("schemaVersion") in {2, 3, 4, 5}:
             backend = str(entry.get("backend", ""))
             if backend not in {"qwen3-tts-voice-design-clone", "qwen3-tts-contextual-voice-design", "edge-tts"}:
                 raise RuntimeError(f"Missing or unsupported render backend for {entry_id}: {backend}")
@@ -138,6 +155,11 @@ def main() -> None:
                     )
                 if entry.get("genderVerification") != "provider-voice-contract":
                     raise RuntimeError(f"Missing provider gender verification for {entry_id}")
+                if manifest.get("schemaVersion") >= 5:
+                    contextual = entry.get("contextualProsody") or {}
+                    required = {"emotion", "speechAct", "pace", "intensity", "pauseStrength", "dominance", "pausePlan"}
+                    if not required.issubset(contextual):
+                        raise RuntimeError(f"Missing contextual Edge prosody for {entry_id}")
             elif entry.get("genderVerification") != "human-reviewed":
                 raise RuntimeError(
                     f"Unreviewed custom voice for {entry_id}; Qwen voices require a human acoustic gender review"

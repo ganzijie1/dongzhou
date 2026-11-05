@@ -1,6 +1,8 @@
 (() => {
   "use strict";
 
+  const STAGE_SCRIPT_VERSION = "20261105-dialogue3";
+
   function isLuaProxy(value) {
     return typeof value === "function" && value[Symbol.toStringTag] === "Fengari object";
   }
@@ -27,7 +29,7 @@
     async loadStage(record, api) {
       this.api = api;
       this.resetStageGlobals();
-      const source = await fetch(`scenario/stage/${record.file}`).then((response) => {
+      const source = await fetch(`scenario/stage/${record.file}?v=${STAGE_SCRIPT_VERSION}`).then((response) => {
         if (!response.ok) throw new Error(`关卡 ${record.id} 载入失败：${response.status}`);
         return response.text();
       });

@@ -259,3 +259,90 @@ def character_error_rate(reference: str, hypothesis: str) -> float:
             ))
         previous = current
     return previous[-1] / len(reference)
+
+
+def transcript_edit_operations(reference: str, hypothesis: str) -> list[dict]:
+    """Return a deterministic character-level alignment for review evidence."""
+    reference = normalize_transcript(reference)
+    hypothesis = normalize_transcript(hypothesis)
+    rows = len(reference) + 1
+    columns = len(hypothesis) + 1
+    cost = [[0] * columns for _ in range(rows)]
+    back = [[""] * columns for _ in range(rows)]
+    for row in range(1, rows):
+        cost[row][0] = row
+        back[row][0] = "delete"
+    for column in range(1, columns):
+        cost[0][column] = column
+        back[0][column] = "insert"
+    for row in range(1, rows):
+        for column in range(1, columns):
+            if reference[row - 1] == hypothesis[column - 1]:
+                cost[row][column] = cost[row - 1][column - 1]
+                back[row][column] = "equal"
+                continue
+            choices = (
+                (cost[row - 1][column - 1] + 1, "substitute"),
+                (cost[row - 1][column] + 1, "delete"),
+                (cost[row][column - 1] + 1, "insert"),
+            )
+            cost[row][column], back[row][column] = min(choices, key=lambda item: (item[0], item[1]))
+
+    operations: list[dict] = []
+    row, column = len(reference), len(hypothesis)
+    while row or column:
+        operation = back[row][column]
+        if operation == "equal":
+            row -= 1
+            column -= 1
+            continue
+        if operation == "substitute":
+            operations.append({
+                "type": operation,
+                "reference": reference[row - 1],
+                "hypothesis": hypothesis[column - 1],
+                "referenceIndex": row - 1,
+            })
+            row -= 1
+            column -= 1
+        elif operation == "delete":
+            operations.append({
+                "type": operation,
+                "reference": reference[row - 1],
+                "hypothesis": "",
+                "referenceIndex": row - 1,
+            })
+            row -= 1
+        elif operation == "insert":
+            operations.append({
+                "type": operation,
+                "reference": "",
+                "hypothesis": hypothesis[column - 1],
+                "referenceIndex": row,
+            })
+            column -= 1
+        else:
+            raise RuntimeError("Broken transcript alignment")
+    operations.reverse()
+    return operations
+
+
+def validate_critical_terms(reference: str, hypothesis: str, terms: Iterable[str]) -> dict:
+    """Check only terms that actually occur in the reference utterance."""
+    normalized_reference = normalize_transcript(reference)
+    normalized_hypothesis = normalize_transcript(hypothesis)
+    applicable: list[str] = []
+    missing: list[str] = []
+    for raw_term in terms:
+        term = normalize_transcript(str(raw_term))
+        if len(term) < 2 or term not in normalized_reference or term in applicable:
+            continue
+        applicable.append(term)
+        if term not in normalized_hypothesis:
+            missing.append(term)
+    return {
+        "terms": applicable,
+        "missingTerms": missing,
+        "status": "pass" if not missing else "manual_hard_gate_review",
+        "caveat": "ASR is supporting evidence; names and archaic terms require listening confirmation.",
+    }

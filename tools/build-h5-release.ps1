@@ -20,6 +20,14 @@ if (-not $staging.StartsWith($outputDir, [System.StringComparison]::OrdinalIgnor
 try {
     node (Join-Path $PSScriptRoot "verify-web-release.js")
     if ($LASTEXITCODE -ne 0) { throw "H5 release verification failed" }
+    python (Join-Path $PSScriptRoot "verify-dialogue-voice-plan.py")
+    if ($LASTEXITCODE -ne 0) { throw "Dialogue production-plan verification failed" }
+    python (Join-Path $PSScriptRoot "verify-dialogue-audio.py") --require-stages all
+    if ($LASTEXITCODE -ne 0) { throw "Dialogue audio verification failed" }
+    node (Join-Path $PSScriptRoot "audit-runtime-voice-coverage.js")
+    if ($LASTEXITCODE -ne 0) { throw "Lua runtime dialogue coverage failed" }
+    python (Join-Path $PSScriptRoot "verify-contextual-music.py")
+    if ($LASTEXITCODE -ne 0) { throw "Contextual music verification failed" }
 
     New-Item -ItemType Directory -Path $staging -Force | Out-Null
     foreach ($name in @("assets", "scenario", "vendor")) {
@@ -46,6 +54,21 @@ try {
         Copy-Item -LiteralPath $source -Destination $target
     }
 
+    $musicManifestPath = Join-Path $web "audio\context-music-manifest.json"
+    Copy-Item -LiteralPath $musicManifestPath -Destination (Join-Path $audioDir "context-music-manifest.json")
+    $musicManifest = Get-Content -LiteralPath $musicManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    foreach ($cue in $musicManifest.cues) {
+        $relative = [string]$cue.file
+        if (-not $relative.StartsWith("audio/context-music/", [System.StringComparison]::Ordinal)) {
+            throw "Unsafe contextual music path in manifest: $relative"
+        }
+        $source = Join-Path $web ($relative.Replace("/", "\"))
+        if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing contextual music file: $relative" }
+        $target = Join-Path $staging ($relative.Replace("/", "\"))
+        New-Item -ItemType Directory -Path (Split-Path $target -Parent) -Force | Out-Null
+        Copy-Item -LiteralPath $source -Destination $target
+    }
+
     if (Test-Path -LiteralPath $OutputPath) { Remove-Item -LiteralPath $OutputPath -Force }
     $rootEntries = @(Get-ChildItem -LiteralPath $staging | ForEach-Object { $_.Name })
     & tar.exe -a -cf $OutputPath -C $staging @rootEntries
@@ -55,7 +78,7 @@ try {
     $archive = [System.IO.Compression.ZipFile]::OpenRead($OutputPath)
     try {
         $names = @($archive.Entries | ForEach-Object { $_.FullName.Replace("\", "/") })
-        foreach ($required in @("index.html", "game.js", "game-systems.js", "scenario/difficulty-profiles.json", "audio/dialogue-manifest.json")) {
+        foreach ($required in @("index.html", "game.js", "game-systems.js", "scenario/difficulty-profiles.json", "audio/dialogue-manifest.json", "audio/context-music-manifest.json")) {
             if ($names -notcontains $required) { throw "Release archive missing: $required" }
         }
     } finally {

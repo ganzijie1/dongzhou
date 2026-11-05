@@ -140,12 +140,12 @@ function on_update(game)
         game:generate_unit("Assassin31", 1, Enum.force.enemy, {0, 11})
         game:generate_unit("Assassin31", 1, Enum.force.enemy, {1, 13})
         game:generate_unit("AssassinArcher31", 1, Enum.force.enemy, {2, 13})
-        game:push_cmd_speak(bodi_id, "足迹尚新，重耳就在东北主路！刺客贴近追击，弓手寻找两格射界！")
-        game:push_cmd_speak(0, "勃鞮追兵已从西南进入。重耳继续向东北出口撤离，后队不得恋战！")
+        game:push_cmd_speak(bodi_id, "足迹尚新，重耳就在东北主路！刺客贴近追击，弓手抢占开阔处！")
+        game:push_cmd_speak(0, "勃鞮追兵已从西南杀入。我继续向东北撤离，后队不得恋战！")
     end
     if not fork_spoken and game:is_unit_within("ChongEr27", {10, 5}, 2) then
         fork_spoken = true
-        game:push_cmd_speak(0, "东北宽路就在前面！只有重耳本人抵达出口才算脱险！")
+        game:push_cmd_speak(0, "东北宽路就在前面！诸位护我冲出谷口，再一同脱险！")
     end
 end
 

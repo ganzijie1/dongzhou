@@ -128,7 +128,7 @@ end
 function on_update(game)
     if not jiangrong_clash_spoken and game:is_force_within(Enum.force.own, {9, 4}, 3) then
         jiangrong_clash_spoken = true
-        game:push_cmd_speak(wuli_id, "秦军已出山口！骑兵压两翼，弓手不要被前排堵住射界！")
+        game:push_cmd_speak(wuli_id, "秦军已出山口！骑兵压住两翼，前队散开，给弓手让出射路！")
         game:push_cmd_speak(0, "敌军主力就在北面营地！三帅保持相互支援，集中击退吾离！")
     end
 end

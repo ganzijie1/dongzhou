@@ -210,7 +210,7 @@ function on_update(game)
         wen_cleared = true
         move_jin_main_force_to_yuan(game)
         yuan_phase_start_turn = game:get_turn_current()
-        game:push_cmd_speak(0, "温城敌军已全部肃清！晋军主力自动移至原城南侧，三日围原自本回合开始；原城守军闭门不出，并会持续补员。")
+        game:push_cmd_speak(0, "温城已定！诸军随我转向原城南门。只围不攻，守军若闭门补缺，也不得滥杀破城！")
     elseif wen_cleared and not yuan_second_day_spoken
        and game:get_turn_current() >= yuan_phase_start_turn + 1 then
         yuan_second_day_spoken = true

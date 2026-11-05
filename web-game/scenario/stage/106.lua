@@ -52,7 +52,7 @@ function on_begin(game)
  many(game,"LateZhouGuardEnemy",{{41,19},{40,19},{41,18},{41,20},{42,19},{41,21},{42,18},{42,20}},Enum.force.enemy)
  many(game,"LateZhouArcherEnemy",{{38,19},{37,19},{38,18},{38,20}},Enum.force.enemy)
 end
-function on_update(game)if phase==1 and not game:has_unit("LateZhouGuardEnemy") and not game:has_unit("LateZhouArcherEnemy")then phase=2;game:push_cmd_speak(enemy_unit,"主力已溃，依史实撤出战场！");game:push_cmd_move(enemy_unit,{51,19})end
+function on_update(game)if phase==1 and not game:has_unit("LateZhouGuardEnemy") and not game:has_unit("LateZhouArcherEnemy")then phase=2;game:push_cmd_speak(enemy_unit,"战机已失，不可徒损士卒。整队后撤！");game:push_cmd_move(enemy_unit,{51,19})end
 end
 function on_victory(game)end
 function on_defeat(game)end

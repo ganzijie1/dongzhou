@@ -1,6 +1,43 @@
+@font-face {
+  font-family: "Dongzhou Display";
+  src: url("assets/fonts/ZCOOLQingKeHuangYou-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Dongzhou Title";
+  src: url("assets/fonts/NotoSerifSC-Dongzhou-700.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Dongzhou Text";
+  src: url("assets/fonts/NotoSerifSC-Dongzhou-400.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Dongzhou Pixel";
+  src: url("assets/fonts/FusionPixel12-Dongzhou.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 :root {
   color-scheme: dark;
-  font-family: "Microsoft YaHei", "Noto Sans CJK SC", "PingFang SC", sans-serif;
+  --font-display: "Dongzhou Title", "Noto Serif SC", "Source Han Serif SC", "SimSun", serif;
+  --font-seal: "Dongzhou Display", "Microsoft YaHei UI", "DengXian", sans-serif;
+  --font-ui: "Dongzhou Text", "Noto Serif SC", "Source Han Serif SC", "SimSun", serif;
+  --font-pixel: "Dongzhou Pixel", "SimSun", monospace;
+  --font-number: "Bahnschrift Condensed", "Arial Narrow", "Microsoft YaHei UI", sans-serif;
+  font-family: var(--font-ui);
   background: #10120e;
   color: #e8e3d5;
   letter-spacing: 0;
@@ -24,6 +61,619 @@ html, body { margin: 0; min-height: 100%; background: var(--ink); }
 body { min-width: 320px; overflow-x: hidden; }
 
 button { font: inherit; letter-spacing: 0; }
+
+input, select, textarea { font-family: var(--font-ui); letter-spacing: 0; }
+
+.focus-facts dd,
+.stage-thumb i,
+.journey-node b,
+.rank-badge,
+.progress-summary,
+.campaign-resources dd,
+.quartermaster-summary dd,
+.turn-state,
+.zoom-control,
+.result-stats strong {
+  font-family: var(--font-number);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Campaign composition v24: hierarchy first, ornament only where it carries meaning. */
+.campaign-header {
+  min-height: 88px;
+  padding: 15px clamp(24px, 4vw, 62px);
+  background:
+    linear-gradient(180deg, rgba(7, 10, 8, .96), rgba(7, 10, 8, .82) 72%, rgba(7, 10, 8, .18));
+  border-bottom: 1px solid rgba(196, 157, 77, .28);
+}
+
+.campaign-brand { gap: 12px; }
+.campaign-brand > span:first-child {
+  width: 40px;
+  height: 40px;
+  border-radius: 0;
+  background: #7b251c;
+  border: 1px solid rgba(219, 179, 93, .62);
+  box-shadow: inset 0 0 0 4px rgba(44, 15, 12, .36);
+}
+.campaign-brand small { color: #bda669; }
+.campaign-brand strong { font-size: 22px; font-weight: 600; }
+
+.era-waypoints {
+  gap: 0;
+  border-block: 1px solid rgba(189, 159, 91, .14);
+}
+.era-waypoint {
+  min-width: 126px;
+  min-height: 48px;
+  padding: 7px 18px 7px 44px;
+  clip-path: none;
+  background: rgba(14, 17, 14, .32);
+  border: 0;
+  border-right: 1px solid rgba(189, 159, 91, .13);
+  color: #a9a694;
+  transform: none;
+  transition: color .18s ease, background-color .18s ease;
+}
+.era-waypoint:first-child { border-left: 1px solid rgba(189, 159, 91, .13); }
+.era-waypoint::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: -1px;
+  height: 2px;
+  background: transparent;
+}
+.era-waypoint:hover { background: rgba(196, 157, 77, .08); color: #e5d8b6; }
+.era-waypoint.is-active {
+  background: linear-gradient(180deg, rgba(117, 37, 28, .2), rgba(196, 157, 77, .06));
+  color: #f0e4c5;
+}
+.era-waypoint.is-active::after { background: #b68a3c; }
+.era-waypoint > span {
+  left: 17px;
+  width: 20px;
+  height: 24px;
+  clip-path: none;
+  transform: none;
+  background: transparent;
+  border: 1px solid rgba(196, 157, 77, .42);
+  color: #caa555;
+}
+.era-waypoint.is-active > span {
+  transform: none;
+  background: #7b251c;
+  border-color: #bd8e42;
+  color: #f0dfb3;
+}
+
+.campaign-settings-button {
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid rgba(190, 162, 96, .22);
+  background: rgba(10, 12, 10, .34);
+  clip-path: none;
+}
+.campaign-settings-button::after { display: none; }
+
+.campaign-focus {
+  min-height: min(760px, 86svh);
+  padding: 116px clamp(34px, 6vw, 92px) 50px;
+  grid-template-columns: minmax(0, 570px) minmax(180px, 220px);
+  gap: clamp(54px, 8vw, 126px);
+}
+.focus-map::after {
+  background:
+    linear-gradient(90deg, rgba(6, 9, 7, .9) 0%, rgba(6, 9, 7, .74) 31%, rgba(6, 9, 7, .24) 61%, rgba(6, 9, 7, .05) 100%),
+    linear-gradient(0deg, rgba(5, 8, 6, .72), transparent 34%, rgba(5, 8, 6, .16) 72%, rgba(5, 8, 6, .5));
+}
+.focus-map > picture:nth-of-type(1) img { filter: saturate(.74) contrast(1.07) brightness(.7); }
+.focus-map > picture:nth-of-type(2) img {
+  right: -1%;
+  opacity: .52;
+  filter: saturate(.68) contrast(1.06) brightness(.61);
+}
+.campaign-stage-texture { opacity: .025; mix-blend-mode: soft-light; }
+.focus-atmosphere { display: none; }
+
+.focus-copy {
+  width: min(100%, 550px);
+  align-self: end;
+  padding-bottom: 8px;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, .76);
+}
+.focus-era-glyph {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 16px;
+  border-radius: 0;
+  transform: none;
+  border: 1px solid rgba(199, 158, 75, .5);
+  background: rgba(105, 34, 26, .74);
+  box-shadow: inset 0 0 0 3px rgba(9, 10, 8, .42);
+}
+.focus-era-glyph span { transform: none; font-size: 17px; }
+.focus-kicker {
+  margin-bottom: 9px;
+  color: #c8a759;
+  letter-spacing: 0;
+}
+.focus-copy h2 {
+  margin: 0 0 9px;
+  font-size: 46px;
+  line-height: 1.03;
+  font-weight: 600;
+  color: #f3ead5;
+  letter-spacing: 0;
+}
+.focus-context {
+  margin-bottom: 14px;
+  color: #c9c1ac;
+  font-size: 13px;
+}
+.focus-story {
+  max-width: 510px;
+  margin-bottom: 18px;
+  color: #aaa99f;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.focus-order {
+  width: min(100%, 510px);
+  margin: 0 0 14px;
+  padding: 9px 0 10px 16px;
+  clip-path: none;
+  background: linear-gradient(90deg, rgba(23, 27, 20, .56), transparent 78%);
+  border: 0;
+  border-left: 2px solid #b58a3f;
+  box-shadow: none;
+}
+.focus-order::before { display: none; }
+.focus-order span { color: #bda364; font-size: 9px; }
+.focus-order strong { color: #eee3c8; font-size: 14px; font-weight: 500; }
+.focus-actions { gap: 14px; }
+.focus-primary-button {
+  min-width: 132px;
+  min-height: 44px;
+  padding: 0 21px;
+  clip-path: none;
+  border-radius: 2px;
+  border: 1px solid rgba(213, 140, 91, .6);
+  background: #7d281e;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .24);
+}
+.focus-primary-button::after { display: none; }
+.focus-camp-button { min-height: 44px; padding-right: 4px; }
+.focus-camp-button > span:first-child {
+  width: 32px;
+  height: 32px;
+  clip-path: none;
+  transform: none;
+  border: 1px solid rgba(195, 159, 81, .48);
+  background: rgba(24, 29, 22, .72);
+}
+.focus-camp-button > span:first-child b { transform: none; }
+.focus-archive-button { min-height: 44px; color: #aca99b; }
+.focus-guidance { margin-top: 12px; color: #777b73; }
+
+/* The map is an unframed part of the scene; only the route and place names stay explicit. */
+.focus-geography,
+.campaign-screen[data-era="western-zhou"] .focus-geography,
+.campaign-screen[data-era="spring-autumn"] .focus-geography,
+.campaign-screen[data-era="warring-states"] .focus-geography {
+  top: 102px;
+  right: clamp(190px, 16vw, 252px);
+  width: min(47vw, 670px);
+  height: 330px;
+  transform: none;
+  filter: none;
+  opacity: .76;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.focus-geography::before,
+.focus-geography::after,
+.campaign-screen[data-era="western-zhou"] .focus-geography::before,
+.campaign-screen[data-era="western-zhou"] .focus-geography::after,
+.campaign-screen[data-era="spring-autumn"] .focus-geography::after,
+.campaign-screen[data-era="warring-states"] .focus-geography::after { display: none; }
+.geography-heading {
+  top: 0;
+  right: 0;
+  left: auto;
+  width: auto;
+  height: auto;
+  padding: 0 0 8px;
+  display: flex;
+  flex-direction: row;
+  gap: 7px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(200, 165, 87, .28);
+  clip-path: none;
+  transform: none;
+}
+.geography-heading::before { display: none; }
+.geography-heading strong,
+.geography-heading span { transform: none; }
+.geography-heading strong { font-size: 10px; color: #c3a35c; }
+.geography-heading span { font-size: 9px; color: #85877d; }
+.geography-map,
+.campaign-screen[data-era="western-zhou"] .geography-map,
+.campaign-screen[data-era="spring-autumn"] .geography-map,
+.campaign-screen[data-era="warring-states"] .geography-map {
+  inset: 22px 0 0;
+  border: 0;
+  border-radius: 0;
+  clip-path: none;
+  background: transparent;
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent), linear-gradient(0deg, transparent, #000 17%, #000 90%, transparent);
+  mask-composite: intersect;
+}
+.geography-map img,
+.campaign-screen[data-era="western-zhou"] .geography-map img {
+  opacity: .5;
+  filter: grayscale(.24) sepia(.18) saturate(.72) contrast(1.08) brightness(.72);
+}
+.geography-marker {
+  width: 28px;
+  height: 28px;
+  clip-path: none;
+  border-radius: 50%;
+  background: rgba(12, 16, 13, .7);
+  border: 1px solid rgba(190, 157, 83, .46);
+  color: #d3c39a;
+  box-shadow: 0 0 0 3px rgba(9, 12, 10, .28);
+}
+.geography-marker.is-current {
+  transform: scale(1.08);
+  background: #74261e;
+  border-color: #cfaa54;
+}
+.geography-marker small { top: 32px; color: #b7b09d; }
+
+.focus-journey {
+  left: 53%;
+  right: clamp(214px, 18vw, 278px);
+  top: 45%;
+  bottom: 11%;
+}
+.journey-track,
+.journey-progress { height: 1px; }
+.journey-track { background: rgba(199, 171, 105, .24); }
+.journey-progress { background: linear-gradient(90deg, #7b3726, #c19b4a); }
+.journey-node {
+  width: 34px;
+  height: 34px;
+  transform: translate(-50%, -50%);
+  clip-path: none;
+  border-radius: 50%;
+  border: 1px solid rgba(193, 159, 82, .42);
+  background: rgba(10, 14, 11, .76);
+  box-shadow: 0 0 0 4px rgba(7, 10, 8, .3);
+}
+.journey-node.is-current {
+  background: #7c291f;
+  border-color: #d0aa53;
+  box-shadow: 0 0 0 4px rgba(124, 41, 31, .22);
+}
+.journey-node small { color: #a9a28e; }
+
+.focus-chronicle {
+  width: 100%;
+  align-self: end;
+  padding: 0 0 8px 18px;
+  background: linear-gradient(90deg, rgba(9, 12, 9, .55), transparent);
+  border: 0;
+  border-left: 1px solid rgba(197, 163, 85, .32);
+  box-shadow: none;
+}
+.focus-chronicle::before { display: none; }
+.chronicle-heading {
+  margin: 0 0 8px;
+  padding: 0 0 7px;
+  transform: none;
+  border-bottom: 1px solid rgba(197, 163, 85, .22);
+}
+.chronicle-heading strong,
+.chronicle-heading small { transform: none; }
+.chronicle-heading strong { color: #c6a964; font-size: 11px; }
+.chronicle-heading small { color: #777b73; }
+.focus-facts { gap: 0; }
+.focus-facts div {
+  min-height: 50px;
+  padding: 8px 0;
+  clip-path: none;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(197, 163, 85, .12);
+}
+.focus-facts div::before { display: none; }
+.focus-facts dt { color: #777c73; }
+.focus-facts dd { margin-top: 2px; color: #ddd1b5; font-size: 13px; }
+.progress-summary { padding-top: 10px; border-top: 0; color: #85867b; }
+
+/* The archive keeps the timeline, but drops arbitrary cut corners and dashboard tiles. */
+.campaign-archive::before { opacity: .032; }
+.archive-heading::before,
+.archive-heading::after { height: 1px; clip-path: none; }
+.era-divider > span {
+  width: 44px;
+  height: 44px;
+  transform: none;
+  clip-path: none;
+  background: #62251e;
+  border: 1px solid rgba(195, 157, 74, .54);
+}
+.era-divider > span > b { transform: none; }
+.stage-card,
+.stage-card:nth-child(even) {
+  transform: none;
+  clip-path: none;
+  border: 1px solid rgba(194, 158, 75, .22);
+  border-left: 2px solid rgba(194, 158, 75, .58);
+  background: rgba(21, 25, 20, .82);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .22);
+}
+.stage-card::before,
+.stage-card::after { display: none; }
+.stage-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(202, 165, 78, .48);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, .3);
+}
+.stage-thumb,
+.stage-thumb::after,
+.stage-thumb i,
+.stage-card:nth-child(odd) .stage-thumb i,
+.stage-card:nth-child(even) .stage-thumb i { clip-path: none; }
+.stage-thumb { border-radius: 2px; }
+.stage-thumb i {
+  transform: none;
+  border-radius: 50%;
+  background: rgba(101, 37, 29, .9);
+}
+.war-council,
+.quartermaster,
+.campaign-camp-drawer .war-council,
+.campaign-camp-drawer .quartermaster {
+  clip-path: none;
+  border-radius: 0;
+}
+.formation-bonus,
+.replay-cell,
+.equipment-item,
+.equipment-slot { clip-path: none; border-radius: 2px; }
+
+@media (max-width: 1180px) {
+  .campaign-focus { grid-template-columns: minmax(0, 540px) 188px; gap: 44px; }
+  .focus-geography,
+  .campaign-screen[data-era="western-zhou"] .focus-geography,
+  .campaign-screen[data-era="spring-autumn"] .focus-geography,
+  .campaign-screen[data-era="warring-states"] .focus-geography {
+    right: 180px;
+    width: 46vw;
+  }
+  .focus-journey { left: 51%; right: 220px; }
+}
+
+@media (max-width: 980px) {
+  .campaign-brand small { display: none; }
+  .era-waypoint { min-width: 108px; padding-right: 12px; }
+  .campaign-focus { padding-inline: 38px; grid-template-columns: minmax(0, 1fr) 174px; }
+  .focus-geography,
+  .campaign-screen[data-era="western-zhou"] .focus-geography,
+  .campaign-screen[data-era="spring-autumn"] .focus-geography,
+  .campaign-screen[data-era="warring-states"] .focus-geography { right: 152px; width: 50vw; }
+  .focus-journey { left: 48%; right: 192px; }
+}
+
+@media (max-width: 820px) {
+  .campaign-header {
+    min-height: 78px;
+    padding: 10px 16px;
+    background: linear-gradient(180deg, rgba(7, 10, 8, .98), rgba(7, 10, 8, .72));
+  }
+  .campaign-brand > span:first-child { width: 34px; height: 34px; }
+  .campaign-brand strong { font-size: 18px; }
+  .era-waypoints { position: static; border-block: 0; }
+  .era-waypoint {
+    min-width: 54px;
+    min-height: 38px;
+    padding: 4px 8px;
+    border: 0;
+  }
+  .era-waypoint:first-child { border-left: 0; }
+  .era-waypoint > span { position: static; width: 24px; height: 26px; margin: auto; }
+  .era-waypoint strong,
+  .era-waypoint small { display: none; }
+  .campaign-settings-button { min-height: 34px; padding-inline: 7px; }
+
+  .campaign-focus {
+    min-height: auto;
+    padding: 260px 22px 34px;
+    display: block;
+  }
+  .focus-map::after {
+    background:
+      linear-gradient(180deg, rgba(6, 9, 7, .18), rgba(6, 9, 7, .62) 34%, rgba(6, 9, 7, .93) 62%, rgba(6, 9, 7, .98)),
+      linear-gradient(90deg, rgba(6, 9, 7, .48), transparent 60%);
+  }
+  .focus-map > picture:nth-of-type(2) img { opacity: .42; }
+  .focus-geography,
+  .campaign-screen[data-era="western-zhou"] .focus-geography,
+  .campaign-screen[data-era="spring-autumn"] .focus-geography,
+  .campaign-screen[data-era="warring-states"] .focus-geography { display: none; }
+  .focus-journey {
+    left: 28px;
+    right: 28px;
+    top: 100px;
+    bottom: auto;
+    height: 126px;
+  }
+  .journey-node { width: 31px; height: 31px; }
+  .journey-node small,
+  .journey-node.is-current small { display: none; }
+  .focus-copy { width: 100%; padding-bottom: 0; }
+  .focus-era-glyph { display: none; }
+  .focus-copy h2 { font-size: 40px; }
+  .focus-story { font-size: 12px; margin-bottom: 16px; }
+  .focus-order { width: 100%; }
+  .focus-chronicle {
+    width: 100%;
+    margin-top: 24px;
+    padding: 13px 0 0;
+    border-left: 0;
+    border-top: 1px solid rgba(197, 163, 85, .26);
+    background: transparent;
+  }
+  .chronicle-heading { display: flex; justify-content: space-between; }
+  .focus-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .focus-facts div {
+    min-height: 48px;
+    padding: 7px 8px;
+    border-bottom: 0;
+    border-right: 1px solid rgba(197, 163, 85, .12);
+  }
+  .focus-facts div:last-child { border-right: 0; }
+  .focus-facts dd { font-size: 12px; }
+}
+
+@media (max-width: 560px) {
+  .campaign-header { padding-inline: 12px; }
+  .campaign-brand { gap: 8px; }
+  .campaign-brand > span:first-child { width: 31px; height: 31px; }
+  .campaign-brand strong { font-size: 16px; }
+  .era-waypoint { min-width: 38px; padding-inline: 4px; }
+  .era-waypoint > span { width: 22px; height: 24px; font-size: 10px; }
+  .rank-badge { display: none; }
+  .campaign-settings-button span { display: none; }
+  .campaign-focus { padding: 236px 17px 28px; }
+  .focus-journey { left: 20px; right: 20px; top: 94px; height: 112px; }
+  .focus-kicker { margin-bottom: 7px; }
+  .focus-copy h2 { font-size: 36px; }
+  .focus-context { font-size: 12px; }
+  .focus-story { line-height: 1.72; }
+  .focus-order strong { font-size: 13px; }
+  .focus-actions { display: grid; grid-template-columns: auto 1fr; gap: 9px 12px; }
+  .focus-primary-button { min-width: 118px; padding-inline: 15px; }
+  .focus-camp-button { justify-self: start; }
+  .focus-archive-button { grid-column: 1 / -1; justify-self: start; min-height: 28px; }
+  .focus-facts div { padding-inline: 5px; }
+  .focus-facts dt { font-size: 8px; }
+  .focus-facts dd { font-size: 11px; }
+}
+
+
+/* v30 typography: display, reading, seal and numeric glyphs each have one job. */
+.campaign-brand h1,
+.focus-copy h2,
+.archive-heading h2,
+.era-divider strong,
+.stage-copy strong,
+.campaign-camp-header h2,
+.war-council h2,
+.quartermaster h2,
+.result-card h2,
+.story-speaker {
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+
+.focus-copy h2 {
+  font-size: 50px;
+  line-height: 1.08;
+}
+
+.focus-context strong,
+.focus-order p,
+.focus-story,
+.focus-actions button,
+.era-waypoints strong,
+.stage-copy em,
+.campaign-settings-button,
+.campaign-toolbar,
+.story-text {
+  font-family: var(--font-ui);
+}
+
+@media (max-width: 820px) {
+  .focus-copy h2 { font-size: 45px; }
+}
+
+@media (max-width: 560px) {
+  .campaign-brand h1 { font-size: 18px; }
+  .focus-copy h2 { font-size: 42px; }
+}
+
+/* v31 retro typography: formal engraved titles, readable print text, pixel UI. */
+.campaign-brand h1,
+.focus-copy h2,
+.archive-heading h2,
+.era-divider strong,
+.stage-copy strong,
+.campaign-camp-header h2,
+.war-council h2,
+.quartermaster h2,
+.result-card h2,
+.story-speaker {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.campaign-screen button,
+.campaign-screen select,
+.campaign-screen input,
+.campaign-screen .focus-kicker,
+.campaign-screen .focus-order span,
+.campaign-screen .era-waypoints small,
+.campaign-screen .era-waypoints strong,
+.campaign-screen .chronicle-heading,
+.campaign-screen .focus-facts dt,
+.campaign-screen .progress-summary,
+.campaign-screen .rank-badge,
+.campaign-screen .campaign-toolbar,
+.campaign-screen .stage-copy small,
+.campaign-screen .stage-card-status {
+  font-family: var(--font-pixel);
+  font-weight: 400;
+}
+
+.focus-story,
+.focus-context,
+.focus-order p,
+.focus-guidance,
+.stage-copy em,
+.story-text {
+  font-family: var(--font-ui);
+  font-weight: 400;
+}
+
+.focus-copy h2 {
+  font-size: 48px;
+  line-height: 1.12;
+}
+
+@media (max-width: 820px) {
+  .focus-copy h2 { font-size: 44px; }
+}
+
+@media (max-width: 560px) {
+  .campaign-brand h1 { font-size: 17px; }
+  .focus-copy h2 { font-size: 40px; }
+}
+
+@media (max-width: 560px) {
+  .campaign-brand { min-width: 132px; flex: 0 1 132px; }
+  .campaign-brand > div { min-width: 84px; }
+  .campaign-brand h1 { font-size: 18px; line-height: 1; white-space: nowrap; }
+  .campaign-brand p { max-width: 84px; }
+  .campaign-actions { max-width: none; flex: 0 0 auto; }
+  .campaign-settings-button { width: 38px; padding: 0; justify-content: center; }
+  .campaign-settings-button span:last-child { display: none; }
+}
 
 button:focus-visible {
   outline: 2px solid var(--gold-soft);
@@ -54,11 +704,11 @@ button:focus-visible {
   border: 1px solid #9a3429;
   background: #6c211c;
   box-shadow: inset 0 0 0 3px rgba(0,0,0,.18);
-  font-family: "STKaiti", "KaiTi", serif;
+  font-family: var(--font-seal);
 }
 
 .brand-seal { width: 40px; height: 40px; flex: 0 0 40px; font-size: 22px; }
-.brand-button strong { display: block; font-family: "STKaiti", "KaiTi", serif; font-size: 20px; }
+.brand-button strong { display: block; font-family: var(--font-display); font-size: 20px; }
 .brand-button small { display: block; max-width: 320px; margin-top: 2px; overflow: hidden; color: #aaa797; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 
 .turn-state { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
@@ -112,7 +762,7 @@ button:focus-visible {
 .intel-panel { border-left: 1px solid var(--line); }
 
 .panel-heading { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
-.panel-heading span { color: #efe4c5; font-family: "STKaiti", "KaiTi", serif; font-size: 21px; font-weight: 700; }
+.panel-heading span { color: #efe4c5; font-family: var(--font-display); font-size: 21px; font-weight: 700; }
 .panel-heading small { color: #999687; font-size: 12px; }
 .panel-heading .panel-heading-meta { display: flex; align-items: center; gap: 8px; font-family: inherit; font-size: inherit; }
 .panel-toggle { display: none; width: 32px; height: 30px; padding: 0; color: #d9c78f; background: #11130f; border: 1px solid var(--line); font: 18px/1 sans-serif; cursor: pointer; }
@@ -181,7 +831,7 @@ button:focus-visible {
 .unit-detail.empty { display: grid; place-items: center; color: #77776e; font-size: 12px; }
 .detail-head { display: flex; align-items: center; gap: 12px; }
 .detail-head img { width: 52px; height: 52px; object-fit: contain; }
-.detail-head h3 { margin: 0 0 4px; font-family: "STKaiti", "KaiTi", serif; font-size: 22px; }
+.detail-head h3 { margin: 0 0 4px; font-family: var(--font-display); font-size: 22px; }
 .detail-head p { margin: 0; color: #9b988b; font-size: 11px; }
 .detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; }
 .detail-grid div { padding: 7px 5px; text-align: center; background: #171914; }
@@ -214,8 +864,8 @@ button:focus-visible {
 .title-content { position: relative; width: min(1100px, calc(100% - 40px)); }
 .title-seal { width: 58px; height: 58px; font-size: 31px; }
 .title-content > p { margin: 24px 0 7px; color: #c6a255; font-size: 13px; }
-.title-content h1 { margin: 0; font-family: "STKaiti", "KaiTi", serif; font-size: clamp(54px, 8vw, 104px); line-height: 1; font-weight: 700; }
-.title-content h2 { margin: 18px 0 0; color: #c7c0ac; font-family: "STKaiti", "KaiTi", serif; font-size: clamp(20px, 3vw, 34px); font-weight: 400; }
+.title-content h1 { margin: 0; font-family: var(--font-display); font-size: clamp(54px, 8vw, 104px); line-height: 1; font-weight: 700; }
+.title-content h2 { margin: 18px 0 0; color: #c7c0ac; font-family: var(--font-display); font-size: clamp(20px, 3vw, 34px); font-weight: 400; }
 .title-actions { display: flex; gap: 10px; margin-top: 42px; }
 
 .large-button {
@@ -232,7 +882,7 @@ button:focus-visible {
 .story-portrait-wrap img { width: 210px; max-height: 300px; object-fit: contain; object-position: bottom; image-rendering: auto; }
 .story-copy { min-width: 0; display: flex; flex-direction: column; padding: 30px 34px 24px; }
 .story-copy > p { margin: 0; color: #9d8652; font-size: 12px; }
-.story-copy h2 { margin: 15px 0 13px; font-family: "STKaiti", "KaiTi", serif; font-size: 28px; }
+.story-copy h2 { margin: 15px 0 13px; font-family: var(--font-display); font-size: 28px; }
 .story-speaker-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .story-voice-button { flex: 0 0 38px; width: 38px; height: 38px; color: #a7a293; }
 .story-voice-button.is-playing { color: #f0d58a; border-color: #a37d3d; background: #2a281f; }
@@ -241,7 +891,7 @@ button:focus-visible {
 .story-footer span { color: #817f75; font-size: 12px; }
 
 .compact-dialog, .result-dialog { width: min(480px, calc(100% - 30px)); padding: 30px; text-align: center; background: #1b1e18; border: 1px solid rgba(198,162,85,.58); box-shadow: 0 24px 80px rgba(0,0,0,.55); }
-.compact-dialog h2, .result-dialog h2 { margin: 0; font-family: "STKaiti", "KaiTi", serif; font-size: 30px; }
+.compact-dialog h2, .result-dialog h2 { margin: 0; font-family: var(--font-display); font-size: 30px; }
 .compact-dialog p, .result-dialog p { color: #aaa697; line-height: 1.7; }
 .dialog-actions { margin-top: 24px; display: flex; justify-content: center; gap: 9px; }
 .result-dialog > span { color: var(--gold); font-size: 12px; }
@@ -256,7 +906,7 @@ button:focus-visible {
   display: grid; grid-template-rows: auto auto auto auto; place-content: center; justify-items: center; gap: 14px;
   background: #11130f;
 }
-.loading-screen > strong { font-family: "STKaiti", "KaiTi", serif; font-size: 30px; }
+.loading-screen > strong { font-family: var(--font-display); font-size: 30px; }
 .loading-screen > p { margin: 0; color: #969387; font-size: 12px; }
 .loading-screen.failed > p { color: #d7897e; }
 .loading-track { width: min(320px, 72vw); height: 3px; overflow: hidden; background: #2b2d26; }
@@ -276,7 +926,7 @@ button:focus-visible {
 .war-council-main, .war-records { min-width: 0; }
 .war-council-heading, .war-records-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
 .war-council-heading span, .war-records-heading span { color: var(--gold); font-size: 11px; font-weight: 700; }
-.war-council h2 { margin: 4px 0 0; font: 700 24px/1.2 "STKaiti", "KaiTi", serif; }
+.war-council h2 { margin: 4px 0 0; font: 700 24px/1.2 var(--font-display); }
 .campaign-resources { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(64px, 1fr)); gap: 6px; }
 .campaign-resources div { padding: 8px 10px; background: #181a15; border-top: 2px solid #56523f; }
 .campaign-resources dt { color: #858277; font-size: 9px; }
@@ -307,7 +957,7 @@ button:focus-visible {
 .replay-dialog { width: min(680px, calc(100% - 30px)); max-height: min(760px, calc(100vh - 30px)); padding: 24px; overflow: auto; background: #1b1e18; border: 1px solid rgba(198,162,85,.58); box-shadow: 0 24px 80px rgba(0,0,0,.55); }
 .replay-dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .replay-dialog-heading span { color: var(--gold); font-size: 10px; }
-.replay-dialog-heading h2 { margin: 4px 0 0; font: 700 28px/1.2 "STKaiti", "KaiTi", serif; }
+.replay-dialog-heading h2 { margin: 4px 0 0; font: 700 28px/1.2 var(--font-display); }
 .replay-details { margin-top: 18px; display: grid; gap: 8px; }
 .replay-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .replay-summary div { padding: 9px; background: #11130f; }
@@ -325,7 +975,7 @@ button:focus-visible {
 }
 .quartermaster-summary { display: grid; align-content: start; gap: 14px; }
 .quartermaster-summary span { color: var(--gold); font-size: 11px; font-weight: 700; }
-.quartermaster-summary h2 { margin: 4px 0 0; font: 700 24px/1.2 "STKaiti", "KaiTi", serif; }
+.quartermaster-summary h2 { margin: 4px 0 0; font: 700 24px/1.2 var(--font-display); }
 .quartermaster-summary dl { margin: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
 .quartermaster-summary dl div { padding: 9px; background: #181a15; border-top: 2px solid #56523f; }
 .quartermaster-summary dt { color: #8d8a7e; font-size: 10px; }
@@ -356,7 +1006,7 @@ button:focus-visible {
 .campaign-brand { display: flex; align-items: center; gap: 16px; }
 .campaign-brand .brand-seal { width: 52px; height: 52px; font-size: 27px; }
 .campaign-brand p { margin: 0 0 2px; color: #ad955e; font-size: 11px; }
-.campaign-brand h1 { margin: 0; font-family: "STKaiti", "KaiTi", serif; font-size: 34px; line-height: 1.05; }
+.campaign-brand h1 { margin: 0; font-family: var(--font-display); font-size: 34px; line-height: 1.05; }
 .campaign-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .rank-badge { padding: 8px 10px; color: #e4cd8b; background: #20231d; border: 1px solid rgba(198,162,85,.36); font-size: 12px; }
 .campaign-setting { height: 38px; display: flex; align-items: center; gap: 7px; padding: 0 8px; color: #9f9b8e; border: 1px solid var(--line); background: #11130f; font-size: 10px; }
@@ -376,13 +1026,9 @@ button:focus-visible {
 .focus-copy { grid-column: 2; align-self: center; padding: 42px 42px 40px 28px; }
 .focus-copy > * { text-shadow: 0 2px 5px rgba(0,0,0,.9); }
 .focus-copy > p:first-child { margin: 0 0 8px; color: #d1ad5c; font-size: 11px; letter-spacing: 0; }
-.focus-copy h2 { margin: 0; color: #f0e5c7; font-family: "STKaiti", "KaiTi", serif; font-size: 52px; line-height: 1.05; }
+.focus-copy h2 { margin: 0; color: #f0e5c7; font-family: var(--font-display); font-size: 52px; line-height: 1.05; }
 .focus-copy > strong { display: block; margin-top: 12px; color: #cdbd92; font-size: 13px; font-weight: 500; }
 .focus-copy > p:not(:first-child) { margin: 8px 0 0; color: #aaa596; font-size: 13px; line-height: 1.65; }
-.focus-assessment { display: flex; gap: 22px; margin-top: 12px; }
-.focus-assessment span { display: grid; grid-template-columns: auto auto; align-items: baseline; gap: 8px; }
-.focus-assessment small { color: #79786f; font-size: 9px; }
-.focus-assessment strong { color: #d8cda9; font-family: "STKaiti", "KaiTi", serif; font-size: 15px; font-weight: 500; }
 .focus-order { margin-top: 23px; padding-left: 14px; border-left: 3px solid #b78e3e; }
 .focus-order span { color: #9e8957; font-size: 10px; }
 .focus-order p { margin: 5px 0 0; color: #e1d8c0; font-size: 14px; line-height: 1.55; }
@@ -407,9 +1053,9 @@ button:focus-visible {
 .focus-facts div { padding: 17px 0; border-bottom: 1px solid rgba(221,205,161,.13); }
 .focus-facts div:last-child { border-bottom: 0; }
 .focus-facts dt { color: #79786f; font-size: 9px; }
-.focus-facts dd { margin: 6px 0 0; color: #d8cda9; font-family: "STKaiti", "KaiTi", serif; font-size: 17px; }
+.focus-facts dd { margin: 6px 0 0; color: #d8cda9; font-family: var(--font-display); font-size: 17px; }
 .campaign-archive-heading { width: min(1440px, 100%); margin: 0 auto; padding: 24px 30px 10px; display: flex; align-items: baseline; justify-content: space-between; gap: 14px; scroll-margin-top: 72px; }
-.campaign-archive-heading span { color: #e8dcc0; font-family: "STKaiti", "KaiTi", serif; font-size: 23px; font-weight: 700; }
+.campaign-archive-heading span { color: #e8dcc0; font-family: var(--font-display); font-size: 23px; font-weight: 700; }
 .campaign-archive-heading small { color: #77766e; font-size: 10px; }
 .campaign-toolbar {
   position: sticky; top: 0; z-index: 3;
@@ -449,7 +1095,7 @@ button:focus-visible {
 .stage-card.completed .stage-thumb i { color: #d5e7c8; background: rgba(38,70,36,.84); border-color: #6d9362; }
 .stage-copy { min-width: 0; padding: 15px 14px; display: flex; flex-direction: column; }
 .stage-copy small { overflow: hidden; color: #8e8b80; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.stage-copy strong { margin-top: 8px; overflow-wrap: anywhere; color: #eee2c4; font-family: "STKaiti", "KaiTi", serif; font-size: 20px; line-height: 1.15; }
+.stage-copy strong { margin-top: 8px; overflow-wrap: anywhere; color: #eee2c4; font-family: var(--font-display); font-size: 20px; line-height: 1.15; }
 .stage-copy > span { margin-top: 5px; overflow: hidden; color: #b3ae9f; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .stage-copy em { margin-top: auto; padding-top: 12px; display: -webkit-box; overflow: hidden; color: #8f8d83; font-size: 10px; font-style: normal; line-height: 1.5; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .campaign-footer { width: min(1440px, 100%); margin: auto auto 0; padding: 14px 30px 18px; display: flex; justify-content: space-between; color: #77776f; border-top: 1px solid var(--line); font-size: 10px; }
@@ -606,4 +1252,2388 @@ button:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+}
+
+/* Campaign frontispiece: the current historical situation leads, controls recede. */
+.campaign-screen {
+  --era-accent: #b89343;
+  --era-cool: #55756c;
+  background: #0c0f0c;
+  scroll-behavior: smooth;
+}
+.campaign-screen::before { opacity: .07; filter: saturate(.45) contrast(1.2); }
+.campaign-header {
+  position: absolute; inset: 0 0 auto; z-index: 12;
+  width: 100%; max-width: none; min-height: 92px; padding: 20px clamp(24px, 5vw, 76px);
+  border: 0; background: linear-gradient(180deg, rgba(7,9,7,.92), rgba(7,9,7,.56) 70%, transparent);
+}
+.campaign-brand { gap: 13px; }
+.campaign-brand .brand-seal {
+  width: 46px; height: 46px; flex-basis: 46px; font-size: 25px;
+  border-color: #b44c3d; background: rgba(112,29,23,.84); box-shadow: inset 0 0 0 3px rgba(20,8,5,.42), 0 6px 20px rgba(0,0,0,.26);
+}
+.campaign-brand p { margin-bottom: 4px; color: #c9ad68; font-size: 10px; }
+.campaign-brand h1 { color: #eee7d6; font-size: 24px; font-weight: 600; }
+.campaign-actions { flex-wrap: nowrap; }
+.rank-badge {
+  padding: 7px 11px; color: #d9c798; background: rgba(12,15,12,.38); border: 0; border-right: 1px solid rgba(231,214,164,.22);
+}
+.campaign-settings-button {
+  min-height: 40px; padding: 0 14px; display: inline-flex; align-items: center; gap: 8px;
+  color: #e2dac7; background: rgba(15,18,14,.58); border: 1px solid rgba(231,214,164,.28); cursor: pointer;
+}
+.campaign-settings-button:hover, .campaign-settings-button[aria-expanded="true"] { color: #fff2c7; border-color: #b9984d; background: rgba(42,42,31,.78); }
+.campaign-settings-button span:first-child { color: #c8a653; font-size: 16px; }
+.campaign-resume-shortcut { display: none !important; }
+
+.campaign-focus {
+  position: relative; width: 100%; max-width: none; min-height: min(760px, 84svh); margin: 0;
+  padding: 118px clamp(30px, 7vw, 112px) 62px;
+  grid-template-columns: minmax(0, 1fr) 182px; align-items: end; gap: clamp(34px, 7vw, 116px);
+  overflow: hidden; border: 0; background: #11140f;
+}
+.campaign-focus::after {
+  content: ""; position: absolute; inset: auto 0 0; z-index: -1; height: 28%;
+  background: linear-gradient(0deg, #0c0f0c, transparent); pointer-events: none;
+}
+.focus-map { inset: 0; }
+.focus-map::after {
+  z-index: 5;
+  background:
+    linear-gradient(90deg, rgba(7,10,8,.94) 0%, rgba(7,10,8,.72) 32%, rgba(7,10,8,.18) 69%, rgba(7,10,8,.08) 100%),
+    linear-gradient(0deg, rgba(7,10,8,.74) 0%, transparent 45%),
+    linear-gradient(180deg, rgba(7,10,8,.28), transparent 28%);
+}
+.focus-map > img { position: absolute; display: block; }
+.focus-map .focus-era-backdrop {
+  inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 48%;
+  transform: scale(1.015); filter: saturate(.82) contrast(1.06) brightness(.76);
+  animation: campaign-map-breathe 18s ease-in-out infinite alternate;
+}
+.focus-map .focus-figures {
+  inset: auto clamp(105px, 10vw, 180px) -4% auto; z-index: 3;
+  width: min(44vw, 690px); height: 82%; object-fit: contain; object-position: right bottom;
+  opacity: .72; filter: brightness(.46) saturate(.66) sepia(.12) drop-shadow(-18px 12px 22px rgba(0,0,0,.5));
+}
+.focus-map .focus-stage-texture {
+  inset: 0; z-index: 2; width: 100%; height: 100%; object-fit: cover; object-position: center;
+  opacity: .075; mix-blend-mode: luminosity; filter: grayscale(1) contrast(1.16) brightness(.74);
+}
+.campaign-screen[data-era="western-zhou"] { --era-accent: #b58b3c; --era-cool: #566a73; }
+.campaign-screen[data-era="spring-autumn"] { --era-accent: #a98f4f; --era-cool: #4f7569; }
+.campaign-screen[data-era="warring-states"] { --era-accent: #a74b38; --era-cool: #5b6878; }
+.campaign-screen[data-era="spring-autumn"] .focus-era-backdrop { filter: saturate(.72) contrast(1.05) brightness(.7); }
+.campaign-screen[data-era="warring-states"] .focus-era-backdrop { filter: saturate(.7) contrast(1.1) brightness(.68); }
+.campaign-screen[data-era="warring-states"] .focus-figures { filter: brightness(.42) saturate(.58) sepia(.08) drop-shadow(-18px 12px 22px rgba(0,0,0,.54)); }
+@keyframes campaign-map-breathe { from { transform: scale(1.015); } to { transform: scale(1.045); } }
+.focus-atmosphere { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.route-line { position: absolute; height: 1px; display: block; background: linear-gradient(90deg, transparent, rgba(220,185,98,.6), transparent); transform-origin: left center; opacity: .72; }
+.route-line::after { content: ""; position: absolute; right: 8%; top: -2px; width: 5px; height: 5px; border-radius: 50%; background: #e5c46f; box-shadow: 0 0 14px rgba(229,196,111,.9); }
+.route-line-one { width: 30%; right: 7%; top: 43%; transform: rotate(-14deg); }
+.route-line-two { width: 22%; right: 19%; top: 62%; transform: rotate(21deg); opacity: .44; }
+.map-beacon { position: absolute; width: 8px; height: 8px; border: 1px solid rgba(239,209,128,.78); border-radius: 50%; background: rgba(88,31,24,.84); box-shadow: 0 0 0 6px rgba(198,162,85,.08); animation: map-beacon-pulse 3.4s ease-in-out infinite; }
+.beacon-one { right: 22%; top: 35%; }
+.beacon-two { right: 9%; top: 58%; animation-delay: -1.1s; }
+.beacon-three { right: 31%; top: 72%; animation-delay: -2.2s; }
+@keyframes map-beacon-pulse { 50% { box-shadow: 0 0 0 13px rgba(198,162,85,0); border-color: #f0d68d; } }
+
+.focus-geography {
+  position: absolute; top: 112px; right: clamp(236px, 19vw, 292px); z-index: 1;
+  width: min(42vw, 590px); color: #dfd2ad; pointer-events: none;
+}
+.geography-heading {
+  height: 28px; padding: 0 10px; display: flex; align-items: center; justify-content: space-between;
+  color: #bda25f; border-bottom: 1px solid rgba(213,184,107,.42); font: 500 11px/1 var(--font-display);
+}
+.geography-heading strong { color: #e6d9b8; font-size: 12px; font-weight: 500; }
+.geography-map { position: relative; height: clamp(190px, 27vh, 270px); overflow: hidden; background: rgba(9,12,9,.56); }
+.geography-map::after {
+  content: ""; position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(90deg, rgba(7,10,8,.38), transparent 35%), linear-gradient(0deg, rgba(7,10,8,.42), transparent 52%);
+  box-shadow: inset 0 0 42px rgba(0,0,0,.54); pointer-events: none;
+}
+.geography-map > img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 73% center;
+  opacity: .72; filter: saturate(.55) contrast(1.08) brightness(.64);
+}
+.geography-markers { position: absolute; inset: 0; z-index: 2; }
+.geography-marker {
+  position: absolute; width: 23px; height: 23px; display: grid; place-items: center;
+  color: rgba(224,213,184,.66); border: 1px solid rgba(213,184,107,.28); background: rgba(9,13,10,.62);
+  transform: translate(-50%, -50%); font: 500 11px/1 var(--font-seal);
+}
+.geography-marker::after {
+  content: ""; position: absolute; inset: -5px; border: 1px solid transparent; transform: rotate(45deg); transition: border-color .2s ease, transform .2s ease;
+}
+.geography-marker.is-active {
+  color: #fff0c5; border-color: #d5ad51; background: #76291f; box-shadow: 0 0 18px rgba(205,158,62,.5);
+}
+.geography-marker.is-active::after { border-color: rgba(224,184,88,.56); transform: rotate(45deg) scale(1.08); }
+
+.focus-copy { position: relative; z-index: 2; grid-column: 1; align-self: end; width: min(660px, 100%); padding: 0; }
+.focus-era-glyph {
+  position: absolute; left: -34px; bottom: 64%; z-index: -1; color: var(--era-accent);
+  font: 400 154px/1 var(--font-seal); opacity: .055; text-shadow: none; pointer-events: none;
+}
+.focus-copy > * { text-shadow: 0 2px 8px rgba(0,0,0,.84); }
+.focus-copy > p:first-child { margin-bottom: 12px; display: flex; align-items: center; gap: 9px; color: #d6ae56; font-size: 11px; font-weight: 700; }
+.focus-copy > p:first-child::before { content: ""; width: 27px; height: 1px; background: #bd923c; }
+.focus-copy h2 {
+  color: #eee5d2; font-size: 48px; font-weight: 600; line-height: 1.08;
+  text-shadow: 0 2px 10px rgba(0,0,0,.86);
+}
+.focus-context { margin-top: 17px; display: flex; align-items: center; gap: 10px; }
+.focus-context strong { color: #e2d4ad; font-family: var(--font-display); font-size: 18px; font-weight: 500; }
+.focus-context span { padding: 4px 8px; color: #b9c8bd; border-left: 1px solid rgba(122,158,140,.55); background: rgba(42,64,53,.28); font-size: 10px; }
+.focus-copy > p:not(:first-child) { max-width: 560px; margin-top: 10px; color: #c2bcac; font-size: 14px; line-height: 1.75; }
+.focus-order { width: min(520px, 100%); margin-top: 27px; padding: 8px 0 8px 16px; border-left: 3px solid #b89442; background: linear-gradient(90deg, rgba(25,28,20,.5), transparent); }
+.focus-order span { color: #c7a457; }
+.focus-order p { color: #f0e5ca; font-size: 15px; }
+.focus-actions { margin-top: 30px; align-items: center; gap: 18px; }
+.focus-actions > .large-button.primary {
+  min-width: 152px; min-height: 48px; padding-inline: 27px; color: #fff2cf; background: #862f25; border-color: #bd6856;
+  box-shadow: 0 8px 28px rgba(74,17,13,.35);
+}
+.focus-actions > .large-button.primary:hover { background: #9a392d; }
+.focus-restart-button {
+  min-width: 96px;
+  min-height: 44px;
+  padding-inline: 14px;
+  color: #d7cdb5;
+  background: rgba(17, 21, 16, .7);
+  border-color: rgba(198, 162, 85, .42);
+}
+.focus-restart-button:hover {
+  color: #f0dfad;
+  background: rgba(48, 43, 28, .72);
+}
+.focus-archive-button {
+  min-height: 44px; padding: 0 4px; display: inline-flex; align-items: center; gap: 11px;
+  color: #d6cdb7; background: transparent; border: 0; border-bottom: 1px solid rgba(221,205,161,.34); cursor: pointer;
+}
+.focus-archive-button:hover { color: #f0dfad; border-color: #c6a255; }
+.focus-archive-button span:last-child { color: #b9974a; font-size: 16px; }
+.focus-copy .focus-guidance { margin-top: 13px; color: #898a82; font-size: 10px; }
+
+.focus-chronicle {
+  position: relative; z-index: 2;
+  grid-column: 2; align-self: end; width: 182px; padding: 20px 18px 18px;
+  background: linear-gradient(180deg, rgba(14,17,13,.42), rgba(14,17,13,.76));
+  border-top: 1px solid rgba(214,183,105,.52); border-bottom: 1px solid rgba(214,183,105,.22);
+  backdrop-filter: blur(4px);
+}
+.chronicle-heading { display: flex; align-items: center; gap: 10px; color: #d6b461; font: 600 14px/1 var(--font-display); }
+.chronicle-heading i { flex: 1; height: 1px; background: rgba(214,180,96,.36); }
+.focus-facts { margin: 12px 0 0; padding: 0; display: block; background: transparent; border: 0; }
+.focus-facts div { padding: 12px 0; border: 0; border-bottom: 1px solid rgba(221,205,161,.12); }
+.focus-facts dt { color: #85877f; font-size: 9px; }
+.focus-facts dd { margin-top: 5px; color: #ece0bf; font-size: 15px; }
+.chronicle-progress { margin-top: 17px; }
+.chronicle-progress i { height: 2px; display: block; overflow: hidden; background: rgba(255,255,255,.13); }
+.chronicle-progress b { width: 1%; height: 100%; display: block; background: linear-gradient(90deg, #705c32, #d6b55f); transition: width .35s ease; }
+.chronicle-progress span { margin-top: 8px; display: block; color: #8f938a; font-size: 9px; }
+
+/* Each period changes the information frame, not only its illustration. */
+.campaign-screen[data-era="western-zhou"] .focus-geography {
+  padding: 7px; background: rgba(26,25,18,.52); border: 1px solid rgba(153,126,66,.48);
+  clip-path: polygon(5% 0, 95% 0, 100% 9%, 100% 91%, 95% 100%, 5% 100%, 0 91%, 0 9%);
+}
+.campaign-screen[data-era="western-zhou"] .focus-geography::before {
+  content: ""; position: absolute; inset: 3px; border: 1px solid rgba(93,132,119,.34); pointer-events: none;
+}
+.campaign-screen[data-era="western-zhou"] .geography-heading { background: linear-gradient(90deg, rgba(65,80,70,.48), transparent); }
+.campaign-screen[data-era="western-zhou"] .focus-chronicle { border-inline: 1px solid rgba(116,144,126,.25); }
+
+.campaign-screen[data-era="spring-autumn"] .focus-geography { top: 102px; width: min(44vw, 620px); }
+.campaign-screen[data-era="spring-autumn"] .focus-geography::before,
+.campaign-screen[data-era="spring-autumn"] .focus-geography::after {
+  content: ""; position: absolute; left: -8px; right: -8px; z-index: 4; height: 5px;
+  background: linear-gradient(90deg, #4d321c, #b28a4f 12%, #654324 48%, #b28a4f 88%, #4d321c);
+  box-shadow: 0 2px 6px rgba(0,0,0,.46);
+}
+.campaign-screen[data-era="spring-autumn"] .focus-geography::before { top: 27px; }
+.campaign-screen[data-era="spring-autumn"] .focus-geography::after { bottom: -2px; }
+.campaign-screen[data-era="spring-autumn"] .geography-heading { padding-inline: 16px; border: 0; background: rgba(51,60,45,.28); }
+.campaign-screen[data-era="spring-autumn"] .geography-map { margin-top: 4px; }
+.campaign-screen[data-era="spring-autumn"] .focus-copy h2 { font-size: 47px; }
+.campaign-screen[data-era="spring-autumn"] .focus-actions > .large-button.primary { background: #3d5b4d; border-color: #809a79; box-shadow: 0 8px 28px rgba(18,42,31,.34); }
+.campaign-screen[data-era="spring-autumn"] .focus-actions > .large-button.primary:hover { background: #4a6c5c; }
+.campaign-screen[data-era="spring-autumn"] .focus-chronicle { border-left: 3px solid rgba(99,128,99,.62); }
+
+.campaign-screen[data-era="warring-states"] .focus-geography {
+  top: 104px; width: min(45vw, 640px); padding: 0 8px 8px 0; background: rgba(8,10,10,.36);
+  border-top: 3px solid rgba(151,55,39,.78); clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%);
+}
+.campaign-screen[data-era="warring-states"] .geography-heading { padding-left: 24px; color: #c57361; border-color: rgba(163,66,48,.46); }
+.campaign-screen[data-era="warring-states"] .geography-map {
+  background-color: rgba(12,14,14,.66);
+  background-image: linear-gradient(rgba(198,174,122,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(198,174,122,.07) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.campaign-screen[data-era="warring-states"] .geography-marker.is-active { background: #842b20; border-color: #d47963; }
+.campaign-screen[data-era="warring-states"] .focus-copy h2 { font-family: var(--font-display); font-size: 50px; font-weight: 600; }
+.campaign-screen[data-era="warring-states"] .focus-order { border-left-color: #9f3c2d; }
+.campaign-screen[data-era="warring-states"] .focus-chronicle { border-top: 3px solid rgba(142,49,36,.78); background: linear-gradient(180deg, rgba(23,19,17,.5), rgba(12,14,13,.86)); }
+
+.war-council { width: min(1220px, calc(100% - 48px)); padding: 34px 0 38px; }
+.war-council h2, .quartermaster h2 { color: #e9dec0; }
+.war-records .exercise-menu { width: 100%; min-width: 0; margin: 12px 0 0; }
+.war-records .exercise-menu-trigger { width: 100%; background: transparent; border-color: rgba(221,205,161,.19); }
+.war-records .exercise-actions { top: calc(100% + 7px); right: 0; }
+.campaign-archive-heading { padding-top: 34px; }
+.campaign-archive-heading::before { content: "列国长卷"; margin-right: 12px; color: #a9843d; font-size: 10px; }
+
+.campaign-settings-backdrop {
+  position: fixed; inset: 0; z-index: 60; display: flex; justify-content: flex-end;
+  background: rgba(4,6,5,.58); backdrop-filter: blur(3px);
+}
+.campaign-utility-panel {
+  width: min(430px, 100%); height: 100%; overflow: auto; padding: 28px 30px max(28px, env(safe-area-inset-bottom));
+  color: #e6dfcd; background: #141812; border-left: 1px solid rgba(203,172,96,.4); box-shadow: -22px 0 60px rgba(0,0,0,.45);
+}
+.campaign-utility-panel > header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 20px; border-bottom: 1px solid rgba(221,205,161,.16); }
+.campaign-utility-panel > header span { color: #b99344; font-size: 10px; }
+.campaign-utility-panel h2 { margin: 4px 0 0; color: #f0e5c8; font: 600 34px/1 var(--font-display); }
+.utility-close-button { width: 40px; height: 40px; color: #cfc7b3; background: transparent; border: 1px solid rgba(221,205,161,.2); cursor: pointer; font-size: 24px; }
+.utility-close-button:hover { color: #fff1c6; border-color: #b49146; }
+.utility-section { padding: 24px 0 4px; display: grid; gap: 9px; border-bottom: 1px solid rgba(221,205,161,.1); }
+.utility-section h3 { margin: 0 0 5px; color: #d5ba77; font: 500 15px/1.2 var(--font-display); }
+.utility-section .campaign-setting, .utility-section .setting-toggle {
+  width: 100%; min-height: 46px; height: auto; padding: 10px 12px; justify-content: space-between;
+  display: flex; color: #c5c0b2; background: #0f120e; border-color: rgba(221,205,161,.15); font-size: 12px;
+}
+.utility-section .campaign-setting select { min-width: 130px; text-align: right; font-size: 12px; }
+.utility-section .voice-volume-setting input { width: 150px; }
+.utility-records > div { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.utility-records .large-button { min-width: 0; padding-inline: 10px; }
+.utility-note { margin: 18px 0 0; color: #777b73; font-size: 10px; }
+
+@media (max-width: 820px) {
+  .campaign-header { min-height: 78px; padding: 14px 18px; align-items: center; }
+  .campaign-brand h1 { font-size: 25px; }
+  .campaign-brand .brand-seal { width: 42px; height: 42px; flex-basis: 42px; }
+  .campaign-actions { max-width: none; }
+  .campaign-focus {
+    min-height: max(680px, 92svh); padding: 104px 18px 30px; display: flex; flex-direction: column; justify-content: flex-end; gap: 20px;
+  }
+  .focus-map::after {
+    background: linear-gradient(0deg, rgba(6,9,7,.96) 0%, rgba(6,9,7,.78) 43%, rgba(6,9,7,.16) 78%), linear-gradient(90deg, rgba(6,9,7,.5), transparent);
+  }
+  .focus-map .focus-era-backdrop { object-position: 64% center; }
+  .focus-map .focus-figures { right: -7%; bottom: 25%; width: min(76vw, 590px); height: 61%; opacity: .52; }
+  .focus-map .focus-stage-texture { display: none; }
+  .focus-geography,
+  .campaign-screen[data-era="spring-autumn"] .focus-geography,
+  .campaign-screen[data-era="warring-states"] .focus-geography {
+    top: 82px; right: 18px; left: 18px; width: auto; padding: 0; clip-path: none;
+  }
+  .geography-map { height: 198px; }
+  .campaign-screen[data-era="western-zhou"] .focus-geography { padding: 5px; }
+  .focus-era-glyph { bottom: 66%; font-size: 132px; }
+  .focus-atmosphere { opacity: .62; }
+  .focus-copy { width: min(600px, 100%); }
+  .focus-copy h2 { font-size: 48px; }
+  .focus-chronicle { width: 100%; padding: 13px 15px 12px; }
+  .chronicle-heading { display: none; }
+  .focus-facts { margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); }
+  .focus-facts div { padding: 5px 8px; border-bottom: 0; border-right: 1px solid rgba(221,205,161,.12); }
+  .focus-facts div:last-child { border-right: 0; }
+  .focus-facts dd { font-size: 13px; }
+  .chronicle-progress { margin: 12px 8px 0; }
+  .war-council { width: calc(100% - 32px); padding: 28px 0; }
+  .war-records .exercise-actions { width: min(420px, calc(100vw - 32px)); }
+}
+
+@media (max-width: 560px) {
+  .campaign-header { min-height: 70px; padding: 11px 14px; }
+  .campaign-brand { gap: 9px; }
+  .campaign-brand .brand-seal { width: 38px; height: 38px; flex-basis: 38px; font-size: 21px; }
+  .campaign-brand p { display: block; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 8px; }
+  .campaign-brand h1 { font-size: 21px; }
+  .rank-badge { display: none; }
+  .campaign-settings-button { min-height: 38px; padding: 0 10px; }
+  .campaign-focus { min-height: max(650px, 92svh); padding: 92px 16px 22px; gap: 16px; }
+  .focus-map .focus-era-backdrop { object-position: 69% center; }
+  .focus-map .focus-figures { right: -18%; bottom: 31%; width: 96vw; height: 50%; opacity: .42; }
+  .focus-geography,
+  .campaign-screen[data-era="spring-autumn"] .focus-geography,
+  .campaign-screen[data-era="warring-states"] .focus-geography { top: 70px; right: 12px; left: 12px; }
+  .geography-heading { height: 24px; }
+  .geography-map { height: 174px; }
+  .geography-marker { width: 21px; height: 21px; font-size: 10px; }
+  .focus-era-glyph { display: none; }
+  .focus-copy > p:first-child { margin-bottom: 9px; }
+  .focus-copy h2 { font-size: 42px; }
+  .focus-context { margin-top: 12px; }
+  .focus-copy > p:not(:first-child) { font-size: 13px; line-height: 1.65; }
+  .focus-order { margin-top: 19px; }
+  .focus-actions { margin-top: 22px; flex-direction: row; flex-wrap: wrap; }
+  .focus-actions > .large-button.primary { width: auto; flex: 0 0 auto; }
+  .focus-archive-button { flex: 0 0 auto; }
+  .focus-copy .focus-guidance { display: none; }
+  .focus-chronicle { padding-inline: 8px; }
+  .focus-facts div { padding-inline: 6px; }
+  .focus-facts dt { font-size: 8px; }
+  .focus-facts dd { overflow-wrap: anywhere; font-size: 12px; }
+  .war-records .exercise-actions { position: static; width: 100%; margin-top: 7px; grid-template-columns: 1fr; box-shadow: none; }
+  .exercise-actions .large-button { grid-column: auto; }
+  .campaign-utility-panel { padding: 22px 18px max(24px, env(safe-area-inset-bottom)); }
+  .utility-section .voice-volume-setting input { width: 118px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focus-map .focus-era-backdrop, .map-beacon { animation: none !important; }
+}
+
+/* Artifact-led RPG composition: scenery stays full bleed; UI behaves like objects in the world. */
+.focus-geography,
+.campaign-screen[data-era="western-zhou"] .focus-geography,
+.campaign-screen[data-era="spring-autumn"] .focus-geography,
+.campaign-screen[data-era="warring-states"] .focus-geography {
+  top: 88px; right: clamp(214px, 17vw, 260px); width: min(48vw, 690px); height: 338px;
+  padding: 0; background: none; border: 0; clip-path: none; transform: rotate(-.7deg);
+  filter: drop-shadow(0 22px 22px rgba(0,0,0,.35));
+}
+.focus-geography::before,
+.focus-geography::after,
+.campaign-screen[data-era="spring-autumn"] .focus-geography::before,
+.campaign-screen[data-era="spring-autumn"] .focus-geography::after { content: none; }
+.geography-heading,
+.campaign-screen[data-era="spring-autumn"] .geography-heading,
+.campaign-screen[data-era="warring-states"] .geography-heading {
+  position: absolute; top: 17px; right: 3%; z-index: 5; width: 82px; height: 72px; padding: 11px 8px 17px;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 7px;
+  color: #dac47e; border: 0; background: linear-gradient(180deg, rgba(67,52,28,.96), rgba(32,28,20,.8));
+  clip-path: polygon(7% 0, 93% 0, 100% 8%, 88% 82%, 50% 100%, 12% 82%, 0 8%);
+  box-shadow: none; font-size: 10px;
+}
+.geography-heading strong { max-width: 68px; color: #f0e1b4; font-size: 11px; line-height: 1.25; text-align: center; }
+.geography-map,
+.campaign-screen[data-era="spring-autumn"] .geography-map,
+.campaign-screen[data-era="warring-states"] .geography-map {
+  height: 100%; margin: 0; overflow: visible; background: none; border: 0;
+}
+.geography-map::after { display: none; }
+.geography-map > img {
+  inset: -2% -1% -3% 0; width: 101%; height: 105%; object-position: 72% center; opacity: .74;
+  filter: saturate(.5) contrast(1.1) brightness(.6);
+  -webkit-mask-image: radial-gradient(ellipse 70% 63% at 57% 50%, #000 42%, rgba(0,0,0,.94) 58%, rgba(0,0,0,.34) 77%, transparent 100%);
+  mask-image: radial-gradient(ellipse 70% 63% at 57% 50%, #000 42%, rgba(0,0,0,.94) 58%, rgba(0,0,0,.34) 77%, transparent 100%);
+}
+.geography-markers { inset: 3% 2% 1% 0; }
+.geography-marker {
+  border: 0; background: rgba(12,15,11,.54); box-shadow: 0 0 0 1px rgba(213,184,107,.22);
+  transform: translate(-50%, -50%) rotate(-2deg);
+}
+.geography-marker.is-active { box-shadow: 0 0 0 1px #d5ad51, 0 0 20px rgba(205,158,62,.52); }
+
+.campaign-screen[data-era="western-zhou"] .focus-geography::before {
+  content: ""; position: absolute; inset: 9% 11% 8% 13%; z-index: 0; display: block;
+  border: 1px solid rgba(87,128,113,.28); border-radius: 48% 52% 45% 55%;
+  box-shadow: inset 0 0 0 6px rgba(148,112,54,.05), 0 0 0 5px rgba(28,48,41,.08); transform: rotate(-3deg);
+}
+.campaign-screen[data-era="western-zhou"] .focus-geography::after {
+  content: "◆"; position: absolute; left: 15%; top: 48%; z-index: 3; display: block;
+  color: rgba(115,151,129,.62); font-size: 18px; transform: rotate(12deg);
+}
+.campaign-screen[data-era="western-zhou"] .geography-map > img {
+  -webkit-mask-image: radial-gradient(ellipse 64% 58% at 55% 50%, #000 44%, rgba(0,0,0,.88) 65%, transparent 100%);
+  mask-image: radial-gradient(ellipse 64% 58% at 55% 50%, #000 44%, rgba(0,0,0,.88) 65%, transparent 100%);
+}
+
+.campaign-screen[data-era="spring-autumn"] .focus-geography { transform: rotate(-1.4deg) translateY(3px); }
+.campaign-screen[data-era="spring-autumn"] .focus-geography::before {
+  content: ""; position: absolute; left: 8%; right: 9%; top: 9%; z-index: 0; height: 7px; display: block;
+  background: linear-gradient(90deg, transparent, #4b301a 7%, #ad8650 18%, #5b3b20 78%, transparent);
+  border-radius: 50%; filter: blur(.2px); transform: rotate(1.2deg);
+}
+.campaign-screen[data-era="spring-autumn"] .focus-geography::after {
+  content: ""; position: absolute; left: 12%; right: 13%; bottom: 9%; z-index: 0; height: 5px; display: block;
+  background: linear-gradient(90deg, transparent, #5b3b20 10%, #b28a4f 52%, #4b301a 90%, transparent);
+  border-radius: 50%; transform: rotate(-1deg);
+}
+.campaign-screen[data-era="spring-autumn"] .geography-map > img {
+  clip-path: polygon(6% 8%, 19% 3%, 43% 6%, 67% 2%, 94% 9%, 98% 29%, 94% 58%, 98% 86%, 78% 94%, 55% 91%, 31% 97%, 7% 89%, 2% 67%, 5% 42%, 1% 22%);
+  -webkit-mask-image: radial-gradient(ellipse 72% 67% at 55% 50%, #000 52%, rgba(0,0,0,.8) 72%, transparent 100%);
+  mask-image: radial-gradient(ellipse 72% 67% at 55% 50%, #000 52%, rgba(0,0,0,.8) 72%, transparent 100%);
+}
+.campaign-screen[data-era="spring-autumn"] .geography-heading { background: linear-gradient(180deg, rgba(54,77,60,.95), rgba(29,43,34,.82)); }
+
+.campaign-screen[data-era="warring-states"] .focus-geography { transform: rotate(.8deg) translateY(2px); }
+.campaign-screen[data-era="warring-states"] .focus-geography::before {
+  content: ""; position: absolute; left: 8%; right: 5%; top: 7%; z-index: 4; display: block; height: 2px;
+  background: linear-gradient(90deg, transparent, #8c3025 12%, #bc644e 48%, #6d211b 86%, transparent); transform: rotate(-2.2deg);
+}
+.campaign-screen[data-era="warring-states"] .geography-map > img {
+  clip-path: polygon(8% 3%, 29% 7%, 47% 2%, 70% 6%, 96% 1%, 92% 24%, 98% 43%, 93% 67%, 97% 91%, 76% 96%, 56% 91%, 37% 98%, 11% 92%, 4% 73%, 8% 51%, 2% 29%);
+  -webkit-mask-image: radial-gradient(ellipse 74% 68% at 56% 50%, #000 56%, rgba(0,0,0,.88) 74%, transparent 100%);
+  mask-image: radial-gradient(ellipse 74% 68% at 56% 50%, #000 56%, rgba(0,0,0,.88) 74%, transparent 100%);
+}
+.campaign-screen[data-era="warring-states"] .geography-heading { background: linear-gradient(180deg, rgba(104,35,27,.96), rgba(45,22,19,.82)); }
+
+.focus-chronicle,
+.campaign-screen[data-era="western-zhou"] .focus-chronicle,
+.campaign-screen[data-era="spring-autumn"] .focus-chronicle,
+.campaign-screen[data-era="warring-states"] .focus-chronicle {
+  padding: 10px 0 7px 14px; background: none; border: 0; backdrop-filter: none;
+}
+.focus-chronicle::before {
+  content: ""; position: absolute; left: 5px; top: 8px; bottom: 7px; width: 3px;
+  background: linear-gradient(#9d7e39, #3d3421 18%, #786030 78%, #b6984c); box-shadow: 2px 0 5px rgba(0,0,0,.45);
+}
+.chronicle-heading { width: 118px; padding: 7px 10px; color: #e0c578; background: linear-gradient(90deg, rgba(57,46,27,.86), transparent); transform: skewX(-5deg); }
+.chronicle-heading i { display: none; }
+.focus-facts div {
+  margin-top: 3px; padding: 9px 10px 8px 13px; border: 0;
+  background: linear-gradient(90deg, rgba(36,34,25,.9), rgba(20,23,18,.58) 72%, transparent);
+  clip-path: polygon(0 4%, 94% 0, 100% 46%, 93% 100%, 3% 96%);
+}
+.focus-facts div:nth-child(even) { margin-left: 7px; }
+.chronicle-progress { margin: 14px 8px 0 12px; }
+.focus-order {
+  position: relative; padding: 10px 24px 10px 23px; border: 0;
+  background: linear-gradient(90deg, rgba(37,37,26,.76), rgba(24,27,20,.42) 76%, transparent);
+  clip-path: polygon(0 9%, 95% 0, 100% 50%, 94% 100%, 2% 91%);
+}
+.focus-order::before { content: ""; position: absolute; left: 8px; top: 8px; bottom: 8px; width: 3px; background: var(--era-accent); }
+.focus-actions > .large-button.primary {
+  clip-path: polygon(7% 0, 95% 0, 100% 14%, 96% 88%, 88% 100%, 5% 96%, 0 78%, 2% 12%);
+}
+.campaign-settings-button { background: transparent; border: 0; border-bottom: 1px solid rgba(231,214,164,.32); }
+
+@media (max-width: 820px) {
+  .focus-geography,
+  .campaign-screen[data-era="western-zhou"] .focus-geography,
+  .campaign-screen[data-era="spring-autumn"] .focus-geography,
+  .campaign-screen[data-era="warring-states"] .focus-geography {
+    top: 63px; right: -24px; left: -7px; width: auto; height: 238px; padding: 0; transform: rotate(-.8deg);
+  }
+  .geography-heading,
+  .campaign-screen[data-era="spring-autumn"] .geography-heading,
+  .campaign-screen[data-era="warring-states"] .geography-heading { top: 12px; right: 7%; width: 70px; height: 60px; padding-top: 8px; }
+  .geography-map { height: 100%; }
+  .focus-chronicle { width: 100%; padding-left: 13px; }
+  .focus-chronicle::before { left: 4px; }
+  .focus-facts div { margin: 0; padding: 7px 8px; clip-path: none; background: linear-gradient(180deg, rgba(31,31,23,.72), rgba(17,20,16,.3)); }
+  .focus-facts div:nth-child(even) { margin-left: 0; }
+}
+
+@media (max-width: 560px) {
+  .focus-geography,
+  .campaign-screen[data-era="western-zhou"] .focus-geography,
+  .campaign-screen[data-era="spring-autumn"] .focus-geography,
+  .campaign-screen[data-era="warring-states"] .focus-geography { top: 58px; right: -46px; left: -24px; height: 226px; }
+  .geography-heading,
+  .campaign-screen[data-era="spring-autumn"] .geography-heading,
+  .campaign-screen[data-era="warring-states"] .geography-heading { right: 12%; }
+  .geography-marker { width: 20px; height: 20px; }
+}
+
+/* Chronicle route: chapter selection follows the historical journey instead of a dashboard grid. */
+.era-waypoints {
+  position: static; z-index: 13; margin-inline: auto; transform: none;
+  display: flex; align-items: stretch; gap: 5px;
+}
+.era-waypoints button {
+  position: relative; min-width: 126px; height: 48px; padding: 6px 13px 6px 42px;
+  display: grid; grid-template-rows: auto auto; align-content: center;
+  color: #aaa795; text-align: left; background: linear-gradient(110deg, rgba(20,24,18,.82), rgba(11,14,11,.4));
+  border: 0; border-bottom: 1px solid rgba(210,187,127,.2); cursor: pointer;
+  clip-path: polygon(0 0, 93% 4%, 100% 50%, 93% 96%, 0 100%, 5% 50%);
+  transition: color .18s ease, background .18s ease, transform .18s ease;
+}
+.era-waypoints button:first-child { clip-path: polygon(0 0, 93% 4%, 100% 50%, 93% 96%, 0 100%); }
+.era-waypoints button > span {
+  position: absolute; left: 13px; top: 9px; width: 29px; height: 29px; display: grid; place-items: center;
+  color: #c8ad68; border: 1px solid rgba(198,162,85,.34);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  font: 500 14px/1 var(--font-seal);
+}
+.era-waypoints small { color: #8b897f; font-size: 8px; }
+.era-waypoints strong { margin-top: 2px; font: 500 12px/1.1 var(--font-display); }
+.era-waypoints button:hover { color: #f0e2b9; background: linear-gradient(110deg, rgba(54,52,36,.9), rgba(18,24,19,.6)); transform: translateY(-2px); }
+.era-waypoints button[aria-pressed="true"] { color: #f4e8c8; border-color: var(--era-accent); background: linear-gradient(110deg, rgba(102,42,30,.86), rgba(34,40,29,.66)); }
+.era-waypoints button[aria-pressed="true"] > span { color: #fff0c6; border-color: #d5af59; box-shadow: 0 0 15px rgba(203,158,58,.22); }
+
+.war-council,
+.quartermaster {
+  position: relative; border: 0;
+  box-shadow: 0 0 0 100vmax rgba(16,19,14,.7);
+  clip-path: inset(0 -100vmax);
+}
+.war-council::before,
+.quartermaster::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(194,158,75,.46) 12%, rgba(194,158,75,.12) 72%, transparent);
+}
+.quartermaster { box-shadow: 0 0 0 100vmax rgba(11,14,11,.86); }
+.campaign-resources div,
+.quartermaster-summary dl div {
+  position: relative; padding-left: 15px; background: transparent; border: 0; border-left: 2px solid rgba(167,132,59,.5);
+}
+.campaign-resources div::after,
+.quartermaster-summary dl div::after {
+  content: ""; position: absolute; left: 4px; top: 2px; bottom: 2px; width: 1px; background: rgba(99,119,91,.25);
+}
+.formation-control { gap: 9px; }
+.formation-control button {
+  position: relative; min-height: 62px; border: 0;
+  background: linear-gradient(145deg, rgba(39,43,32,.9), rgba(18,21,17,.86));
+  clip-path: polygon(5% 0, 94% 3%, 100% 17%, 96% 88%, 86% 100%, 4% 95%, 0 73%, 2% 12%);
+}
+.formation-control button::before {
+  content: ""; position: absolute; left: 13%; right: 13%; top: 0; height: 2px;
+  background: rgba(126,117,82,.46);
+}
+.formation-control button:hover,
+.formation-control button.active { color: #f4e5b8; background: linear-gradient(145deg, rgba(72,62,36,.94), rgba(30,36,26,.9)); }
+.formation-control button.active::before { background: #c3a04e; box-shadow: 0 0 12px rgba(195,160,78,.38); }
+.council-fields > label {
+  padding-inline: 12px; background: linear-gradient(90deg, rgba(17,20,15,.82), transparent); border: 0; border-bottom: 1px solid rgba(221,205,161,.16);
+}
+.replay-row,
+.equipment-item {
+  border: 0; border-left: 2px solid rgba(113,105,74,.42);
+  background: linear-gradient(90deg, rgba(31,34,26,.92), rgba(22,25,20,.7));
+  clip-path: polygon(0 5%, 98% 0, 100% 50%, 97% 96%, 1% 100%);
+}
+.replay-row:hover,
+.equipment-item:not(:disabled):hover,
+.equipment-item.equipped { border-left-color: #b99344; background: linear-gradient(90deg, rgba(54,50,32,.94), rgba(24,30,22,.75)); }
+
+.campaign-archive-heading {
+  position: relative; padding-top: 50px; padding-bottom: 20px; align-items: center;
+}
+.campaign-archive-heading::after {
+  content: ""; flex: 1; height: 10px; margin-left: 18px;
+  background: linear-gradient(180deg, transparent 42%, rgba(179,143,61,.38) 44%, rgba(179,143,61,.38) 54%, transparent 56%);
+  clip-path: polygon(0 35%, 12% 45%, 24% 34%, 39% 58%, 53% 42%, 68% 55%, 83% 35%, 100% 48%, 100% 66%, 84% 55%, 68% 72%, 52% 58%, 39% 76%, 24% 52%, 12% 65%, 0 52%);
+}
+.campaign-toolbar {
+  top: 0; padding-block: 10px; background: rgba(13,16,12,.94); border: 0;
+  box-shadow: 0 12px 25px rgba(0,0,0,.24), 0 1px rgba(193,157,74,.2);
+}
+.search-field,
+.campaign-toolbar select { background: rgba(7,10,8,.56); border: 0; border-bottom: 1px solid rgba(202,174,106,.28); }
+
+.stage-grid {
+  position: relative; padding: 32px 30px 70px;
+  display: grid; grid-template-columns: minmax(0, 1fr) 78px minmax(0, 1fr); grid-auto-flow: row dense;
+  column-gap: 0; row-gap: 22px;
+}
+.stage-grid::before {
+  content: ""; position: absolute; top: 0; bottom: 30px; left: 50%; width: 2px; transform: translateX(-1px);
+  background: linear-gradient(#7c6634, rgba(152,120,54,.28) 5%, rgba(126,105,61,.42) 92%, transparent);
+  box-shadow: 8px 0 22px rgba(0,0,0,.32);
+}
+.era-divider {
+  position: relative; z-index: 1; grid-column: 1 / -1; min-height: 108px; margin: 30px 0 12px;
+  display: flex; align-items: center; justify-content: center; gap: 18px; color: #e8dab6; text-align: left;
+}
+.era-divider:first-child { margin-top: 0; }
+.era-divider > span {
+  width: 62px; height: 62px; display: grid; place-items: center; color: #ecd58f;
+  background: #5f211b; border: 1px solid #b86a56;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  font: 500 30px/1 var(--font-seal); box-shadow: 0 0 0 7px rgba(145,54,41,.12), 0 12px 25px rgba(0,0,0,.32);
+}
+.era-divider > div { min-width: 170px; padding: 8px 0 8px 18px; border-left: 1px solid rgba(197,160,77,.46); }
+.era-divider small,
+.era-divider strong,
+.era-divider em { display: block; }
+.era-divider small { color: #9b947f; font-size: 9px; }
+.era-divider strong { margin-top: 4px; font: 600 23px/1.1 var(--font-display); }
+.era-divider em { margin-top: 7px; color: #928f83; font-size: 10px; font-style: normal; }
+.era-divider > i {
+  position: absolute; left: 8%; right: 8%; top: 50%; z-index: -1; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(184,147,67,.24) 28%, transparent 43%, transparent 57%, rgba(184,147,67,.24) 72%, transparent);
+}
+.era-divider.era-spring-autumn > span { background: #315247; border-color: #76917b; }
+.era-divider.era-warring-states > span { background: #711f19; border-color: #c06a54; }
+
+.stage-card {
+  position: relative; width: 100%; min-height: 164px; padding: 12px;
+  overflow: visible; border: 0; background: linear-gradient(100deg, rgba(31,35,27,.94), rgba(17,20,16,.74));
+  box-shadow: 0 16px 34px rgba(0,0,0,.16);
+  clip-path: polygon(1% 4%, 96% 0, 100% 12%, 98% 91%, 91% 100%, 4% 97%, 0 83%);
+}
+.stage-card.route-left { grid-column: 1; grid-template-columns: minmax(0, 1fr) 126px; text-align: right; }
+.stage-card.route-right { grid-column: 3; grid-template-columns: 126px minmax(0, 1fr); text-align: left; }
+.stage-card.route-left .stage-thumb { order: 2; }
+.stage-card.route-left .stage-copy { order: 1; align-items: flex-end; }
+.stage-card::before {
+  content: ""; position: absolute; top: 50%; width: 39px; height: 1px; background: rgba(169,137,66,.45);
+}
+.stage-card::after {
+  content: ""; position: absolute; top: calc(50% - 7px); width: 13px; height: 13px;
+  background: #181c16; border: 2px solid #9c7e3c; transform: rotate(45deg); box-shadow: 0 0 0 5px rgba(156,126,60,.08);
+}
+.stage-card.route-left::before { right: -39px; }
+.stage-card.route-left::after { right: -46px; }
+.stage-card.route-right::before { left: -39px; }
+.stage-card.route-right::after { left: -46px; }
+.stage-card:hover { transform: translateY(-3px); border: 0; background: linear-gradient(100deg, rgba(54,53,35,.96), rgba(25,31,23,.84)); }
+.stage-card.completed::after { border-color: #76966a; background: #2c5534; }
+.stage-card.underleveled:not(.locked)::after { border-color: #b65c48; background: #65291f; }
+.stage-card.locked { opacity: .44; }
+.stage-card.locked:hover { background: linear-gradient(100deg, rgba(31,35,27,.94), rgba(17,20,16,.74)); }
+.stage-thumb {
+  min-height: 140px; clip-path: polygon(8% 0, 94% 5%, 100% 22%, 94% 94%, 77% 100%, 3% 92%, 0 17%);
+  filter: drop-shadow(0 7px 12px rgba(0,0,0,.35));
+}
+.stage-thumb::after { background: linear-gradient(90deg, transparent 58%, rgba(16,20,15,.62)); }
+.route-left .stage-thumb::after { background: linear-gradient(270deg, transparent 58%, rgba(16,20,15,.62)); }
+.stage-thumb img { filter: saturate(.58) contrast(1.08) brightness(.82); transition: filter .2s ease, transform .3s ease; }
+.stage-card:hover .stage-thumb img { filter: saturate(.78) contrast(1.06) brightness(.92); transform: scale(1.035); }
+.stage-thumb i { left: 10px; top: 9px; border: 0; background: rgba(70,31,23,.84); clip-path: polygon(7% 0, 100% 5%, 93% 100%, 0 92%); }
+.stage-copy { padding: 11px 15px; }
+.stage-copy small { color: #8e8d82; }
+.stage-copy strong { margin-top: 12px; font-size: 21px; font-weight: 600; }
+.stage-copy > span { margin-top: 7px; max-width: 100%; }
+.stage-copy em { max-width: 420px; }
+
+@media (max-width: 900px) {
+  .era-waypoints { margin-inline: 8px auto; }
+  .era-waypoints button { min-width: 105px; padding-right: 9px; }
+  .stage-grid { grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1fr); }
+  .stage-card.route-left { grid-template-columns: minmax(0, 1fr) 100px; }
+  .stage-card.route-right { grid-template-columns: 100px minmax(0, 1fr); }
+}
+
+@media (max-width: 720px) {
+  .era-waypoints {
+    position: static; width: auto; margin: 0 6px 0 auto; display: flex; gap: 2px; transform: none;
+  }
+  .era-waypoints button { min-width: 54px; width: 54px; height: 44px; padding: 4px; display: grid; place-items: center; clip-path: polygon(0 4%, 92% 0, 100% 50%, 92% 100%, 0 96%, 5% 50%); text-align: center; }
+  .era-waypoints button:first-child { clip-path: polygon(0 4%, 92% 0, 100% 50%, 92% 100%, 0 96%); }
+  .era-waypoints button > span { position: static; width: 23px; height: 23px; font-size: 11px; }
+  .era-waypoints small { display: none; }
+  .era-waypoints strong { display: none; }
+  .stage-grid { padding: 24px 14px 48px 48px; display: block; }
+  .stage-grid::before { left: 25px; transform: none; }
+  .era-divider { min-height: 94px; margin: 34px 0 18px -34px; justify-content: flex-start; padding-left: 18px; }
+  .era-divider > span { width: 52px; height: 52px; font-size: 25px; }
+  .era-divider > i { left: 0; right: 0; }
+  .stage-card,
+  .stage-card.route-left,
+  .stage-card.route-right { width: 100%; min-height: 150px; margin-bottom: 18px; display: grid; grid-template-columns: 98px minmax(0, 1fr); text-align: left; }
+  .stage-card.route-left .stage-thumb,
+  .stage-card.route-left .stage-copy { order: initial; }
+  .stage-card.route-left .stage-copy { align-items: stretch; }
+  .stage-card::before,
+  .stage-card.route-left::before,
+  .stage-card.route-right::before { left: -23px; right: auto; width: 23px; }
+  .stage-card::after,
+  .stage-card.route-left::after,
+  .stage-card.route-right::after { left: -31px; right: auto; }
+  .stage-thumb { min-height: 126px; }
+  .stage-copy strong { font-size: 21px; }
+  .route-left .stage-thumb::after { background: linear-gradient(90deg, transparent 58%, rgba(16,20,15,.62)); }
+}
+
+@media (max-width: 480px) {
+  .era-waypoints { margin-right: 2px; }
+  .era-waypoints button { min-width: 38px; width: 38px; padding: 3px; }
+  .stage-grid { padding-left: 42px; }
+  .stage-grid::before { left: 21px; }
+  .stage-card,
+  .stage-card.route-left,
+  .stage-card.route-right { grid-template-columns: 86px minmax(0, 1fr); padding: 9px; }
+  .stage-card::after,
+  .stage-card.route-left::after,
+  .stage-card.route-right::after { left: -28px; }
+  .stage-copy { padding: 8px 10px; }
+  .stage-copy small { white-space: normal; line-height: 1.45; }
+  .stage-copy em { display: none; }
+}
+
+/* Selectable march route: nearby battles live on the landscape, as in a classic RPG world map. */
+.focus-journey {
+  position: absolute; left: 50%; right: 26%; top: 43%; bottom: 9%; z-index: 5;
+  pointer-events: none;
+}
+.journey-leg {
+  position: absolute; height: 2px; display: block; transform-origin: left center;
+  background: linear-gradient(90deg, rgba(89,68,31,.35), rgba(222,187,97,.8), rgba(89,68,31,.35));
+  box-shadow: 0 1px 4px rgba(0,0,0,.75); pointer-events: none;
+}
+.journey-leg::after {
+  content: ""; position: absolute; inset: -3px 0; opacity: .32;
+  background: repeating-linear-gradient(90deg, transparent 0 9px, #e2c36c 10px 12px, transparent 13px 21px);
+}
+.journey-node {
+  position: absolute; width: 42px; height: 42px; padding: 0; display: grid; place-items: center;
+  color: #d6caa7; background: rgba(22,27,21,.86); border: 1px solid rgba(194,158,75,.5);
+  transform: translate(-50%, -50%) rotate(45deg); cursor: pointer; pointer-events: auto;
+  box-shadow: 0 7px 18px rgba(0,0,0,.44); transition: transform .18s ease, filter .18s ease, opacity .18s ease;
+}
+.journey-node b { transform: rotate(-45deg); font: 500 11px/1 var(--font-seal); }
+.journey-node small {
+  position: absolute; left: 36px; top: -21px; min-width: max-content; padding: 5px 8px;
+  color: #d9ceb0; background: rgba(11,15,12,.8); border-left: 2px solid rgba(191,152,68,.58);
+  transform: rotate(-45deg); opacity: 0; visibility: hidden;
+  font: 500 11px/1.2 var(--font-display); text-shadow: 0 2px 4px #000;
+  transition: opacity .15s ease, visibility .15s ease;
+}
+.journey-node:hover small,
+.journey-node.is-current small { opacity: 1; visibility: visible; }
+.journey-node:hover { transform: translate(-50%, -50%) rotate(45deg) scale(1.12); filter: brightness(1.18); }
+.journey-node.is-current {
+  color: #fff0c5; background: #812c22; border-color: #e0b85c;
+  box-shadow: 0 0 0 7px rgba(208,159,53,.11), 0 0 28px rgba(221,171,61,.46);
+  animation: journey-current-pulse 2.6s ease-in-out infinite;
+}
+.journey-node.is-current small { color: #fff0c6; background: rgba(85,31,23,.9); border-color: #d4a74b; }
+.journey-node.is-completed { color: #d9e6cb; background: #35583f; border-color: #84a175; }
+.journey-node.is-locked { opacity: .34; filter: grayscale(.7); }
+@keyframes journey-current-pulse {
+  50% { box-shadow: 0 0 0 13px rgba(208,159,53,0), 0 0 34px rgba(221,171,61,.54); }
+}
+
+.focus-camp-button {
+  min-height: 46px; padding: 0 10px 0 4px; display: inline-flex; align-items: center; gap: 9px;
+  color: #ddd3b9; background: transparent; border: 0; border-bottom: 1px solid rgba(207,177,101,.34); cursor: pointer;
+}
+.focus-camp-button:hover { color: #fff0c3; border-color: #c29a43; }
+.focus-camp-button > span:first-child {
+  width: 32px; height: 32px; display: grid; place-items: center; color: #ead48e; background: #4c3d22;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); font: 500 13px/1 var(--font-seal);
+}
+.focus-stage-button:disabled,
+.focus-actions > .large-button.primary:disabled { opacity: .5; cursor: not-allowed; filter: grayscale(.6); }
+
+/* The operational systems are a summoned war tent, not a permanent dashboard below the hero. */
+.campaign-camp-backdrop {
+  position: fixed; inset: 0; z-index: 64; display: flex; align-items: flex-end; justify-content: center;
+  padding: 24px 24px 0; background: rgba(4,7,5,.56); backdrop-filter: blur(4px);
+}
+.campaign-camp-drawer {
+  position: relative; width: min(1260px, 100%); max-height: min(880px, 90vh); overflow: auto;
+  color: #e7dfcb; background:
+    linear-gradient(90deg, rgba(39,44,32,.97), rgba(30,37,26,.94) 55%, rgba(24,30,23,.97)),
+    url("assets/campaign/era-western-zhou.webp") center 42% / cover no-repeat;
+  border-top: 2px solid rgba(185,142,59,.62); border-inline: 1px solid rgba(185,142,59,.22);
+  box-shadow: 0 -24px 80px rgba(0,0,0,.58); animation: campaign-camp-rise .24s ease-out;
+}
+.campaign-camp-drawer::before {
+  content: ""; position: fixed; inset: auto 12% 0; height: min(880px, 90vh); z-index: -1; pointer-events: none;
+  background: url("assets/east-hunt.png") center / cover no-repeat; opacity: .035; mix-blend-mode: luminosity;
+}
+@keyframes campaign-camp-rise { from { opacity: 0; transform: translateY(36px); } }
+.campaign-camp-header {
+  position: sticky; top: 0; z-index: 4; min-height: 94px; padding: 19px 28px;
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  background: linear-gradient(180deg, rgba(42,46,32,.99), rgba(28,34,24,.97)); border-bottom: 1px solid rgba(203,169,87,.38);
+}
+.campaign-camp-header > div { display: grid; grid-template-columns: auto auto; align-items: baseline; gap: 4px 16px; }
+.campaign-camp-header span { grid-column: 1 / -1; color: #b89443; font-size: 9px; }
+.campaign-camp-header h2 { margin: 0; color: #f1e5c7; font: 600 30px/1 var(--font-display); }
+.campaign-camp-header p { margin: 0; color: #898b82; font-size: 10px; }
+.campaign-camp-content { padding: 0 28px 28px; }
+.campaign-camp-drawer .war-council,
+.campaign-camp-drawer .quartermaster {
+  width: 100%; max-width: none; box-shadow: none; clip-path: none;
+}
+.campaign-camp-drawer .war-council { padding-top: 28px; }
+.campaign-camp-drawer .quartermaster { padding-bottom: 34px; }
+.campaign-camp-drawer .war-council::before,
+.campaign-camp-drawer .quartermaster::before { left: 0; right: 0; }
+
+@media (max-width: 980px) {
+  .focus-journey { left: 48%; right: 18%; }
+  .journey-node small { display: none; }
+  .journey-node.is-current small { display: block; }
+}
+
+@media (max-width: 820px) {
+  .focus-geography,
+  .campaign-screen[data-era="western-zhou"] .focus-geography,
+  .campaign-screen[data-era="spring-autumn"] .focus-geography,
+  .campaign-screen[data-era="warring-states"] .focus-geography { display: none; }
+  .focus-journey { left: 22px; right: 22px; top: 104px; bottom: auto; height: 150px; }
+  .journey-node { width: 34px; height: 34px; }
+  .journey-node small,
+  .journey-node.is-current small { display: none; }
+  .campaign-camp-backdrop { padding: 12px 0 0; }
+  .campaign-camp-drawer { width: 100%; max-height: 94vh; }
+  .campaign-camp-header { min-height: 82px; padding: 15px 18px; }
+  .campaign-camp-content { padding: 0 16px 24px; }
+  .campaign-camp-drawer .war-council,
+  .campaign-camp-drawer .quartermaster { width: 100%; }
+}
+
+@media (max-width: 560px) {
+  .focus-actions { gap: 10px; }
+  .focus-camp-button { min-height: 42px; }
+  .focus-camp-button > span:first-child { width: 29px; height: 29px; }
+  .campaign-camp-header > div { display: block; }
+  .campaign-camp-header p { margin-top: 5px; }
+  .campaign-camp-header h2 { font-size: 25px; }
+  .campaign-camp-drawer .war-council { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .journey-node.is-current, .campaign-camp-drawer { animation: none !important; }
+}
+
+/* Numeric telemetry stays compact and legible; it must not inherit the display face. */
+.focus-facts dd,
+.stage-thumb i,
+.journey-node b,
+.rank-badge,
+.progress-summary,
+.campaign-resources dd,
+.quartermaster-summary dd,
+.turn-state,
+.zoom-control,
+.result-stats strong {
+  font-family: var(--font-number);
+  font-variant-numeric: tabular-nums;
+}
+
+/* v24 final cascade: remove ornamental geometry inherited from earlier explorations. */
+.focus-era-glyph { display: none; }
+
+.era-waypoints {
+  gap: 0;
+  border-block: 1px solid rgba(189, 159, 91, .14);
+}
+.era-waypoints button,
+.era-waypoints button:first-child {
+  min-width: 126px;
+  height: 48px;
+  padding: 7px 18px 7px 44px;
+  clip-path: none;
+  transform: none;
+  color: #aaa795;
+  background: rgba(14, 17, 14, .34);
+  border: 0;
+  border-right: 1px solid rgba(189, 159, 91, .13);
+  border-bottom: 1px solid transparent;
+}
+.era-waypoints button:first-child { border-left: 1px solid rgba(189, 159, 91, .13); }
+.era-waypoints button::after {
+  content: "";
+  position: absolute;
+  left: 17px;
+  right: 17px;
+  bottom: -1px;
+  height: 2px;
+  background: transparent;
+}
+.era-waypoints button > span {
+  left: 16px;
+  top: 11px;
+  width: 22px;
+  height: 26px;
+  clip-path: none;
+  transform: none;
+  color: #c8ad68;
+  background: transparent;
+  border: 1px solid rgba(198, 162, 85, .35);
+}
+.era-waypoints button:hover {
+  transform: none;
+  color: #f0e2b9;
+  background: rgba(196, 157, 77, .07);
+}
+.era-waypoints button[aria-pressed="true"] {
+  color: #f4e8c8;
+  background: linear-gradient(180deg, rgba(117, 37, 28, .2), rgba(196, 157, 77, .05));
+  border-bottom-color: #b68a3c;
+}
+.era-waypoints button[aria-pressed="true"]::after { background: #b68a3c; }
+.era-waypoints button[aria-pressed="true"] > span {
+  color: #fff0c6;
+  background: #74261e;
+  border-color: #bd8e42;
+  box-shadow: none;
+}
+
+.focus-order {
+  width: min(510px, 100%);
+  margin-top: 18px;
+  padding: 10px 0 10px 16px;
+  clip-path: none;
+  background: linear-gradient(90deg, rgba(26, 29, 22, .52), transparent 82%);
+  border: 0;
+  border-left: 2px solid var(--era-accent);
+}
+.focus-order::before { display: none; }
+.focus-actions > .large-button.primary {
+  min-height: 44px;
+  padding-inline: 22px;
+  clip-path: none;
+  border-radius: 2px;
+  border: 1px solid rgba(213, 140, 91, .56);
+  background: #7d281e;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .24);
+}
+.focus-camp-button > span:first-child {
+  clip-path: none;
+  transform: none;
+  border: 1px solid rgba(195, 159, 81, .48);
+  background: rgba(24, 29, 22, .72);
+}
+
+.focus-chronicle,
+.campaign-screen[data-era="western-zhou"] .focus-chronicle,
+.campaign-screen[data-era="spring-autumn"] .focus-chronicle,
+.campaign-screen[data-era="warring-states"] .focus-chronicle {
+  padding: 0 0 8px 18px;
+  background: linear-gradient(90deg, rgba(9, 12, 9, .5), transparent);
+  border: 0;
+  border-left: 1px solid rgba(197, 163, 85, .3);
+  backdrop-filter: none;
+}
+.focus-chronicle::before { display: none; }
+.chronicle-heading {
+  width: auto;
+  margin: 0 0 8px;
+  padding: 0 0 8px;
+  transform: none;
+  color: #c6a964;
+  background: transparent;
+  border-bottom: 1px solid rgba(197, 163, 85, .2);
+}
+.focus-facts div,
+.focus-facts div:nth-child(even) {
+  min-height: 49px;
+  margin: 0;
+  padding: 8px 0;
+  clip-path: none;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(197, 163, 85, .12);
+}
+.focus-facts div::before { display: none; }
+
+.journey-node {
+  width: 34px;
+  height: 34px;
+  transform: translate(-50%, -50%);
+  clip-path: none;
+  border-radius: 50%;
+}
+.journey-node:hover { transform: translate(-50%, -50%) scale(1.08); }
+.journey-node b,
+.journey-node small { transform: none; }
+
+@media (max-width: 980px) {
+  .era-waypoints button,
+  .era-waypoints button:first-child { min-width: 108px; padding-right: 12px; }
+}
+
+@media (max-width: 820px) {
+  .era-waypoints { border-block: 0; }
+  .era-waypoints button,
+  .era-waypoints button:first-child {
+    min-width: 54px;
+    width: 54px;
+    height: 38px;
+    padding: 4px;
+    display: grid;
+    place-items: center;
+    border: 0;
+  }
+  .era-waypoints button::after { left: 7px; right: 7px; }
+  .era-waypoints button > span {
+    position: static;
+    width: 24px;
+    height: 26px;
+    margin: auto;
+  }
+  .focus-chronicle,
+  .campaign-screen[data-era="western-zhou"] .focus-chronicle,
+  .campaign-screen[data-era="spring-autumn"] .focus-chronicle,
+  .campaign-screen[data-era="warring-states"] .focus-chronicle {
+    padding: 13px 0 0;
+    border-left: 0;
+    border-top: 1px solid rgba(197, 163, 85, .26);
+    background: transparent;
+  }
+  .focus-facts div,
+  .focus-facts div:nth-child(even) {
+    min-height: 48px;
+    padding: 7px 8px;
+    border: 0;
+    border-right: 1px solid rgba(197, 163, 85, .12);
+    background: transparent;
+  }
+}
+
+@media (max-width: 560px) {
+  .campaign-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "brand actions"
+      "eras eras";
+    column-gap: 8px;
+    row-gap: 4px;
+    min-height: 92px;
+    padding: 8px 12px 7px;
+  }
+  .campaign-brand { grid-area: brand; min-width: 0; flex: none; gap: 8px; }
+  .campaign-brand .brand-seal {
+    width: 31px;
+    height: 31px;
+    flex-basis: 31px;
+    font-size: 17px;
+  }
+  .campaign-brand > div { min-width: 0; }
+  .campaign-brand p { display: none; }
+  .campaign-brand h1 { font-size: 16px; white-space: nowrap; }
+  .era-waypoints {
+    grid-area: eras;
+    justify-self: start;
+    margin: 0;
+    border-top: 1px solid rgba(189, 159, 91, .12);
+  }
+  .era-waypoints button,
+  .era-waypoints button:first-child { min-width: 38px; width: 38px; padding: 3px; }
+  .era-waypoints button > span { width: 22px; height: 24px; }
+  .campaign-actions {
+    grid-area: actions;
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    max-width: none;
+    gap: 0;
+  }
+  .campaign-settings-button { width: 32px; min-height: 32px; padding: 0; justify-content: center; }
+  .campaign-settings-button span:first-child { display: inline; font-size: 15px; }
+  .campaign-settings-button span:last-child { display: none; }
+  .campaign-focus {
+    width: 100vw;
+    max-width: 100vw;
+    padding-top: 262px;
+    overflow: hidden;
+  }
+  .focus-journey { top: 112px; }
+  .focus-copy { width: calc(100vw - 32px); max-width: calc(100vw - 32px); }
+  .focus-actions {
+    width: 100%;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 9px 12px;
+  }
+  .focus-actions > .large-button.primary { min-width: 118px; padding-inline: 15px; }
+  .focus-camp-button { min-width: 0; justify-self: start; }
+  .focus-archive-button {
+    grid-column: 1 / -1;
+    min-width: 0;
+    min-height: 28px;
+    justify-self: start;
+  }
+  .focus-chronicle {
+    width: calc(100vw - 32px);
+    max-width: calc(100vw - 32px);
+    min-width: 0;
+    align-self: flex-start;
+    overflow: hidden;
+  }
+  .focus-facts {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+  }
+  .focus-facts div {
+    width: 25%;
+    min-width: 0;
+    flex: 1 1 0;
+    padding-inline: 5px;
+  }
+  .focus-facts dt,
+  .focus-facts dd { min-width: 0; overflow-wrap: anywhere; }
+  .focus-facts dt { font-size: 8px; }
+  .focus-facts dd { font-size: 11px; }
+}
+
+/* v32 final typography cascade. */
+.campaign-brand h1,
+.focus-copy h2,
+.archive-heading h2,
+.era-divider strong,
+.stage-copy strong,
+.campaign-camp-header h2,
+.war-council h2,
+.quartermaster h2,
+.result-card h2,
+.story-speaker {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.campaign-screen button,
+.campaign-screen select,
+.campaign-screen input,
+.campaign-screen .focus-kicker,
+.campaign-screen .focus-order span,
+.campaign-screen .era-waypoints small,
+.campaign-screen .era-waypoints strong,
+.campaign-screen .chronicle-heading,
+.campaign-screen .focus-facts dt,
+.campaign-screen .progress-summary,
+.campaign-screen .rank-badge,
+.campaign-screen .campaign-toolbar,
+.campaign-screen .stage-copy small,
+.campaign-screen .stage-card-status {
+  font-family: var(--font-pixel);
+  font-weight: 400;
+}
+
+.focus-story,
+.focus-context,
+.focus-order p,
+.focus-guidance,
+.stage-copy em,
+.story-text {
+  font-family: var(--font-ui);
+  font-weight: 400;
+}
+
+.focus-copy h2 { font-size: 48px; line-height: 1.12; }
+.focus-actions { flex-wrap: wrap; gap: 12px 16px; }
+
+@media (max-width: 820px) {
+  .focus-copy h2 { font-size: 44px; }
+}
+
+@media (max-width: 560px) {
+  .campaign-brand h1 { font-size: 17px; }
+  .focus-copy h2 { font-size: 40px; }
+  .focus-actions { grid-template-columns: auto auto; }
+  .focus-restart-button { min-width: 104px; padding-inline: 12px; }
+  .focus-camp-button { grid-column: 1; }
+  .focus-archive-button { grid-column: 2; align-self: center; }
+}
+
+/* v35: let the painted scene carry the mood; controls read as commands, not cards. */
+.campaign-screen {
+  --font-command: "Microsoft YaHei UI", "DengXian", "Noto Sans SC", sans-serif;
+  --era-action: #812d23;
+}
+.campaign-screen[data-era="spring-autumn"] { --era-action: #365746; }
+.campaign-screen[data-era="warring-states"] { --era-action: #713027; }
+
+.campaign-screen button,
+.campaign-screen select,
+.campaign-screen input,
+.campaign-screen .focus-kicker,
+.campaign-screen .focus-order span,
+.campaign-screen .era-waypoints small,
+.campaign-screen .era-waypoints strong,
+.campaign-screen .chronicle-heading,
+.campaign-screen .focus-facts dt,
+.campaign-screen .progress-summary,
+.campaign-screen .rank-badge,
+.campaign-screen .campaign-toolbar,
+.campaign-screen .stage-copy small,
+.campaign-screen .stage-card-status {
+  font-family: var(--font-command);
+  font-weight: 400;
+}
+
+.campaign-header {
+  align-items: flex-start;
+}
+.era-waypoints {
+  gap: clamp(18px, 2.4vw, 38px);
+  border: 0;
+}
+.era-waypoints button,
+.era-waypoints button:first-child {
+  min-width: 104px;
+  height: 48px;
+  padding: 5px 0 7px 28px;
+  overflow: visible;
+  color: rgba(220, 214, 197, .58);
+  background: transparent;
+  border: 0;
+  text-align: left;
+}
+.era-waypoints button::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 9px;
+  width: 13px;
+  height: 1px;
+  background: rgba(199, 166, 84, .32);
+  transition: width .2s ease, background-color .2s ease;
+}
+.era-waypoints button::after {
+  left: 28px;
+  right: auto;
+  bottom: 3px;
+  width: 0;
+  height: 1px;
+  background: var(--era-accent);
+  transition: width .2s ease;
+}
+.era-waypoints button > span {
+  left: 16px;
+  top: 5px;
+  width: auto;
+  height: auto;
+  color: rgba(214, 184, 107, .72);
+  background: transparent;
+  border: 0;
+  font-family: var(--font-seal);
+  font-size: 13px;
+}
+.era-waypoints small {
+  color: rgba(196, 192, 178, .54);
+  font-size: 8px;
+}
+.era-waypoints strong {
+  margin-top: 3px;
+  color: inherit;
+  font-size: 12px;
+  line-height: 1.2;
+}
+.era-waypoints button:hover,
+.era-waypoints button[aria-pressed="true"] {
+  color: #f0e4c4;
+  background: transparent;
+  border: 0;
+}
+.era-waypoints button:hover::before,
+.era-waypoints button[aria-pressed="true"]::before {
+  width: 19px;
+  background: var(--era-accent);
+}
+.era-waypoints button[aria-pressed="true"]::after { width: 46px; }
+.era-waypoints button[aria-pressed="true"] > span {
+  color: #e1bd67;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.rank-badge {
+  padding: 8px 12px 8px 0;
+  color: #c8b684;
+  background: transparent;
+  border: 0;
+}
+.campaign-settings-button {
+  min-height: 36px;
+  padding: 0 0 3px 13px;
+  color: #d4cbb4;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid rgba(208, 180, 108, .25);
+}
+.campaign-settings-button:hover,
+.campaign-settings-button[aria-expanded="true"] {
+  color: #fff0c6;
+  background: transparent;
+  border-color: rgba(208, 180, 108, .58);
+}
+
+.focus-actions {
+  gap: 9px 22px;
+}
+.focus-actions > .large-button.primary,
+.campaign-screen[data-era="spring-autumn"] .focus-actions > .large-button.primary {
+  position: relative;
+  min-width: 148px;
+  min-height: 46px;
+  padding: 0 25px;
+  color: #fff0d0;
+  background: var(--era-action);
+  border: 0;
+  border-left: 3px solid rgba(235, 190, 92, .76);
+  border-radius: 0;
+  box-shadow: 0 9px 24px rgba(0, 0, 0, .28);
+}
+.focus-actions > .large-button.primary::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 5px;
+  height: 1px;
+  background: rgba(245, 211, 135, .22);
+}
+.focus-actions > .large-button.primary:hover,
+.campaign-screen[data-era="spring-autumn"] .focus-actions > .large-button.primary:hover {
+  background: color-mix(in srgb, var(--era-action) 84%, #d3a85a);
+}
+.focus-restart-button {
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 2px;
+  color: #d1c7b0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.focus-restart-button::before {
+  content: "\21BB";
+  margin-right: 7px;
+  color: #b99a53;
+  font-size: 16px;
+}
+.focus-restart-button:hover {
+  color: #f1dfad;
+  background: transparent;
+}
+.focus-camp-button,
+.focus-archive-button {
+  min-height: 40px;
+  padding: 0;
+  gap: 8px;
+  color: #c9c0aa;
+  background: transparent;
+  border: 0;
+}
+.focus-camp-button:hover,
+.focus-archive-button:hover {
+  color: #f0dfad;
+  border: 0;
+}
+.focus-camp-button > span:first-child {
+  width: auto;
+  height: auto;
+  color: #c9aa5d;
+  background: transparent;
+  border: 0;
+  font-family: var(--font-seal);
+  font-size: 15px;
+}
+.focus-archive-button span:last-child {
+  color: #ae8c43;
+  transform: translateY(1px);
+}
+
+.focus-chronicle,
+.campaign-screen[data-era="western-zhou"] .focus-chronicle,
+.campaign-screen[data-era="spring-autumn"] .focus-chronicle,
+.campaign-screen[data-era="warring-states"] .focus-chronicle {
+  width: 190px;
+  padding: 4px 0 2px 20px;
+  background: transparent;
+  border: 0;
+  backdrop-filter: none;
+}
+.focus-chronicle::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 3px;
+  bottom: 8px;
+  width: 1px;
+  background: linear-gradient(180deg, var(--era-accent), rgba(197, 163, 85, .06));
+}
+.chronicle-heading {
+  margin: 0 0 13px;
+  padding: 0;
+  color: #c8aa60;
+  background: transparent;
+  border: 0;
+  font-size: 12px;
+}
+.chronicle-heading i { opacity: .32; }
+.focus-facts {
+  margin: 0;
+  display: grid;
+  gap: 13px;
+}
+.focus-facts div,
+.focus-facts div:nth-child(even) {
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+.focus-facts dt {
+  color: rgba(190, 190, 177, .55);
+  font-size: 8px;
+}
+.focus-facts dd {
+  margin: 3px 0 0;
+  color: #e9dec0;
+  font-family: var(--font-number);
+  font-size: 15px;
+}
+.chronicle-progress { margin-top: 18px; }
+.chronicle-progress i { width: 78%; background: rgba(255, 255, 255, .08); }
+.chronicle-progress span { color: rgba(180, 182, 172, .52); }
+
+.era-waypoints button:focus-visible,
+.focus-actions button:focus-visible,
+.campaign-settings-button:focus-visible {
+  outline: 1px solid #d4b15d;
+  outline-offset: 5px;
+}
+
+@media (max-width: 820px) {
+  .era-waypoints { gap: 16px; }
+  .era-waypoints button,
+  .era-waypoints button:first-child {
+    min-width: 34px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+  }
+  .era-waypoints button::before { display: none; }
+  .era-waypoints button::after {
+    left: 6px;
+    right: 6px;
+    bottom: -2px;
+  }
+  .era-waypoints button[aria-pressed="true"]::after { width: auto; }
+  .era-waypoints button > span {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    font-size: 15px;
+  }
+  .focus-chronicle,
+  .campaign-screen[data-era="western-zhou"] .focus-chronicle,
+  .campaign-screen[data-era="spring-autumn"] .focus-chronicle,
+  .campaign-screen[data-era="warring-states"] .focus-chronicle {
+    width: calc(100vw - 32px);
+    padding: 15px 0 0;
+    border: 0;
+    background: transparent;
+  }
+  .focus-chronicle::after {
+    top: 0;
+    right: 0;
+    bottom: auto;
+    width: auto;
+    height: 1px;
+    background: linear-gradient(90deg, var(--era-accent), rgba(197, 163, 85, .06));
+  }
+  .chronicle-heading { display: none; }
+  .focus-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; }
+  .focus-facts div,
+  .focus-facts div:nth-child(even) {
+    width: auto;
+    padding: 0 9px 0 0;
+    border: 0;
+  }
+  .focus-facts dd { font-size: 12px; white-space: nowrap; }
+  .chronicle-progress { margin-top: 14px; }
+}
+
+@media (max-width: 560px) {
+  .campaign-header { row-gap: 7px; }
+  .era-waypoints {
+    gap: 14px;
+    padding-left: 4px;
+    border: 0;
+  }
+  .era-waypoints button,
+  .era-waypoints button:first-child { min-width: 28px; width: 28px; }
+  .campaign-settings-button { border-left: 0; }
+  .focus-actions {
+    display: grid;
+    grid-template-columns: minmax(134px, auto) minmax(0, 1fr);
+    gap: 8px 18px;
+  }
+  .focus-actions > .large-button.primary {
+    min-width: 134px;
+    padding-inline: 19px;
+  }
+  .focus-restart-button {
+    min-width: 0;
+    padding: 0;
+    justify-self: start;
+  }
+  .focus-camp-button { grid-column: 1; justify-self: start; }
+  .focus-archive-button { grid-column: 2; justify-self: start; align-self: center; }
+  .focus-facts div,
+  .focus-facts div:nth-child(even) { padding: 0 6px 0 0; }
+  .focus-facts dt { font-size: 8px; }
+  .focus-facts dd { font-size: 11px; }
+}
+
+/* v36: asymmetrical chronicle composition. No visible control is a card. */
+.campaign-brand .brand-seal {
+  border: 0;
+  border-radius: 43% 57% 46% 54%;
+  transform: rotate(-3deg);
+  background:
+    radial-gradient(circle at 37% 32%, rgba(191, 71, 50, .95), rgba(105, 27, 22, .94) 68%, rgba(51, 13, 11, .96));
+  box-shadow:
+    inset 0 0 0 2px rgba(231, 190, 105, .5),
+    inset 3px -4px 9px rgba(30, 8, 6, .5),
+    0 6px 18px rgba(0, 0, 0, .28);
+}
+
+.era-waypoints {
+  position: relative;
+  height: 56px;
+  align-items: flex-start;
+  gap: clamp(24px, 3vw, 48px);
+}
+.era-waypoints::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 9px;
+  top: 25px;
+  height: 1px;
+  opacity: .42;
+  transform: rotate(-.8deg);
+  transform-origin: center;
+  background: linear-gradient(90deg, transparent, rgba(188, 151, 67, .48) 14%, rgba(188, 151, 67, .2) 73%, transparent);
+}
+.era-waypoints button,
+.era-waypoints button:first-child {
+  min-width: 98px;
+  height: 54px;
+  padding: 0 0 0 24px;
+  z-index: 1;
+}
+.era-waypoints button:nth-child(1) { transform: translateY(9px); }
+.era-waypoints button:nth-child(2) { transform: translateY(1px); }
+.era-waypoints button:nth-child(3) { transform: translateY(11px); }
+.era-waypoints button:hover:nth-child(1),
+.era-waypoints button[aria-pressed="true"]:nth-child(1) { transform: translateY(7px); }
+.era-waypoints button:hover:nth-child(2),
+.era-waypoints button[aria-pressed="true"]:nth-child(2) { transform: translateY(-1px); }
+.era-waypoints button:hover:nth-child(3),
+.era-waypoints button[aria-pressed="true"]:nth-child(3) { transform: translateY(9px); }
+.era-waypoints button::before {
+  left: 4px;
+  top: 18px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #25271f;
+  box-shadow: 0 0 0 1px rgba(200, 168, 91, .42), 0 0 0 5px rgba(13, 16, 13, .7);
+}
+.era-waypoints button:hover::before,
+.era-waypoints button[aria-pressed="true"]::before {
+  width: 9px;
+  background: var(--era-accent);
+  box-shadow: 0 0 0 1px rgba(235, 201, 122, .72), 0 0 0 6px rgba(13, 16, 13, .78);
+}
+.era-waypoints button > span {
+  left: 18px;
+  top: 7px;
+  color: rgba(201, 169, 91, .62);
+  font-size: 12px;
+}
+.era-waypoints button::after {
+  left: 24px;
+  bottom: 1px;
+  height: 2px;
+  border-radius: 60% 20% 70% 30%;
+  transform: rotate(-1.5deg);
+}
+
+.focus-actions {
+  position: relative;
+  width: min(560px, 100%);
+  height: 94px;
+  margin-top: 28px;
+  display: block;
+}
+.focus-actions > button {
+  position: absolute;
+  white-space: nowrap;
+}
+.focus-actions > .large-button.primary,
+.campaign-screen[data-era="spring-autumn"] .focus-actions > .large-button.primary,
+.campaign-screen[data-era="warring-states"] .focus-actions > .large-button.primary {
+  left: 0;
+  top: 0;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 12px 8px 46px;
+  color: #f3e4c1;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+}
+.focus-actions > .large-button.primary::before {
+  content: "令";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  color: #f0d695;
+  border-radius: 46% 54% 42% 58%;
+  transform: rotate(-6deg);
+  background:
+    radial-gradient(circle at 38% 31%, rgba(166, 57, 42, .98), rgba(104, 27, 23, .98) 73%);
+  box-shadow: inset 0 0 0 1px rgba(237, 190, 99, .55), 0 5px 14px rgba(0, 0, 0, .28);
+  font-family: var(--font-seal);
+  font-size: 14px;
+}
+.focus-actions > .large-button.primary::after {
+  left: 44px;
+  right: 2px;
+  bottom: 5px;
+  height: 3px;
+  border-radius: 80% 18% 72% 25%;
+  transform: rotate(-1.2deg);
+  transform-origin: left center;
+  background: linear-gradient(90deg, rgba(169, 57, 41, .95), rgba(191, 132, 56, .46) 72%, transparent);
+}
+.focus-actions > .large-button.primary:hover,
+.campaign-screen[data-era="spring-autumn"] .focus-actions > .large-button.primary:hover,
+.campaign-screen[data-era="warring-states"] .focus-actions > .large-button.primary:hover {
+  color: #fff0cb;
+  background: transparent;
+  transform: translateX(3px);
+}
+.focus-restart-button {
+  left: 192px;
+  top: 3px;
+}
+.focus-camp-button {
+  left: 45px;
+  top: 53px;
+}
+.focus-archive-button {
+  left: 272px;
+  top: 46px;
+}
+.focus-restart-button,
+.focus-camp-button,
+.focus-archive-button {
+  min-height: 36px;
+  padding: 0 3px;
+}
+.focus-restart-button::after,
+.focus-camp-button::after,
+.focus-archive-button::after {
+  content: "";
+  position: absolute;
+  left: 1px;
+  right: 28%;
+  bottom: 3px;
+  height: 1px;
+  opacity: 0;
+  transform: rotate(-1deg);
+  background: linear-gradient(90deg, var(--era-accent), transparent);
+  transition: opacity .2s ease, right .2s ease;
+}
+.focus-restart-button:hover::after,
+.focus-camp-button:hover::after,
+.focus-archive-button:hover::after {
+  right: 0;
+  opacity: .8;
+}
+
+.focus-chronicle,
+.campaign-screen[data-era="western-zhou"] .focus-chronicle,
+.campaign-screen[data-era="spring-autumn"] .focus-chronicle,
+.campaign-screen[data-era="warring-states"] .focus-chronicle {
+  width: 206px;
+  padding: 0 0 0 22px;
+}
+.focus-chronicle::before {
+  content: "";
+  position: absolute;
+  display: block;
+  left: -23px;
+  top: -12px;
+  width: 88px;
+  height: 260px;
+  pointer-events: none;
+  opacity: .12;
+  transform: rotate(2deg);
+  background:
+    radial-gradient(ellipse at 44% 10%, rgba(202, 169, 90, .36), transparent 48%),
+    linear-gradient(90deg, transparent 43%, rgba(191, 155, 70, .75) 49%, rgba(191, 155, 70, .14) 55%, transparent 61%);
+  filter: blur(.3px);
+}
+.focus-chronicle::after {
+  left: 0;
+  top: 8px;
+  bottom: 3px;
+  transform: rotate(1.2deg);
+  transform-origin: top;
+}
+.chronicle-heading {
+  margin-left: -8px;
+  transform: rotate(-1deg);
+}
+.focus-facts { gap: 10px; }
+.focus-facts div:nth-child(1) { margin-left: 0; }
+.focus-facts div:nth-child(2) { margin-left: 19px; }
+.focus-facts div:nth-child(3) { margin-left: 7px; }
+.focus-facts div:nth-child(4) { margin-left: 28px; }
+.focus-facts dt { opacity: .82; }
+.focus-facts dd {
+  font-size: 14px;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, .7);
+}
+.chronicle-progress {
+  width: 120px;
+  margin-left: 12px;
+  transform: rotate(-1deg);
+}
+
+@media (max-width: 820px) {
+  .era-waypoints {
+    height: 38px;
+    gap: 17px;
+  }
+  .era-waypoints::before {
+    left: 8px;
+    right: 8px;
+    top: 18px;
+  }
+  .era-waypoints button,
+  .era-waypoints button:first-child {
+    min-width: 31px;
+    width: 31px;
+    height: 34px;
+    padding: 0;
+  }
+  .era-waypoints button:nth-child(1) { transform: translateY(5px); }
+  .era-waypoints button:nth-child(2) { transform: translateY(0); }
+  .era-waypoints button:nth-child(3) { transform: translateY(6px); }
+  .era-waypoints button:hover:nth-child(1),
+  .era-waypoints button[aria-pressed="true"]:nth-child(1) { transform: translateY(3px); }
+  .era-waypoints button:hover:nth-child(2),
+  .era-waypoints button[aria-pressed="true"]:nth-child(2) { transform: translateY(-2px); }
+  .era-waypoints button:hover:nth-child(3),
+  .era-waypoints button[aria-pressed="true"]:nth-child(3) { transform: translateY(4px); }
+  .era-waypoints button::before {
+    display: block;
+    left: 12px;
+    top: 13px;
+    width: 6px;
+    height: 6px;
+  }
+  .era-waypoints button:hover::before,
+  .era-waypoints button[aria-pressed="true"]::before { width: 8px; }
+  .era-waypoints button > span {
+    position: absolute;
+    left: 21px;
+    top: 1px;
+    font-size: 13px;
+  }
+  .era-waypoints button::after { left: 8px; right: 8px; bottom: -1px; }
+
+  .focus-chronicle,
+  .campaign-screen[data-era="western-zhou"] .focus-chronicle,
+  .campaign-screen[data-era="spring-autumn"] .focus-chronicle,
+  .campaign-screen[data-era="warring-states"] .focus-chronicle {
+    padding-top: 18px;
+  }
+  .focus-chronicle::before { display: none; }
+  .focus-chronicle::after {
+    top: 0;
+    right: 4%;
+    bottom: auto;
+    width: auto;
+    height: 1px;
+    transform: rotate(-.6deg);
+  }
+  .focus-facts {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 26px;
+  }
+  .focus-facts div:nth-child(1),
+  .focus-facts div:nth-child(3) { margin-left: 0; }
+  .focus-facts div:nth-child(2),
+  .focus-facts div:nth-child(4) { margin-left: 12px; transform: translateY(7px); }
+  .chronicle-progress { width: 72%; margin: 18px 0 0 12%; }
+}
+
+@media (max-width: 560px) {
+  .campaign-brand .brand-seal { transform: rotate(-4deg); }
+  .era-waypoints { gap: 14px; }
+  .focus-actions {
+    width: 100%;
+    height: 100px;
+    display: block;
+  }
+  .focus-actions > .large-button.primary {
+    left: 0;
+    top: 0;
+    min-width: 0;
+    padding-left: 45px;
+  }
+  .focus-restart-button {
+    left: auto;
+    right: 4px;
+    top: 5px;
+    width: auto;
+  }
+  .focus-camp-button {
+    left: 18px;
+    top: 57px;
+  }
+  .focus-archive-button {
+    left: auto;
+    right: 27px;
+    top: 51px;
+  }
+  .focus-chronicle,
+  .campaign-screen[data-era="western-zhou"] .focus-chronicle,
+  .campaign-screen[data-era="spring-autumn"] .focus-chronicle,
+  .campaign-screen[data-era="warring-states"] .focus-chronicle {
+    width: calc(100vw - 32px);
+    min-height: 126px;
+  }
+  .focus-facts dd { font-size: 12px; }
+}
+
+/* v37: campaign map is the game. Text is a compact mission HUD, never the main scene. */
+.campaign-focus {
+  min-height: 100svh;
+  padding: 104px clamp(28px, 6vw, 96px) 42px;
+  display: block;
+  overflow: hidden;
+}
+.focus-map::after {
+  background:
+    linear-gradient(90deg, rgba(6, 9, 7, .88) 0%, rgba(6, 9, 7, .58) 25%, rgba(6, 9, 7, .06) 58%, rgba(6, 9, 7, .1) 100%),
+    linear-gradient(0deg, rgba(5, 8, 6, .9) 0%, rgba(5, 8, 6, .2) 34%, transparent 68%),
+    linear-gradient(180deg, rgba(5, 8, 6, .32), transparent 24%);
+}
+.focus-map .focus-era-backdrop {
+  filter: saturate(.9) contrast(1.08) brightness(.82);
+}
+.focus-map .focus-figures {
+  right: clamp(45px, 6vw, 110px);
+  width: min(39vw, 620px);
+  opacity: .64;
+}
+.focus-geography,
+.campaign-screen[data-era="western-zhou"] .focus-geography,
+.campaign-screen[data-era="spring-autumn"] .focus-geography,
+.campaign-screen[data-era="warring-states"] .focus-geography {
+  display: none;
+}
+
+.focus-journey {
+  left: 42%;
+  right: 7%;
+  top: 20%;
+  bottom: 18%;
+  z-index: 7;
+}
+.journey-leg {
+  height: 3px;
+  background: linear-gradient(90deg, rgba(91, 69, 31, .34), rgba(231, 197, 105, .92), rgba(116, 86, 35, .52));
+  box-shadow: 0 0 0 1px rgba(27, 22, 13, .52), 0 2px 9px rgba(0, 0, 0, .7);
+}
+.journey-leg::after {
+  inset: -6px 0;
+  opacity: .48;
+  background: repeating-linear-gradient(90deg, transparent 0 13px, rgba(244, 214, 127, .8) 14px 16px, transparent 17px 29px);
+}
+.journey-node {
+  width: 48px;
+  height: 48px;
+  color: #d9cfb2;
+  background: radial-gradient(circle, rgba(31, 38, 29, .96) 0 47%, rgba(11, 15, 11, .72) 49% 100%);
+  border: 1px solid rgba(210, 176, 91, .6);
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px rgba(10, 13, 10, .62), 0 9px 24px rgba(0, 0, 0, .52);
+}
+.journey-node b {
+  font-family: var(--font-number);
+  font-size: 12px;
+}
+.journey-node small {
+  left: 38px;
+  top: -17px;
+  padding: 6px 9px;
+  color: #e1d6b8;
+  background: linear-gradient(90deg, rgba(11, 15, 12, .9), rgba(11, 15, 12, .22));
+  border: 0;
+  border-left: 2px solid var(--era-accent);
+  font-family: var(--font-command);
+  font-size: 11px;
+}
+.journey-node:hover {
+  transform: translate(-50%, -50%) scale(1.13);
+  filter: brightness(1.18);
+}
+.journey-node.is-current {
+  width: 64px;
+  height: 64px;
+  color: #fff0c5;
+  background: radial-gradient(circle at 42% 38%, #b84f38, #79251e 58%, #35100e 100%);
+  border-color: #f0c86d;
+  box-shadow: 0 0 0 5px rgba(218, 170, 63, .16), 0 0 0 11px rgba(10, 13, 10, .48), 0 0 35px rgba(231, 181, 66, .48);
+}
+.journey-node.is-current b { font-size: 14px; }
+.journey-node.is-current small {
+  left: 51px;
+  top: 7px;
+  color: #fff0c8;
+  background: linear-gradient(90deg, rgba(91, 28, 22, .94), rgba(42, 23, 16, .3));
+}
+.journey-node.is-completed {
+  background: radial-gradient(circle, #48664d 0 48%, #17251b 50% 100%);
+  border-color: #92ad86;
+}
+
+.focus-copy {
+  position: absolute;
+  left: clamp(28px, 7vw, 108px);
+  bottom: clamp(118px, 14vh, 148px);
+  z-index: 9;
+  width: min(440px, 36vw);
+  padding: 0;
+}
+.focus-copy > p:first-child {
+  margin-bottom: 7px;
+  color: #c8b06f;
+  font-family: var(--font-command);
+  font-size: 10px;
+  font-weight: 400;
+}
+.focus-copy > p:first-child::before { width: 18px; }
+.focus-copy h2 {
+  font-size: clamp(34px, 3.3vw, 48px);
+  line-height: 1.06;
+}
+.focus-context { margin-top: 10px; }
+.focus-context strong { font-size: 15px; }
+.focus-copy > p:not(:first-child) {
+  max-width: 430px;
+  margin-top: 7px;
+  overflow: hidden;
+  color: rgba(219, 212, 194, .77);
+  font-size: 12px;
+  line-height: 1.55;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.focus-order {
+  width: min(420px, 100%);
+  margin-top: 12px;
+  padding: 6px 0 6px 13px;
+  background: linear-gradient(90deg, rgba(11, 15, 11, .62), transparent);
+  border-left: 2px solid var(--era-accent);
+  clip-path: none;
+}
+.focus-order::before { display: none; }
+.focus-order span { font-size: 8px; }
+.focus-order p {
+  margin-top: 3px;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.focus-actions {
+  position: absolute;
+  left: clamp(28px, 7vw, 108px);
+  bottom: 31px;
+  z-index: 10;
+  width: min(620px, 52vw);
+  height: 72px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: clamp(17px, 2vw, 29px);
+}
+.focus-actions > button {
+  position: relative;
+  inset: auto;
+  flex: 0 0 auto;
+  min-width: 0;
+  height: 58px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #d4cbb6;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  font-family: var(--font-command);
+  font-size: 12px;
+}
+.focus-actions > button::before,
+.focus-camp-button > span:first-child {
+  position: relative;
+  inset: auto;
+  flex: 0 0 46px;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  color: #d8bd76;
+  border: 1px solid rgba(207, 172, 86, .5);
+  border-radius: 50%;
+  transform: none;
+  background: radial-gradient(circle, rgba(43, 44, 31, .92), rgba(13, 17, 13, .92));
+  box-shadow: 0 0 0 4px rgba(8, 11, 9, .5), 0 7px 17px rgba(0, 0, 0, .32);
+  font-family: var(--font-command);
+  font-size: 16px;
+}
+.focus-actions > .large-button.primary,
+.campaign-screen[data-era="spring-autumn"] .focus-actions > .large-button.primary,
+.campaign-screen[data-era="warring-states"] .focus-actions > .large-button.primary {
+  min-width: 118px;
+  min-height: 62px;
+  padding: 0;
+  color: #f4e4bd;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  font-family: var(--font-command);
+  font-size: 14px;
+}
+.focus-actions > .large-button.primary::before {
+  content: "▶";
+  flex-basis: 58px;
+  width: 58px;
+  height: 58px;
+  padding-left: 3px;
+  color: #ffebb7;
+  border-color: rgba(238, 192, 91, .82);
+  transform: none;
+  background: radial-gradient(circle at 40% 35%, #b24c37, #70231d 63%, #32100e);
+  box-shadow: 0 0 0 5px rgba(177, 58, 40, .15), 0 9px 24px rgba(0, 0, 0, .42);
+  font-family: sans-serif;
+  font-size: 16px;
+}
+.focus-actions > .large-button.primary::after,
+.focus-restart-button::after,
+.focus-camp-button::after,
+.focus-archive-button::after { display: none; }
+.focus-restart-button::before {
+  content: "↻";
+  margin: 0;
+  font-size: 21px;
+}
+.focus-camp-button > span:first-child {
+  font-family: var(--font-seal);
+  font-size: 15px;
+}
+.focus-archive-button::before {
+  content: "册";
+  font-family: var(--font-seal);
+  font-size: 15px;
+}
+.focus-archive-button span:last-child { display: none; }
+.focus-actions > button:hover {
+  color: #fff0c7;
+  background: transparent;
+  transform: translateY(-3px);
+}
+.focus-actions > button:hover::before,
+.focus-camp-button:hover > span:first-child {
+  border-color: #e4bc60;
+  filter: brightness(1.16);
+}
+.focus-copy .focus-guidance { display: none; }
+
+.focus-chronicle,
+.campaign-screen[data-era="western-zhou"] .focus-chronicle,
+.campaign-screen[data-era="spring-autumn"] .focus-chronicle,
+.campaign-screen[data-era="warring-states"] .focus-chronicle {
+  position: absolute;
+  top: 116px;
+  right: clamp(22px, 3.5vw, 58px);
+  z-index: 9;
+  width: 310px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+.focus-chronicle::before,
+.focus-chronicle::after,
+.chronicle-heading,
+.chronicle-progress { display: none; }
+.focus-facts {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.focus-facts div,
+.focus-facts div:nth-child(even),
+.focus-facts div:nth-child(1),
+.focus-facts div:nth-child(2),
+.focus-facts div:nth-child(3),
+.focus-facts div:nth-child(4) {
+  width: 68px;
+  height: 68px;
+  flex: 0 0 68px;
+  margin: 0;
+  padding: 0 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #d8cda9;
+  background: radial-gradient(circle, rgba(28, 34, 26, .78), rgba(8, 12, 9, .3) 70%, transparent 72%);
+  border: 1px solid rgba(196, 159, 76, .26);
+  border-radius: 50%;
+  transform: none;
+}
+.focus-facts div:nth-child(2) { transform: translateY(12px); }
+.focus-facts div:nth-child(3) { transform: translateY(-4px); }
+.focus-facts div:nth-child(4) { transform: translateY(9px); }
+.focus-facts dt {
+  color: rgba(202, 199, 183, .55);
+  font-size: 8px;
+  line-height: 1;
+}
+.focus-facts dd {
+  max-width: 60px;
+  margin: 6px 0 0;
+  overflow: hidden;
+  color: #efe2be;
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  .focus-journey { left: 39%; right: 5%; }
+  .focus-copy { width: min(420px, 44vw); }
+  .focus-actions { width: min(600px, 65vw); gap: 18px; }
+  .focus-actions > button { font-size: 11px; }
+  .focus-actions > button::before,
+  .focus-camp-button > span:first-child { flex-basis: 42px; width: 42px; height: 42px; }
+}
+
+@media (max-width: 820px) {
+  .campaign-focus {
+    min-height: 100svh;
+    padding: 92px 16px 24px;
+    display: block;
+  }
+  .focus-map::after {
+    background:
+      linear-gradient(0deg, rgba(5, 8, 6, .97) 0%, rgba(5, 8, 6, .75) 38%, rgba(5, 8, 6, .08) 73%),
+      linear-gradient(90deg, rgba(5, 8, 6, .42), transparent 66%);
+  }
+  .focus-map .focus-era-backdrop { object-position: 63% center; }
+  .focus-map .focus-figures { right: -14%; bottom: 27%; width: 78vw; height: 56%; opacity: .43; }
+  .focus-journey {
+    left: 7%;
+    right: 7%;
+    top: 105px;
+    bottom: auto;
+    height: 210px;
+  }
+  .journey-node { width: 39px; height: 39px; }
+  .journey-node.is-current { width: 51px; height: 51px; }
+  .journey-node small { display: none; }
+  .journey-node.is-current small {
+    left: 43px;
+    top: 8px;
+    display: block;
+    max-width: 112px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .focus-copy {
+    left: 16px;
+    right: 16px;
+    bottom: 191px;
+    width: auto;
+  }
+  .focus-copy h2 { font-size: 38px; }
+  .focus-copy > p:not(:first-child) { max-width: 90%; }
+  .focus-actions {
+    left: 16px;
+    right: 16px;
+    bottom: 106px;
+    width: auto;
+    height: 66px;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .focus-actions > button {
+    height: 58px;
+    gap: 6px;
+    font-size: 10px;
+  }
+  .focus-actions > button::before,
+  .focus-camp-button > span:first-child {
+    flex-basis: 42px;
+    width: 42px;
+    height: 42px;
+  }
+  .focus-actions > .large-button.primary::before { flex-basis: 50px; width: 50px; height: 50px; }
+  .focus-chronicle,
+  .campaign-screen[data-era="western-zhou"] .focus-chronicle,
+  .campaign-screen[data-era="spring-autumn"] .focus-chronicle,
+  .campaign-screen[data-era="warring-states"] .focus-chronicle {
+    top: auto;
+    right: 16px;
+    bottom: 18px;
+    width: calc(100% - 32px);
+    min-height: 70px;
+    padding: 0;
+  }
+  .focus-facts {
+    display: flex;
+    justify-content: space-between;
+    gap: 5px;
+  }
+  .focus-facts div,
+  .focus-facts div:nth-child(even),
+  .focus-facts div:nth-child(1),
+  .focus-facts div:nth-child(2),
+  .focus-facts div:nth-child(3),
+  .focus-facts div:nth-child(4) {
+    width: 64px;
+    height: 64px;
+    transform: none;
+  }
+  .focus-facts div:nth-child(2) { transform: translateY(5px); }
+  .focus-facts div:nth-child(3) { transform: translateY(-3px); }
+  .focus-facts div:nth-child(4) { transform: translateY(4px); }
+}
+
+@media (max-width: 560px) {
+  .campaign-focus { min-height: max(720px, 100svh); }
+  .focus-journey { top: 96px; height: 188px; }
+  .focus-copy { bottom: 202px; }
+  .focus-copy h2 { font-size: 34px; }
+  .focus-copy > p:not(:first-child) { max-width: 100%; }
+  .focus-story { display: none; }
+  .focus-order { width: 100%; }
+  .focus-actions {
+    bottom: 116px;
+    height: 70px;
+  }
+  .focus-actions > button {
+    position: relative;
+    inset: auto;
+    width: 62px;
+    flex: 0 0 62px;
+    min-width: 44px;
+    padding: 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    font-size: 9px;
+  }
+  .focus-actions > .large-button.primary { min-width: 62px; padding: 0; font-size: 10px; }
+  .focus-actions > button::before,
+  .focus-camp-button > span:first-child {
+    flex: 0 0 39px;
+    width: 39px;
+    height: 39px;
+  }
+  .focus-actions > .large-button.primary::before { flex-basis: 48px; width: 48px; height: 48px; }
+  .focus-camp-button > span:last-child { display: inline; }
+  .focus-archive-button span:first-child { display: inline; }
+  .focus-chronicle,
+  .campaign-screen[data-era="western-zhou"] .focus-chronicle,
+  .campaign-screen[data-era="spring-autumn"] .focus-chronicle,
+  .campaign-screen[data-era="warring-states"] .focus-chronicle { bottom: 24px; }
+  .focus-facts div,
+  .focus-facts div:nth-child(even),
+  .focus-facts div:nth-child(1),
+  .focus-facts div:nth-child(2),
+  .focus-facts div:nth-child(3),
+  .focus-facts div:nth-child(4) {
+    width: 61px;
+    height: 61px;
+    flex-basis: 61px;
+  }
+  .focus-facts dd { max-width: 54px; font-size: 10px; }
+}
+
+/* v39: keep the mobile command deck and battle telemetry in separate lanes. */
+@media (max-width: 560px) {
+  .campaign-screen .focus-actions {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: start;
+    justify-content: stretch;
+    gap: 4px;
+    bottom: 122px;
+    height: 68px;
+  }
+
+  .campaign-screen .focus-actions > .large-button,
+  .campaign-screen .focus-actions > .focus-camp-button,
+  .campaign-screen .focus-actions > .focus-archive-button {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: 66px;
+    padding: 0;
+    flex: none;
+    grid-column: auto;
+    grid-row: auto;
+    justify-self: stretch;
+    white-space: nowrap;
+  }
+
+  .campaign-screen .focus-actions > .large-button.primary {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+  }
+
+  .campaign-screen .focus-actions > .large-button.primary::before {
+    position: relative;
+    inset: auto;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+  }
+
+  .campaign-screen .focus-chronicle,
+  .campaign-screen[data-era="western-zhou"] .focus-chronicle,
+  .campaign-screen[data-era="spring-autumn"] .focus-chronicle,
+  .campaign-screen[data-era="warring-states"] .focus-chronicle {
+    bottom: 16px;
+  }
+}
+
+/* v42: the desktop primary command keeps its label beside the play seal. */
+@media (min-width: 821px) {
+  .campaign-screen .focus-actions > .large-button.primary {
+    width: 132px;
+    min-width: 132px;
+    justify-content: flex-start;
+  }
+
+  .campaign-screen .focus-actions > .large-button.primary::before {
+    position: relative;
+    inset: auto;
+    width: 52px;
+    height: 52px;
+    flex: 0 0 52px;
+  }
+}
+
+/* v43: the primary command is a true concentric seal, not a warped pseudo-circle. */
+.campaign-screen .focus-actions > .large-button.primary::before {
+  aspect-ratio: 1;
+  box-sizing: border-box;
+  border: 1px solid #d8ad50;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, #a83d30 0 48%, #842a22 72%, #641e19 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 235, 183, .08),
+    0 0 0 3px rgba(48, 15, 12, .92),
+    0 0 0 4px rgba(200, 155, 62, .72),
+    0 7px 16px rgba(0, 0, 0, .34);
 }

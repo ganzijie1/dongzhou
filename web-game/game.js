@@ -34,6 +34,7 @@
   let mapElitesArchive;
   let difficultyProfiles = { profiles: {} };
   let voiceManifest = { entries: [] };
+  let musicManifest = { cues: [] };
   let runtime;
   let profile = readJson(PROFILE_KEY, { completed: [], lastStage: null });
   let stageRecord = null;
@@ -65,6 +66,11 @@
   let audioContext = null;
   let storyAudio = null;
   let storyAudioSerial = 0;
+  let storyMusicContext = {};
+  let musicAudio = null;
+  let musicCueId = "";
+  let musicSerial = 0;
+  let musicDucked = false;
   let replaySelection = null;
   let animationSerial = 0;
   const unitAnimations = new Map();
@@ -114,18 +120,21 @@
   async function boot() {
     try {
       setLoading(12, "正在校验列国谱系");
-      [campaign, config, pcgrlTemplate, mapElitesTemplate, mapElitesArchive, voiceManifest, difficultyProfiles] = await Promise.all([
+      [campaign, config, pcgrlTemplate, mapElitesTemplate, mapElitesArchive, voiceManifest, musicManifest, difficultyProfiles] = await Promise.all([
         fetch("scenario/campaign.json").then(checkResponse).then((response) => response.json()),
         fetch("scenario/config.json").then(checkResponse).then((response) => response.json()),
         fetch("scenario/pcgrl-masui.json").then(checkResponse).then((response) => response.json()),
         fetch("scenario/map-elites-chuisha.json").then(checkResponse).then((response) => response.json()),
         fetch("scenario/map-elites-chuisha.archive.json").then(checkResponse).then((response) => response.json()),
-        fetch("audio/dialogue-manifest.json").then(checkResponse).then((response) => response.json())
+        fetch("audio/dialogue-manifest.json?v=20261105-context6-diegetic").then(checkResponse).then((response) => response.json())
           .catch(() => ({ schemaVersion: 1, entries: [] })),
+        fetch("audio/context-music-manifest.json?v=20261105-context3-diegetic").then(checkResponse).then((response) => response.json())
+          .catch(() => ({ schemaVersion: 1, cues: [] })),
         fetch("scenario/difficulty-profiles.json").then(checkResponse).then((response) => response.json())
           .catch(() => ({ schemaVersion: 1, profiles: {} }))
       ]);
       voiceManifest = systems.normalizeVoiceManifest(voiceManifest);
+      musicManifest = systems.normalizeMusicManifest(musicManifest);
       setLoading(54, "正在装载战役规则");
       heroById = new Map(asList(config.heroes).map((hero) => [hero.id, hero]));
       classById = new Map(asList(config.unit_classes).map((entry) => [entry.id, entry]));
@@ -163,7 +172,12 @@
 
   function buildRangeOptions() {
     const select = $("#stageRange");
-    const groups = [{ value: "all", label: "全部战役" }];
+    const groups = [
+      { value: "all", label: "全部战役" },
+      { value: "1-4", label: "西周余晖 · 第 1 - 4 战" },
+      { value: "5-141", label: "春秋列国 · 第 5 - 141 战" },
+      { value: "142-172", label: "战国风云 · 第 142 - 172 战" }
+    ];
     for (let start = 1; start <= campaign.stageCount; start += 25) {
       groups.push({ value: `${start}-${Math.min(start + 24, campaign.stageCount)}`, label: `第 ${start} - ${Math.min(start + 24, campaign.stageCount)} 战` });
     }
@@ -181,6 +195,7 @@
       if (!query) return true;
       return [record.id, record.chapter, record.title, record.battleTitle, record.objective].join(" ").toLowerCase().includes(query);
     });
+    let previousEra = "";
     $("#stageGrid").innerHTML = stages.map((record) => {
       const unlocked = systems.isStageUnlocked(record, profile, campaign.stages);
       const recommendedLevel = systems.recommendedStageLevel(record.index);
@@ -189,8 +204,14 @@
       const turnLimit = systems.effectiveTurnLimit(record.turnLimit, profile.settings.battleDifficulty, assist.active);
       const assessment = assessStage(record);
       const riskLabel = difficultyRiskLabel(assessment);
+      const era = campaignEraFor(record.index);
+      const eraOpening = era.key !== previousEra
+        ? `<header class="era-divider era-${era.key}"><span aria-hidden="true">${era.glyph}</span><div><small>${era.name}</small><strong>${era.strap}</strong><em>${era.route}</em></div><i></i></header>`
+        : "";
+      previousEra = era.key;
+      const routeSide = record.index % 2 ? "route-left" : "route-right";
       return `
-      <button class="stage-card ${completed.has(record.id) ? "completed" : ""} ${unlocked ? "" : "locked"} ${underleveled ? "underleveled" : ""}" ${unlocked ? `data-stage-id="${record.id}"` : "disabled"} type="button">
+      ${eraOpening}<button class="stage-card ${routeSide} era-${era.key} ${completed.has(record.id) ? "completed" : ""} ${unlocked ? "" : "locked"} ${underleveled ? "underleveled" : ""}" ${unlocked ? `data-stage-id="${record.id}"` : "disabled"} type="button">
         <span class="stage-thumb"><img loading="lazy" src="${mapPath(record)}" alt=""><i>${completed.has(record.id) ? "已克" : unlocked ? String(record.index).padStart(3, "0") : "未解锁"}</i></span>
         <span class="stage-copy"><small>${escapeHtml(record.chapter)} · ${turnLimit} 回合 · 建议 ${recommendedLevel} 级 · ${riskLabel}</small><strong>${escapeHtml(record.battleTitle)}</strong><span>${escapeHtml(record.title)}</span><em>${escapeHtml(record.objective)}</em></span>
       </button>`;
@@ -202,7 +223,9 @@
     $("#armyRankLabel").textContent = `军阶 ${profile.armyRank} · ${profile.armyXp}/${systems.PROGRESSION.armyXpPerLevel}`;
     const saved = readBattleSave();
     $("#resumeButton").hidden = !saved;
-    renderCampaignFocus(saved, completed);
+    const browsingArchive = Boolean(query) || range !== "all";
+    const archiveFocus = browsingArchive ? stages.find((record) => !completed.has(record.id)) || stages[0] : null;
+    renderCampaignFocus(saved, completed, archiveFocus);
     renderQuartermaster();
     $("#campaignStats").textContent = `${campaign.stageCount} 关 · ${new Set(campaign.stages.map((item) => item.mapAsset)).size} 幅舆图`;
   }
@@ -244,15 +267,94 @@
     showNotice(itemId === "medicine" ? "已补充金疮药" : "已补充清心散");
   }
 
-  function renderCampaignFocus(saved, completed) {
+  function campaignEraFor(index) {
+    if (index <= 4) return { key: "western-zhou", name: "西周余晖", strap: "王命将倾", route: "王室气数渐衰", glyph: "鼎" };
+    if (index < 142) return { key: "spring-autumn", name: "春秋列国", strap: "诸侯竞逐", route: "盟誓与征伐并起", glyph: "盟" };
+    return { key: "warring-states", name: "战国风云", strap: "七雄争衡", route: "变法与兼并交迫", glyph: "兵" };
+  }
+
+  const CAMPAIGN_GEOGRAPHY = [
+    { key: "zhou", name: "周", x: 49, y: 51, terms: ["周", "王室", "王畿", "镐京", "洛邑"], eras: ["western-zhou", "spring-autumn"] },
+    { key: "qin", name: "秦", x: 23, y: 48, terms: ["秦", "岐", "雍"], eras: ["western-zhou", "spring-autumn", "warring-states"] },
+    { key: "jin", name: "晋", x: 48, y: 29, terms: ["晋", "曲沃"], eras: ["western-zhou", "spring-autumn"] },
+    { key: "zheng", name: "郑", x: 58, y: 54, terms: ["郑", "新郑"], eras: ["western-zhou", "spring-autumn"] },
+    { key: "qi", name: "齐", x: 77, y: 32, terms: ["齐", "临淄"], eras: ["western-zhou", "spring-autumn", "warring-states"] },
+    { key: "chu", name: "楚", x: 49, y: 73, terms: ["楚", "郢"], eras: ["western-zhou", "spring-autumn", "warring-states"] },
+    { key: "wu", name: "吴", x: 74, y: 70, terms: ["吴国", "吴王", "姑苏", "阖闾", "夫差"], eras: ["spring-autumn"] },
+    { key: "yue", name: "越", x: 82, y: 82, terms: ["越国", "越王", "会稽", "勾践", "句践"], eras: ["spring-autumn"] },
+    { key: "yan", name: "燕", x: 76, y: 17, terms: ["燕", "蓟"], eras: ["warring-states"] },
+    { key: "zhao", name: "赵", x: 52, y: 25, terms: ["赵", "邯郸", "晋阳", "襄子"], eras: ["warring-states"] },
+    { key: "wei", name: "魏", x: 57, y: 43, terms: ["魏", "大梁", "魏驹"], eras: ["warring-states"] },
+    { key: "han", name: "韩", x: 56, y: 59, terms: ["韩", "新郑", "韩虎"], eras: ["warring-states"] }
+  ];
+
+  function renderCampaignGeography(record, era) {
+    const corpus = [record.chapter, record.title, record.battleTitle, record.objective].filter(Boolean).join(" ");
+    const visible = CAMPAIGN_GEOGRAPHY.filter((state) => state.eras.includes(era.key));
+    const active = visible.filter((state) => state.terms.some((term) => corpus.includes(term)));
+    const markers = $("#focusGeographyMarkers");
+    markers.replaceChildren();
+    visible.forEach((state) => {
+      const marker = document.createElement("span");
+      marker.className = `geography-marker${active.includes(state) ? " is-active" : ""}`;
+      marker.dataset.state = state.key;
+      marker.style.left = `${state.x}%`;
+      marker.style.top = `${state.y}%`;
+      marker.textContent = state.name;
+      markers.appendChild(marker);
+    });
+    $("#focusGeographyCaption").textContent = active.length ? active.map((state) => state.name).join(" · ") : era.name;
+    $("#focusEraGlyph").textContent = era.glyph;
+  }
+
+  const JOURNEY_POINTS = [
+    { x: 8, y: 72 }, { x: 29, y: 49 }, { x: 50, y: 63 }, { x: 70, y: 35 }, { x: 91, y: 20 }
+  ];
+
+  function renderFocusJourney(record, completed) {
+    const root = $("#focusJourney");
+    const currentIndex = campaign.stages.findIndex((item) => item.id === record.id);
+    if (currentIndex < 0) { root.replaceChildren(); return; }
+    const desired = 5;
+    const start = clamp(currentIndex - 2, 0, Math.max(0, campaign.stages.length - desired));
+    const nearby = campaign.stages.slice(start, start + desired);
+    const legs = nearby.slice(1).map((_, index) => {
+      const from = JOURNEY_POINTS[index];
+      const to = JOURNEY_POINTS[index + 1];
+      const dx = to.x - from.x; const dy = to.y - from.y;
+      const length = Math.hypot(dx, dy);
+      const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+      return `<i class="journey-leg" style="left:${from.x}%;top:${from.y}%;width:${length}%;transform:rotate(${angle}deg)"></i>`;
+    }).join("");
+    const nodes = nearby.map((item, index) => {
+      const unlocked = systems.isStageUnlocked(item, profile, campaign.stages);
+      const status = completed.has(item.id) ? "is-completed" : item.id === record.id ? "is-current" : unlocked ? "is-open" : "is-locked";
+      const point = JOURNEY_POINTS[index];
+      return `<button type="button" class="journey-node ${status}" data-journey-stage="${item.id}" style="left:${point.x}%;top:${point.y}%" aria-label="第 ${item.index} 战 ${escapeHtml(item.battleTitle)}"><b>${String(item.index).padStart(2, "0")}</b><small>${escapeHtml(item.battleTitle)}</small></button>`;
+    }).join("");
+    root.innerHTML = `${legs}${nodes}`;
+    root.querySelectorAll("[data-journey-stage]").forEach((button) => button.addEventListener("click", () => {
+      const target = findStageRecord(button.dataset.journeyStage);
+      if (target) renderCampaignFocus(null, new Set(profile.completed || []), target);
+    }));
+  }
+
+  function renderCampaignFocus(saved, completed, archiveFocus = null) {
     const lastIndex = campaign.stages.findIndex((record) => record.id === profile.lastStage);
     const nextIncomplete = campaign.stages.find((record) => !completed.has(record.id));
-    const record = saved
+    const record = archiveFocus || (saved
       ? findStageRecord(saved.stageId)
-      : nextIncomplete || campaign.stages[Math.max(0, lastIndex)] || campaign.stages[0];
+      : nextIncomplete || campaign.stages[Math.max(0, lastIndex)] || campaign.stages[0]);
     if (!record) return;
     const isSaved = saved?.stageId === record.id;
     const isCompleted = completed.has(record.id);
+    const era = campaignEraFor(record.index);
+    $("#campaignScreen").dataset.era = era.key;
+    document.querySelectorAll("[data-era-key]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.eraKey === era.key)));
+    $("#campaignEraLabel").textContent = `${era.name} · ${era.strap}`;
+    $("#focusEra").textContent = era.name;
+    $("#focusRouteFill").style.width = `${Math.max(1, record.index / campaign.stageCount * 100)}%`;
+    $("#focusRouteLabel").textContent = era.route;
     $("#focusKicker").textContent = isSaved ? "战局待续" : isCompleted ? "旧战重温" : record.index === 1 ? "从这里入史" : "下一场史局";
     $("#focusBattleTitle").textContent = record.battleTitle;
     $("#focusChapter").textContent = record.chapter;
@@ -264,16 +366,19 @@
     $("#focusStatus").textContent = isSaved ? `第 ${saved.turn || 1} 回合` : isCompleted ? "已克" : "未出阵";
     const recommendedLevel = systems.recommendedStageLevel(record.index);
     $("#focusRank").textContent = `当前 ${profile.armyRank} · 建议 ${recommendedLevel}`;
-    const assessment = assessStage(record);
-    $("#focusRisk").textContent = difficultyRiskLabel(assessment);
-    $("#focusEvidence").textContent = assessment.evidence.episodes
-      ? `${assessment.evidence.episodes} 战 ${assessment.evidence.wins} 胜`
-      : "尚未交锋";
+    $("#focusEraBackdrop").src = `assets/campaign/era-${era.key}.webp`;
+    $("#focusFigures").src = `assets/campaign/figures-${era.key}.webp`;
     $("#focusMap").src = mapPath(record);
     $("#focusMap").alt = `${record.battleTitle}战场`;
-    $("#focusStageButton").textContent = isSaved ? "继续战局" : isCompleted ? "重温此战" : "出兵此战";
+    renderCampaignGeography(record, era);
+    renderFocusJourney(record, completed);
+    const unlocked = systems.isStageUnlocked(record, profile, campaign.stages);
+    $("#focusStageButton").disabled = !unlocked;
+    $("#focusStageButton").textContent = !unlocked ? "尚未解锁" : isSaved ? "续写此局" : isCompleted ? "重温旧战" : "奉命出征";
     $("#focusStageButton").dataset.stageId = record.id;
     $("#focusStageButton").dataset.saved = isSaved ? "true" : "false";
+    $("#focusRestartButton").hidden = !isSaved;
+    $("#focusRestartButton").dataset.stageId = isSaved ? record.id : "";
     renderWarCouncil(record);
   }
 
@@ -348,10 +453,14 @@
   function openCampaign() {
     if (state && stageRecord && !state.result) saveBattle(false);
     setExerciseMenu(false);
+    setCampaignSettings(false);
+    setCampaignCamp(false);
     stopStoryVoice();
+    stopContextMusic();
     storyDone = null;
     storyEntries = [];
     storyIndex = 0;
+    storyMusicContext = {};
     $("#storyModal").hidden = true;
     $("#confirmModal").hidden = true;
     $("#campaignScreen").hidden = false;
@@ -373,6 +482,8 @@
       return;
     }
     setExerciseMenu(false);
+    setCampaignSettings(false);
+    setCampaignCamp(false);
     stageRecord = record;
     $("#campaignScreen").hidden = true;
     $("#resultModal").hidden = true;
@@ -449,7 +560,7 @@
       const meta = state.procedural.meta || {};
       const validation = meta.validation || {};
       if (meta.source === "constrained-map-elites") {
-        log(`MAP-Elites：档案格 R${meta.routeCount}/D${Number(meta.archiveCell?.[1] || 0) + 1}；种子 ${state.procedural.seed}；质量 ${Number(meta.quality || 0).toFixed(3)}；硬校验通过。`, "event");
+        log(`垂沙推演：可行军路 ${meta.routeCount} 条；沙盘编号 ${state.procedural.seed}；地形可行。`, "event");
       } else {
         log(`端侧生成：${meta.source || "未知"}；种子 ${state.procedural.seed}；修复 ${meta.repairs || 0} 格；障碍 ${(Number(validation.blockedRatio || 0) * 100).toFixed(1)}%。`, "event");
       }
@@ -465,11 +576,12 @@
     requestAnimationFrame(centerOnOwnArmy);
     if (!savedState) {
       const intro = asList(record.story?.intro);
-      if (intro.length) openStory(intro, () => beginTutorialOrBattle());
+      if (intro.length) openStory(intro, () => beginTutorialOrBattle(), { stageId: record.id, section: "intro" });
       else beginTutorialOrBattle();
     } else if (state.result) {
       showResult();
     } else {
+      playContextMusic({ stageId: record.id, kind: "battle", section: "battle" });
       showNotice(`已恢复第 ${state.turn} 回合`);
     }
   }
@@ -501,11 +613,11 @@
             decision: difficultyDecision
           }
         });
-        setStatus(`MAP-Elites 档案 R${generated.meta.routeCount}/D${generated.meta.archiveCell[1] + 1} 已通过硬校验`);
+        setStatus(`垂沙沙盘已成 · 可行军路 ${generated.meta.routeCount} 条`);
         if (requestedDifficulty === "auto") showNotice(`智能推荐：${{ easy: "简单", medium: "标准", hard: "艰难" }[difficulty]}`);
       } finally {
         button.disabled = false;
-        button.textContent = "生成垂沙演武";
+        button.textContent = "推演垂沙";
       }
       return;
     }
@@ -527,11 +639,11 @@
     generated.meta.nativeReason = nativeMeta.reason || null;
     try {
       await startStage(pcgrlTemplate.id, null, { procedural: { terrain: generated.rows, difficulty, seed, meta: generated.meta, decision: difficultyDecision } });
-      setStatus(generated.meta.fallback ? "模板回退已通过硬校验" : "PCGRL + WFC 地形已通过硬校验");
+      setStatus(generated.meta.fallback ? "麻隧旧图已备" : "麻隧沙盘已成 · 地形可行");
       if (requestedDifficulty === "auto") showNotice(`智能推荐：${{ easy: "简单", medium: "标准", hard: "艰难" }[difficulty]}`);
     } finally {
       button.disabled = false;
-      button.textContent = "生成麻隧演武";
+      button.textContent = "推演麻隧";
     }
   }
 
@@ -562,13 +674,34 @@
   }
 
   function syncProceduralButton() {
-    $("#proceduralButton").textContent = $("#proceduralMode").value === "pcgrl" ? "生成麻隧演武" : "生成垂沙演武";
+    $("#proceduralButton").textContent = $("#proceduralMode").value === "pcgrl" ? "推演麻隧" : "推演垂沙";
   }
 
   function setExerciseMenu(open) {
     const expanded = Boolean(open);
     $("#exercisePanel").hidden = !expanded;
     $("#exerciseMenuButton").setAttribute("aria-expanded", String(expanded));
+  }
+
+  function setCampaignSettings(open) {
+    const expanded = Boolean(open);
+    $("#campaignSettingsBackdrop").hidden = !expanded;
+    $("#campaignSettingsButton").setAttribute("aria-expanded", String(expanded));
+    if (expanded) {
+      setExerciseMenu(false);
+      requestAnimationFrame(() => $("#campaignSettingsCloseButton").focus());
+    }
+  }
+
+  function setCampaignCamp(open) {
+    const expanded = Boolean(open);
+    $("#campaignCampBackdrop").hidden = !expanded;
+    $("#campaignCampButton").setAttribute("aria-expanded", String(expanded));
+    if (expanded) {
+      setCampaignSettings(false);
+      setExerciseMenu(false);
+      requestAnimationFrame(() => $("#campaignCampCloseButton").focus());
+    }
   }
 
   function freshState(record) {
@@ -680,6 +813,10 @@
   }
 
   function resolveUnits(ref) {
+    if (Number.isInteger(Number(ref)) && String(ref).trim() !== "") {
+      const heroId = asList(stageRecord?.commanders)[Number(ref)];
+      if (heroId) return state.units.filter((unit) => unit.heroId === heroId);
+    }
     return state.units.filter((unit) => unit.id === ref || unit.heroId === ref);
   }
 
@@ -744,9 +881,15 @@
     set_unit_invulnerable(ref, value) { resolveUnits(ref).forEach((unit) => { unit.invulnerable = Boolean(value); }); },
     push_cmd_speak(ref, text) {
       if (restoring) return;
-      const speaker = resolveUnits(ref)[0]?.name || "军报";
-      log(`${speaker}：${text}`, "event");
-      queueSpeech({ speaker, text: String(text) });
+      const spokenText = String(text);
+      const runtimeSpeaker = resolveUnits(ref)[0]?.name || "军报";
+      const voice = systems.resolveStoryVoice(voiceManifest, runtimeSpeaker, spokenText, {
+        stageId: stageRecord?.id || "",
+        section: "runtime"
+      });
+      const speaker = voice?.speaker || runtimeSpeaker;
+      log(`${speaker}：${spokenText}`, "event");
+      queueSpeech({ speaker, text: spokenText, stageId: stageRecord?.id || "", section: "runtime" });
     },
     push_cmd_move(ref, position) {
       if (restoring) return;
@@ -785,19 +928,26 @@
   function flushSpeeches() {
     if (!state?.pendingSpeeches?.length || !$("#storyModal").hidden) return;
     const entries = state.pendingSpeeches.splice(0);
-    openStory(entries);
+    openStory(entries, null, { stageId: stageRecord?.id || "", section: "events" });
   }
 
   function processStoryEvents() {
     if (!state || !stageRecord) return;
     state.triggeredStoryEvents ||= [];
     const context = { turn: state.turn, units: state.units, claimedSites: state.claimedSites };
-    for (const event of asList(stageRecord.story?.events)) {
+    for (const [sourceIndex, event] of asList(stageRecord.story?.events).entries()) {
       const id = String(event?.id || "");
       if (!id || state.triggeredStoryEvents.includes(id)) continue;
       if (!systems.storyEventMatches(event, context)) continue;
       state.triggeredStoryEvents.push(id);
-      queueSpeech({ speaker: String(event.speaker || "军报"), text: String(event.text || "") });
+      queueSpeech({
+        speaker: String(event.speaker || "军报"),
+        text: String(event.text || ""),
+        stageId: stageRecord.id,
+        section: "events",
+        eventId: id,
+        sourceIndex
+      });
       recordEvent("story_event", { id, trigger: event.trigger, turn: state.turn });
     }
   }
@@ -1425,7 +1575,7 @@
     feedback(won ? "victory" : "defeat");
     saveBattle(false);
     const ending = asList(won ? stageRecord.story?.victory : stageRecord.story?.defeat);
-    if (ending.length) openStory(ending, showResult);
+    if (ending.length) openStory(ending, showResult, { stageId: stageRecord.id, section: won ? "victory" : "defeat" });
     else showResult();
   }
 
@@ -1464,11 +1614,12 @@
     $("#resumeButton").hidden = false;
   }
 
-  function openStory(entries, onDone = null) {
-    storyEntries = systems.normalizeStoryEntries(asList(entries), 110);
+  function openStory(entries, onDone = null, storyContext = {}) {
+    storyEntries = systems.normalizeStoryEntries(asList(entries), 110, storyContext);
     if (!storyEntries.length) { onDone?.(); return; }
     storyIndex = 0;
     storyDone = onDone;
+    storyMusicContext = { ...storyContext };
     $("#storyModal").hidden = false;
     renderStory();
   }
@@ -1481,7 +1632,79 @@
     $("#storyProgress").textContent = `${storyIndex + 1} / ${storyEntries.length}`;
     $("#storyNextButton").textContent = storyIndex === storyEntries.length - 1 ? "入阵" : "继续";
     $("#storyPortrait").src = `assets/${systems.portraitForSpeaker(entry.speaker)}`;
+    playContextMusic({
+      stageId: entry.stageId || storyMusicContext.stageId || stageRecord?.id || "",
+      section: entry.section || storyMusicContext.section || "intro",
+      eventId: entry.eventId || storyMusicContext.eventId || "",
+      text: entry.text || ""
+    });
     playStoryVoice(entry);
+  }
+
+  function musicVolume() {
+    const base = clamp(Number(profile.settings.musicVolume ?? 0.42), 0, 1);
+    return musicDucked ? base * 0.28 : base;
+  }
+
+  function applyMusicVolume() {
+    if (musicAudio) musicAudio.volume = musicVolume();
+  }
+
+  function setMusicDucked(ducked) {
+    musicDucked = Boolean(ducked);
+    applyMusicVolume();
+  }
+
+  function stopContextMusic(fadeMs = 250) {
+    musicSerial += 1;
+    musicCueId = "";
+    const audio = musicAudio;
+    musicAudio = null;
+    if (!audio) return;
+    const start = audio.volume;
+    const started = performance.now();
+    const fade = (now) => {
+      const progress = clamp((now - started) / Math.max(1, fadeMs), 0, 1);
+      audio.volume = start * (1 - progress);
+      if (progress < 1) requestAnimationFrame(fade);
+      else { audio.pause(); audio.removeAttribute("src"); audio.load(); }
+    };
+    requestAnimationFrame(fade);
+  }
+
+  function playContextMusic(context = {}) {
+    const cue = systems.resolveContextMusic(musicManifest, context);
+    if (!cue || !profile.settings.musicEnabled) {
+      if (!profile.settings.musicEnabled) stopContextMusic();
+      return;
+    }
+    if (musicCueId === cue.id && musicAudio) { applyMusicVolume(); return; }
+    const previous = musicAudio;
+    const serial = ++musicSerial;
+    const cacheVersion = String(cue.sha256 || "").slice(0, 16);
+    const source = cacheVersion ? `${cue.file}?v=${cacheVersion}` : cue.file;
+    const audio = new Audio(source);
+    musicAudio = audio;
+    musicCueId = cue.id;
+    audio.preload = "auto";
+    audio.loop = Boolean(cue.loop);
+    audio.volume = 0;
+    audio.play().then(() => {
+      const started = performance.now();
+      const duration = 900;
+      const previousStart = previous?.volume || 0;
+      const fade = (now) => {
+        if (serial !== musicSerial) return;
+        const progress = clamp((now - started) / duration, 0, 1);
+        audio.volume = musicVolume() * progress;
+        if (previous) previous.volume = previousStart * (1 - progress);
+        if (progress < 1) requestAnimationFrame(fade);
+        else if (previous) { previous.pause(); previous.removeAttribute("src"); previous.load(); }
+      };
+      requestAnimationFrame(fade);
+    }).catch(() => {
+      if (serial === musicSerial) { musicAudio = null; musicCueId = ""; }
+    });
   }
 
   function stopStoryVoice() {
@@ -1492,12 +1715,13 @@
       storyAudio.load();
       storyAudio = null;
     }
+    setMusicDucked(false);
     $("#storyVoiceReplayButton")?.classList.remove("is-playing");
   }
 
   function playStoryVoice(entry) {
     stopStoryVoice();
-    const voice = systems.resolveStoryVoice(voiceManifest, entry?.speaker, entry?.text);
+    const voice = systems.resolveStoryVoice(voiceManifest, entry?.speaker, entry?.text, entry);
     const button = $("#storyVoiceReplayButton");
     button.hidden = !voice;
     button.disabled = !voice || !profile.settings.voiceEnabled;
@@ -1510,11 +1734,13 @@
     storyAudio = audio;
     audio.preload = "auto";
     audio.volume = clamp(Number(profile.settings.voiceVolume ?? 0.85), 0, 1);
+    setMusicDucked(true);
     button.classList.add("is-playing");
     const finish = () => {
       if (serial !== storyAudioSerial) return;
       button.classList.remove("is-playing");
       storyAudio = null;
+      setMusicDucked(false);
     };
     audio.addEventListener("ended", finish, { once: true });
     audio.addEventListener("error", finish, { once: true });
@@ -1531,6 +1757,8 @@
     $("#storyModal").hidden = true;
     const callback = storyDone;
     storyDone = null;
+    storyMusicContext = {};
+    if (state && !state.result && stageRecord) playContextMusic({ stageId: stageRecord.id, kind: "battle", section: "battle" });
     callback?.();
   }
 
@@ -1668,6 +1896,7 @@
   }
 
   function beginTutorialOrBattle() {
+    if (stageRecord) playContextMusic({ stageId: stageRecord.id, kind: "battle", section: "battle" });
     if (stageRecord?.index === 1 && !profile.tutorial.completed && !profile.tutorial.dismissed) {
       state.tutorialStep = Number(state.tutorialStep || 0);
       showNotice("演武一：选择一名我军将领");
@@ -1981,6 +2210,8 @@
     $("#mapDetailSetting").value = profile.settings.mapDetail;
     $("#telemetryToggle").checked = profile.settings.telemetryEnabled && profile.difficultyBandit.enabled;
     $("#feedbackToggle").checked = profile.settings.feedbackEnabled;
+    $("#musicToggle").checked = profile.settings.musicEnabled;
+    $("#musicVolume").value = Math.round(profile.settings.musicVolume * 100);
     $("#voiceToggle").checked = profile.settings.voiceEnabled;
     $("#voiceVolume").value = Math.round(profile.settings.voiceVolume * 100);
   }
@@ -2086,7 +2317,23 @@
       const saved = event.currentTarget.dataset.saved === "true" ? readBattleSave() : null;
       startStage(event.currentTarget.dataset.stageId, saved);
     });
+    $("#focusRestartButton").addEventListener("click", (event) => {
+      $("#confirmModal").dataset.stageId = event.currentTarget.dataset.stageId;
+      $("#confirmModal").dataset.source = "campaign";
+      $("#confirmModal").hidden = false;
+    });
     $("#focusArchiveButton").addEventListener("click", () => $("#campaignArchive").scrollIntoView({ behavior: "smooth", block: "start" }));
+    $("#campaignCampButton").addEventListener("click", () => setCampaignCamp(true));
+    $("#campaignCampCloseButton").addEventListener("click", () => setCampaignCamp(false));
+    $("#campaignCampBackdrop").addEventListener("click", (event) => {
+      if (event.target === event.currentTarget) setCampaignCamp(false);
+    });
+    document.querySelectorAll("[data-era-range]").forEach((button) => button.addEventListener("click", () => {
+      $("#stageSearch").value = "";
+      $("#stageRange").value = button.dataset.eraRange;
+      renderCampaign();
+      $("#campaignArchive").scrollIntoView({ behavior: "smooth", block: "start" });
+    }));
     $("#proceduralButton").addEventListener("click", startProceduralStage);
     $("#dailyChallengeButton").addEventListener("click", startDailyChallenge);
     document.querySelectorAll("[data-formation]").forEach((button) => button.addEventListener("click", () => {
@@ -2120,8 +2367,22 @@
     $("#exportReplayButton").addEventListener("click", exportSelectedReplay);
     $("#proceduralMode").addEventListener("change", syncProceduralButton);
     $("#exerciseMenuButton").addEventListener("click", () => setExerciseMenu($("#exercisePanel").hidden));
+    $("#campaignSettingsButton").addEventListener("click", () => setCampaignSettings($("#campaignSettingsBackdrop").hidden));
+    $("#campaignSettingsCloseButton").addEventListener("click", () => setCampaignSettings(false));
+    $("#campaignSettingsBackdrop").addEventListener("click", (event) => {
+      if (event.target === event.currentTarget) setCampaignSettings(false);
+    });
     document.addEventListener("click", (event) => {
       if (!event.target.closest(".exercise-menu")) setExerciseMenu(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !$("#campaignSettingsBackdrop").hidden) {
+        setCampaignSettings(false);
+        $("#campaignSettingsButton").focus();
+      } else if (event.key === "Escape" && !$("#campaignCampBackdrop").hidden) {
+        setCampaignCamp(false);
+        $("#campaignCampButton").focus();
+      }
     });
     $("#campaignDifficulty").addEventListener("change", (event) => {
       profile.settings.battleDifficulty = event.currentTarget.value;
@@ -2142,6 +2403,18 @@
     });
     $("#feedbackToggle").addEventListener("change", (event) => {
       profile.settings.feedbackEnabled = event.currentTarget.checked;
+      writeJson(PROFILE_KEY, profile);
+    });
+    $("#musicToggle").addEventListener("change", (event) => {
+      profile.settings.musicEnabled = event.currentTarget.checked;
+      writeJson(PROFILE_KEY, profile);
+      if (!profile.settings.musicEnabled) stopContextMusic();
+      else if (!$("#storyModal").hidden) renderStory();
+      else if (state && stageRecord) playContextMusic({ stageId: stageRecord.id, kind: "battle", section: "battle" });
+    });
+    $("#musicVolume").addEventListener("input", (event) => {
+      profile.settings.musicVolume = clamp(Number(event.currentTarget.value) / 100, 0, 1);
+      applyMusicVolume();
       writeJson(PROFILE_KEY, profile);
     });
     $("#voiceToggle").addEventListener("change", (event) => {
@@ -2166,11 +2439,30 @@
     $("#saveButton").addEventListener("click", () => saveBattle(true));
     $("#storyReplayButton").addEventListener("click", () => {
       const intro = asList(stageRecord?.story?.intro);
-      if (intro.length) openStory(intro);
+      if (intro.length) openStory(intro, null, { stageId: stageRecord.id, section: "intro" });
     });
-    $("#restartButton").addEventListener("click", () => { if (state) $("#confirmModal").hidden = false; });
-    $("#cancelRestartButton").addEventListener("click", () => { $("#confirmModal").hidden = true; });
-    $("#confirmRestartButton").addEventListener("click", () => startStage(stageRecord.id, null, state?.procedural ? { procedural: state.procedural } : {}));
+    $("#restartButton").addEventListener("click", () => {
+      if (!state || !stageRecord) return;
+      $("#confirmModal").dataset.stageId = stageRecord.id;
+      $("#confirmModal").dataset.source = "battle";
+      $("#confirmModal").hidden = false;
+    });
+    $("#cancelRestartButton").addEventListener("click", () => {
+      $("#confirmModal").hidden = true;
+      delete $("#confirmModal").dataset.stageId;
+      delete $("#confirmModal").dataset.source;
+    });
+    $("#confirmRestartButton").addEventListener("click", () => {
+      const modal = $("#confirmModal");
+      const stageId = modal.dataset.stageId || stageRecord?.id;
+      const options = modal.dataset.source === "battle" && state?.procedural ? { procedural: state.procedural } : {};
+      if (!stageId) return;
+      localStorage.removeItem(BATTLE_KEY);
+      modal.hidden = true;
+      delete modal.dataset.stageId;
+      delete modal.dataset.source;
+      startStage(stageId, null, options);
+    });
     $("#storyNextButton").addEventListener("click", () => advanceStory(false));
     $("#storySkipButton").addEventListener("click", () => advanceStory(true));
     $("#storyHomeButton").addEventListener("click", openCampaign);

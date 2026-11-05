@@ -26,8 +26,8 @@ def main() -> None:
     cards_by_id = {card["id"]: card for card in cards}
     entry_ids = {entry["id"] for entry in entries}
 
-    if plan.get("schemaVersion") != 3:
-        raise RuntimeError("Voice plan schema must be 3")
+    if plan.get("schemaVersion") != 4:
+        raise RuntimeError("Voice plan schema must be 4")
     if len(entry_ids) != len(entries):
         raise RuntimeError("Duplicate voice-plan entry IDs")
     if any(entry["speaker"] in EXCLUDED for entry in entries):
@@ -36,7 +36,12 @@ def main() -> None:
         raise RuntimeError("Occurrence references an unknown voice-plan entry")
     if any(entry["voiceCardId"] not in cards_by_id for entry in entries):
         raise RuntimeError("Voice-plan entry references an unknown character card")
-    required_context_fields = {"id", "scene", "speechAct", "relationship", "previousTurns", "nextTurns", "historicalSituation", "speakerAtScene", "synthesisInstruction"}
+    required_context_fields = {"id", "scene", "speechAct", "relationship", "previousTurns", "nextTurns", "historicalSituation", "speakerAtScene", "performanceState", "synthesisInstruction"}
+    required_delivery_fields = {
+        "emotion", "emotionBefore", "emotionAfter", "intensity", "pace",
+        "pauseStrength", "dominance", "subtext", "pivotWords", "focusWords",
+        "pausePlan", "styleAnchor", "longMemory", "performanceRule",
+    }
     for entry in entries:
         context = entry.get("context") or {}
         missing = required_context_fields - context.keys()
@@ -44,8 +49,10 @@ def main() -> None:
             raise RuntimeError(f"Entry {entry['id']} is missing context fields: {sorted(missing)}")
         if not entry.get("contextVariantIds"):
             raise RuntimeError(f"Entry {entry['id']} has no context variants")
+        if len(entry.get("contextVariants") or []) != len(entry["contextVariantIds"]):
+            raise RuntimeError(f"Entry {entry['id']} context variant payloads do not match their IDs")
         delivery = entry.get("delivery") or {}
-        if not {"emotion", "intensity", "pace", "pauseStrength", "dominance"}.issubset(delivery):
+        if not required_delivery_fields.issubset(delivery):
             raise RuntimeError(f"Entry {entry['id']} has incomplete delivery controls")
     if len({card["speaker"] for card in cards}) != len(cards):
         raise RuntimeError("Duplicate character voice cards")
@@ -61,6 +68,20 @@ def main() -> None:
         expected = "mature" if speaker == "伯阳父" else "elder"
         if card["ageBand"] != expected:
             raise RuntimeError(f"First-chapter historical age direction mismatch for {speaker}: expected {expected}")
+
+    first_chapter = [entry for entry in entries if entry["firstOccurrence"]["stageId"] == "01"]
+    if len({round(entry["delivery"]["pauseStrength"], 2) for entry in first_chapter}) < 4:
+        raise RuntimeError("First-chapter dialogue still uses nearly uniform pause strength")
+    expected_acts = {
+        ("周宣王", "市井孩童唱的是何等妖言？速召百官入朝解说！"): "alarmed_command",
+        ("杜伯", "若死者无知，此事便休；若死者有知，三年之内，必使王知妄杀之报。"): "cold_vow",
+        ("左儒", "王师势众，今日未能使沉冤昭雪……"): "exhausted_withdrawal",
+    }
+    by_line = {(entry["speaker"], entry["text"]): entry for entry in first_chapter}
+    for line_key, expected_act in expected_acts.items():
+        entry = by_line.get(line_key)
+        if not entry or entry["context"]["speechAct"] != expected_act:
+            raise RuntimeError(f"First-chapter speech-act regression for {line_key[0]}: expected {expected_act}")
 
     expected_occurrences = plan["summary"]["characterLineOccurrences"]
     if expected_occurrences != len(occurrences):
@@ -79,6 +100,8 @@ def main() -> None:
         "narration_excluded": True,
         "anti_caricature_rules": True,
         "context_compilation": True,
+        "stateful_delivery": True,
+        "distinct_pause_profiles": len({round(entry["delivery"]["pauseStrength"], 2) for entry in first_chapter}),
         "gated_custom_voice_promotion": True,
     }, ensure_ascii=False, indent=2))
 

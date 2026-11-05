@@ -136,7 +136,7 @@ function on_update(game)
         game:generate_unit("ChuGuard34", 1, Enum.force.enemy, {7, 5})
         game:generate_unit("ChuGuard34", 1, Enum.force.enemy, {11, 5})
         game:generate_unit("ChuArcher34", 1, Enum.force.enemy, {9, 5})
-        game:push_cmd_speak(0, "第三回合，楚军全部渡河成列；宋襄公深入敌阵负伤，胜利目标变为护送他撤到南侧出口。")
+        game:push_cmd_speak(0, "楚军已经渡河成列，主公又在敌阵中负伤！全军护住君侯，向南撤离！")
     end
     if not retreat_spoken and game:get_turn_current() >= 3 and game:is_unit_within("SongXiangGong33", {9, 11}, 2) then
         retreat_spoken = true

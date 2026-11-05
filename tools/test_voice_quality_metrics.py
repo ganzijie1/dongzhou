@@ -15,6 +15,8 @@ from voice_quality_metrics import (
     merge_intervals,
     normalize_transcript,
     spoken_character_count,
+    transcript_edit_operations,
+    validate_critical_terms,
 )
 
 
@@ -39,6 +41,19 @@ class VoiceQualityMetricsTest(unittest.TestCase):
     def test_merge_short_gaps(self) -> None:
         intervals = np.array([[0, 1000], [1100, 2000], [5000, 6000]])
         self.assertEqual(merge_intervals(intervals, 1000), [(0, 2000), (5000, 6000)])
+
+    def test_transcript_evidence_preserves_named_term_errors(self) -> None:
+        operations = transcript_edit_operations("周王，白矢在此！", "周王白石在此")
+        self.assertEqual(len(operations), 1)
+        self.assertEqual(operations[0]["type"], "substitute")
+        terms = validate_critical_terms(
+            "赤弓在手，白矢已发。周王，偿还血债！",
+            "赤弓在手，白石已发。周王，偿还血债！",
+            ["白矢", "周王", "不在原文"],
+        )
+        self.assertEqual(terms["terms"], ["白矢", "周王"])
+        self.assertEqual(terms["missingTerms"], ["白矢"])
+        self.assertEqual(terms["status"], "manual_hard_gate_review")
 
     def test_pause_and_articulation_are_separate(self) -> None:
         audio = np.concatenate([

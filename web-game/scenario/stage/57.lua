@@ -107,9 +107,9 @@ function on_begin(game)
  many(game,"PalaceSearchArcher57",{{36,11},{36,20},{28,10},{28,22}},Enum.force.enemy)
 end
 function on_update(game)
- if not medicine_bag_warning and game:is_unit_within("PalaceDoctor57",{26,16},2)then medicine_bag_warning=true;game:push_cmd_speak(0,"宫中搜卒喝道：站住！药囊中装的什么？打开查验！");game:push_cmd_speak(0,"医者答道：公主产后的药物，耽误病情，你担得起吗？")end
- if not gate_warning and game:is_unit_within("PalaceDoctor57",{39,15},3)then gate_warning=true;game:push_cmd_speak(0,"东宫门就在前方。不要恋战，穿门后继续向东，我在外侧接应！")end
- if not handoff_warning and game:is_unit_within("PalaceDoctor57",{43,15},1)then handoff_warning=true;game:push_cmd_speak(0,"医者低声道：韩将军，赵氏孤儿已经越过宫门，请快接应！")end
+ if not medicine_bag_warning and game:is_unit_within("PalaceDoctor57",{26,16},2)then medicine_bag_warning=true;game:push_cmd_speak("PalaceSearchGuard57","站住！药囊中装的什么？打开查验！");game:push_cmd_speak("PalaceDoctor57","公主产后的药物，耽误病情，你担得起吗？")end
+ if not gate_warning and game:is_unit_within("PalaceDoctor57",{39,15},3)then gate_warning=true;game:push_cmd_speak("HanJue48","东宫门就在前方。不要恋战，穿门后继续向东，我在外侧接应！")end
+ if not handoff_warning and game:is_unit_within("PalaceDoctor57",{43,15},1)then handoff_warning=true;game:push_cmd_speak("PalaceDoctor57","韩将军，赵氏孤儿已经越过宫门，请快接应！")end
 end
 function on_victory(game)end function on_defeat(game)end
 function end_condition(game)

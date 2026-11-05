@@ -118,7 +118,7 @@ end
 function on_update(game)
     if not rear_gate_spoken and game:is_unit_within("ChongEr27", {16, 5}, 2) then
         rear_gate_spoken = true
-        game:push_cmd_speak(0, "后墙暗口已到！重耳本人继续向东侧出口撤离，其他人留后阻敌！")
+        game:push_cmd_speak(0, "后墙暗口已到！我继续向东撤离，诸位留后阻敌，随后跟上！")
         game:push_cmd_speak(bodi_id, "重耳就在东墙！骑兵绕到旧道，弓手封锁出口！")
     end
 end

@@ -146,10 +146,10 @@ function on_begin(game)
  many(game,"ChuYanlingArcher58",{{11,35},{22,35},{40,35},{52,35}},Enum.force.enemy)
 end
 function on_update(game)
- if not xiongfa_captured and not game:has_unit("XiongFa58")then xiongfa_captured=true;game:push_cmd_speak(0,"熊茷已经被击退，按原著视为生擒。晋军把囚车列于阵前，引楚王来救！")end
+ if not xiongfa_captured and not game:has_unit("XiongFa58")then xiongfa_captured=true;game:push_cmd_speak(0,"熊茷已经被擒！把囚车列于阵前，引楚王来救！")end
  if xiongfa_captured and not king_wounded and game:is_unit_within("WeiQi54",{32,36},3)then king_wounded=true;game:set_unit_invulnerable("WeiQi54",false);game:push_cmd_speak(0,"魏锜撇开工尹襄，一箭射中楚共王左眼！养由基已经锁定魏锜，保护其他晋将并让史实事件完成。")end
- if king_wounded and not wei_fallen and not game:has_unit("WeiQi54")then wei_fallen=true;wei_fallen_turn=game:get_turn_current();game:push_cmd_speak(0,"养由基一箭射中魏锜项下。魏锜按原著阵亡，晋军抢回尸首！楚军声称明日再战，继续保持阵列。")end
- if wei_fallen and not chu_retreat and game:get_turn_current()>=wei_fallen_turn+1 then chu_retreat=true;game:push_cmd_speak(0,"子反醉卧不起，楚共王已连夜拔营，由养由基率三百弓弩断后。晋军黎明发现楚营已空，鄢陵之战结束！")end
+ if king_wounded and not wei_fallen and not game:has_unit("WeiQi54")then wei_fallen=true;wei_fallen_turn=game:get_turn_current();game:push_cmd_speak(0,"养由基一箭射中魏锜项下，快抢回遗体！楚军声称明日再战，各部继续保持阵列！")end
+ if wei_fallen and not chu_retreat and game:get_turn_current()>=wei_fallen_turn+1 then chu_retreat=true;game:push_cmd_speak(0,"楚营已经空了！子反醉卧不起，楚王连夜拔营，只留养由基率弓弩断后！")end
 end
 function on_victory(game)end function on_defeat(game)end
 function end_condition(game)

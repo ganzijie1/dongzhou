@@ -60,6 +60,8 @@ if (-not $SkipPreflight) {
     if ($LASTEXITCODE -ne 0) { throw "Map visual-density audit failed: $LASTEXITCODE" }
     node "tools\verify-web-release.js"
     if ($LASTEXITCODE -ne 0) { throw "Web release verification failed: $LASTEXITCODE" }
+    python "tools\verify-contextual-music.py"
+    if ($LASTEXITCODE -ne 0) { throw "Contextual music verification failed: $LASTEXITCODE" }
     python "tools\verify-dialogue-voice-plan.py"
     if ($LASTEXITCODE -ne 0) { throw "Dialogue voice plan verification failed: $LASTEXITCODE" }
     python "tools\build-voice-casting-ot.py"
@@ -67,6 +69,8 @@ if (-not $SkipPreflight) {
     if (Test-Path "web-game\audio\dialogue-manifest.json") {
         & $voicePython "tools\verify-dialogue-audio.py" --require-stages all
         if ($LASTEXITCODE -ne 0) { throw "Dialogue audio verification failed: $LASTEXITCODE" }
+        node "tools\audit-runtime-voice-coverage.js"
+        if ($LASTEXITCODE -ne 0) { throw "Lua runtime dialogue coverage failed: $LASTEXITCODE" }
     }
   } finally {
     Pop-Location
@@ -77,7 +81,11 @@ $env:JAVA_HOME = $JavaHome
 $env:ANDROID_HOME = $AndroidSdk
 Push-Location $project
 try {
-    & (Join-Path $GradleHome "bin\gradle.bat") --no-daemon :app:lintDebug :app:assembleDebug
+    if ($SkipPreflight) {
+        & (Join-Path $GradleHome "bin\gradle.bat") --no-daemon ":app:assembleDebug"
+    } else {
+        & (Join-Path $GradleHome "bin\gradle.bat") --no-daemon ":app:lintDebug" ":app:assembleDebug"
+    }
     if ($LASTEXITCODE -ne 0) { throw "Android build failed: $LASTEXITCODE" }
     if (!(Test-Path $sourceApk)) { throw "Android build did not produce the expected APK: $sourceApk" }
 } finally {
@@ -93,6 +101,7 @@ $apkHash = (Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash.ToLowerI
 $happoModelHash = (Get-FileHash -LiteralPath $happoModel -Algorithm SHA256).Hash.ToLowerInvariant()
 $pcgrlModelHash = (Get-FileHash -LiteralPath $pcgrlModel -Algorithm SHA256).Hash.ToLowerInvariant()
 $dialogueManifest = Get-Content -LiteralPath (Join-Path $root "web-game\audio\dialogue-manifest.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+$musicManifest = Get-Content -LiteralPath (Join-Path $root "web-game\audio\context-music-manifest.json") -Raw -Encoding UTF8 | ConvertFrom-Json
 $metadata = [ordered]@{
     artifact = [IO.Path]::GetFileName($artifact)
     artifact_bytes = (Get-Item -LiteralPath $artifact).Length
@@ -123,15 +132,16 @@ $metadata = [ordered]@{
     pcgrl_policy_version = "pcgrl-masui-2026-11-02"
     map_elites_schema_version = "chuisha-map-elites-1"
     map_elites_archive_cells = 25
-    profile_schema_version = 6
+    profile_schema_version = 9
     replay_schema_version = "dongzhou-replay-v1"
-    guard_version = "hash-timeout-difficulty-blend-role-fallback-wfc-agent-replay-economy-map-density-voice-map-elites-v7"
+    guard_version = "hash-timeout-difficulty-blend-role-fallback-wfc-agent-replay-economy-map-density-context-voice-music-v8"
     validation = [ordered]@{
         web_release = "PASS"
         map_visual_density = "PASS: 172 stages, semantic structure preservation, balanced compact profile"
         game_systems = "PASS: sequential unlock, hero mastery, 7 class skills, equipment, supplies, replay v1"
         story_enrichment = "PASS: 12-stage vertical slice, 21 runtime battle beats, 24 source-boundary records"
-        dialogue_audio = "PASS: $($dialogueManifest.entries.Count)/$($dialogueManifest.entries.Count) character lines; narration excluded; Qwen high-quality $($dialogueManifest.backendCounts.'qwen3-tts-voice-design-clone'), Edge age-directed coverage $($dialogueManifest.backendCounts.'edge-tts')"
+        dialogue_audio = "PASS: $($dialogueManifest.entries.Count)/$($dialogueManifest.entries.Count) unique character lines; 2520 occurrences including 205 Lua runtime speeches; narration excluded; contextual Edge coverage $($dialogueManifest.backendCounts.'edge-tts')"
+        contextual_music = "PASS: $($musicManifest.summary.renderedCues)/$($musicManifest.summary.totalCues) cues; 172 battle loops, 510 story sections, 239 campaign events, 205 Lua runtime events"
         pcgrl_pipeline = "PASS: 1080/1080 ONNX fixtures plus 2160 mirrored rule-agent battles"
         map_elites_chuisha = "PASS: 25/25 archive cells; 5-seed equal-budget random baseline; map contract and runtime hard validation"
         happo_release_gate = "PASS WITH RUNTIME CALIBRATION REQUIRED: 169 stages x 3 seeds"

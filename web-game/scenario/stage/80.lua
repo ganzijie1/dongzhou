@@ -36,7 +36,7 @@ function on_begin(game)
 game:generate_unit("FuChai80",1,Enum.force.enemy,{20,21});game:generate_unit("WuZiXu79",1,Enum.force.enemy,{18,27});many(game,"YueGuard79",{{5,21},{5,28},{8,18},{9,32},{13,20},{14,30}},Enum.force.own);many(game,"YueArcher79",{{4,24},{7,34},{14,24}},Enum.force.own);many(game,"WuGuard79",{{16,18},{16,23},{16,31},{20,16},{21,26},{22,33},{29,18},{30,29}},Enum.force.enemy);many(game,"WuArcher79",{{18,14},{23,20},{23,30},{30,24}},Enum.force.enemy)
 end
 function on_update(game)
-if phase==1 and game:is_unit_within("GouJian79",{58,23},2)and game:is_unit_within("FanLi79",{58,23},4)and game:is_unit_within("WenZhong79",{58,23},4)then phase=2;game:push_cmd_speak(0,"越王与二大夫已进入会稽。依山坚守到第十二回合，等待文种议和！")end
+if phase==1 and game:is_unit_within("GouJian79",{58,23},2)and game:is_unit_within("FanLi79",{58,23},4)and game:is_unit_within("WenZhong79",{58,23},4)then phase=2;game:push_cmd_speak(0,"我等已入会稽！依山固守，拖住吴军，等待文种议和的消息！")end
 end
 function on_victory(game)end function on_defeat(game)end
 function end_condition(game)

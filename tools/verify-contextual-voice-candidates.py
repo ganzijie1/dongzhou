@@ -21,7 +21,7 @@ def main() -> None:
     index = json.loads(INDEX_PATH.read_text(encoding="utf-8"))
     cards = json.loads(CARDS_PATH.read_text(encoding="utf-8"))["cards"]
     cards_by_id = {card["id"]: card for card in cards}
-    if index.get("schemaVersion") != 2:
+    if index.get("schemaVersion") != 3:
         raise RuntimeError("Unsupported contextual candidate index")
     if not index.get("entries"):
         raise RuntimeError("Contextual candidate index is empty")
@@ -68,6 +68,16 @@ def main() -> None:
                 raise RuntimeError(f"Unconfirmed breath proxy treated as fact: {relative}")
             if "warning" not in analysis["pitch"] or "classifier" not in analysis["pitch"].get("caveat", ""):
                 raise RuntimeError(f"Pitch caveat missing: {relative}")
+            tracks = candidate.get("evidenceTracks") or {}
+            required_tracks = {"content", "identity", "expression", "demographics", "quality", "human"}
+            if not required_tracks.issubset(tracks):
+                raise RuntimeError(f"Incomplete evidence tracks: {relative}")
+            if tracks["demographics"].get("gatePolicy") != "soft_alert_only":
+                raise RuntimeError(f"Demographic evidence leaked into hard gates: {relative}")
+            if tracks["human"].get("status") != "pending_blind_context_review":
+                raise RuntimeError(f"Unreviewed candidate marked human-reviewed: {relative}")
+            if not candidate.get("reviewQueue", {}).get("priority"):
+                raise RuntimeError(f"Missing review priority: {relative}")
             candidate_count += 1
     print(json.dumps({
         "result": "PASS",
@@ -77,6 +87,9 @@ def main() -> None:
         "promotionBlockedWhilePending": True,
         "pitchExcludedFromPromotionGates": True,
         "breathRequiresHumanConfirmation": True,
+        "separateEvidenceTracks": True,
+        "demographicsAreSoftAlertsOnly": True,
+        "universalCerThresholdRemoved": True,
     }, ensure_ascii=False, indent=2))
 
 

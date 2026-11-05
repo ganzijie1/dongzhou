@@ -27,6 +27,7 @@ REQUIRED_RATINGS = (
     "performanceCredibility",
 )
 HARD_ERRORS = ("text", "genderAge", "roleIdentity", "historicalContext", "audioArtifact")
+REVIEW_SCOPES = ("isolatedUtterance", "dialoguePair", "fullScene")
 
 
 def parse_args() -> argparse.Namespace:
@@ -96,6 +97,8 @@ def public_index() -> dict:
             "expectedAgeBand": entry.get("expectedAgeBand"),
             "historicalSituation": context.get("historicalSituation", {}),
             "speakerAtScene": context.get("speakerAtScene", {}),
+            "speechAct": context.get("speechAct", ""),
+            "performanceState": context.get("performanceState", {}),
             "previousTurns": context.get("previousTurns", []),
             "nextTurns": context.get("nextTurns", []),
             "candidates": candidates,
@@ -113,6 +116,9 @@ def validate_review(data: dict) -> tuple[bool, str]:
     hard_errors = data.get("hardErrors") or {}
     if any(name not in hard_errors or not isinstance(hard_errors[name], bool) for name in HARD_ERRORS):
         return False, "硬错误字段不完整"
+    review_scopes = data.get("reviewScopes") or {}
+    if any(name not in review_scopes or not isinstance(review_scopes[name], bool) for name in REVIEW_SCOPES):
+        return False, "试听范围字段不完整"
     if data.get("anchorApproved"):
         if any(hard_errors.values()):
             return False, "存在硬错误时不能批准为锚点"
@@ -121,6 +127,8 @@ def validate_review(data: dict) -> tuple[bool, str]:
                 return False, "性别年龄、角色身份和史实语境至少需要 4 分"
         if ratings["naturalness"] < 3 or ratings["intelligibility"] < 4:
             return False, "锚点的自然度至少 3 分、可懂度至少 4 分"
+        if not all(review_scopes.values()):
+            return False, "批准锚点前必须完成单句、相邻对话和完整场景三层试听"
     return True, ""
 
 
@@ -174,6 +182,7 @@ def create_app() -> Flask:
             "blindLabel": blind_label(data["entryId"], int(data["candidate"])),
             "ratings": data["ratings"],
             "hardErrors": data["hardErrors"],
+            "reviewScopes": data["reviewScopes"],
             "breathConfirmed": data.get("breathConfirmed", "not_reviewed"),
             "anchorApproved": bool(data.get("anchorApproved")),
             "notes": str(data.get("notes") or "").strip(),
@@ -246,18 +255,20 @@ function render(){
  const nav=document.querySelector('#nav'); nav.innerHTML=data.entries.map((e,i)=>`<button class="${i===active?'active':''}" onclick="active=${i};render()">${esc(e.speaker)}<br><small>${e.candidates.filter(x=>x.reviewed).length}/${e.candidates.length} 已审</small></button>`).join('');
  const e=data.entries[active], age=e.speakerAtScene.estimatedAgeRange||e.expectedAgeBand;
  const cards=e.candidates.map(c=>candidateCard(e,c)).join('');
- document.querySelector('#content').innerHTML=`<h2>${esc(e.speaker)}</h2><div class="meta">${esc(e.expectedGender)} · ${esc(age)} · ${esc(e.historicalSituation.chapter||'')} ${esc(e.historicalSituation.stageTitle||'')}</div><div class="line">${esc(e.text)}</div><div class="context"><b>前文</b><br>${contextLines(e.previousTurns)||'无'}<br><br><b>后文</b><br>${contextLines(e.nextTurns)||'无'}</div><h3>盲听候选</h3>${cards}`;
+ const p=e.performanceState||{}, focus=(p.focusWords||[]).join('、')||'按语义自然选择', pivot=(p.pivotWords||[]).join('、')||'无显式转折';
+ document.querySelector('#content').innerHTML=`<h2>${esc(e.speaker)}</h2><div class="meta">${esc(e.expectedGender)} · ${esc(age)} · ${esc(e.historicalSituation.chapter||'')} ${esc(e.historicalSituation.stageTitle||'')}</div><div class="line">${esc(e.text)}</div><div class="context"><b>剧情状态</b><br>言语行为：${esc(e.speechAct)}<br>状态：${esc(p.emotionBefore||'scene_baseline')} → ${esc(p.emotionAfter||'')}<br>潜台词：${esc(p.subtext||'')}<br>转折词：${esc(pivot)}；重音目标：${esc(focus)}<br>停连要求：${esc(p.pausePlan||'')}<br><br><b>前文</b><br>${contextLines(e.previousTurns)||'无'}<br><br><b>后文</b><br>${contextLines(e.nextTurns)||'无'}</div><h3>盲听候选</h3>${cards}`;
  const reviewed=data.entries.reduce((n,x)=>n+x.candidates.filter(c=>c.reviewed).length,0), total=data.entries.reduce((n,x)=>n+x.candidates.length,0); document.querySelector('#progress').textContent=`${reviewed} / ${total} 已审核`;
 }
 function ratingOptions(){return '<option value="">未评分</option>'+[1,2,3,4,5].map(x=>`<option value="${x}">${x}</option>`).join('');}
 function candidateCard(e,c){
  const ratings=Object.entries(ratingNames).map(([k,v])=>`<label>${v}<select data-rating="${k}">${ratingOptions()}</select></label>`).join('');
  const errors=Object.entries(errorNames).map(([k,v])=>`<label><input type="checkbox" data-error="${k}"> ${v}</label>`).join('');
- return `<section class="candidate ${c.reviewed?'reviewed':''}" data-entry="${e.entryId}" data-candidate="${c.candidate}"><div class="candidate-head"><b>${esc(c.label)}</b><audio controls preload="none" src="${c.audioUrl}"></audio></div><div class="ratings">${ratings}</div><div class="errors">${errors}</div><label>呼吸事件确认<select data-breath><option value="not_reviewed">未逐事件检查</option><option value="natural">自然</option><option value="missing">缺少必要呼吸</option><option value="excessive">呼吸过多</option><option value="misplaced">位置错误</option></select></label><label>审核备注<textarea rows="2" data-notes></textarea></label><div class="actions"><label class="anchor"><input type="checkbox" data-anchor> 批准为角色锚点候选</label><button class="save" onclick="saveReview(this)">保存审核</button><span class="status"></span></div></section>`;
+ return `<section class="candidate ${c.reviewed?'reviewed':''}" data-entry="${e.entryId}" data-candidate="${c.candidate}"><div class="candidate-head"><b>${esc(c.label)}</b><audio controls preload="none" src="${c.audioUrl}"></audio></div><div class="ratings">${ratings}</div><div class="errors">${errors}</div><div class="errors"><label><input type="checkbox" data-scope="isolatedUtterance"> 已听单句</label><label><input type="checkbox" data-scope="dialoguePair"> 已连听前后对话</label><label><input type="checkbox" data-scope="fullScene"> 已听完整场景</label></div><label>呼吸事件确认<select data-breath><option value="not_reviewed">未逐事件检查</option><option value="natural">自然</option><option value="missing">缺少必要呼吸</option><option value="excessive">呼吸过多</option><option value="misplaced">位置错误</option></select></label><label>审核备注<textarea rows="2" data-notes></textarea></label><div class="actions"><label class="anchor"><input type="checkbox" data-anchor> 批准为角色锚点候选</label><button class="save" onclick="saveReview(this)">保存审核</button><span class="status"></span></div></section>`;
 }
 async function saveReview(button){
  const card=button.closest('.candidate'), ratings={}, hardErrors={}; card.querySelectorAll('[data-rating]').forEach(x=>ratings[x.dataset.rating]=Number(x.value)); card.querySelectorAll('[data-error]').forEach(x=>hardErrors[x.dataset.error]=x.checked);
- const e=data.entries[active], payload={entryId:e.entryId,speaker:e.speaker,candidate:Number(card.dataset.candidate),ratings,hardErrors,breathConfirmed:card.querySelector('[data-breath]').value,anchorApproved:card.querySelector('[data-anchor]').checked,notes:card.querySelector('[data-notes]').value};
+ const reviewScopes={}; card.querySelectorAll('[data-scope]').forEach(x=>reviewScopes[x.dataset.scope]=x.checked);
+ const e=data.entries[active], payload={entryId:e.entryId,speaker:e.speaker,candidate:Number(card.dataset.candidate),ratings,hardErrors,reviewScopes,breathConfirmed:card.querySelector('[data-breath]').value,anchorApproved:card.querySelector('[data-anchor]').checked,notes:card.querySelector('[data-notes]').value};
  const status=card.querySelector('.status'); status.textContent='保存中'; status.className='status';
  const res=await fetch('/api/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const body=await res.json(); if(!res.ok){status.textContent=body.error;status.className='status error';return;} c=data.entries[active].candidates.find(x=>x.candidate===payload.candidate); c.reviewed=true; status.textContent='已保存；正式上线仍未批准'; card.classList.add('reviewed'); renderProgress();
 }

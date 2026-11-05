@@ -163,7 +163,7 @@ function on_update(game)
     if sortie_started and not rescue_started and jin_has_reached_zhao(game) then
         rescue_started = true
         rescue_turn = game:get_turn_current()
-        game:push_cmd_speak(0, "晋军已经接到赵穿！不要追入秦营，护送他退回东侧晋营，依托营门再守三回合。")
+        game:push_cmd_speak(0, "已经接到赵穿！不要追入秦营，边战边退，回到东营依托营门固守！")
     end
     if rescue_started and not qin_retreat and game:get_turn_current() >= rescue_turn + 3
         and game:is_unit_within("ZhaoChuan48", {46,15}, 7) then

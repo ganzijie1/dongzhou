@@ -7,7 +7,7 @@
     <meta name="description" content="《东周列国志》全章节浏览器回合制战棋。">
     <title>东周列国志 · H5 战棋</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%236c211c'/><text x='32' y='44' text-anchor='middle' font-size='40' fill='%23f2dfaa'>周</text></svg>">
-    <link rel="stylesheet" href="styles.css?v=20261103-14">
+    <link rel="stylesheet" href="styles.css?v=20261104-43">
   </head>
   <body>
     <div id="loadingScreen" class="loading-screen">
@@ -84,63 +84,69 @@
 
     <div id="campaignScreen" class="overlay campaign-screen" hidden>
       <header class="campaign-header">
-        <div class="campaign-brand"><span class="brand-seal">周</span><div><p>春秋战国 · 百七十二战</p><h1>东周列国志</h1></div></div>
+        <div class="campaign-brand"><span class="brand-seal">周</span><div><p id="campaignEraLabel">西周余晖 · 王命将倾</p><h1>东周列国志</h1></div></div>
+        <nav class="era-waypoints" aria-label="时代纪行">
+          <button type="button" data-era-range="1-4" data-era-key="western-zhou" aria-pressed="true"><span>鼎</span><small>西周</small><strong>礼制裂隙</strong></button>
+          <button type="button" data-era-range="5-141" data-era-key="spring-autumn" aria-pressed="false"><span>盟</span><small>春秋</small><strong>会盟征伐</strong></button>
+          <button type="button" data-era-range="142-172" data-era-key="warring-states" aria-pressed="false"><span>兵</span><small>战国</small><strong>变法兼并</strong></button>
+        </nav>
         <div class="campaign-actions">
           <span id="armyRankLabel" class="rank-badge">军阶 1</span>
-          <label class="campaign-setting"><span>战斗难度</span><select id="campaignDifficulty"><option value="easy">简单</option><option value="medium" selected>标准</option><option value="hard">艰难</option></select></label>
-          <label class="campaign-setting map-detail-setting"><span>地图细节</span><select id="mapDetailSetting"><option value="calm">克制</option><option value="balanced" selected>标准</option><option value="original">原始</option></select></label>
-          <label class="setting-toggle voice-setting"><input id="voiceToggle" type="checkbox" checked><span>人物语音</span></label>
-          <label class="campaign-setting voice-volume-setting"><span>语音音量</span><input id="voiceVolume" type="range" min="0" max="100" value="85" aria-label="语音音量"></label>
-          <label class="setting-toggle"><input id="telemetryToggle" type="checkbox" checked><span>本地记录</span></label>
-          <label class="setting-toggle"><input id="feedbackToggle" type="checkbox" checked><span>音效震动</span></label>
-          <button id="exportTelemetryButton" class="icon-button" type="button" title="导出本地战斗数据" aria-label="导出本地战斗数据">导</button>
-          <button id="clearLearningButton" class="icon-button" type="button" title="清除本地学习数据" aria-label="清除本地学习数据">清</button>
-          <button id="resumeButton" class="large-button primary" type="button" hidden>继续战局</button>
+          <button id="campaignSettingsButton" class="campaign-settings-button" type="button" aria-expanded="false" aria-controls="campaignUtilityPanel"><span aria-hidden="true">⚙</span><span>军帐</span></button>
+          <button id="resumeButton" class="large-button primary campaign-resume-shortcut" type="button" hidden>续写此局</button>
         </div>
       </header>
       <section class="campaign-focus" aria-labelledby="focusBattleTitle">
-        <div class="focus-map" aria-hidden="true"><img id="focusMap" src="assets/east-hunt.png" alt=""></div>
+        <div class="focus-map" aria-hidden="true">
+          <img id="focusEraBackdrop" class="focus-era-backdrop" src="assets/campaign/era-western-zhou.webp" alt="">
+          <img id="focusFigures" class="focus-figures" src="assets/campaign/figures-western-zhou.webp" alt="">
+          <img id="focusMap" class="focus-stage-texture" src="assets/east-hunt.png" alt="">
+        </div>
+        <div class="focus-atmosphere" aria-hidden="true">
+          <i class="route-line route-line-one"></i><i class="route-line route-line-two"></i>
+          <span class="map-beacon beacon-one"></span><span class="map-beacon beacon-two"></span><span class="map-beacon beacon-three"></span>
+        </div>
+        <nav id="focusJourney" class="focus-journey" aria-label="附近战役"></nav>
+        <aside class="focus-geography" aria-label="当前列国舆图">
+          <div class="geography-heading"><span>列国舆图</span><strong id="focusGeographyCaption">王畿与诸侯</strong></div>
+          <div class="geography-map">
+            <img src="assets/campaign/campaign-map-master.webp" alt="">
+            <div id="focusGeographyMarkers" class="geography-markers" aria-hidden="true"></div>
+          </div>
+        </aside>
         <div class="focus-copy">
+          <span id="focusEraGlyph" class="focus-era-glyph" aria-hidden="true">鼎</span>
           <p id="focusKicker">当前史局</p>
           <h2 id="focusBattleTitle">东郊索命</h2>
-          <strong id="focusChapter">第一回</strong>
+          <div class="focus-context"><strong id="focusChapter">第一回</strong><span id="focusEra">西周余晖</span></div>
           <p id="focusStory">周宣王闻谣轻杀，杜大夫化厉鸣冤。</p>
           <div class="focus-order"><span>本战军令</span><p id="focusObjective">击破周宣王车驾护军</p></div>
-          <div class="focus-assessment" aria-label="战前敌情"><span><small>敌势</small><strong id="focusRisk">尚待探明</strong></span><span><small>战报</small><strong id="focusEvidence">尚未交锋</strong></span></div>
-          <div class="focus-actions">
-            <button id="focusStageButton" class="large-button primary" type="button">出兵此战</button>
-            <button id="focusArchiveButton" class="large-button" type="button">浏览战役档案</button>
-          <div class="exercise-menu">
-            <button id="exerciseMenuButton" class="large-button exercise-menu-trigger" type="button" aria-expanded="false" aria-controls="exercisePanel"><span>演武设置</span><span class="menu-caret" aria-hidden="true">⌄</span></button>
-            <div id="exercisePanel" class="exercise-actions" hidden>
-              <div class="exercise-field">
-                <label for="proceduralMode">演武实验</label>
-                <select id="proceduralMode">
-                  <option value="map-elites" selected>垂沙 · MAP-Elites</option>
-                  <option value="pcgrl">麻隧 · PCGRL</option>
-                </select>
-              </div>
-              <div class="exercise-field">
-                <label for="proceduralDifficulty">演武难度</label>
-                <select id="proceduralDifficulty">
-                  <option value="auto" selected>智能推荐</option>
-                  <option value="easy">简单</option>
-                  <option value="medium">标准</option>
-                  <option value="hard">艰难</option>
-                </select>
-              </div>
-              <button id="proceduralButton" class="large-button" type="button">生成垂沙演武</button>
-            </div>
-          </div>
-          </div>
+          <p class="focus-guidance">沿史势推进，战果将留在列国舆图之上。</p>
         </div>
-        <dl class="focus-facts">
-          <div><dt>战序</dt><dd id="focusIndex">001 / 172</dd></div>
-          <div><dt>限期</dt><dd id="focusTurns">18 回合</dd></div>
-          <div><dt>战况</dt><dd id="focusStatus">未出阵</dd></div>
-          <div><dt>军阶</dt><dd id="focusRank">1 · 0/600</dd></div>
-        </dl>
+        <div class="focus-actions" aria-label="战役指令">
+          <button id="focusStageButton" class="large-button primary" type="button">奉命出征</button>
+          <button id="focusRestartButton" class="large-button focus-restart-button" type="button" hidden>重开本战</button>
+          <button id="campaignCampButton" class="focus-camp-button" type="button" aria-expanded="false" aria-controls="campaignCampDrawer"><span aria-hidden="true">令</span><span>整军备战</span></button>
+          <button id="focusArchiveButton" class="focus-archive-button" type="button"><span>翻阅列国志</span><span aria-hidden="true">↓</span></button>
+        </div>
+        <aside class="focus-chronicle" aria-label="本战简牍">
+          <div class="chronicle-heading"><span>周纪</span><i></i></div>
+          <dl class="focus-facts">
+            <div><dt>战序</dt><dd id="focusIndex">001 / 172</dd></div>
+            <div><dt>限期</dt><dd id="focusTurns">18 回合</dd></div>
+            <div><dt>战况</dt><dd id="focusStatus">未出阵</dd></div>
+            <div><dt>军阶</dt><dd id="focusRank">1 · 0/600</dd></div>
+          </dl>
+          <div class="chronicle-progress"><i><b id="focusRouteFill"></b></i><span id="focusRouteLabel">史势初启</span></div>
+        </aside>
       </section>
+      <div id="campaignCampBackdrop" class="campaign-camp-backdrop" hidden>
+        <section id="campaignCampDrawer" class="campaign-camp-drawer" role="dialog" aria-modal="true" aria-labelledby="campaignCampTitle">
+          <header class="campaign-camp-header">
+            <div><span>出征之前</span><h2 id="campaignCampTitle">军帐整备</h2><p>定阵、点将、补给，随后奉命出征。</p></div>
+            <button id="campaignCampCloseButton" class="utility-close-button" type="button" aria-label="收起军帐整备">×</button>
+          </header>
+          <div class="campaign-camp-content">
       <section class="war-council" aria-labelledby="warCouncilTitle">
         <div class="war-council-main">
           <div class="war-council-heading">
@@ -167,6 +173,28 @@
           <div class="war-records-heading"><div><span>军府战史</span><h2>回放与每日演武</h2></div><button id="dailyChallengeButton" class="large-button primary" type="button">今日挑战</button></div>
           <p id="dailyChallengeMeta" class="daily-meta"></p>
           <div id="recentReplays" class="recent-replays"></div>
+          <div class="exercise-menu">
+            <button id="exerciseMenuButton" class="large-button exercise-menu-trigger" type="button" aria-expanded="false" aria-controls="exercisePanel"><span>沙盘推演</span><span class="menu-caret" aria-hidden="true">⌄</span></button>
+            <div id="exercisePanel" class="exercise-actions" hidden>
+              <div class="exercise-field">
+                <label for="proceduralMode">推演战场</label>
+                <select id="proceduralMode">
+                  <option value="map-elites" selected>垂沙之战</option>
+                  <option value="pcgrl">麻隧之战</option>
+                </select>
+              </div>
+              <div class="exercise-field">
+                <label for="proceduralDifficulty">敌我态势</label>
+                <select id="proceduralDifficulty">
+                  <option value="auto" selected>依军势而定</option>
+                  <option value="easy">占据上风</option>
+                  <option value="medium">势均力敌</option>
+                  <option value="hard">以少敌众</option>
+                </select>
+              </div>
+              <button id="proceduralButton" class="large-button" type="button">推演垂沙</button>
+            </div>
+          </div>
         </div>
       </section>
       <section class="quartermaster" aria-labelledby="quartermasterTitle">
@@ -177,6 +205,9 @@
         </div>
         <div><div id="equipmentBonuses" class="equipment-bonuses"></div><div id="equipmentList" class="equipment-list"></div></div>
       </section>
+          </div>
+        </section>
+      </div>
       <div id="campaignArchive" class="campaign-archive-heading"><span>列国战役档案</span><small>按回目、战役或关卡编号检索</small></div>
       <section class="campaign-toolbar">
         <label class="search-field"><span aria-hidden="true">⌕</span><input id="stageSearch" type="search" placeholder="搜索回目、战役或关卡编号" autocomplete="off"></label>
@@ -185,6 +216,31 @@
       </section>
       <main id="stageGrid" class="stage-grid"></main>
       <footer class="campaign-footer"><span>原作 Lua 剧情与历史事件驱动</span><span id="campaignStats">172 关 · 169 幅舆图</span></footer>
+    </div>
+
+    <div id="campaignSettingsBackdrop" class="campaign-settings-backdrop" hidden>
+      <section id="campaignUtilityPanel" class="campaign-utility-panel" role="dialog" aria-modal="true" aria-labelledby="campaignUtilityTitle">
+        <header><div><span>行军所需</span><h2 id="campaignUtilityTitle">军帐</h2></div><button id="campaignSettingsCloseButton" class="utility-close-button" type="button" aria-label="收起军帐">×</button></header>
+        <div class="utility-section">
+          <h3>战事</h3>
+          <label class="campaign-setting"><span>战事强度</span><select id="campaignDifficulty"><option value="easy">从容应对</option><option value="medium" selected>势均力敌</option><option value="hard">步步惊心</option></select></label>
+          <label class="campaign-setting map-detail-setting"><span>舆图繁简</span><select id="mapDetailSetting"><option value="calm">清简</option><option value="balanced" selected>适中</option><option value="original">丰茂</option></select></label>
+        </div>
+        <div class="utility-section">
+          <h3>声景</h3>
+          <label class="setting-toggle music-setting"><input id="musicToggle" type="checkbox" checked><span>场景配乐</span></label>
+          <label class="campaign-setting music-volume-setting"><span>配乐音量</span><input id="musicVolume" type="range" min="0" max="100" value="42" aria-label="配乐音量"></label>
+          <label class="setting-toggle voice-setting"><input id="voiceToggle" type="checkbox" checked><span>人物语音</span></label>
+          <label class="campaign-setting voice-volume-setting"><span>语音音量</span><input id="voiceVolume" type="range" min="0" max="100" value="85" aria-label="语音音量"></label>
+          <label class="setting-toggle"><input id="feedbackToggle" type="checkbox" checked><span>声效与震动</span></label>
+        </div>
+        <div class="utility-section utility-records">
+          <h3>本机战史</h3>
+          <label class="setting-toggle"><input id="telemetryToggle" type="checkbox" checked><span>保留战斗记录，用于调整后续战势</span></label>
+          <div><button id="exportTelemetryButton" class="large-button" type="button">导出战史</button><button id="clearLearningButton" class="large-button" type="button">清除战史校准</button></div>
+        </div>
+        <p class="utility-note">所有记录只保存在当前设备。</p>
+      </section>
     </div>
 
     <div id="storyModal" class="overlay story-overlay" hidden>
@@ -201,7 +257,7 @@
 
     <div id="confirmModal" class="overlay compact-overlay" hidden>
       <section class="compact-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
-        <h2 id="confirmTitle">重新开始本关？</h2><p>当前未结算的战局将被覆盖。</p>
+        <h2 id="confirmTitle">重新开始本关？</h2><p>当前未结算的战局将被覆盖，章节进度与成长不会丢失。</p>
         <div class="dialog-actions"><button id="cancelRestartButton" class="large-button" type="button">取消</button><button id="confirmRestartButton" class="large-button danger" type="button">重新开始</button></div>
       </section>
     </div>
@@ -223,10 +279,10 @@
     </div>
 
     <script src="vendor/fengari-web.js"></script>
-    <script src="runtime.js"></script>
+    <script src="runtime.js?v=20261105-2"></script>
     <script src="pcgrl.js"></script>
     <script src="map-elites.js"></script>
-    <script src="game-systems.js?v=20261103-6"></script>
-    <script src="game.js?v=20261103-14"></script>
+    <script src="game-systems.js?v=20261105-9"></script>
+    <script src="game.js?v=20261105-26"></script>
   </body>
 </html>

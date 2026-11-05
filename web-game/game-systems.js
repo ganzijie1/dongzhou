@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const PROFILE_VERSION = 8;
+  const PROFILE_VERSION = 9;
   const TELEMETRY_SCHEMA = "dongzhou-battle-v4";
   const REPLAY_SCHEMA = "dongzhou-replay-v1";
   const POLICY_VERSION = "happo-2026-11-02";
@@ -182,7 +182,9 @@
         feedbackEnabled: source.settings?.feedbackEnabled !== false,
         transparentAssist: source.settings?.transparentAssist !== false,
         voiceEnabled: source.settings?.voiceEnabled !== false,
-        voiceVolume: clamp(Number.isFinite(Number(source.settings?.voiceVolume)) ? Number(source.settings.voiceVolume) : 0.85, 0, 1)
+        voiceVolume: clamp(Number.isFinite(Number(source.settings?.voiceVolume)) ? Number(source.settings.voiceVolume) : 0.85, 0, 1),
+        musicEnabled: source.settings?.musicEnabled !== false,
+        musicVolume: clamp(Number.isFinite(Number(source.settings?.musicVolume)) ? Number(source.settings.musicVolume) : 0.42, 0, 1)
       },
       unlockedThrough: unlockedThrough({ completed }, stages || [])
     };
@@ -754,16 +756,21 @@
     return chunks;
   }
 
-  function normalizeStoryEntries(entries, maxLength) {
+  function normalizeStoryEntries(entries, maxLength, storyContext = {}) {
     const output = [];
     const seen = new Set();
-    for (const raw of Array.isArray(entries) ? entries : Object.values(entries || {})) {
+    const sourceEntries = Array.isArray(entries) ? entries : Object.values(entries || {});
+    for (const [fallbackSourceIndex, raw] of sourceEntries.entries()) {
       const speaker = String(raw?.speaker || "").trim() === "原著" ? "史官" : String(raw?.speaker || "旁白").trim() || "旁白";
-      for (const text of splitStoryText(raw?.text, maxLength)) {
-        const key = `${speaker}\u0000${text}`;
+      const stageId = String(raw?.stageId ?? storyContext?.stageId ?? "");
+      const section = String(raw?.section ?? storyContext?.section ?? "");
+      const sourceIndex = Number.isInteger(Number(raw?.sourceIndex)) ? Number(raw.sourceIndex) : fallbackSourceIndex;
+      for (const [chunkIndex, text] of splitStoryText(raw?.text, maxLength).entries()) {
+        const occurrenceKey = `${stageId}\u0000${section}\u0000${sourceIndex}\u0000${chunkIndex}\u0000${speaker}\u0000${text}`;
+        const key = stageId || section ? occurrenceKey : `${speaker}\u0000${text}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        output.push({ ...raw, speaker, text });
+        output.push({ ...raw, speaker, text, stageId, section, sourceIndex, chunkIndex });
       }
     }
     return output;
@@ -783,24 +790,126 @@
     const entries = (Array.isArray(source.entries) ? source.entries : []).filter((entry) => {
       const file = String(entry?.file || "");
       return entry?.speaker && entry?.text && file.startsWith("audio/") && !file.includes("..") && !file.includes(":");
-    }).map((entry) => ({
-      id: String(entry.id || ""),
-      speaker: String(entry.speaker),
-      text: String(entry.text),
-      file: String(entry.file),
-      duration: Math.max(0, Number(entry.duration || 0)),
-      voice: String(entry.voice || ""),
-      sha256: /^[a-f0-9]{64}$/i.test(String(entry.sha256 || "")) ? String(entry.sha256).toLowerCase() : ""
-    }));
-    const lookup = new Map(entries.map((entry) => [`${entry.speaker}\u0000${entry.text}`, entry]));
-    return { schemaVersion: Number(source.schemaVersion || 1), model: String(source.model || ""), entries, lookup };
+    }).map((entry) => {
+      const firstOccurrence = entry?.firstOccurrence && typeof entry.firstOccurrence === "object" ? entry.firstOccurrence : {};
+      const occurrences = (Array.isArray(entry?.occurrences) ? entry.occurrences : []).filter((item) => item && typeof item === "object").map((item) => ({
+        contextId: String(item.contextId || ""),
+        stageId: String(item.stageId ?? ""),
+        section: String(item.section ?? ""),
+        sourceIndex: Number(item.sourceIndex ?? -1),
+        chunkIndex: Number(item.chunkIndex ?? -1)
+      }));
+      return {
+        id: String(entry.id || ""),
+        speaker: String(entry.speaker),
+        text: String(entry.text),
+        file: String(entry.file),
+        duration: Math.max(0, Number(entry.duration || 0)),
+        voice: String(entry.voice || ""),
+        sha256: /^[a-f0-9]{64}$/i.test(String(entry.sha256 || "")) ? String(entry.sha256).toLowerCase() : "",
+        contextId: String(entry.contextId || ""),
+        stageId: String(entry.stageId ?? firstOccurrence.stageId ?? ""),
+        section: String(entry.section ?? firstOccurrence.section ?? ""),
+        sourceIndex: Number(entry.sourceIndex ?? firstOccurrence.sourceIndex ?? -1),
+        chunkIndex: Number(entry.chunkIndex ?? firstOccurrence.chunkIndex ?? -1),
+        timelineIndex: Number(entry.timelineIndex ?? firstOccurrence.timelineIndex ?? -1),
+        styleAnchor: String(entry.styleAnchor || entry.delivery?.styleAnchor || ""),
+        occurrences
+      };
+    });
+    const lookup = new Map();
+    const contextLookup = new Map();
+    const occurrenceLookup = new Map();
+    const textLookup = new Map();
+    const occurrenceKey = (entry, selector) => [
+      selector.stageId, selector.section, selector.sourceIndex, selector.chunkIndex, entry.speaker, entry.text
+    ].join("\u0000");
+    for (const entry of entries) {
+      const baseKey = `${entry.speaker}\u0000${entry.text}`;
+      if (!lookup.has(baseKey)) lookup.set(baseKey, entry);
+      if (!textLookup.has(entry.text)) textLookup.set(entry.text, entry);
+      else if (textLookup.get(entry.text)?.id !== entry.id) textLookup.set(entry.text, null);
+      if (entry.contextId) contextLookup.set(entry.contextId, entry);
+      if (entry.stageId && entry.section && entry.sourceIndex >= 0 && entry.chunkIndex >= 0) {
+        occurrenceLookup.set(occurrenceKey(entry, entry), entry);
+      }
+      for (const occurrence of entry.occurrences) {
+        if (occurrence.contextId) contextLookup.set(occurrence.contextId, entry);
+        if (occurrence.stageId && occurrence.section && occurrence.sourceIndex >= 0 && occurrence.chunkIndex >= 0) {
+          occurrenceLookup.set(occurrenceKey(entry, occurrence), entry);
+        }
+      }
+    }
+    for (const [text, entry] of textLookup) if (!entry) textLookup.delete(text);
+    return { schemaVersion: Number(source.schemaVersion || 1), model: String(source.model || ""), entries, lookup, textLookup, contextLookup, occurrenceLookup };
   }
 
-  function resolveStoryVoice(manifest, speaker, text) {
+  function resolveStoryVoice(manifest, speaker, text, context = {}) {
     const wantedSpeaker = String(speaker || "旁白").trim() || "旁白";
     const wantedText = String(text || "").trim();
+    const contextId = String(context?.contextId || context?.id || "");
+    if (contextId && manifest?.contextLookup?.has(contextId)) return manifest.contextLookup.get(contextId);
+    const stageId = String(context?.stageId ?? "");
+    const section = String(context?.section ?? "");
+    const sourceIndex = Number(context?.sourceIndex ?? -1);
+    const chunkIndex = Number(context?.chunkIndex ?? -1);
+    if (stageId && section && sourceIndex >= 0 && chunkIndex >= 0) {
+      const occurrenceKey = [stageId, section, sourceIndex, chunkIndex, wantedSpeaker, wantedText].join("\u0000");
+      const exact = manifest?.occurrenceLookup?.get(occurrenceKey);
+      if (exact) return exact;
+    }
     const key = `${wantedSpeaker}\u0000${wantedText}`;
-    return manifest?.lookup?.get(key) || (manifest?.entries || []).find((entry) => entry.speaker === wantedSpeaker && entry.text === wantedText) || null;
+    return manifest?.lookup?.get(key)
+      || (manifest?.entries || []).find((entry) => entry.speaker === wantedSpeaker && entry.text === wantedText)
+      || manifest?.textLookup?.get(wantedText)
+      || null;
+  }
+
+  function normalizeMusicManifest(raw) {
+    const source = raw && typeof raw === "object" ? raw : {};
+    const cues = (Array.isArray(source.cues) ? source.cues : []).filter((cue) => {
+      const file = String(cue?.file || "");
+      return cue?.id && cue?.stageId && file.startsWith("audio/") && !file.includes("..") && !file.includes(":");
+    }).map((cue) => ({
+      id: String(cue.id), stageId: String(cue.stageId), kind: String(cue.kind || ""),
+      section: String(cue.section || ""), eventId: String(cue.eventId || ""), triggerText: String(cue.triggerText || ""), file: String(cue.file),
+      loop: Boolean(cue.loop), duration: Math.max(0, Number(cue.duration || cue.durationTarget || 0)),
+      sha256: /^[a-f0-9]{64}$/i.test(String(cue.sha256 || "")) ? String(cue.sha256).toLowerCase() : "",
+      tempo: Math.max(0, Number(cue.tempo || 0)), mood: String(cue.mood || ""),
+      era: String(cue.era || ""), scene: String(cue.scene || "")
+    }));
+    const lookup = new Map();
+    const textLookup = new Map();
+    for (const cue of cues) {
+      lookup.set([cue.stageId, cue.kind, cue.section, cue.eventId].join("\u0000"), cue);
+      if (!cue.eventId) lookup.set([cue.stageId, cue.kind, cue.section, ""].join("\u0000"), cue);
+      if (cue.kind === "event" && cue.triggerText) {
+        const textKey = `${cue.stageId}\u0000${cue.triggerText}`;
+        if (!textLookup.has(textKey)) textLookup.set(textKey, cue);
+      }
+    }
+    return { schemaVersion: Number(source.schemaVersion || 1), generator: String(source.generator || ""), cues, lookup, textLookup };
+  }
+
+  function resolveContextMusic(manifest, context = {}) {
+    const stageId = String(context.stageId || "");
+    const section = String(context.section || "");
+    const eventId = String(context.eventId || "");
+    const text = String(context.text || "").trim();
+    const kind = String(context.kind || (["events", "runtime"].includes(section) ? "event" : section || "battle"));
+    const exact = manifest?.lookup?.get([stageId, kind, section || kind, eventId].join("\u0000"));
+    if (exact) return exact;
+    if (kind === "event" && text) {
+      const byText = manifest?.textLookup?.get(`${stageId}\u0000${text}`);
+      if (byText) return byText;
+    }
+    if (kind === "event") {
+      const eventFallback = (manifest?.cues || []).find((cue) => cue.stageId === stageId && cue.kind === "event");
+      if (eventFallback) return eventFallback;
+    }
+    const sectionFallback = manifest?.lookup?.get([stageId, kind, section || kind, ""].join("\u0000"));
+    if (sectionFallback) return sectionFallback;
+    return manifest?.lookup?.get([stageId, "battle", "battle", ""].join("\u0000")) || null;
   }
 
   return {
@@ -811,7 +920,7 @@
     equipmentBonuses, availableEquipment, buyEquipment, equipItem, buySupply,
     battleReward, selectDifficulty, wilsonInterval, difficultyCalibration, difficultyRiskBand, stageDifficultyAssessment, completeBattle, canonicalHeroId,
     skillForUnit, skillTargetValid, effectivePower, effectiveDefense, applySkill, tickEffects, storyEventMatches,
-    splitStoryText, normalizeStoryEntries, portraitForSpeaker, normalizeVoiceManifest, resolveStoryVoice,
+    splitStoryText, normalizeStoryEntries, portraitForSpeaker, normalizeVoiceManifest, resolveStoryVoice, normalizeMusicManifest, resolveContextMusic,
     mapDetailProfile, isStructuralTerrain, preservesMapDetail, isBarrierTerrain
   };
 });

@@ -150,14 +150,14 @@ function on_update(game)
     if not mud_spoken and game:is_force_within(Enum.force.enemy, {12, 8}, 2) then
         mud_spoken = true
         game:push_cmd_speak(jin_lord_id, "小驷脚下发滑，这片泥地不可久留！郤步扬，快把车驾转向！")
-        game:push_cmd_speak(0, "晋侯车驾接近泥泞，公孙枝从东路包抄，准备触发擒拿！")
+        game:push_cmd_speak(0, "晋侯车驾已陷近泥地！公孙枝从东路包抄，合围生擒！")
     end
     if not wildmen_arrived and game:get_turn_current() >= 5 then
         wildmen_arrived = true
         game:generate_unit("WildWarrior30", 1, Enum.force.own, {0, 8})
         game:generate_unit("WildWarrior30", 1, Enum.force.own, {0, 9})
         game:generate_unit("WildArcher30", 1, Enum.force.own, {1, 10})
-        game:push_cmd_speak(0, "第五回合，三百岐山野人从西侧赶到，前来报答秦穆公赐酒不杀之恩！")
+        game:push_cmd_speak(0, "西侧喊声大作！三百岐山壮士赶来报恩，快接应他们！")
     end
 end
 function on_victory(game) end

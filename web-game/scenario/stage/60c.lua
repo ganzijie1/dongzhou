@@ -46,7 +46,7 @@ function on_begin(game)
 end
 function on_update(game)
  if not gate_event and (game:is_unit_within("QinJinFu60",{27,7},2)or game:is_unit_within("DiSiMi60",{27,7},2)or game:is_unit_within("ShuLiangHe60",{27,7},2))then gate_event=true;game:push_cmd_speak(0,"偪阳悬门突然落下！叔梁纥双手托住闸板，秦堇父、狄虒弥趁势穿门先登！")end
- if not rain_started and game:get_turn_current()>=6 then rain_started=true;assault_turn=game:get_turn_current();game:set_unit_invulnerable("YunBan60",false);game:push_cmd_speak(0,"连日暴雨已经退水，偪阳箭石耗尽！五回合总攻开始，击退云般迫其献城！")end
+ if not rain_started and game:get_turn_current()>=6 then rain_started=true;assault_turn=game:get_turn_current();game:set_unit_invulnerable("YunBan60",false);game:push_cmd_speak(0,"暴雨已退，偪阳箭石将尽！诸军立即总攻，拿下云般，迫其献城！")end
 end
 function on_victory(game)end function on_defeat(game)end
 function end_condition(game)for _,h in ipairs(gcommanders)do if not game:has_unit(h)then return Enum.status.defeat end end if rain_started and game:get_turn_current()>assault_turn+5 and game:has_unit("YunBan60")then return Enum.status.defeat end if rain_started and not game:has_unit("YunBan60")then return Enum.status.victory end return Enum.status.undecided end

@@ -49,7 +49,7 @@ end
 function on_update(game)
 if phase==1 and not game:has_unit("XiGuiFu62")then phase=2;game:push_cmd_speak(0,"防门已破，析归父退走！诸军穿过平阴，继续向石门追击。");game:set_unit_invulnerable("ZhiChuo62",false);game:set_unit_invulnerable("GuoZui62",false)end
 if phase==2 and not game:has_unit("ZhiChuo62") and not game:has_unit("GuoZui62")then phase=3;game:push_cmd_speak(0,"殖绰、郭最已在石门被俘。中军向临淄西门推进，不可攻击齐侯宫城。");end
-if phase==3 and game:is_unit_within("XunYan58",{68,24},3)then phase=4;siege_turn=game:get_turn_current();game:push_cmd_speak(0,"临淄合围。自本回合起围城六日，焚外郭而不攻宫城。");end
+if phase==3 and game:is_unit_within("XunYan58",{68,24},3)then phase=4;siege_turn=game:get_turn_current();game:push_cmd_speak(0,"临淄已经合围！各军轮守六日，只焚外郭积聚，不得攻入宫城。");end
 end
 function on_victory(game)end function on_defeat(game)end
 function end_condition(game)for _,h in ipairs(gcommanders)do if not game:has_unit(h)then return Enum.status.defeat end end if phase==4 and game:get_turn_current()>=siege_turn+6 then return Enum.status.victory end return Enum.status.undecided end

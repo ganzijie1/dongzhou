@@ -100,7 +100,7 @@ function on_update(game)
     if not relief_started and game:is_unit_within("ZhaoChuan48", {15,14}, 2) then
         relief_started = true
         relief_turn = game:get_turn_current()
-        game:push_cmd_speak(0, "赵穿已抵达焦城东门，守军开始内外夹击。坚守三回合，迫使秦军撤围。")
+        game:push_cmd_speak(0, "赵穿援军已到东门！城内外一同夹击，稳住阵脚，逼秦军撤围！")
     end
     if relief_started and not qin_retreat and game:get_turn_current() >= relief_turn + 3 then
         qin_retreat = true

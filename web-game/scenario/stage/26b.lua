@@ -126,7 +126,7 @@ end
 function on_update(game)
     if not xirong_clash_spoken and game:is_force_within(Enum.force.own, {9, 4}, 3) then
         xirong_clash_spoken = true
-        game:push_cmd_speak(0, "主帐南口已到！岩山不可通行，步卒让出弓手射界，沿谷道交替推进！")
+        game:push_cmd_speak(0, "主帐南口已到！绕开岩山，步卒让出射路，沿谷道交替推进！")
         game:push_cmd_speak(chiban_id, "守住王帐！只要挡住中央谷道，秦军骑兵便无法展开！")
     end
 end

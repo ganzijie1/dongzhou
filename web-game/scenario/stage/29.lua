@@ -171,7 +171,7 @@ function on_update(game)
     if not south_gate_spoken and game:is_force_within(Enum.force.own, {9, 8}, 2) then
         south_gate_spoken = true
         game:push_cmd_speak(rong_lord_id, "援军已经逼近南门！近战堵住道路，弓手从两翼集中射击！")
-        game:push_cmd_speak(0, "南门为两格通道，前队不要堵死后方射手与骑兵的进路！")
+        game:push_cmd_speak(0, "南门狭窄，前队过门即向两侧展开，给弓手与骑兵让路！")
     end
     if not west_gate_spoken and game:is_force_within(Enum.force.own, {2, 5}, 2) then
         west_gate_spoken = true
@@ -182,7 +182,7 @@ function on_update(game)
         game:generate_unit("GuanYiWu29", 1, Enum.force.own, {18, 11})
         game:generate_unit("QiGuard29", 1, Enum.force.own, {18, 10})
         game:generate_unit("QiArcher29", 1, Enum.force.own, {18, 12})
-        game:push_cmd_speak(0, "第三回合，管仲率齐国援军从东南抵达战场！")
+        game:push_cmd_speak(0, "东南尘起，管仲已率齐国援军赶到！")
         game:push_cmd_speak(rong_lord_id, "齐兵也来了？王子带为何还不开门接应！")
     end
 end

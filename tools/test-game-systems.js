@@ -5,7 +5,7 @@ const systems = require("../web-game/game-systems.js");
 
 const stages = Array.from({ length: 12 }, (_, index) => ({ id: `stage-${index + 1}`, index: index + 1 }));
 const migrated = systems.normalizeProfile({ completed: ["stage-1", "stage-2", "stage-3", "stage-4", "stage-5", "stage-6"] }, stages);
-assert.equal(migrated.schemaVersion, 8);
+assert.equal(migrated.schemaVersion, 9);
 assert.equal(migrated.armyRank, 3);
 assert.equal(systems.isStageUnlocked(stages[6], migrated, stages), true);
 assert.equal(systems.isStageUnlocked(stages[7], migrated, stages), false);
@@ -148,8 +148,12 @@ assert.equal(normalized.settings.battleDifficulty, "medium");
 assert.equal(normalized.settings.mapDetail, "balanced");
 assert.equal(normalized.settings.voiceEnabled, true);
 assert.equal(normalized.settings.voiceVolume, 0.85);
+assert.equal(normalized.settings.musicEnabled, true);
+assert.equal(normalized.settings.musicVolume, 0.42);
 assert.equal(systems.normalizeProfile({ settings: { voiceEnabled: false, voiceVolume: 2 } }, stages).settings.voiceEnabled, false);
 assert.equal(systems.normalizeProfile({ settings: { voiceVolume: 2 } }, stages).settings.voiceVolume, 1);
+assert.equal(systems.normalizeProfile({ settings: { musicEnabled: false, musicVolume: -1 } }, stages).settings.musicEnabled, false);
+assert.equal(systems.normalizeProfile({ settings: { musicVolume: -1 } }, stages).settings.musicVolume, 0);
 assert.equal(systems.normalizeProfile({ settings: { mapDetail: "calm" } }, stages).settings.mapDetail, "calm");
 assert.equal(systems.normalizeProfile({ settings: { mapDetail: "invalid" } }, stages).settings.mapDetail, "balanced");
 assert.equal(systems.mapDetailProfile("balanced", true).scale, 0.58);
@@ -212,14 +216,46 @@ assert.equal(story.at(-1).speaker, "旁白");
 assert.equal(new Set(story.map((entry) => `${entry.speaker}:${entry.text}`)).size, story.length);
 
 const voiceManifest = systems.normalizeVoiceManifest({ entries: [
-  { id: "line-1", speaker: "杜伯", text: "白矢在此！", file: "audio/dialogue/line-1.ogg", duration: 1.5, voice: "Dylan", sha256: "a".repeat(64) },
+  {
+    id: "line-1", speaker: "杜伯", text: "白矢在此！", file: "audio/dialogue/line-1.ogg", duration: 1.5, voice: "Dylan", sha256: "a".repeat(64),
+    contextId: "ctx-intro", stageId: "01", section: "intro", sourceIndex: 1, chunkIndex: 0
+  },
+  {
+    id: "line-2", speaker: "杜伯", text: "白矢在此！", file: "audio/dialogue/line-2.ogg", duration: 1.2, voice: "Dylan", sha256: "b".repeat(64),
+    contextId: "ctx-battle", occurrences: [{ contextId: "ctx-event", stageId: "01", section: "events", sourceIndex: 3, chunkIndex: 0 }]
+  },
+  { id: "line-runtime", speaker: "曹刿", text: "彼竭我盈，反击就在此刻！", file: "audio/dialogue/line-runtime.ogg" },
   { id: "unsafe", speaker: "旁白", text: "越界", file: "../private.ogg" }
 ] });
-assert.equal(voiceManifest.entries.length, 1);
-assert.equal(voiceManifest.lookup.size, 1);
+assert.equal(voiceManifest.entries.length, 3);
+assert.equal(voiceManifest.lookup.size, 2);
 assert.equal(voiceManifest.entries[0].sha256, "a".repeat(64));
 assert.equal(systems.resolveStoryVoice(voiceManifest, "杜伯", "白矢在此！").id, "line-1");
+assert.equal(systems.resolveStoryVoice(voiceManifest, "杜伯", "白矢在此！", { contextId: "ctx-battle" }).id, "line-2");
+assert.equal(systems.resolveStoryVoice(voiceManifest, "杜伯", "白矢在此！", { stageId: "01", section: "events", sourceIndex: 3, chunkIndex: 0 }).id, "line-2");
 assert.equal(systems.resolveStoryVoice(voiceManifest, "周宣王", "白矢在此！"), null);
+assert.equal(systems.resolveStoryVoice(voiceManifest, "军报", "彼竭我盈，反击就在此刻！").id, "line-runtime");
+
+const musicManifest = systems.normalizeMusicManifest({ cues: [
+  { id: "music-01-battle", stageId: "01", kind: "battle", section: "battle", file: "audio/context-music/01/battle.ogg", loop: true, sha256: "c".repeat(64) },
+  { id: "music-01-intro", stageId: "01", kind: "intro", section: "intro", file: "audio/context-music/01/story-intro.ogg" },
+  { id: "music-01-event", stageId: "01", kind: "event", section: "events", eventId: "turn-2", triggerText: "旧案便再无开口之日。", file: "audio/context-music/01/event-turn-2.ogg" },
+  { id: "unsafe-music", stageId: "01", kind: "intro", section: "intro", file: "../private.ogg" }
+] });
+assert.equal(musicManifest.cues.length, 3);
+assert.equal(systems.resolveContextMusic(musicManifest, { stageId: "01", kind: "battle", section: "battle" }).id, "music-01-battle");
+assert.equal(systems.resolveContextMusic(musicManifest, { stageId: "01", section: "intro" }).id, "music-01-intro");
+assert.equal(systems.resolveContextMusic(musicManifest, { stageId: "01", section: "events", eventId: "turn-2" }).id, "music-01-event");
+assert.equal(systems.resolveContextMusic(musicManifest, { stageId: "01", section: "events", eventId: "unknown" }).id, "music-01-event");
+assert.equal(systems.resolveContextMusic(musicManifest, { stageId: "01", section: "runtime", text: "旧案便再无开口之日。" }).id, "music-01-event");
+
+const contextualStory = systems.normalizeStoryEntries([
+  { speaker: "杜伯", text: "白矢在此！" },
+  { speaker: "杜伯", text: "白矢在此！" }
+], 110, { stageId: "01", section: "intro" });
+assert.equal(contextualStory.length, 2);
+assert.deepEqual(contextualStory.map((entry) => entry.sourceIndex), [0, 1]);
+assert.ok(contextualStory.every((entry) => entry.stageId === "01" && entry.section === "intro"));
 
 const storyEventContext = {
   turn: 3,
