@@ -876,7 +876,10 @@
       loop: Boolean(cue.loop), duration: Math.max(0, Number(cue.duration || cue.durationTarget || 0)),
       sha256: /^[a-f0-9]{64}$/i.test(String(cue.sha256 || "")) ? String(cue.sha256).toLowerCase() : "",
       tempo: Math.max(0, Number(cue.tempo || 0)), mood: String(cue.mood || ""),
-      era: String(cue.era || ""), scene: String(cue.scene || "")
+      era: String(cue.era || ""), scene: String(cue.scene || ""),
+      fallbackFile: String(cue.fallbackFile || cue.file),
+      fallbackSha256: /^[a-f0-9]{64}$/i.test(String(cue.fallbackSha256 || "")) ? String(cue.fallbackSha256).toLowerCase() : "",
+      availableInBase: cue.availableInBase !== false, packId: String(cue.packId || "")
     }));
     const lookup = new Map();
     const textLookup = new Map();

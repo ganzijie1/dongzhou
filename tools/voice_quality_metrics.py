@@ -8,13 +8,13 @@ import re
 from typing import Iterable
 
 
-PUNCTUATION_RE = re.compile(r"[，。！？；：、,.!?;:]")
-TRAILING_PUNCTUATION_RE = re.compile(r"[，。！？；：、,.!?;:]+$")
+PUNCTUATION_RE = re.compile(r"[。！？；：，、,.!?;:]")
+TRAILING_PUNCTUATION_RE = re.compile(r"[。！？；：，、,.!?;:]+$")
 _OPENCC = None
 
 
 def spoken_character_count(text: str) -> int:
-    return len(re.sub(r"[\s，。！？；：、,.!?;:‘’“”\-—…（）()《》〈〉]", "", text or ""))
+    return len(re.sub(r"[\s。！？；：，、,.!?;:“”‘’（）()《》〈〉【】\[\]…—-]", "", text or ""))
 
 
 def expected_internal_boundaries(text: str) -> int:
@@ -50,6 +50,15 @@ def merge_intervals(intervals, sample_rate: int, minimum_gap_seconds: float = 0.
 
 def interval_duration(intervals: Iterable[tuple[int, int]], sample_rate: int) -> float:
     return sum(end - start for start, end in intervals) / sample_rate
+
+
+def _coefficient_of_variation(values) -> float:
+    import numpy as np
+
+    array = np.asarray(values, dtype=np.float64)
+    if len(array) < 2 or float(np.mean(array)) <= 1e-8:
+        return 1.0
+    return float(np.std(array) / np.mean(array))
 
 
 def _frame_mask(frame_times, intervals: list[tuple[int, int]], sample_rate: int):
@@ -145,6 +154,15 @@ def analyze_audio(waveform, sample_rate: int, text: str, delivery: dict, card: d
     else:
         energy_dynamic_range = 0.0
         energy_variation = 0.0
+    segment_durations = [(end - start) / sample_rate for start, end in speech_intervals]
+    segment_rms = [
+        float(np.sqrt(np.mean(np.square(audio[start:end]))))
+        for start, end in speech_intervals if end > start
+    ]
+    pause_durations = [item["duration"] for item in internal_pauses]
+    duration_regularity = math.exp(-3.2 * _coefficient_of_variation(segment_durations))
+    pause_regularity = math.exp(-3.5 * _coefficient_of_variation(pause_durations))
+    energy_uniformity = math.exp(-4.0 * _coefficient_of_variation(segment_rms))
     target_dynamic_range = 8.0 + 12.0 * float(delivery.get("intensity", 0.4))
     energy_score = math.exp(-abs(energy_dynamic_range - target_dynamic_range) / 14.0)
 
@@ -157,6 +175,28 @@ def analyze_audio(waveform, sample_rate: int, text: str, delivery: dict, card: d
     median_f0 = float(np.median(voiced_f0)) if len(voiced_f0) else 0.0
     f0_p10 = float(np.quantile(voiced_f0, 0.1)) if len(voiced_f0) else 0.0
     f0_p90 = float(np.quantile(voiced_f0, 0.9)) if len(voiced_f0) else 0.0
+    terminal_directions: list[int] = []
+    for start, end in speech_intervals:
+        segment_mask = _frame_mask(frame_times, [(start, end)], sample_rate)
+        segment_f0 = f0[segment_mask[:len(f0)]] if len(f0) else np.asarray([])
+        segment_f0 = segment_f0[np.isfinite(segment_f0)]
+        if len(segment_f0) < 6:
+            continue
+        edge = max(2, len(segment_f0) // 3)
+        delta = float(np.median(segment_f0[-edge:]) - np.median(segment_f0[:edge]))
+        terminal_directions.append(-1 if delta < -2.0 else 1 if delta > 2.0 else 0)
+    if terminal_directions:
+        terminal_uniformity = max(terminal_directions.count(value) for value in (-1, 0, 1)) / len(terminal_directions)
+    else:
+        terminal_uniformity = 0.0
+    cadence_evidence = len(speech_intervals) >= 4 and len(internal_pauses) >= 3
+    broadcast_risk = (
+        0.35 * duration_regularity
+        + 0.25 * pause_regularity
+        + 0.20 * energy_uniformity
+        + 0.20 * terminal_uniformity
+    ) if cadence_evidence else 0.0
+    broadcast_hard_reject = cadence_evidence and broadcast_risk >= 0.86
     f0_min, f0_max = pitch_sanity_range(card)
     pitch_warning = not median_f0 or not (f0_min <= median_f0 <= f0_max)
 
@@ -210,6 +250,16 @@ def analyze_audio(waveform, sample_rate: int, text: str, delivery: dict, card: d
             "targetDynamicRangeDb": round(target_dynamic_range, 3),
             "rmsVariation": round(energy_variation, 4),
             "energyScore": round(energy_score, 4),
+        },
+        "broadcastCadence": {
+            "riskScore": round(broadcast_risk, 4),
+            "hardReject": broadcast_hard_reject,
+            "evidenceAvailable": cadence_evidence,
+            "segmentDurationCv": round(_coefficient_of_variation(segment_durations), 4),
+            "pauseDurationCv": round(_coefficient_of_variation(pause_durations), 4),
+            "segmentEnergyCv": round(_coefficient_of_variation(segment_rms), 4),
+            "terminalDirectionUniformity": round(terminal_uniformity, 4),
+            "caveat": "Acoustic cadence gate for repeated equal timing, uniform emphasis and fixed endings; borderline cases still require scene listening.",
         },
         "pitch": {
             "medianF0Hz": round(median_f0, 2),
@@ -331,18 +381,57 @@ def validate_critical_terms(reference: str, hypothesis: str, terms: Iterable[str
     """Check only terms that actually occur in the reference utterance."""
     normalized_reference = normalize_transcript(reference)
     normalized_hypothesis = normalize_transcript(hypothesis)
+    try:
+        from pypinyin import Style, lazy_pinyin
+
+        hypothesis_pinyin = "".join(lazy_pinyin(
+            normalized_hypothesis, style=Style.NORMAL, errors=lambda value: list(value),
+        ))
+    except ImportError:
+        lazy_pinyin = None
+        Style = None
+        hypothesis_pinyin = ""
     applicable: list[str] = []
     missing: list[str] = []
+    phonetic_matches: list[str] = []
+    phonetic_near_matches: list[dict] = []
     for raw_term in terms:
         term = normalize_transcript(str(raw_term))
         if len(term) < 2 or term not in normalized_reference or term in applicable:
             continue
         applicable.append(term)
-        if term not in normalized_hypothesis:
+        if term in normalized_hypothesis:
+            continue
+        term_pinyin = "".join(lazy_pinyin(
+            term, style=Style.NORMAL, errors=lambda value: list(value),
+        )) if lazy_pinyin is not None else ""
+        if term_pinyin and term_pinyin in hypothesis_pinyin:
+            phonetic_matches.append(term)
+            continue
+        best_distance = 1.0
+        best_window = ""
+        if lazy_pinyin is not None and term_pinyin:
+            for width in range(max(1, len(term) - 1), len(term) + 2):
+                for start in range(0, max(0, len(normalized_hypothesis) - width) + 1):
+                    window = normalized_hypothesis[start:start + width]
+                    window_pinyin = "".join(lazy_pinyin(
+                        window, style=Style.NORMAL, errors=lambda value: list(value),
+                    ))
+                    distance = character_error_rate(term_pinyin, window_pinyin)
+                    if distance < best_distance:
+                        best_distance = distance
+                        best_window = window
+        if best_window and best_distance <= 0.20:
+            phonetic_near_matches.append({
+                "term": term, "hypothesisWindow": best_window, "distance": round(best_distance, 4),
+            })
+        else:
             missing.append(term)
     return {
         "terms": applicable,
         "missingTerms": missing,
+        "phoneticMatches": phonetic_matches,
+        "phoneticNearMatches": phonetic_near_matches,
         "status": "pass" if not missing else "manual_hard_gate_review",
-        "caveat": "ASR is supporting evidence; names and archaic terms require listening confirmation.",
+        "caveat": "Literal or tone-free pinyin ASR matches are supporting evidence; names and archaic terms still require listening confirmation.",
     }

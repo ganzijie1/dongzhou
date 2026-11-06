@@ -28,6 +28,7 @@ VOICE_DESIGN_DIR = WORKSPACE / ".tools" / "models" / "Qwen3-TTS-12Hz-1.7B-VoiceD
 VOICE_CLONE_DIR = WORKSPACE / ".tools" / "models" / "Qwen3-TTS-12Hz-1.7B-Base"
 REFERENCE_ROOT = ROOT / "output" / "voice-production" / "references"
 EDGE_INDEX_PATH = ROOT / "output" / "voice-production" / "edge-coverage-index.json"
+CONTEXTUAL_INDEX_PATH = ROOT / "output" / "voice-production" / "contextual-render-index.json"
 CASTING_PATH = ROOT / "web-game" / "audio" / "voice-casting-ot-plan.json"
 QWEN_MODEL_NAME = "Qwen3-TTS-12Hz-1.7B-VoiceDesign + Qwen3-TTS-12Hz-1.7B-Base"
 QWEN_PYTHON = WORKSPACE / ".tools" / "venvs" / "qwen3-tts" / "Scripts" / "python.exe"
@@ -44,6 +45,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--stages", default="01", help="Comma-separated stage IDs, or 'all'.")
     parser.add_argument("--speakers", default="", help="Optional comma-separated exact speaker names.")
     parser.add_argument("--batch-size", type=int, default=3)
+    parser.add_argument("--reference-attempt", type=int, default=0, help="Write retry identity references to an isolated candidate tree.")
     parser.add_argument("--limit", type=int, default=0, help="Limit speakers for references or lines for dialogue.")
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--device", default="cuda:0")
@@ -132,13 +134,19 @@ def design_references(cards: list[dict], args: argparse.Namespace) -> None:
     targets = cards[: args.limit or None]
     jobs: list[dict] = []
     for card in targets:
+        identity_output = (
+            ROOT / "output" / "voice-production" / "reference-candidates" / card["id"] / f"attempt-{args.reference_attempt}.wav"
+            if args.reference_attempt > 0 else ROOT / card["referenceFile"]
+        )
         jobs.append({
             "card": card,
-            "label": "identity",
+            "label": f"identity-attempt-{args.reference_attempt}" if args.reference_attempt > 0 else "identity",
             "text": card["referenceText"],
             "instruction": card["voiceDesignInstruction"],
-            "output": ROOT / card["referenceFile"],
+            "output": identity_output,
         })
+        if args.reference_attempt > 0:
+            continue
         for anchor in card.get("styleAnchors", []):
             jobs.append({
                 "card": card,
@@ -153,25 +161,31 @@ def design_references(cards: list[dict], args: argparse.Namespace) -> None:
         return
     model = load_model(VOICE_DESIGN_DIR, args.device)
     try:
-        for index, job in enumerate(pending, start=1):
-            card = job["card"]
-            output = job["output"]
-            output.parent.mkdir(parents=True, exist_ok=True)
-            job_seed = seed_for(f"{card['speaker']}|{job['label']}")
-            torch.manual_seed(job_seed)
+        batch_size = max(1, int(args.batch_size))
+        for start in range(0, len(pending), batch_size):
+            batch = pending[start:start + batch_size]
+            batch_seed = seed_for("|".join(f"{job['card']['speaker']}|{job['label']}" for job in batch))
+            torch.manual_seed(batch_seed)
             if torch.cuda.is_available():
-                torch.cuda.manual_seed_all(job_seed)
-            print(f"[reference {index}/{len(pending)}] {card['speaker']} {job['label']} ({card['ageBand']}, {card['role']})", flush=True)
+                torch.cuda.manual_seed_all(batch_seed)
+            names = ", ".join(f"{job['card']['speaker']}:{job['label']}" for job in batch)
+            print(f"[references {start + 1}-{start + len(batch)}/{len(pending)}] {names}", flush=True)
             wavs, sample_rate = model.generate_voice_design(
-                text=job["text"],
-                language="Chinese",
-                instruct=job["instruction"],
+                text=[job["text"] for job in batch],
+                language=["Chinese"] * len(batch),
+                instruct=[job["instruction"] for job in batch],
+                max_new_tokens=max(160, min(360, max(len(job["text"]) for job in batch) * 6 + 80)),
                 do_sample=True,
                 top_p=0.85,
                 temperature=0.75,
                 repetition_penalty=1.08,
             )
-            sf.write(output, wavs[0], sample_rate)
+            if len(wavs) != len(batch):
+                raise RuntimeError(f"VoiceDesign batch returned {len(wavs)} outputs for {len(batch)} jobs")
+            for job, waveform in zip(batch, wavs):
+                output = job["output"]
+                output.parent.mkdir(parents=True, exist_ok=True)
+                sf.write(output, waveform, sample_rate)
     finally:
         release_model(model)
 
@@ -246,6 +260,7 @@ def generate_dialogue(entries: list[dict], cards_by_id: dict[str, dict], args: a
             wavs, sample_rate = model.generate_voice_clone(
                 text=entry["text"], language="Chinese",
                 voice_clone_prompt=prompt_cache[prompt_key],
+                max_new_tokens=max(160, min(640, len(entry["text"]) * 6 + 80)),
                 do_sample=True, top_p=0.82, temperature=0.72, repetition_penalty=1.08,
             )
             temp_wav = temp_root / f"{entry['id']}.wav"
@@ -442,6 +457,10 @@ def write_manifest() -> None:
     cards = json.loads(CARDS_PATH.read_text(encoding="utf-8"))["cards"]
     cards_by_id = {card["id"]: card for card in cards}
     edge_index = load_edge_index()
+    contextual_index = (
+        json.loads(CONTEXTUAL_INDEX_PATH.read_text(encoding="utf-8"))
+        if CONTEXTUAL_INDEX_PATH.exists() else {}
+    )
     occurrences_by_entry: dict[str, list[dict]] = defaultdict(list)
     for occurrence in plan.get("occurrences", []):
         occurrences_by_entry[occurrence["entryId"]].append({
@@ -454,8 +473,9 @@ def write_manifest() -> None:
         output = ROOT / "web-game" / entry["file"]
         if not output.exists():
             continue
+        contextual_render = contextual_index.get(entry["id"])
         edge_render = edge_index.get(entry["id"])
-        render = edge_render or {
+        render = contextual_render or edge_render or {
             "backend": "qwen3-tts-voice-design-clone",
             "model": QWEN_MODEL_NAME,
             "voice": entry["voiceCardId"],
@@ -478,6 +498,8 @@ def write_manifest() -> None:
                 "provider-voice-contract" if render["backend"] == "edge-tts"
                 else render.get("genderVerification", "unverified")
             ),
+            "humanReview": render.get("humanReview", "not_applicable"),
+            "sourceSha256": render.get("sourceSha256", ""),
             "ageBand": card["ageBand"],
             "ageBasis": card["ageBasis"],
             "delivery": {

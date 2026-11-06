@@ -107,7 +107,7 @@ def main() -> None:
     cards_by_id = {card["id"]: card for card in cards}
     source_lines = campaign_lines()
     ids: set[str] = set()
-    line_keys: set[tuple[str, str]] = set()
+    line_keys: set[tuple[str, str, str]] = set()
     total_bytes = 0
     total_duration = 0.0
     backend_counts: dict[str, int] = {}
@@ -120,10 +120,11 @@ def main() -> None:
     for entry in entries:
         entry_id = str(entry.get("id", ""))
         line_key = (str(entry.get("speaker", "")), str(entry.get("text", "")))
+        unique_line_key = (*line_key, str(entry.get("contextId", "")))
         if not entry_id or entry_id in ids:
             raise RuntimeError(f"Duplicate or empty dialogue id: {entry_id}")
-        if line_key in line_keys:
-            raise RuntimeError(f"Duplicate speaker/text pair: {line_key}")
+        if unique_line_key in line_keys:
+            raise RuntimeError(f"Duplicate speaker/text/context tuple: {unique_line_key}")
         if line_key not in source_lines:
             raise RuntimeError(f"Dialogue does not match campaign text: {line_key}")
         if manifest.get("narrationExcluded") and line_key[0] in EXCLUDED_SPEAKERS:
@@ -137,7 +138,10 @@ def main() -> None:
                 raise RuntimeError(f"Missing style anchor for {entry_id}")
         if manifest.get("schemaVersion") in {2, 3, 4, 5}:
             backend = str(entry.get("backend", ""))
-            if backend not in {"qwen3-tts-voice-design-clone", "qwen3-tts-contextual-voice-design", "edge-tts"}:
+            if backend not in {
+                "qwen3-tts-voice-design-clone", "qwen3-tts-contextual-voice-design",
+                "qwen3-tts-anchored-contextual-clone", "edge-tts",
+            }:
                 raise RuntimeError(f"Missing or unsupported render backend for {entry_id}: {backend}")
             backend_counts[backend] = backend_counts.get(backend, 0) + 1
             card_id = str(entry.get("voiceCardId", ""))
@@ -160,6 +164,14 @@ def main() -> None:
                     required = {"emotion", "speechAct", "pace", "intensity", "pauseStrength", "dominance", "pausePlan"}
                     if not required.issubset(contextual):
                         raise RuntimeError(f"Missing contextual Edge prosody for {entry_id}")
+            elif backend == "qwen3-tts-anchored-contextual-clone":
+                if entry.get("genderVerification") != "independent-research-model-soft-evidence-plus-acoustic-audit":
+                    raise RuntimeError(f"Missing anchored gender evidence for {entry_id}")
+                if entry.get("humanReview") not in {"pending_blind_review", "pending_blind_context_review", "pass", "approved"}:
+                    raise RuntimeError(f"Missing anchored human-review state for {entry_id}")
+                source_digest = str(entry.get("sourceSha256", ""))
+                if len(source_digest) != 64 or any(character not in "0123456789abcdef" for character in source_digest):
+                    raise RuntimeError(f"Missing anchored source hash for {entry_id}")
             elif entry.get("genderVerification") != "human-reviewed":
                 raise RuntimeError(
                     f"Unreviewed custom voice for {entry_id}; Qwen voices require a human acoustic gender review"
@@ -188,7 +200,7 @@ def main() -> None:
             raise RuntimeError(f"Duration mismatch for {audio_path}: {declared:.3f}s vs {measured:.3f}s")
 
         ids.add(entry_id)
-        line_keys.add(line_key)
+        line_keys.add(unique_line_key)
         total_bytes += audio_path.stat().st_size
         total_duration += measured
 

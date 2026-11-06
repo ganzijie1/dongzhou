@@ -1,5 +1,10 @@
 param(
-    [string]$OutputPath = ""
+    [string]$OutputPath = "",
+    [switch]$Compact,
+    [double]$MusicBudgetMiB = 24,
+    [int]$BaseMusicStages = 8,
+    [double]$MusicPackTargetMiB = 16,
+    [string]$PacksOutputPath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -8,9 +13,20 @@ $web = Join-Path $root "web-game"
 $outputDir = Join-Path $root "output"
 $stamp = Get-Date -Format "yyyyMMdd"
 if (-not $OutputPath) {
-    $OutputPath = Join-Path $root "dongzhou-h5-release-final-$stamp.zip"
+    $variant = if ($Compact) { "compact" } else { "final" }
+    $OutputPath = Join-Path $root "dongzhou-h5-release-$variant-$stamp.zip"
 }
 $OutputPath = [System.IO.Path]::GetFullPath($OutputPath)
+$compactAudioResult = $null
+if ($Compact) {
+    if (-not $PacksOutputPath) {
+        $PacksOutputPath = Join-Path $outputDir ("music-packs-" + $stamp + "-" + [guid]::NewGuid().ToString("N").Substring(0, 8))
+    }
+    $PacksOutputPath = [System.IO.Path]::GetFullPath($PacksOutputPath)
+    if (Test-Path -LiteralPath $PacksOutputPath) {
+        throw "Compact music-pack output already exists: $PacksOutputPath"
+    }
+}
 $staging = Join-Path $outputDir ("h5-staging-" + [guid]::NewGuid().ToString("N"))
 
 if (-not $staging.StartsWith($outputDir, [System.StringComparison]::OrdinalIgnoreCase)) {
@@ -39,34 +55,45 @@ try {
 
     $audioDir = Join-Path $staging "audio"
     New-Item -ItemType Directory -Path $audioDir -Force | Out-Null
-    $manifestPath = Join-Path $web "audio\dialogue-manifest.json"
-    Copy-Item -LiteralPath $manifestPath -Destination (Join-Path $audioDir "dialogue-manifest.json")
-    $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    foreach ($entry in $manifest.entries) {
-        $relative = [string]$entry.file
-        if (-not $relative.StartsWith("audio/dialogue/", [System.StringComparison]::Ordinal)) {
-            throw "Unsafe dialogue path in manifest: $relative"
+    if ($Compact) {
+        $compactOutput = & python (Join-Path $PSScriptRoot "build-compact-audio.py") `
+            --staging $staging `
+            --packs-output $PacksOutputPath `
+            --music-budget-mib $MusicBudgetMiB `
+            --base-stages $BaseMusicStages `
+            --pack-target-mib $MusicPackTargetMiB
+        if ($LASTEXITCODE -ne 0) { throw "Compact audio build failed" }
+        $compactAudioResult = ($compactOutput -join "`n") | ConvertFrom-Json
+    } else {
+        $manifestPath = Join-Path $web "audio\dialogue-manifest.json"
+        Copy-Item -LiteralPath $manifestPath -Destination (Join-Path $audioDir "dialogue-manifest.json")
+        $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        foreach ($entry in $manifest.entries) {
+            $relative = [string]$entry.file
+            if (-not $relative.StartsWith("audio/dialogue/", [System.StringComparison]::Ordinal)) {
+                throw "Unsafe dialogue path in manifest: $relative"
+            }
+            $source = Join-Path $web ($relative.Replace("/", "\"))
+            if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing dialogue file: $relative" }
+            $target = Join-Path $staging ($relative.Replace("/", "\"))
+            New-Item -ItemType Directory -Path (Split-Path $target -Parent) -Force | Out-Null
+            Copy-Item -LiteralPath $source -Destination $target
         }
-        $source = Join-Path $web ($relative.Replace("/", "\"))
-        if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing dialogue file: $relative" }
-        $target = Join-Path $staging ($relative.Replace("/", "\"))
-        New-Item -ItemType Directory -Path (Split-Path $target -Parent) -Force | Out-Null
-        Copy-Item -LiteralPath $source -Destination $target
-    }
 
-    $musicManifestPath = Join-Path $web "audio\context-music-manifest.json"
-    Copy-Item -LiteralPath $musicManifestPath -Destination (Join-Path $audioDir "context-music-manifest.json")
-    $musicManifest = Get-Content -LiteralPath $musicManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    foreach ($cue in $musicManifest.cues) {
-        $relative = [string]$cue.file
-        if (-not $relative.StartsWith("audio/context-music/", [System.StringComparison]::Ordinal)) {
-            throw "Unsafe contextual music path in manifest: $relative"
+        $musicManifestPath = Join-Path $web "audio\context-music-manifest.json"
+        Copy-Item -LiteralPath $musicManifestPath -Destination (Join-Path $audioDir "context-music-manifest.json")
+        $musicManifest = Get-Content -LiteralPath $musicManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        foreach ($cue in $musicManifest.cues) {
+            $relative = [string]$cue.file
+            if (-not $relative.StartsWith("audio/context-music/", [System.StringComparison]::Ordinal)) {
+                throw "Unsafe contextual music path in manifest: $relative"
+            }
+            $source = Join-Path $web ($relative.Replace("/", "\"))
+            if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing contextual music file: $relative" }
+            $target = Join-Path $staging ($relative.Replace("/", "\"))
+            New-Item -ItemType Directory -Path (Split-Path $target -Parent) -Force | Out-Null
+            Copy-Item -LiteralPath $source -Destination $target
         }
-        $source = Join-Path $web ($relative.Replace("/", "\"))
-        if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing contextual music file: $relative" }
-        $target = Join-Path $staging ($relative.Replace("/", "\"))
-        New-Item -ItemType Directory -Path (Split-Path $target -Parent) -Force | Out-Null
-        Copy-Item -LiteralPath $source -Destination $target
     }
 
     if (Test-Path -LiteralPath $OutputPath) { Remove-Item -LiteralPath $OutputPath -Force }
@@ -86,14 +113,20 @@ try {
     }
 
     $file = Get-Item -LiteralPath $OutputPath
+    if ($Compact -and $file.Length -gt 195MB) {
+        throw "Compact H5 archive exceeds the 195 MiB safety limit: $([math]::Round($file.Length / 1MB, 2)) MiB"
+    }
     $hash = Get-FileHash -LiteralPath $OutputPath -Algorithm SHA256
     [ordered]@{
         result = "PASS"
+        compact = [bool]$Compact
         path = $file.FullName
         bytes = $file.Length
         mib = [math]::Round($file.Length / 1MB, 2)
         files = (Get-ChildItem -LiteralPath $staging -Recurse -File).Count
         sha256 = $hash.Hash.ToLowerInvariant()
+        musicPacksPath = if ($Compact) { $PacksOutputPath } else { "" }
+        compactAudio = $compactAudioResult
     } | ConvertTo-Json
 } finally {
     if (Test-Path -LiteralPath $staging) {

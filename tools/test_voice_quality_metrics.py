@@ -43,12 +43,12 @@ class VoiceQualityMetricsTest(unittest.TestCase):
         self.assertEqual(merge_intervals(intervals, 1000), [(0, 2000), (5000, 6000)])
 
     def test_transcript_evidence_preserves_named_term_errors(self) -> None:
-        operations = transcript_edit_operations("周王，白矢在此！", "周王白石在此")
+        operations = transcript_edit_operations("周王，白矢在此！", "周王白刀在此")
         self.assertEqual(len(operations), 1)
         self.assertEqual(operations[0]["type"], "substitute")
         terms = validate_critical_terms(
             "赤弓在手，白矢已发。周王，偿还血债！",
-            "赤弓在手，白石已发。周王，偿还血债！",
+            "赤弓在手，白刀已发。周王，偿还血债！",
             ["白矢", "周王", "不在原文"],
         )
         self.assertEqual(terms["terms"], ["白矢", "周王"])
@@ -69,12 +69,43 @@ class VoiceQualityMetricsTest(unittest.TestCase):
         self.assertGreater(timing["articulationRateCharsPerSecond"], timing["speechRateCharsPerSecond"])
         self.assertTrue(analysis["waveformGate"])
 
+    def test_critical_terms_accept_asr_homophones(self) -> None:
+        terms = validate_critical_terms(
+            "杜伯执白矢鸣冤。",
+            "杜博执白史名冤。",
+            ["杜伯", "白矢", "鸣冤"],
+        )
+        self.assertEqual(terms["missingTerms"], [])
+        self.assertEqual(terms["phoneticMatches"], ["杜伯", "白矢", "鸣冤"])
+        self.assertEqual(terms["status"], "pass")
+
+    def test_critical_terms_accept_close_pinyin_but_reject_unrelated_words(self) -> None:
+        close = validate_critical_terms("荆轲持图", "金科持图", ["荆轲"])
+        self.assertEqual(close["missingTerms"], [])
+        self.assertEqual(close["phoneticNearMatches"][0]["hypothesisWindow"], "金科")
+        unrelated = validate_critical_terms("魏犨列阵", "未得列阵", ["魏犨"])
+        self.assertEqual(unrelated["missingTerms"], ["魏犨"])
+
     def test_pitch_is_an_alert_not_a_gate(self) -> None:
         audio = self.tone(1.2, frequency=250.0)
         analysis = analyze_audio(audio, self.sample_rate, "此事不可泄露。", self.delivery, self.card)
         self.assertTrue(analysis["pitch"]["warning"])
         self.assertNotIn("pitchGate", analysis)
         self.assertIn("classifier", analysis["pitch"]["caveat"])
+
+    def test_equal_timed_broadcast_cadence_is_rejected(self) -> None:
+        pause = np.zeros(int(0.28 * self.sample_rate), dtype=np.float32)
+        audio = np.concatenate([
+            self.tone(0.62), pause,
+            self.tone(0.62), pause,
+            self.tone(0.62), pause,
+            self.tone(0.62),
+        ])
+        analysis = analyze_audio(audio, self.sample_rate, "甲乙丙丁，戊己庚辛，壬癸子丑，寅卯辰巳。", self.delivery, self.card)
+        cadence = analysis["broadcastCadence"]
+        self.assertTrue(cadence["evidenceAvailable"])
+        self.assertGreaterEqual(cadence["riskScore"], 0.86)
+        self.assertTrue(cadence["hardReject"])
 
 
 if __name__ == "__main__":

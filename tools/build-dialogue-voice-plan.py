@@ -83,6 +83,16 @@ FIRST_CHAPTER_OVERRIDES = {
         "ageSources": ["《东周列国志》第一回乡民夫妇入城售卖桑弓箕袋、妻被处死、本人逃亡"],
         "identityDirection": "三十至五十岁的男性乡民和体力劳作者，中低男声，不是明亮轻快的现代都市青年。妻子刚被官府无理处死，他正仓皇逃命：惊惧、悲痛和被权力压住的愤怒落在短促呼吸、迟疑与压低的重音里；不要广告腔、偶像剧腔、少年感、滑稽农民腔或夸张哭喊。",
     },
+    "介子推母": {
+        "gender": "female",
+        "ageBand": "elder",
+        "role": "commoner",
+        "ageBasis": "介子推已成年并长期随晋公子流亡，其母在绵山事件中应是年长母亲；史料不载确切岁数。",
+        "ageConfidence": "medium",
+        "estimatedAgeRange": "约55-75岁，仅依据成年儿子及剧情阶段作宽区间推测",
+        "ageSources": ["《左传》僖公二十四年介之推与其母偕隐", "本地绵山关卡剧情"],
+        "identityDirection": "五十五岁以上的年长女性母亲，女性中低区共鸣，生活化而有判断力；气息完整、咬字自然，不用年轻明亮声、少女声、男声、刻意沙哑或衰弱老婆婆颤音。",
+    },
 }
 
 HISTORICAL_ELDER_OVERRIDES = {
@@ -90,6 +100,7 @@ HISTORICAL_ELDER_OVERRIDES = {
     "蹇叔": "叙事中为百里奚故交并以老臣身份谏伐郑，按老年谋臣处理。",
     "王翦": "后期剧情直接称王翦为老将，按老年统帅处理。",
     "烛之武": "《左传》叙事中的资深郑臣形象，确切年龄不详，按年长使臣保守处理。",
+    "介子推母": "介子推已成年并长期随晋公子流亡，其母在绵山事件中应按年长母亲处理。",
 }
 
 FEMALE_NAMES = {
@@ -224,6 +235,16 @@ STYLE_ANCHOR_DIRECTIONS = {
     "accusatory": ("你可还记得旧日之事？今日我只问这一句。", "压住悲愤的逼问，问句后长停。"),
     "disciplined_command": ("不要伤及旁人。守住道路，只取真正的目标。", "有原则的战场指令，清楚限制伤害范围。"),
     "exhausted_defeat": ("今日未成，只得暂退。此事并没有结束……", "受挫后的能量耗散，保持男性老臣声纹，不做衰弱颤音。"),
+    "restrained_statement": ("此事我已知晓。先把前因后果说清，再作处置。", "自然陈述，面向场内人物交流；气息和句长有变化，不使用朗诵或新闻播音节拍。"),
+    "urgent_command": ("先守住道路，再清点人手。其余的人，听令行事。", "命令清楚而有对象感；重点落在行动词，不持续高声，不把短句喊成口号。"),
+    "field_warning": ("前路有变，先停一步。看清四周，再随我离开。", "危险中的示警或撤离；呼吸略急但仍可辨，不使用惊叫和现代影视腔。"),
+    "pointed_question": ("此事为何至此？我只问缘由，请当面答我。", "向明确对象追问；疑问来自关系压力，句尾不机械上扬，不念成审讯台词。"),
+    "reasoned_appeal": ("臣先陈明利害，再请三思。此令若行，恐怕难以收拾。", "以事实和后果进谏；克制中保留急迫，避免统一士大夫播音腔。"),
+    "factual_report": ("前方消息已经核实。人马、道路与时辰，逐项回报。", "报告信息层次清楚但仍在对话；不作新闻播报，不把并列信息等时切分。"),
+    "controlled_accusation": ("旧事尚未了结。今日当面对质，把所欠的公道说清。", "控诉或誓言有明确对象；以停顿和重音表现决绝，不靠换声线或持续吼叫。"),
+    "restrained_grief": ("人已经不在了。余下的话，我慢慢说，你且听清。", "悲痛压在呼吸和停顿中；保持可懂度，不哭腔、不抽泣、不把年龄演老。"),
+    "subdued_exit": ("话到这里，已经无可再说。我先退下……", "能量自然收束并退出；尾句不拖成评书腔，也不使用衰弱颤音。"),
+    "defeated_withdrawal": ("此战未成，先收拢人马。今日暂退，来日再议。", "受挫后的疲惫与判断并存；不哭诉、不认罪、不把失败演成失去声纹。"),
 }
 
 
@@ -265,16 +286,16 @@ def normalized_entries(raw: object) -> list[dict]:
 
 
 def infer_gender(speaker: str) -> tuple[str, str]:
-    if speaker in FEMALE_NAMES or re.search(r"夫人|王后|太后|王妃|公主|女|姬$|妫$|姜$|嬴$", speaker):
+    if speaker in FEMALE_NAMES or re.search(r"夫人|王后|太后|王妃|公主|宫女|女$|姬$|妫$|姜$|后$|妃$|母$|媪$|婆$|妇$|妻$", speaker):
         return "female", "name_or_title"
     return "male", "historical_office_default"
 
 
 def infer_role(speaker: str, all_text: str) -> str:
+    if re.search(r"夫人|王后|太后|王妃|公主|姬$|妫$|姜$|嬴$|后$|妃$", speaker):
+        return "royal_woman"
     if re.search(r"王$|王政$|公$|侯$|君$|天子$|皇帝$", speaker):
         return "ruler"
-    if re.search(r"后$|太后|夫人|王妃|公主", speaker):
-        return "royal_woman"
     if re.search(r"太子|世子|公子|王子|储君", speaker):
         return "royal_heir"
     if re.search(r"将军|守将|先锋|都尉|司马|武士|勇士|军士|士卒|守军|骑|卒", speaker + all_text[:80]):
@@ -290,12 +311,12 @@ def infer_age(speaker: str, role: str, all_text: str) -> tuple[str, str, str]:
     if speaker in HISTORICAL_ELDER_OVERRIDES:
         return "elder", HISTORICAL_ELDER_OVERRIDES[speaker], "medium"
     context = all_text[:1200]
-    if re.search(rf"{re.escape(speaker)}[^。]{{0,12}}(?:年老|老迈|老臣|老将|高龄)|(?:老臣|老将)[^。]{{0,12}}{re.escape(speaker)}", context):
+    if re.search(rf"{re.escape(speaker)}(?:已经|已然|年事)?(?:年老|老迈|高龄)|(?:年老的?|老迈的?|高龄的?|老臣|老将){re.escape(speaker)}", context):
         return "elder", "同关文本直接出现年老、老臣或老将描述。", "high"
-    if re.search(rf"{re.escape(speaker)}[^。]{{0,12}}(?:尚幼|年幼|孺子)|(?:尚幼|年幼|孺子)[^。]{{0,12}}{re.escape(speaker)}", context):
+    if re.search(rf"{re.escape(speaker)}(?:仍|尚)?(?:尚幼|年幼|幼年)|(?:尚幼的?|年幼的?|幼年的?){re.escape(speaker)}", context):
         return "child", "同关文本直接出现尚幼、年幼或孺子描述。", "high"
     if role == "royal_heir":
-        return "young_adult", "仅由公子、世子或太子身份保守推断；该称谓不等同于确切年龄。", "low"
+        return "adult", "公子、世子或太子是宗法身份而非年龄证据；缺少直接年龄记载时只按成年阶段处理。", "low"
     if role in {"ruler", "scholar_minister"}:
         return "mature", "史料未提供本场确切年龄，按已任国君或高级职官的成年阶段保守处理。", "low"
     return "adult", "史料与本关文本未提供确切年龄，仅确认其承担成年社会或军事职责。", "low"
@@ -425,7 +446,7 @@ def make_card(speaker: str, texts: list[str], stage_context: str) -> dict:
             "id": name,
             "referenceText": STYLE_ANCHOR_DIRECTIONS[name][0],
             "direction": STYLE_ANCHOR_DIRECTIONS[name][1],
-            "referenceFile": f"output/voice-production/style-anchors/{stable_hash(speaker, 12)}/{name}.wav",
+            "referenceFile": f"output/voice-production/identity-style-anchors/spk-{stable_hash(speaker, 12)}/{name}.wav",
             "reviewStatus": "candidate_requires_identity_and_human_review",
             "approvedForCloning": False,
         } for name in anchor_names]
@@ -510,7 +531,27 @@ def infer_delivery(speaker: str, text: str, section: str, speech_act: str = "sta
     pause += 0.14 if speech_act in {"appeal_or_remonstrance", "vow_or_accusation"} else 0
     pause = min(0.85, round(pause, 2))
     dominance = 0.72 if speech_act in {"command", "vow_or_accusation"} else 0.48
+    style_anchor = {
+        "command": "urgent_command",
+        "flee_or_warning": "field_warning",
+        "question_or_challenge": "pointed_question",
+        "appeal_or_remonstrance": "reasoned_appeal",
+        "report": "factual_report",
+        "vow_or_accusation": "controlled_accusation",
+        "concede_or_withdraw": "defeated_withdrawal",
+    }.get(speech_act, "restrained_statement")
+    if emotion == "grief_or_grievance" and speech_act not in {"command", "flee_or_warning", "vow_or_accusation"}:
+        style_anchor = "restrained_grief"
+    elif emotion == "subdued_or_fading":
+        style_anchor = "subdued_exit"
+    elif emotion == "defeat_without_melodrama":
+        style_anchor = "defeated_withdrawal"
+    elif emotion == "urgent_or_commanding" and speech_act == "statement":
+        style_anchor = "urgent_command"
+    elif emotion == "questioning_or_challenging" and speech_act == "statement":
+        style_anchor = "pointed_question"
     return {
+        "speechAct": speech_act,
         "emotion": emotion,
         "intensity": intensity,
         "pace": pace,
@@ -521,10 +562,27 @@ def infer_delivery(speaker: str, text: str, section: str, speech_act: str = "sta
         "pivotWords": [],
         "focusWords": [],
         "pausePlan": "依据标点和语义分组自然停连，避免每个短语等时。",
-        "styleAnchor": "neutral",
+        "styleAnchor": style_anchor,
         "longMemory": "无额外人工标注；保留关卡时间线作为上下文。",
         "performanceRule": "保持角色固定声纹；情绪作用于停顿、重音、能量和语速，不通过改变年龄、方言或夸张音色表现。",
     }
+
+
+def build_synthesis_text(text: str, delivery: dict) -> str:
+    """Vary semantic pauses without changing any spoken character."""
+    if len(text) < 16 or "，" not in text:
+        return text
+    comma_positions = [match.start() for match in re.finditer("，", text)]
+    if not comma_positions:
+        return text
+    midpoint = len(text) / 2
+    target = min(comma_positions, key=lambda position: abs(position - midpoint))
+    style = delivery.get("styleAnchor", "restrained_statement")
+    replacement = "。" if style in {
+        "urgent_command", "field_warning", "controlled_accusation",
+        "defeated_withdrawal", "subdued_exit", "battle_action",
+    } else "；"
+    return f"{text[:target]}{replacement}{text[target + 1:]}"
 
 
 def context_instruction(card: dict, context: dict, delivery: dict) -> str:
@@ -693,8 +751,8 @@ def main() -> None:
         card = cards[occurrence["speaker"]]
         timeline = stage_timelines[occurrence["stageId"]]
         timeline_index = occurrence["timelineIndex"]
-        previous_turns = timeline[max(0, timeline_index - 3):timeline_index]
-        next_turns = timeline[timeline_index + 1:timeline_index + 3]
+        previous_turns = timeline[max(0, timeline_index - 8):timeline_index]
+        next_turns = timeline[timeline_index + 1:timeline_index + 5]
         previous_speaker = previous_turns[-1]["speaker"] if previous_turns else ""
         speech_act = infer_speech_act(occurrence["speaker"], occurrence["text"], occurrence["section"])
         delivery = infer_delivery(occurrence["speaker"], occurrence["text"], occurrence["section"], speech_act)
@@ -736,25 +794,22 @@ def main() -> None:
             },
         }
         context["synthesisInstruction"] = context_instruction(card, context, delivery)
+        storage_key = key
+        entry_id = f"line-{stable_hash(key)}"
+        if key in unique_entries:
+            storage_key = f"{key}\0{context['id']}"
+            entry_id = f"line-{stable_hash(storage_key)}"
         occurrence_ref = {
             **{k: occurrence[k] for k in ("stageId", "chapter", "stageTitle", "section", "sourceIndex", "chunkIndex", "timelineIndex", "speaker", "text")},
             "entryId": entry_id,
             "contextId": context["id"],
         }
         occurrence_refs.append(occurrence_ref)
-        if key in unique_entries:
-            existing = unique_entries[key]
-            if context["id"] not in existing["contextVariantIds"]:
-                existing["contextVariantIds"].append(context["id"])
-                existing["contextVariants"].append({
-                    "contextId": context["id"],
-                    "occurrence": {k: occurrence[k] for k in ("stageId", "chapter", "stageTitle", "section", "sourceIndex", "chunkIndex", "timelineIndex")},
-                })
-            continue
-        unique_entries[key] = {
+        unique_entries[storage_key] = {
             "id": entry_id,
             "speaker": occurrence["speaker"],
             "text": occurrence["text"],
+            "synthesisText": build_synthesis_text(occurrence["text"], delivery),
             "voiceCardId": card["id"],
             "file": f"audio/dialogue/full/{entry_id[5:7]}/{entry_id}.ogg",
             "firstOccurrence": {k: occurrence[k] for k in ("stageId", "chapter", "stageTitle", "section", "sourceIndex", "chunkIndex", "timelineIndex")},
@@ -766,6 +821,20 @@ def main() -> None:
                 "occurrence": {k: occurrence[k] for k in ("stageId", "chapter", "stageTitle", "section", "sourceIndex", "chunkIndex", "timelineIndex")},
             }],
         }
+
+    styles_by_card: dict[str, set[str]] = defaultdict(set)
+    for entry in unique_entries.values():
+        styles_by_card[entry["voiceCardId"]].add(entry["delivery"]["styleAnchor"])
+    for card in cards.values():
+        anchor_names = sorted(styles_by_card[card["id"]])
+        card["styleAnchors"] = [{
+            "id": name,
+            "referenceText": STYLE_ANCHOR_DIRECTIONS[name][0],
+            "direction": STYLE_ANCHOR_DIRECTIONS[name][1],
+            "referenceFile": f"output/voice-production/identity-style-anchors/{card['id']}/{name}.wav",
+            "reviewStatus": "candidate_requires_identity_and_human_review",
+            "approvedForCloning": False,
+        } for name in anchor_names]
 
     plan = {
         "schemaVersion": 4,

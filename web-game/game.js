@@ -126,7 +126,7 @@
         fetch("scenario/pcgrl-masui.json").then(checkResponse).then((response) => response.json()),
         fetch("scenario/map-elites-chuisha.json").then(checkResponse).then((response) => response.json()),
         fetch("scenario/map-elites-chuisha.archive.json").then(checkResponse).then((response) => response.json()),
-        fetch("audio/dialogue-manifest.json?v=20261105-context6-diegetic").then(checkResponse).then((response) => response.json())
+        fetch("audio/dialogue-manifest.json?v=20261106-context7-anchored").then(checkResponse).then((response) => response.json())
           .catch(() => ({ schemaVersion: 1, entries: [] })),
         fetch("audio/context-music-manifest.json?v=20261105-context3-diegetic").then(checkResponse).then((response) => response.json())
           .catch(() => ({ schemaVersion: 1, cues: [] })),
@@ -1681,30 +1681,46 @@
     if (musicCueId === cue.id && musicAudio) { applyMusicVolume(); return; }
     const previous = musicAudio;
     const serial = ++musicSerial;
-    const cacheVersion = String(cue.sha256 || "").slice(0, 16);
-    const source = cacheVersion ? `${cue.file}?v=${cacheVersion}` : cue.file;
-    const audio = new Audio(source);
-    musicAudio = audio;
     musicCueId = cue.id;
-    audio.preload = "auto";
-    audio.loop = Boolean(cue.loop);
-    audio.volume = 0;
-    audio.play().then(() => {
-      const started = performance.now();
-      const duration = 900;
-      const previousStart = previous?.volume || 0;
-      const fade = (now) => {
-        if (serial !== musicSerial) return;
-        const progress = clamp((now - started) / duration, 0, 1);
-        audio.volume = musicVolume() * progress;
-        if (previous) previous.volume = previousStart * (1 - progress);
-        if (progress < 1) requestAnimationFrame(fade);
-        else if (previous) { previous.pause(); previous.removeAttribute("src"); previous.load(); }
+    const startSource = (file, sha256, isFallback = false) => {
+      const cacheVersion = String(sha256 || "").slice(0, 16);
+      const source = cacheVersion ? `${file}?v=${cacheVersion}` : file;
+      const audio = new Audio(source);
+      musicAudio = audio;
+      audio.preload = "auto";
+      audio.loop = Boolean(cue.loop);
+      audio.volume = 0;
+      let failureHandled = false;
+      const failed = () => {
+        if (failureHandled) return;
+        failureHandled = true;
+        audio.pause();
+        audio.removeAttribute("src");
+        audio.load();
+        const fallbackFile = String(cue.fallbackFile || "");
+        if (!isFallback && fallbackFile && fallbackFile !== cue.file && serial === musicSerial) {
+          startSource(fallbackFile, cue.fallbackSha256, true);
+          return;
+        }
+        if (serial === musicSerial) { musicAudio = null; musicCueId = ""; }
       };
-      requestAnimationFrame(fade);
-    }).catch(() => {
-      if (serial === musicSerial) { musicAudio = null; musicCueId = ""; }
-    });
+      audio.addEventListener("error", failed, { once: true });
+      audio.play().then(() => {
+        const started = performance.now();
+        const duration = 900;
+        const previousStart = previous?.volume || 0;
+        const fade = (now) => {
+          if (serial !== musicSerial) return;
+          const progress = clamp((now - started) / duration, 0, 1);
+          audio.volume = musicVolume() * progress;
+          if (previous) previous.volume = previousStart * (1 - progress);
+          if (progress < 1) requestAnimationFrame(fade);
+          else if (previous) { previous.pause(); previous.removeAttribute("src"); previous.load(); }
+        };
+        requestAnimationFrame(fade);
+      }).catch(failed);
+    };
+    startSource(cue.file, cue.sha256);
   }
 
   function stopStoryVoice() {

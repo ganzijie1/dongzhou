@@ -237,13 +237,16 @@ assert.equal(systems.resolveStoryVoice(voiceManifest, "周宣王", "白矢在此
 assert.equal(systems.resolveStoryVoice(voiceManifest, "军报", "彼竭我盈，反击就在此刻！").id, "line-runtime");
 
 const musicManifest = systems.normalizeMusicManifest({ cues: [
-  { id: "music-01-battle", stageId: "01", kind: "battle", section: "battle", file: "audio/context-music/01/battle.ogg", loop: true, sha256: "c".repeat(64) },
+  { id: "music-01-battle", stageId: "01", kind: "battle", section: "battle", file: "audio/context-music/01/battle.ogg", loop: true, sha256: "c".repeat(64), fallbackFile: "audio/context-music/common/battle.ogg", fallbackSha256: "d".repeat(64), availableInBase: false, packId: "music-001-020" },
   { id: "music-01-intro", stageId: "01", kind: "intro", section: "intro", file: "audio/context-music/01/story-intro.ogg" },
   { id: "music-01-event", stageId: "01", kind: "event", section: "events", eventId: "turn-2", triggerText: "旧案便再无开口之日。", file: "audio/context-music/01/event-turn-2.ogg" },
   { id: "unsafe-music", stageId: "01", kind: "intro", section: "intro", file: "../private.ogg" }
 ] });
 assert.equal(musicManifest.cues.length, 3);
 assert.equal(systems.resolveContextMusic(musicManifest, { stageId: "01", kind: "battle", section: "battle" }).id, "music-01-battle");
+assert.equal(musicManifest.cues[0].fallbackFile, "audio/context-music/common/battle.ogg");
+assert.equal(musicManifest.cues[0].availableInBase, false);
+assert.equal(musicManifest.cues[0].packId, "music-001-020");
 assert.equal(systems.resolveContextMusic(musicManifest, { stageId: "01", section: "intro" }).id, "music-01-intro");
 assert.equal(systems.resolveContextMusic(musicManifest, { stageId: "01", section: "events", eventId: "turn-2" }).id, "music-01-event");
 assert.equal(systems.resolveContextMusic(musicManifest, { stageId: "01", section: "events", eventId: "unknown" }).id, "music-01-event");

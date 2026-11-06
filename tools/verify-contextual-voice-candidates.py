@@ -17,11 +17,15 @@ CARDS_PATH = ROOT / "web-game" / "audio" / "voice-cards.json"
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--require-reviewed", action="store_true")
+    parser.add_argument("--index", default=str(INDEX_PATH.relative_to(ROOT)))
     args = parser.parse_args()
-    index = json.loads(INDEX_PATH.read_text(encoding="utf-8"))
+    index_path = Path(args.index)
+    if not index_path.is_absolute():
+        index_path = ROOT / index_path
+    index = json.loads(index_path.read_text(encoding="utf-8"))
     cards = json.loads(CARDS_PATH.read_text(encoding="utf-8"))["cards"]
     cards_by_id = {card["id"]: card for card in cards}
-    if index.get("schemaVersion") != 3:
+    if int(index.get("schemaVersion") or 0) < 2:
         raise RuntimeError("Unsupported contextual candidate index")
     if not index.get("entries"):
         raise RuntimeError("Contextual candidate index is empty")
@@ -38,7 +42,7 @@ def main() -> None:
             raise RuntimeError(f"Missing context instruction: {entry.get('entryId')}")
         for name, status in (entry.get("gates") or {}).items():
             gates[f"{name}:{status}"] += 1
-        required_gates = {"text", "identity", "humanReview", "calibration", "waveform", "prosody"}
+        required_gates = {"text", "identity", "humanReview", "calibration", "waveform", "prosody", "broadcastCadence"}
         if not required_gates.issubset(entry.get("gates") or {}):
             raise RuntimeError(f"Missing review gates: {entry.get('entryId')}")
         if "pitchSanity" in entry["gates"] or "gender" in entry["gates"]:
@@ -59,7 +63,7 @@ def main() -> None:
             if "web-game" in relative.parts:
                 raise RuntimeError(f"Unreviewed candidate leaked into shipped assets: {relative}")
             analysis = candidate.get("analysis") or {}
-            required_analysis = {"speechTiming", "pauseStructure", "breathProxy", "energy", "pitch", "voiceQuality"}
+            required_analysis = {"speechTiming", "pauseStructure", "breathProxy", "energy", "broadcastCadence", "pitch", "voiceQuality"}
             if not required_analysis.issubset(analysis):
                 raise RuntimeError(f"Incomplete multidimensional analysis: {relative}")
             if not analysis.get("waveformGate") or analysis.get("qualityScore", 0) <= 0:

@@ -28,12 +28,13 @@ SUMMARY_PATH = ROOT / "output" / "voice-production" / "contextual-evaluation-sum
 REPORT_PATH = ROOT / "output" / "voice-production" / "contextual-evaluation-report.md"
 EMBEDDING_ROOT = ROOT / "output" / "voice-production" / "speaker-embeddings"
 # The legacy cache contains zero-byte placeholders from an interrupted download.
-SPEAKER_MODEL_ROOT = WORKSPACE / ".tools" / "models" / "speechbrain-spkrec-ecapa-voxceleb-v2"
-ASR_MODEL_ROOT = WORKSPACE / ".tools" / "models" / "faster-whisper-small"
+SPEAKER_MODEL_ROOT = WORKSPACE / ".tools" / "models" / "speechbrain-ecapa-complete"
+SPEAKER_RUNTIME_ROOT = ROOT / "output" / "voice-production" / "model-runtime" / "ecapa"
+ASR_MODEL_ROOT = WORKSPACE / ".tools" / "models" / "faster-whisper-small-complete"
 MODEL_CACHE_ROOT = WORKSPACE / ".tools" / "models"
-WAVLM_MODEL = "microsoft/wavlm-base-plus-sv"
-DEMOGRAPHIC_MODEL = "audeering/wav2vec2-large-robust-24-ft-age-gender"
-EMOTION_MODEL = "iic/emotion2vec_plus_large"
+WAVLM_MODEL = WORKSPACE / ".tools" / "models" / "wavlm-base-plus-sv"
+DEMOGRAPHIC_MODEL = WORKSPACE / ".tools" / "models" / "wav2vec2-age-gender-complete"
+EMOTION_MODEL = WORKSPACE / ".tools" / "models" / "emotion2vec-plus-large"
 
 EMOTION_EXPECTATIONS = {
     "restrained": {"neutral"},
@@ -82,6 +83,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--index", default=str(INDEX_PATH), help="Candidate index to evaluate in place.")
     parser.add_argument("--asr", action="store_true", help="Run independent Mandarin ASR and CER.")
     parser.add_argument("--speaker-embeddings", action="store_true", help="Extract ECAPA-TDNN embeddings.")
     parser.add_argument("--wavlm-embeddings", action="store_true", help="Extract independent WavLM X-vector embeddings.")
@@ -93,7 +95,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--device", default="cpu", choices=("cpu", "cuda"))
     parser.add_argument("--asr-model", default="small")
+    parser.add_argument("--entry-ids", default="", help="Comma-separated entry IDs to re-evaluate.")
+    parser.add_argument("--entry-id-file", type=Path, help="Newline- or comma-separated entry IDs to re-evaluate.")
     parser.add_argument("--limit", type=int, default=0, help="Limit candidate files for diagnostics.")
+    parser.add_argument("--checkpoint-every", type=int, default=250)
     return parser.parse_args()
 
 
@@ -186,8 +191,8 @@ def load_speaker_encoder(device: str):
     from speechbrain.inference.speaker import EncoderClassifier
 
     return EncoderClassifier.from_hparams(
-        source="speechbrain/spkrec-ecapa-voxceleb",
-        savedir=str(SPEAKER_MODEL_ROOT),
+        source=str(SPEAKER_MODEL_ROOT),
+        savedir=str(SPEAKER_RUNTIME_ROOT),
         run_opts={"device": device},
     )
 
@@ -207,11 +212,37 @@ def encode_speaker(encoder, path: Path):
     return embedding
 
 
+def load_identity_reference_embeddings(encoder, cards: list[dict]):
+    import numpy as np
+
+    cache_root = EMBEDDING_ROOT / "identity-references"
+    card_ids: list[str] = []
+    embeddings: list[object] = []
+    for card in cards:
+        reference = ROOT / card["referenceFile"]
+        if not reference.is_file():
+            continue
+        stat = reference.stat()
+        reference_version = f"{stat.st_size}-{stat.st_mtime_ns}"
+        cache = cache_root / f"{card['id']}-{reference_version}.npy"
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        if cache.is_file():
+            embedding = np.load(cache).astype(np.float32)
+        else:
+            embedding = encode_speaker(encoder, reference)
+            np.save(cache, embedding)
+        embedding /= max(float(np.linalg.norm(embedding)), 1e-8)
+        card_ids.append(card["id"])
+        embeddings.append(embedding)
+    matrix = np.vstack(embeddings) if embeddings else np.empty((0, 0), dtype=np.float32)
+    return card_ids, matrix, {card_id: index for index, card_id in enumerate(card_ids)}
+
+
 def load_wavlm_encoder(device: str):
     from transformers import Wav2Vec2FeatureExtractor, WavLMForXVector
 
-    feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(WAVLM_MODEL, cache_dir=str(MODEL_CACHE_ROOT))
-    model = WavLMForXVector.from_pretrained(WAVLM_MODEL, cache_dir=str(MODEL_CACHE_ROOT)).to(device)
+    feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(str(WAVLM_MODEL), local_files_only=True)
+    model = WavLMForXVector.from_pretrained(str(WAVLM_MODEL), local_files_only=True).to(device)
     model.eval()
     return feature_extractor, model
 
@@ -241,7 +272,7 @@ def load_emotion_model(device: str):
         from funasr import AutoModel
     except ImportError as error:
         raise RuntimeError("--emotion requires funasr; install voice-evaluation-requirements.txt") from error
-    return AutoModel(model=EMOTION_MODEL, hub="ms", device=device, disable_update=True)
+    return AutoModel(model=str(EMOTION_MODEL), hub="ms", device=device, disable_update=True)
 
 
 def classify_emotion(model, path: Path, expected: str) -> dict:
@@ -256,7 +287,7 @@ def classify_emotion(model, path: Path, expected: str) -> dict:
     expected_labels = sorted(EMOTION_EXPECTATIONS.get(expected, set()))
     top_label = ranked[0][0] if ranked else "unknown"
     return {
-        "model": EMOTION_MODEL,
+        "model": str(EMOTION_MODEL),
         "targetContextState": expected,
         "acceptedCoarseLabels": expected_labels,
         "rankedLabels": [{"label": label, "score": round(score, 5)} for label, score in ranked],
@@ -320,8 +351,8 @@ def load_demographic_model(device: str):
             hidden = self.wav2vec2(input_values)[0].mean(dim=1)
             return self.age(hidden), torch.softmax(self.gender(hidden), dim=1)
 
-    processor = Wav2Vec2Processor.from_pretrained(DEMOGRAPHIC_MODEL, cache_dir=str(MODEL_CACHE_ROOT))
-    model = AgeGenderModel.from_pretrained(DEMOGRAPHIC_MODEL, cache_dir=str(MODEL_CACHE_ROOT)).to(device)
+    processor = Wav2Vec2Processor.from_pretrained(str(DEMOGRAPHIC_MODEL), local_files_only=True)
+    model = AgeGenderModel.from_pretrained(str(DEMOGRAPHIC_MODEL), local_files_only=True).to(device)
     model.eval()
     return processor, model
 
@@ -354,7 +385,7 @@ def classify_demographics(bundle, path: Path, card: dict, device: str) -> dict:
     if age_reference and not age_reference[0] <= predicted_age <= age_reference[1]:
         alerts.append("possible_age_mismatch")
     return {
-        "model": DEMOGRAPHIC_MODEL,
+        "model": str(DEMOGRAPHIC_MODEL),
         "license": "CC-BY-NC-SA-4.0; research evaluation only, never shipped or used as a release gate",
         "predictedAgeYears": round(predicted_age, 2),
         "classProbabilities": probability_map,
@@ -387,6 +418,8 @@ def load_saved_embedding(candidate: dict, field: str):
 
 
 def add_cross_sentence_identity_evidence(index: dict, field: str, label: str, cache: dict) -> None:
+    import numpy as np
+
     records = []
     for entry in index["entries"]:
         for candidate in entry.get("candidates", []):
@@ -396,24 +429,25 @@ def add_cross_sentence_identity_evidence(index: dict, field: str, label: str, ca
                 embedding = load_saved_embedding(candidate, field)
             if embedding is not None:
                 records.append((entry, candidate, embedding))
-    for entry, candidate, embedding in records:
-        same = [
-            cosine(embedding, other_embedding)
-            for other_entry, _, other_embedding in records
-            if other_entry["speaker"] == entry["speaker"] and other_entry["entryId"] != entry["entryId"]
-        ]
-        different = [
-            cosine(embedding, other_embedding)
-            for other_entry, _, other_embedding in records
-            if other_entry["speaker"] != entry["speaker"]
-        ]
+    if not records:
+        return
+    matrix = np.vstack([item[2] for item in records]).astype(np.float32)
+    matrix /= np.maximum(np.linalg.norm(matrix, axis=1, keepdims=True), 1e-8)
+    similarities = matrix @ matrix.T
+    speakers = np.asarray([item[0]["speaker"] for item in records], dtype=object)
+    entry_ids = np.asarray([item[0]["entryId"] for item in records], dtype=object)
+    for row, (entry, candidate, _) in enumerate(records):
+        same_mask = (speakers == entry["speaker"]) & (entry_ids != entry["entryId"])
+        different_mask = speakers != entry["speaker"]
+        same = similarities[row, same_mask]
+        different = similarities[row, different_mask]
         evidence = candidate.setdefault("identityEvidence", {})
-        if same and different:
-            same_mean = sum(same) / len(same)
-            nearest_other = max(different)
+        if same.size and different.size:
+            same_mean = float(np.mean(same))
+            nearest_other = float(np.max(different))
             evidence[label] = {
                 "withinSpeakerCrossTextMean": round(same_mean, 4),
-                "withinSpeakerCrossTextMinimum": round(min(same), 4),
+                "withinSpeakerCrossTextMinimum": round(float(np.min(same)), 4),
                 "nearestOtherSpeakerSimilarity": round(nearest_other, 4),
                 "unCalibratedSeparationMargin": round(same_mean - nearest_other, 4),
                 "status": "requires_project_calibration",
@@ -435,6 +469,7 @@ def attach_evidence_tracks(entry: dict, candidate: dict, card: dict) -> None:
     demographics = candidate.get("demographicEvidence") or {"status": "not_run"}
     ecapa = identity.get("ecapaTdnn") or {}
     wavlm = identity.get("wavlmXVector") or {}
+    reference_retrieval = identity.get("identityReferenceRetrieval") or {}
     ecapa_margin = ecapa.get("unCalibratedSeparationMargin")
     wavlm_margin = wavlm.get("unCalibratedSeparationMargin")
     if ecapa_margin is not None and wavlm_margin is not None:
@@ -456,7 +491,10 @@ def attach_evidence_tracks(entry: dict, candidate: dict, card: dict) -> None:
             "hardGateRule": "Any confirmed missing or wrong line/name/term blocks release.",
         },
         "identity": {
-            "status": "requires_project_calibration" if identity else "not_run",
+            "status": (
+                "identity_drift_hard_review" if reference_retrieval.get("status") == "identity_drift_hard_review"
+                else "requires_project_calibration" if identity else "not_run"
+            ),
             "models": identity,
             "dualModelComparison": dual_model,
             "approvedAnchorAvailable": bool(entry.get("approvedAnchorCandidate")),
@@ -481,14 +519,15 @@ def attach_evidence_tracks(entry: dict, candidate: dict, card: dict) -> None:
             "gatePolicy": "soft_alert_only",
         },
         "quality": {
-            "status": "pass" if analysis["waveformGate"] else "fail",
+            "status": "pass" if analysis["waveformGate"] and not analysis["broadcastCadence"]["hardReject"] else "fail",
             "waveformGate": analysis["waveformGate"],
             "qualityScore": analysis["qualityScore"],
             "paceScore": analysis["speechTiming"]["paceScore"],
             "pauseScore": analysis["pauseStructure"]["pauseScore"],
             "energyScore": analysis["energy"]["energyScore"],
+            "broadcastCadence": analysis["broadcastCadence"],
             "pitchAlert": analysis["pitch"]["warning"],
-            "gatePolicy": "Only broken/corrupt/clipped/silent audio is an automatic hard failure.",
+            "gatePolicy": "Broken audio and high-confidence broadcast cadence are automatic hard failures.",
         },
         "human": {
             "status": "pending_blind_context_review",
@@ -503,6 +542,8 @@ def review_priority(candidate: dict) -> tuple[str, list[str]]:
     content = tracks.get("content") or {}
     if (tracks.get("quality") or {}).get("status") == "fail":
         reasons.append("broken_audio")
+    if (tracks.get("quality") or {}).get("broadcastCadence", {}).get("hardReject"):
+        reasons.append("broadcast_cadence_hard_reject")
     if content.get("status") == "manual_hard_gate_review":
         reasons.append("critical_term_mismatch")
     if (tracks.get("demographics") or {}).get("status") == "soft_alert":
@@ -511,6 +552,8 @@ def review_priority(candidate: dict) -> tuple[str, list[str]]:
         reasons.append("coarse_emotion_conflict")
     if (tracks.get("identity") or {}).get("dualModelComparison", {}).get("status") == "uncalibrated_direction_conflict":
         reasons.append("speaker_model_direction_conflict")
+    if (tracks.get("identity") or {}).get("status") == "identity_drift_hard_review":
+        reasons.append("identity_reference_not_ranked_first")
     if reasons:
         return "high", reasons
     if content.get("status") == "manual_review_required":
@@ -593,7 +636,10 @@ def update_entry_gates(entry: dict, anchors: dict[str, tuple[str, int]], reviewe
 
 def main() -> None:
     args = parse_args()
-    index = json.loads(INDEX_PATH.read_text(encoding="utf-8"))
+    index_path = Path(args.index).resolve()
+    if ROOT.resolve() not in index_path.parents or not index_path.is_file():
+        raise RuntimeError(f"Unsafe or missing candidate index: {index_path}")
+    index = json.loads(index_path.read_text(encoding="utf-8"))
     if index.get("schemaVersion") not in (1, 2, 3):
         raise RuntimeError("Unsupported candidate index schema")
     cards = json.loads(CARDS_PATH.read_text(encoding="utf-8"))["cards"]
@@ -601,6 +647,17 @@ def main() -> None:
     reviews = load_reviews()
     anchors = approved_anchors(reviews)
     reviewed = {(item["entryId"], int(item["candidate"])): item for item in reviews}
+    selected_entry_ids = {item.strip() for item in args.entry_ids.split(",") if item.strip()}
+    if args.entry_id_file:
+        raw_entry_ids = args.entry_id_file.read_text(encoding="utf-8")
+        selected_entry_ids.update(
+            item.strip() for item in raw_entry_ids.replace(",", "\n").splitlines() if item.strip()
+        )
+    if selected_entry_ids:
+        known_entry_ids = {entry["entryId"] for entry in index["entries"]}
+        missing_entry_ids = sorted(selected_entry_ids - known_entry_ids)
+        if missing_entry_ids:
+            raise RuntimeError(f"Unknown entry IDs: {', '.join(missing_entry_ids)}")
 
     asr = load_asr(args.asr_model, args.device) if args.asr else None
     encoder = load_speaker_encoder(args.device) if args.speaker_embeddings else None
@@ -611,8 +668,13 @@ def main() -> None:
     wavlm_cache: dict[tuple[str, int], object] = {}
     processed = 0
     warnings = defaultdict(int)
+    reference_card_ids, reference_matrix, reference_positions = (
+        load_identity_reference_embeddings(encoder, cards) if encoder is not None else ([], None, {})
+    )
 
     for entry in index["entries"]:
+        if selected_entry_ids and entry["entryId"] not in selected_entry_ids:
+            continue
         card = cards_by_id[entry["voiceCardId"]]
         entry.setdefault("alerts", [])
         entry.setdefault("gates", {})
@@ -620,25 +682,35 @@ def main() -> None:
         entry["gates"].pop("gender", None)
         entry["gates"].setdefault("calibration", "pending_project_calibration")
         entry["gates"].setdefault("humanReview", "pending_blind_review")
+        entry["gates"].setdefault("broadcastCadence", "pending_generation")
         for candidate in entry.get("candidates", []):
             if args.limit and processed >= args.limit:
                 break
             path = safe_candidate_path(candidate)
-            import soundfile as sf
+            analysis = candidate.get("analysis")
+            if not analysis:
+                import soundfile as sf
 
-            waveform, sample_rate = sf.read(path, dtype="float32")
-            analysis = analyze_audio(waveform, sample_rate, entry["text"], entry["delivery"], card)
-            candidate["analysis"] = analysis
-            candidate["automaticAcousticTriageScore"] = round(
+                waveform, sample_rate = sf.read(path, dtype="float32")
+                analysis = analyze_audio(waveform, sample_rate, entry["text"], entry["delivery"], card)
+                candidate["analysis"] = analysis
+            base_score = (
                 0.35 * analysis["qualityScore"]
                 + 0.25 * analysis["speechTiming"]["paceScore"]
                 + 0.20 * analysis["pauseStructure"]["pauseScore"]
-                + 0.20 * analysis["energy"]["energyScore"],
-                4,
+                + 0.20 * analysis["energy"]["energyScore"]
+            )
+            cadence = analysis["broadcastCadence"]
+            candidate["automaticAcousticTriageScore"] = round(
+                base_score * (0.0 if cadence["hardReject"] else 1.0 - 0.25 * cadence["riskScore"]), 4,
             )
             candidate["automaticRankScore"] = candidate["automaticAcousticTriageScore"]
             if analysis["pitch"]["warning"]:
                 warnings["pitch_outside_broad_reference"] += 1
+            if cadence["hardReject"]:
+                warnings["broadcast_cadence_hard_reject"] += 1
+            elif cadence["riskScore"] >= 0.65:
+                warnings["broadcast_cadence_review"] += 1
             if asr is not None:
                 hypothesis, metadata = transcribe(asr, path)
                 candidate["textValidation"] = text_validation(
@@ -669,6 +741,26 @@ def main() -> None:
                     "dimension": int(embedding.shape[0]),
                     "file": str(embedding_path.relative_to(ROOT)).replace("\\", "/"),
                 }
+                target_position = reference_positions.get(card["id"])
+                if target_position is not None and len(reference_card_ids) > 1:
+                    import numpy as np
+
+                    similarities = reference_matrix @ embedding
+                    target_similarity = float(similarities[target_position])
+                    impostor_scores = similarities.copy()
+                    impostor_scores[target_position] = -2.0
+                    best_impostor_position = int(np.argmax(impostor_scores))
+                    margin = target_similarity - float(impostor_scores[best_impostor_position])
+                    candidate["speakerEmbedding"]["identityReferenceRetrieval"] = {
+                        "targetVoiceCardId": card["id"],
+                        "targetSimilarity": round(target_similarity, 4),
+                        "bestImpostorVoiceCardId": reference_card_ids[best_impostor_position],
+                        "bestImpostorSimilarity": round(float(impostor_scores[best_impostor_position]), 4),
+                        "separationMargin": round(margin, 4),
+                        "status": "target_ranked_first" if margin >= 0 else "identity_drift_hard_review",
+                        "caveat": "Relative retrieval is a drift screen, not a calibrated identity acceptance threshold.",
+                    }
+                    candidate.setdefault("identityEvidence", {})["identityReferenceRetrieval"] = candidate["speakerEmbedding"]["identityReferenceRetrieval"]
             if wavlm is not None:
                 embedding = encode_wavlm(wavlm, path, args.device)
                 key = (entry["entryId"], int(candidate["candidate"]))
@@ -679,7 +771,7 @@ def main() -> None:
 
                 np.save(embedding_path, embedding)
                 candidate["wavlmSpeakerEmbedding"] = {
-                    "model": WAVLM_MODEL,
+                    "model": str(WAVLM_MODEL),
                     "dimension": int(embedding.shape[0]),
                     "file": str(embedding_path.relative_to(ROOT)).replace("\\", "/"),
                     "thresholdPolicy": "project_calibration_required",
@@ -693,14 +785,24 @@ def main() -> None:
                     demographic_model, path, card, args.device,
                 )
             processed += 1
+            if args.checkpoint_every > 0 and processed % args.checkpoint_every == 0:
+                index_path.write_text(json.dumps(index, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+                print(f"[evaluation {processed}] checkpoint={index_path}", flush=True)
         entry["candidates"].sort(key=lambda item: item["automaticAcousticTriageScore"], reverse=True)
         if entry["candidates"]:
             entry["gates"]["waveform"] = "pending_candidate_selection"
             entry["gates"]["prosody"] = "pending_contextual_panel_review"
+            entry["gates"]["broadcastCadence"] = (
+                "fail_all_candidates" if all(item["analysis"]["broadcastCadence"]["hardReject"] for item in entry["candidates"])
+                else "pending_contextual_panel_review"
+            )
             entry["alerts"] = sorted({
-                "pitch_outside_broad_reference"
+                alert
                 for item in entry["candidates"]
-                if item["analysis"]["pitch"]["warning"]
+                for alert in (
+                    (["pitch_outside_broad_reference"] if item["analysis"]["pitch"]["warning"] else [])
+                    + (["broadcast_cadence_review"] if item["analysis"]["broadcastCadence"]["riskScore"] >= 0.65 else [])
+                )
             })
 
     if encoder is not None:
@@ -752,15 +854,29 @@ def main() -> None:
 
     index["schemaVersion"] = 3
     index["evaluatedAt"] = datetime.now(timezone.utc).isoformat()
-    index.setdefault("policy", {})["pitch"] = "Median F0 is an alert only and is excluded from rank and promotion gates."
+    if not isinstance(index.get("policy"), dict):
+        index["policy"] = {"legacyPolicy": str(index.get("policy") or "")}
+    index["policy"]["pitch"] = "Median F0 is an alert only and is excluded from rank and promotion gates."
     index["policy"]["identity"] = "Cross-sentence identity requires an approved anchor, at least two distinct texts, and project-calibrated thresholds."
     index["policy"]["content"] = "No universal CER threshold is used; confirmed missing or wrong content and critical terms are hard failures."
     index["policy"]["expression"] = "Coarse emotion models provide evidence only; dialogue-pair and full-scene human review decide contextual acting."
     index["policy"]["demographics"] = "Age/gender inference is a research-only soft alert and never a release gate."
     index["policy"]["automaticTriage"] = "The acoustic triage score orders listening work only and is never a quality or release score."
-    INDEX_PATH.write_text(json.dumps(index, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    index["policy"]["broadcastCadence"] = "High-confidence equal-timing cadence is an automatic rejection; borderline cadence still requires full-scene listening."
+    index_path.write_text(json.dumps(index, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     all_candidates = [candidate for entry in index["entries"] for candidate in entry.get("candidates", [])]
+    warnings = defaultdict(int)
+    for candidate in all_candidates:
+        analysis = candidate.get("analysis") or {}
+        pitch = analysis.get("pitch") or {}
+        cadence = analysis.get("broadcastCadence") or {}
+        if pitch.get("warning"):
+            warnings["pitch_outside_broad_reference"] += 1
+        if cadence.get("hardReject"):
+            warnings["broadcast_cadence_hard_reject"] += 1
+        elif float(cadence.get("riskScore") or 0) >= 0.65:
+            warnings["broadcast_cadence_review"] += 1
     evidence_coverage = {
         "asr": sum(bool(item.get("textValidation")) for item in all_candidates),
         "ecapaTdnn": sum(bool(item.get("speakerEmbedding")) for item in all_candidates),
