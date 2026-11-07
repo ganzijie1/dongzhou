@@ -4,6 +4,7 @@
   const PROFILE_KEY = "dongzhou-h5-profile-v2";
   const BATTLE_KEY = "dongzhou-h5-battle-v2";
   const systems = window.DongzhouGameSystems;
+  const organization = window.DongzhouOrganizationPlay;
   const $ = (selector) => document.querySelector(selector);
   const asList = (value) => Array.isArray(value) ? value : Object.keys(value || {}).sort((a, b) => Number(a) - Number(b)).map((key) => value[key]);
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -140,6 +141,7 @@
       classById = new Map(asList(config.unit_classes).map((entry) => [entry.id, entry]));
       terrainByChar = new Map(asList(config.terrains).map((entry, index) => [entry.char, index]));
       profile = systems.normalizeProfile(profile, campaign.stages);
+      profile.organization = organization.normalizeState(profile.organization);
       writeJson(PROFILE_KEY, profile);
       runtime = new DongzhouLuaRuntime(campaign);
       await runtime.init();
@@ -147,6 +149,7 @@
       configureMobilePanels();
       buildRangeOptions();
       syncCampaignSettings();
+      refreshIntegrationStatus();
       renderCampaign();
       setLoading(100, `${campaign.stageCount} 场战役就绪`);
       await sleep(180);
@@ -186,6 +189,7 @@
 
   function renderCampaign() {
     profile = systems.normalizeProfile(profile, campaign.stages);
+    profile.organization = organization.normalizeState(profile.organization);
     const query = $("#stageSearch").value.trim().toLowerCase();
     const range = $("#stageRange").value || "all";
     const [start, end] = range === "all" ? [1, campaign.stageCount] : range.split("-").map(Number);
@@ -227,6 +231,7 @@
     const archiveFocus = browsingArchive ? stages.find((record) => !completed.has(record.id)) || stages[0] : null;
     renderCampaignFocus(saved, completed, archiveFocus);
     renderQuartermaster();
+    renderOrganizationPanel();
     $("#campaignStats").textContent = `${campaign.stageCount} 关 · ${new Set(campaign.stages.map((item) => item.mapAsset)).size} 幅舆图`;
   }
 
@@ -455,6 +460,7 @@
     setExerciseMenu(false);
     setCampaignSettings(false);
     setCampaignCamp(false);
+    setCampaignOffice(false);
     stopStoryVoice();
     stopContextMusic();
     storyDone = null;
@@ -484,6 +490,7 @@
     setExerciseMenu(false);
     setCampaignSettings(false);
     setCampaignCamp(false);
+    setCampaignOffice(false);
     stageRecord = record;
     $("#campaignScreen").hidden = true;
     $("#resultModal").hidden = true;
@@ -497,6 +504,15 @@
     mapZoom = 1;
     updateZoom();
     state = savedState || freshState(record);
+    if (!savedState) {
+      profile.organization = organization.syncMembers(profile.organization, record, displayName);
+      const prepared = organization.consumeSupport(profile.organization, record.id);
+      profile.organization = prepared.state;
+      state.organizationSupport = prepared.support;
+      profile.campaignResources.provisions = clamp(profile.campaignResources.provisions + prepared.support.provisions, 0, 200);
+      profile.campaignResources.morale = clamp(profile.campaignResources.morale + prepared.support.morale, 0, 100);
+      writeJson(PROFILE_KEY, profile);
+    }
     if (options.procedural) state.procedural = options.procedural;
     state.assist ||= systems.retryAssist(profile, record.id);
     const objectiveType = state.procedural?.objectiveType ? "procedural" : difficultyProfileFor(record).objectiveType;
@@ -544,6 +560,7 @@
       const vanguard = profile.stageVanguards[record.id];
       log(`军议：${formation.name}${vanguard ? `；${displayName(vanguard)}任先锋` : ""}；军粮 ${profile.campaignResources.provisions}，士气 ${profile.campaignResources.morale}${profile.campaignResources.provisions < 40 ? "；缺粮导致兵力与攻击下降" : ""}。`, "event");
       if (state.assist.active) log(`连续失利援助已启用：回合上限 +15%，临时金疮药 +1、士气 +8；首通铜钱 -10%。`, "event");
+      if (state.organizationSupport?.sources?.length) log(`官署筹备已投入：${state.organizationSupport.sources.join("、")}；军粮 +${state.organizationSupport.provisions}，士气 +${state.organizationSupport.morale}。`, "event");
     }
     if (savedState) {
       for (let turn = 1; turn <= state.turn; turn++) {
@@ -704,6 +721,124 @@
     }
   }
 
+  function setCampaignOffice(open) {
+    const expanded = Boolean(open);
+    $("#campaignOfficeBackdrop").hidden = !expanded;
+    $("#campaignOfficeButton").setAttribute("aria-expanded", String(expanded));
+    if (expanded) {
+      setCampaignCamp(false);
+      setCampaignSettings(false);
+      renderOrganizationPanel();
+      requestAnimationFrame(() => $("#campaignOfficeCloseButton").focus());
+    }
+  }
+
+  function officeStage() {
+    return findStageRecord($("#focusStageButton").dataset.stageId) || campaign?.stages?.[0];
+  }
+
+  function saveOrganization(next) {
+    profile.organization = organization.normalizeState(next);
+    writeJson(PROFILE_KEY, profile);
+    renderOrganizationPanel();
+  }
+
+  function renderOrganizationPanel() {
+    if (!organization || !campaign) return;
+    const record = officeStage();
+    profile.organization = organization.syncMembers(profile.organization, record, displayName);
+    const org = profile.organization;
+    $("#officeMonth").textContent = `${org.month} 月`;
+    $("#officeInfluence").textContent = org.influence;
+    $("#officeActiveTasks").textContent = org.tasks.filter((task) => task.status === "active").length;
+    $("#officeSupportCount").textContent = org.pendingSupport.length;
+    const serviceLabels = [["orgFlow", "朝议"], ["aiNpc", "属官"], ["knowledge", "史官"]];
+    $("#officeServiceStatus").innerHTML = serviceLabels.map(([key, label]) => `<span class="${org.backend[key] ? "online" : "local"}"><i></i>${label}${org.backend[key] ? "通达" : "本地推演"}</span>`).join("");
+    $("#officeModeText").textContent = org.backend.mode === "connected" ? "朝议、属官与史官已互通；断线时会自动改用本地推演。" : "当前由本机推演属官决断，进度与战果仍会完整保存。";
+    $("#officeMemberSelect").innerHTML = org.members.map((member) => `<option value="${escapeHtml(member.id)}">${escapeHtml(member.name)} · ${escapeHtml(member.office)}</option>`).join("");
+    const currentType = $("#officeTaskType").value;
+    $("#officeTaskType").innerHTML = Object.entries(organization.TASK_TYPES).map(([id, task]) => `<option value="${id}" ${id === currentType ? "selected" : ""}>${task.name} · ${task.duration}月</option>`).join("");
+    $("#officeMembers").innerHTML = org.members.map((member) => `<div><strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(member.office)}</span><small>信任 ${member.loyalty} · 劳顿 ${member.fatigue}</small></div>`).join("") || "<p>随战役推进，出阵人物会进入官署名册。</p>";
+    $("#officeTaskLedger").innerHTML = [...org.tasks].reverse().slice(0, 10).map((task) => `<li class="${task.status}"><span>${escapeHtml(task.name)}</span><strong>${escapeHtml(task.assigneeName)}</strong><small>${task.status === "active" ? `${task.dueMonth}月复命` : task.status === "success" ? "办成" : "未成"}</small></li>`).join("") || '<li class="empty">尚无差事</li>';
+    const selectedTask = organization.TASK_TYPES[$("#officeTaskType").value] || organization.TASK_TYPES.supply;
+    $("#officeOrderHint").textContent = `${record?.battleTitle || "下一战"}：${selectedTask.name}需要 ${selectedTask.cost} 份军府资源，办成后形成战前助益。`;
+    if (!$("#officeKnowledgeQuery").value) $("#officeKnowledgeQuery").value = `${record?.battleTitle || ""} ${record?.objective || ""}`.trim();
+  }
+
+  async function refreshIntegrationStatus() {
+    try {
+      const response = await fetch("api/dongzhou/integration/health", { cache: "no-store" }).then(checkResponse).then((item) => item.json());
+      profile.organization = organization.updateBackend(profile.organization, {
+        orgFlow: Boolean(response.orgFlow?.online), aiNpc: Boolean(response.aiNpc?.online), knowledge: Boolean(response.knowledge?.online), remoteId: response.organizationId || profile.organization.remoteId || ""
+      });
+    } catch (_) {
+      profile.organization = organization.updateBackend(profile.organization, { orgFlow: false, aiNpc: false, knowledge: false });
+    }
+    writeJson(PROFILE_KEY, profile);
+    renderOrganizationPanel();
+  }
+
+  async function issueOfficeTask() {
+    const record = officeStage();
+    try {
+      const taskDefinition = organization.TASK_TYPES[$("#officeTaskType").value];
+      if (profile.campaignResources.provisions < taskDefinition.cost) {
+        showNotice("军粮不足，无法颁下这项差事");
+        return;
+      }
+      const created = organization.createTask(profile.organization, {
+        type: $("#officeTaskType").value,
+        assigneeId: $("#officeMemberSelect").value,
+        stageId: record?.id,
+        stageTitle: record?.battleTitle,
+        knowledgeId: profile.organization.knowledge.find((entry) => entry.stageId === record?.id)?.id
+      });
+      profile.campaignResources.provisions = clamp(profile.campaignResources.provisions - taskDefinition.cost, 0, 200);
+      saveOrganization(created.state);
+      showNotice(`${created.task.assigneeName}已领命：${created.task.name}`);
+      const remote = await fetch("api/dongzhou/organization/tasks", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+          organization_id: profile.organization.remoteId || "", title: created.task.name,
+          description: `${record?.chapter || ""} ${record?.battleTitle || ""}：${record?.objective || ""}`,
+          assignee_id: created.task.assigneeId, difficulty: Math.max(1, Math.min(10, Math.ceil((record?.index || 1) / 20))),
+          resource_units: created.task.cost, reward_units: created.task.cost + 3, execution_location: record?.battleTitle || "东周列国"
+        })
+      }).then((item) => item.ok ? item.json() : null).catch(() => null);
+      const mirrored = profile.organization.tasks.find((task) => task.id === created.task.id);
+      if (mirrored && remote?.accepted) {
+        mirrored.remoteMirrored = true;
+        mirrored.remoteResult = remote.result?.data?.task_id || remote.result?.task_id || null;
+        writeJson(PROFILE_KEY, profile);
+        renderOrganizationPanel();
+      }
+    } catch (error) {
+      showNotice(error.message);
+    }
+  }
+
+  function advanceOfficeMonth() {
+    saveOrganization(organization.advanceMonth(profile.organization));
+    const latest = profile.organization.history.at(-1);
+    showNotice(latest?.text || "月令已进");
+  }
+
+  async function searchOfficeKnowledge(event) {
+    event.preventDefault();
+    const query = $("#officeKnowledgeQuery").value.trim();
+    if (!query) return;
+    $("#officeKnowledgeResults").innerHTML = "<p>史官正在检索简册……</p>";
+    try {
+      const payload = await fetch("api/dongzhou/knowledge/search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query, limit: 6 }) }).then(checkResponse).then((item) => item.json());
+      const raw = Array.isArray(payload.results) ? payload.results : Object.values(payload.results || {}).flat().filter((item) => item && typeof item === "object");
+      const results = raw.map((item) => item.aku || item.data || item).filter((item) => item?.id);
+      for (const entry of results) profile.organization = organization.recordKnowledge(profile.organization, { ...entry, stageId: entry.stageId || String(entry.id).match(/(\d{3})$/)?.[1]?.replace(/^0+/, "") });
+      writeJson(PROFILE_KEY, profile);
+      $("#officeKnowledgeResults").innerHTML = results.slice(0, 6).map((entry) => `<article><strong>${escapeHtml(entry.name || entry.title || "史官条目")}</strong><p>${escapeHtml(entry.summary || entry.content || "")}</p></article>`).join("") || "<p>简册中未查到相关记载。</p>";
+    } catch (_) {
+      $("#officeKnowledgeResults").innerHTML = "<p>史官简册暂不可达，可稍后再查；官署差事仍可照常推演。</p>";
+    }
+  }
+
   function freshState(record) {
     const assist = systems.retryAssist(profile, record.id);
     const contract = systems.missionContract(difficultyProfileFor(record).objectiveType);
@@ -797,14 +932,17 @@
       ? { ...profile, campaignResources: { ...profile.campaignResources, morale: Math.min(100, profile.campaignResources.morale + state.assist.morale) } }
       : profile;
     const formation = team === "own" ? systems.formationModifiers(battleProfile, heroId, hero.class, stageRecord.id) : { hp: 1, power: 1, defense: 1, move: 0, maxMp: 0, wounded: false, vanguard: false };
-    const maxHp = Math.round((Number(unitClass.hp?.[0] || 100) + Number(unitClass.hp?.[1] || 5) * Math.max(0, level - 1)) * difficultyModifiers.hp * formation.hp);
+    const officeSupport = state.organizationSupport || {};
+    const supportDefense = team === "own" ? 1 + Number(officeSupport.defense || 0) : 1;
+    const supportAttack = team === "own" ? 1 + Number(officeSupport.attack || 0) : Math.max(.75, 1 - Number(officeSupport.recon || 0) * .04);
+    const maxHp = Math.round((Number(unitClass.hp?.[0] || 100) + Number(unitClass.hp?.[1] || 5) * Math.max(0, level - 1)) * difficultyModifiers.hp * formation.hp * supportDefense);
     const maxMp = Number(unitClass.mp?.[0] || 10) + Number(unitClass.mp?.[1] || 1) * Math.max(0, level - 1) + equipment.maxMp + formation.maxMp;
     const id = `${heroId}-${++unitSerial}`;
     state.units.push({
       id, heroId, name: displayName(heroId), team, level, classId: hero.class, model: hero.model || "infantry-1-red", x, y,
       hp: maxHp, maxHp, mp: maxMp, maxMp, move: Number(unitClass.move || 5) + equipment.move + formation.move,
-      power: Math.round((15.5 + Number(hero.stat?.[1] || 70) * .34 + growth.power + equipment.power) * difficultyModifiers.power * formation.power),
-      defense: Math.round((8 + Number(hero.stat?.[2] || 70) * .22 + growth.defense + equipment.defense) * difficultyModifiers.defense * formation.defense),
+      power: Math.round((15.5 + Number(hero.stat?.[1] || 70) * .34 + growth.power + equipment.power) * difficultyModifiers.power * formation.power * supportAttack),
+      defense: Math.round((8 + Number(hero.stat?.[2] || 70) * .22 + growth.defense + equipment.defense) * difficultyModifiers.defense * formation.defense * supportDefense),
       attackRange: unitClass.attack_range || "Adjacent4", acted: false, moved: false,
       invulnerable: false, direction: null, effects: [], wounded: formation.wounded, vanguard: formation.vanguard, undersupplied: formation.undersupplied,
       skillRank: systems.heroSkillRank(level)
@@ -1564,6 +1702,8 @@
       } : { policyVersion: systems.POLICY_VERSION }
     });
     profile = progression.profile;
+    profile.organization = organization.advanceMonth(profile.organization);
+    profile.organization.history.push({ month: profile.organization.month, tone: won ? "good" : "bad", text: `${stageRecord.battleTitle}${won ? "告捷" : "失利"}，军府据此调整后续差事。` });
     state.result.progression = { firstClear: progression.firstClear, rankUps: progression.rankUps, reward: progression.reward, coinsEarned: progression.coinsEarned, masteryUpdates: progression.masteryUpdates };
     writeJson(PROFILE_KEY, profile);
     if (progression.rankUps) log(`军阶提升至 ${profile.armyRank}，全军基础战力提高。`, "event");
@@ -2344,6 +2484,13 @@
     $("#campaignCampBackdrop").addEventListener("click", (event) => {
       if (event.target === event.currentTarget) setCampaignCamp(false);
     });
+    $("#campaignOfficeButton").addEventListener("click", () => setCampaignOffice(true));
+    $("#campaignOfficeCloseButton").addEventListener("click", () => setCampaignOffice(false));
+    $("#campaignOfficeBackdrop").addEventListener("click", (event) => { if (event.target === event.currentTarget) setCampaignOffice(false); });
+    $("#officeTaskType").addEventListener("change", renderOrganizationPanel);
+    $("#officeIssueButton").addEventListener("click", issueOfficeTask);
+    $("#officeAdvanceButton").addEventListener("click", advanceOfficeMonth);
+    $("#officeKnowledgeForm").addEventListener("submit", searchOfficeKnowledge);
     document.querySelectorAll("[data-era-range]").forEach((button) => button.addEventListener("click", () => {
       $("#stageSearch").value = "";
       $("#stageRange").value = button.dataset.eraRange;
@@ -2398,6 +2545,9 @@
       } else if (event.key === "Escape" && !$("#campaignCampBackdrop").hidden) {
         setCampaignCamp(false);
         $("#campaignCampButton").focus();
+      } else if (event.key === "Escape" && !$("#campaignOfficeBackdrop").hidden) {
+        setCampaignOffice(false);
+        $("#campaignOfficeButton").focus();
       }
     });
     $("#campaignDifficulty").addEventListener("change", (event) => {

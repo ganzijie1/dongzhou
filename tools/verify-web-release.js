@@ -12,6 +12,7 @@ const pcgrlTemplate = JSON.parse(fs.readFileSync(path.join(WEB, "scenario", "pcg
 const mapElitesTemplate = JSON.parse(fs.readFileSync(path.join(WEB, "scenario", "map-elites-chuisha.json"), "utf8"));
 const mapElitesArchive = JSON.parse(fs.readFileSync(path.join(WEB, "scenario", "map-elites-chuisha.archive.json"), "utf8"));
 const difficultyProfiles = JSON.parse(fs.readFileSync(path.join(WEB, "scenario", "difficulty-profiles.json"), "utf8"));
+const dongzhouKnowledge = JSON.parse(fs.readFileSync(path.join(WEB, "scenario", "dongzhou-knowledge.json"), "utf8"));
 const mapElitesRuntime = require(path.join(WEB, "map-elites.js"));
 const densityReport = JSON.parse(fs.readFileSync(path.join(ROOT, "docs", "map-visual-density-report.json"), "utf8"));
 const gameSystems = require(path.join(WEB, "game-systems.js"));
@@ -52,6 +53,7 @@ if (Object.keys(gameSystems.SKILLS).length !== 7) fail("七职业战技契约不
 if (gameSystems.PROFILE_VERSION < 5) fail("存档未升级到地图细节设置契约 v5");
 if (Object.keys(gameSystems.EQUIPMENT).length < 7) fail("前十二章装备成长契约不完整");
 if (Object.keys(difficultyProfiles.profiles || {}).length !== 172) fail("运行时难度画像不是 172 关");
+if (dongzhouKnowledge.entries?.length !== 172 || new Set(dongzhouKnowledge.entries.map((entry) => entry.id)).size !== 172) fail("东周知识条目必须完整覆盖 172 关且 ID 唯一");
 if (gameSystems.effectiveUnitLevel(1, "enemy", { armyRank: 60 }, 172, "hard") !== gameSystems.PROGRESSION.maxLevel) fail("最终关敌军等级未达到成长上限");
 for (const stageProfile of Object.values(difficultyProfiles.profiles || {})) {
   if (stageProfile.objectiveType === "narrative") continue;
@@ -101,12 +103,12 @@ for (const record of campaign.stages) {
   if (!record.smoke || record.smoke.initialEndCondition == null) fail(`${record.id} 缺少首轮结束条件结果`);
 }
 
-for (const required of ["index.html", "styles.css", "game.js", "game-systems.js", "runtime.js", "pcgrl.js", "map-elites.js", "audio/context-music-manifest.json", "scenario/difficulty-profiles.json", "scenario/pcgrl-masui.json", "scenario/stage/pcgrl_masui.lua", "scenario/map-elites-chuisha.json", "scenario/map-elites-chuisha.archive.json", "scenario/stage/map_elites_chuisha.lua", "vendor/fengari-web.js", "vendor/LICENSE"]) {
+for (const required of ["index.html", "styles.css", "game.js", "game-systems.js", "organization-play.js", "runtime.js", "pcgrl.js", "map-elites.js", "audio/context-music-manifest.json", "scenario/difficulty-profiles.json", "scenario/dongzhou-knowledge.json", "scenario/pcgrl-masui.json", "scenario/stage/pcgrl_masui.lua", "scenario/map-elites-chuisha.json", "scenario/map-elites-chuisha.archive.json", "scenario/stage/map_elites_chuisha.lua", "vendor/fengari-web.js", "vendor/LICENSE"]) {
   if (!fs.existsSync(path.join(WEB, required))) fail(`缺少发布文件：${required}`);
 }
 
 const releaseFiles = new Set();
-for (const relative of ["index.html", "styles.css", "game.js", "game-systems.js", "runtime.js", "pcgrl.js", "map-elites.js", "README.md", "audio/dialogue-manifest.json", "audio/context-music-manifest.json"]) {
+for (const relative of ["index.html", "styles.css", "game.js", "game-systems.js", "organization-play.js", "runtime.js", "pcgrl.js", "map-elites.js", "README.md", "audio/dialogue-manifest.json", "audio/context-music-manifest.json"]) {
   releaseFiles.add(path.join(WEB, relative));
 }
 for (const folder of ["assets", "scenario", "vendor"]) {

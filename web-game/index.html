@@ -127,6 +127,7 @@
           <button id="focusStageButton" class="large-button primary" type="button">奉命出征</button>
           <button id="focusRestartButton" class="large-button focus-restart-button" type="button" hidden>重开本战</button>
           <button id="campaignCampButton" class="focus-camp-button" type="button" aria-expanded="false" aria-controls="campaignCampDrawer"><span aria-hidden="true">令</span><span>整军备战</span></button>
+          <button id="campaignOfficeButton" class="focus-office-button" type="button" aria-expanded="false" aria-controls="campaignOfficeDrawer"><span aria-hidden="true">府</span><span>列国官署</span></button>
           <button id="focusArchiveButton" class="focus-archive-button" type="button"><span>翻阅列国志</span><span aria-hidden="true">↓</span></button>
         </div>
         <aside class="focus-chronicle" aria-label="本战简牍">
@@ -218,6 +219,40 @@
       <footer class="campaign-footer"><span>原作 Lua 剧情与历史事件驱动</span><span id="campaignStats">172 关 · 169 幅舆图</span></footer>
     </div>
 
+    <div id="campaignOfficeBackdrop" class="campaign-office-backdrop" hidden>
+      <section id="campaignOfficeDrawer" class="campaign-office-drawer" role="dialog" aria-modal="true" aria-labelledby="campaignOfficeTitle">
+        <header class="campaign-office-header">
+          <div><span>军国之政</span><h2 id="campaignOfficeTitle">列国官署</h2><p id="officeModeText">属官将依性情、职掌与军情自主办差。</p></div>
+          <button id="campaignOfficeCloseButton" class="utility-close-button" type="button" aria-label="收起列国官署">×</button>
+        </header>
+        <div class="campaign-office-content">
+          <section class="office-overview" aria-label="官署概况">
+            <dl><div><dt>月令</dt><dd id="officeMonth">1 月</dd></div><div><dt>威望</dt><dd id="officeInfluence">12</dd></div><div><dt>在办</dt><dd id="officeActiveTasks">0</dd></div><div><dt>筹备</dt><dd id="officeSupportCount">0</dd></div></dl>
+            <div id="officeServiceStatus" class="office-service-status" aria-label="官署运转状态"></div>
+          </section>
+          <section class="office-orders" aria-labelledby="officeOrdersTitle">
+            <div class="office-section-heading"><div><span>因人授事</span><h3 id="officeOrdersTitle">颁下差事</h3></div><button id="officeAdvanceButton" class="large-button" type="button">推进一月</button></div>
+            <div class="office-order-fields">
+              <label><span>承办属官</span><select id="officeMemberSelect"></select></label>
+              <label><span>差事</span><select id="officeTaskType"></select></label>
+              <button id="officeIssueButton" class="large-button primary" type="button">授命</button>
+            </div>
+            <p id="officeOrderHint" class="office-order-hint"></p>
+          </section>
+          <section class="office-ledger" aria-labelledby="officeLedgerTitle">
+            <div class="office-section-heading"><div><span>功过有据</span><h3 id="officeLedgerTitle">属官与簿书</h3></div></div>
+            <div id="officeMembers" class="office-members"></div>
+            <ol id="officeTaskLedger" class="office-task-ledger"></ol>
+          </section>
+          <section class="office-knowledge" aria-labelledby="officeKnowledgeTitle">
+            <div class="office-section-heading"><div><span>史官参议</span><h3 id="officeKnowledgeTitle">查阅本战旧闻</h3></div></div>
+            <form id="officeKnowledgeForm" class="office-knowledge-form"><input id="officeKnowledgeQuery" type="search" autocomplete="off" placeholder="输入人物、战役或军令"><button class="large-button" type="submit">查阅</button></form>
+            <div id="officeKnowledgeResults" class="office-knowledge-results"></div>
+          </section>
+        </div>
+      </section>
+    </div>
+
     <div id="campaignSettingsBackdrop" class="campaign-settings-backdrop" hidden>
       <section id="campaignUtilityPanel" class="campaign-utility-panel" role="dialog" aria-modal="true" aria-labelledby="campaignUtilityTitle">
         <header><div><span>行军所需</span><h2 id="campaignUtilityTitle">军帐</h2></div><button id="campaignSettingsCloseButton" class="utility-close-button" type="button" aria-label="收起军帐">×</button></header>
@@ -283,6 +318,7 @@
     <script src="pcgrl.js"></script>
     <script src="map-elites.js"></script>
     <script src="game-systems.js?v=20261105-10"></script>
-    <script src="game.js?v=20261106-28"></script>
+    <script src="organization-play.js?v=20261107-1"></script>
+    <script src="game.js?v=20261107-1"></script>
   </body>
 </html>
