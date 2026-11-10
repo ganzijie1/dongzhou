@@ -2,6 +2,19 @@
 
  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Build Status](https://travis-ci.org/wateret/mengde.svg?branch=master)](https://travis-ci.org/wateret/mengde) 
 
+## Integrated service repositories
+
+Dongzhou pins its four AI service repositories under `services/`: `knowledge-jizhan`, `ainpc`, `orgFlowEngine`, and `NexusKernel`. Clone them with the game or initialize them afterward:
+
+```powershell
+git clone --recurse-submodules https://github.com/ganzijie1/dongzhou.git
+# Existing checkout:
+git submodule update --init --recursive
+python tools/verify-service-submodules.py
+```
+
+The parent repository records the exact commit of each service. Do not point these submodules at the internal GitLab remotes; updates are taken from the sanitized GitHub `dev-gzj` branches.
+
 Project mengde is named after the courtesy name(Mèngdé 孟德) of Cáo Cāo 曹操 from Chinese Three Kingdoms period.
 This game is inspired by "三國志曹操傳" by 1998, KOEI.
 

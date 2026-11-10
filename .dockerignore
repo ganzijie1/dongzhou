@@ -3,6 +3,10 @@
 !integration-service/**
 !web-game/
 !web-game/**
+!services/
+services/*
+!services/NexusKernel/
+!services/NexusKernel/**
 
 **/.git
 **/.venv

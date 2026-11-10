@@ -2,7 +2,7 @@ FROM python:3.12.12-slim AS builder
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 PIP_NO_CACHE_DIR=1
 WORKDIR /build
-COPY --from=nexus . /build/NexusKernel
+COPY services/NexusKernel /build/NexusKernel
 COPY integration-service /build/integration-service
 RUN python -m venv /opt/venv \
     && /opt/venv/bin/pip install /build/NexusKernel \

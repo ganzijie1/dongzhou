@@ -4,9 +4,11 @@ This NexusKernel service is the only browser-facing boundary for Dongzhou. It ow
 
 ## Local run
 
-From `E:\game\dongzhou\integration-service`:
+Initialize the pinned service repositories once from the Dongzhou root, then run the gateway from `integration-service`:
 
 ```powershell
+git submodule update --init --recursive services/knowledge-jizhan services/ainpc services/orgFlowEngine services/NexusKernel
+cd integration-service
 uv sync --extra dev
 uv run uvicorn dongzhou_integration.app:app --host 127.0.0.1 --port 8765
 ```
@@ -24,10 +26,10 @@ Open `http://127.0.0.1:8765/`. Add `?offline=1` only for an explicit standalone 
 - NPC readiness is reconciled against AINPC's complete live actor snapshot, not only the gateway's persisted `READY` rows. The gateway retries incomplete topology snapshots, reads all pages, and reactivates missing actors every 30 seconds, so an AINPC instance restart does not require a browser refresh or manual `/npcs/sync` call.
 - Set `DONGZHOU_GAME_SERVER_ID` to the same non-zero numeric ID used by AINPC and orgFlowEngine (`91001` by default). Configure orgFlowEngine's clock URL as `http://gateway:8765/api/v1/QueryGameTimeAndTimeScale`; the gateway exposes a monotonic, event-driven clock derived from accepted campaign saves.
 - Back up `/data/dongzhou-integration.sqlite3` with SQLite's online backup API or a volume snapshot. Do not copy a live WAL database as loose files.
-- Build from the `dongzhou` repository and provide the adjacent pinned NexusKernel checkout as a named context:
+- Build from the `dongzhou` repository. NexusKernel is pinned inside `services/NexusKernel` and is copied from the normal build context:
 
 ```powershell
-docker build --build-context nexus=..\NexusKernel -f integration-service/Dockerfile -t dongzhou-integration:1.0.0 .
+docker build -f integration-service/Dockerfile -t dongzhou-integration:1.0.0 .
 ```
 
 ## AINPC game-server contracts

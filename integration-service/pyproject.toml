@@ -23,4 +23,4 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 
 [tool.uv.sources]
-nexus-kernel-starter = { path = "../../NexusKernel", editable = true }
+nexus-kernel-starter = { path = "../services/NexusKernel", editable = true }

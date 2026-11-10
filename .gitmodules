@@ -5,3 +5,19 @@
 [submodule "tools/vendor/vit-up"]
 	path = tools/vendor/vit-up
 	url = https://github.com/krispinwandel/vit-up.git
+[submodule "services/knowledge-jizhan"]
+	path = services/knowledge-jizhan
+	url = https://github.com/ganzijie1/knowledge-jizhan.git
+	branch = dev-gzj
+[submodule "services/ainpc"]
+	path = services/ainpc
+	url = https://github.com/ganzijie1/ainpc.git
+	branch = dev-gzj
+[submodule "services/orgFlowEngine"]
+	path = services/orgFlowEngine
+	url = https://github.com/ganzijie1/orgFlowEngine.git
+	branch = dev-gzj
+[submodule "services/NexusKernel"]
+	path = services/NexusKernel
+	url = https://github.com/ganzijie1/NexusKernel.git
+	branch = dev-gzj
