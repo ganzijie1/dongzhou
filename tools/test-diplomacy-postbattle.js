@@ -4,13 +4,14 @@ const org = require("../web-game/organization-play.js");
 
 let state = org.defaultState();
 state.members = [{ id: "envoy", name: "行人子羽", office: "行人", loyalty: 70, fatigue: 0 }];
-state = org.recordKnowledge(state, { id: "history-01", name: "本回史料", summary: "诸侯相攻", stageId: "01" });
-const council = org.recordCouncil(state, { id: "council-01", stageId: "01", memberId: "envoy", knowledgeId: "history-01", question: "是否结盟", options: ["结盟", "拒盟"], index: 0 });
+state = org.recordKnowledge(state, { id: "history-01", name: "本回史料", summary: "诸侯相攻", stageId: "01", sourceDetails: [{ work: "《史记》", tier: "史实骨架", scope: "诸侯关系", url: "https://example.invalid/shiji" }] });
+state = org.selectEvidence(state, { stageId: "01", knowledgeId: "history-01", sourceIndex: 0 }).state;
+const council = org.recordCouncil(state, { id: "council-01", stageId: "01", memberId: "envoy", knowledgeId: "history-01", evidenceSourceIndex: 0, question: "是否结盟\n选证：《史记》｜史实骨架", options: ["结盟", "拒盟"], index: 0 });
 state = council.state;
 const operation = { kind: "diplomacy", target_id: "qi", target_name: "齐国", proposal: "互通军情" };
 let remoteState = org.recordMandate(state, {
   id: "dongzhou:test:diplomacy", stageId: "01", stageTitle: "东郊索命", heroId: "envoy", taskType: "diplomacy",
-  evidence: { id: "history-01", name: "本回史料", summary: "诸侯相攻" },
+  evidence: { id: "history-01", name: "本回史料", summary: "诸侯相攻", source: { index: 0, work: "《史记》", tier: "史实骨架", scope: "诸侯关系", url: "https://example.invalid/shiji" } },
   council: { requestId: "council-01", index: 0, text: "结盟" }, operation,
   kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "READY" },
   digest: "d".repeat(64), state: "ISSUED"

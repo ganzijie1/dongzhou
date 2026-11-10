@@ -178,8 +178,15 @@ class Upstreams:
             )
             if self.settings.knowledge_file.exists():
                 catalog = json.loads(self.settings.knowledge_file.read_text(encoding="utf-8"))
-                stages = {entry["id"]: entry["stageId"] for entry in catalog.get("entries", [])}
-                items = [{**item, "stageId": stages.get(item["id"], "")} for item in items]
+                metadata = {str(entry["id"]): entry for entry in catalog.get("entries", [])}
+                items = [
+                    {
+                        **item,
+                        "stageId": metadata.get(str(item["id"]), {}).get("stageId", ""),
+                        "sourceDetails": metadata.get(str(item["id"]), {}).get("sources", []),
+                    }
+                    for item in items
+                ]
             return "connected", items
         except UpstreamUnavailable:
             if not self.settings.offline_knowledge_enabled:
@@ -189,8 +196,12 @@ class Upstreams:
     async def stage_knowledge(self, stage_id: str) -> list[dict[str, Any]]:
         # 本地目录只提供关卡到 AKU 的映射，正文始终从正式知识服务读取。
         catalog = json.loads(self.settings.knowledge_file.read_text(encoding="utf-8"))
-        ids = [str(entry["id"]) for entry in catalog.get("entries", [])
-               if entry.get("stageId") == stage_id and self._is_dongzhou_knowledge(entry)]
+        metadata = {
+            str(entry["id"]): entry
+            for entry in catalog.get("entries", [])
+            if entry.get("stageId") == stage_id and self._is_dongzhou_knowledge(entry)
+        }
+        ids = list(metadata)
         if not ids:
             return []
         response = await self._json(
@@ -201,8 +212,15 @@ class Upstreams:
         items = data.get("items", []) if isinstance(data, dict) else []
         if not isinstance(items, list):
             raise UpstreamUnavailable("Knowledge stage response has invalid items")
-        return [{**item, "stageId": stage_id} for item in items
-                if isinstance(item, dict) and item.get("id") in ids]
+        return [
+            {
+                **item,
+                "stageId": stage_id,
+                "sourceDetails": metadata.get(str(item.get("id")), {}).get("sources", []),
+            }
+            for item in items
+            if isinstance(item, dict) and item.get("id") in ids
+        ]
 
     @staticmethod
     def _is_dongzhou_knowledge(item: Any) -> bool:

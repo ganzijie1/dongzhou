@@ -157,11 +157,17 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
 
         with TemporaryDirectory() as directory:
             catalog = Path(directory) / "catalog.json"
-            catalog.write_text(json.dumps({"entries": [{"id": "dongzhou_stage_004", "stageId": "03b", "name": "本地旧正文"}]}), encoding="utf-8")
+            source = {
+                "work": "Records of the Grand Historian",
+                "tier": "historical framework",
+                "scope": "stage evidence",
+                "url": "https://ctext.org/shiji",
+            }
+            catalog.write_text(json.dumps({"entries": [{"id": "dongzhou_stage_004", "stageId": "03b", "name": "本地旧正文", "sources": [source]}]}), encoding="utf-8")
             async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
                 upstreams = Upstreams(settings(catalog), client)
                 items = await upstreams.stage_knowledge("03b")
-                self.assertEqual(items, [{"id": "dongzhou_stage_004", "name": "已发布史料", "stageId": "03b"}])
+                self.assertEqual(items, [{"id": "dongzhou_stage_004", "name": "已发布史料", "stageId": "03b", "sourceDetails": [source]}])
                 self.assertEqual(await upstreams.stage_knowledge("unknown"), [])
         self.assertEqual(seen, ["/api/v1/aku/batch_get"])
 
@@ -192,13 +198,26 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
             ]}})
 
         with TemporaryDirectory() as directory:
+            catalog = Path(directory) / "catalog.json"
+            source = {
+                "work": "Zuo Commentary",
+                "tier": "historical framework",
+                "scope": "diplomatic evidence",
+                "url": "https://ctext.org/chun-qiu-zuo-zhuan",
+            }
+            catalog.write_text(json.dumps({"entries": [
+                {"id": "dongzhou_stage_005", "stageId": "04", "sources": [source]},
+                {"id": "dongzhou_stage_006", "stageId": "05", "sources": []},
+            ]}), encoding="utf-8")
             client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-            upstreams = Upstreams(settings(Path(directory) / "db"), client)
+            upstreams = Upstreams(settings(catalog), client)
             mode, items = await upstreams.search_knowledge("军令", 2)
             await client.aclose()
 
         self.assertEqual(mode, "connected")
         self.assertEqual([item["id"] for item in items], ["dongzhou_stage_005", "dongzhou_stage_006"])
+        self.assertEqual(items[0]["stageId"], "04")
+        self.assertEqual(items[0]["sourceDetails"], [source])
         self.assertEqual(seen_batch_ids, ["player_full_1", "dongzhou_stage_005", "dongzhou_stage_006"])
 
     async def test_http_business_error_preserves_contract_payload(self) -> None:

@@ -68,16 +68,34 @@ saveJournal();
     }, PROFILE, { timeout: 45000 });
     await page.selectOption("#officeMemberSelect", "ZuoRu");
 
+    const existing = await page.evaluate((key) => {
+      const organization = JSON.parse(localStorage.getItem(key))?.organization;
+      const task = [...(organization?.tasks || [])].reverse().find((entry) => entry.operation?.kind === "diplomacy" && entry.remoteResult);
+      const mandate = task ? (organization.mandates || []).find((entry) => entry.id === task.mandate?.id) : null;
+      return task && mandate ? { taskId: task.remoteResult, mandateId: mandate.id } : null;
+    }, PROFILE);
+    if (!journal.remoteTask && existing) {
+      journal.remoteTask = existing.taskId;
+      journal.mandateId = existing.mandateId;
+      saveJournal();
+    }
+
     if (!journal.remoteTask) {
       journal.stage = "knowledge";
       saveJournal();
       await page.click("#officeStageKnowledgeButton");
       await page.waitForSelector("#officeKnowledgeResults article", { timeout: 90000 });
+      await page.click('#officeKnowledgeResults [data-source-index="0"]');
+      await page.waitForSelector("#officeKnowledgeResults >> text=已取为据");
 
       journal.stage = "npc-council";
       saveJournal();
-      await page.click("#officeDecisionForm button[type=submit]");
-      await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).organization.councils.length > 0, PROFILE, { timeout: 180000 });
+      const councilCount = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).organization.councils.length, PROFILE);
+      if (!councilCount) {
+        await page.click("#officeDecisionForm button[type=submit]");
+        await page.waitForFunction(({ key, before }) => JSON.parse(localStorage.getItem(key)).organization.councils.length > before, { key: PROFILE, before: councilCount }, { timeout: 180000 });
+      }
+      await page.waitForFunction(() => !document.querySelector("#officeDecisionForm button[type=submit]").disabled, { timeout: 30000 });
 
       journal.stage = "formal-diplomacy-order";
       saveJournal();
@@ -86,8 +104,11 @@ saveJournal();
       await page.click("#officeLobbyButton");
       await page.waitForFunction((key) => {
         const organization = JSON.parse(localStorage.getItem(key)).organization;
-        return organization.tasks.some((task) => task.operation?.kind === "diplomacy" && task.remoteResult);
+        const failed = document.querySelector("#officeDiplomacyResult")?.textContent?.startsWith("游说暂不可用：");
+        return failed || organization.tasks.some((task) => task.operation?.kind === "diplomacy" && task.remoteResult);
       }, PROFILE, { timeout: 120000 });
+      const lobbyError = await page.locator("#officeDiplomacyResult").innerText();
+      if (lobbyError.startsWith("游说暂不可用：")) throw new Error(lobbyError);
       const issued = await page.evaluate((key) => {
         const organization = JSON.parse(localStorage.getItem(key)).organization;
         const task = [...organization.tasks].reverse().find((entry) => entry.operation?.kind === "diplomacy" && entry.remoteResult);
@@ -96,6 +117,7 @@ saveJournal();
       }, PROFILE);
       assert.deepEqual(issued.task.operation, { kind: "diplomacy", target_id: "zheng", target_name: "郑国", proposal: "互通军情，共御强敌，不索取财货" });
       assert.deepEqual(issued.mandate.operation, issued.task.operation);
+      assert(issued.mandate.evidence?.source?.work, "Nexus mandate must seal the selected source");
       assert.match(issued.mandate.digest, /^[0-9a-f]{64}$/);
       journal.remoteTask = issued.task.remoteResult;
       journal.mandateId = issued.mandate.id;
@@ -214,6 +236,7 @@ saveJournal();
     saveJournal();
     console.log(JSON.stringify(result));
   } catch (error) {
+    journal.failedAtStage = journal.stage;
     journal.stage = "failed";
     journal.errorType = error.name;
     journal.error = String(error.message).slice(0, 300);

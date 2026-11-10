@@ -858,6 +858,53 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=422,
             )
 
+        source_details = evidence.get("sourceDetails")
+        if not isinstance(source_details, list) or not source_details:
+            source_details = [
+                {"work": str(value), "tier": "来源", "scope": "", "url": str(value)}
+                for value in evidence.get("sources", [])
+                if isinstance(value, str) and value
+            ]
+        source = (
+            source_details[request.evidence_source_index]
+            if request.evidence_source_index < len(source_details)
+            else None
+        )
+        if not isinstance(source, dict) or not str(source.get("work") or "").strip():
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "REJECTED",
+                {"state": "REJECTED"},
+                "court_evidence_source_unverified",
+            )
+            raise ApiError(
+                "court_evidence_source_unverified",
+                "The selected source is not published with this knowledge entry.",
+                status_code=422,
+            )
+        canonical_source = {
+            "index": request.evidence_source_index,
+            "work": str(source.get("work") or ""),
+            "tier": str(source.get("tier") or "来源"),
+            "scope": str(source.get("scope") or ""),
+            "url": str(source.get("url") or ""),
+        }
+        source_marker = f"选证：{canonical_source['work']}｜{canonical_source['tier']}"
+        if source_marker not in str(council_request.get("question") or ""):
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "REJECTED",
+                {"state": "REJECTED"},
+                "court_council_source_unverified",
+            )
+            raise ApiError(
+                "court_council_source_unverified",
+                "The NPC council did not deliberate on the selected published source.",
+                status_code=422,
+            )
+
         mandate_id = stable_event_id(player_id, request.client_request_id)
         trace = {
             "id": mandate_id,
@@ -869,6 +916,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "id": request.knowledge_id,
                 "name": str(evidence.get("name") or evidence.get("title") or request.knowledge_id),
                 "summary": str(evidence.get("summary") or evidence.get("content") or ""),
+                "source": canonical_source,
             },
             "council": {
                 "requestId": str(request.council_request_id),

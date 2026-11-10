@@ -45,6 +45,20 @@ class MandateUpstreams:
                 "stageId": stage_id,
                 "name": "东郊旧闻",
                 "summary": "杜伯之谏与东郊军情。",
+                "sourceDetails": [
+                    {
+                        "work": "《史记·周本纪》",
+                        "tier": "史实骨架",
+                        "scope": "千亩之败与周宣王晚年",
+                        "url": "https://ctext.org/shiji/zhou-ben-ji",
+                    },
+                    {
+                        "work": "《东周列国志》第一回",
+                        "tier": "文学演绎",
+                        "scope": "杜伯、左儒化厉索命",
+                        "url": "https://zh.wikisource.org/zh-hans/东周列国志/第001回",
+                    },
+                ],
             }
         ]
 
@@ -93,7 +107,7 @@ def complete_council(client: TestClient) -> tuple[str, dict[str, object]]:
     council_id = str(uuid4())
     request = {
         "client_request_id": council_id,
-        "question": "东郊一战如何部署？",
+        "question": "东郊一战如何部署？\n选证：《史记·周本纪》｜史实骨架",
         "options": [
             {"index": 0, "text": "固守军粮"},
             {"index": 1, "text": "整军强攻"},
@@ -114,6 +128,7 @@ def mandate_body(council_id: str, request_id: str | None = None) -> dict[str, ob
         "stage_title": "东郊索命",
         "hero_id": "ZuoRu",
         "knowledge_id": "dongzhou_stage_001",
+        "evidence_source_index": 0,
         "council_request_id": council_id,
         "decision_index": 1,
         "task_type": "drill",
@@ -136,6 +151,13 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
             assert mandate["state"] == "ISSUED"
             assert mandate["kernel"]["state"] in {"READY", "DEGRADED"}
             assert mandate["evidence"]["id"] == "dongzhou_stage_001"
+            assert mandate["evidence"]["source"] == {
+                "index": 0,
+                "work": "《史记·周本纪》",
+                "tier": "史实骨架",
+                "scope": "千亩之败与周宣王晚年",
+                "url": "https://ctext.org/shiji/zhou-ben-ji",
+            }
             assert mandate["council"]["text"] == "整军强攻"
             assert len(mandate["digest"]) == 64
 
@@ -262,6 +284,22 @@ def test_non_diplomacy_mandate_rejects_diplomacy_operation() -> None:
                 },
             )
             assert response.status_code == 422
+
+
+def test_mandate_rejects_source_not_deliberated_by_npc() -> None:
+    with TemporaryDirectory() as directory:
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=MandateUpstreams()
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            council_id, _ = complete_council(client)
+            response = client.post(
+                "/api/dongzhou/v1/court/mandates",
+                json={**mandate_body(council_id), "evidence_source_index": 1},
+            )
+            assert response.status_code == 422
+            assert response.json()["error"]["code"] == "court_council_source_unverified"
 
 
 def test_mandate_retries_knowledge_without_changing_request_id() -> None:

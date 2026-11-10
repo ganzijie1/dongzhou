@@ -11,12 +11,37 @@ try {
 
 const BASE_URL = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/?offline=1";
 const OUT = path.resolve(__dirname, "..", "output", "organization-e2e");
+const WEB = path.resolve(__dirname, "..", "web-game");
+const BASE_ORIGIN = new URL(BASE_URL).origin;
 const SYSTEM_CHROMIUM = [
   process.env.DONGZHOU_CHROMIUM_EXECUTABLE,
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
   "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe"
 ].find((candidate) => candidate && fs.existsSync(candidate));
+
+async function routeLocalAssets(page) {
+  await page.route("**/*", async (route) => {
+    const requestUrl = new URL(route.request().url());
+    if (requestUrl.origin !== BASE_ORIGIN || requestUrl.pathname.startsWith("/api/")) {
+      return route.fallback();
+    }
+    const file = path.resolve(WEB, `.${decodeURIComponent(requestUrl.pathname === "/" ? "/index.html" : requestUrl.pathname)}`);
+    if (!file.startsWith(`${WEB}${path.sep}`) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+      return route.fulfill({ status: 404, body: "not found" });
+    }
+    const contentTypes = {
+      ".html": "text/html", ".js": "application/javascript", ".css": "text/css",
+      ".json": "application/json", ".webp": "image/webp", ".png": "image/png",
+      ".svg": "image/svg+xml", ".mp3": "audio/mpeg", ".ogg": "audio/ogg", ".wav": "audio/wav"
+    };
+    return route.fulfill({
+      status: 200,
+      contentType: contentTypes[path.extname(file)] || "application/octet-stream",
+      body: fs.readFileSync(file)
+    });
+  });
+}
 
 async function openReady(page) {
   await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
@@ -33,6 +58,7 @@ async function openReady(page) {
   const errors = [];
   try {
     const desktop = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await routeLocalAssets(desktop);
     desktop.on("pageerror", (error) => errors.push(error.message));
     await openReady(desktop);
     await desktop.click("#campaignOfficeButton");
@@ -71,6 +97,7 @@ async function openReady(page) {
     if (!battleLog.includes("验收筹备")) throw new Error("Organization support did not reach battle log");
 
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true });
+    await routeLocalAssets(mobile);
     mobile.on("pageerror", (error) => errors.push(error.message));
     await openReady(mobile);
     await mobile.click("#campaignOfficeButton");
@@ -84,6 +111,7 @@ async function openReady(page) {
     await mobile.screenshot({ path: path.join(OUT, "mobile-office.png"), fullPage: false });
 
     const online = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await routeLocalAssets(online);
     online.on("pageerror", (error) => errors.push(error.message));
     let saveVersion = 1;
     let npcStateAttempts = 0;
@@ -105,8 +133,8 @@ async function openReady(page) {
         body = { version: ++saveVersion, payload };
       }
       else if (pathName.endsWith("/integration/status")) body = { mode: "connected", organizationId: "org-e2e", services: { nexusKernel: { online: true, mode: "embedded", version: "0.2.0" }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } } };
-      else if (pathName.endsWith("/knowledge/search")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回·东郊索命", summary: "杜伯进谏", stageId: "01" }] };
-      else if (pathName.endsWith("/knowledge/stages/01")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回·已发布本回史料", summary: "杜伯进谏", stageId: "01" }] };
+      else if (pathName.endsWith("/knowledge/search")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回·东郊索命", summary: "杜伯进谏", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }] }] };
+      else if (pathName.endsWith("/knowledge/stages/01")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回·已发布本回史料", summary: "杜伯进谏", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }] }] };
       else if (pathName.endsWith("/npcs/sync")) body = { ready: false, npcs: [{ npcId: "42" }], relogin: [{ npcId: "42", receipt: { accepted: true } }] };
       else if (/\/npcs\/[^/]+\/state$/.test(pathName)) {
         npcStateAttempts += 1;
@@ -119,7 +147,7 @@ async function openReady(page) {
       else if (pathName.endsWith("/court/mandates")) {
         mandateAttempts += 1;
         const input = request.postDataJSON();
-        body = { state: "ISSUED", mandate: { id: `dongzhou:player-e2e:${input.client_request_id}`, stageId: input.stage_id, stageTitle: "东郊索命", heroId: input.hero_id, taskType: input.task_type, evidence: { id: input.knowledge_id, name: "第一回·已发布本回史料", summary: "杜伯进谏" }, council: { requestId: input.council_request_id, index: input.decision_index, text: "整军强攻，争取先机" }, kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "READY" }, digest: "b".repeat(64), state: "ISSUED" } };
+        body = { state: "ISSUED", mandate: { id: `dongzhou:player-e2e:${input.client_request_id}`, stageId: input.stage_id, stageTitle: "东郊索命", heroId: input.hero_id, taskType: input.task_type, evidence: { id: input.knowledge_id, name: "第一回·已发布本回史料", summary: "杜伯进谏", source: { index: input.evidence_source_index, work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" } }, council: { requestId: input.council_request_id, index: input.decision_index, text: "整军强攻，争取先机" }, kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "READY" }, digest: "b".repeat(64), state: "ISSUED" } };
       }
       else if (pathName.endsWith("/organization/tasks")) {
         orderAttempts += 1;
@@ -150,6 +178,8 @@ async function openReady(page) {
     await online.waitForSelector("#officeKnowledgeResults article");
     await online.click("#officeStageKnowledgeButton");
     await online.waitForSelector("#officeKnowledgeResults >> text=已发布本回史料");
+    await online.click('[data-knowledge-id="dongzhou_stage_001"][data-source-index="0"]');
+    await online.waitForSelector("#officeKnowledgeResults >> text=已取为据");
     const stageKnowledge = await online.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.knowledge);
     if (!stageKnowledge.some((entry) => entry.id === "dongzhou_stage_001" && entry.stageId === "01")) throw new Error("Published stage knowledge was not saved for preparation");
     await online.click("#officeDecisionForm button[type=submit]");

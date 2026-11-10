@@ -877,10 +877,10 @@
     const currentType = $("#officeTaskType").value;
     $("#officeTaskType").innerHTML = Object.entries(organization.TASK_TYPES).map(([id, task]) => `<option value="${id}" ${id === currentType ? "selected" : ""}>${task.name} · ${task.duration}月</option>`).join("");
     $("#officeMembers").innerHTML = org.members.map((member) => `<div><strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(member.office)}</span><small>信任 ${member.loyalty} · 关系 ${Number(org.relations[member.id] || 0) >= 0 ? "+" : ""}${Number(org.relations[member.id] || 0)} · 劳顿 ${member.fatigue}</small></div>`).join("") || "<p>随战役推进，出阵人物会进入官署名册。</p>";
-    $("#officeTaskLedger").innerHTML = [...org.tasks].reverse().slice(0, 10).map((task) => `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}</strong><small>${task.status === "active" ? `${task.dueMonth}月复命` : task.status === "success" ? "办成" : task.status === "partial" ? "部分办成" : "未成"}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》军议` : ""}</small></li>`).join("") || '<li class="empty">尚无差事</li>';
+    $("#officeTaskLedger").innerHTML = [...org.tasks].reverse().slice(0, 10).map((task) => `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}</strong><small>${task.status === "active" ? `${task.dueMonth}月复命` : task.status === "success" ? "办成" : task.status === "partial" ? "部分办成" : "未成"}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}</small></li>`).join("") || '<li class="empty">尚无差事</li>';
     $("#officeMandateLedger").innerHTML = [...org.mandates].reverse().slice(0, 6).map((mandate) => {
       const label = mandate.state === "RESOLVED" ? (mandate.outcome?.won ? "战后告捷" : "战后失利") : mandate.state === "FULFILLED" ? "复命待战" : mandate.state === "PARTIAL" ? "部分复命" : mandate.state === "FAILED" ? "执行未成" : mandate.state === "ORDERED" ? "属官执行中" : "已签发";
-      return `<li class="${escapeHtml(String(mandate.state || "issued").toLowerCase())}"><span>${escapeHtml(mandate.evidence?.name || "内核军令")}</span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(mandate.council?.text || "")} · 印记 ${escapeHtml(String(mandate.digest || "").slice(0, 10))}</small></li>`;
+      return `<li class="${escapeHtml(String(mandate.state || "issued").toLowerCase())}"><span>${escapeHtml(mandate.evidence?.name || "内核军令")}</span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(mandate.evidence?.source?.work || "未列出处")} · ${escapeHtml(mandate.evidence?.source?.tier || "来源")} · 印记 ${escapeHtml(String(mandate.digest || "").slice(0, 10))}</small></li>`;
     }).join("") || '<li class="empty">完成史料查阅与属官裁断后，可签发内核军令。</li>';
     $("#officeAllianceLedger").innerHTML = [...org.diplomacy.alliances].reverse().map((pact) => `<li class="${pact.status}"><span>${escapeHtml(pact.targetName)}盟约</span><strong>${pact.status === "active" ? "生效" : pact.status === "broken" ? "背盟待战" : "战后结案"}</strong><small>关系 ${Number(org.diplomacy.relations[pact.targetId] || 0)} · ${escapeHtml(pact.terms.join("、"))}</small></li>`).join("") || '<li class="empty">尚无盟约</li>';
     $("#officeBattleArchive").innerHTML = [...org.archives].reverse().slice(0, 12).map((entry) => `<li><strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml(entry.text)} · ${escapeHtml(String(entry.stageId || "无关卡"))}</span></li>`).join("") || "<li><strong>尚无档案</strong><span>完成盟约、背盟或战役后将在此存照。</span></li>";
@@ -980,10 +980,17 @@
     }
   }
 
+  function currentOfficeEvidence() {
+    const stageId = String(officeStage()?.id || "");
+    const source = profile.organization.selectedSources?.[stageId];
+    const knowledge = source ? profile.organization.knowledge.find((entry) => entry.id === source.knowledgeId && entry.stageId === stageId) : null;
+    return source && knowledge ? { source, knowledge } : null;
+  }
+
   function currentOfficeCouncil() {
     const stageId = String(officeStage()?.id || "");
-    const knowledge = profile.organization.knowledge.find((entry) => entry.stageId === stageId);
-    return [...profile.organization.councils].reverse().find((entry) => entry.stageId === stageId && entry.memberId === $("#officeMemberSelect").value && entry.knowledgeId === knowledge?.id);
+    const evidence = currentOfficeEvidence();
+    return [...profile.organization.councils].reverse().find((entry) => entry.stageId === stageId && entry.memberId === $("#officeMemberSelect").value && entry.knowledgeId === evidence?.knowledge.id && Number(entry.evidenceSource?.index) === Number(evidence?.source.index));
   }
 
   function renderOfficeCouncil() {
@@ -993,7 +1000,8 @@
     if (control.dataset.councilContext !== contextKey) control.checked = false;
     control.dataset.councilContext = contextKey;
     control.disabled = !council;
-    $("#officeCouncilHint").textContent = council ? "已保存：" + council.memberName + "据《" + council.knowledgeName + "》建议“" + council.text + "”。联网授命须勾选并由内核签发军令。" : "先查本回史料，再请当前属官参议；联网授命必须引用军议。";
+    const evidence = currentOfficeEvidence();
+    $("#officeCouncilHint").textContent = council ? "已保存：" + council.memberName + "据" + council.evidenceSource.work + "（" + council.evidenceSource.tier + "）建议“" + council.text + "”。联网授命须勾选并由内核签发军令。" : evidence ? "已选证：" + evidence.source.work + "（" + evidence.source.tier + "）。请当前属官据此参议。" : "先查本回史料并选定出处，再请当前属官参议。";
   }
 
   let officeLobbyInFlight = false;
@@ -1067,7 +1075,8 @@
     if (officeLobbyInFlight || officeCouncilInFlight || officeOrderInFlight) return;
     const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
     const stageId = String(officeStage()?.id || "");
-    const knowledge = profile.organization.knowledge.find((entry) => entry.stageId === stageId);
+    const evidence = currentOfficeEvidence();
+    const knowledge = evidence?.knowledge;
     const council = currentOfficeCouncil();
     const target = $("#officeDiplomacyTarget");
     const targetId = target.value;
@@ -1131,9 +1140,11 @@
     if (!member || !question || options.length < 2) return;
     const panel = $("#officeDecisionResult");
     const stageId = String(officeStage()?.id || "");
-    const knowledge = profile.organization.knowledge.find((entry) => entry.stageId === stageId);
-    if (!knowledge) { panel.textContent = "请先查阅本回史料，再请属官参议。"; return; }
-    const contextualQuestion = (question.slice(0, 1000) + "\n史料：" + knowledge.name + "（" + knowledge.id + "）\n" + String(knowledge.summary || "").slice(0, 600)).slice(0, 2000);
+    const evidence = currentOfficeEvidence();
+    const knowledge = evidence?.knowledge;
+    if (!knowledge || !evidence?.source) { panel.textContent = "请先查阅本回史料并选定出处，再请属官参议。"; return; }
+    const sourceMarker = "选证：" + evidence.source.work + "｜" + evidence.source.tier;
+    const contextualQuestion = (question.slice(0, 900) + "\n史料：" + knowledge.name + "（" + knowledge.id + "）\n" + sourceMarker + "\n适用范围：" + String(evidence.source.scope || "未注明") + "\n" + String(knowledge.summary || "").slice(0, 500)).slice(0, 2000);
     officeCouncilInFlight = true;
     panel.textContent = `${member.name}正在权衡…`;
     try {
@@ -1141,12 +1152,13 @@
       if (String(officeStage()?.id || "") !== stageId || $("#officeMemberSelect").value !== member.id || $("#officeDecisionQuestion").value.trim() !== question || JSON.stringify([...document.querySelectorAll(".office-decision-option")].map((input) => input.value.trim()).filter(Boolean)) !== JSON.stringify(options)) { panel.textContent = "选择已改变，本轮结果不用于当前派差，请重新参议。"; return; }
       const selected = response.decision?.data || response.decision || {};
       if (response.state !== "COMPLETED" || selected.type !== "OPTION") throw new Error("军议尚未返回有效方案");
-      const currentKnowledge = profile.organization.knowledge.find((entry) => entry.stageId === stageId);
-      if (!currentKnowledge || currentKnowledge.id !== knowledge.id || currentKnowledge.name !== knowledge.name || currentKnowledge.summary !== knowledge.summary) {
-        panel.textContent = "史料已更新，本轮议决不落档，请重新参议。";
+      const currentEvidence = currentOfficeEvidence();
+      const currentKnowledge = currentEvidence?.knowledge;
+      if (!currentKnowledge || currentKnowledge.id !== knowledge.id || currentKnowledge.name !== knowledge.name || currentKnowledge.summary !== knowledge.summary || Number(currentEvidence?.source.index) !== Number(evidence.source.index)) {
+        panel.textContent = "史料或选证已更新，本轮议决不落档，请重新参议。";
         return;
       }
-      const noted = organization.recordCouncil(profile.organization, { id: response.clientRequestId, stageId, memberId: member.id, knowledgeId: knowledge.id, knowledgeName: knowledge.name, knowledgeSummary: knowledge.summary, question: contextualQuestion, options, index: selected.index });
+      const noted = organization.recordCouncil(profile.organization, { id: response.clientRequestId, stageId, memberId: member.id, knowledgeId: knowledge.id, knowledgeName: knowledge.name, knowledgeSummary: knowledge.summary, evidenceSourceIndex: evidence.source.index, question: contextualQuestion, options, index: selected.index });
       await integration.persist({ ...profile, organization: noted.state });
       profile.organization = noted.state;
       writeJson(PROFILE_KEY, profile);
@@ -1180,7 +1192,8 @@
         showNotice("军粮不足，无法颁下这项差事");
         return null;
       }
-      const knowledge = profile.organization.knowledge.find((entry) => entry.stageId === String(record?.id || ""));
+      const evidence = currentOfficeEvidence();
+      const knowledge = evidence?.knowledge;
       const council = operation ? currentOfficeCouncil() : $("#officeUseCouncil").checked ? currentOfficeCouncil() : null;
       const councilContext = council ? [council.stageId, council.memberId, council.knowledgeId, council.id].join(':') : "";
       if ((operation || $("#officeUseCouncil").checked) && (!council || $("#officeUseCouncil").dataset.councilContext !== councilContext)) throw new Error("军议选择已变化，请重新确认引用");
@@ -1202,6 +1215,7 @@
           stage_title: String(record?.battleTitle || record?.title || "未名战事"),
           hero_id: assigneeId,
           knowledge_id: knowledge.id,
+          evidence_source_index: Number(evidence.source.index),
           council_request_id: council.id,
           decision_index: Number(council.index),
           task_type: taskType,
@@ -1302,6 +1316,39 @@
   }
 
   let officeKnowledgeRequestSerial = 0;
+  let officeKnowledgeView = [];
+
+  function renderOfficeKnowledgeResults() {
+    const panel = $("#officeKnowledgeResults");
+    const stageId = String(officeStage()?.id || "");
+    const selected = profile.organization.selectedSources?.[stageId];
+    panel.innerHTML = officeKnowledgeView.slice(0, 6).map((entry) => {
+      const sources = Array.isArray(entry.sourceDetails) ? entry.sourceDetails : [];
+      const sourceButtons = sources.map((source, index) => {
+        const active = selected?.knowledgeId === String(entry.id) && Number(selected.index) === index;
+        const eligible = String(entry.stageId || "") === stageId;
+        return `<button type="button" class="office-source-choice${active ? " selected" : ""}" data-knowledge-id="${escapeHtml(String(entry.id))}" data-source-index="${index}" ${eligible ? "" : "disabled"}><strong>${escapeHtml(String(source.work || "未名出处"))}</strong><span>${escapeHtml(String(source.tier || "来源"))}</span><small>${escapeHtml(String(source.scope || "未注明适用范围"))}</small><b>${active ? "已取为据" : eligible ? "取此为据" : "非本回史料"}</b></button>`;
+      }).join("");
+      return `<article class="${selected?.knowledgeId === String(entry.id) ? "selected" : ""}"><strong>${escapeHtml(entry.name || entry.title || "史官条目")}</strong><p>${escapeHtml(entry.summary || entry.content || "")}</p><div class="office-source-choices">${sourceButtons || "<small>此条尚未发布可选出处。</small>"}</div></article>`;
+    }).join("") || "<p>简册中未查到相关记载。</p>";
+  }
+
+  function selectOfficeEvidence(event) {
+    const button = event.target.closest("[data-knowledge-id][data-source-index]");
+    if (!button || button.disabled) return;
+    try {
+      const selected = organization.selectEvidence(profile.organization, {
+        stageId: String(officeStage()?.id || ""), knowledgeId: button.dataset.knowledgeId,
+        sourceIndex: Number(button.dataset.sourceIndex)
+      });
+      saveOrganization(selected.state);
+      renderOfficeKnowledgeResults();
+      showNotice(`已取${selected.source.work}为本回军议依据`);
+    } catch (error) {
+      showNotice(error.message);
+    }
+  }
+
   function showOfficeKnowledge(payload, context) {
     if (context && (context.serial !== officeKnowledgeRequestSerial || String(officeStage()?.id || "") !== context.stageId || (context.query != null && $("#officeKnowledgeQuery").value.trim() !== context.query))) return false;
     const raw = Array.isArray(payload.results) ? payload.results : Object.values(payload.results || {}).flat().filter((item) => item && typeof item === "object");
@@ -1309,7 +1356,8 @@
     for (const entry of results) profile.organization = organization.recordKnowledge(profile.organization, entry);
     writeJson(PROFILE_KEY, profile);
     renderOfficeCouncil();
-    $("#officeKnowledgeResults").innerHTML = results.slice(0, 6).map((entry) => `<article><strong>${escapeHtml(entry.name || entry.title || "史官条目")}</strong><p>${escapeHtml(entry.summary || entry.content || "")}</p></article>`).join("") || "<p>简册中未查到相关记载。</p>";
+    officeKnowledgeView = results;
+    renderOfficeKnowledgeResults();
     return true;
   }
 
@@ -3012,6 +3060,7 @@
     $("#officeAdvanceButton").addEventListener("click", advanceOfficeMonth);
     $("#officeKnowledgeForm").addEventListener("submit", searchOfficeKnowledge);
     $("#officeStageKnowledgeButton").addEventListener("click", loadOfficeStageKnowledge);
+    $("#officeKnowledgeResults").addEventListener("click", selectOfficeEvidence);
     document.querySelectorAll("[data-era-range]").forEach((button) => button.addEventListener("click", () => {
       $("#stageSearch").value = "";
       $("#stageRange").value = button.dataset.eraRange;

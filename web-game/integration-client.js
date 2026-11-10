@@ -153,7 +153,7 @@
   }
   function mandatePendingKey(input) {
     const operation = input.operation ? JSON.stringify(input.operation) : "";
-    const context = [input.stage_id, input.hero_id, input.knowledge_id, input.council_request_id, input.task_type, operation].join(":");
+    const context = [input.stage_id, input.hero_id, input.knowledge_id, input.evidence_source_index, input.council_request_id, input.task_type, operation].join(":");
     return MANDATE_PENDING_PREFIX + context;
   }
   async function createCourtMandate(input) {

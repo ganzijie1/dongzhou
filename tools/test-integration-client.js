@@ -119,7 +119,7 @@ const client = require("../web-game/integration-client.js");
   await assert.rejects(() => client.npcDecision("DuBo", "test", ["one", "two"]), /decision unavailable/);
   await client.npcDecision("DuBo", "test", ["one", "two"]);
   assert.strictEqual(decisionIds[0], decisionIds[1]);
-  const mandateInput = { stage_id: "01", stage_title: "东郊索命", hero_id: "DuBo", knowledge_id: "dongzhou_stage_001", council_request_id: decisionIds[1], decision_index: 0, task_type: "supply" };
+  const mandateInput = { stage_id: "01", stage_title: "东郊索命", hero_id: "DuBo", knowledge_id: "dongzhou_stage_001", evidence_source_index: 0, council_request_id: decisionIds[1], decision_index: 0, task_type: "supply" };
   await assert.rejects(() => client.createCourtMandate(mandateInput), /retry mandate/);
   const mandate = await client.createCourtMandate(mandateInput);
   assert.strictEqual(mandateIds[0], mandateIds[1]);

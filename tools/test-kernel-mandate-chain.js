@@ -14,14 +14,17 @@ state = play.recordKnowledge(state, {
   id: "dongzhou_stage_001",
   stageId: "01",
   name: "东郊旧闻",
-  summary: "杜伯蒙冤，东郊军心不稳。"
+  summary: "杜伯蒙冤，东郊军心不稳。",
+  sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }]
 });
+state = play.selectEvidence(state, { stageId: "01", knowledgeId: "dongzhou_stage_001", sourceIndex: 0 }).state;
 const councilInput = {
   id: "00000000-0000-4000-8000-000000000001",
   stageId: "01",
   memberId: "ZuoRu",
   knowledgeId: "dongzhou_stage_001",
-  question: "如何部署？",
+  evidenceSourceIndex: 0,
+  question: "如何部署？\n选证：《史记·周本纪》｜史实骨架",
   options: ["固守", "强攻"],
   index: 1
 };
@@ -34,7 +37,7 @@ const mandate = {
   stageTitle: "东郊索命",
   heroId: "ZuoRu",
   taskType: "drill",
-  evidence: { id: "dongzhou_stage_001", name: "东郊旧闻", summary: "杜伯蒙冤" },
+  evidence: { id: "dongzhou_stage_001", name: "东郊旧闻", summary: "杜伯蒙冤", source: { index: 0, work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" } },
   council: { requestId: councilInput.id, index: 1, text: "强攻" },
   kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "READY" },
   digest: "a".repeat(64),

@@ -33,7 +33,7 @@ async function setup(browser) {
       }
       body={version:model.version,payload:clone(model.cloud)};
     } else if(p.endsWith('/integration/status')) body={mode:'connected',organizationId:'test',services:{nexusKernel:{online:true},orgFlow:{online:true},aiNpc:{online:true},knowledge:{online:true}}};
-    else if(p.endsWith('/knowledge/stages/01')) body={mode:'connected',results:[{id:'dongzhou_stage_001',name:'Stage One Source',summary:'Published source for this stage.',stageId:'01'}]};
+    else if(p.endsWith('/knowledge/stages/01')) body={mode:'connected',results:[{id:'dongzhou_stage_001',name:'Stage One Source',summary:'Published source for this stage.',stageId:'01',sourceDetails:[{work:'《史记·周本纪》',tier:'史实骨架',scope:'千亩之败',url:'https://ctext.org/shiji/zhou-ben-ji'}]}]};
     else if(p.endsWith('/npcs/sync')) body={ready:true,npcs:[]};
     else if(p.endsWith('/state')) body={emotion:{data:{}},affection:{data:{}},relationships:{data:{}}};
     else if(p.endsWith('/schedule')) body={schedule:{data:{schedules:[]}}};
@@ -44,7 +44,7 @@ async function setup(browser) {
       body={state:'COMPLETED',decision:{data:{type:'OPTION',index:0,text:req.postDataJSON().options[0].text}}};
     } else if(p.endsWith('/court/mandates')) {
       const input=req.postDataJSON();model.mandates.push(input);
-      body={state:'ISSUED',mandate:{id:`dongzhou:council-test-player:${input.client_request_id}`,stageId:input.stage_id,stageTitle:'东郊索命',heroId:input.hero_id,taskType:input.task_type,evidence:{id:input.knowledge_id,name:'Stage One Source',summary:'Published source for this stage.'},council:{requestId:input.council_request_id,index:input.decision_index,text:'筹措军粮'},kernel:{module:'dongzhou_runtime',moduleVersion:'1.0.0',nexusKernelVersion:'0.2.0',state:'READY'},digest:'a'.repeat(64),state:'ISSUED'}};
+      body={state:'ISSUED',mandate:{id:`dongzhou:council-test-player:${input.client_request_id}`,stageId:input.stage_id,stageTitle:'东郊索命',heroId:input.hero_id,taskType:input.task_type,evidence:{id:input.knowledge_id,name:'Stage One Source',summary:'Published source for this stage.',source:{index:input.evidence_source_index,work:'《史记·周本纪》',tier:'史实骨架',scope:'千亩之败',url:'https://ctext.org/shiji/zhou-ben-ji'}},council:{requestId:input.council_request_id,index:input.decision_index,text:'筹措军粮'},kernel:{module:'dongzhou_runtime',moduleVersion:'1.0.0',nexusKernelVersion:'0.2.0',state:'READY'},digest:'a'.repeat(64),state:'ISSUED'}};
     } else if(p.endsWith('/organization/tasks')) {model.orders.push(req.postDataJSON());body={state:'ACCEPTED',taskId:'council-task'};}
     else if(p.endsWith('/organization/tasks/council-task')) body={result:{data:{task_id:'council-task',state:'SUCCEEDED',final_result:'SUCCESS',version:3}}};
     else {model.unexpected.push(p);return route.fulfill({status:404,body:'unexpected mock request'});}
@@ -59,7 +59,7 @@ async function setup(browser) {
   await page.selectOption('#officeMemberSelect',member);
   return {context,page,model,member,members};
 }
-async function knowledge(page) {await page.click('#officeStageKnowledgeButton');await page.waitForSelector('#officeKnowledgeResults article');}
+async function knowledge(page) {await page.click('#officeStageKnowledgeButton');await page.waitForSelector('#officeKnowledgeResults article');await page.click('[data-knowledge-id="dongzhou_stage_001"][data-source-index="0"]');await page.waitForSelector('#officeKnowledgeResults >> text=已取为据');}
 async function councils(page) {return page.evaluate(key=>JSON.parse(localStorage.getItem(key)).organization.councils||[],PROFILE);}
 async function decide(page) {await page.locator('#officeDecisionForm button[type=submit]').click();}
 (async()=>{
@@ -70,12 +70,12 @@ async function decide(page) {await page.locator('#officeDecisionForm button[type
     assert.equal(model.decisions.length,0);
     await knowledge(page);await decide(page);
     await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key)).organization.councils.length===1,PROFILE);
-    assert.match(model.decisions[0].question,/dongzhou_stage_001/);
+    assert.match(model.decisions[0].question,/选证：《史记·周本纪》｜史实骨架/);
     assert.equal(await page.locator('#officeUseCouncil').isChecked(),false);
     await page.selectOption('#officeTaskType','supply');
     await page.locator('#officeUseCouncil').check();
     await page.click('#officeIssueButton');await page.waitForSelector('#officeTaskLedger li.active');
-    assert.equal(model.mandates.length,1);assert.equal(model.mandates[0].knowledge_id,'dongzhou_stage_001');assert.equal(model.mandates[0].council_request_id,model.cloud.organization.councils[0].id);
+    assert.equal(model.mandates.length,1);assert.equal(model.mandates[0].knowledge_id,'dongzhou_stage_001');assert.equal(model.mandates[0].evidence_source_index,0);assert.equal(model.mandates[0].council_request_id,model.cloud.organization.councils[0].id);
     assert.equal(model.orders.length,1);assert.equal(model.orders[0].parameters.mandate_id,model.cloud.organization.mandates[0].id);assert.equal(model.orders[0].parameters.mandate_digest,'a'.repeat(64));
     await page.waitForFunction(key=>!!JSON.parse(localStorage.getItem(key)).organization.tasks[0].council,PROFILE);
     assert.equal(model.cloud.organization.tasks[0].council.knowledgeId,'dongzhou_stage_001');

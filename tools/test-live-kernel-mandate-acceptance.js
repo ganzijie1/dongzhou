@@ -70,6 +70,8 @@ saveJournal();
     saveJournal();
     await page.click("#officeStageKnowledgeButton");
     await page.waitForSelector("#officeKnowledgeResults article", { timeout: 90000 });
+    await page.click('#officeKnowledgeResults [data-source-index="0"]');
+    await page.waitForSelector("#officeKnowledgeResults >> text=已取为据");
 
     journal.stage = "npc-council";
     saveJournal();
@@ -83,6 +85,7 @@ saveJournal();
     const council = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).organization.councils.at(-1), PROFILE);
     assert.equal(council.memberId, "ZuoRu");
     assert.equal(council.stageId, "01");
+    assert(council.evidenceSource?.work);
 
     await page.selectOption("#officeTaskType", "supply");
     await page.locator("#officeUseCouncil").check();
@@ -102,6 +105,13 @@ saveJournal();
     assert.equal(issued.mandate.kernel.state, "READY");
     assert.match(issued.mandate.digest, /^[0-9a-f]{64}$/);
     assert.equal(issued.mandate.evidence.id, council.knowledgeId);
+    assert.deepEqual(issued.mandate.evidence.source, {
+      index: council.evidenceSource.index,
+      work: council.evidenceSource.work,
+      tier: council.evidenceSource.tier,
+      scope: council.evidenceSource.scope,
+      url: council.evidenceSource.url
+    });
     assert.equal(issued.mandate.council.requestId, council.id);
     assert.equal(issued.task.mandate.id, issued.mandate.id);
     journal.remoteTask = issued.task.remoteResult;

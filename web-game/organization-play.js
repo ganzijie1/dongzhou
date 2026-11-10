@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 4;
+  const SCHEMA_VERSION = 5;
   const TASK_TYPES = {
     supply: { name: "转运军粮", office: "司徒", duration: 1, cost: 8, base: 72, reward: { provisions: 24 } },
     drill: { name: "整训军阵", office: "司马", duration: 1, cost: 6, base: 68, reward: { attack: 0.08 } },
@@ -37,6 +37,7 @@
       members: [],
       tasks: [],
       knowledge: [],
+      selectedSources: {},
       councils: [],
       mandates: [],
       relations: {},
@@ -81,6 +82,7 @@
       members: Array.isArray(source.members) ? source.members.slice(0, 12).map(normalizeMember) : [],
       tasks: retainedTasks.map((task) => ({ ...task, status: ['active', 'success', 'partial', 'failed'].includes(task.status) ? task.status : 'failed' })),
       knowledge: Array.isArray(source.knowledge) ? source.knowledge.slice(-30).map((entry) => ({ ...entry })) : [],
+      selectedSources: source.selectedSources && typeof source.selectedSources === "object" ? copy(source.selectedSources) : {},
       councils: Array.isArray(source.councils) ? source.councils.filter((entry) => entry && typeof entry === 'object').slice(-30).map(copy) : [],
       mandates: Array.isArray(source.mandates) ? source.mandates.filter((entry) => entry && typeof entry === "object").slice(-50).map(copy) : [],
       relations: source.relations && typeof source.relations === "object" ? { ...source.relations } : {},
@@ -120,14 +122,16 @@
     const stageId = String(input?.stageId || '');
     const member = state.members.find((entry) => entry.id === input?.memberId);
     const knowledge = state.knowledge.find((entry) => entry.id === input?.knowledgeId && entry.stageId === stageId);
+    const evidenceSource = state.selectedSources[stageId];
     const options = input?.options;
     if (!stageId || !member || !knowledge) throw new Error('请先选定官员并查阅本回史料');
+    if (!evidenceSource || evidenceSource.knowledgeId !== knowledge.id || Number(evidenceSource.index) !== Number(input.evidenceSourceIndex)) throw new Error('请先从本回史料中选定军议依据');
     if (!Array.isArray(options) || options.length < 2 || options.some((text) => typeof text !== 'string' || !text.trim())) throw new Error('军议方案不完整');
     if (!Number.isInteger(input.index) || input.index < 0 || input.index >= options.length) throw new Error('军议结果不属于本次方案');
     if (!String(input.question || '').trim() || !String(input.id || '').trim()) throw new Error('军议缺少来源记录');
     const council = { id: String(input.id), stageId, memberId: member.id, memberName: member.name,
       knowledgeId: knowledge.id, knowledgeName: String(input.knowledgeName || knowledge.name),
-      knowledgeSummary: String(input.knowledgeSummary ?? knowledge.summary ?? ''), question: String(input.question),
+      knowledgeSummary: String(input.knowledgeSummary ?? knowledge.summary ?? ''), evidenceSource: copy(evidenceSource), question: String(input.question),
       options: options.slice(), index: input.index, text: options[input.index] };
     const previous = state.councils.find((entry) => entry.id === council.id);
     if (previous && JSON.stringify(previous) !== JSON.stringify(council)) throw new Error('军议来源记录冲突');
@@ -139,7 +143,7 @@
     const state = normalizeState(rawState);
     const mandate = input && typeof input === "object" ? copy(input) : null;
     if (!mandate?.id || !mandate.stageId || !mandate.heroId || !mandate.taskType) throw new Error("内核军令缺少关卡、属官或差事");
-    if (!mandate.evidence?.id || !mandate.council?.requestId || !mandate.council?.text) throw new Error("内核军令未绑定史料与属官裁断");
+    if (!mandate.evidence?.id || !mandate.evidence?.source?.work || !mandate.council?.requestId || !mandate.council?.text) throw new Error("内核军令未绑定史料、选证与属官裁断");
     if (!/^[0-9a-f]{64}$/.test(String(mandate.digest || "")) || !["READY", "DEGRADED"].includes(mandate.kernel?.state)) throw new Error("内核军令印记无效");
     if (mandate.operation && (mandate.taskType !== "diplomacy" || mandate.operation.kind !== "diplomacy" || !mandate.operation.target_id || !mandate.operation.target_name || !mandate.operation.proposal)) throw new Error("外交军令缺少目标或主张");
     const previous = state.mandates.find((entry) => entry.id === mandate.id);
@@ -160,7 +164,11 @@
     const council = input.councilId ? state.councils.find((entry) => entry.id === input.councilId) : null;
     if (input.councilId && (!council || council.memberId !== member.id || council.stageId !== String(input.stageId || '') || council.knowledgeId !== input.knowledgeId)) throw new Error('军议与本次关卡、官员或史料不匹配');
     const mandate = input.mandateId ? state.mandates.find((entry) => entry.id === input.mandateId) : null;
-    if (input.mandateId && (!mandate || mandate.stageId !== String(input.stageId || "") || mandate.heroId !== member.id || mandate.taskType !== input.type || mandate.evidence?.id !== input.knowledgeId || mandate.council?.requestId !== input.councilId)) throw new Error("内核军令与本次关卡、属官、史料或差事不匹配");
+    const councilSource = council?.evidenceSource ? {
+      index: council.evidenceSource.index, work: council.evidenceSource.work, tier: council.evidenceSource.tier,
+      scope: council.evidenceSource.scope, url: council.evidenceSource.url
+    } : null;
+    if (input.mandateId && (!mandate || mandate.stageId !== String(input.stageId || "") || mandate.heroId !== member.id || mandate.taskType !== input.type || mandate.evidence?.id !== input.knowledgeId || mandate.council?.requestId !== input.councilId || JSON.stringify(mandate.evidence?.source || null) !== JSON.stringify(councilSource))) throw new Error("内核军令与本次关卡、属官、选证或差事不匹配");
     const operation = input.operation && typeof input.operation === "object" ? copy(input.operation) : mandate?.operation ? copy(mandate.operation) : null;
     if (operation && (input.type !== "diplomacy" || operation.kind !== "diplomacy" || !operation.target_id || !operation.target_name || !operation.proposal || !mandate?.operation || JSON.stringify(operation) !== JSON.stringify(mandate.operation))) throw new Error("外交差事与内核军令不匹配");
     const active = state.tasks.some((task) => task.status === "active" && task.assigneeId === member.id);
@@ -447,10 +455,34 @@
     return { state, support };
   }
 
+  function selectEvidence(rawState, input) {
+    const state = normalizeState(rawState);
+    const stageId = String(input?.stageId || "");
+    const knowledge = state.knowledge.find((entry) => entry.id === String(input?.knowledgeId || "") && entry.stageId === stageId);
+    const index = Number(input?.sourceIndex);
+    const source = knowledge?.sources?.[index];
+    if (!stageId || !knowledge || !Number.isInteger(index) || !source?.work) throw new Error("所选出处不属于本回已发布史料");
+    const selection = {
+      knowledgeId: knowledge.id, index, work: String(source.work), tier: String(source.tier || "来源"),
+      scope: String(source.scope || ""), url: String(source.url || "")
+    };
+    state.selectedSources[stageId] = selection;
+    state.history.push({ month: state.month, tone: "knowledge", text: `本回选证：${selection.work}（${selection.tier}）` });
+    state.history = state.history.slice(-80);
+    return { state, source: copy(selection), knowledge: copy(knowledge) };
+  }
+
   function recordKnowledge(rawState, entry) {
     const state = normalizeState(rawState);
     if (!entry?.id) return state;
-    state.knowledge = [{ id: String(entry.id), name: String(entry.name || entry.title || "史官条目"), summary: String(entry.summary || ""), stageId: String(entry.stageId || "") }, ...state.knowledge.filter((item) => item.id !== String(entry.id))].slice(0, 30);
+    const sources = Array.isArray(entry.sourceDetails) ? entry.sourceDetails : [];
+    state.knowledge = [{
+      id: String(entry.id), name: String(entry.name || entry.title || "史官条目"), summary: String(entry.summary || ""),
+      content: String(entry.content || ""), stageId: String(entry.stageId || ""),
+      sources: sources.filter((source) => source && typeof source === "object" && source.work).slice(0, 20).map((source, index) => ({
+        index, work: String(source.work), tier: String(source.tier || "来源"), scope: String(source.scope || ""), url: String(source.url || "")
+      }))
+    }, ...state.knowledge.filter((item) => item.id !== String(entry.id))].slice(0, 30);
     return state;
   }
 
@@ -461,5 +493,5 @@
     return state;
   }
 
-  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, consumeSupport, recordKnowledge, updateBackend, hash };
+  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, consumeSupport, recordKnowledge, selectEvidence, updateBackend, hash };
 });
