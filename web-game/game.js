@@ -3,8 +3,11 @@
 
   const PROFILE_KEY = "dongzhou-h5-profile-v2";
   const BATTLE_KEY = "dongzhou-h5-battle-v2";
+  const PREPARATION_JOURNAL_KEY = "dongzhou-preparation-journal-v1";
   const systems = window.DongzhouGameSystems;
   const organization = window.DongzhouOrganizationPlay;
+  const integration = window.DongzhouIntegration;
+  window.addEventListener("dongzhou-save-conflict", () => showNotice("云端存档已在其他页面更新，本页已停止写入以保护进度。"));
   const $ = (selector) => document.querySelector(selector);
   const asList = (value) => Array.isArray(value) ? value : Object.keys(value || {}).sort((a, b) => Number(a) - Number(b)).map((key) => value[key]);
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -76,6 +79,9 @@
   let animationSerial = 0;
   const unitAnimations = new Map();
   const imageCache = new Map();
+  const syncedNpcIds = new Set();
+  let officeNpcRefreshTimer = null;
+  let officeNpcRefreshSerial = 0;
 
   const canvas = $("#battleCanvas");
   const ctx = canvas.getContext("2d");
@@ -86,6 +92,51 @@
 
   function writeJson(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
+    if (key === PROFILE_KEY && integration) {
+      const consumed = [...(value.organization?.consumedSupportTransactions || [])];
+      integration.persist(value).then(() => acknowledgePreparation(consumed)).catch((error) => console.error("server save failed", error));
+    }
+  }
+
+  function acknowledgePreparation(consumed) {
+    const journal = readJson(PREPARATION_JOURNAL_KEY, {});
+    for (const id of consumed) delete journal[id];
+    localStorage.setItem(PREPARATION_JOURNAL_KEY, JSON.stringify(journal));
+  }
+
+  async function recoverPreparation() {
+    const journal = readJson(PREPARATION_JOURNAL_KEY, {});
+    const battle = readJson(BATTLE_KEY, null);
+    const consumed = new Set(profile.organization.consumedSupportTransactions || []);
+    const consumedSupportIds = new Set(profile.organization.consumedSupportIds || []);
+    let pending = false;
+    for (const [id, entry] of Object.entries(journal)) {
+      // A prepared journal is committed only when its battle actually reached storage.
+      if (!entry.committed && battle?.organizationSupportTransaction !== id) {
+        delete journal[id];
+        continue;
+      }
+      pending = true;
+      if (consumed.has(id)) continue;
+      const ids = new Set(entry.supportIds);
+      // A second tab can journal the same preparation under another transaction ID.
+      // Only rewards still present in the authoritative profile may be credited.
+      const available = profile.organization.pendingSupport.filter(item => ids.has(item.id) && !consumedSupportIds.has(item.id));
+      profile.organization.pendingSupport = profile.organization.pendingSupport.filter(item => !ids.has(item.id));
+      profile.campaignResources.provisions = clamp(profile.campaignResources.provisions + available.reduce((sum, item) => sum + Number(item.provisions || 0), 0), 0, 200);
+      profile.campaignResources.morale = clamp(profile.campaignResources.morale + available.reduce((sum, item) => sum + Number(item.morale || 0), 0), 0, 100);
+      for (const supportId of ids) consumedSupportIds.add(supportId);
+      consumed.add(id);
+    }
+    localStorage.setItem(PREPARATION_JOURNAL_KEY, JSON.stringify(journal));
+    profile.organization.consumedSupportTransactions = [...consumed];
+    profile.organization.consumedSupportIds = [...consumedSupportIds];
+    if (pending) {
+      // Do not open gameplay against a stale cloud profile when recovery cannot save.
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+      await integration.persist(profile);
+      acknowledgePreparation([...consumed]);
+    }
   }
 
   function displayName(id) {
@@ -142,6 +193,10 @@
       terrainByChar = new Map(asList(config.terrains).map((entry, index) => [entry.char, index]));
       profile = systems.normalizeProfile(profile, campaign.stages);
       profile.organization = organization.normalizeState(profile.organization);
+      const integrated = await integration.initialize(profile);
+      profile = systems.normalizeProfile(integrated.profile, campaign.stages);
+      profile.organization = organization.normalizeState(profile.organization);
+      await recoverPreparation();
       writeJson(PROFILE_KEY, profile);
       runtime = new DongzhouLuaRuntime(campaign);
       await runtime.init();
@@ -504,15 +559,6 @@
     mapZoom = 1;
     updateZoom();
     state = savedState || freshState(record);
-    if (!savedState) {
-      profile.organization = organization.syncMembers(profile.organization, record, displayName);
-      const prepared = organization.consumeSupport(profile.organization, record.id);
-      profile.organization = prepared.state;
-      state.organizationSupport = prepared.support;
-      profile.campaignResources.provisions = clamp(profile.campaignResources.provisions + prepared.support.provisions, 0, 200);
-      profile.campaignResources.morale = clamp(profile.campaignResources.morale + prepared.support.morale, 0, 100);
-      writeJson(PROFILE_KEY, profile);
-    }
     if (options.procedural) state.procedural = options.procedural;
     state.assist ||= systems.retryAssist(profile, record.id);
     const objectiveType = state.procedural?.objectiveType ? "procedural" : difficultyProfileFor(record).objectiveType;
@@ -544,7 +590,22 @@
     setStatus("正在列阵");
     updateStageHeader();
     configureBoard();
-    await runtime.loadStage(record, gameApi);
+    let profileBeforeDeployment = null;
+    try {
+      await runtime.loadStage(record, gameApi);
+      // Deployment callbacks see staged resources, but the original profile stays intact
+      // until all synchronous initialization has completed successfully.
+      profileBeforeDeployment = profile;
+      profile = JSON.parse(JSON.stringify(profile));
+    if (!savedState) {
+      profile.organization = organization.syncMembers(profile.organization, record, displayName);
+      const prepared = organization.consumeSupport(profile.organization, record.id);
+      profile.organization = prepared.state;
+      state.organizationSupport = prepared.support;
+      profile.campaignResources.provisions = clamp(profile.campaignResources.provisions + prepared.support.provisions, 0, 200);
+      profile.campaignResources.morale = clamp(profile.campaignResources.morale + prepared.support.morale, 0, 100);
+      // saveBattle below persists the constructed battle before its consumed preparation.
+    }
     restoring = Boolean(savedState);
     runtime.invoke("on_deploy");
     if (!savedState) {
@@ -560,7 +621,11 @@
       const vanguard = profile.stageVanguards[record.id];
       log(`军议：${formation.name}${vanguard ? `；${displayName(vanguard)}任先锋` : ""}；军粮 ${profile.campaignResources.provisions}，士气 ${profile.campaignResources.morale}${profile.campaignResources.provisions < 40 ? "；缺粮导致兵力与攻击下降" : ""}。`, "event");
       if (state.assist.active) log(`连续失利援助已启用：回合上限 +15%，临时金疮药 +1、士气 +8；首通铜钱 -10%。`, "event");
-      if (state.organizationSupport?.sources?.length) log(`官署筹备已投入：${state.organizationSupport.sources.join("、")}；军粮 +${state.organizationSupport.provisions}，士气 +${state.organizationSupport.morale}。`, "event");
+      if (state.organizationSupport?.sources?.length) {
+        const support = state.organizationSupport;
+        log(`官署筹备已投入：${support.sources.join("、")}；军粮 +${support.provisions}，士气 +${support.morale}，攻击 +${Math.round(support.attack * 100)}%，防御 +${Math.round(support.defense * 100)}%，侦察 ${support.recon}。`, "event");
+        for (const council of support.councils || []) log("军议依据：《" + council.knowledgeName + "》；" + council.memberName + "建议：" + council.text, "event");
+      }
     }
     if (savedState) {
       for (let turn = 1; turn <= state.turn; turn++) {
@@ -587,7 +652,45 @@
     state.initialEnemyCount ||= state.units.filter((unit) => unit.team === "enemy").length;
     state.initialAllyCount ||= state.units.filter((unit) => unit.team === "ally").length;
     loadStageMap();
+    } catch (error) {
+      if (profileBeforeDeployment) profile = profileBeforeDeployment;
+      restoring = false;
+      runtimeTurnOverride = null;
+      runtime.api = null;
+      runtime.loadedStage = null;
+      try { runtime.resetStageGlobals(); } catch (_) { /* Next load resets again. */ }
+      unitAnimations.clear();
+      state = null;
+      stageRecord = null;
+      $("#storyModal").hidden = true;
+      $("#resultModal").hidden = true;
+      $("#campaignScreen").hidden = false;
+      renderCampaign();
+      showNotice(`战役载入失败，筹备已保留，请重试：${error.message}`);
+      return;
+    }
+    let preparationTransaction = null;
+    if (!savedState && state.organizationSupport?.sources?.length) {
+      preparationTransaction = crypto.randomUUID();
+      const journal = readJson(PREPARATION_JOURNAL_KEY, {});
+      const remaining = new Set(profile.organization.pendingSupport.map(item => item.id));
+      journal[preparationTransaction] = {
+        committed: false,
+        supportIds: profileBeforeDeployment.organization.pendingSupport.filter(item => !remaining.has(item.id)).map(item => item.id),
+        support: state.organizationSupport
+      };
+      localStorage.setItem(PREPARATION_JOURNAL_KEY, JSON.stringify(journal));
+      state.organizationSupportTransaction = preparationTransaction;
+      profile.organization.consumedSupportTransactions = [...(profile.organization.consumedSupportTransactions || []), preparationTransaction];
+      profile.organization.consumedSupportIds = [...new Set([...(profile.organization.consumedSupportIds || []), ...journal[preparationTransaction].supportIds])];
+    }
     saveBattle(false);
+    if (preparationTransaction) {
+      const journal = readJson(PREPARATION_JOURNAL_KEY, {});
+      if (journal[preparationTransaction]) journal[preparationTransaction].committed = true;
+      localStorage.setItem(PREPARATION_JOURNAL_KEY, JSON.stringify(journal));
+    }
+    if (!savedState && record.isProcedural) writeJson(PROFILE_KEY, profile);
     updateUI();
     $("#storyReplayButton").hidden = !asList(record.story?.intro).length;
     requestAnimationFrame(centerOnOwnArmy);
@@ -729,7 +832,12 @@
       setCampaignCamp(false);
       setCampaignSettings(false);
       renderOrganizationPanel();
+      refreshOfficeNpcState();
       requestAnimationFrame(() => $("#campaignOfficeCloseButton").focus());
+    } else {
+      officeNpcRefreshSerial += 1;
+      clearTimeout(officeNpcRefreshTimer);
+      officeNpcRefreshTimer = null;
     }
   }
 
@@ -752,90 +860,363 @@
     $("#officeInfluence").textContent = org.influence;
     $("#officeActiveTasks").textContent = org.tasks.filter((task) => task.status === "active").length;
     $("#officeSupportCount").textContent = org.pendingSupport.length;
-    const serviceLabels = [["orgFlow", "朝议"], ["aiNpc", "属官"], ["knowledge", "史官"]];
+    const serviceLabels = [["nexusKernel", "内核"], ["orgFlow", "朝议"], ["aiNpc", "属官"], ["knowledge", "史官"]];
     $("#officeServiceStatus").innerHTML = serviceLabels.map(([key, label]) => `<span class="${org.backend[key] ? "online" : "local"}"><i></i>${label}${org.backend[key] ? "通达" : "本地推演"}</span>`).join("");
-    $("#officeModeText").textContent = org.backend.mode === "connected" ? "朝议、属官与史官已互通；断线时会自动改用本地推演。" : "当前由本机推演属官决断，进度与战果仍会完整保存。";
-    $("#officeMemberSelect").innerHTML = org.members.map((member) => `<option value="${escapeHtml(member.id)}">${escapeHtml(member.name)} · ${escapeHtml(member.office)}</option>`).join("");
+    $("#officeModeText").textContent = integration.isOffline() ? "当前为显式离线演算，属官与官署结果仅保存在本机。" : org.backend.mode === "connected" ? "朝议、属官与史官已互通；远端未确认的结果不会在本地结算。" : "官署服务暂不可达，联网玩法已暂停。";
+    const currentMember = $("#officeMemberSelect").value;
+    const assignableMembers = !integration.isOffline() && org.backend.orgFlow
+      ? org.members.filter((member) => member.id !== "DuBo")
+      : org.members;
+    $("#officeMemberSelect").innerHTML = assignableMembers.map((member) => `<option value="${escapeHtml(member.id)}">${escapeHtml(member.name)} · ${escapeHtml(member.office)}</option>`).join("");
+    if (assignableMembers.some((member) => member.id === currentMember)) $("#officeMemberSelect").value = currentMember;
+    renderOfficeCouncil();
     const currentType = $("#officeTaskType").value;
     $("#officeTaskType").innerHTML = Object.entries(organization.TASK_TYPES).map(([id, task]) => `<option value="${id}" ${id === currentType ? "selected" : ""}>${task.name} · ${task.duration}月</option>`).join("");
-    $("#officeMembers").innerHTML = org.members.map((member) => `<div><strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(member.office)}</span><small>信任 ${member.loyalty} · 劳顿 ${member.fatigue}</small></div>`).join("") || "<p>随战役推进，出阵人物会进入官署名册。</p>";
-    $("#officeTaskLedger").innerHTML = [...org.tasks].reverse().slice(0, 10).map((task) => `<li class="${task.status}"><span>${escapeHtml(task.name)}</span><strong>${escapeHtml(task.assigneeName)}</strong><small>${task.status === "active" ? `${task.dueMonth}月复命` : task.status === "success" ? "办成" : "未成"}</small></li>`).join("") || '<li class="empty">尚无差事</li>';
+    $("#officeMembers").innerHTML = org.members.map((member) => `<div><strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(member.office)}</span><small>信任 ${member.loyalty} · 关系 ${Number(org.relations[member.id] || 0) >= 0 ? "+" : ""}${Number(org.relations[member.id] || 0)} · 劳顿 ${member.fatigue}</small></div>`).join("") || "<p>随战役推进，出阵人物会进入官署名册。</p>";
+    $("#officeTaskLedger").innerHTML = [...org.tasks].reverse().slice(0, 10).map((task) => `<li class="${task.status}"><span>${escapeHtml(task.name)}</span><strong>${escapeHtml(task.assigneeName)}</strong><small>${task.status === "active" ? `${task.dueMonth}月复命` : task.status === "success" ? "办成" : task.status === "partial" ? "部分办成" : "未成"}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》军议` : ""}</small></li>`).join("") || '<li class="empty">尚无差事</li>';
+    $("#officeAllianceLedger").innerHTML = [...org.diplomacy.alliances].reverse().map((pact) => `<li class="${pact.status}"><span>${escapeHtml(pact.targetName)}盟约</span><strong>${pact.status === "active" ? "生效" : pact.status === "broken" ? "背盟待战" : "战后结案"}</strong><small>关系 ${Number(org.diplomacy.relations[pact.targetId] || 0)} · ${escapeHtml(pact.terms.join("、"))}</small></li>`).join("") || '<li class="empty">尚无盟约</li>';
+    $("#officeBattleArchive").innerHTML = [...org.archives].reverse().slice(0, 12).map((entry) => `<li><strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml(entry.text)} · ${escapeHtml(String(entry.stageId || "无关卡"))}</span></li>`).join("") || "<li><strong>尚无档案</strong><span>完成盟约、背盟或战役后将在此存照。</span></li>";
     const selectedTask = organization.TASK_TYPES[$("#officeTaskType").value] || organization.TASK_TYPES.supply;
     $("#officeOrderHint").textContent = `${record?.battleTitle || "下一战"}：${selectedTask.name}需要 ${selectedTask.cost} 份军府资源，办成后形成战前助益。`;
     if (!$("#officeKnowledgeQuery").value) $("#officeKnowledgeQuery").value = `${record?.battleTitle || ""} ${record?.objective || ""}`.trim();
+    if (!$("#officeDecisionQuestion").value) $("#officeDecisionQuestion").value = `${record?.battleTitle || "下一战"}应如何部署？`;
+    const decisionDefaults = ["先固军粮，稳步推进", `整军强攻，争取${record?.objective || "先机"}`, "遣使探察，再定进退"];
+    document.querySelectorAll(".office-decision-option").forEach((input, index) => { if (!input.value) input.value = decisionDefaults[index]; });
   }
 
   async function refreshIntegrationStatus() {
     try {
-      const response = await fetch("api/dongzhou/integration/health", { cache: "no-store" }).then(checkResponse).then((item) => item.json());
+      const response = await integration.status();
+      const services = response.services || {};
       profile.organization = organization.updateBackend(profile.organization, {
-        orgFlow: Boolean(response.orgFlow?.online), aiNpc: Boolean(response.aiNpc?.online), knowledge: Boolean(response.knowledge?.online), remoteId: response.organizationId || profile.organization.remoteId || ""
+        nexusKernel: Boolean(services.nexusKernel?.online), orgFlow: Boolean(services.orgFlow?.online), aiNpc: Boolean(services.aiNpc?.online), knowledge: Boolean(services.knowledge?.online), remoteId: response.organizationId || profile.organization.remoteId || ""
       });
     } catch (_) {
-      profile.organization = organization.updateBackend(profile.organization, { orgFlow: false, aiNpc: false, knowledge: false });
+      profile.organization = organization.updateBackend(profile.organization, { nexusKernel: false, orgFlow: false, aiNpc: false, knowledge: false });
     }
     writeJson(PROFILE_KEY, profile);
     renderOrganizationPanel();
   }
 
+  function scheduleOfficeNpcRefresh(memberId) {
+    clearTimeout(officeNpcRefreshTimer);
+    officeNpcRefreshTimer = setTimeout(() => {
+      officeNpcRefreshTimer = null;
+      if (!$("#campaignOfficeBackdrop").hidden && $("#officeMemberSelect").value === memberId) refreshOfficeNpcState();
+    }, 5000);
+  }
+
+  function isCurrentOfficeNpcRequest(serial, memberId) {
+    return serial === officeNpcRefreshSerial && !$("#campaignOfficeBackdrop").hidden && $("#officeMemberSelect").value === memberId;
+  }
+
+  async function refreshOfficeNpcState() {
+    const panel = $("#officeNpcState");
+    const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
+    if (!panel || !member) return;
+    const serial = ++officeNpcRefreshSerial;
+    clearTimeout(officeNpcRefreshTimer);
+    officeNpcRefreshTimer = null;
+    if (integration.isOffline()) {
+      panel.innerHTML = "<p>离线演算不读取属官实时状态。</p>";
+      return;
+    }
+    panel.innerHTML = `<p>正在调阅 ${escapeHtml(member.name)} 的属官状态…</p>`;
+    try {
+      if (!syncedNpcIds.has(member.id)) {
+        await integration.syncNpcs([{ heroId: member.id, name: member.name }]);
+        syncedNpcIds.add(member.id);
+      }
+      const state = await integration.npcState(member.id);
+      if (!isCurrentOfficeNpcRequest(serial, member.id)) return;
+      const emotion = state.emotion?.data || state.emotion || {};
+      const affection = state.affection?.data || state.affection || {};
+      const relationships = state.relationships?.data || state.relationships || {};
+      const dominant = emotion.dominant || {};
+      panel.innerHTML = `<strong>${escapeHtml(member.name)} · ${escapeHtml(member.office)}</strong><dl><div><dt>心境</dt><dd>${escapeHtml(dominant.emotion_type || "calm")} ${Math.round(Number(dominant.intensity || 0))}</dd></div><div><dt>牵挂</dt><dd>${Number(affection.total || affection.items?.length || 0)}</dd></div><div><dt>人际</dt><dd>${Number(relationships.total || relationships.items?.length || 0)}</dd></div></dl>`;
+      await refreshOfficeNpcSchedule(member, serial);
+    } catch (error) {
+      if (!isCurrentOfficeNpcRequest(serial, member.id)) return;
+      panel.innerHTML = `<p>${escapeHtml(member.name)} 的属官服务正在恢复，恢复后将自动刷新。</p>`;
+      scheduleOfficeNpcRefresh(member.id);
+    }
+  }
+
+  async function refreshOfficeNpcSchedule(memberOverride, requestSerial) {
+    const panel = $("#officeNpcSchedule");
+    const member = memberOverride || profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
+    if (!panel || !member || integration.isOffline()) return;
+    panel.textContent = "正在查阅日程…";
+    try {
+      const response = await integration.npcSchedule(member.id);
+      if (requestSerial && !isCurrentOfficeNpcRequest(requestSerial, member.id)) return;
+      const plan = response.schedule?.data || response.schedule || {};
+      const day = Array.isArray(plan.schedules) ? plan.schedules[0] : null;
+      const events = Array.isArray(day?.events) ? day.events.slice(0, 3).map((event) => event.name).filter(Boolean) : [];
+      panel.textContent = events.length ? `${day.date || "近日"}：${events.join("、")}` : "尚无已定日程";
+    } catch (error) {
+      if (requestSerial && !isCurrentOfficeNpcRequest(requestSerial, member.id)) return;
+      panel.textContent = "日程服务正在恢复，将自动重试…";
+      scheduleOfficeNpcRefresh(member.id);
+    }
+  }
+
+  async function generateOfficeNpcSchedule() {
+    const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
+    if (!member) return;
+    $("#officeNpcSchedule").textContent = "正在拟定日程…";
+    try {
+      await integration.generateNpcSchedule(member.id);
+      await refreshOfficeNpcSchedule(member);
+    } catch (error) {
+      $("#officeNpcSchedule").textContent = "日程服务正在恢复，请稍候重试。";
+      scheduleOfficeNpcRefresh(member.id);
+    }
+  }
+
+  function currentOfficeCouncil() {
+    const stageId = String(officeStage()?.id || "");
+    const knowledge = profile.organization.knowledge.find((entry) => entry.stageId === stageId);
+    return [...profile.organization.councils].reverse().find((entry) => entry.stageId === stageId && entry.memberId === $("#officeMemberSelect").value && entry.knowledgeId === knowledge?.id);
+  }
+
+  function renderOfficeCouncil() {
+    const council = currentOfficeCouncil();
+    const control = $("#officeUseCouncil");
+    const contextKey = council ? [council.stageId, council.memberId, council.knowledgeId, council.id].join(':') : "";
+    if (control.dataset.councilContext !== contextKey) control.checked = false;
+    control.dataset.councilContext = contextKey;
+    control.disabled = !council;
+    $("#officeCouncilHint").textContent = council ? "已保存：" + council.memberName + "据《" + council.knowledgeName + "》建议“" + council.text + "”。引用不替你选择差事，请确认差事类型。" : "先查本回史料，再请当前属官参议；派差前可选择引用。";
+  }
+
+  let officeLobbyInFlight = false;
+  async function lobbyPolity() {
+    if (officeLobbyInFlight || officeCouncilInFlight) return;
+    const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
+    const stageId = String(officeStage()?.id || "");
+    const knowledge = profile.organization.knowledge.find((entry) => entry.stageId === stageId);
+    const council = currentOfficeCouncil();
+    const target = $("#officeDiplomacyTarget");
+    const targetId = target.value;
+    const targetName = target.selectedOptions[0]?.textContent || targetId;
+    const proposal = $("#officeDiplomacyProposal").value.trim();
+    const panel = $("#officeDiplomacyResult");
+    if (!member || !knowledge || !council || !proposal) { panel.textContent = "请先查本回史料并由当前使者完成军议，再提出盟约。"; return; }
+    officeLobbyInFlight = true;
+    $("#officeLobbyButton").disabled = true;
+    panel.textContent = member.name + "正在向" + targetName + "陈说利害…";
+    try {
+      const question = ("外交游说：向" + targetName + "提出“" + proposal + "”。依据《" + knowledge.name + "》与军议“" + council.text + "”。是否接受？").slice(0, 2000);
+      const response = await integration.npcDecision(member.id, question, ["接受盟约", "拒绝盟约"]);
+      const selected = response.decision?.data || response.decision || {};
+      if (response.state !== "COMPLETED" || selected.type !== "OPTION") throw new Error("游说尚未形成有效答复");
+      if (String(officeStage()?.id || "") !== stageId || $("#officeMemberSelect").value !== member.id || $("#officeDiplomacyTarget").value !== targetId || $("#officeDiplomacyProposal").value.trim() !== proposal) { panel.textContent = "游说条件已变化，本次答复不落档。"; return; }
+      const outcome = Number(selected.index) === 0 ? "accepted" : "rejected";
+      const noted = organization.recordLobbying(profile.organization, { id: "lobby:" + response.clientRequestId, stageId, targetId, targetName, memberId: member.id, knowledgeId: knowledge.id, councilId: council.id, proposal, outcome, decision: { type: selected.type, index: Number(selected.index), text: selected.text || "" } });
+      await integration.persist({ ...profile, organization: noted.state });
+      profile.organization = noted.state;
+      writeJson(PROFILE_KEY, profile);
+      renderOrganizationPanel();
+      panel.textContent = outcome === "accepted" ? targetName + "已接受主张，可正式缔盟。" : targetName + "拒绝了本次主张。";
+    } catch (error) { panel.textContent = "游说暂不可用：" + error.message; }
+    finally { officeLobbyInFlight = false; $("#officeLobbyButton").disabled = false; }
+  }
+
+  function signAlliance() {
+    const targetId = $("#officeDiplomacyTarget").value;
+    const lobbying = [...profile.organization.diplomacy.lobbying].reverse().find((entry) => entry.targetId === targetId && entry.outcome === "accepted");
+    try {
+      if (!lobbying) throw new Error("该诸侯尚未接受游说");
+      const signed = organization.createAlliance(profile.organization, { id: "pact:" + lobbying.id, lobbyingId: lobbying.id, terms: [$("#officeDiplomacyProposal").value.trim(), "共享本回军情"] });
+      saveOrganization(signed.state);
+      $("#officeDiplomacyResult").textContent = "已与" + signed.alliance.targetName + "缔盟，盟约收入官署档案。";
+    } catch (error) { $("#officeDiplomacyResult").textContent = error.message; }
+  }
+
+  function betrayAlliance() {
+    const targetId = $("#officeDiplomacyTarget").value;
+    const alliance = profile.organization.diplomacy.alliances.find((entry) => entry.targetId === targetId && entry.status === "active");
+    try {
+      if (!alliance) throw new Error("该诸侯没有生效盟约");
+      const broken = organization.breakAlliance(profile.organization, { allianceId: alliance.id, stageId: String(officeStage()?.id || ""), reason: $("#officeDiplomacyProposal").value.trim() || "因战局而背盟" });
+      saveOrganization(broken.state);
+      $("#officeDiplomacyResult").textContent = "已背弃与" + alliance.targetName + "的盟约；本战获得突袭之利，但士气与邦交受损。";
+    } catch (error) { $("#officeDiplomacyResult").textContent = error.message; }
+  }
+
+  let officeCouncilInFlight = false;
+  async function requestOfficeNpcDecision(event) {
+    event.preventDefault();
+    if (officeCouncilInFlight) return;
+    const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
+    const question = $("#officeDecisionQuestion").value.trim();
+    const options = [...document.querySelectorAll(".office-decision-option")].map((input) => input.value.trim()).filter(Boolean);
+    if (!member || !question || options.length < 2) return;
+    const panel = $("#officeDecisionResult");
+    const stageId = String(officeStage()?.id || "");
+    const knowledge = profile.organization.knowledge.find((entry) => entry.stageId === stageId);
+    if (!knowledge) { panel.textContent = "请先查阅本回史料，再请属官参议。"; return; }
+    const contextualQuestion = (question.slice(0, 1000) + "\n史料：" + knowledge.name + "（" + knowledge.id + "）\n" + String(knowledge.summary || "").slice(0, 600)).slice(0, 2000);
+    officeCouncilInFlight = true;
+    panel.textContent = `${member.name}正在权衡…`;
+    try {
+      const response = await integration.npcDecision(member.id, contextualQuestion, options);
+      if (String(officeStage()?.id || "") !== stageId || $("#officeMemberSelect").value !== member.id || $("#officeDecisionQuestion").value.trim() !== question || JSON.stringify([...document.querySelectorAll(".office-decision-option")].map((input) => input.value.trim()).filter(Boolean)) !== JSON.stringify(options)) { panel.textContent = "选择已改变，本轮结果不用于当前派差，请重新参议。"; return; }
+      const selected = response.decision?.data || response.decision || {};
+      if (response.state !== "COMPLETED" || selected.type !== "OPTION") throw new Error("军议尚未返回有效方案");
+      const currentKnowledge = profile.organization.knowledge.find((entry) => entry.stageId === stageId);
+      if (!currentKnowledge || currentKnowledge.id !== knowledge.id || currentKnowledge.name !== knowledge.name || currentKnowledge.summary !== knowledge.summary) {
+        panel.textContent = "史料已更新，本轮议决不落档，请重新参议。";
+        return;
+      }
+      const noted = organization.recordCouncil(profile.organization, { id: response.clientRequestId, stageId, memberId: member.id, knowledgeId: knowledge.id, knowledgeName: knowledge.name, knowledgeSummary: knowledge.summary, question: contextualQuestion, options, index: selected.index });
+      await integration.persist({ ...profile, organization: noted.state });
+      profile.organization = noted.state;
+      writeJson(PROFILE_KEY, profile);
+      renderOfficeCouncil();
+      const text = selected.text || options[Number(selected.index)] || "未能形成裁断";
+      panel.innerHTML = `<strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(text)}</span>`;
+    } catch (error) {
+      panel.textContent = `裁断暂不可用：${error.message}`;
+    } finally {
+      officeCouncilInFlight = false;
+    }
+  }
+
+  let officeOrderInFlight = false;
   async function issueOfficeTask() {
+    if (officeOrderInFlight || officeCouncilInFlight) return;
+    officeOrderInFlight = true;
+    $("#officeIssueButton").disabled = true;
     const record = officeStage();
     try {
+      if (!integration.isOffline() && profile.organization.backend.orgFlow && $("#officeMemberSelect").value === "DuBo") {
+        showNotice("杜伯是当前组织负责人，不能向自己派单，请选择一名直属下属。");
+        return;
+      }
       const taskDefinition = organization.TASK_TYPES[$("#officeTaskType").value];
       if (profile.campaignResources.provisions < taskDefinition.cost) {
         showNotice("军粮不足，无法颁下这项差事");
         return;
       }
+      const knowledge = profile.organization.knowledge.find((entry) => entry.stageId === String(record?.id || ""));
+      const council = $("#officeUseCouncil").checked ? currentOfficeCouncil() : null;
+      const councilContext = council ? [council.stageId, council.memberId, council.knowledgeId, council.id].join(':') : "";
+      if ($("#officeUseCouncil").checked && (!council || $("#officeUseCouncil").dataset.councilContext !== councilContext)) throw new Error("军议选择已变化，请重新确认引用");
       const created = organization.createTask(profile.organization, {
         type: $("#officeTaskType").value,
         assigneeId: $("#officeMemberSelect").value,
         stageId: record?.id,
         stageTitle: record?.battleTitle,
-        knowledgeId: profile.organization.knowledge.find((entry) => entry.stageId === record?.id)?.id
+        knowledgeId: knowledge?.id,
+        councilId: council?.id
       });
-      profile.campaignResources.provisions = clamp(profile.campaignResources.provisions - taskDefinition.cost, 0, 200);
-      saveOrganization(created.state);
-      showNotice(`${created.task.assigneeName}已领命：${created.task.name}`);
-      const remote = await fetch("api/dongzhou/organization/tasks", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
-          organization_id: profile.organization.remoteId || "", title: created.task.name,
-          description: `${record?.chapter || ""} ${record?.battleTitle || ""}：${record?.objective || ""}`,
-          assignee_id: created.task.assigneeId, difficulty: Math.max(1, Math.min(10, Math.ceil((record?.index || 1) / 20))),
-          resource_units: created.task.cost, reward_units: created.task.cost + 3, execution_location: record?.battleTitle || "东周列国"
-        })
-      }).then((item) => item.ok ? item.json() : null).catch(() => null);
-      const mirrored = profile.organization.tasks.find((task) => task.id === created.task.id);
-      if (mirrored && remote?.accepted) {
-        mirrored.remoteMirrored = true;
-        mirrored.remoteResult = remote.result?.data?.task_id || remote.result?.task_id || null;
-        writeJson(PROFILE_KEY, profile);
+      const remote = integration.isOffline() ? { state: "OFFLINE" } : await integration.createOrganizationTask({
+        task_type: created.task.type,
+        assignee_hero_id: created.task.assigneeId,
+        stage_id: String(record?.id || "unknown"),
+        // Keep the external protocol body neutral and stable. Narrative combat text and AINPC
+        // output remain frozen in the signed save/task council snapshot for browser provenance.
+        stage_title: `Dongzhou stage ${record?.id || "unknown"}`,
+        brief: `Dongzhou office assignment for stage ${record?.id || "unknown"}${council ? "; source council recorded in player save" : ""}.`,
+        parameters: { resource_units: created.task.cost, assignee_name: created.task.assigneeName }
+      }, created.task);
+      if (!integration.isOffline()) {
+        integration.applyOrganizationOrder(profile, created.task, remote);
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
         renderOrganizationPanel();
+        await integration.persist(profile);
+      } else {
+        profile.campaignResources.provisions = clamp(profile.campaignResources.provisions - taskDefinition.cost, 0, 200);
+        saveOrganization(created.state);
       }
+      showNotice(`${created.task.assigneeName}已领命：${created.task.name}`);
     } catch (error) {
       showNotice(error.message);
+    } finally {
+      officeOrderInFlight = false;
+      $("#officeIssueButton").disabled = false;
     }
   }
 
-  function advanceOfficeMonth() {
+  let officeAdvanceInFlight = false;
+  async function advanceOfficeMonth() {
+    if (officeAdvanceInFlight) return;
+    officeAdvanceInFlight = true;
+    $("#officeAdvanceButton").disabled = true;
+    try {
+    if (!integration.isOffline()) {
+      if (!profile.organization.backend.orgFlow) {
+        showNotice("组织流服务当前不可用，月令未推进，请稍后重试。");
+        return;
+      }
+      const tasks = profile.organization.tasks.filter((task) => task.status === "active" && task.remoteResult);
+      try {
+        const responses = await Promise.all(tasks.map((task) => integration.organizationTask(task.remoteResult)));
+        const snapshots = responses.map((response) => response.result?.data || response.result || null);
+        const waiting = snapshots.some((snapshot) => !organization.remoteTaskReadyForAdvance(snapshot));
+        if (waiting) {
+          saveOrganization(organization.reconcileRemoteTasks(profile.organization, snapshots, { advanceMonth: false }));
+          showNotice("差事仍在受理，待属官确认后方可推进月令。");
+          return;
+        }
+        saveOrganization(organization.reconcileRemoteTasks(profile.organization, snapshots));
+        const latest = profile.organization.history.at(-1);
+        showNotice(latest?.text || "月令已进，官署差事仍在办理");
+      } catch (error) {
+        showNotice(`官署簿书暂不可达：${error.message}`);
+      }
+      return;
+    }
     saveOrganization(organization.advanceMonth(profile.organization));
     const latest = profile.organization.history.at(-1);
     showNotice(latest?.text || "月令已进");
+    } finally {
+      officeAdvanceInFlight = false;
+      $("#officeAdvanceButton").disabled = false;
+    }
+  }
+
+  let officeKnowledgeRequestSerial = 0;
+  function showOfficeKnowledge(payload, context) {
+    if (context && (context.serial !== officeKnowledgeRequestSerial || String(officeStage()?.id || "") !== context.stageId || (context.query != null && $("#officeKnowledgeQuery").value.trim() !== context.query))) return false;
+    const raw = Array.isArray(payload.results) ? payload.results : Object.values(payload.results || {}).flat().filter((item) => item && typeof item === "object");
+    const results = raw.map((item) => item.aku || item.data || item).filter((item) => item?.id);
+    for (const entry of results) profile.organization = organization.recordKnowledge(profile.organization, entry);
+    writeJson(PROFILE_KEY, profile);
+    renderOfficeCouncil();
+    $("#officeKnowledgeResults").innerHTML = results.slice(0, 6).map((entry) => `<article><strong>${escapeHtml(entry.name || entry.title || "史官条目")}</strong><p>${escapeHtml(entry.summary || entry.content || "")}</p></article>`).join("") || "<p>简册中未查到相关记载。</p>";
+    return true;
+  }
+
+  async function loadOfficeStageKnowledge() {
+    const stageId = officeStage()?.id;
+    if (!stageId) return;
+    const context = { serial: ++officeKnowledgeRequestSerial, stageId: String(stageId) };
+    const button = $("#officeStageKnowledgeButton");
+    button.disabled = true;
+    $("#officeKnowledgeResults").textContent = "史官正在取阅本回简册……";
+    try {
+      showOfficeKnowledge(await integration.stageKnowledge(String(stageId)), context);
+    } catch (_) {
+      $("#officeKnowledgeResults").textContent = "本回史料暂不可达，请稍后再查。";
+    } finally {
+      button.disabled = false;
+    }
   }
 
   async function searchOfficeKnowledge(event) {
     event.preventDefault();
     const query = $("#officeKnowledgeQuery").value.trim();
     if (!query) return;
+    const context = { serial: ++officeKnowledgeRequestSerial, stageId: String(officeStage()?.id || ""), query };
     $("#officeKnowledgeResults").innerHTML = "<p>史官正在检索简册……</p>";
     try {
-      const payload = await fetch("api/dongzhou/knowledge/search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query, limit: 6 }) }).then(checkResponse).then((item) => item.json());
-      const raw = Array.isArray(payload.results) ? payload.results : Object.values(payload.results || {}).flat().filter((item) => item && typeof item === "object");
-      const results = raw.map((item) => item.aku || item.data || item).filter((item) => item?.id);
-      for (const entry of results) profile.organization = organization.recordKnowledge(profile.organization, { ...entry, stageId: entry.stageId || String(entry.id).match(/(\d{3})$/)?.[1]?.replace(/^0+/, "") });
-      writeJson(PROFILE_KEY, profile);
-      $("#officeKnowledgeResults").innerHTML = results.slice(0, 6).map((entry) => `<article><strong>${escapeHtml(entry.name || entry.title || "史官条目")}</strong><p>${escapeHtml(entry.summary || entry.content || "")}</p></article>`).join("") || "<p>简册中未查到相关记载。</p>";
+      const payload = await integration.searchKnowledge(query, 6);
+      showOfficeKnowledge(payload, context);
     } catch (_) {
-      $("#officeKnowledgeResults").innerHTML = "<p>史官简册暂不可达，可稍后再查；官署差事仍可照常推演。</p>";
+      $("#officeKnowledgeResults").innerHTML = "<p>史官简册暂不可达，请稍后再查。</p>";
     }
   }
 
@@ -1702,9 +2083,17 @@
       } : { policyVersion: systems.POLICY_VERSION }
     });
     profile = progression.profile;
-    profile.organization = organization.advanceMonth(profile.organization);
-    profile.organization.history.push({ month: profile.organization.month, tone: won ? "good" : "bad", text: `${stageRecord.battleTitle}${won ? "告捷" : "失利"}，军府据此调整后续差事。` });
+    profile.organization = organization.advanceMonth(profile.organization, { resolveLocalTasks: integration.isOffline() });
+    const officeReport = organization.recordBattleOutcome(profile.organization, {
+      id: "battle:" + stageRecord.id + ":" + String(state.startedAt || Date.now()),
+      stageId: String(stageRecord.id), stageTitle: stageRecord.battleTitle, won, turns: state.turn,
+      ownLosses: ownUnits.filter((unit) => unit.hp <= 0).length, terminalReason,
+      support: state.organizationSupport || {}
+    });
+    profile.organization = officeReport.state;
+    profile.organization.history.push({ month: profile.organization.month, tone: won ? "good" : "bad", text: `${stageRecord.battleTitle}${won ? "告捷" : "失利"}，战后回报已收入官署档案。` });
     state.result.progression = { firstClear: progression.firstClear, rankUps: progression.rankUps, reward: progression.reward, coinsEarned: progression.coinsEarned, masteryUpdates: progression.masteryUpdates };
+    state.result.officeReportId = officeReport.report.id;
     writeJson(PROFILE_KEY, profile);
     if (progression.rankUps) log(`军阶提升至 ${profile.armyRank}，全军基础战力提高。`, "event");
     if (progression.coinsEarned) log(`首通获得 ${progression.coinsEarned} 铜钱与军需补给。`, "event");
@@ -1731,7 +2120,8 @@
       ["战技", `${state.stats.skills} 次`], ["补给", `${state.stats.supplies} 处`],
       ["军阶", `${profile.armyRank}`], ["铜钱", `+${state.result.progression?.coinsEarned || 0}`],
       ["评估", `${Math.round(reward * 100)}`], ["难度", { easy: "简单", medium: "标准", hard: "艰难" }[battleDifficulty()] || "标准"],
-      ["军粮", `${profile.campaignResources.provisions}`], ["士气", `${profile.campaignResources.morale}`], ["伤兵", `${Object.keys(profile.woundedHeroes).length}`]
+      ["军粮", `${profile.campaignResources.provisions}`], ["士气", `${profile.campaignResources.morale}`], ["伤兵", `${Object.keys(profile.woundedHeroes).length}`],
+      ["官署", state.result.officeReportId ? "战报存档" : "待归档"]
     ].map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join("");
     const next = stageRecord.isProcedural ? null : campaign.stages[stageRecord.index];
     $("#resultNextButton").hidden = !next;
@@ -2487,10 +2877,17 @@
     $("#campaignOfficeButton").addEventListener("click", () => setCampaignOffice(true));
     $("#campaignOfficeCloseButton").addEventListener("click", () => setCampaignOffice(false));
     $("#campaignOfficeBackdrop").addEventListener("click", (event) => { if (event.target === event.currentTarget) setCampaignOffice(false); });
-    $("#officeTaskType").addEventListener("change", renderOrganizationPanel);
+    $("#officeTaskType").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOrganizationPanel(); });
+    $("#officeMemberSelect").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOfficeCouncil(); refreshOfficeNpcState(); });
+    $("#officeScheduleButton").addEventListener("click", generateOfficeNpcSchedule);
+    $("#officeDecisionForm").addEventListener("submit", requestOfficeNpcDecision);
+    $("#officeLobbyButton").addEventListener("click", lobbyPolity);
+    $("#officeAllianceButton").addEventListener("click", signAlliance);
+    $("#officeBetrayButton").addEventListener("click", betrayAlliance);
     $("#officeIssueButton").addEventListener("click", issueOfficeTask);
     $("#officeAdvanceButton").addEventListener("click", advanceOfficeMonth);
     $("#officeKnowledgeForm").addEventListener("submit", searchOfficeKnowledge);
+    $("#officeStageKnowledgeButton").addEventListener("click", loadOfficeStageKnowledge);
     document.querySelectorAll("[data-era-range]").forEach((button) => button.addEventListener("click", () => {
       $("#stageSearch").value = "";
       $("#stageRange").value = button.dataset.eraRange;

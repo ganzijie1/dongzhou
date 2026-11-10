@@ -1,0 +1,379 @@
+from __future__ import annotations
+
+from pathlib import Path
+from tempfile import TemporaryDirectory
+import json
+import unittest
+from dataclasses import replace
+from uuid import uuid4
+
+import httpx
+from fastapi.testclient import TestClient
+
+from dongzhou_integration.app import build_application
+from dongzhou_integration.config import Settings
+from dongzhou_integration.upstreams import UpstreamUnavailable, Upstreams
+
+
+def settings(path: Path) -> Settings:
+    return Settings(
+        environment="test", public_origin="http://testserver", database_path=path, web_root=path.parent,
+        session_secret="s" * 32, orgflow_url="http://org", orgflow_hmac_secret="o" * 32,
+        orgflow_hmac_key_id="dongzhou-v1", orgflow_audience="org-flow-engine-administration",
+        orgflow_org_id="00000000-0000-0000-0000-000000000001",
+        orgflow_manager_member_id="00000000-0000-0000-0000-000000000002",
+        orgflow_hero_slots={"DuBo": "00000000-0000-0000-0000-000000000003"},
+        orgflow_hero_members={"DuBo": "00000000-0000-0000-0000-000000000004"},
+        orgflow_hierarchy_version=7, game_server_id="91001",
+        ainpc_url="http://ainpc", ainpc_token="ainpc-token",
+        ainpc_game_server_id=91001, knowledge_url="http://knowledge", knowledge_token="knowledge-token",
+        offline_knowledge_enabled=False, knowledge_file=path,
+        ainpc_task_token="task-token",
+    )
+
+
+class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
+    async def test_health_uses_formal_readiness_endpoints(self) -> None:
+        paths: list[str] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            paths.append(request.url.path)
+            return httpx.Response(200, json={"status": "ready", "ready": True})
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            result = await Upstreams(settings(Path("unused")), client).health()
+
+        self.assertTrue(all(item["online"] for item in result.values()))
+        self.assertEqual(
+            set(paths),
+            {"/health/ready", "/readiness", "/health"},
+        )
+
+    async def test_health_rejects_false_ainpc_readiness(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                json={"ready": request.url.path != "/readiness"},
+            )
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            result = await Upstreams(settings(Path("unused")), client).health()
+
+        self.assertFalse(result["aiNpc"]["online"])
+        self.assertTrue(result["orgFlow"]["online"])
+        self.assertTrue(result["knowledge"]["online"])
+
+    async def test_online_npc_ids_uses_complete_runtime_snapshot(self) -> None:
+        seen: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen.append(request)
+            return httpx.Response(200, json={"data": {
+                "complete": True,
+                "total": 2,
+                "items": [
+                    {"npc_id": "42", "online": True},
+                    {"npc_id": "43", "online": False},
+                ],
+            }})
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            upstreams = Upstreams(settings(Path("unused")), client)
+            self.assertEqual(await upstreams.online_npc_ids(), {"42"})
+
+        self.assertEqual(seen[0].url.path, "/admin/npc-lifecycle/online-npcs")
+        self.assertEqual(seen[0].url.params["game_server_id"], "91001")
+        self.assertEqual(seen[0].url.params["page_size"], "100")
+
+    async def test_online_npc_ids_reads_every_snapshot_page(self) -> None:
+        seen_pages: list[int] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            page = int(request.url.params["page"])
+            seen_pages.append(page)
+            items = (
+                [{"npc_id": str(index), "online": True} for index in range(100)]
+                if page == 1
+                else [{"npc_id": "100", "online": True}]
+            )
+            return httpx.Response(200, json={"data": {
+                "complete": True,
+                "total": 101,
+                "items": items,
+            }})
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            upstreams = Upstreams(settings(Path("unused")), client)
+            self.assertEqual(len(await upstreams.online_npc_ids()), 101)
+
+        self.assertEqual(seen_pages, [1, 2])
+
+    def test_failed_decision_is_retryable_with_same_request_id(self) -> None:
+        attempts = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.url.path == "/callback/npc-dialogue/choice":
+                attempts.append(request)
+                return httpx.Response(200, json=(
+                    {"code": 2, "data": None} if len(attempts) == 1 else
+                    {"code": 200, "data": {"index": 0, "type": "OPTION"}}
+                ))
+            return httpx.Response(200, json={"status": "ok"})
+
+        with TemporaryDirectory() as directory:
+            configured = settings(Path(directory) / "db.sqlite")
+            upstreams = Upstreams(configured)
+            upstreams.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+            app = build_application(configured, upstreams=upstreams)
+            with TestClient(app) as client:
+                self.assertEqual(client.post("/api/dongzhou/v1/sessions/guest", json={"installation_id": str(uuid4())}).status_code, 200)
+                request = {"client_request_id": str(uuid4()), "question": "Choose", "options": [{"index": 0, "text": "A"}, {"index": 1, "text": "B"}]}
+                path = "/api/dongzhou/v1/npcs/DuBo/decisions"
+                self.assertEqual(client.post(path, json=request).status_code, 503)
+                retried = client.post(path, json=request)
+                self.assertEqual(retried.status_code, 200)
+                self.assertEqual(retried.json()["state"], "COMPLETED")
+                self.assertTrue(client.post(path, json=request).json()["replayed"])
+                self.assertEqual(len(attempts), 2)
+
+    def test_gateway_budget_covers_sequential_upstream_calls(self) -> None:
+        with TemporaryDirectory() as directory:
+            for timeout in (1.0, 30.0, 120.0):
+                configured = replace(settings(Path(directory) / "db.sqlite"), upstream_timeout_seconds=timeout)
+                app = build_application(configured, upstreams=object())
+                self.assertGreater(app.state.settings.server.request_timeout_seconds, timeout * 2 + 6)
+
+    async def test_stage_knowledge_reads_published_content_and_filters_other_stages(self) -> None:
+        seen = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen.append(request.url.path)
+            self.assertEqual(json.loads(request.content), {"ids": ["dongzhou_stage_004"]})
+            return httpx.Response(200, json={"data": {"items": [
+                {"id": "dongzhou_stage_004", "name": "已发布史料"},
+                {"id": "dongzhou_stage_001", "name": "其他战役"},
+                {"id": "other_game", "name": "其他游戏"},
+            ]}})
+
+        with TemporaryDirectory() as directory:
+            catalog = Path(directory) / "catalog.json"
+            catalog.write_text(json.dumps({"entries": [{"id": "dongzhou_stage_004", "stageId": "03b", "name": "本地旧正文"}]}), encoding="utf-8")
+            async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+                upstreams = Upstreams(settings(catalog), client)
+                items = await upstreams.stage_knowledge("03b")
+                self.assertEqual(items, [{"id": "dongzhou_stage_004", "name": "已发布史料", "stageId": "03b"}])
+                self.assertEqual(await upstreams.stage_knowledge("unknown"), [])
+        self.assertEqual(seen, ["/api/v1/aku/batch_get"])
+
+    async def test_stage_knowledge_never_falls_back_on_upstream_failure(self) -> None:
+        with TemporaryDirectory() as directory:
+            catalog = Path(directory) / "catalog.json"
+            catalog.write_text(json.dumps({"entries": [{"id": "dongzhou_stage_001", "stageId": "01"}]}), encoding="utf-8")
+            async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(503))) as client:
+                upstreams = Upstreams(settings(catalog), client)
+                with self.assertRaises(UpstreamUnavailable):
+                    await upstreams.stage_knowledge("01")
+
+    async def test_knowledge_search_filters_other_games_after_broad_recall(self) -> None:
+        seen_batch_ids: list[str] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.url.path == "/api/v1/player/search":
+                return httpx.Response(200, json={"data": {"channels": {
+                    "vector": [{"id": "player_full_1"}, {"id": "dongzhou_stage_005"}],
+                    "bm25": [{"id": "dongzhou_stage_006"}],
+                }}})
+            payload = json.loads(request.content)
+            seen_batch_ids.extend(payload["ids"])
+            return httpx.Response(200, json={"data": {"items": [
+                {"id": "player_full_1", "name": "other game"},
+                {"id": "dongzhou_stage_005", "name": "郑伯克段"},
+                {"id": "dongzhou_stage_006", "name": "周郑交质"},
+            ]}})
+
+        with TemporaryDirectory() as directory:
+            client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+            upstreams = Upstreams(settings(Path(directory) / "db"), client)
+            mode, items = await upstreams.search_knowledge("军令", 2)
+            await client.aclose()
+
+        self.assertEqual(mode, "connected")
+        self.assertEqual([item["id"] for item in items], ["dongzhou_stage_005", "dongzhou_stage_006"])
+        self.assertEqual(seen_batch_ids, ["player_full_1", "dongzhou_stage_005", "dongzhou_stage_006"])
+
+    async def test_http_business_error_preserves_contract_payload(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(409, json={"error": {"code": "organization_task_conflict", "message": "already active"}})
+
+        with TemporaryDirectory() as directory:
+            client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+            upstreams = Upstreams(settings(Path(directory) / "db"), client)
+            with self.assertRaises(UpstreamUnavailable) as caught:
+                await upstreams.trigger_virtual_task("org-id", {"source_event_id": "stable"})
+            await client.aclose()
+        self.assertEqual(caught.exception.status_code, 409)
+        self.assertEqual(caught.exception.error_code, "organization_task_conflict")
+        self.assertEqual(caught.exception.response_payload["error"]["message"], "already active")
+
+    async def test_formal_orgflow_and_ainpc_paths(self) -> None:
+        seen: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen.append(request)
+            if "/virtual-tasks/" in request.url.path:
+                return httpx.Response(200, json={"data": {"state": "IN_PROGRESS"}})
+            if request.url.path == "/callback/npc-lifecycle/online_state":
+                return httpx.Response(200, json={"code": 200, "message": "accepted"})
+            if request.url.path == "/internal/v1/organization-tasks/dialogues/report":
+                return httpx.Response(200, json={"record": {"state": "COMPLETED"}})
+            if request.url.path == "/callback/npc-dialogue/choice":
+                return httpx.Response(200, json={"code": 200, "data": {"index": 0, "type": "OPTION"}})
+            return httpx.Response(200, json={"data": {"ok": True}})
+
+        with TemporaryDirectory() as directory:
+            client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+            upstreams = Upstreams(settings(Path(directory) / "db"), client)
+            await upstreams.trigger_virtual_task("org-id", {"source_event_id": "stable"})
+            await upstreams.get_virtual_task("org-id", "task-id")
+            await upstreams.register_npcs([{"npcId": "42", "name": "杜伯"}])
+            await upstreams.set_npcs_online(
+                [{"npcId": "42", "name": "Test NPC"}],
+                "0771-01-01 14:00:00",
+                "dongzhou-player",
+            )
+            await upstreams.request_npc_relogin(42, "dongzhou:test:42")
+            await upstreams.npc_state(42)
+            await upstreams.npc_schedule(42)
+            await upstreams.generate_npc_schedule(42, False)
+            await upstreams.choose_dialogue(42, {"dialogues": [{"options": [{"index": 0, "type": "OPTION"}]}], "metadata": {}})
+            await upstreams.send_game_event(
+                "ORG_REPORT_START",
+                {
+                    "operation_id": "00000000-0000-4000-8000-000000000010",
+                    "task_id": "task-id",
+                    "game_server_id": "91001",
+                },
+            )
+            await client.aclose()
+
+        paths = [request.url.path for request in seen]
+        self.assertIn("/internal/v1/organization-administration/organizations/org-id/virtual-task-triggers", paths)
+        self.assertIn("/internal/v1/organization-administration/organizations/org-id/virtual-tasks/task-id", paths)
+        self.assertIn("/ai/npc/register/batch", paths)
+        self.assertIn("/callback/npc-lifecycle/online_state", paths)
+        self.assertIn("/api/v1/npc-lifecycle/relogin", paths)
+        self.assertIn("/api/v1/emotion/current/91001/42", paths)
+        self.assertIn("/api/v1/affection/targets/91001/42", paths)
+        self.assertIn("/api/v1/relationship/all/91001/42", paths)
+        self.assertIn("/api/v1/schedule-planning/current", paths)
+        self.assertIn("/api/v1/schedule-planning/long-term/generate", paths)
+        self.assertIn("/callback/npc-dialogue/choice", paths)
+        self.assertIn("/internal/v1/organization-tasks/dialogues/report", paths)
+        org_requests = [request for request in seen if request.url.host == "org"]
+        bearer_requests = [request for request in seen if request.url.host != "org"]
+        self.assertTrue(all(request.headers.get("x-org-service-signature") for request in org_requests))
+        self.assertTrue(all(request.headers.get("authorization", "").startswith("Bearer ") for request in bearer_requests))
+
+    async def test_decision_rejects_business_failures_and_unknown_options(self) -> None:
+        payload = {"dialogues": [{"options": [{"index": 0, "type": "OPTION"}]}]}
+        for response in (
+            {"code": 1, "data": None},
+            {"code": 2, "data": None},
+            {"code": 200, "data": None},
+            {"code": 200, "data": {"index": 99, "type": "OPTION"}},
+            {"code": 200, "data": {"index": 0, "type": "INPUT"}},
+            {"code": 200, "data": {"index": False, "type": "OPTION"}},
+        ):
+            with self.subTest(response=response):
+                async with httpx.AsyncClient(transport=httpx.MockTransport(
+                    lambda request: httpx.Response(200, json=response)
+                )) as client:
+                    upstreams = Upstreams(settings(Path("unused")), client)
+                    with self.assertRaises(UpstreamUnavailable):
+                        await upstreams.choose_dialogue(42, payload)
+
+    async def test_report_waits_for_member_acceptance_before_creating_dialogue(self) -> None:
+        states = iter(["MEMBER_RESPONSE_PENDING", "IN_PROGRESS"])
+        posts = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.method == "GET":
+                return httpx.Response(200, json={"data": {"state": next(states)}})
+            posts.append(json.loads(request.content))
+            return httpx.Response(200, json={"record": {"state": "COMPLETED"}})
+
+        payload = {"task_id": "task-id", "operation_id": "stable-operation"}
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            upstreams = Upstreams(settings(Path("unused")), client)
+            with self.assertRaises(UpstreamUnavailable) as caught:
+                await upstreams.send_game_event("ORG_REPORT_START", payload)
+            self.assertEqual(caught.exception.error_code, "organization_report_not_ready")
+            self.assertEqual(posts, [])
+            await upstreams.send_game_event("ORG_REPORT_START", payload)
+            self.assertEqual(posts, [payload])
+
+    async def test_terminal_organization_tasks_do_not_create_report_dialogues(self) -> None:
+        for state in ("SUCCEEDED", "PARTIALLY_COMPLETED", "FAILED", "REJECTED", "CANCELLED", "INVALIDATED"):
+            def handler(request: httpx.Request) -> httpx.Response:
+                self.assertEqual(request.method, "GET")
+                return httpx.Response(200, json={"data": {"state": state}})
+            with self.subTest(state=state):
+                async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+                    upstreams = Upstreams(settings(Path("unused")), client)
+                    result = await upstreams.send_game_event("ORG_REPORT_START", {"task_id": "task-id"})
+                    self.assertEqual(result["state"], "TASK_TERMINAL")
+
+    async def test_report_dialogue_remains_retryable_until_terminal(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.method == "GET":
+                return httpx.Response(200, json={"data": {"state": "IN_PROGRESS"}})
+            return httpx.Response(
+                200,
+                json={"record": {"state": "AWAITING_CALLBACK", "task": {"state": "IN_PROGRESS"}}},
+            )
+
+        with TemporaryDirectory() as directory:
+            client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+            upstreams = Upstreams(settings(Path(directory) / "db"), client)
+            with self.assertRaises(UpstreamUnavailable) as caught:
+                await upstreams.send_game_event(
+                    "ORG_REPORT_START",
+                    {
+                        "operation_id": "00000000-0000-4000-8000-000000000010",
+                        "task_id": "task-id",
+                        "game_server_id": "91001",
+                    },
+                )
+            await client.aclose()
+        self.assertEqual(caught.exception.error_code, "ainpc_report_dialogue_pending")
+
+    async def test_unrecoverable_report_dialogue_failure_is_terminal(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.method == "GET":
+                return httpx.Response(200, json={"data": {"state": "IN_PROGRESS"}})
+            return httpx.Response(
+                200,
+                json={"record": {
+                    "state": "FAILED",
+                    "management": {"can_recover": False, "blocked_reason": "npc_dialogue_task_terminal"},
+                }},
+            )
+
+        with TemporaryDirectory() as directory:
+            client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+            upstreams = Upstreams(settings(Path(directory) / "db"), client)
+            result = await upstreams.send_game_event(
+                "ORG_REPORT_START",
+                {
+                    "operation_id": "00000000-0000-4000-8000-000000000010",
+                    "task_id": "task-id",
+                    "game_server_id": "91001",
+                },
+            )
+            await client.aclose()
+
+        self.assertEqual(result["record"]["state"], "FAILED")
+
+
+if __name__ == "__main__":
+    unittest.main()

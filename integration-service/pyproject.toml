@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools==83.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dongzhou-integration-service"
+version = "1.0.0"
+description = "Production integration gateway for the Dongzhou game services."
+requires-python = ">=3.11,<3.14"
+dependencies = [
+  "nexus-kernel-starter==0.2.0",
+  "httpx==0.28.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==9.1.1", "pytest-asyncio==1.4.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.uv.sources]
+nexus-kernel-starter = { path = "../../NexusKernel", editable = true }

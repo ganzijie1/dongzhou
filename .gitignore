@@ -28,6 +28,11 @@ __pycache__/
 !/output/terrain_model/*.txt
 !/output/terrain_model/terrain_trusted_adapter.pt
 /.pytest_cache/
+/.agentwork/
+/node_modules/
+/backups/
+/integration-service/.venv/
+/integration-service/src/*.egg-info/
 /android-app/.gradle/
 /android-app/build/
 /android-app/app/build/
@@ -35,3 +40,4 @@ __pycache__/
 /*.zip
 /promo-site-qa-*.png
 /web-game/qa-*.png
+/integration-service/.env

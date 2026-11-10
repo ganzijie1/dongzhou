@@ -49,7 +49,7 @@ try {
     foreach ($name in @("assets", "scenario", "vendor")) {
         Copy-Item -LiteralPath (Join-Path $web $name) -Destination (Join-Path $staging $name) -Recurse
     }
-    foreach ($name in @("index.html", "styles.css", "game.js", "game-systems.js", "organization-play.js", "runtime.js", "pcgrl.js", "map-elites.js", "README.md")) {
+    foreach ($name in @("index.html", "styles.css", "game.js", "game-systems.js", "organization-play.js", "integration-client.js", "runtime.js", "pcgrl.js", "map-elites.js", "README.md")) {
         Copy-Item -LiteralPath (Join-Path $web $name) -Destination (Join-Path $staging $name)
     }
 
@@ -105,7 +105,7 @@ try {
     $archive = [System.IO.Compression.ZipFile]::OpenRead($OutputPath)
     try {
         $names = @($archive.Entries | ForEach-Object { $_.FullName.Replace("\", "/") })
-        foreach ($required in @("index.html", "game.js", "game-systems.js", "organization-play.js", "scenario/difficulty-profiles.json", "scenario/dongzhou-knowledge.json", "audio/dialogue-manifest.json", "audio/context-music-manifest.json")) {
+        foreach ($required in @("index.html", "game.js", "game-systems.js", "organization-play.js", "integration-client.js", "scenario/difficulty-profiles.json", "scenario/dongzhou-knowledge.json", "audio/dialogue-manifest.json", "audio/context-music-manifest.json")) {
             if ($names -notcontains $required) { throw "Release archive missing: $required" }
         }
     } finally {

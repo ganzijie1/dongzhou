@@ -1,0 +1,116 @@
+﻿"use strict";
+// All browser requests are fulfilled locally. No real service or save is called.
+const assert = require('assert/strict');
+const fs = require('fs');
+const path = require('path');
+let chromium;
+try { ({chromium} = require(path.resolve(__dirname, '../output/playwright-runtime/node_modules/playwright'))); }
+catch (_) { ({chromium} = require('playwright')); }
+const WEB=path.resolve(__dirname,'../web-game');
+const PROFILE='dongzhou-h5-profile-v2', BATTLE='dongzhou-h5-battle-v2';
+const BASE_URL=process.env.DONGZHOU_TEST_URL || 'http://127.0.0.1:8780/';
+const BASE_ORIGIN=new URL(BASE_URL).origin;
+const executablePath=['C:/Program Files/Google/Chrome/Application/chrome.exe','C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(p=>fs.existsSync(p));
+const clone=x=>JSON.parse(JSON.stringify(x));
+async function setup(browser) {
+  const context=await browser.newContext();
+  const model={cloud:{},version:0,orders:[],decisions:[],errors:[],unexpected:[],mode:'success',release:null};
+  await context.route('**/*', async route=>{
+    const req=route.request(), u=new URL(req.url()), p=u.pathname;
+    if(u.origin!==BASE_ORIGIN) {model.unexpected.push(req.url());return route.abort();}
+    if(!p.startsWith('/api/')) {
+      const file=path.resolve(WEB,'.'+decodeURIComponent(p==='/'?'/index.html':p));
+      if(!file.startsWith(WEB+path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) return route.fulfill({status:404,body:'not found'});
+      const mime={'.html':'text/html','.js':'application/javascript','.css':'text/css','.json':'application/json','.webp':'image/webp','.png':'image/png','.svg':'image/svg+xml','.mp3':'audio/mpeg','.ogg':'audio/ogg','.wav':'audio/wav','.lua':'text/plain'};
+      return route.fulfill({status:200,contentType:mime[path.extname(file)]||'application/octet-stream',body:fs.readFileSync(file)});
+    }
+    let body={};
+    if(p.endsWith('/sessions/guest')) body={playerId:'council-test-player',expiresIn:86400};
+    else if(p.endsWith('/save')) {
+      if(req.method()==='PUT') {
+        if(model.failSave) return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:{message:'mock save unavailable'}})});
+        const input=req.postDataJSON();assert.equal(input.expected_version,model.version);model.cloud=clone(input.payload);model.version++;
+      }
+      body={version:model.version,payload:clone(model.cloud)};
+    } else if(p.endsWith('/integration/status')) body={mode:'connected',organizationId:'test',services:{nexusKernel:{online:true},orgFlow:{online:true},aiNpc:{online:true},knowledge:{online:true}}};
+    else if(p.endsWith('/knowledge/stages/01')) body={mode:'connected',results:[{id:'dongzhou_stage_001',name:'Stage One Source',summary:'Published source for this stage.',stageId:'01'}]};
+    else if(p.endsWith('/npcs/sync')) body={ready:true,npcs:[]};
+    else if(p.endsWith('/state')) body={emotion:{data:{}},affection:{data:{}},relationships:{data:{}}};
+    else if(p.endsWith('/schedule')) body={schedule:{data:{schedules:[]}}};
+    else if(p.endsWith('/decisions')) {
+      model.decisions.push(req.postDataJSON());
+      if(model.mode==='delay') await new Promise(resolve=>{model.release=resolve;});
+      if(model.mode==='failure') return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:{message:'mock decision unavailable'}})});
+      body={state:'COMPLETED',decision:{data:{type:'OPTION',index:0,text:req.postDataJSON().options[0].text}}};
+    } else if(p.endsWith('/organization/tasks')) {model.orders.push(req.postDataJSON());body={state:'ACCEPTED',taskId:'council-task'};}
+    else if(p.endsWith('/organization/tasks/council-task')) body={result:{data:{task_id:'council-task',state:'SUCCEEDED',final_result:'SUCCESS',version:3}}};
+    else {model.unexpected.push(p);return route.fulfill({status:404,body:'unexpected mock request'});}
+    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
+  });
+  const page=await context.newPage();page.on('pageerror',e=>model.errors.push(e.message));
+  await page.goto(BASE_URL,{waitUntil:'domcontentloaded'});
+  await page.waitForSelector('#app:not([hidden])',{timeout:45000});
+  await page.click('#campaignOfficeButton');
+  const members=await page.locator('#officeMemberSelect option').evaluateAll(rows=>rows.map(r=>r.value).filter(Boolean));
+  const member=members.find(id=>id!=='DuBo');assert(member);
+  await page.selectOption('#officeMemberSelect',member);
+  return {context,page,model,member,members};
+}
+async function knowledge(page) {await page.click('#officeStageKnowledgeButton');await page.waitForSelector('#officeKnowledgeResults article');}
+async function councils(page) {return page.evaluate(key=>JSON.parse(localStorage.getItem(key)).organization.councils||[],PROFILE);}
+async function decide(page) {await page.locator('#officeDecisionForm button[type=submit]').click();}
+(async()=>{
+  const browser=await chromium.launch({headless:true,...(executablePath?{executablePath}:{})});
+  try {
+    const happy=await setup(browser), {page,model}=happy;
+    await decide(page);await page.waitForTimeout(50);
+    assert.equal(model.decisions.length,0);
+    await knowledge(page);await decide(page);
+    await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key)).organization.councils.length===1,PROFILE);
+    assert.match(model.decisions[0].question,/dongzhou_stage_001/);
+    assert.equal(await page.locator('#officeUseCouncil').isChecked(),false);
+    await page.selectOption('#officeTaskType','supply');
+    await page.locator('#officeUseCouncil').check();
+    await page.click('#officeIssueButton');await page.waitForSelector('#officeTaskLedger li.active');
+    assert.equal(model.orders.length,1);assert.match(model.orders[0].brief,/source council recorded in player save/);assert.doesNotMatch(model.orders[0].brief,/Stage One Source/);
+    await page.waitForFunction(key=>!!JSON.parse(localStorage.getItem(key)).organization.tasks[0].council,PROFILE);
+    assert.equal(model.cloud.organization.tasks[0].council.knowledgeId,'dongzhou_stage_001');
+    await page.click('#officeAdvanceButton');await page.waitForSelector('#officeTaskLedger li.success');
+    assert.equal(model.cloud.organization.pendingSupport[0].council.id,model.cloud.organization.tasks[0].council.id);
+    const before=model.cloud.campaignResources.provisions;
+    await page.reload({waitUntil:'domcontentloaded'});await page.waitForSelector('#app:not([hidden])');
+    await page.click('#focusStageButton');await page.waitForFunction(key=>!!localStorage.getItem(key),BATTLE);
+    const battle=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),BATTLE);
+    assert.equal(battle.organizationSupport.provisions,24);assert.equal(battle.organizationSupport.councils[0].knowledgeId,'dongzhou_stage_001');
+    assert.match(await page.locator('#battleLog').innerText(),/Stage One Source/);
+    await page.waitForFunction(({key,before})=>JSON.parse(localStorage.getItem(key)).campaignResources.provisions===before+24,{key:PROFILE,before});
+    const late=await setup(browser);await knowledge(late.page);late.model.mode='delay';await decide(late.page);
+    while(late.model.decisions.length!==1) await new Promise(resolve=>setTimeout(resolve,10));
+    while(!late.model.release) await new Promise(resolve=>setTimeout(resolve,10));
+    let alternateMember=late.members.find(id=>id!==late.member);
+    if(!alternateMember) {
+      alternateMember='stale-test-member';
+      await late.page.locator('#officeMemberSelect').evaluate((select,value)=>{
+        const option=document.createElement('option');option.value=value;option.textContent='迟到答复测试';select.append(option);
+      },alternateMember);
+    }
+    await late.page.selectOption('#officeMemberSelect',alternateMember);late.model.release();
+    await late.page.waitForTimeout(100);
+    assert.equal((await councils(late.page)).length,0);assert.equal((late.model.cloud.organization.councils||[]).length,0);
+    const failure=await setup(browser);await knowledge(failure.page);failure.model.mode='failure';await decide(failure.page);
+    while(failure.model.decisions.length!==1) await new Promise(resolve=>setTimeout(resolve,10));
+    await failure.page.waitForTimeout(100);
+    assert.equal((await councils(failure.page)).length,0);assert.equal((failure.model.cloud.organization.councils||[]).length,0);
+    const saveFail=await setup(browser);await knowledge(saveFail.page);saveFail.model.failSave=true;await decide(saveFail.page);
+    while(saveFail.model.decisions.length!==1) await new Promise(resolve=>setTimeout(resolve,10));
+    await saveFail.page.waitForTimeout(150);
+    assert.equal((await councils(saveFail.page)).length,0,'Failed cloud save must roll back the local council');
+    assert.equal((saveFail.model.cloud.organization?.councils||[]).length,0);
+    await happy.page.setViewportSize({width:320,height:700});await happy.page.goto(BASE_URL,{waitUntil:'domcontentloaded'});
+    await happy.page.waitForSelector('#app:not([hidden])',{timeout:45000});await happy.page.click('#campaignOfficeButton');
+    const mobileBox=await happy.page.evaluate(()=>{const drawer=document.querySelector('#campaignOfficeDrawer').getBoundingClientRect();return {left:drawer.left,right:drawer.right,width:innerWidth,scrollWidth:document.documentElement.scrollWidth};});
+    assert(mobileBox.left>=0 && mobileBox.right<=mobileBox.width+1 && mobileBox.scrollWidth<=mobileBox.width+1);
+    for(const test of [happy,late,failure,saveFail]) {assert.deepEqual(test.model.errors,[]);assert.deepEqual(test.model.unexpected,[]);}
+    console.log(JSON.stringify({result:'PASS',mockOnly:true,realServiceRequests:0,knowledgeRequired:true,explicitCouncilOptIn:true,councilBoundToTaskAndBattle:true,reward:24,lateMemberChangeDiscarded:true,failedDecisionNotSaved:true,failedCloudSaveRolledBack:true,mobile320NoOverflow:true}));
+  } finally {await browser.close();}
+})().catch(error=>{console.error(error.stack||error.message);process.exitCode=1;});

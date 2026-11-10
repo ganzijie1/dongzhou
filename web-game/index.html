@@ -242,12 +242,41 @@
           <section class="office-ledger" aria-labelledby="officeLedgerTitle">
             <div class="office-section-heading"><div><span>功过有据</span><h3 id="officeLedgerTitle">属官与簿书</h3></div></div>
             <div id="officeMembers" class="office-members"></div>
+            <div id="officeNpcState" class="office-npc-state" aria-live="polite"></div>
+            <div class="office-npc-schedule"><div id="officeNpcSchedule"></div><button id="officeScheduleButton" class="large-button" type="button">拟定日程</button></div>
             <ol id="officeTaskLedger" class="office-task-ledger"></ol>
+          </section>
+          <section class="office-counsel" aria-labelledby="officeCounselTitle">
+            <div class="office-section-heading"><div><span>属官自决</span><h3 id="officeCounselTitle">军议裁断</h3></div></div>
+            <form id="officeDecisionForm" class="office-decision-form">
+              <input id="officeDecisionQuestion" maxlength="2000" required aria-label="军议议题">
+              <div><input class="office-decision-option" maxlength="500" required aria-label="方案一"><input class="office-decision-option" maxlength="500" required aria-label="方案二"><input class="office-decision-option" maxlength="500" required aria-label="方案三"></div>
+              <button class="large-button" type="submit">请其裁断</button>
+            </form>
+            <div id="officeDecisionResult" class="office-decision-result" aria-live="polite"></div>
+            <label><input id="officeUseCouncil" type="checkbox"> 本次派差引用已保存的本回军议</label>
+            <p id="officeCouncilHint" aria-live="polite">先查本回史料，再请属官参议；派差前可选择引用。</p>
+          </section>
+          <section class="office-diplomacy" aria-labelledby="officeDiplomacyTitle">
+            <div class="office-section-heading"><div><span>折冲列国</span><h3 id="officeDiplomacyTitle">游说与盟约</h3></div></div>
+            <div class="office-diplomacy-fields">
+              <label><span>游说诸侯</span><select id="officeDiplomacyTarget"><option value="zheng">郑国</option><option value="jin">晋国</option><option value="qi">齐国</option><option value="chu">楚国</option><option value="qin">秦国</option></select></label>
+              <label><span>盟约主张</span><input id="officeDiplomacyProposal" maxlength="500" value="互通军情，共御强敌"></label>
+              <button id="officeLobbyButton" class="large-button" type="button">遣使游说</button>
+            </div>
+            <p id="officeDiplomacyResult" class="office-order-hint" aria-live="polite">游说须引用当前属官、本回史料与已保存军议。</p>
+            <div class="office-diplomacy-actions"><button id="officeAllianceButton" class="large-button primary" type="button">缔结盟约</button><button id="officeBetrayButton" class="large-button danger" type="button">背盟并绑定本战</button></div>
+            <ol id="officeAllianceLedger" class="office-task-ledger"></ol>
           </section>
           <section class="office-knowledge" aria-labelledby="officeKnowledgeTitle">
             <div class="office-section-heading"><div><span>史官参议</span><h3 id="officeKnowledgeTitle">查阅本战旧闻</h3></div></div>
             <form id="officeKnowledgeForm" class="office-knowledge-form"><input id="officeKnowledgeQuery" type="search" autocomplete="off" placeholder="输入人物、战役或军令"><button class="large-button" type="submit">查阅</button></form>
+            <button id="officeStageKnowledgeButton" class="large-button" type="button">本回史料</button>
             <div id="officeKnowledgeResults" class="office-knowledge-results"></div>
+          </section>
+          <section class="office-archives" aria-labelledby="officeArchivesTitle">
+            <div class="office-section-heading"><div><span>功过存照</span><h3 id="officeArchivesTitle">官署历史档案</h3></div></div>
+            <ol id="officeBattleArchive" class="office-battle-archive"></ol>
           </section>
         </div>
       </section>
@@ -319,6 +348,7 @@
     <script src="map-elites.js"></script>
     <script src="game-systems.js?v=20261105-10"></script>
     <script src="organization-play.js?v=20261107-1"></script>
-    <script src="game.js?v=20261107-1"></script>
+    <script src="integration-client.js?v=20261108-1"></script>
+    <script src="game.js?v=20261108-1"></script>
   </body>
 </html>

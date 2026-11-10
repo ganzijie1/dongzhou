@@ -1,0 +1,42 @@
+name: dongzhou-integration
+services:
+  gateway:
+    image: ${DONGZHOU_INTEGRATION_IMAGE:?DONGZHOU_INTEGRATION_IMAGE must be set}
+    env_file:
+      - path: .env
+        required: true
+    ports:
+      - ${DONGZHOU_BIND_IP:-127.0.0.1}:${DONGZHOU_PORT:-8780}:8765
+    volumes:
+      - dongzhou-data:/data
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "5"
+    networks:
+      ainpc-v2:
+        aliases:
+          - dongzhou-gateway
+      knowledge: {}
+
+volumes:
+  dongzhou-data:
+    name: ${DONGZHOU_DATA_VOLUME:-dongzhou-integration-data}
+    external: true
+
+networks:
+  ainpc-v2:
+    external: true
+    name: ainpc-v2-app
+  knowledge:
+    external: true
+    name: ai_shared_net

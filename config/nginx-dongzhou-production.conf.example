@@ -1,0 +1,52 @@
+# 部署参考，尚未部署。域名、证书、私网绑定地址与 CIDR 必须按实际拓扑替换。
+# 放在 nginx.conf 的 http {} 中；公开网关后端端口不得被公网绕过访问。
+upstream dongzhou_gateway {
+    server 127.0.0.1:8780;
+    keepalive 16;
+}
+
+server {
+    listen 443 ssl;
+    server_name dongzhou.example.invalid;
+    ssl_certificate /etc/nginx/tls/fullchain.pem;
+    ssl_certificate_key /etc/nginx/tls/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    client_max_body_size 2m;
+
+    # 包含上游超时最高配置 120 秒时的多次调用及写库预算。
+    proxy_read_timeout 510s;
+    proxy_connect_timeout 5s;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Forwarded-For $remote_addr;
+
+    # 唯一公开业务 API；保留原路径给应用鉴权。
+    location ^~ /api/dongzhou/v1/ {
+        proxy_pass http://dongzhou_gateway;
+    }
+    # 包含无尾斜线、未知版本和旧游戏服回调路径；不依赖浏览器 CORS。
+    location /api { return 403; }
+    location /internal { return 403; }
+    location /docs { return 403; }
+    location /redoc { return 403; }
+    location = /openapi.json { return 403; }
+    location /health { return 403; }
+    location /metrics { return 403; }
+    location / { proxy_pass http://dongzhou_gateway; }
+}
+
+server {
+    # 示例私网地址，禁止改成 0.0.0.0 后直接对公网开放。
+    listen 10.0.0.10:8782;
+    server_name _;
+    allow 10.0.0.0/24;
+    deny all;
+    client_max_body_size 2m;
+    proxy_read_timeout 510s;
+    proxy_connect_timeout 5s;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    location ^~ /api/v1/ { proxy_pass http://dongzhou_gateway; }
+    location ^~ /api/v2/ { proxy_pass http://dongzhou_gateway; }
+    location ^~ /health/ { proxy_pass http://dongzhou_gateway; }
+    location / { return 404; }
+}

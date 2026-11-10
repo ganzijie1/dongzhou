@@ -1,0 +1,62 @@
+'use strict';
+// One-shot acceptance against the isolated candidate: real knowledge, AINPC and orgFlow services.
+const assert=require('assert/strict'),fs=require('fs'),path=require('path'),crypto=require('crypto');
+let chromium; try {({chromium}=require(path.resolve(__dirname,'../output/playwright-runtime/node_modules/playwright')));} catch(_){({chromium}=require('playwright'));}
+const BASE=process.env.DONGZHOU_TEST_URL||'http://127.0.0.1:8784/';
+const PROFILE='dongzhou-h5-profile-v2',BATTLE='dongzhou-h5-battle-v2';
+const label=process.env.DONGZHOU_ACCEPTANCE_LABEL||'20261109';
+assert(/^[a-z0-9-]+$/.test(label));
+const privatePath=path.resolve(__dirname,`../.agentwork/root/council-candidate/live-acceptance-${label}-private.json`);
+const publicPath=path.resolve(__dirname,`../output/integration-validation/live-council-acceptance-${label}.json`);
+const executablePath=['C:/Program Files/Google/Chrome/Application/chrome.exe','C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(p=>fs.existsSync(p));
+const resume=process.env.DONGZHOU_RESUME==='1';
+if(fs.existsSync(privatePath)&&!resume) throw new Error('Acceptance journal exists; inspect it instead of creating a second live task');
+const journal=resume?JSON.parse(fs.readFileSync(privatePath,'utf8')):{installation:crypto.randomUUID(),startedAt:new Date().toISOString(),stage:'starting'};
+if(resume&&journal.remoteTask) throw new Error('A live organization task already exists; do not replay it');
+const saveJournal=()=>fs.writeFileSync(privatePath,JSON.stringify(journal,null,2)); saveJournal();
+(async()=>{
+ const browser=await chromium.launch({headless:true,...(executablePath?{executablePath}:{})});
+ try {
+  const context=await browser.newContext();
+  await context.addInitScript(id=>localStorage.setItem('dongzhou-installation-id-v1',id),journal.installation);
+  const page=await context.newPage(),requests={knowledge:0,decision:0,orders:0,taskReads:0,saves:0},errors=[];
+  page.on('pageerror',e=>errors.push(e.name));
+  page.on('response',r=>{const u=new URL(r.url()).pathname,m=r.request().method(); if(u.includes('/knowledge/stages/'))requests.knowledge++; if(u.includes('/decisions'))requests.decision++; if(u.endsWith('/organization/tasks')&&m==='POST')requests.orders++; if(u.includes('/organization/tasks/')&&m==='GET')requests.taskReads++; if(u.endsWith('/save')&&m==='PUT')requests.saves++;});
+  await page.goto(BASE,{waitUntil:'domcontentloaded'}); await page.waitForSelector('#app:not([hidden])',{timeout:45000});
+  await page.click('#campaignOfficeButton');
+  await page.waitForFunction(()=>{const p=JSON.parse(localStorage.getItem('dongzhou-h5-profile-v2'));return p.organization.backend.orgFlow&&p.organization.backend.aiNpc&&p.organization.backend.knowledge;},{timeout:45000});
+  await page.selectOption('#officeMemberSelect','ZuoRu');
+  journal.stage='knowledge';saveJournal();
+  await page.click('#officeStageKnowledgeButton'); await page.waitForSelector('#officeKnowledgeResults article',{timeout:90000});
+  journal.stage='decision';saveJournal();
+  const decisionResponse=page.waitForResponse(r=>new URL(r.url()).pathname.endsWith('/decisions')&&r.request().method()==='POST',{timeout:180000});
+  await page.locator('#officeDecisionForm button[type=submit]').click();
+  assert.equal((await decisionResponse).status(),200,'real NPC decision request failed');
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key)).organization.councils.length===1,PROFILE,{timeout:180000});
+  const council=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).organization.councils.at(-1),PROFILE);
+  assert.equal(council.memberId,'ZuoRu');assert.equal(council.stageId,'01');assert(council.knowledgeId&&council.knowledgeName&&council.knowledgeSummary);
+  await page.selectOption('#officeTaskType','supply'); await page.locator('#officeUseCouncil').check();
+  journal.stage='order';saveJournal();
+  await page.click('#officeIssueButton');
+  await page.waitForFunction(key=>{const p=JSON.parse(localStorage.getItem(key));return p.organization.tasks.some(t=>t.remoteResult&&t.council);},PROFILE,{timeout:90000});
+  const issued=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).organization.tasks.find(t=>t.remoteResult&&t.council),PROFILE);
+  journal.remoteTask=issued.remoteResult;journal.localTask=issued.id;journal.stage='report-trigger';saveJournal();
+  await page.click('#officeAdvanceButton'); await page.waitForFunction(()=>!document.querySelector('#officeAdvanceButton').disabled,{timeout:90000});
+  journal.stage='waiting-result';saveJournal();
+  const terminal=await page.evaluate(async task=>{const end=Date.now()+240000;while(Date.now()<end){const r=await fetch('/api/dongzhou/v1/organization/tasks/'+encodeURIComponent(task));if(r.ok){const j=await r.json(),d=j.result?.data||j.result;if(d?.final_result)return d;}await new Promise(x=>setTimeout(x,3000));}return null;},issued.remoteResult);
+  assert(terminal&&terminal.final_result==='SUCCESS','real organization task did not reach SUCCESS');
+  journal.stage='reconcile';saveJournal();
+  await page.click('#officeAdvanceButton'); await page.waitForSelector('#officeTaskLedger li.success',{timeout:90000});
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key)).organization.pendingSupport.some(x=>x.council),PROFILE,{timeout:90000});
+  const before=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).campaignResources.provisions,PROFILE);
+  await page.reload({waitUntil:'domcontentloaded'});await page.waitForSelector('#app:not([hidden])',{timeout:45000});
+  const loaded=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),PROFILE); assert(loaded.organization.pendingSupport.some(x=>x.council?.id===council.id));
+  journal.stage='battle';saveJournal();
+  await page.click('#focusStageButton'); await page.waitForFunction(key=>!!localStorage.getItem(key),BATTLE,{timeout:90000});
+  const accepted=await page.evaluate(({p,b})=>({profile:JSON.parse(localStorage.getItem(p)),battle:JSON.parse(localStorage.getItem(b)),log:document.querySelector('#battleLog').innerText}),{p:PROFILE,b:BATTLE});
+  assert.equal(accepted.battle.organizationSupport.provisions,24);assert.equal(accepted.battle.organizationSupport.councils[0].id,council.id);assert.equal(accepted.profile.campaignResources.provisions,before+24);assert(accepted.log.includes(council.knowledgeName));
+  assert.equal(errors.length,0);assert(requests.knowledge&&requests.decision===1&&requests.orders===1&&requests.taskReads&&requests.saves>=4);
+  const result={result:'PASS',mode:'real-services-browser-no-interception',knowledgeRequests:requests.knowledge,npcDecisions:requests.decision,organizationOrders:requests.orders,taskReads:requests.taskReads,cloudWrites:requests.saves,councilBound:true,terminalResult:'SUCCESS',rewardProvisions:24,cloudReloadVerified:true,battleSourceVisible:true,realTaskCreated:true};
+  fs.writeFileSync(publicPath,JSON.stringify(result,null,2));journal.stage='complete';journal.completedAt=new Date().toISOString();saveJournal();console.log(JSON.stringify(result));
+ }catch(e){journal.stage='failed';journal.errorType=e.name;saveJournal();console.error(JSON.stringify({result:'FAIL',stage:journal.stage,errorType:e.name,details:String(e.message).slice(0,180)}));process.exitCode=1;}finally{await browser.close();}
+})();

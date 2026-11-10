@@ -103,12 +103,12 @@ for (const record of campaign.stages) {
   if (!record.smoke || record.smoke.initialEndCondition == null) fail(`${record.id} 缺少首轮结束条件结果`);
 }
 
-for (const required of ["index.html", "styles.css", "game.js", "game-systems.js", "organization-play.js", "runtime.js", "pcgrl.js", "map-elites.js", "audio/context-music-manifest.json", "scenario/difficulty-profiles.json", "scenario/dongzhou-knowledge.json", "scenario/pcgrl-masui.json", "scenario/stage/pcgrl_masui.lua", "scenario/map-elites-chuisha.json", "scenario/map-elites-chuisha.archive.json", "scenario/stage/map_elites_chuisha.lua", "vendor/fengari-web.js", "vendor/LICENSE"]) {
+for (const required of ["index.html", "styles.css", "game.js", "game-systems.js", "organization-play.js", "integration-client.js", "runtime.js", "pcgrl.js", "map-elites.js", "audio/context-music-manifest.json", "scenario/difficulty-profiles.json", "scenario/dongzhou-knowledge.json", "scenario/pcgrl-masui.json", "scenario/stage/pcgrl_masui.lua", "scenario/map-elites-chuisha.json", "scenario/map-elites-chuisha.archive.json", "scenario/stage/map_elites_chuisha.lua", "vendor/fengari-web.js", "vendor/LICENSE"]) {
   if (!fs.existsSync(path.join(WEB, required))) fail(`缺少发布文件：${required}`);
 }
 
 const releaseFiles = new Set();
-for (const relative of ["index.html", "styles.css", "game.js", "game-systems.js", "organization-play.js", "runtime.js", "pcgrl.js", "map-elites.js", "README.md", "audio/dialogue-manifest.json", "audio/context-music-manifest.json"]) {
+for (const relative of ["index.html", "styles.css", "game.js", "game-systems.js", "organization-play.js", "integration-client.js", "runtime.js", "pcgrl.js", "map-elites.js", "README.md", "audio/dialogue-manifest.json", "audio/context-music-manifest.json"]) {
   releaseFiles.add(path.join(WEB, relative));
 }
 for (const folder of ["assets", "scenario", "vendor"]) {

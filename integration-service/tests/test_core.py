@@ -1,0 +1,1066 @@
+from __future__ import annotations
+
+import asyncio
+import json
+import hashlib
+import hmac
+from pathlib import Path
+from tempfile import TemporaryDirectory
+import time
+import unittest
+from unittest.mock import patch
+from uuid import uuid4
+
+from fastapi.testclient import TestClient
+import httpx
+from pydantic import ValidationError
+
+from dongzhou_integration.app import (
+    RuntimeModule,
+    _prepare_due_organization_reports,
+    _organization_task_succeeds,
+    build_application,
+)
+from dongzhou_integration.config import Settings
+from dongzhou_integration.models import GuestSessionRequest, NpcDecisionRequest, OrganizationTaskRequest
+from dongzhou_integration.security import issue_session, sign_orgflow_request, stable_event_id, stable_npc_id, verify_session
+from dongzhou_integration.store import GameClockConflict, Store, VersionConflict
+from dongzhou_integration.upstreams import Upstreams
+
+
+class _HealthyUpstreams:
+    async def health(self):
+        return {
+            "orgFlow": {"online": True},
+            "aiNpc": {"online": True},
+            "knowledge": {"online": True},
+        }
+
+    async def close(self):
+        return None
+
+
+class _CapturingUpstreams(_HealthyUpstreams):
+    def __init__(self) -> None:
+        self.events: list[tuple[str, dict[str, object]]] = []
+
+    async def send_game_event(self, kind, payload):
+        self.events.append((kind, payload))
+        return {"code": 200}
+
+
+class _NpcRecoveryUpstreams(_HealthyUpstreams):
+    def __init__(self, online_ids=()) -> None:
+        self.registrations: list[list[dict[str, str]]] = []
+        self.activations: list[tuple[list[dict[str, str]], str, str]] = []
+        self.online_ids = set(online_ids)
+
+    async def online_npc_ids(self):
+        return set(self.online_ids)
+
+    async def register_npcs(self, npcs):
+        self.registrations.append(npcs)
+        return {"code": 200}
+
+    async def set_npcs_online(self, npcs, game_time, login_round):
+        self.activations.append((npcs, game_time, login_round))
+        return []
+
+
+class SecurityTests(unittest.TestCase):
+    def test_http_uuid_fields_accept_json_strings(self) -> None:
+        request_id = "00000000-0000-4000-8000-000000000001"
+        self.assertEqual(str(GuestSessionRequest(installation_id=request_id).installation_id), request_id)
+        decision = NpcDecisionRequest(
+            client_request_id=request_id,
+            question="Choose",
+            options=[{"index": 0, "text": "A"}, {"index": 1, "text": "B"}],
+        )
+        self.assertEqual(str(decision.client_request_id), request_id)
+        task = OrganizationTaskRequest(
+            client_request_id=request_id,
+            task_type="patrol",
+            assignee_hero_id="ZuoRu",
+            stage_id="01",
+            stage_title="Patrol",
+            brief="Inspect the route",
+            parameters={"resource_units": 1, "assignee_name": "Zuo Ru"},
+        )
+        self.assertEqual(str(task.client_request_id), request_id)
+
+        with self.assertRaises(ValidationError):
+            OrganizationTaskRequest(
+                client_request_id=request_id,
+                task_type="survey",
+                assignee_hero_id="ZuoRu",
+                stage_id="01",
+                stage_title="Survey",
+                brief="Unsupported organization task",
+                parameters={"resource_units": 1, "assignee_name": "Zuo Ru"},
+            )
+
+    def test_session_round_trip_and_stable_ids(self) -> None:
+        player_id = uuid4()
+        secret = "s" * 32
+        self.assertEqual(verify_session(issue_session(player_id, secret), secret), player_id)
+        self.assertEqual(stable_npc_id(91001, "DuBo"), stable_npc_id(91001, "DuBo"))
+        self.assertNotEqual(stable_npc_id(91001, "DuBo"), stable_npc_id(91001, "ZuoRu"))
+        request_id = uuid4()
+        self.assertEqual(stable_event_id(player_id, request_id), stable_event_id(player_id, request_id))
+
+
+class OrganizationOutcomeTests(unittest.TestCase):
+    def test_preparation_and_office_fit_materially_change_outcome(self) -> None:
+        prepared = {"id": "task-4", "dueMonth": 2, "knowledgeId": "dongzhou_stage_004"}
+        unprepared = {**prepared, "knowledgeId": None}
+        capable = {"office": "司徒", "loyalty": 80, "fatigue": 5}
+        exhausted = {"office": "司马", "loyalty": 35, "fatigue": 95}
+
+        self.assertTrue(_organization_task_succeeds(prepared, "supply", capable))
+        self.assertFalse(_organization_task_succeeds(unprepared, "supply", exhausted))
+
+
+class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
+    async def test_restart_reconciles_persisted_npc_directory(self) -> None:
+        with TemporaryDirectory() as directory, patch.dict(
+            "os.environ",
+            {
+                "DONGZHOU_ENV": "development",
+                "DONGZHOU_DATABASE_PATH": str(Path(directory) / "gateway.sqlite3"),
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            store = Store(settings.database_path)
+            await store.start()
+            roster = [{"heroId": "DuBo", "name": "Du Bo", "npcId": "42"}]
+            await store.upsert_npc_directory(settings.game_server_id, roster)
+            upstreams = _NpcRecoveryUpstreams()
+
+            await RuntimeModule(store, upstreams, settings)._reconcile_npcs_once()
+
+        self.assertEqual(upstreams.registrations, [roster])
+        self.assertEqual(upstreams.activations[0][0], roster)
+        self.assertEqual(upstreams.activations[0][1], "0771-01-01 14:00:00")
+        self.assertTrue(upstreams.activations[0][2].startswith("dongzhou-recovery-"))
+
+    async def test_restart_reactivates_persisted_ready_npc_when_actor_is_offline(self) -> None:
+        with TemporaryDirectory() as directory, patch.dict(
+            "os.environ",
+            {
+                "DONGZHOU_ENV": "development",
+                "DONGZHOU_DATABASE_PATH": str(Path(directory) / "gateway.sqlite3"),
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            store = Store(settings.database_path)
+            await store.start()
+            roster = [{"heroId": "DuBo", "name": "Du Bo", "npcId": "42"}]
+            await store.upsert_npc_directory(settings.game_server_id, roster)
+            await store.mark_npc_ready(settings.game_server_id, "42", "login-42", 0, 1, "startup-1")
+            upstreams = _NpcRecoveryUpstreams()
+
+            await RuntimeModule(store, upstreams, settings)._reconcile_npcs_once()
+
+        self.assertEqual(upstreams.registrations, [roster])
+        self.assertEqual(upstreams.activations[0][0], roster)
+
+    async def test_restart_does_not_reactivate_ready_online_actor(self) -> None:
+        with TemporaryDirectory() as directory, patch.dict(
+            "os.environ",
+            {
+                "DONGZHOU_ENV": "development",
+                "DONGZHOU_DATABASE_PATH": str(Path(directory) / "gateway.sqlite3"),
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            store = Store(settings.database_path)
+            await store.start()
+            roster = [{"heroId": "DuBo", "name": "Du Bo", "npcId": "42"}]
+            await store.upsert_npc_directory(settings.game_server_id, roster)
+            await store.mark_npc_ready(settings.game_server_id, "42", "login-42", 0, 1, "startup-1")
+            upstreams = _NpcRecoveryUpstreams(online_ids={"42"})
+
+            await RuntimeModule(store, upstreams, settings)._reconcile_npcs_once()
+
+        self.assertEqual(upstreams.registrations, [])
+        self.assertEqual(upstreams.activations, [])
+
+    async def test_cold_start_reactivates_actor_despite_stale_online_directory_flag(self) -> None:
+        with TemporaryDirectory() as directory, patch.dict(
+            "os.environ",
+            {
+                "DONGZHOU_ENV": "development",
+                "DONGZHOU_DATABASE_PATH": str(Path(directory) / "gateway.sqlite3"),
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            store = Store(settings.database_path)
+            await store.start()
+            roster = [{"heroId": "DuBo", "name": "Du Bo", "npcId": "42"}]
+            await store.upsert_npc_directory(settings.game_server_id, roster)
+            upstreams = _NpcRecoveryUpstreams(online_ids={"42"})
+
+            await RuntimeModule(store, upstreams, settings)._reconcile_npcs_once(
+                force_relogin=True
+            )
+
+        self.assertEqual(upstreams.registrations, [])
+        self.assertEqual(upstreams.activations[0][0], roster)
+
+    async def test_orgflow_v1_catalog_fallback_preserves_context_in_brief(self) -> None:
+        observed: list[dict[str, object]] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            observed.append(__import__("json").loads(request.content))
+            if len(observed) == 1:
+                return httpx.Response(
+                    422,
+                    json={"error": {"code": "organization_virtual_task_parameters_invalid"}},
+                )
+            return httpx.Response(200, json={"data": {"task_id": str(uuid4())}})
+
+        environment = {
+            "DONGZHOU_ENV": "development",
+            "DONGZHOU_SESSION_SECRET": "s" * 32,
+            "DONGZHOU_ORGFLOW_HMAC_SECRET": "o" * 32,
+        }
+        with patch.dict("os.environ", environment, clear=True):
+            settings = Settings.from_env()
+        client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        upstreams = Upstreams(settings, client=client)
+        payload = {
+            "source": "ORGANIZATION_EVENT",
+            "source_event_id": str(uuid4()),
+            "parameters": {
+                "assignee_hero_id": "ZuoRu",
+                "assignee_name": "Zuo Ru",
+                "resource_units": 8,
+                "stage_id": "01",
+                "stage_title": "Eastern Outskirts",
+            },
+            "brief": "Move provisions.",
+        }
+        try:
+            result = await upstreams.trigger_virtual_task(str(uuid4()), payload)
+        finally:
+            await client.aclose()
+        self.assertIn("task_id", result["data"])
+        self.assertEqual(len(observed), 2)
+        self.assertEqual(observed[1]["parameters"]["assignee_hero_id"], "unassigned")
+        self.assertIn('"assignee_hero_id":"ZuoRu"', observed[1]["brief"])
+
+    def test_production_configuration_fails_closed_and_validates_hero_slots(self) -> None:
+        required = {
+            "DONGZHOU_ENV": "production",
+            "DONGZHOU_PUBLIC_ORIGIN": "https://dongzhou.example.com",
+            "DONGZHOU_SESSION_SECRET": "s" * 32,
+            "DONGZHOU_ORGFLOW_HMAC_SECRET": "o" * 32,
+            "DONGZHOU_AINPC_TOKEN": "a" * 32,
+            "DONGZHOU_AINPC_TASK_TOKEN": "t" * 32,
+            "DONGZHOU_KNOWLEDGE_TOKEN": "k" * 32,
+            "DONGZHOU_ORGFLOW_ORG_ID": "00000000-0000-4000-8000-000000000001",
+            "DONGZHOU_ORGFLOW_MANAGER_MEMBER_ID": "00000000-0000-4000-8000-000000000004",
+            "DONGZHOU_ORGFLOW_HERO_SLOTS": "DuBo=00000000-0000-4000-8000-000000000003",
+            "DONGZHOU_ORGFLOW_HERO_MEMBERS": "DuBo=00000000-0000-4000-8000-000000000004",
+        }
+        with patch.dict("os.environ", required, clear=True):
+            settings = Settings.from_env()
+        self.assertEqual(settings.orgflow_hero_slots["DuBo"], required["DONGZHOU_ORGFLOW_HERO_SLOTS"].split("=")[1])
+        self.assertEqual(settings.orgflow_hero_members["DuBo"], required["DONGZHOU_ORGFLOW_HERO_MEMBERS"].split("=")[1])
+        with patch.dict("os.environ", {**required, "DONGZHOU_ORGFLOW_HERO_SLOTS": ""}, clear=True):
+            with self.assertRaises(RuntimeError):
+                Settings.from_env()
+        with patch.dict("os.environ", {"DONGZHOU_ENV": "prodution"}, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "DONGZHOU_ENV"):
+                Settings.from_env()
+        with patch.dict(
+            "os.environ",
+            {**required, "DONGZHOU_ORGFLOW_HERO_MEMBERS": "ZuoRu=00000000-0000-4000-8000-000000000004"},
+            clear=True,
+        ):
+            with self.assertRaises(RuntimeError):
+                Settings.from_env()
+        for override, message in (
+            ({"DONGZHOU_OFFLINE_KNOWLEDGE": "1"}, "OFFLINE_KNOWLEDGE"),
+            ({"DONGZHOU_AINPC_GAME_SERVER_ID": "91002"}, "must match"),
+            ({"DONGZHOU_AINPC_TOKEN": ""}, "AINPC_TOKEN"),
+            ({"DONGZHOU_KNOWLEDGE_TOKEN": ""}, "KNOWLEDGE_TOKEN"),
+            ({"DONGZHOU_KNOWLEDGE_URL": "http://user:secret@knowledge"}, "absolute HTTP"),
+        ):
+            with self.subTest(override=override), patch.dict(
+                "os.environ", {**required, **override}, clear=True
+            ):
+                with self.assertRaisesRegex(RuntimeError, message):
+                    Settings.from_env()
+
+    def test_orgflow_signature_binds_method_path_audience_nonce_and_body(self) -> None:
+        body = b'{"source_event_id":"event-1"}'
+        headers = sign_orgflow_request(
+            method="POST",
+            path_and_query="/internal/task",
+            audience="org-flow-engine-administration",
+            key_id="dongzhou-v1",
+            secret="o" * 32,
+            body=body,
+        )
+        material = "\n".join(
+            (
+                "POST",
+                "/internal/task",
+                "org-flow-engine-administration",
+                "dongzhou-v1",
+                headers["X-Org-Service-Time"],
+                headers["X-Org-Service-Nonce"],
+                hashlib.sha256(body).hexdigest(),
+            )
+        ).encode("ascii")
+        expected = hmac.new(b"o" * 32, material, hashlib.sha256).hexdigest()
+        self.assertEqual(headers["X-Org-Service-Signature"], expected)
+        self.assertEqual(len(headers["X-Org-Service-Nonce"]), 64)
+
+
+class AuthenticationRouteTests(unittest.TestCase):
+    def test_ainpc_relogin_contract_replays_only_the_requested_static_shard(self) -> None:
+        with TemporaryDirectory() as directory, patch.dict(
+            "os.environ",
+            {
+                "DONGZHOU_ENV": "development",
+                "DONGZHOU_WEB_ROOT": directory,
+                "DONGZHOU_DATABASE_PATH": str(Path(directory) / "gateway.sqlite3"),
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            store = Store(settings.database_path)
+            asyncio.run(store.start())
+            roster = [
+                {"heroId": "A", "name": "A", "npcId": "101"},
+                {"heroId": "B", "name": "B", "npcId": "202"},
+                {"heroId": "C", "name": "C", "npcId": "303"},
+            ]
+            asyncio.run(store.upsert_npc_directory(settings.game_server_id, roster))
+            upstreams = _NpcRecoveryUpstreams()
+            application = build_application(settings, store=store, upstreams=upstreams)
+            with TestClient(application) as client:
+                response = client.post(
+                    "/api/v1/NDLLMAllAILogin",
+                    json={"instanceId": 1, "instanceCount": 2, "startupId": "startup-shard-1"},
+                )
+                self.assertEqual(response.status_code, 200)
+                expected = [
+                    npc for npc in roster
+                    if int.from_bytes(
+                        hashlib.sha256(f"{settings.game_server_id}:{npc['npcId']}".encode()).digest(), "big"
+                    ) % 2 == 1
+                ]
+                deadline = time.time() + 2
+                while not any(item[2] == "startup-shard-1" for item in upstreams.activations) and time.time() < deadline:
+                    time.sleep(0.01)
+                replay = next(item for item in upstreams.activations if item[2] == "startup-shard-1")
+                self.assertEqual(replay[0], expected)
+                self.assertEqual(response.json()["acceptedCount"], len(expected))
+                self.assertEqual(response.json()["state"], "ACCEPTED")
+
+                single = client.post(
+                    "/api/v1/NDLLMSingleAILogin",
+                    json={"gameServerId": settings.game_server_id, "aiId": "202", "requestId": "single-202"},
+                )
+                self.assertEqual(single.status_code, 200)
+                self.assertEqual(single.json()["requestId"], "single-202")
+                self.assertEqual(upstreams.activations[-1][0], [roster[1]])
+
+    def test_cookie_session_satisfies_player_dependency(self) -> None:
+        with TemporaryDirectory() as directory, patch.dict(
+            "os.environ",
+            {
+                "DONGZHOU_ENV": "development",
+                "DONGZHOU_WEB_ROOT": directory,
+                "DONGZHOU_PUBLIC_ORIGIN": "http://testserver",
+                "DONGZHOU_DATABASE_PATH": str(Path(directory) / "gateway.sqlite3"),
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            application = build_application(
+                settings,
+                store=Store(settings.database_path),
+                upstreams=_HealthyUpstreams(),
+            )
+            with TestClient(application) as client:
+                servers = client.post("/api/v1/QueryServers", json={})
+                self.assertEqual(servers.status_code, 200)
+                self.assertEqual(servers.json()["servers"], [settings.game_server_id])
+                self.assertEqual(servers.json()["serverNames"], ["Dongzhou"])
+
+                game_time = client.post(
+                    "/api/v1/QueryGameTimeAndTimeScale",
+                    json={"serverID": settings.game_server_id},
+                )
+                self.assertEqual(game_time.status_code, 200)
+                self.assertEqual(game_time.json()["virtualTime"], "0771-01-01 14:00:00")
+
+                login_ready = client.post(
+                    "/api/v1/ainpc/login-ready",
+                    json={
+                        "gameServerId": settings.game_server_id,
+                        "aiId": "42",
+                        "loginRequestId": "round-42",
+                        "instanceId": 1,
+                        "instanceCount": 6,
+                        "startupId": "startup-1",
+                    },
+                )
+                self.assertEqual(login_ready.status_code, 200)
+                self.assertEqual(login_ready.json(), {"success": True, "state": "READY"})
+                alive = client.post("/api/v2/QueryNDLLMIsAlive", json={"aiId": "42"})
+                self.assertEqual(alive.status_code, 200)
+                self.assertEqual(alive.json(), {"isAlive": True})
+                absent = client.post("/api/v2/QueryNDLLMIsAlive", json={"aiId": "43"})
+                self.assertEqual(absent.status_code, 200)
+                self.assertEqual(absent.json(), {"isAlive": False})
+                online = client.post("/api/v2/QueryNDLLMIsOnline", json={"aiId": "42"})
+                self.assertEqual(online.status_code, 200)
+                self.assertEqual(online.json(), {"isOnline": True})
+                offline = client.post("/api/v2/QueryNDLLMIsOnline", json={"aiId": "43"})
+                self.assertEqual(offline.status_code, 200)
+                self.assertEqual(offline.json(), {"isOnline": False})
+
+                tasks = client.post(
+                    "/api/v2/QueryNDLLMTaskInfoByStatus",
+                    json={"aiId": "42", "queryTaskStatus": "TASK_STATUS_RUNNING"},
+                )
+                self.assertEqual(tasks.status_code, 200)
+                self.assertEqual(tasks.json(), {"taskInfos": []})
+                invalid_tasks = client.post(
+                    "/api/v2/QueryNDLLMTaskInfoByStatus",
+                    json={"aiId": "42", "queryTaskStatus": "TASK_STATUS_COMPLETED"},
+                )
+                self.assertEqual(invalid_tasks.status_code, 422)
+
+                guest = client.post(
+                    "/api/dongzhou/v1/sessions/guest",
+                    json={"installation_id": str(uuid4())},
+                )
+                self.assertEqual(guest.status_code, 200)
+                status = client.get("/api/dongzhou/v1/integration/status")
+                self.assertEqual(status.status_code, 200)
+                self.assertEqual(status.json()["mode"], "connected")
+                nexus = status.json()["services"]["nexusKernel"]
+                self.assertTrue(nexus["online"])
+                self.assertEqual(nexus["mode"], "embedded")
+                self.assertRegex(nexus["version"], r"^\d+\.\d+\.\d+")
+
+    def test_private_chat_game_server_contract_is_durable_and_complete(self) -> None:
+        with TemporaryDirectory() as directory, patch.dict(
+            "os.environ",
+            {
+                "DONGZHOU_ENV": "development",
+                "DONGZHOU_WEB_ROOT": directory,
+                "DONGZHOU_PUBLIC_ORIGIN": "http://testserver",
+                "DONGZHOU_DATABASE_PATH": str(Path(directory) / "gateway.sqlite3"),
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            store = Store(settings.database_path)
+            asyncio.run(store.start())
+            npcs = [
+                {"heroId": "Manager", "name": "Manager", "npcId": "101"},
+                {"heroId": "Officer", "name": "Officer", "npcId": "202"},
+            ]
+            asyncio.run(store.upsert_npc_directory(settings.game_server_id, npcs))
+            for npc in npcs:
+                asyncio.run(
+                    store.mark_npc_ready(
+                        settings.game_server_id,
+                        npc["npcId"],
+                        "login-" + npc["npcId"],
+                        None,
+                        None,
+                        "startup-1",
+                    )
+                )
+            upstreams = _CapturingUpstreams()
+            application = build_application(settings, store=store, upstreams=upstreams)
+
+            with TestClient(application) as client:
+                directory_response = client.post(
+                    "/api/v1/QueryNPCS",
+                    json={"serverId": settings.game_server_id, "includeOffline": False},
+                )
+                self.assertEqual(directory_response.status_code, 200)
+                self.assertEqual(
+                    [(row["id"], row["isOnline"]) for row in directory_response.json()["infos"]],
+                    [("101", 1), ("202", 1)],
+                )
+
+                started = client.post(
+                    "/api/v2/NDLLMChatWithPlayer",
+                    json={
+                        "aiId": "101",
+                        "playerInfo": {
+                            "playerId": "202",
+                            "playerName": "Officer",
+                            "fleetDuty": 0,
+                            "fleetId": 0,
+                            "guildDuty": 0,
+                            "guildId": 0,
+                            "pilotLevel": 0,
+                            "pkValue": 0,
+                            "posX": 0,
+                            "posY": 0,
+                            "teamMemberNumber": 0,
+                        },
+                        "topic": "organization-task:test-notification",
+                        "isNpc": True,
+                        "loginRequestId": "login-101",
+                    },
+                )
+                self.assertEqual(started.status_code, 200)
+                self.assertTrue(started.json()["success"])
+                deadline = time.time() + 2
+                while len(upstreams.events) < 1 and time.time() < deadline:
+                    time.sleep(0.02)
+                self.assertEqual(upstreams.events[0][0], "CHAT_START")
+                chat_event = upstreams.events[0][1]
+                self.assertEqual(chat_event["status"], "start")
+                self.assertEqual(chat_event["messages"], [])
+
+                missing = client.post(
+                    "/api/v2/QueryNDLLMPrivateMessageDelivery",
+                    json={
+                        "aiId": "101",
+                        "chatId": chat_event["chatId"],
+                        "taskId": chat_event["taskId"],
+                        "messageId": "orgnotice-test-message",
+                        "deliveryAttemptId": "attempt-1",
+                        "attempt": 1,
+                    },
+                )
+                self.assertEqual(missing.status_code, 200)
+                self.assertEqual(missing.json()["status"], "not_delivered")
+
+                delivered = client.post(
+                    "/api/v2/NDLLMSendPrivateMessage",
+                    json={
+                        "aiId": "101",
+                        "loginRequestId": "login-101",
+                        "chatId": chat_event["chatId"],
+                        "taskId": chat_event["taskId"],
+                        "data": {
+                            "message": {
+                                "id": "orgnotice-test-message",
+                                "speakerId": "101",
+                                "content": "Proceed.",
+                                "time": "0771-01-01 14:00:00",
+                            },
+                            "isFinish": False,
+                        },
+                        "deliveryAttemptId": "attempt-1",
+                        "attempt": 1,
+                        "isMinor": False,
+                        "needManualTakeover": False,
+                        "isNpc": True,
+                        "playerInfo": {"playerId": "202", "playerName": "Officer"},
+                    },
+                )
+                self.assertEqual(delivered.status_code, 200)
+                self.assertTrue(delivered.json()["success"])
+                confirmed = client.post(
+                    "/api/v2/QueryNDLLMPrivateMessageDelivery",
+                    json={
+                        "aiId": "101",
+                        "chatId": chat_event["chatId"],
+                        "taskId": chat_event["taskId"],
+                        "messageId": "orgnotice-test-message",
+                        "deliveryAttemptId": "attempt-1",
+                        "attempt": 1,
+                    },
+                )
+                self.assertEqual(confirmed.status_code, 200)
+                self.assertEqual(confirmed.json()["status"], "delivered")
+                deadline = time.time() + 2
+                while not any(kind == "DELIVERY_RESULT" for kind, _ in upstreams.events) and time.time() < deadline:
+                    time.sleep(0.02)
+                receipt = next(payload for kind, payload in upstreams.events if kind == "DELIVERY_RESULT")
+                self.assertEqual(receipt["messageId"], "orgnotice-test-message")
+                self.assertEqual(receipt["status"], "delivered")
+                deadline = time.time() + 2
+                while not any(kind == "CHAT_TURN" for kind, _ in upstreams.events) and time.time() < deadline:
+                    time.sleep(0.02)
+                turn = next(payload for kind, payload in upstreams.events if kind == "CHAT_TURN")
+                self.assertEqual(turn["npcId"], "202")
+                self.assertEqual(turn["speakerId"], "202")
+                self.assertEqual(turn["status"], "inProgress")
+                self.assertEqual(turn["messages"][0]["id"], "orgnotice-test-message")
+
+                peer_reply = client.post(
+                    "/api/v2/NDLLMSendPrivateMessage",
+                    json={
+                        "aiId": "202",
+                        "loginRequestId": "login-202",
+                        "chatId": turn["chatId"],
+                        "taskId": turn["taskId"],
+                        "deliveryAttemptId": "attempt-peer-1",
+                        "attempt": 1,
+                        "data": {
+                            "message": {
+                                "id": "peer-reply-message",
+                                "speakerId": "202",
+                                "content": "Accepted.",
+                                "time": "0771-01-01 14:00:00",
+                            },
+                            "isFinish": True,
+                        },
+                        "need_manual_takeover": False,
+                        "isMinor": False,
+                        "isNpc": True,
+                        "playerInfo": {
+                            "id": "101",
+                            "name": "Manager",
+                            "type": "NPC",
+                            "speakerSpeed": 6,
+                        },
+                    },
+                )
+                self.assertEqual(peer_reply.status_code, 200)
+                self.assertTrue(peer_reply.json()["success"])
+
+                legacy = client.post(
+                    "/api/v2/NDLLMSendPrivateMessage",
+                    json={
+                        "aiId": "101",
+                        "loginRequestId": "login-101",
+                        "chatId": chat_event["chatId"],
+                        "taskId": chat_event["taskId"],
+                        "data": {
+                            "id": "legacy-message",
+                            "speakerId": "101",
+                            "content": "Legacy reply.",
+                        },
+                        "isMinor": False,
+                        "needManualTakeover": False,
+                    },
+                )
+                self.assertEqual(legacy.status_code, 200)
+                self.assertTrue(legacy.json()["success"])
+
+                runtime = client.post(
+                    "/api/v2/QueryPrivateChatRuntimeState",
+                    json={"aiId": "101", "revealPii": False},
+                )
+                self.assertEqual(runtime.status_code, 200)
+                runtime_body = runtime.json()
+                self.assertEqual(runtime_body["waitingReplyCount"], 0)
+                self.assertEqual(runtime_body["pendingMessageCount"], 0)
+                self.assertEqual(runtime_body["queuedSendCount"], 0)
+                self.assertEqual(len(runtime_body["sessions"]), 1)
+                self.assertEqual(runtime_body["sessions"][0]["targetId"], "202")
+                self.assertEqual(runtime_body["sessions"][0]["chatId"], chat_event["chatId"])
+                self.assertFalse(runtime_body["sessions"][0]["isSending"])
+
+                reset = client.post(
+                    "/api/v2/ResetPrivateChatRuntimeState",
+                    json={
+                        "aiId": "101",
+                        "targetId": "202",
+                        "action": "EPrivateChatRuntimeResetActionClearPending",
+                        "confirmReset": True,
+                    },
+                )
+                self.assertEqual(reset.status_code, 200)
+                self.assertTrue(reset.json()["success"])
+                self.assertEqual(reset.json()["uncancelledSendingCount"], 0)
+                self.assertEqual(reset.json()["state"]["sessions"][0]["targetId"], "202")
+
+                pii = client.post(
+                    "/api/v2/QueryPrivateChatRuntimeState",
+                    json={"aiId": "101", "revealPii": True},
+                )
+                self.assertEqual(pii.status_code, 422)
+
+
+class StoreTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self) -> None:
+        self.temp = TemporaryDirectory()
+        self.store = Store(Path(self.temp.name) / "gateway.sqlite3")
+        await self.store.start()
+
+    async def asyncTearDown(self) -> None:
+        self.temp.cleanup()
+
+    async def test_session_save_version_and_idempotency(self) -> None:
+        installation_id = uuid4()
+        player_id = await self.store.get_or_create_player(installation_id)
+        self.assertEqual(player_id, await self.store.get_or_create_player(installation_id))
+        saved = await self.store.write_save(player_id, 1, {"completed": ["01"]})
+        self.assertEqual(saved["version"], 2)
+        with self.assertRaises(VersionConflict):
+            await self.store.write_save(player_id, 1, {})
+
+        request_id = uuid4()
+        created, _ = await self.store.begin_request(player_id, request_id, "organization_task", {"type": "supply"})
+        self.assertTrue(created)
+        await self.store.finish_request(player_id, request_id, "ACCEPTED", {"state": "ACCEPTED"})
+        created, replay = await self.store.begin_request(player_id, request_id, "organization_task", {"type": "supply"})
+        self.assertFalse(created)
+        self.assertEqual(replay, {"state": "ACCEPTED"})
+        with self.assertRaises(VersionConflict):
+            await self.store.begin_request(player_id, request_id, "organization_task", {"type": "drill"})
+
+    async def test_explicit_redelivery_requeues_same_completed_game_event(self) -> None:
+        payload = {"taskId": "stable-task", "topic": "stable-topic"}
+        self.assertTrue(
+            await self.store.enqueue_game_event(
+                "chat-start:stable", "CHAT_START", payload
+            )
+        )
+        await self.store.finish_game_event("chat-start:stable")
+        self.assertEqual(await self.store.pending_game_events(), [])
+        self.assertFalse(
+            await self.store.enqueue_game_event(
+                "chat-start:stable", "CHAT_START", payload
+            )
+        )
+        self.assertTrue(
+            await self.store.enqueue_game_event(
+                "chat-start:stable",
+                "CHAT_START",
+                payload,
+                requeue_delivered=True,
+            )
+        )
+        events = await self.store.pending_game_events()
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["eventId"], "chat-start:stable")
+        self.assertEqual(events[0]["payload"], payload)
+
+    async def test_private_chat_message_and_peer_turn_are_atomic(self) -> None:
+        start = {
+            "gameServerId": "91001",
+            "npcId": "101",
+            "source": "91001",
+            "speakerId": "101",
+            "taskId": "task-atomic",
+            "chatId": "101_202",
+            "serverName": "Dongzhou",
+            "status": "start",
+            "currTime": "0771-01-01 14:00:00",
+            "topic": "atomic",
+            "participants": [
+                {"id": "101", "name": "Manager", "type": "NPC"},
+                {"id": "202", "name": "Officer", "type": "NPC"},
+            ],
+            "messages": [],
+        }
+        wire = {
+            "gameServerId": "91001",
+            "aiId": "101",
+            "chatId": "101_202",
+            "taskId": "task-atomic",
+            "playerInfo": {"playerId": "202", "playerName": "Officer"},
+            "data": {
+                "message": {"id": "message-atomic", "speakerId": "101", "content": "Proceed."},
+                "isFinish": False,
+            },
+        }
+        with self.assertRaises(VersionConflict):
+            await self.store.record_private_message(wire, route_to_npc=True)
+        await self.store.register_private_chat(start)
+        await self.store.record_private_message(wire, route_to_npc=True)
+        retry = {
+            **wire,
+            "loginRequestId": "new-login-round",
+            "deliveryAttemptId": "new-attempt",
+            "attempt": 2,
+        }
+        await self.store.record_private_message(retry, route_to_npc=True)
+        events = await self.store.pending_game_events()
+        self.assertEqual([(row["kind"], row["payload"]["npcId"]) for row in events], [("CHAT_TURN", "202")])
+        recipient_task_id = events[0]["payload"]["taskId"]
+        self.assertTrue(recipient_task_id.startswith("peerchat-"))
+        self.assertNotEqual(recipient_task_id, wire["taskId"])
+
+        response = {
+            **wire,
+            "aiId": "202",
+            "taskId": recipient_task_id,
+            "playerInfo": {"playerId": "101", "playerName": "Manager"},
+            "data": {
+                "message": {
+                    "id": "message-atomic-response",
+                    "speakerId": "202",
+                    "content": "Accepted.",
+                },
+                "isFinish": True,
+            },
+        }
+        await self.store.record_private_message(response, route_to_npc=True)
+        events = await self.store.pending_game_events()
+        self.assertEqual(len(events), 1)
+        self.assertFalse(
+            any(event["payload"]["npcId"] == "101" for event in events)
+        )
+
+    async def test_npc_pair_lease_blocks_reverse_conversation_until_finish(self) -> None:
+        def start(owner: str, target: str, task: str) -> dict:
+            return {
+                "gameServerId": "91001",
+                "npcId": owner,
+                "source": "91001",
+                "speakerId": owner,
+                "taskId": task,
+                "chatId": f"{owner}_{target}",
+                "serverName": "Dongzhou",
+                "status": "start",
+                "currTime": "0771-01-01 14:00:00",
+                "topic": task,
+                "participants": [
+                    {"id": owner, "name": owner, "type": "NPC"},
+                    {"id": target, "name": target, "type": "NPC"},
+                ],
+                "messages": [],
+            }
+
+        await self.store.register_private_chat(start("101", "202", "report"))
+        with self.assertRaisesRegex(VersionConflict, "private_chat_pair_busy"):
+            await self.store.register_private_chat(start("202", "101", "notification"))
+
+        await self.store.record_private_message(
+            {
+                "gameServerId": "91001",
+                "aiId": "101",
+                "chatId": "101_202",
+                "taskId": "report",
+                "playerInfo": {"playerId": "202", "playerName": "202"},
+                "data": {
+                    "message": {
+                        "id": "report-finished",
+                        "speakerId": "101",
+                        "content": "Done.",
+                    },
+                    "isFinish": True,
+                },
+            }
+        )
+        await self.store.register_private_chat(start("202", "101", "notification"))
+
+    async def test_sender_finish_does_not_close_recipient_turn(self) -> None:
+        start = {
+            "gameServerId": "91001",
+            "npcId": "101",
+            "source": "91001",
+            "speakerId": "101",
+            "taskId": "task-terminal-message",
+            "chatId": "101_202",
+            "serverName": "Dongzhou",
+            "status": "start",
+            "currTime": "0771-01-01 14:00:00",
+            "topic": "organization-task:terminal-message",
+            "participants": [
+                {"id": "101", "name": "Manager", "type": "NPC"},
+                {"id": "202", "name": "Officer", "type": "NPC"},
+            ],
+            "messages": [],
+        }
+        wire = {
+            "gameServerId": "91001",
+            "aiId": "101",
+            "chatId": "101_202",
+            "taskId": "task-terminal-message",
+            "playerInfo": {"playerId": "202", "playerName": "Officer"},
+            "data": {
+                "message": {
+                    "id": "message-terminal",
+                    "speakerId": "101",
+                    "content": "Please confirm this assignment.",
+                    "isStopped": True,
+                },
+                "isFinish": True,
+            },
+        }
+        await self.store.register_private_chat(start)
+        await self.store.record_private_message(wire, route_to_npc=True)
+
+        events = await self.store.pending_game_events()
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["kind"], "CHAT_TURN")
+        self.assertEqual(events[0]["payload"]["npcId"], "202")
+        self.assertNotEqual(events[0]["payload"]["taskId"], wire["taskId"])
+        self.assertEqual(events[0]["payload"]["status"], "inProgress")
+        self.assertTrue(events[0]["payload"]["messages"][0]["isStopped"])
+
+    async def test_concurrent_save_has_one_winner(self) -> None:
+        player_id = await self.store.get_or_create_player(uuid4())
+        results = await asyncio.gather(
+            self.store.write_save(player_id, 1, {"writer": 1}),
+            self.store.write_save(player_id, 1, {"writer": 2}),
+            return_exceptions=True,
+        )
+        self.assertEqual(sum(isinstance(item, VersionConflict) for item in results), 1)
+
+    async def test_pending_request_is_leased_and_recovers_after_expiry(self) -> None:
+        player_id = await self.store.get_or_create_player(uuid4())
+        request_id = uuid4()
+        created, _ = await self.store.begin_request(player_id, request_id, "npc_decision", {"value": 1})
+        self.assertTrue(created)
+        created, replay = await self.store.begin_request(player_id, request_id, "npc_decision", {"value": 1})
+        self.assertFalse(created)
+        self.assertEqual(replay, {"state": "PENDING"})
+        with self.store._connection() as db:
+            db.execute(
+                "UPDATE requests SET updated_at=datetime('now','-3 minutes') WHERE player_id=? AND request_id=?",
+                (str(player_id), str(request_id)),
+            )
+        created, replay = await self.store.begin_request(player_id, request_id, "npc_decision", {"value": 1})
+        self.assertTrue(created)
+        self.assertIsNone(replay)
+
+    async def test_game_clock_is_monotonic_and_save_cannot_skip_months(self) -> None:
+        player_id = await self.store.get_or_create_player(uuid4())
+        initial = await self.store.read_game_clock()
+        self.assertEqual(initial["virtualTime"], "0771-01-01 14:00:00")
+
+        saved = await self.store.write_save(player_id, 1, {"organization": {"month": 2}})
+        self.assertEqual(saved["version"], 2)
+        advanced = await self.store.read_game_clock()
+        self.assertEqual(advanced["month"], 2)
+        self.assertEqual(advanced["virtualTime"], "0771-01-31 14:00:00")
+
+        with self.assertRaises(GameClockConflict):
+            await self.store.write_save(player_id, 2, {"organization": {"month": 4}})
+        with self.assertRaises(GameClockConflict):
+            await self.store.write_save(player_id, 2, {"organization": {"month": 1}})
+
+    async def test_due_remote_task_enqueues_one_authenticated_report_dialogue(self) -> None:
+        player_id = await self.store.get_or_create_player(uuid4())
+        task_id = uuid4()
+        request_id = uuid4()
+        created, _ = await self.store.begin_request(
+            player_id,
+            request_id,
+            "organization_task",
+            {
+                "task_type": "supply",
+                "assignee_hero_id": "ZuoRu",
+                "stage_title": "Eastern Outskirts",
+            },
+        )
+        self.assertTrue(created)
+        await self.store.finish_request(
+            player_id,
+            request_id,
+            "ACCEPTED",
+            {"taskId": str(task_id)},
+            external_id=str(task_id),
+        )
+        settings = Settings(
+            environment="test",
+            public_origin="http://testserver",
+            database_path=self.store.path,
+            web_root=self.store.path.parent,
+            session_secret="s" * 32,
+            orgflow_url="http://org",
+            orgflow_hmac_secret="o" * 32,
+            orgflow_hmac_key_id="dongzhou-v1",
+            orgflow_audience="org-flow-engine-administration",
+            orgflow_org_id=str(uuid4()),
+            orgflow_manager_member_id="manager-member",
+            orgflow_hero_slots={"DuBo": "manager-slot", "ZuoRu": "worker-slot"},
+            orgflow_hero_members={"DuBo": "manager-member", "ZuoRu": "worker-member"},
+            orgflow_hierarchy_version=1,
+            game_server_id="91001",
+            ainpc_url="http://ainpc",
+            ainpc_token="",
+            ainpc_game_server_id=91001,
+            knowledge_url="http://knowledge",
+            knowledge_token="",
+            offline_knowledge_enabled=False,
+            knowledge_file=self.store.path,
+            ainpc_task_token="t" * 32,
+        )
+        profile = {
+            "organization": {
+                "month": 2,
+                "members": [{"id": "DuBo", "name": "Du Bo"}],
+                "tasks": [
+                    {
+                        "status": "active",
+                        "remoteResult": str(task_id),
+                        "dueMonth": 2,
+                        "name": "Supply transport",
+                    }
+                ],
+            }
+        }
+        reports = await _prepare_due_organization_reports(
+            self.store, settings, player_id, profile
+        )
+        await self.store.write_save(player_id, 1, profile, organization_reports=reports)
+        reports[0]["content"] = "Changed after the first frozen outcome"
+        await self.store.write_save(player_id, 2, profile, organization_reports=reports)
+        events = await self.store.pending_game_events()
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["kind"], "ORG_REPORT_START")
+        self.assertEqual(events[0]["payload"]["task_id"], str(task_id))
+        self.assertEqual(events[0]["payload"]["purpose"], "report")
+        self.assertNotEqual(events[0]["payload"]["content"], reports[0]["content"])
+        frozen_payload = events[0]["payload"]
+        await self.store.finish_game_event(events[0]["eventId"])
+        await self.store.write_save(player_id, 3, profile, organization_reports=reports)
+        self.assertEqual(await self.store.pending_game_events(), [])
+        restored = Store(self.store.path)
+        await restored.start()
+        self.assertEqual(await restored.pending_game_events(), [])
+        with restored._connection() as db:
+            row = db.execute(
+                "SELECT state,payload,attempts FROM game_server_outbox WHERE event_id=?",
+                (events[0]["eventId"],),
+            ).fetchone()
+        self.assertEqual(row["state"], "DELIVERED")
+        self.assertEqual(json.loads(row["payload"]), frozen_payload)
+        self.assertEqual(row["attempts"], 1)
+
+    async def test_save_and_report_outbox_roll_back_together(self) -> None:
+        import sqlite3
+        player_id = await self.store.get_or_create_player(uuid4())
+        report = {"task_id": str(uuid4()), "content": "first frozen result"}
+        with self.store._connection() as db:
+            db.execute("CREATE TRIGGER reject_report BEFORE INSERT ON game_server_outbox "
+                       "BEGIN SELECT RAISE(ABORT, 'test outbox failure'); END")
+        with self.assertRaises(sqlite3.IntegrityError):
+            await self.store.write_save(
+                player_id, 1, {"organization": {"month": 2}}, organization_reports=[report]
+            )
+        self.assertEqual((await self.store.read_save(player_id))["version"], 1)
+        self.assertEqual((await self.store.read_game_clock())["month"], 1)
+        self.assertEqual(await self.store.pending_game_events(), [])
+        with self.store._connection() as db:
+            db.execute("DROP TRIGGER reject_report")
+        await self.store.write_save(
+            player_id, 1, {"organization": {"month": 2}}, organization_reports=[report]
+        )
+        restored = Store(self.store.path)
+        await restored.start()
+        self.assertEqual((await restored.read_save(player_id))["version"], 2)
+        self.assertEqual((await restored.pending_game_events())[0]["payload"], report)
+        with self.assertRaises(VersionConflict):
+            await restored.write_save(player_id, 1, {}, organization_reports=[{"task_id": str(uuid4())}])
+        self.assertEqual(len(await restored.pending_game_events()), 1)
+
+    async def test_npc_ready_callback_is_persisted_idempotently(self) -> None:
+        await self.store.mark_npc_ready("91001", "42", "round-1", 1, 6, "startup-1")
+        await self.store.mark_npc_ready("91001", "42", "round-2", 2, 6, "startup-2")
+        runtime = await self.store.read_npc_runtime("91001", "42")
+        self.assertIsNotNone(runtime)
+        self.assertEqual(runtime["state"], "READY")
+        self.assertEqual(runtime["loginRequestId"], "round-2")
+        self.assertEqual(runtime["instanceId"], 2)
+
+
+if __name__ == "__main__":
+    unittest.main()

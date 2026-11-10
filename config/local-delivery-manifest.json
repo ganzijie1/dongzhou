@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "containers": {
+    "dongzhou-integration-gateway-1": {
+      "image": "dongzhou-integration:20261110-local-complete11",
+      "healthRequired": true
+    },
+    "ainpc-v2-global-dev": {
+      "image": "ainpc-app:v20261110-dongzhou-local-complete14",
+      "healthRequired": true
+    },
+    "ainpc-v2-gateway-dev": {
+      "image": "ainpc-app:v20261110-dongzhou-local-complete14",
+      "healthRequired": true
+    },
+    "ainpc-v2-business-0-dev": {
+      "image": "ainpc-app:v20261110-dongzhou-local-complete14",
+      "healthRequired": true
+    },
+    "ainpc-v2-business-1-dev": {
+      "image": "ainpc-app:v20261110-dongzhou-local-complete14",
+      "healthRequired": true
+    },
+    "ainpc-v2-business-2-dev": {
+      "image": "ainpc-app:v20261110-dongzhou-local-complete14",
+      "healthRequired": true
+    },
+    "ainpc-v2-business-3-dev": {
+      "image": "ainpc-app:v20261110-dongzhou-local-complete14",
+      "healthRequired": true
+    },
+    "ainpc-v2-business-4-dev": {
+      "image": "ainpc-app:v20261110-dongzhou-local-complete14",
+      "healthRequired": true
+    },
+    "ainpc-v2-business-5-dev": {
+      "image": "ainpc-app:v20261110-dongzhou-local-complete14",
+      "healthRequired": true
+    },
+    "org-flow-engine-dev-api-1": {
+      "image": "org-flow-engine:dongzhou-local-complete22",
+      "healthRequired": true
+    },
+    "org-flow-engine-dev-worker-1": {
+      "image": "org-flow-engine:dongzhou-local-complete22",
+      "healthRequired": false
+    }
+  },
+  "requiredCapabilities": [
+    "nexusKernel",
+    "orgFlow",
+    "aiNpc",
+    "knowledge"
+  ],
+  "package": {
+    "path": "output/2026-11-10-dongzhou-integrated-h5-complete11.zip",
+    "sha256": "a87a49d073b869e6c147eae353274b288e39821b84258b26ce300e5469f4f57e"
+  },
+  "fulltextReport": "output/integration-validation/fulltext-browser-restored.json"
+}
