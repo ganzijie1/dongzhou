@@ -650,6 +650,73 @@ class Store:
             "observedAt": datetime.now(UTC).isoformat(),
         }
 
+    @staticmethod
+    def _correspondence_view(row: sqlite3.Row) -> dict[str, Any] | None:
+        payload = json.loads(row["payload"])
+        data = payload.get("data") or {}
+        message = data.get("message") or {}
+        start = json.loads(row["start_payload"]) if row["start_payload"] else {}
+        content = str(message.get("content") or "").strip()
+        speaker_id = str(message.get("speakerId") or payload.get("aiId") or "")
+        target = payload.get("playerInfo") or {}
+        target_id = str(target.get("playerId") or "")
+        if not content or not speaker_id or not target_id:
+            return None
+        return {
+            "messageId": str(row["message_id"]),
+            "chatId": str(row["chat_id"]),
+            "taskId": str(row["task_id"]),
+            "speakerId": speaker_id,
+            "speakerName": str(message.get("speakerName") or speaker_id),
+            "targetId": target_id,
+            "targetName": str(target.get("playerName") or target_id),
+            "content": content[:2000],
+            "emotion": str(message.get("speakerEmotion") or ""),
+            "topic": str(start.get("topic") or "")[:1000],
+            "messageTime": str(message.get("time") or ""),
+            "deliveredAt": str(row["delivered_at"]),
+            "terminal": data.get("isFinish") is True or message.get("isStopped") is True,
+        }
+
+    async def list_npc_correspondence(
+        self, game_server_id: str, npc_id: str, *, limit: int = 20
+    ) -> list[dict[str, Any]]:
+        bounded_limit = max(1, min(int(limit), 50))
+        async with self._lock:
+            with self._connection() as db:
+                rows = db.execute(
+                    "SELECT m.message_id,m.chat_id,m.task_id,m.payload,m.delivered_at,"
+                    "s.start_payload FROM private_chat_messages m "
+                    "LEFT JOIN private_chat_sessions s ON s.game_server_id=m.game_server_id "
+                    "AND s.chat_id=m.chat_id AND s.task_id=m.task_id "
+                    "WHERE m.game_server_id=? ORDER BY m.delivered_at DESC,m.message_id DESC LIMIT 500",
+                    (game_server_id,),
+                ).fetchall()
+        messages: list[dict[str, Any]] = []
+        for row in rows:
+            view = self._correspondence_view(row)
+            if view is None or npc_id not in {view["speakerId"], view["targetId"]}:
+                continue
+            messages.append(view)
+            if len(messages) >= bounded_limit:
+                break
+        return messages
+
+    async def read_correspondence_message(
+        self, game_server_id: str, message_id: str
+    ) -> dict[str, Any] | None:
+        async with self._lock:
+            with self._connection() as db:
+                row = db.execute(
+                    "SELECT m.message_id,m.chat_id,m.task_id,m.payload,m.delivered_at,"
+                    "s.start_payload FROM private_chat_messages m "
+                    "LEFT JOIN private_chat_sessions s ON s.game_server_id=m.game_server_id "
+                    "AND s.chat_id=m.chat_id AND s.task_id=m.task_id "
+                    "WHERE m.game_server_id=? AND m.message_id=?",
+                    (game_server_id, message_id),
+                ).fetchone()
+        return self._correspondence_view(row) if row is not None else None
+
     async def get_or_create_player(self, installation_id: UUID) -> UUID:
         player_id = uuid4()
         async with self._lock:

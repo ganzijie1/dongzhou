@@ -1012,6 +1012,50 @@
     return serial === officeNpcRefreshSerial && !$("#campaignOfficeBackdrop").hidden && $("#officeMemberSelect").value === memberId;
   }
 
+  let officeCorrespondenceView = [];
+
+  function renderOfficeCorrespondence(member) {
+    const panel = $("#officeCorrespondence");
+    if (!panel || !member) return;
+    const selected = profile.organization.selectedCorrespondence?.[String(officeStage()?.id || "")];
+    panel.innerHTML = officeCorrespondenceView.map((message) => {
+      const isSelected = selected?.messageId === message.messageId && selected?.heroId === member.id;
+      const peerName = message.speakerId === message.npcId ? message.targetName : message.speakerName;
+      return `<div class="office-correspondence-item${isSelected ? " selected" : ""}"><strong>${escapeHtml(message.speakerName || member.name)}</strong><button class="large-button" type="button" data-correspondence-id="${escapeHtml(message.messageId)}">${isSelected ? "已取用" : "取为线索"}</button><span>${escapeHtml(message.content)}</span><small>${escapeHtml(peerName || "府中属官")} · ${escapeHtml(message.emotion || "calm")} · 印记 ${escapeHtml(String(message.digest || "").slice(0, 10))}</small></div>`;
+    }).join("") || "<p>尚未收到与该属官有关的府中耳报。</p>";
+  }
+
+  async function refreshOfficeCorrespondence(memberOverride, requestSerial) {
+    const member = memberOverride || profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
+    const panel = $("#officeCorrespondence");
+    if (!panel || !member) return;
+    if (integration.isOffline()) { officeCorrespondenceView = []; panel.innerHTML = "<p>离线演算不调阅实时耳报。</p>"; return; }
+    panel.innerHTML = "<p>正在调阅府中耳报…</p>";
+    try {
+      const response = await integration.npcCorrespondence(member.id, 12);
+      if (requestSerial && !isCurrentOfficeNpcRequest(requestSerial, member.id)) return;
+      officeCorrespondenceView = Array.isArray(response.messages) ? response.messages.map((message) => ({ ...message, npcId: response.npcId })) : [];
+      renderOfficeCorrespondence(member);
+    } catch (error) {
+      if (requestSerial && !isCurrentOfficeNpcRequest(requestSerial, member.id)) return;
+      officeCorrespondenceView = [];
+      panel.innerHTML = "<p>耳报暂不可达。</p>";
+    }
+  }
+
+  async function selectOfficeCorrespondence(messageId) {
+    const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
+    const message = officeCorrespondenceView.find((entry) => entry.messageId === messageId);
+    if (!member || !message) return;
+    try {
+      const selected = organization.selectCorrespondence(profile.organization, { stageId: String(officeStage()?.id || ""), heroId: member.id, message });
+      await commitOrganizationState(selected.state);
+      renderOfficeCorrespondence(member);
+      renderOfficeCouncil();
+      showNotice(`已取${message.speakerName || member.name}耳报为本回线索`);
+    } catch (error) { showNotice(error.message); }
+  }
+
   async function refreshOfficeNpcState() {
     const panel = $("#officeNpcState");
     const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
@@ -1033,6 +1077,7 @@
       const relationships = state.relationships?.data || state.relationships || {};
       const dominant = emotion.dominant || {};
       panel.innerHTML = `<strong>${escapeHtml(member.name)} · ${escapeHtml(member.office)}</strong><dl><div><dt>心境</dt><dd>${escapeHtml(dominant.emotion_type || "calm")} ${Math.round(Number(dominant.intensity || 0))}</dd></div><div><dt>牵挂</dt><dd>${Number(affection.total || affection.items?.length || 0)}</dd></div><div><dt>人际</dt><dd>${Number(relationships.total || relationships.items?.length || 0)}</dd></div></dl>`;
+      await refreshOfficeCorrespondence(member, serial);
       await refreshOfficeNpcSchedule(member, serial);
     } catch (error) {
       if (!isCurrentOfficeNpcRequest(serial, member.id)) return;
@@ -1114,18 +1159,21 @@
   function currentOfficeCouncil() {
     const stageId = String(officeStage()?.id || "");
     const evidence = currentOfficeEvidence();
-    return [...profile.organization.councils].reverse().find((entry) => entry.stageId === stageId && entry.memberId === $("#officeMemberSelect").value && entry.knowledgeId === evidence?.knowledge.id && Number(entry.evidenceSource?.index) === Number(evidence?.source.index));
+    const heroId = $("#officeMemberSelect").value;
+    const correspondence = profile.organization.selectedCorrespondence?.[stageId];
+    const activeCorrespondence = correspondence?.heroId === heroId ? correspondence : null;
+    return [...profile.organization.councils].reverse().find((entry) => entry.stageId === stageId && entry.memberId === heroId && entry.knowledgeId === evidence?.knowledge.id && Number(entry.evidenceSource?.index) === Number(evidence?.source.index) && (entry.correspondence?.digest || null) === (activeCorrespondence?.digest || null));
   }
 
   function renderOfficeCouncil() {
     const council = currentOfficeCouncil();
     const control = $("#officeUseCouncil");
-    const contextKey = council ? [council.stageId, council.memberId, council.knowledgeId, council.id].join(':') : "";
+    const contextKey = council ? [council.stageId, council.memberId, council.knowledgeId, council.correspondence?.digest || "", council.id].join(':') : "";
     if (control.dataset.councilContext !== contextKey) control.checked = false;
     control.dataset.councilContext = contextKey;
     control.disabled = !council;
     const evidence = currentOfficeEvidence();
-    $("#officeCouncilHint").textContent = council ? "已保存：" + council.memberName + "据" + council.evidenceSource.work + "（" + council.evidenceSource.tier + "）建议“" + council.text + "”。联网授命须勾选并由内核签发军令。" : evidence ? "已选证：" + evidence.source.work + "（" + evidence.source.tier + "）。请当前属官据此参议。" : "先查本回史料并选定出处，再请当前属官参议。";
+    $("#officeCouncilHint").textContent = council ? "已保存：" + council.memberName + "据" + council.evidenceSource.work + (council.correspondence ? "及府中耳报" : "") + "建议“" + council.text + "”。联网授命须勾选并由内核签发军令。" : evidence ? "已选证：" + evidence.source.work + "（" + evidence.source.tier + "）。请当前属官据此参议。" : "先查本回史料并选定出处，再请当前属官参议。";
   }
 
   let officeLobbyInFlight = false;
@@ -1269,7 +1317,10 @@
     if (!knowledge || !evidence?.source) { panel.textContent = "请先查阅本回史料并选定出处，再请属官参议。"; return; }
     const sourceMarker = "选证：" + evidence.source.work + "｜" + evidence.source.tier;
     const retrievalMarker = evidence.source.searchReceipt ? "\n检索回执：" + evidence.source.searchReceipt.digest.slice(0, 12) + "\n发现路径：" + knowledgeRetrievalText(knowledge) : "";
-    const contextualQuestion = (question.slice(0, 900) + "\n史料：" + knowledge.name + "（" + knowledge.id + "）\n" + sourceMarker + retrievalMarker + "\n适用范围：" + String(evidence.source.scope || "未注明") + "\n" + String(knowledge.summary || "").slice(0, 500)).slice(0, 2000);
+    const correspondence = profile.organization.selectedCorrespondence?.[stageId];
+    const activeCorrespondence = correspondence?.heroId === member.id ? correspondence : null;
+    const correspondenceMarker = activeCorrespondence ? `\n耳报印记：${activeCorrespondence.digest.slice(0, 12)}\n耳报：${activeCorrespondence.speakerName}“${activeCorrespondence.content.slice(0, 420)}”` : "";
+    const contextualQuestion = (question.slice(0, 750) + "\n史料：" + knowledge.name + "（" + knowledge.id + "）\n" + sourceMarker + retrievalMarker + correspondenceMarker + "\n适用范围：" + String(evidence.source.scope || "未注明") + "\n" + String(knowledge.summary || "").slice(0, 450)).slice(0, 2000);
     officeCouncilInFlight = true;
     panel.textContent = `${member.name}正在权衡…`;
     try {
@@ -1279,7 +1330,8 @@
       if (response.state !== "COMPLETED" || selected.type !== "OPTION") throw new Error("军议尚未返回有效方案");
       const currentEvidence = currentOfficeEvidence();
       const currentKnowledge = currentEvidence?.knowledge;
-      if (!currentKnowledge || currentKnowledge.id !== knowledge.id || currentKnowledge.name !== knowledge.name || currentKnowledge.summary !== knowledge.summary || Number(currentEvidence?.source.index) !== Number(evidence.source.index)) {
+      const currentCorrespondence = profile.organization.selectedCorrespondence?.[stageId];
+      if (!currentKnowledge || currentKnowledge.id !== knowledge.id || currentKnowledge.name !== knowledge.name || currentKnowledge.summary !== knowledge.summary || Number(currentEvidence?.source.index) !== Number(evidence.source.index) || (currentCorrespondence?.heroId === member.id ? currentCorrespondence.digest : null) !== (activeCorrespondence?.digest || null)) {
         panel.textContent = "史料或选证已更新，本轮议决不落档，请重新参议。";
         return;
       }
@@ -1366,7 +1418,7 @@
       assignee_hero_id: created.task.assigneeId,
       stage_id: String(record?.id || "unknown"),
       stage_title: `Dongzhou stage ${record?.id || "unknown"}`,
-      brief: `Dongzhou office assignment for stage ${record?.id || "unknown"}; Nexus mandate ${created.task.mandate.id}.`,
+      brief: `Dongzhou office assignment for stage ${record?.id || "unknown"}; Nexus mandate ${created.task.mandate.id}${created.task.mandate.correspondence ? `; AINPC correspondence ${created.task.mandate.correspondence.messageId}` : ""}.`,
       parameters: {
         resource_units: created.task.cost,
         assignee_name: created.task.assigneeName,
@@ -1436,7 +1488,7 @@
       const evidence = currentOfficeEvidence();
       const knowledge = evidence?.knowledge;
       const council = operation ? currentOfficeCouncil() : $("#officeUseCouncil").checked ? currentOfficeCouncil() : null;
-      const councilContext = council ? [council.stageId, council.memberId, council.knowledgeId, council.id].join(':') : "";
+      const councilContext = council ? [council.stageId, council.memberId, council.knowledgeId, council.correspondence?.digest || "", council.id].join(':') : "";
       if ((operation || $("#officeUseCouncil").checked) && (!council || $("#officeUseCouncil").dataset.councilContext !== councilContext)) throw new Error("军议选择已变化，请重新确认引用");
       if (!integration.isOffline() && (!knowledge || !council)) throw new Error("联网授命必须引用本回史料与已保存军议");
       const assigneeId = $("#officeMemberSelect").value;
@@ -1464,6 +1516,7 @@
           council_request_id: council.id,
           decision_index: Number(council.index),
           task_type: taskType,
+          ...(council.correspondence ? { correspondence_message_id: council.correspondence.messageId, correspondence_digest: council.correspondence.digest } : {}),
           ...(evidence.source.searchReceipt ? {
             knowledge_search_receipt_id: evidence.source.searchReceipt.id,
             knowledge_search_receipt_digest: evidence.source.searchReceipt.digest
@@ -1500,7 +1553,7 @@
         // Keep the external protocol body neutral and stable. Narrative combat text and AINPC
         // output remain frozen in the signed save/task council snapshot for browser provenance.
         stage_title: `Dongzhou stage ${record?.id || "unknown"}`,
-        brief: `Dongzhou office assignment for stage ${record?.id || "unknown"}${created.task.mandate ? `; Nexus mandate ${created.task.mandate.id}` : ""}.`,
+        brief: `Dongzhou office assignment for stage ${record?.id || "unknown"}${created.task.mandate ? `; Nexus mandate ${created.task.mandate.id}` : ""}${created.task.mandate?.correspondence ? `; AINPC correspondence ${created.task.mandate.correspondence.messageId}` : ""}.`,
         parameters: {
           resource_units: created.task.cost,
           assignee_name: created.task.assigneeName,
@@ -3315,6 +3368,8 @@
     $("#campaignOfficeBackdrop").addEventListener("click", (event) => { if (event.target === event.currentTarget) setCampaignOffice(false); });
     $("#officeTaskType").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOrganizationPanel(); refreshOfficeNpcAssignment(); });
     $("#officeMemberSelect").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOfficeCouncil(); refreshOfficeNpcState(); });
+    $("#officeCorrespondenceRefresh").addEventListener("click", () => refreshOfficeCorrespondence());
+    $("#officeCorrespondence").addEventListener("click", (event) => { const button = event.target.closest("[data-correspondence-id]"); if (button) selectOfficeCorrespondence(button.dataset.correspondenceId); });
     $("#officeScheduleButton").addEventListener("click", generateOfficeNpcSchedule);
     $("#officeDecisionForm").addEventListener("submit", requestOfficeNpcDecision);
     $("#officeDiplomacyTarget").addEventListener("change", renderOfficeDiplomacyStatus);

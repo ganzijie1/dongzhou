@@ -243,6 +243,26 @@ class MandateWorkflowModule(Module):
         }
 
 
+def _correspondence_evidence(message: dict[str, Any]) -> dict[str, Any]:
+    evidence = {
+        "messageId": str(message.get("messageId") or ""),
+        "chatId": str(message.get("chatId") or ""),
+        "taskId": str(message.get("taskId") or ""),
+        "speakerId": str(message.get("speakerId") or ""),
+        "speakerName": str(message.get("speakerName") or "")[:100],
+        "targetId": str(message.get("targetId") or ""),
+        "targetName": str(message.get("targetName") or "")[:100],
+        "content": str(message.get("content") or "")[:2000],
+        "emotion": str(message.get("emotion") or "")[:100],
+        "topic": str(message.get("topic") or "")[:1000],
+        "deliveredAt": str(message.get("deliveredAt") or ""),
+    }
+    evidence["digest"] = hashlib.sha256(
+        json.dumps(evidence, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    return evidence
+
+
 def _payload(value: BaseModel) -> dict[str, Any]:
     return value.model_dump(mode="json")
 
@@ -280,6 +300,16 @@ def _organization_task_chance(
 ) -> float:
     office_fit = 8 if str(member.get("office") or "") == _ORGANIZATION_TASK_OFFICES.get(task_type) else 0
     knowledge_fit = 6 if task.get("knowledgeId") else 0
+    correspondence_fit = (
+        8
+        if isinstance(mandate, dict)
+        and isinstance(mandate.get("correspondence"), dict)
+        and task_type in {"diplomacy", "intelligence"}
+        else 4
+        if isinstance(mandate, dict)
+        and isinstance(mandate.get("correspondence"), dict)
+        else 0
+    )
     loyalty = max(20.0, min(100.0, float(member.get("loyalty", 68) or 68)))
     fatigue = max(0.0, min(100.0, float(member.get("fatigue", 0) or 0)))
     assignment = mandate.get("assignment") if isinstance(mandate, dict) else None
@@ -298,6 +328,7 @@ def _organization_task_chance(
             _ORGANIZATION_TASK_BASE_CHANCE.get(task_type, 60)
             + office_fit
             + knowledge_fit
+            + correspondence_fit
             + (loyalty - 60) * 0.2
             - fatigue * 0.22
             + (readiness_score - 65) * 0.5,
@@ -1250,6 +1281,23 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         runtime = await store.read_npc_runtime(settings.game_server_id, str(npc_id))
         return {"playerId": str(player_id), "heroId": hero_id, "npcId": str(npc_id), "runtime": runtime or {"state": "INITIALIZING"}, **state}
 
+    @router.get("/npcs/{hero_id}/correspondence")
+    async def read_npc_correspondence(
+        hero_id: str, limit: int = 20, player_id: UUID = Depends(player)
+    ) -> dict[str, Any]:
+        if limit < 1 or limit > 50:
+            raise ApiError("correspondence_limit_invalid", "Correspondence limit must be between 1 and 50.", status_code=422)
+        npc_id = str(stable_npc_id(settings.ainpc_game_server_id, hero_id))
+        messages = await store.list_npc_correspondence(
+            settings.game_server_id, npc_id, limit=limit
+        )
+        return {
+            "playerId": str(player_id),
+            "heroId": hero_id,
+            "npcId": npc_id,
+            "messages": [_correspondence_evidence(message) for message in messages],
+        }
+
     @router.get("/npcs/{hero_id}/schedule")
     async def read_npc_schedule(hero_id: str, player_id: UUID = Depends(player)) -> dict[str, Any]:
         npc_id = stable_npc_id(settings.ainpc_game_server_id, hero_id)
@@ -1423,6 +1471,33 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "The mandate must reference this player's completed NPC council decision.",
                 status_code=422,
             )
+
+        correspondence: dict[str, Any] | None = None
+        if request.correspondence_message_id and request.correspondence_digest:
+            raw_correspondence = await store.read_correspondence_message(
+                settings.game_server_id, request.correspondence_message_id
+            )
+            if raw_correspondence is not None:
+                correspondence = _correspondence_evidence(raw_correspondence)
+            npc_id = str(stable_npc_id(settings.ainpc_game_server_id, request.hero_id))
+            if (
+                correspondence is None
+                or correspondence["digest"] != request.correspondence_digest
+                or npc_id not in {correspondence["speakerId"], correspondence["targetId"]}
+                or f"耳报印记：{request.correspondence_digest[:12]}" not in str(council_request.get("question") or "")
+            ):
+                await store.finish_request(
+                    player_id,
+                    request.client_request_id,
+                    "REJECTED",
+                    {"state": "REJECTED"},
+                    "court_correspondence_unverified",
+                )
+                raise ApiError(
+                    "court_correspondence_unverified",
+                    "The selected AINPC correspondence is not a verified source for this mandate.",
+                    status_code=422,
+                )
 
         try:
             entries = await upstreams.stage_knowledge(request.stage_id)
@@ -1659,6 +1734,9 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "state": str(workflow_status["state"]).upper(),
             },
         }
+        if correspondence is not None:
+            trace["correspondence"] = correspondence
+            trace["council"]["correspondence"] = correspondence
         if request.operation is not None:
             trace["operation"] = request.operation.model_dump(mode="json")
         # Canonical JSON keeps the seal stable across retries and process restarts.

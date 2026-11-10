@@ -25,6 +25,7 @@ let saveConflictEvents = 0;
 let sessionRequests = 0;
 let expireNextSave = false;
 let npcStateAttempts = 0;
+let npcCorrespondenceAttempts = 0;
 let npcScheduleAttempts = 0;
 let npcAssignmentAttempts = 0;
 let organizationReadAttempts = 0;
@@ -113,6 +114,9 @@ global.fetch = async (url, options = {}) => {
       status = 503;
       response = { error: { code: "npc_unavailable", message: "temporarily unavailable" } };
     } else response = { emotion: { data: { dominant: { emotion_type: "calm" } } } };
+  } else if (/\/npcs\/[^/]+\/correspondence\?limit=/.test(url)) {
+    npcCorrespondenceAttempts += 1;
+    response = { messages: [{ messageId: "message-1", digest: "d".repeat(64) }] };
   } else if (/\/npcs\/[^/]+\/schedule$/.test(url) && !options.method) {
     npcScheduleAttempts += 1;
     if (npcScheduleAttempts === 1) {
@@ -149,9 +153,12 @@ const client = require("../web-game/integration-client.js");
   assert.match(knowledgeSearchInput.client_request_id, /^[0-9a-f-]{36}$/);
   assert.strictEqual(knowledge.results[0].retrieval.graphRelated, true);
   await client.npcState("DuBo");
+  const correspondence = await client.npcCorrespondence("DuBo", 12);
   await client.npcSchedule("DuBo");
   const assignment = await client.npcAssignment("DuBo", "supply", "01");
   assert.strictEqual(npcStateAttempts, 2);
+  assert.strictEqual(npcCorrespondenceAttempts, 1);
+  assert.strictEqual(correspondence.messages[0].messageId, "message-1");
   assert.strictEqual(npcScheduleAttempts, 2);
   assert.strictEqual(npcAssignmentAttempts, 2);
   assert.strictEqual(assignment.assignment.eventId, "event-supply");

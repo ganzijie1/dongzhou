@@ -135,6 +135,20 @@ class OrganizationOutcomeTests(unittest.TestCase):
             _organization_task_chance(task, "supply", member, {"assignment": {}}),
         )
 
+    def test_sealed_correspondence_adds_task_specific_chance(self) -> None:
+        task = {"id": "correspondence-task", "dueMonth": 2, "knowledgeId": "dongzhou_stage_001"}
+        member = {"office": "none", "loyalty": 68, "fatigue": 10}
+        baseline = {"assignment": {"readiness": {"score": 65}}}
+        sealed = {**baseline, "correspondence": {"messageId": "message-1", "digest": "d" * 64}}
+        self.assertEqual(
+            _organization_task_chance(task, "intelligence", member, sealed),
+            _organization_task_chance(task, "intelligence", member, baseline) + 8,
+        )
+        self.assertEqual(
+            _organization_task_chance(task, "supply", member, sealed),
+            _organization_task_chance(task, "supply", member, baseline) + 4,
+        )
+
     def test_npc_outcome_event_is_deterministic_and_normalizes_failure(self) -> None:
         outcome = {
             "task_id": "00000000-0000-4000-8000-000000000099",

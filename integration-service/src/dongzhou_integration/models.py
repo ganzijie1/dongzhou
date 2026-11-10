@@ -211,12 +211,16 @@ class CourtMandateRequest(StrictModel):
     task_type: OrganizationTaskType
     knowledge_search_receipt_id: str | None = Field(default=None, min_length=1, max_length=256)
     knowledge_search_receipt_digest: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    correspondence_message_id: str | None = Field(default=None, min_length=1, max_length=256)
+    correspondence_digest: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     operation: CourtMandateOperation | None = None
 
     @model_validator(mode="after")
     def operation_matches_task(self) -> "CourtMandateRequest":
         if self.operation is not None and self.task_type != "diplomacy":
             raise ValueError("court mandate operation does not match task type")
+        if bool(self.correspondence_message_id) != bool(self.correspondence_digest):
+            raise ValueError("court mandate correspondence reference is incomplete")
         return self
 
 

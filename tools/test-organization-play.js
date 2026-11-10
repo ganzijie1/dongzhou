@@ -154,4 +154,13 @@ const migrated = play.createTask(legacy, { type: "supply", assigneeId: "ZuoRu", 
 assert.ok(!issuedIds.has(migrated.task.id));
 assert.strictEqual(migrated.state.taskSequence, 102);
 
-console.log(JSON.stringify({ result: "PASS", tasks: state.tasks.length, members: state.members.length, knowledge: state.knowledge.length, longCampaignOrders: issuedIds.size, retainedUnspentRewards: beforeReplay, legacyMigration: "PASS" }));
+let correspondenceState = play.defaultState();
+correspondenceState.members = [{ id: "ZuoRu", name: "Zuo Ru", office: "Marshal", loyalty: 68, fatigue: 0, merit: 0 }];
+correspondenceState.knowledge = [{ id: "source-1", stageId: "01", name: "Source", summary: "Summary", sourceDetails: [{ work: "Chronicle", tier: "primary", scope: "stage", url: "https://example.test/source" }] }];
+correspondenceState.selectedSources = { "01": { knowledgeId: "source-1", index: 0, work: "Chronicle", tier: "primary", scope: "stage", url: "https://example.test/source" } };
+const selectedCorrespondence = play.selectCorrespondence(correspondenceState, { stageId: "01", heroId: "ZuoRu", message: { messageId: "message-1", digest: "d".repeat(64), chatId: "chat-1", speakerId: "42", speakerName: "Zuo Ru", targetId: "99", targetName: "Du Bo", content: "The north grain route is ready.", emotion: "calm", topic: "supply" } });
+const correspondenceCouncil = play.recordCouncil(selectedCorrespondence.state, { id: "council-correspondence", stageId: "01", memberId: "ZuoRu", knowledgeId: "source-1", evidenceSourceIndex: 0, question: "Choose a route", options: ["North", "South"], index: 0 });
+assert.strictEqual(correspondenceCouncil.council.correspondence.messageId, "message-1");
+assert.throws(() => play.recordMandate(correspondenceCouncil.state, { id: "bad-mandate", stageId: "01", heroId: "ZuoRu", taskType: "intelligence", evidence: { id: "source-1", source: correspondenceState.selectedSources["01"] }, council: { requestId: "council-correspondence", text: "North", correspondence: { ...correspondenceCouncil.council.correspondence, digest: "e".repeat(64) } }, correspondence: correspondenceCouncil.council.correspondence, assignment: { heroId: "ZuoRu", planId: "plan", eventId: "event" }, kernel: { state: "READY" }, digest: "a".repeat(64), state: "ISSUED" }), /耳报来源无效/);
+
+console.log(JSON.stringify({ result: "PASS", tasks: state.tasks.length, members: state.members.length, knowledge: state.knowledge.length, longCampaignOrders: issuedIds.size, retainedUnspentRewards: beforeReplay, legacyMigration: "PASS", correspondence: "PASS" }));

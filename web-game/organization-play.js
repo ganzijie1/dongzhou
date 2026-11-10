@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 9;
+  const SCHEMA_VERSION = 10;
   const TASK_TYPES = {
     supply: { name: "转运军粮", office: "司徒", duration: 1, cost: 8, base: 72, reward: { provisions: 24 } },
     drill: { name: "整训军阵", office: "司马", duration: 1, cost: 6, base: 68, reward: { attack: 0.08 } },
@@ -39,6 +39,7 @@
       tasks: [],
       knowledge: [],
       selectedSources: {},
+      selectedCorrespondence: {},
       councils: [],
       mandates: [],
       relations: {},
@@ -88,6 +89,7 @@
       tasks: retainedTasks.map((task) => ({ ...task, status: ['active', 'success', 'partial', 'failed', 'censured'].includes(task.status) ? task.status : 'failed' })),
       knowledge: Array.isArray(source.knowledge) ? source.knowledge.slice(-30).map((entry) => ({ ...entry })) : [],
       selectedSources: source.selectedSources && typeof source.selectedSources === "object" ? copy(source.selectedSources) : {},
+      selectedCorrespondence: source.selectedCorrespondence && typeof source.selectedCorrespondence === "object" ? copy(source.selectedCorrespondence) : {},
       councils: Array.isArray(source.councils) ? source.councils.filter((entry) => entry && typeof entry === 'object').slice(-30).map(copy) : [],
       mandates: Array.isArray(source.mandates) ? source.mandates.filter((entry) => entry && typeof entry === "object").slice(-50).map(copy) : [],
       relations: source.relations && typeof source.relations === "object" ? { ...source.relations } : {},
@@ -133,15 +135,18 @@
     const member = state.members.find((entry) => entry.id === input?.memberId);
     const knowledge = state.knowledge.find((entry) => entry.id === input?.knowledgeId && entry.stageId === stageId);
     const evidenceSource = state.selectedSources[stageId];
+    const correspondence = state.selectedCorrespondence[stageId];
     const options = input?.options;
     if (!stageId || !member || !knowledge) throw new Error('请先选定官员并查阅本回史料');
     if (!evidenceSource || evidenceSource.knowledgeId !== knowledge.id || Number(evidenceSource.index) !== Number(input.evidenceSourceIndex)) throw new Error('请先从本回史料中选定军议依据');
     if (!Array.isArray(options) || options.length < 2 || options.some((text) => typeof text !== 'string' || !text.trim())) throw new Error('军议方案不完整');
     if (!Number.isInteger(input.index) || input.index < 0 || input.index >= options.length) throw new Error('军议结果不属于本次方案');
     if (!String(input.question || '').trim() || !String(input.id || '').trim()) throw new Error('军议缺少来源记录');
+    if (correspondence && (correspondence.heroId !== member.id || !/^[0-9a-f]{64}$/.test(String(correspondence.digest || "")))) throw new Error('所选耳报不属于当前属官');
     const council = { id: String(input.id), stageId, memberId: member.id, memberName: member.name,
       knowledgeId: knowledge.id, knowledgeName: String(input.knowledgeName || knowledge.name),
       knowledgeSummary: String(input.knowledgeSummary ?? knowledge.summary ?? ''), evidenceSource: copy(evidenceSource), question: String(input.question),
+      correspondence: correspondence ? copy(correspondence) : null,
       options: options.slice(), index: input.index, text: options[input.index] };
     const previous = state.councils.find((entry) => entry.id === council.id);
     if (previous && JSON.stringify(previous) !== JSON.stringify(council)) throw new Error('军议来源记录冲突');
@@ -155,6 +160,7 @@
     if (!mandate?.id || !mandate.stageId || !mandate.heroId || !mandate.taskType) throw new Error("内核军令缺少关卡、属官或差事");
     if (!mandate.evidence?.id || !mandate.evidence?.source?.work || !mandate.council?.requestId || !mandate.council?.text) throw new Error("内核军令未绑定史料、选证与属官裁断");
     if (mandate.evidence.searchReceipt && (!/^[0-9a-f]{64}$/.test(String(mandate.evidence.searchReceipt.digest || "")) || !Array.isArray(mandate.evidence.retrieval?.channels) || !mandate.evidence.retrieval.channels.length)) throw new Error("内核军令检索回执无效");
+    if (mandate.correspondence && (!/^[0-9a-f]{64}$/.test(String(mandate.correspondence.digest || "")) || mandate.correspondence.messageId !== mandate.council?.correspondence?.messageId || mandate.correspondence.digest !== mandate.council?.correspondence?.digest)) throw new Error("内核军令耳报来源无效");
     if (!mandate.assignment?.planId || !mandate.assignment?.eventId || mandate.assignment?.heroId !== mandate.heroId) throw new Error("内核军令未绑定属官当值日程");
     if (mandate.state !== "ISSUED" || !/^[0-9a-f]{64}$/.test(String(mandate.digest || "")) || !["READY", "DEGRADED"].includes(mandate.kernel?.state)) throw new Error("内核军令尚未签发或印记无效");
     if (mandate.operation && (mandate.taskType !== "diplomacy" || mandate.operation.kind !== "diplomacy" || !mandate.operation.target_id || !mandate.operation.target_name || !mandate.operation.proposal)) throw new Error("外交军令缺少目标或主张");
@@ -182,6 +188,7 @@
     } : null;
     if (input.mandateId && (!mandate || mandate.stageId !== String(input.stageId || "") || mandate.heroId !== member.id || mandate.taskType !== input.type || mandate.evidence?.id !== input.knowledgeId || mandate.council?.requestId !== input.councilId || JSON.stringify(mandate.evidence?.source || null) !== JSON.stringify(councilSource))) throw new Error("内核军令与本次关卡、属官、选证或差事不匹配");
     if (mandate?.evidence?.searchReceipt && JSON.stringify(mandate.evidence.searchReceipt) !== JSON.stringify(council?.evidenceSource?.searchReceipt || null)) throw new Error("内核军令与军议检索回执不匹配");
+    if ((mandate?.correspondence?.messageId || null) !== (council?.correspondence?.messageId || null) || (mandate?.correspondence?.digest || null) !== (council?.correspondence?.digest || null)) throw new Error("内核军令与军议耳报不匹配");
     const operation = input.operation && typeof input.operation === "object" ? copy(input.operation) : mandate?.operation ? copy(mandate.operation) : null;
     if (operation && (input.type !== "diplomacy" || operation.kind !== "diplomacy" || !operation.target_id || !operation.target_name || !operation.proposal || !mandate?.operation || JSON.stringify(operation) !== JSON.stringify(mandate.operation))) throw new Error("外交差事与内核军令不匹配");
     const active = state.tasks.some((task) => task.status === "active" && task.assigneeId === member.id);
@@ -571,6 +578,27 @@
     return state;
   }
 
+  function selectCorrespondence(rawState, input) {
+    const state = normalizeState(rawState);
+    const stageId = String(input?.stageId || "");
+    const heroId = String(input?.heroId || "");
+    const message = input?.message;
+    if (!stageId || !state.members.some((entry) => entry.id === heroId)) throw new Error("耳报缺少本回属官");
+    if (!message?.messageId || !/^[0-9a-f]{64}$/.test(String(message.digest || "")) || !message.content) throw new Error("耳报来源印记无效");
+    const selected = {
+      heroId, messageId: String(message.messageId), digest: String(message.digest),
+      chatId: String(message.chatId || ""), taskId: String(message.taskId || ""), speakerId: String(message.speakerId || ""),
+      speakerName: String(message.speakerName || "属官"), targetId: String(message.targetId || ""),
+      targetName: String(message.targetName || ""), content: String(message.content),
+      emotion: String(message.emotion || ""), topic: String(message.topic || ""),
+      deliveredAt: String(message.deliveredAt || "")
+    };
+    state.selectedCorrespondence[stageId] = selected;
+    state.history.push({ month: state.month, tone: "knowledge", text: `本回取耳报：${selected.speakerName}“${selected.content.slice(0, 32)}”` });
+    state.history = state.history.slice(-40);
+    return { state, correspondence: copy(selected) };
+  }
+
   function updateBackend(rawState, status) {
     const state = normalizeState(rawState);
     state.backend = { ...state.backend, ...(status || {}), checkedAt: new Date().toISOString() };
@@ -578,5 +606,5 @@
     return state;
   }
 
-  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, consumeSupport, recordKnowledge, selectEvidence, updateBackend, hash };
+  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, hash };
 });

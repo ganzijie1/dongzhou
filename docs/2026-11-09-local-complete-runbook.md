@@ -49,6 +49,7 @@ AINPC 容器通过宿主回环代理访问 LoongEQ、LoongMemory、输入预检�
 
 - NexusKernel 以嵌入式运行内核接入并处于 `ready`；真实 `orgFlow / AINPC / knowledge-jizhan` 上游均在线。
 - 官署玩法现已形成强制四服务闭环：knowledge-jizhan 提供本回史料和可选出处，玩家必须选定出处后才能召集 AINPC 属官据证军议；NexusKernel 将所选书目、史料层级、适用范围、原文链接与 SHA-256 摘要一并封存进军令，orgFlowEngine 仅受理携带匹配军令号、摘要和出处的任务；复命结果随战备进入战斗，战后军令结案。
+- 官署可调阅所选属官参与的真实 AINPC 私聊作为“府中耳报”。取用的消息摘要会进入军议，NexusKernel 签令时重新核验原消息、参与者和摘要并封存证据；情报/外交任务据此增加 8 点成功率，其他任务增加 4 点。该入口不提供虚构的玩家回复功能。
 - 每类官署任务会从真实 AINPC 日程选取与当前关卡最近的当值事务；军令签发前会重新校验计划号和事件号，并把角色状态、事件、日期及关卡范围封入 NexusKernel 摘要。orgFlow 任务简报会持久化同一当值事件，前端可直接查看“本关当值”。
 - 无 API 拦截的真实浏览器已完成同一任务的签发、领命、成功复命、云存档重载和战斗承接；恢复过程没有创建重复任务。证据为 `live-kernel-mandate-complete12.json`、`live-kernel-mandate-complete12.png` 与 `live-kernel-mandate-complete12-mobile.png`。
 - AINPC 八角色使用 `complete14` 镜像且健康、重启次数为零；LoongEQ 与 LoongMemory 从容器内返回 `ready`，真实左儒决策返回 `COMPLETED`。

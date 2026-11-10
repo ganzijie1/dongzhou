@@ -161,6 +161,7 @@
   }
   function syncNpcs(npcs) { return request("/npcs/sync", { method: "POST", body: JSON.stringify({ npcs: npcs.map((npc) => ({ hero_id: npc.heroId, name: npc.name })) }) }); }
   function npcState(heroId) { return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/state`); }
+  function npcCorrespondence(heroId, limit = 20) { return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/correspondence?limit=${encodeURIComponent(limit)}`); }
   function npcSchedule(heroId) { return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/schedule`); }
   function npcAssignment(heroId, taskType, stageId) {
     return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/assignments/${encodeURIComponent(taskType)}?stage_id=${encodeURIComponent(stageId)}`);
@@ -176,7 +177,7 @@
   }
   function mandatePendingKey(input) {
     const operation = input.operation ? JSON.stringify(input.operation) : "";
-    const context = [input.stage_id, input.hero_id, input.knowledge_id, input.evidence_source_index, input.council_request_id, input.task_type, input.schedule_plan_id, input.schedule_event_id, operation].join(":");
+    const context = [input.stage_id, input.hero_id, input.knowledge_id, input.evidence_source_index, input.council_request_id, input.task_type, input.schedule_plan_id, input.schedule_event_id, input.correspondence_message_id || "", input.correspondence_digest || "", operation].join(":");
     return MANDATE_PENDING_PREFIX + context;
   }
   async function createCourtMandate(input) {
@@ -353,5 +354,5 @@
     return { mode: "offline", stageId, results: (data.entries || []).filter((entry) => entry.stageId === stageId) };
   }
 
-  return { initialize, persist, status, searchKnowledge, campaignRoute, stageKnowledge, syncNpcs, npcState, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, reviewOrganizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, campaignRoute, stageKnowledge, syncNpcs, npcState, npcCorrespondence, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, reviewOrganizationTask, isOffline: () => offline };
 });

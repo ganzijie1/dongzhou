@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 from pathlib import Path
@@ -10,6 +11,8 @@ from fastapi.testclient import TestClient
 
 from dongzhou_integration.app import build_application
 from dongzhou_integration.config import Settings
+from dongzhou_integration.security import stable_npc_id
+from dongzhou_integration.store import Store
 
 
 class MandateUpstreams:
@@ -222,6 +225,65 @@ def approve_mandate(client: TestClient, draft_response) -> dict[str, object]:
     assert approved.status_code == 200
     assert approved.json()["state"] == "ISSUED"
     return approved.json()["mandate"]
+
+
+def test_ainpc_correspondence_is_recomputed_and_sealed() -> None:
+    with TemporaryDirectory() as directory:
+        database = Path(directory) / "gateway.sqlite3"
+        settings = configured(database)
+        store = Store(database)
+        asyncio.run(store.start())
+        npc_id = str(stable_npc_id(settings.ainpc_game_server_id, "ZuoRu"))
+        session = {
+            "gameServerId": settings.game_server_id,
+            "chatId": "chat-correspondence",
+            "taskId": "task-correspondence",
+            "aiId": npc_id,
+            "playerInfo": {"playerId": "9002", "playerName": "Du Bo"},
+            "topic": "military grain route",
+        }
+        asyncio.run(store.register_private_chat(session))
+        asyncio.run(store.record_private_message({
+            **session,
+            "data": {"message": {"id": "message-correspondence", "speakerId": npc_id, "speakerName": "Zuo Ru", "content": "The north grain route is ready.", "speakerEmotion": "calm"}, "isFinish": False},
+        }))
+        upstreams = MandateUpstreams()
+        published_source = asyncio.run(upstreams.stage_knowledge("01"))[0]["sourceDetails"][0]
+        app = build_application(settings, store=store, upstreams=upstreams)
+        with TestClient(app) as client:
+            start_session(client)
+            listed = client.get("/api/dongzhou/v1/npcs/ZuoRu/correspondence?limit=12")
+            assert listed.status_code == 200
+            message = listed.json()["messages"][0]
+            assert message["messageId"] == "message-correspondence"
+            assert message["content"] == "The north grain route is ready."
+            assert len(message["digest"]) == 64
+
+            council_id = str(uuid4())
+            council = client.post("/api/dongzhou/v1/npcs/ZuoRu/decisions", json={
+                "client_request_id": council_id,
+                "question": f"Choose a route.\n选证：{published_source['work']}｜{published_source['tier']}\n耳报印记：{message['digest'][:12]}",
+                "options": [{"index": 0, "text": "North"}, {"index": 1, "text": "South"}],
+                "topic": "court_decision",
+            })
+            assert council.status_code == 200
+            body = {
+                **mandate_body(council_id),
+                "correspondence_message_id": message["messageId"],
+                "correspondence_digest": message["digest"],
+            }
+            draft = client.post("/api/dongzhou/v1/court/mandates", json=body)
+            assert draft.status_code == 200, draft.text
+            assert draft.json()["mandate"]["correspondence"]["digest"] == message["digest"]
+            assert draft.json()["mandate"]["council"]["correspondence"]["messageId"] == message["messageId"]
+
+            tampered = client.post("/api/dongzhou/v1/court/mandates", json={
+                **body,
+                "client_request_id": str(uuid4()),
+                "correspondence_digest": "0" * 64,
+            })
+            assert tampered.status_code == 422
+            assert tampered.json()["error"]["code"] == "court_correspondence_unverified"
 
 
 def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
