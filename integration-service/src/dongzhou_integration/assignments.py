@@ -65,6 +65,14 @@ _TASK_PERSONALITY_WEIGHTS = {
     },
 }
 
+_TASK_MOTIVATION_KEYWORDS = {
+    "supply": ("supply", "provision", "军粮", "粮", "补给", "转运", "仓", "辎重"),
+    "drill": ("drill", "training", "整训", "训练", "军阵", "操练", "检阅"),
+    "patrol": ("patrol", "guard", "巡察", "巡逻", "营垒", "守卫", "防守", "警戒"),
+    "intelligence": ("intelligence", "情报", "核验", "侦察", "探查", "消息", "线索"),
+    "diplomacy": ("diplomacy", "外交", "盟", "交涉", "游说", "诸侯", "使者"),
+}
+
 
 class AssignmentUnavailable(ValueError):
     pass
@@ -118,6 +126,7 @@ def assignment_readiness(
     affection_count: int,
     relationship_count: int,
     personality_factor: float = 0.0,
+    motivation_factor: float = 0.0,
 ) -> dict[str, Any]:
     normalized_emotion = emotion.casefold().strip() or "calm"
     bounded_intensity = max(0.0, min(100.0, intensity))
@@ -137,6 +146,7 @@ def assignment_readiness(
         max(0, affection_count) * 2.0 + max(0, relationship_count),
     )
     bounded_personality_factor = max(-8.0, min(8.0, personality_factor))
+    bounded_motivation_factor = max(-8.0, min(6.0, motivation_factor))
     score = max(
         25,
         min(
@@ -148,6 +158,7 @@ def assignment_readiness(
                 + emotion_factor
                 + support_factor
                 + bounded_personality_factor
+                + bounded_motivation_factor
             ),
         ),
     )
@@ -161,6 +172,7 @@ def assignment_readiness(
             "emotion": round(emotion_factor, 1),
             "support": round(support_factor, 1),
             "personality": round(bounded_personality_factor, 1),
+            "motivation": round(bounded_motivation_factor, 1),
         },
     }
 
@@ -202,6 +214,38 @@ def personality_task_fit(
     }
 
 
+def motivation_task_fit(
+    task_type: str, motivation: dict[str, Any] | None
+) -> dict[str, Any]:
+    if not motivation or motivation.get("available") is not True:
+        return {"available": False, "score": None, "band": "unavailable", "factor": 0.0, "signals": []}
+    motives = motivation.get("motives")
+    keywords = _TASK_MOTIVATION_KEYWORDS.get(task_type)
+    if not isinstance(motives, list) or not keywords:
+        return {"available": False, "score": None, "band": "unavailable", "factor": 0.0, "signals": []}
+
+    signals = []
+    for motive in motives:
+        if not isinstance(motive, dict):
+            continue
+        name = str(motive.get("name") or "").strip()
+        folded = name.casefold()
+        if name and any(keyword.casefold() in folded for keyword in keywords):
+            signals.append({"name": name, "score": round(_number(motive.get("score")), 1)})
+    signals.sort(key=lambda item: abs(item["score"]), reverse=True)
+    strongest = max((-100.0, min(100.0, signals[0]["score"]))) if signals else 0.0
+    score = max(25, min(90, round(50 + strongest * 0.4)))
+    factor = max(-8.0, min(6.0, round((score - 50) * 0.15, 1)))
+    band = "strong" if score >= 70 else "willing" if score >= 60 else "neutral" if score >= 45 else "reluctant"
+    return {
+        "available": True,
+        "score": score,
+        "band": band,
+        "factor": factor,
+        "signals": signals[:4],
+    }
+
+
 def select_assignment(
     *,
     hero_id: str,
@@ -212,6 +256,7 @@ def select_assignment(
     schedule_response: dict[str, Any],
     runtime: dict[str, Any] | None,
     personality: dict[str, Any] | None = None,
+    motivation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     transaction_id = TASK_TRANSACTION_IDS.get(task_type)
     if transaction_id is None:
@@ -248,6 +293,7 @@ def select_assignment(
     runtime_state = str((runtime or {}).get("state") or "UNKNOWN").upper()
     importance = max(0, min(100, _integer(event.get("importance"))))
     fit = personality_task_fit(task_type, personality)
+    willingness = motivation_task_fit(task_type, motivation)
     state = {
         "emotion": str(dominant.get("emotion_type") or "calm"),
         "intensity": max(0.0, min(100.0, _number(dominant.get("intensity")))),
@@ -277,6 +323,10 @@ def select_assignment(
             **(personality or {"available": False}),
             "fit": fit,
         },
+        "motivation": {
+            **(motivation or {"available": False}),
+            "fit": willingness,
+        },
         "readiness": assignment_readiness(
             runtime_state=runtime_state,
             importance=importance,
@@ -285,5 +335,6 @@ def select_assignment(
             affection_count=state["affectionCount"],
             relationship_count=state["relationshipCount"],
             personality_factor=fit["factor"],
+            motivation_factor=willingness["factor"],
         ),
     }

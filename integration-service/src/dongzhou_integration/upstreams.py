@@ -401,17 +401,90 @@ class Upstreams:
     async def npc_state(self, npc_id: int) -> dict[str, Any]:
         base = self.settings.ainpc_url
         server = self.settings.ainpc_game_server_id
-        emotion, affection, relationships, personality = await asyncio.gather(
+        emotion, affection, relationships, personality, motivation = await asyncio.gather(
             self._json("GET", f"{base}/api/v1/emotion/current/{server}/{npc_id}", token=self.settings.ainpc_token),
             self._json("GET", f"{base}/api/v1/affection/targets/{server}/{npc_id}", token=self.settings.ainpc_token),
             self._json("GET", f"{base}/api/v1/relationship/all/{server}/{npc_id}", token=self.settings.ainpc_token),
             self.optional_npc_personality(npc_id),
+            self.optional_npc_motivation(npc_id),
         )
         return {
             "emotion": emotion,
             "affection": affection,
             "relationships": relationships,
             "personality": personality,
+            "motivation": motivation,
+        }
+
+    async def optional_npc_motivation(self, npc_id: int) -> dict[str, Any]:
+        try:
+            return await self.npc_motivation(npc_id)
+        except UpstreamUnavailable:
+            return {"available": False}
+
+    async def npc_motivation(self, npc_id: int) -> dict[str, Any]:
+        server = str(self.settings.ainpc_game_server_id)
+        response = await self._json(
+            "GET",
+            f"{self.settings.ainpc_url}/api/v1/motivation/snapshot/{server}/{npc_id}",
+            token=self.settings.ainpc_token,
+        )
+        threshold = response.get("threshold")
+        valid_threshold = (
+            not isinstance(threshold, bool)
+            and isinstance(threshold, (int, float))
+            and math.isfinite(float(threshold))
+            and float(threshold) > 0
+        )
+        if response.get("code") not in (0, 200, "0", "200") or not valid_threshold:
+            raise UpstreamUnavailable(
+                "AINPC returned an invalid motivation snapshot.",
+                error_code="ainpc_motivation_invalid",
+                response_payload=response,
+            )
+        item = response.get("item")
+        if item is None:
+            return {"available": False, "threshold": round(float(threshold), 1)}
+        motives = item.get("motives") if isinstance(item, dict) else None
+        revision = item.get("revision") if isinstance(item, dict) else None
+        valid_motives = (
+            isinstance(motives, list)
+            and len(motives) <= 32
+            and all(
+                isinstance(motive, dict)
+                and isinstance(motive.get("name"), str)
+                and 0 < len(motive["name"].strip()) <= 100
+                and not isinstance(motive.get("score"), bool)
+                and isinstance(motive.get("score"), (int, float))
+                and math.isfinite(float(motive["score"]))
+                for motive in motives
+            )
+            and len({motive["name"].strip() for motive in motives}) == len(motives)
+        )
+        if (
+            not isinstance(item, dict)
+            or str(item.get("game_server_id") or "") != server
+            or str(item.get("npc_id") or "") != str(npc_id)
+            or not isinstance(revision, int)
+            or isinstance(revision, bool)
+            or revision < 0
+            or not str(item.get("updated_at") or "").strip()
+            or not valid_motives
+        ):
+            raise UpstreamUnavailable(
+                "AINPC returned an invalid motivation snapshot.",
+                error_code="ainpc_motivation_invalid",
+                response_payload=response,
+            )
+        return {
+            "available": True,
+            "motives": [
+                {"name": motive["name"].strip(), "score": round(float(motive["score"]), 1)}
+                for motive in motives
+            ],
+            "revision": revision,
+            "updatedAt": str(item["updated_at"]),
+            "threshold": round(float(threshold), 1),
         }
 
     async def optional_npc_personality(self, npc_id: int) -> dict[str, Any]:

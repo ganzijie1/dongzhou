@@ -4,7 +4,7 @@
 
 浏览器只访问 `dongzhou-integration-service`。该服务基于 NexusKernel，持有服务端存档、玩家会话、幂等记录和上游凭据；H5 不直接访问 AINPC、orgFlowEngine 或 knowledge-jizhan。
 
-本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。此前真实服务完整闭环验收为 9/9 PASS；当前 `complete34` 增加 AINPC 人格适岗闭环，读取已有档案但不自动生成或写回，并把适岗结果封入 NexusKernel 军令及 orgFlow 任务。当前网关镜像为 `dongzhou-integration:20261111-local-complete34`，AINPC 八角色为 `ainpc-app:v20261110-dongzhou-local-complete14`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete23`。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
+本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。此前真实服务完整闭环验收为 9/9 PASS；当前 `complete35` 增加 AINPC 任务意愿闭环，只读读取已持久化动机并按差事相关性计算意愿，将原始快照、匹配信号和意愿结果封入 NexusKernel 军令及 orgFlow 任务。当前网关镜像为 `dongzhou-integration:20261111-local-complete35`，AINPC 八角色为 `ainpc-app:v20261111-dongzhou-local-complete15`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete23`。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
 
 ## 发布顺序
 

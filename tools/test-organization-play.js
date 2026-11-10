@@ -45,6 +45,15 @@ const invalidPersonalityMandate = JSON.parse(JSON.stringify(personalityMandate))
 invalidPersonalityMandate.id = "mandate-personality-invalid";
 invalidPersonalityMandate.assignment.personality.fit.score = 101;
 assert.throws(() => play.recordMandate(personalitySealed.state, invalidPersonalityMandate), /人格适岗证据无效/);
+const motivationMandate = JSON.parse(JSON.stringify(personalitySealed.mandate));
+motivationMandate.id = "mandate-motivation-1";
+motivationMandate.assignment.motivation = { available: true, motives: [{ name: "情报核验", score: 35 }], fit: { available: true, score: 64, band: "willing", factor: 2.1, signals: [{ name: "情报核验", score: 35 }] } };
+const motivationSealed = play.recordMandate(personalitySealed.state, motivationMandate);
+assert.strictEqual(motivationSealed.mandate.assignment.motivation.fit.score, 64);
+const invalidMotivationMandate = JSON.parse(JSON.stringify(motivationMandate));
+invalidMotivationMandate.id = "mandate-motivation-invalid";
+invalidMotivationMandate.assignment.motivation.fit.score = 101;
+assert.throws(() => play.recordMandate(motivationSealed.state, invalidMotivationMandate), /任务意愿证据无效/);
 const sealedTask = play.createTask(state, { type: "drill", assigneeId: "ZuoRu", stageId: "01", stageTitle: "东郊索命", knowledgeId: "dongzhou_stage_001", councilId: "council-source-1", mandateId: "mandate-source-1" });
 assert.strictEqual(sealedTask.task.mandate.evidence.source.tier, "史实骨架");
 assert.strictEqual(sealedTask.task.mandate.assignment.readiness.score, 75);

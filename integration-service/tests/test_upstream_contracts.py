@@ -369,6 +369,18 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                     },
                     "auto_initialized": False,
                 })
+            if request.url.path == "/api/v1/motivation/snapshot/91001/42":
+                return httpx.Response(200, json={
+                    "code": 200,
+                    "item": {
+                        "game_server_id": "91001",
+                        "npc_id": "42",
+                        "motives": [{"name": "情报核验", "score": 35.0}],
+                        "revision": 2,
+                        "updated_at": "2026-11-10T08:01:52.476000",
+                    },
+                    "threshold": 80.0,
+                })
             if request.url.path == "/callback/npc-dialogue/choice":
                 return httpx.Response(200, json={"code": 200, "data": {"index": 0, "type": "OPTION"}})
             return httpx.Response(200, json={"data": {"ok": True}})
@@ -424,6 +436,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("/api/v1/affection/targets/91001/42", paths)
         self.assertIn("/api/v1/relationship/all/91001/42", paths)
         self.assertIn("/api/v1/personality/profile/91001/42", paths)
+        self.assertIn("/api/v1/motivation/snapshot/91001/42", paths)
         self.assertIn("/api/v1/schedule-planning/current", paths)
         self.assertIn("/api/v1/schedule-planning/long-term/generate", paths)
         self.assertIn("/callback/emergency-assessment/evaluate", paths)
@@ -481,6 +494,42 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                     with self.assertRaises(UpstreamUnavailable) as caught:
                         await Upstreams(settings(Path("unused")), client).npc_personality(42)
                     self.assertEqual(caught.exception.error_code, "ainpc_personality_invalid")
+
+    async def test_motivation_snapshot_is_read_only_and_strictly_validated(self) -> None:
+        seen: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen.append(request)
+            return httpx.Response(200, json={
+                "code": 200,
+                "item": {
+                    "game_server_id": "91001",
+                    "npc_id": "42",
+                    "motives": [{"name": "情报核验", "score": 35}],
+                    "revision": 2,
+                    "updated_at": "2026-11-10T08:01:52.476000",
+                },
+                "threshold": 80,
+            })
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            result = await Upstreams(settings(Path("unused")), client).npc_motivation(42)
+        self.assertEqual(result["motives"], [{"name": "情报核验", "score": 35.0}])
+        self.assertEqual(seen[0].method, "GET")
+        self.assertEqual(seen[0].url.path, "/api/v1/motivation/snapshot/91001/42")
+
+        invalid_responses = (
+            {"code": 200, "item": {"game_server_id": "91001", "npc_id": "wrong", "motives": [], "revision": 0, "updated_at": "now"}, "threshold": 80},
+            {"code": 200, "item": {"game_server_id": "91001", "npc_id": "42", "motives": [{"name": "x", "score": True}], "revision": 0, "updated_at": "now"}, "threshold": 80},
+        )
+        for response in invalid_responses:
+            with self.subTest(response=response):
+                async with httpx.AsyncClient(transport=httpx.MockTransport(
+                    lambda request: httpx.Response(200, json=response)
+                )) as client:
+                    with self.assertRaises(UpstreamUnavailable) as caught:
+                        await Upstreams(settings(Path("unused")), client).npc_motivation(42)
+                    self.assertEqual(caught.exception.error_code, "ainpc_motivation_invalid")
 
     async def test_decision_rejects_business_failures_and_unknown_options(self) -> None:
         payload = {"dialogues": [{"options": [{"index": 0, "type": "OPTION"}]}]}

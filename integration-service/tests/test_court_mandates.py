@@ -53,6 +53,13 @@ class MandateUpstreams:
                 "backgroundNote": "fixed profile",
                 "updatedAt": "2026-11-07T21:56:40.288000",
             },
+            "motivation": {
+                "available": True,
+                "motives": [{"name": "情报核验", "score": 35.0}],
+                "revision": 2,
+                "updatedAt": "2026-11-10T08:01:52.476000",
+                "threshold": 80.0,
+            },
         }
 
     async def npc_schedule(self, npc_id):
@@ -344,10 +351,11 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
             assert mandate["assignment"]["readiness"] == {
                 "score": 60,
                 "band": "watch",
-                "factors": {"runtime": -12.0, "duty": 8.1, "emotion": 6.0, "support": 2.0, "personality": 1.2},
+                "factors": {"runtime": -12.0, "duty": 8.1, "emotion": 6.0, "support": 2.0, "personality": 1.2, "motivation": 0.0},
             }
             assert mandate["assignment"]["personality"]["profileId"] == "profile-zuoru"
             assert mandate["assignment"]["personality"]["fit"]["score"] == 56
+            assert mandate["assignment"]["motivation"]["fit"]["score"] == 50
             assert mandate["emergency"] == {
                 "urgent": True,
                 "score": 81.25,
@@ -398,6 +406,7 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
             assert "mandate_digest" not in upstreams.triggers[0]["parameters"]
             assert "Readiness 60/100 (watch)." in upstreams.triggers[0]["brief"]
             assert "Personality task fit 56/100 (steady)." in upstreams.triggers[0]["brief"]
+            assert "Motivation task willingness 50/100 (neutral)." in upstreams.triggers[0]["brief"]
             assert "AINPC emergency assessment: urgent, score 81.25" in upstreams.triggers[0]["brief"]
 
             mismatched = {
@@ -652,6 +661,7 @@ def test_diplomacy_operation_is_sealed_and_drives_orgflow_brief() -> None:
                     "Bound AINPC duty event-diplomacy (折冲诸侯) on 0772-10-22 from plan plan-1. "
                     "Readiness 58/100 (watch). "
                     "Personality task fit 48/100 (strained). "
+                    "Motivation task willingness 50/100 (neutral). "
                     "AINPC emergency assessment: urgent, score 81.25, "
                     "trace emergency_evaluate:test-trace."
                 )

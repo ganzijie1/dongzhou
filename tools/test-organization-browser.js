@@ -140,12 +140,12 @@ async function openReady(page) {
       else if (/\/npcs\/[^/]+\/state$/.test(pathName)) {
         npcStateAttempts += 1;
         if (npcStateAttempts <= 6) return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "npc_unavailable", message: "NPC state is temporarily unavailable." } }) });
-        body = { emotion: { data: { dominant: { emotion_type: "resolute", intensity: 72 } } }, affection: { data: { total: 2 } }, relationships: { data: { total: 3 } }, personality: { available: true, profileId: "profile-zuoru", traits: { stubborn: 79, smooth: 48 }, dominantTraits: ["stubborn", "smooth"], templateSource: "identity", backgroundNote: "fixed profile", updatedAt: "2026-11-07T21:56:40.288000" } };
+        body = { emotion: { data: { dominant: { emotion_type: "resolute", intensity: 72 } } }, affection: { data: { total: 2 } }, relationships: { data: { total: 3 } }, personality: { available: true, profileId: "profile-zuoru", traits: { stubborn: 79, smooth: 48 }, dominantTraits: ["stubborn", "smooth"], templateSource: "identity", backgroundNote: "fixed profile", updatedAt: "2026-11-07T21:56:40.288000" }, motivation: { available: true, motives: [{ name: "情报核验", score: 35 }], revision: 2, updatedAt: "2026-11-10T08:01:52.476000", threshold: 80 } };
       }
       else if (pathName.includes("/assignments/")) {
         const taskType = pathName.split("/").at(-1);
         const heroId = decodeURIComponent(pathName.split("/").at(-3));
-        body = { assignment: { heroId, npcId: "42", runtimeState: "READY", planId: "plan-e2e", generationId: "generation-e2e", eventId: `event-${taskType}`, transactionId: taskType === "supply" ? 9100103 : 9100102, name: taskType === "supply" ? "转运军粮" : "检阅军阵", type: "军务", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "resolute", intensity: 72, affectionCount: 2, relationshipCount: 3 }, personality: { available: true, profileId: "profile-zuoru", traits: { stubborn: 79, smooth: 48 }, dominantTraits: ["stubborn", "smooth"], fit: { available: true, score: 56, band: "steady", factor: 1.2, signals: [{ trait: "stubborn", value: 79, effect: 6.3 }] } }, readiness: { score: 82, band: "steady", factors: { runtime: 6, duty: 7.2, emotion: 0, support: 7, personality: 1.2 } } } };
+        body = { assignment: { heroId, npcId: "42", runtimeState: "READY", planId: "plan-e2e", generationId: "generation-e2e", eventId: `event-${taskType}`, transactionId: taskType === "supply" ? 9100103 : 9100102, name: taskType === "supply" ? "转运军粮" : "检阅军阵", type: "军务", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "resolute", intensity: 72, affectionCount: 2, relationshipCount: 3 }, personality: { available: true, profileId: "profile-zuoru", traits: { stubborn: 79, smooth: 48 }, dominantTraits: ["stubborn", "smooth"], fit: { available: true, score: 56, band: "steady", factor: 1.2, signals: [{ trait: "stubborn", value: 79, effect: 6.3 }] } }, motivation: { available: true, motives: [{ name: "情报核验", score: 35 }], revision: 2, updatedAt: "2026-11-10T08:01:52.476000", threshold: 80, fit: { available: true, score: 50, band: "neutral", factor: 0, signals: [] } }, readiness: { score: 82, band: "steady", factors: { runtime: 6, duty: 7.2, emotion: 0, support: 7, personality: 1.2, motivation: 0 } } } };
       }
       else if (/\/npcs\/[^/]+\/schedule$/.test(pathName) && request.method() === "GET") body = { schedule: { data: { schedules: [{ date: "共和元年", events: [{ name: "整饬军粮" }, { name: "巡视营垒" }] }] } } };
       else if (/\/npcs\/[^/]+\/schedule$/.test(pathName)) body = { schedule: { data: { plan_id: "plan-e2e" } } };
@@ -155,7 +155,9 @@ async function openReady(page) {
         const input = request.postDataJSON();
         body = { state: "ISSUED", mandate: { id: `dongzhou:player-e2e:${input.client_request_id}`, stageId: input.stage_id, stageTitle: "东郊索命", heroId: input.hero_id, taskType: input.task_type, evidence: { id: input.knowledge_id, name: "第一回·已发布本回史料", summary: "杜伯进谏", source: { index: input.evidence_source_index, work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" } }, council: { requestId: input.council_request_id, index: input.decision_index, text: "整军强攻，争取先机" }, assignment: { heroId: input.hero_id, npcId: "42", runtimeState: "READY", planId: input.schedule_plan_id, generationId: "generation-e2e", eventId: input.schedule_event_id, transactionId: 9100103, name: "转运军粮", type: "军需", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "resolute", intensity: 72, affectionCount: 2, relationshipCount: 3 }, readiness: { score: 82, band: "steady", factors: { runtime: 6, duty: 7.2, emotion: 0, support: 7 } } }, kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "READY" }, digest: "b".repeat(64), state: "ISSUED" } };
         body.mandate.assignment.personality = { available: true, profileId: "profile-zuoru", traits: { stubborn: 79, smooth: 48 }, dominantTraits: ["stubborn", "smooth"], fit: { available: true, score: 56, band: "steady", factor: 1.2, signals: [{ trait: "stubborn", value: 79, effect: 6.3 }] } };
+        body.mandate.assignment.motivation = { available: true, motives: [{ name: "情报核验", score: 35 }], revision: 2, updatedAt: "2026-11-10T08:01:52.476000", threshold: 80, fit: { available: true, score: 50, band: "neutral", factor: 0, signals: [] } };
         body.mandate.assignment.readiness.factors.personality = 1.2;
+        body.mandate.assignment.readiness.factors.motivation = 0;
         body.mandate.emergency = { urgent: true, score: 54.548, interruptTraceId: "itr-browser-emergency", assessedAt: "2026-11-11T04:57:03Z", event: "emergency military report" };
       }
       else if (pathName.endsWith("/organization/tasks")) {
@@ -182,10 +184,12 @@ async function openReady(page) {
     await online.selectOption("#officeMemberSelect", assignee);
     await online.waitForSelector("#officeNpcState >> text=属官服务正在恢复", { timeout: 10000 });
     await online.waitForSelector("#officeNpcState >> text=resolute", { timeout: 15000 });
+    await online.waitForSelector("#officeNpcState >> text=情报核验 35", { timeout: 15000 });
     await online.waitForSelector("#officeNpcState >> text=固执 79", { timeout: 15000 });
     if (await online.locator("#officeNpcState dt", { hasText: "性情" }).count() !== 1) throw new Error("NPC personality was rendered more than once");
     await online.waitForSelector("#officeNpcAssignment >> text=胜任 82/100", { timeout: 15000 });
     await online.waitForSelector("#officeNpcAssignment >> text=适岗 56/100", { timeout: 15000 });
+    await online.waitForSelector("#officeNpcAssignment >> text=意愿 50/100", { timeout: 15000 });
     if (npcStateAttempts < 7) throw new Error("NPC state did not retry after the transient outage");
     await online.fill("#officeKnowledgeQuery", "杜伯");
     await online.click("#officeKnowledgeForm button[type=submit]");
@@ -216,6 +220,7 @@ async function openReady(page) {
     await online.waitForSelector("#officeTaskLedger li.active");
     if (!/胜任82/.test(await online.locator("#officeTaskLedger li.active").innerText())) throw new Error("Sealed AINPC readiness is missing from the task ledger");
     if (!/适岗56/.test(await online.locator("#officeTaskLedger li.active").innerText())) throw new Error("Sealed AINPC personality fit is missing from the task ledger");
+    if (!/意愿50/.test(await online.locator("#officeTaskLedger li.active").innerText())) throw new Error("Sealed AINPC task willingness is missing from the task ledger");
     if (!/54\.548/.test(await online.locator("#officeTaskLedger li.active").innerText())) throw new Error("Sealed AINPC emergency assessment is missing from the task ledger");
     const afterConcurrentOrder = await online.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")));
     if (afterConcurrentOrder.organization.month !== 2) throw new Error(`Accepted order rolled back a concurrent month advance: ${afterConcurrentOrder.organization.month}`);
