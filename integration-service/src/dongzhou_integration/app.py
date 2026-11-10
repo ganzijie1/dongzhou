@@ -1409,6 +1409,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 npc_state=npc_state,
                 schedule_response=schedule,
                 runtime=runtime,
+                personality=npc_state.get("personality"),
             )
         except UpstreamUnavailable as error:
             raise ApiError(
@@ -2048,10 +2049,17 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 if isinstance(readiness, dict)
                 else ""
             )
+            personality = assignment.get("personality")
+            fit = personality.get("fit") if isinstance(personality, dict) else None
+            personality_note = (
+                f" Personality task fit {fit.get('score')}/100 ({fit.get('band')})."
+                if isinstance(fit, dict) and fit.get("available") is True
+                else ""
+            )
             duty_note = (
                 f" Bound AINPC duty {assignment.get('eventId')} "
                 f"({assignment.get('name')}) on {assignment.get('date')} from plan "
-                f"{assignment.get('planId')}.{readiness_note}"
+                f"{assignment.get('planId')}.{readiness_note}{personality_note}"
             )
             brief = brief.rstrip()[: max(0, 1000 - len(duty_note))] + duty_note
         emergency = mandate.get("emergency") if isinstance(mandate, dict) else None

@@ -4,7 +4,7 @@
 
 浏览器只访问 `dongzhou-integration-service`。该服务基于 NexusKernel，持有服务端存档、玩家会话、幂等记录和上游凭据；H5 不直接访问 AINPC、orgFlowEngine 或 knowledge-jizhan。
 
-本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。此前真实服务完整闭环验收为 9/9 PASS；当前 `complete33` 又真实走通了“查史料—NPC 军议—AINPC 急报评估—NexusKernel 签发军令—orgFlow 建单”，最终 NPC 回调仍在已有有效任务队列中等待，不记为新闭环通过。当前网关镜像为 `dongzhou-integration:20261111-local-complete33`，AINPC 八角色为 `ainpc-app:v20261110-dongzhou-local-complete14`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete23`。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
+本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。此前真实服务完整闭环验收为 9/9 PASS；当前 `complete34` 增加 AINPC 人格适岗闭环，读取已有档案但不自动生成或写回，并把适岗结果封入 NexusKernel 军令及 orgFlow 任务。当前网关镜像为 `dongzhou-integration:20261111-local-complete34`，AINPC 八角色为 `ainpc-app:v20261110-dongzhou-local-complete14`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete23`。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
 
 ## 发布顺序
 
@@ -28,6 +28,7 @@
 - 在线颁令必须先读取本回已发布史料并取得当前属官的 AINPC 军议。网关随后调用 NexusKernel 真实运行模块状态，签发包含关卡、属官、差事、史料、军议和内核版本的规范军令；摘要使用规范 JSON 的 SHA-256，orgFlowEngine 任务参数中的军令号或摘要不匹配时直接拒绝。
 - 官署“府中耳报”只展示 AINPC 已持久化私聊中的白名单字段。玩家取用后，议政问题携带消息摘要短印；签令时网关重新读取原始消息，核验属官参与身份、完整 SHA-256 和议政印记，再由 NexusKernel 将消息证据封入军令。情报、外交任务获得 8 点成功率加成，其他任务获得 4 点；前端自造或篡改的消息、摘要和属官身份均不能通过签令。
 - 签令前，网关把关卡、已发布史料、属官裁断和差事组成一条确定的军情，调用 AINPC V2 正式全局入口 `POST /callback/emergency-assessment/evaluate`。返回的急报判定、评分、评估时刻和中断追踪号由 NexusKernel 一并封入军令摘要，并写入 orgFlowEngine 任务简报；急报为情报/巡防提供 8 点优先处置加成，其他差事提供 5 点，常报不加成。旧式 `/ai/npc/emergency/evaluate` 在 V2 网关不开放，不能作为联调地址。
+- 属官状态使用 AINPC 正式人格档案接口并强制 `auto_initialize=false`。军粮、整训、巡防、情报、外交分别按性格特征计算适岗分，分数会影响胜任度和最终成功概率；人格档案、主性格、任务适岗分及影响因子由 NexusKernel 封入军令，并写入 orgFlowEngine 任务简报。档案缺失时按中性因子继续游戏，东周不会代替 AINPC 生成人格或写回档案。
 - 当前 AINPC 没有正式的玩家入站私聊回复契约，因此耳报玩法只提供调阅、取证、议政和签令，不宣称玩家可直接回复 NPC。后续若上游提供正式入站接口，必须沿用游戏服持久化与幂等回执，不能在 H5 内伪造对话。
 - 军令状态随任务从 `ISSUED` 进入 `ORDERED`。orgFlowEngine 终态先由网关校验并封存贡献、功绩和结案摘要，NexusKernel 再生成可恢复的复命裁决；玩家收纳后进入 `FULFILLED`、`PARTIAL` 或 `FAILED`，申斥后进入 `CENSURED`，战斗报告落档后进入 `RESOLVED`。军令、军议、史料和复命裁决随战备跨页面及云存档恢复，不以浏览器提示文字代替持久记录。
 - 官署任务的事实结果、组织贡献和成员功绩以 orgFlowEngine 正式虚拟任务终态为准，玩家申斥不能改写；申斥只取消本次战前助益或外交成功，并降低属官信任与关系。联网模式不会再用浏览器随机数结算，也不会在玩家裁决前发放奖励。

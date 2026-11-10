@@ -401,12 +401,84 @@ class Upstreams:
     async def npc_state(self, npc_id: int) -> dict[str, Any]:
         base = self.settings.ainpc_url
         server = self.settings.ainpc_game_server_id
-        emotion, affection, relationships = await asyncio.gather(
+        emotion, affection, relationships, personality = await asyncio.gather(
             self._json("GET", f"{base}/api/v1/emotion/current/{server}/{npc_id}", token=self.settings.ainpc_token),
             self._json("GET", f"{base}/api/v1/affection/targets/{server}/{npc_id}", token=self.settings.ainpc_token),
             self._json("GET", f"{base}/api/v1/relationship/all/{server}/{npc_id}", token=self.settings.ainpc_token),
+            self.optional_npc_personality(npc_id),
         )
-        return {"emotion": emotion, "affection": affection, "relationships": relationships}
+        return {
+            "emotion": emotion,
+            "affection": affection,
+            "relationships": relationships,
+            "personality": personality,
+        }
+
+    async def optional_npc_personality(self, npc_id: int) -> dict[str, Any]:
+        try:
+            return await self.npc_personality(npc_id)
+        except UpstreamUnavailable:
+            return {"available": False}
+
+    async def npc_personality(self, npc_id: int) -> dict[str, Any]:
+        server = str(self.settings.ainpc_game_server_id)
+        response = await self._json(
+            "GET",
+            f"{self.settings.ainpc_url}/api/v1/personality/profile/{server}/{npc_id}",
+            token=self.settings.ainpc_token,
+            params={"auto_initialize": "false"},
+        )
+        if response.get("code") not in (0, 200, "0", "200"):
+            raise UpstreamUnavailable(
+                "AINPC returned an invalid personality profile.",
+                error_code="ainpc_personality_invalid",
+                response_payload=response,
+            )
+        item = response.get("item")
+        if item is None:
+            return {"available": False}
+        traits = item.get("traits") if isinstance(item, dict) else None
+        dominant = item.get("dominant_traits") if isinstance(item, dict) else None
+        valid_traits = (
+            isinstance(traits, dict)
+            and all(
+                isinstance(key, str)
+                and key
+                and not isinstance(value, bool)
+                and isinstance(value, (int, float))
+                and math.isfinite(float(value))
+                and 0 <= float(value) <= 100
+                for key, value in traits.items()
+            )
+        )
+        valid_dominant = (
+            isinstance(dominant, list)
+            and len(dominant) <= 8
+            and all(isinstance(value, str) and value in traits for value in dominant)
+        ) if valid_traits else False
+        if (
+            not isinstance(item, dict)
+            or str(item.get("game_server_id") or "") != server
+            or str(item.get("npc_id") or "") != str(npc_id)
+            or not str(item.get("profile_id") or "").strip()
+            or not valid_traits
+            or not valid_dominant
+            or response.get("auto_initialized") is not False
+        ):
+            raise UpstreamUnavailable(
+                "AINPC returned an invalid personality profile.",
+                error_code="ainpc_personality_invalid",
+                response_payload=response,
+            )
+        return {
+            "available": True,
+            "profileId": str(item["profile_id"]),
+            "traits": {key: round(float(value), 1) for key, value in traits.items()},
+            "dominantTraits": list(dominant),
+            "templateSource": str(item.get("template_source") or ""),
+            "backgroundNote": str(item.get("background_note") or ""),
+            "updatedAt": str(item.get("updated_at") or ""),
+        }
 
     async def npc_schedule(self, npc_id: int) -> dict[str, Any]:
         return await self._json(

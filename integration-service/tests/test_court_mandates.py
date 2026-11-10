@@ -44,6 +44,15 @@ class MandateUpstreams:
             "emotion": {"code": 200, "dominant": {"emotion_type": "calm", "intensity": 0.25}},
             "affection": {"code": 200, "items": [{"target": "army"}], "total": 1},
             "relationships": {"code": 200, "items": [], "total": 0},
+            "personality": {
+                "available": True,
+                "profileId": "profile-zuoru",
+                "traits": {"stubborn": 79.0, "smooth": 48.0},
+                "dominantTraits": ["stubborn", "smooth"],
+                "templateSource": "identity",
+                "backgroundNote": "fixed profile",
+                "updatedAt": "2026-11-07T21:56:40.288000",
+            },
         }
 
     async def npc_schedule(self, npc_id):
@@ -333,10 +342,12 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
                 "relationshipCount": 0,
             }
             assert mandate["assignment"]["readiness"] == {
-                "score": 59,
+                "score": 60,
                 "band": "watch",
-                "factors": {"runtime": -12.0, "duty": 8.1, "emotion": 6.0, "support": 2.0},
+                "factors": {"runtime": -12.0, "duty": 8.1, "emotion": 6.0, "support": 2.0, "personality": 1.2},
             }
+            assert mandate["assignment"]["personality"]["profileId"] == "profile-zuoru"
+            assert mandate["assignment"]["personality"]["fit"]["score"] == 56
             assert mandate["emergency"] == {
                 "urgent": True,
                 "score": 81.25,
@@ -385,7 +396,8 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
             assert accepted.json()["state"] == "ACCEPTED"
             assert "mandate_id" not in upstreams.triggers[0]["parameters"]
             assert "mandate_digest" not in upstreams.triggers[0]["parameters"]
-            assert "Readiness 59/100 (watch)." in upstreams.triggers[0]["brief"]
+            assert "Readiness 60/100 (watch)." in upstreams.triggers[0]["brief"]
+            assert "Personality task fit 56/100 (steady)." in upstreams.triggers[0]["brief"]
             assert "AINPC emergency assessment: urgent, score 81.25" in upstreams.triggers[0]["brief"]
 
             mismatched = {
@@ -639,6 +651,7 @@ def test_diplomacy_operation_is_sealed_and_drives_orgflow_brief() -> None:
                 "Report only the in-game outcome. "
                     "Bound AINPC duty event-diplomacy (折冲诸侯) on 0772-10-22 from plan plan-1. "
                     "Readiness 58/100 (watch). "
+                    "Personality task fit 48/100 (strained). "
                     "AINPC emergency assessment: urgent, score 81.25, "
                     "trace emergency_evaluate:test-trace."
                 )

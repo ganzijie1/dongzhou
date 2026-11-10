@@ -20,6 +20,51 @@ _POSITIVE_EMOTIONS = {
 }
 _DISRUPTIVE_EMOTIONS = {"anger", "fear", "sadness", "irritation", "shame"}
 
+# Each value is the maximum point contribution at a trait score of 100.
+# Negative values model traits that make a particular duty harder to execute.
+_TASK_PERSONALITY_WEIGHTS = {
+    "supply": {
+        "steady": 14.0,
+        "cautious": 12.0,
+        "smooth": 10.0,
+        "protective": 6.0,
+        "impulsive": -12.0,
+        "stubborn": -8.0,
+    },
+    "drill": {
+        "decisive": 14.0,
+        "dominant": 12.0,
+        "steady": 10.0,
+        "calm": 8.0,
+        "stubborn": 8.0,
+        "impulsive": -10.0,
+    },
+    "patrol": {
+        "cautious": 14.0,
+        "calm": 12.0,
+        "steady": 10.0,
+        "sensitive": 8.0,
+        "impulsive": -12.0,
+    },
+    "intelligence": {
+        "cautious": 14.0,
+        "introverted": 10.0,
+        "sensitive": 8.0,
+        "smooth": 6.0,
+        "impulsive": -12.0,
+        "dominant": -6.0,
+    },
+    "diplomacy": {
+        "smooth": 16.0,
+        "extroverted": 12.0,
+        "calm": 8.0,
+        "sensitive": 6.0,
+        "stubborn": -12.0,
+        "introverted": -8.0,
+        "impulsive": -8.0,
+    },
+}
+
 
 class AssignmentUnavailable(ValueError):
     pass
@@ -72,6 +117,7 @@ def assignment_readiness(
     intensity: float,
     affection_count: int,
     relationship_count: int,
+    personality_factor: float = 0.0,
 ) -> dict[str, Any]:
     normalized_emotion = emotion.casefold().strip() or "calm"
     bounded_intensity = max(0.0, min(100.0, intensity))
@@ -90,11 +136,19 @@ def assignment_readiness(
         10.0,
         max(0, affection_count) * 2.0 + max(0, relationship_count),
     )
+    bounded_personality_factor = max(-8.0, min(8.0, personality_factor))
     score = max(
         25,
         min(
             95,
-            round(55 + runtime_factor + duty_factor + emotion_factor + support_factor),
+            round(
+                55
+                + runtime_factor
+                + duty_factor
+                + emotion_factor
+                + support_factor
+                + bounded_personality_factor
+            ),
         ),
     )
     band = "steady" if score >= 75 else "watch" if score >= 55 else "strained"
@@ -106,7 +160,45 @@ def assignment_readiness(
             "duty": round(duty_factor, 1),
             "emotion": round(emotion_factor, 1),
             "support": round(support_factor, 1),
+            "personality": round(bounded_personality_factor, 1),
         },
+    }
+
+
+def personality_task_fit(
+    task_type: str, personality: dict[str, Any] | None
+) -> dict[str, Any]:
+    if not personality or personality.get("available") is not True:
+        return {"available": False, "score": None, "band": "unavailable", "factor": 0.0, "signals": []}
+    traits = personality.get("traits")
+    weights = _TASK_PERSONALITY_WEIGHTS.get(task_type)
+    if not isinstance(traits, dict) or not weights:
+        return {"available": False, "score": None, "band": "unavailable", "factor": 0.0, "signals": []}
+
+    signals = []
+    adjustment = 0.0
+    for trait, weight in weights.items():
+        value = max(0.0, min(100.0, _number(traits.get(trait))))
+        contribution = weight * value / 100.0
+        adjustment += contribution
+        if value > 0:
+            signals.append(
+                {
+                    "trait": trait,
+                    "value": round(value, 1),
+                    "effect": round(contribution, 1),
+                }
+            )
+    signals.sort(key=lambda item: abs(item["effect"]), reverse=True)
+    score = max(25, min(90, round(50 + adjustment)))
+    factor = max(-8.0, min(8.0, round((score - 50) * 0.2, 1)))
+    band = "strong" if score >= 65 else "steady" if score >= 50 else "strained"
+    return {
+        "available": True,
+        "score": score,
+        "band": band,
+        "factor": factor,
+        "signals": signals[:4],
     }
 
 
@@ -119,6 +211,7 @@ def select_assignment(
     npc_state: dict[str, Any],
     schedule_response: dict[str, Any],
     runtime: dict[str, Any] | None,
+    personality: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     transaction_id = TASK_TRANSACTION_IDS.get(task_type)
     if transaction_id is None:
@@ -154,6 +247,7 @@ def select_assignment(
     dominant = emotion.get("dominant") if isinstance(emotion.get("dominant"), dict) else {}
     runtime_state = str((runtime or {}).get("state") or "UNKNOWN").upper()
     importance = max(0, min(100, _integer(event.get("importance"))))
+    fit = personality_task_fit(task_type, personality)
     state = {
         "emotion": str(dominant.get("emotion_type") or "calm"),
         "intensity": max(0.0, min(100.0, _number(dominant.get("intensity")))),
@@ -179,6 +273,10 @@ def select_assignment(
         "timeSlot": str(event.get("time_slot") or ""),
         "importance": importance,
         "state": state,
+        "personality": {
+            **(personality or {"available": False}),
+            "fit": fit,
+        },
         "readiness": assignment_readiness(
             runtime_state=runtime_state,
             importance=importance,
@@ -186,5 +284,6 @@ def select_assignment(
             intensity=state["intensity"],
             affection_count=state["affectionCount"],
             relationship_count=state["relationshipCount"],
+            personality_factor=fit["factor"],
         ),
     }

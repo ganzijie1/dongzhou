@@ -354,6 +354,21 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                         "interrupt_trace_ids": ["emergency_evaluate:test"],
                     },
                 })
+            if request.url.path == "/api/v1/personality/profile/91001/42":
+                return httpx.Response(200, json={
+                    "code": 200,
+                    "item": {
+                        "game_server_id": "91001",
+                        "npc_id": "42",
+                        "profile_id": "profile-42",
+                        "traits": {"stubborn": 79.0, "smooth": 48.0},
+                        "dominant_traits": ["stubborn", "smooth"],
+                        "template_source": "identity",
+                        "background_note": "fixed profile",
+                        "updated_at": "2026-11-07T21:56:40.288000",
+                    },
+                    "auto_initialized": False,
+                })
             if request.url.path == "/callback/npc-dialogue/choice":
                 return httpx.Response(200, json={"code": 200, "data": {"index": 0, "type": "OPTION"}})
             return httpx.Response(200, json={"data": {"ok": True}})
@@ -408,6 +423,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("/api/v1/emotion/current/91001/42", paths)
         self.assertIn("/api/v1/affection/targets/91001/42", paths)
         self.assertIn("/api/v1/relationship/all/91001/42", paths)
+        self.assertIn("/api/v1/personality/profile/91001/42", paths)
         self.assertIn("/api/v1/schedule-planning/current", paths)
         self.assertIn("/api/v1/schedule-planning/long-term/generate", paths)
         self.assertIn("/callback/emergency-assessment/evaluate", paths)
@@ -418,6 +434,53 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         bearer_requests = [request for request in seen if request.url.host != "org"]
         self.assertTrue(all(request.headers.get("x-org-service-signature") for request in org_requests))
         self.assertTrue(all(request.headers.get("authorization", "").startswith("Bearer ") for request in bearer_requests))
+
+    async def test_personality_profile_is_read_only_and_strictly_validated(self) -> None:
+        seen: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen.append(request)
+            return httpx.Response(200, json={
+                "code": 200,
+                "item": {
+                    "game_server_id": "91001",
+                    "npc_id": "42",
+                    "profile_id": "profile-42",
+                    "traits": {"stubborn": 79, "smooth": 48},
+                    "dominant_traits": ["stubborn", "smooth"],
+                    "template_source": "identity",
+                    "background_note": "fixed profile",
+                    "updated_at": "2026-11-07T21:56:40.288000",
+                },
+                "auto_initialized": False,
+            })
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            result = await Upstreams(settings(Path("unused")), client).npc_personality(42)
+        self.assertTrue(result["available"])
+        self.assertEqual(result["dominantTraits"], ["stubborn", "smooth"])
+        self.assertEqual(seen[0].url.params.get("auto_initialize"), "false")
+
+        invalid_responses = (
+            {
+                "code": 200,
+                "item": {"game_server_id": "91001", "npc_id": "42", "profile_id": "p", "traits": {"stubborn": 67}, "dominant_traits": ["stubborn"]},
+                "auto_initialized": True,
+            },
+            {
+                "code": 200,
+                "item": {"game_server_id": "91001", "npc_id": "42", "profile_id": "p", "traits": {"stubborn": 101}, "dominant_traits": ["stubborn"]},
+                "auto_initialized": False,
+            },
+        )
+        for response in invalid_responses:
+            with self.subTest(response=response):
+                async with httpx.AsyncClient(transport=httpx.MockTransport(
+                    lambda request: httpx.Response(200, json=response)
+                )) as client:
+                    with self.assertRaises(UpstreamUnavailable) as caught:
+                        await Upstreams(settings(Path("unused")), client).npc_personality(42)
+                    self.assertEqual(caught.exception.error_code, "ainpc_personality_invalid")
 
     async def test_decision_rejects_business_failures_and_unknown_options(self) -> None:
         payload = {"dialogues": [{"options": [{"index": 0, "type": "OPTION"}]}]}

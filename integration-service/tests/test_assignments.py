@@ -1,4 +1,9 @@
-from dongzhou_integration.assignments import AssignmentUnavailable, assignment_readiness, select_assignment
+from dongzhou_integration.assignments import (
+    AssignmentUnavailable,
+    assignment_readiness,
+    personality_task_fit,
+    select_assignment,
+)
 
 
 def schedule(*days):
@@ -33,7 +38,11 @@ def test_selects_matching_duty_nearest_stage_range() -> None:
     assert result["readiness"] == {
         "score": 74,
         "band": "watch",
-        "factors": {"runtime": 6.0, "duty": 6.3, "emotion": 0.0, "support": 7.0},
+        "factors": {"runtime": 6.0, "duty": 6.3, "emotion": 0.0, "support": 7.0, "personality": 0.0},
+    }
+    assert result["personality"] == {
+        "available": False,
+        "fit": {"available": False, "score": None, "band": "unavailable", "factor": 0.0, "signals": []},
     }
 
 
@@ -49,13 +58,57 @@ def test_readiness_uses_live_emotion_relationships_and_runtime() -> None:
     assert steady == {
         "score": 83,
         "band": "steady",
-        "factors": {"runtime": 6.0, "duty": 8.1, "emotion": 6.8, "support": 7.0},
+        "factors": {"runtime": 6.0, "duty": 8.1, "emotion": 6.8, "support": 7.0, "personality": 0.0},
     }
     assert strained == {
         "score": 32,
         "band": "strained",
-        "factors": {"runtime": -12.0, "duty": -1.8, "emotion": -9.0, "support": 0.0},
+        "factors": {"runtime": -12.0, "duty": -1.8, "emotion": -9.0, "support": 0.0, "personality": 0.0},
     }
+
+
+def test_personality_fit_changes_with_duty_and_is_sealed_into_assignment() -> None:
+    personality = {
+        "available": True,
+        "profileId": "profile-zuoru",
+        "traits": {"stubborn": 79, "smooth": 48, "impulsive": 0},
+        "dominantTraits": ["stubborn", "smooth"],
+    }
+    drill = personality_task_fit("drill", personality)
+    diplomacy = personality_task_fit("diplomacy", personality)
+    assert drill == {
+        "available": True,
+        "score": 56,
+        "band": "steady",
+        "factor": 1.2,
+        "signals": [{"trait": "stubborn", "value": 79.0, "effect": 6.3}],
+    }
+    assert diplomacy["score"] == 48
+    assert diplomacy["factor"] == -0.4
+    assert diplomacy["signals"] == [
+        {"trait": "stubborn", "value": 79.0, "effect": -9.5},
+        {"trait": "smooth", "value": 48.0, "effect": 7.7},
+    ]
+
+    assignment = select_assignment(
+        hero_id="ZuoRu",
+        npc_id="42",
+        task_type="drill",
+        stage_id="01",
+        npc_state={},
+        schedule_response=schedule({
+            "day": 1,
+            "date": "0772-01-01",
+            "start_level": 1,
+            "end_level": 3,
+            "events": [{"id": "drill", "transaction_id": 9100102, "importance": 50}],
+        }),
+        runtime={"state": "READY"},
+        personality=personality,
+    )
+    assert assignment["personality"]["profileId"] == "profile-zuoru"
+    assert assignment["personality"]["fit"] == drill
+    assert assignment["readiness"]["factors"]["personality"] == 1.2
 
 
 def test_rejects_schedule_without_matching_duty() -> None:
