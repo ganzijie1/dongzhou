@@ -18,7 +18,7 @@ from nexus_kernel.kernel import Kernel, LoadedModule, Module, ModuleContext
 
 from .config import Settings
 from .assignments import AssignmentUnavailable, select_assignment
-from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, OrganizationTaskRequest, SaveWriteRequest
+from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
@@ -160,7 +160,7 @@ class RuntimeModule(Module):
 
 class MandateWorkflowModule(Module):
     name = "dongzhou_mandate_workflow"
-    version = "1.0.0"
+    version = "1.1.0"
     dependencies = (RuntimeModule.name,)
 
     @staticmethod
@@ -185,6 +185,62 @@ class MandateWorkflowModule(Module):
             raise ValueError("missing mandate draft")
         state = "ISSUED" if decision == "APPROVE" else "REJECTED"
         return {"state": state, "mandate": {**mandate, "state": state}}
+
+    @staticmethod
+    def review_settlement(
+        task_id: str,
+        settlement: dict[str, Any],
+        closure: dict[str, Any],
+    ) -> dict[str, Any]:
+        settlement_id = str(settlement["settlementId"])
+        closure_digest = str(closure["digest"])
+        action_id = uuid5(
+            NAMESPACE_URL,
+            f"dongzhou-settlement-action:{task_id}:{settlement_id}:{closure_digest}",
+        )
+        return {
+            "state": "REQUIRES_ACTION",
+            "review": {
+                "id": f"dongzhou:review:{settlement_id}",
+                "taskId": task_id,
+                "settlementId": settlement_id,
+                "finalResult": settlement["result"],
+                "closureDigest": closure_digest,
+                "state": "PENDING",
+                "kernel": {
+                    "module": MandateWorkflowModule.name,
+                    "moduleVersion": MandateWorkflowModule.version,
+                    "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                    "state": "REQUIRES_ACTION",
+                },
+            },
+            "action": {
+                "actionId": str(action_id),
+                "code": "review_organization_settlement",
+                "type": "confirmation",
+                "prompt": "Accept this sealed organization report or censure its outcome?",
+                "options": ["ACCEPT", "CENSURE"],
+            },
+        }
+
+    @staticmethod
+    def resume_settlement_review(response: dict[str, Any], decision: str) -> dict[str, Any]:
+        review = response.get("review")
+        if not isinstance(review, dict):
+            raise ValueError("missing organization settlement review")
+        state = "ACCEPTED" if decision == "ACCEPT" else "CENSURED"
+        trace = {**review, "decision": decision, "state": state}
+        digest = hashlib.sha256(
+            json.dumps(trace, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
+        ).hexdigest()
+        return {
+            "state": state,
+            "review": {
+                **trace,
+                "digest": digest,
+                "kernel": {**dict(review.get("kernel") or {}), "state": state},
+            },
+        }
 
 
 def _payload(value: BaseModel) -> dict[str, Any]:
@@ -1807,9 +1863,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         await store.finish_request(player_id, request.client_request_id, "ACCEPTED", response, external_id=task_id)
         return response
 
-    @router.get("/organization/tasks/{task_id}")
-    async def read_organization_task(task_id: UUID, player_id: UUID = Depends(player)) -> dict[str, Any]:
-        task_key = str(task_id)
+    async def _organization_task_state(task_key: str, player_id: UUID) -> dict[str, Any]:
         original = await store.read_external_request(
             player_id, task_key, "organization_task"
         )
@@ -1848,6 +1902,27 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             if settlement is not None
             else None
         )
+        review = None
+        if settlement is not None and closure is not None:
+            pending_review = mandate_workflow.review_settlement(
+                task_key, settlement, closure
+            )
+            review_id = uuid5(
+                NAMESPACE_URL,
+                "dongzhou-settlement-review:"
+                f"{player_id}:{task_key}:{settlement['settlementId']}:{closure['digest']}",
+            )
+            record = await store.read_request(
+                player_id, review_id, "organization_settlement_review"
+            )
+            recorded_response = record.get("response") if record else None
+            review = (
+                recorded_response
+                if record
+                and record.get("state") in {"ACCEPTED", "CENSURED"}
+                and isinstance(recorded_response, dict)
+                else pending_review
+            )
         outcome = await store.game_event_status("npc-outcome:" + task_key)
         return {
             "taskId": task_key,
@@ -1855,7 +1930,93 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "settlement": settlement,
             "closureReceipt": closure,
             "npcOutcome": outcome,
+            "review": review,
         }
+
+    @router.get("/organization/tasks/{task_id}")
+    async def read_organization_task(task_id: UUID, player_id: UUID = Depends(player)) -> dict[str, Any]:
+        return await _organization_task_state(str(task_id), player_id)
+
+    @router.post("/organization/tasks/{task_id}/review")
+    async def review_organization_task(
+        task_id: UUID,
+        request: OrganizationTaskReviewRequest,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        task_key = str(task_id)
+        task_state = await _organization_task_state(task_key, player_id)
+        settlement = task_state.get("settlement")
+        closure = task_state.get("closureReceipt")
+        review = task_state.get("review")
+        if not isinstance(settlement, dict) or not isinstance(closure, dict):
+            raise ApiError(
+                "organization_settlement_not_ready",
+                "The organization task has no sealed terminal settlement to review.",
+                status_code=409,
+            )
+        expected_review = mandate_workflow.review_settlement(task_key, settlement, closure)
+        expected_action = expected_review["action"]
+        if expected_action["actionId"] != str(request.action_id):
+            raise ApiError(
+                "organization_review_action_mismatch",
+                "The player action does not match this organization report.",
+                status_code=409,
+            )
+        if isinstance(review, dict) and review.get("state") in {"ACCEPTED", "CENSURED"}:
+            recorded_decision = review.get("review", {}).get("decision")
+            if recorded_decision != request.decision:
+                raise ApiError(
+                    "organization_review_conflict",
+                    "This organization report was already reviewed with a different decision.",
+                    status_code=409,
+                )
+            return {"replayed": True, **review}
+        action = review.get("action") if isinstance(review, dict) else None
+        if not isinstance(review, dict) or review.get("state") != "REQUIRES_ACTION" or not isinstance(action, dict):
+            raise ApiError(
+                "organization_review_not_resumable",
+                "The organization report is not waiting for player action.",
+                status_code=409,
+            )
+        review_id = uuid5(
+            NAMESPACE_URL,
+            "dongzhou-settlement-review:"
+            f"{player_id}:{task_key}:{settlement['settlementId']}:{closure['digest']}",
+        )
+        payload = {
+            "taskId": task_key,
+            "settlementId": settlement["settlementId"],
+            "closureDigest": closure["digest"],
+            "actionId": str(request.action_id),
+            "decision": request.decision,
+        }
+        try:
+            should_process, previous = await store.begin_request(
+                player_id, review_id, "organization_settlement_review", payload
+            )
+        except VersionConflict as error:
+            raise ApiError(
+                "organization_review_conflict",
+                "This organization report was already reviewed with different input.",
+                status_code=409,
+            ) from error
+        if not should_process:
+            if isinstance(previous, dict) and previous.get("state") in {"ACCEPTED", "CENSURED"}:
+                return {"replayed": True, **previous}
+            raise ApiError(
+                "organization_review_in_progress",
+                "This organization report review is already in progress.",
+                status_code=409,
+            )
+        result = mandate_workflow.resume_settlement_review(review, request.decision)
+        await store.finish_request(
+            player_id,
+            review_id,
+            result["state"],
+            result,
+            external_id=task_key,
+        )
+        return result
 
     application_settings = ApplicationSettings.model_validate({
         "service": {"name": "Dongzhou Integration Service", "version": "1.0.0"},

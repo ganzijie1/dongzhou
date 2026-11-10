@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 8;
+  const SCHEMA_VERSION = 9;
   const TASK_TYPES = {
     supply: { name: "转运军粮", office: "司徒", duration: 1, cost: 8, base: 72, reward: { provisions: 24 } },
     drill: { name: "整训军阵", office: "司马", duration: 1, cost: 6, base: 68, reward: { attack: 0.08 } },
@@ -85,7 +85,7 @@
       contribution: Math.trunc(clamp(source.contribution ?? 0, -999999, 999999)),
       backend: { ...base.backend, ...(source.backend || {}) },
       members: Array.isArray(source.members) ? source.members.slice(0, 12).map(normalizeMember) : [],
-      tasks: retainedTasks.map((task) => ({ ...task, status: ['active', 'success', 'partial', 'failed'].includes(task.status) ? task.status : 'failed' })),
+      tasks: retainedTasks.map((task) => ({ ...task, status: ['active', 'success', 'partial', 'failed', 'censured'].includes(task.status) ? task.status : 'failed' })),
       knowledge: Array.isArray(source.knowledge) ? source.knowledge.slice(-30).map((entry) => ({ ...entry })) : [],
       selectedSources: source.selectedSources && typeof source.selectedSources === "object" ? copy(source.selectedSources) : {},
       councils: Array.isArray(source.councils) ? source.councils.filter((entry) => entry && typeof entry === 'object').slice(-30).map(copy) : [],
@@ -377,7 +377,10 @@
 
   function remoteTaskReadyForAdvance(snapshot) {
     if (!snapshot || typeof snapshot !== "object") return false;
-    if (snapshot.final_result) return true;
+    if (snapshot.final_result) {
+      if (!snapshot.settlement) return true;
+      return ["ACCEPTED", "CENSURED"].includes(snapshot.review?.state);
+    }
     return snapshot.execution_started_game_time !== null
       && snapshot.execution_started_game_time !== undefined;
   }
@@ -401,10 +404,20 @@
       }
       const finalResult = snapshot.final_result;
       if (!finalResult) continue;
+      if (snapshot.review && typeof snapshot.review === "object") {
+        task.pendingReview = copy(snapshot.review);
+      }
+      if (snapshot.settlement && typeof snapshot.settlement === "object") task.pendingSettlement = copy(snapshot.settlement);
+      const reviewState = snapshot.review?.state;
+      if (snapshot.settlement && !["ACCEPTED", "CENSURED"].includes(reviewState)) continue;
+      const censured = reviewState === "CENSURED";
+      if (snapshot.review?.review) task.review = copy(snapshot.review.review);
+      delete task.pendingReview;
+      delete task.pendingSettlement;
       const member = state.members.find((entry) => entry.id === task.assigneeId) || normalizeMember({ id: task.assigneeId, name: task.assigneeName }, 0);
       const definition = TASK_TYPES[task.type];
-      const success = finalResult === "SUCCESS" || finalResult === "PARTIAL";
-      task.status = finalResult === "SUCCESS" ? "success" : finalResult === "PARTIAL" ? "partial" : "failed";
+      const success = !censured && (finalResult === "SUCCESS" || finalResult === "PARTIAL");
+      task.status = censured ? "censured" : finalResult === "SUCCESS" ? "success" : finalResult === "PARTIAL" ? "partial" : "failed";
       task.resolvedMonth = state.month;
       task.remoteFinalResult = finalResult;
       const settlement = snapshot.settlement;
@@ -435,11 +448,15 @@
       }
       const mandate = task.mandate ? state.mandates.find((entry) => entry.id === task.mandate.id) : null;
       if (mandate) {
-        mandate.state = finalResult === "SUCCESS" ? "FULFILLED" : finalResult === "PARTIAL" ? "PARTIAL" : "FAILED";
+        mandate.state = censured ? "CENSURED" : finalResult === "SUCCESS" ? "FULFILLED" : finalResult === "PARTIAL" ? "PARTIAL" : "FAILED";
         mandate.organizationTaskId = task.remoteResult;
         mandate.organizationResult = finalResult;
       }
-      if (success) {
+      if (censured) {
+        member.loyalty = clamp(member.loyalty - 1, 20, 100);
+        state.relations[member.id] = clamp(Number(state.relations[member.id] || 0) - 2, -100, 100);
+        state.history.push({ month: state.month, tone: "bad", text: `${member.name}复命所报“${task.name}”被申斥，簿书功过照录，军府不取其助益。` });
+      } else if (success) {
         const factor = finalResult === "PARTIAL" ? 0.5 : 1;
         if (!settlement) state.influence = clamp(state.influence + (finalResult === "PARTIAL" ? 1 : 2), 0, 999);
         member.loyalty = clamp(member.loyalty + 1, 20, 100);
@@ -452,7 +469,7 @@
         state.history.push({ month: state.month, tone: "bad", text: `${member.name}未能办成“${task.name}”，军府未获助益。` });
       }
       if (task.operation?.kind === "diplomacy") {
-        const accepted = finalResult === "SUCCESS";
+        const accepted = !censured && finalResult === "SUCCESS";
         applyLobbyingRecord(state, {
           id: "lobby:" + task.remoteResult,
           stageId: task.stageId,
@@ -474,6 +491,19 @@
     }
     state.history = state.history.slice(-40);
     return state;
+  }
+
+  function recordTaskReview(rawState, input) {
+    const state = normalizeState(rawState);
+    const task = state.tasks.find((entry) => entry.status === "active" && String(entry.remoteResult) === String(input?.taskId || ""));
+    const review = input?.review;
+    if (!task || !review || !["ACCEPTED", "CENSURED"].includes(review.state)) throw new Error("复命裁决与当前差事不匹配");
+    const pending = task.pendingReview;
+    if (!pending || pending.review?.settlementId !== review.review?.settlementId || pending.review?.closureDigest !== review.review?.closureDigest) {
+      throw new Error("复命裁决印记与待裁簿书不匹配");
+    }
+    task.pendingReview = copy(review);
+    return { state, task: copy(task) };
   }
 
   function consumeSupport(rawState, stageId) {
@@ -548,5 +578,5 @@
     return state;
   }
 
-  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, consumeSupport, recordKnowledge, selectEvidence, updateBackend, hash };
+  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, consumeSupport, recordKnowledge, selectEvidence, updateBackend, hash };
 });

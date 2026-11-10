@@ -3730,6 +3730,7 @@ button:focus-visible {
 .office-mandate-approval span { color: #b99344; font-size: 10px; }
 .office-mandate-approval strong { color: #e3d8bb; font-size: 13px; }
 .office-mandate-approval small { color: #888b82; overflow-wrap: anywhere; }
+.office-settlement-review { border-top-color: rgba(178, 112, 88, .35); }
 .office-mandate-actions { display: flex; gap: 8px; }
 .office-members { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin-top: 18px; background: rgba(191, 161, 91, .13); }
 .office-members > div { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; padding: 11px 12px; background: #101510; }
@@ -3742,6 +3743,7 @@ button:focus-visible {
 .office-task-ledger small { color: #898b82; }
 .office-task-ledger .success small { color: #9eb27a; }
 .office-task-ledger .failed small { color: #bd786d; }
+.office-task-ledger .censured small { color: #d29a72; }
 .office-knowledge { grid-column: 1 / -1; }
 .office-knowledge-form { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 18px; }
 .office-knowledge-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 26px; margin-top: 14px; }

@@ -342,6 +342,9 @@
     return result;
   }
   function organizationTask(taskId) { return requestWithTransientRetry(`/organization/tasks/${encodeURIComponent(taskId)}`); }
+  function reviewOrganizationTask(taskId, input) {
+    return request(`/organization/tasks/${encodeURIComponent(taskId)}/review`, { method: "POST", body: JSON.stringify(input) });
+  }
   async function stageKnowledge(stageId) {
     if (!offline) return requestWithTransientRetry(`/knowledge/stages/${encodeURIComponent(stageId)}`);
     const response = await root.fetch("scenario/dongzhou-knowledge.json", { cache: "no-store" });
@@ -350,5 +353,5 @@
     return { mode: "offline", stageId, results: (data.entries || []).filter((entry) => entry.stageId === stageId) };
   }
 
-  return { initialize, persist, status, searchKnowledge, campaignRoute, stageKnowledge, syncNpcs, npcState, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, campaignRoute, stageKnowledge, syncNpcs, npcState, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, reviewOrganizationTask, isOffline: () => offline };
 });

@@ -59,6 +59,7 @@ AINPC 容器通过宿主回环代理访问 LoongEQ、LoongMemory、输入预检�
 - `ainpc-duty-complete22` 真实验收已证明史料、军议、当值校验、NexusKernel 签令及 orgFlow 建单成功；任务 `d4496a8e-7de8-504a-ba90-ad35bcd243e4` 的简报含当值计划与事件。该任务当前仍停在 `MEMBER_RESPONSE_PENDING`，原因是现有 AINPC 消息持久化队列超时，因此本轮不将 NPC 自动回应和任务终态记为通过。
 - NPC 当值状态现会计算为 `25-95` 的胜任度，并随 NexusKernel 授命摘要封存到 orgFlow 差事；月令结算使用封存分数调整成功概率，旧授命按中性 `65` 兼容。前端同时显示分数、档位、情绪和关系支持。
 - `ainpc-readiness-complete23` 真实验收创建了 NexusKernel 授命及 orgFlow 任务 `cc47d078-f232-5d9a-a24f-afebf5269039`；任务简报已封存 `Readiness 72/100 (watch)`。任务仍为 `MEMBER_RESPONSE_PENDING`；浏览器随后因 Docker Desktop 引擎失联报 `Failed to fetch`，因此本轮只确认真实建单和胜任度传递，不将异步任务终态记为通过。
+- 官署终态现增加第二个 NexusKernel 人在回路：orgFlowEngine 的贡献、功绩和终态先生成不可改写的封存凭据，玩家必须在官署选择“收纳复命”或“申斥”后才能推进月令。收纳才发放战前助益；申斥仍照录上游贡献与功绩，但取消战前助益或外交成功并扣减属官信任、关系。裁决按任务、玩家、结案摘要幂等保存，刷新和重试不会重复领奖或更换决定。
 - 东周网关冷重启后，原存档、任务身份、失败终态和浏览器显示保持一致。
 - H5 包含 172 个关卡、4038 个文件、2520 条角色语音和 1126 个情境音乐 cue；发布校验无错误。
 

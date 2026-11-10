@@ -461,9 +461,38 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert closure["mandateDigest"] == issued["digest"]
             assert closure["settlement"]["settlementId"] == settlement_id
             assert len(closure["digest"]) == 64
+            review = body["review"]
+            assert review["state"] == "REQUIRES_ACTION"
+            assert review["review"]["settlementId"] == settlement_id
+            assert review["review"]["closureDigest"] == closure["digest"]
+            assert review["review"]["kernel"]["moduleVersion"] == "1.1.0"
+            wrong_action = client.post(
+                f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
+                json={"action_id": str(uuid4()), "decision": "ACCEPT"},
+            )
+            assert wrong_action.status_code == 409
+            accepted = client.post(
+                f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
+                json={"action_id": review["action"]["actionId"], "decision": "ACCEPT"},
+            )
+            assert accepted.status_code == 200
+            assert accepted.json()["state"] == "ACCEPTED"
+            assert accepted.json()["review"]["decision"] == "ACCEPT"
+            assert len(accepted.json()["review"]["digest"]) == 64
+            replay = client.post(
+                f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
+                json={"action_id": review["action"]["actionId"], "decision": "ACCEPT"},
+            )
+            assert replay.status_code == 200
+            assert replay.json()["replayed"] is True
+            conflict = client.post(
+                f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
+                json={"action_id": review["action"]["actionId"], "decision": "CENSURE"},
+            )
+            assert conflict.status_code == 409
             assert client.get(
                 f"/api/dongzhou/v1/organization/tasks/{task_id}"
-            ).json()["closureReceipt"] == closure
+            ).json()["review"]["state"] == "ACCEPTED"
 
             upstreams.task_snapshot["settlement"]["member_id"] = str(uuid4())
             invalid = client.get(

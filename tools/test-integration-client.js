@@ -28,6 +28,7 @@ let npcStateAttempts = 0;
 let npcScheduleAttempts = 0;
 let npcAssignmentAttempts = 0;
 let organizationReadAttempts = 0;
+let organizationReviewInput = null;
 let campaignRouteAttempts = 0;
 let knowledgeSearchInput = null;
 let organizationResponse = null;
@@ -90,6 +91,9 @@ global.fetch = async (url, options = {}) => {
       status = 503;
       response = { error: { code: "organization_unavailable", message: "retry" } };
     } else response = organizationResponse || { state: "ACCEPTED", taskId: "task-1" };
+  } else if (/\/organization\/tasks\/[^/]+\/review$/.test(url)) {
+    organizationReviewInput = body;
+    response = { state: body.decision === "ACCEPT" ? "ACCEPTED" : "CENSURED", review: { settlementId: "settlement-1", closureDigest: "c".repeat(64), decision: body.decision } };
   } else if (/\/organization\/tasks\/[^/]+$/.test(url)) {
     organizationReadAttempts += 1;
     if (organizationReadAttempts === 1) {
@@ -175,6 +179,9 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(organizationIds[0], organizationIds[1]);
   await client.organizationTask("task-1");
   assert.strictEqual(organizationReadAttempts, 2);
+  const reviewed = await client.reviewOrganizationTask("task-1", { action_id: "00000000-0000-4000-8000-000000000021", decision: "ACCEPT" });
+  assert.strictEqual(reviewed.state, "ACCEPTED");
+  assert.strictEqual(organizationReviewInput.decision, "ACCEPT");
   assert.strictEqual([...values.keys()].some((key) => key.startsWith("dongzhou-pending-task-v1:")), true, "Acceptance remains durable until the binding is saved");
   await client.persist({ organization: { tasks: [{ remoteResult: accepted.taskId }] } });
   assert.strictEqual([...values.keys()].some((key) => key.startsWith("dongzhou-pending-task-v1:")), false);

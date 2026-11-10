@@ -70,10 +70,27 @@ const authoritativeSettlement = {
   source: "NPC_CONFIRMATION"
 };
 const closureReceipt = { state: "SEALED", digest: "c".repeat(64), settlement: authoritativeSettlement };
+const pendingReview = {
+  state: "REQUIRES_ACTION",
+  review: { settlementId: authoritativeSettlement.settlementId, closureDigest: closureReceipt.digest, finalResult: "SUCCESS", state: "PENDING" },
+  action: { actionId: "00000000-0000-4000-8000-000000000021", options: ["ACCEPT", "CENSURE"] }
+};
+assert.strictEqual(play.remoteTaskReadyForAdvance({ final_result: "SUCCESS", settlement: authoritativeSettlement, review: pendingReview }), false);
 state = play.reconcileRemoteTasks(remote.state, [{
   task_id: remote.task.remoteResult, state: "SUCCEEDED", final_result: "SUCCESS", version: "3",
   settlement: authoritativeSettlement,
   closureReceipt,
+  review: pendingReview,
+  npcOutcome: { state: "DELIVERED", attempts: 1 }
+}], { advanceMonth: false });
+assert.strictEqual(state.tasks.at(-1).status, "active");
+assert.strictEqual(state.pendingSupport.some((entry) => entry.id === remote.task.id), false);
+const acceptedReview = { state: "ACCEPTED", review: { ...pendingReview.review, state: "ACCEPTED", decision: "ACCEPT" } };
+state = play.recordTaskReview(state, { taskId: remote.task.remoteResult, review: acceptedReview }).state;
+assert.strictEqual(play.remoteTaskReadyForAdvance({ final_result: "SUCCESS", settlement: authoritativeSettlement, review: acceptedReview }), true);
+state = play.reconcileRemoteTasks(state, [{
+  task_id: remote.task.remoteResult, state: "SUCCEEDED", final_result: "SUCCESS", version: "3",
+  settlement: authoritativeSettlement, closureReceipt, review: acceptedReview,
   npcOutcome: { state: "DELIVERED", attempts: 1 }
 }]);
 assert.strictEqual(state.tasks.at(-1).status, "success");
@@ -85,6 +102,22 @@ assert.strictEqual(state.members.find((member) => member.id === "ZuoRu").merit, 
 assert.strictEqual(state.settlements.at(-1).settlementId, authoritativeSettlement.settlementId);
 assert.deepStrictEqual(state.settlementIds, [authoritativeSettlement.settlementId]);
 assert.strictEqual(state.tasks.at(-1).closureReceipt.digest, "c".repeat(64));
+
+const supportBeforeCensure = state.pendingSupport.length;
+const contributionBeforeCensure = state.contribution;
+const censuredOrder = play.createTask(state, { type: "patrol", assigneeId: "ZuoRu", stageId: "02", stageTitle: "申斥测试" });
+censuredOrder.task.remoteResult = "00000000-0000-0000-0000-000000000030";
+const censuredSettlement = { ...authoritativeSettlement, settlementId: "00000000-0000-0000-0000-000000000031", taskId: censuredOrder.task.remoteResult, organizationDelta: 30, memberDelta: 10 };
+const censuredClosure = { state: "SEALED", digest: "d".repeat(64), settlement: censuredSettlement };
+const censuredPending = { state: "REQUIRES_ACTION", review: { settlementId: censuredSettlement.settlementId, closureDigest: censuredClosure.digest, finalResult: "SUCCESS", state: "PENDING" }, action: { actionId: "00000000-0000-4000-8000-000000000032" } };
+let censuredState = play.reconcileRemoteTasks(censuredOrder.state, [{ task_id: censuredOrder.task.remoteResult, state: "SUCCEEDED", final_result: "SUCCESS", version: "3", settlement: censuredSettlement, closureReceipt: censuredClosure, review: censuredPending }], { advanceMonth: false });
+const censuredReview = { state: "CENSURED", review: { ...censuredPending.review, state: "CENSURED", decision: "CENSURE" } };
+censuredState = play.recordTaskReview(censuredState, { taskId: censuredOrder.task.remoteResult, review: censuredReview }).state;
+censuredState = play.reconcileRemoteTasks(censuredState, [{ task_id: censuredOrder.task.remoteResult, state: "SUCCEEDED", final_result: "SUCCESS", version: "3", settlement: censuredSettlement, closureReceipt: censuredClosure, review: censuredReview }]);
+assert.strictEqual(censuredState.tasks.at(-1).status, "censured");
+assert.strictEqual(censuredState.contribution, contributionBeforeCensure + 30, "Authoritative org contribution must still be booked after censure");
+assert.strictEqual(censuredState.pendingSupport.length, supportBeforeCensure, "Censured reports must not grant battle support");
+assert.match(censuredState.history.at(-1).text, /被申斥/);
 
 // 一位官员长时间等待外部复命时，其他官员反复办差不能把该任务挤出台账。
 let campaign = play.syncMembers(null, stage, (id) => id);

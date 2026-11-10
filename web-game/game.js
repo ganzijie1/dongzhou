@@ -965,7 +965,8 @@
       const outcomeState = task.npcOutcome?.state;
       const outcomeLabel = outcomeState === "DELIVERED" ? " · 经历已形成" : outcomeState === "PENDING" ? (task.npcOutcome?.lastError ? " · 经历待重试" : " · 经历回写中") : "";
       const settlementLabel = task.settlement ? ` · 军府${Number(task.settlement.organizationDelta) >= 0 ? "+" : ""}${task.settlement.organizationDelta} · 功绩${Number(task.settlement.memberDelta) >= 0 ? "+" : ""}${task.settlement.memberDelta} · 印记 ${escapeHtml(String(task.closureReceipt?.digest || "").slice(0, 10))}` : "";
-      return `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}</strong><small>${task.status === "active" ? `${task.dueMonth}月复命` : task.status === "success" ? "办成" : task.status === "partial" ? "部分办成" : "未成"}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}${task.mandate?.assignment?.name ? ` · 当值${escapeHtml(task.mandate.assignment.name)}` : ""}${Number.isFinite(Number(task.mandate?.assignment?.readiness?.score)) ? ` · 胜任${Number(task.mandate.assignment.readiness.score)}` : ""}${settlementLabel}${outcomeLabel}</small></li>`;
+      const statusLabel = task.status === "active" ? (task.pendingReview?.state === "REQUIRES_ACTION" ? "复命待裁" : `${task.dueMonth}月复命`) : task.status === "success" ? "办成" : task.status === "partial" ? "部分办成" : task.status === "censured" ? "复命被申斥" : "未成";
+      return `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}</strong><small>${statusLabel}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}${task.mandate?.assignment?.name ? ` · 当值${escapeHtml(task.mandate.assignment.name)}` : ""}${Number.isFinite(Number(task.mandate?.assignment?.readiness?.score)) ? ` · 胜任${Number(task.mandate.assignment.readiness.score)}` : ""}${settlementLabel}${outcomeLabel}</small></li>`;
     }).join("") || '<li class="empty">尚无差事</li>';
     $("#officeMandateLedger").innerHTML = [...org.mandates].reverse().slice(0, 6).map((mandate) => {
       const label = mandate.state === "RESOLVED" ? (mandate.outcome?.won ? "战后告捷" : "战后失利") : mandate.state === "FULFILLED" ? "复命待战" : mandate.state === "PARTIAL" ? "部分复命" : mandate.state === "FAILED" ? "执行未成" : mandate.state === "ORDERED" ? "属官执行中" : "已签发";
@@ -982,6 +983,7 @@
     document.querySelectorAll(".office-decision-option").forEach((input, index) => { if (!input.value) input.value = decisionDefaults[index]; });
     renderOfficeDiplomacyStatus();
     renderOfficeMandateApproval();
+    renderOfficeSettlementReview();
   }
 
   async function refreshIntegrationStatus() {
@@ -1308,6 +1310,39 @@
     $("#officeMandateRejectButton").hidden = issued;
   }
 
+  function renderOfficeSettlementReview() {
+    const task = profile.organization.tasks.find((entry) => entry.status === "active" && entry.pendingReview?.state === "REQUIRES_ACTION");
+    const panel = $("#officeSettlementReview");
+    panel.hidden = !task;
+    if (!task) return;
+    const review = task.pendingReview.review || {};
+    const settlement = task.pendingSettlement || {};
+    $("#officeSettlementReviewTitle").textContent = `${task.assigneeName}复命待裁`;
+    $("#officeSettlementReviewDetail").textContent = `${task.name} · ${review.finalResult || task.remoteFinalResult || "终态"} · 军府${Number(settlement.organizationDelta || 0) >= 0 ? "+" : ""}${Number(settlement.organizationDelta || 0)} · 印记 ${String(review.closureDigest || "").slice(0, 10)}`;
+  }
+
+  let officeSettlementReviewInFlight = false;
+  async function resolveOfficeSettlement(decision) {
+    if (officeSettlementReviewInFlight) return;
+    const task = profile.organization.tasks.find((entry) => entry.status === "active" && entry.pendingReview?.state === "REQUIRES_ACTION");
+    if (!task) return;
+    officeSettlementReviewInFlight = true;
+    $("#officeSettlementAcceptButton").disabled = true;
+    $("#officeSettlementCensureButton").disabled = true;
+    try {
+      const response = await integration.reviewOrganizationTask(task.remoteResult, { action_id: task.pendingReview.action.actionId, decision });
+      const recorded = organization.recordTaskReview(profile.organization, { taskId: task.remoteResult, review: response });
+      await commitOrganizationState(recorded.state);
+      showNotice(decision === "ACCEPT" ? "复命已收纳，推进月令后发放战前助益。" : "复命已申斥，簿书功过照录但不发放战前助益。");
+    } catch (error) {
+      showNotice(error.message);
+    } finally {
+      officeSettlementReviewInFlight = false;
+      $("#officeSettlementAcceptButton").disabled = false;
+      $("#officeSettlementCensureButton").disabled = false;
+    }
+  }
+
   async function completeIssuedOfficeTask(mandateInput, issuedMandate) {
     const record = officeStage();
     const taskType = mandateInput.task_type;
@@ -1513,13 +1548,13 @@
         const snapshots = responses.map((response) => {
           const snapshot = response.result?.data || response.result || null;
           return snapshot && typeof snapshot === "object"
-            ? { ...snapshot, settlement: response.settlement || null, closureReceipt: response.closureReceipt || null, npcOutcome: response.npcOutcome || null }
+            ? { ...snapshot, settlement: response.settlement || null, closureReceipt: response.closureReceipt || null, npcOutcome: response.npcOutcome || null, review: response.review || null }
             : snapshot;
         });
         const waiting = snapshots.some((snapshot) => !organization.remoteTaskReadyForAdvance(snapshot));
         if (waiting) {
           await commitOrganizationState(organization.reconcileRemoteTasks(profile.organization, snapshots, { advanceMonth: false }));
-          showNotice("差事仍在受理，待属官确认后方可推进月令。");
+          showNotice(snapshots.some((snapshot) => snapshot?.review?.state === "REQUIRES_ACTION") ? "属官已经复命，请先裁可簿书。" : "差事仍在受理，待属官确认后方可推进月令。");
           return;
         }
         await commitOrganizationState(organization.reconcileRemoteTasks(profile.organization, snapshots));
@@ -3289,6 +3324,8 @@
     $("#officeIssueButton").addEventListener("click", () => issueOfficeTask());
     $("#officeMandateApproveButton").addEventListener("click", () => resolveOfficeMandate("APPROVE"));
     $("#officeMandateRejectButton").addEventListener("click", () => resolveOfficeMandate("REJECT"));
+    $("#officeSettlementAcceptButton").addEventListener("click", () => resolveOfficeSettlement("ACCEPT"));
+    $("#officeSettlementCensureButton").addEventListener("click", () => resolveOfficeSettlement("CENSURE"));
     $("#officeAdvanceButton").addEventListener("click", advanceOfficeMonth);
     $("#officeKnowledgeForm").addEventListener("submit", searchOfficeKnowledge);
     $("#officeStageKnowledgeButton").addEventListener("click", loadOfficeStageKnowledge);
