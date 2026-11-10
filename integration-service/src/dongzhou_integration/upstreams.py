@@ -498,3 +498,12 @@ class Upstreams:
             headers=sign_orgflow_request(method="GET", path_and_query=path, audience=self.settings.orgflow_audience, key_id=self.settings.orgflow_hmac_key_id, secret=self.settings.orgflow_hmac_secret, body=b""),
             content=b"",
         )
+
+    async def organization_roster(self, organization_id: str) -> dict[str, Any]:
+        path = f"/internal/v1/organization-administration/organizations/{organization_id}/roster"
+        return await self._json(
+            "GET",
+            f"{self.settings.orgflow_url}{path}",
+            headers=sign_orgflow_request(method="GET", path_and_query=path, audience=self.settings.orgflow_audience, key_id=self.settings.orgflow_hmac_key_id, secret=self.settings.orgflow_hmac_secret, body=b""),
+            content=b"",
+        )

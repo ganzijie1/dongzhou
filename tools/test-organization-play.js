@@ -44,6 +44,16 @@ assert.strictEqual(state.backend.mode, "connected");
 state = play.updateBackend(state, { aiNpc: false });
 assert.strictEqual(state.backend.mode, "local");
 state = play.updateBackend(state, { aiNpc: true });
+state = play.recordRemoteRoster(state, {
+  organization: { name: "东周军府", state: "ACTIVE", hierarchyVersion: 3, growthContribution: 245 },
+  members: [{ heroId: "ZuoRu", office: "司马", role: "军务属官", level: "officer", directManagerHeroId: "DuBo", contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 }]
+});
+assert.strictEqual(state.name, "东周军府");
+assert.strictEqual(state.contribution, 245);
+assert.strictEqual(state.members.find((member) => member.id === "ZuoRu").office, "司马");
+assert.strictEqual(state.members.find((member) => member.id === "ZuoRu").merit, 80);
+assert.strictEqual(state.remoteRoster.members[0].contributionBalance, 54);
+assert.throws(() => play.recordRemoteRoster(state, { organization: { growthContribution: 1 }, members: [{ heroId: "ZuoRu", contributionBalance: 0, lifetimeEarned: 1.5, lifetimeSpent: 0 }] }), /功绩无效/);
 
 let remote = play.createTask(state, { type: "supply", assigneeId: "ZuoRu", stageId: "01", stageTitle: "东郊索命" });
 remote.task.remoteResult = "00000000-0000-0000-0000-000000000010";

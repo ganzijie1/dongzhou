@@ -372,6 +372,68 @@ def _organization_final_result(value: Any) -> str | None:
     return None
 
 
+def _organization_roster_view(snapshot: Any, settings: Settings) -> dict[str, Any]:
+    if not isinstance(snapshot, dict):
+        raise ValueError("roster snapshot must be an object")
+    positions = snapshot.get("positions")
+    members = snapshot.get("members")
+    if not isinstance(positions, list) or not isinstance(members, list):
+        raise ValueError("roster snapshot is incomplete")
+    hero_by_member = {member_id: hero_id for hero_id, member_id in settings.orgflow_hero_members.items()}
+    position_by_slot = {
+        str(position.get("position_slot_id")): position
+        for position in positions
+        if isinstance(position, dict) and position.get("position_slot_id")
+    }
+    sanitized_members: list[dict[str, Any]] = []
+    for member in members:
+        if not isinstance(member, dict):
+            continue
+        hero_id = hero_by_member.get(str(member.get("member_id") or ""))
+        if not hero_id:
+            continue
+        position = position_by_slot.get(str(member.get("position_slot_id") or ""), {})
+        manager_hero_id = hero_by_member.get(str(member.get("direct_manager_member_id") or ""))
+        values = {
+            key: member.get(source, 0)
+            for key, source in (
+                ("contributionBalance", "contribution_balance"),
+                ("lifetimeEarned", "contribution_lifetime_earned"),
+                ("lifetimeSpent", "contribution_lifetime_spent"),
+            )
+        }
+        if any(isinstance(value, bool) or not isinstance(value, int) for value in values.values()):
+            raise ValueError("roster contribution account is invalid")
+        sanitized_members.append(
+            {
+                "heroId": hero_id,
+                "office": str(position.get("position_display_name") or ""),
+                "role": str(position.get("role_display_name") or ""),
+                "level": str(position.get("level_key") or ""),
+                "directManagerHeroId": manager_hero_id,
+                **values,
+            }
+        )
+    growth = snapshot.get("growth_contribution_points", 0)
+    hierarchy_version = snapshot.get("hierarchy_version", 0)
+    if (
+        isinstance(growth, bool)
+        or not isinstance(growth, int)
+        or isinstance(hierarchy_version, bool)
+        or not isinstance(hierarchy_version, int)
+    ):
+        raise ValueError("roster organization account is invalid")
+    return {
+        "organization": {
+            "name": str(snapshot.get("name") or ""),
+            "state": str(snapshot.get("state") or ""),
+            "hierarchyVersion": hierarchy_version,
+            "growthContribution": growth,
+        },
+        "members": sanitized_members,
+    }
+
+
 _SETTLING_RESULTS = {"SUCCESS", "PARTIAL", "FAILURE", "REJECTED"}
 _SETTLEMENT_SOURCES = {
     "PLAYER_CONFIRMATION",
@@ -1813,6 +1875,41 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=409,
             )
         return result
+
+    @router.get("/organization/roster")
+    async def read_organization_roster(
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        del player_id
+        if not settings.orgflow_org_id or not settings.orgflow_hero_members:
+            raise ApiError(
+                "organization_not_configured",
+                "Organization integration is not configured.",
+                status_code=503,
+            )
+        try:
+            response = await upstreams.organization_roster(settings.orgflow_org_id)
+            if not isinstance(response, dict):
+                raise ValueError("roster response must be an object")
+            return _organization_roster_view(response.get("data"), settings)
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "organization_roster_unavailable",
+                "Organization roster is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        except ValueError as error:
+            raise ApiError(
+                "organization_roster_contract_invalid",
+                "Organization roster response is invalid.",
+                status_code=502,
+            ) from error
+        except (AttributeError, ValueError) as error:
+            raise ApiError(
+                "organization_roster_contract_invalid",
+                "Organization roster response is invalid.",
+                status_code=502,
+            ) from error
 
     @router.post("/organization/tasks")
     async def create_organization_task(request: OrganizationTaskRequest, player_id: UUID = Depends(player)) -> dict[str, Any]:

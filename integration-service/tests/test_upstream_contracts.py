@@ -33,6 +33,80 @@ def settings(path: Path) -> Settings:
 
 
 class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
+    async def test_roster_route_exposes_only_mapped_hero_accounts(self) -> None:
+        class RosterUpstreams:
+            async def health(self):
+                return {
+                    "orgFlow": {"online": True},
+                    "aiNpc": {"online": True},
+                    "knowledge": {"online": True},
+                }
+
+            async def organization_roster(self, organization_id: str):
+                return {
+                    "data": {
+                        "organization_id": organization_id,
+                        "name": "Dongzhou Commandery",
+                        "state": "ACTIVE",
+                        "hierarchy_version": 7,
+                        "growth_contribution_points": 245,
+                        "positions": [
+                            {
+                                "position_slot_id": "00000000-0000-0000-0000-000000000003",
+                                "position_display_name": "Marshal",
+                                "role_display_name": "Commander",
+                                "level_key": "manager",
+                            }
+                        ],
+                        "members": [
+                            {
+                                "member_id": "00000000-0000-0000-0000-000000000004",
+                                "position_slot_id": "00000000-0000-0000-0000-000000000003",
+                                "direct_manager_member_id": None,
+                                "contribution_balance": 54,
+                                "contribution_lifetime_earned": 80,
+                                "contribution_lifetime_spent": 26,
+                            },
+                            {
+                                "member_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+                                "position_slot_id": None,
+                                "direct_manager_member_id": None,
+                                "contribution_balance": 999,
+                                "contribution_lifetime_earned": 999,
+                                "contribution_lifetime_spent": 0,
+                            },
+                        ],
+                    }
+                }
+
+            async def close(self):
+                return None
+
+        with TemporaryDirectory() as directory:
+            configured = settings(Path(directory) / "gateway.sqlite3")
+            application = build_application(configured, upstreams=RosterUpstreams())
+            with TestClient(application) as client:
+                client.post(
+                    "/api/dongzhou/v1/sessions/guest",
+                    json={"installation_id": str(uuid4())},
+                )
+                response = client.get("/api/dongzhou/v1/organization/roster")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["organization"]["growthContribution"], 245)
+        self.assertEqual(response.json()["members"], [{
+            "heroId": "DuBo",
+            "office": "Marshal",
+            "role": "Commander",
+            "level": "manager",
+            "directManagerHeroId": None,
+            "contributionBalance": 54,
+            "lifetimeEarned": 80,
+            "lifetimeSpent": 26,
+        }])
+        self.assertNotIn("00000000-0000", response.text)
+        self.assertNotIn("ffffffff-ffff", response.text)
+
     async def test_campaign_route_uses_formal_map_transition_contract(self) -> None:
         seen: list[httpx.Request] = []
 
@@ -280,6 +354,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
             upstreams = Upstreams(settings(Path(directory) / "db"), client)
             await upstreams.trigger_virtual_task("org-id", {"source_event_id": "stable"})
             await upstreams.get_virtual_task("org-id", "task-id")
+            await upstreams.organization_roster("org-id")
             await upstreams.register_npcs([{"npcId": "42", "name": "杜伯"}])
             await upstreams.set_npcs_online(
                 [{"npcId": "42", "name": "Test NPC"}],
@@ -314,6 +389,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         paths = [request.url.path for request in seen]
         self.assertIn("/internal/v1/organization-administration/organizations/org-id/virtual-task-triggers", paths)
         self.assertIn("/internal/v1/organization-administration/organizations/org-id/virtual-tasks/task-id", paths)
+        self.assertIn("/internal/v1/organization-administration/organizations/org-id/roster", paths)
         self.assertIn("/ai/npc/register/batch", paths)
         self.assertIn("/callback/npc-lifecycle/online_state", paths)
         self.assertIn("/api/v1/npc-lifecycle/relogin", paths)

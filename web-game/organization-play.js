@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 10;
+  const SCHEMA_VERSION = 11;
   const TASK_TYPES = {
     supply: { name: "转运军粮", office: "司徒", duration: 1, cost: 8, base: 72, reward: { provisions: 24 } },
     drill: { name: "整训军阵", office: "司马", duration: 1, cost: 6, base: 68, reward: { attack: 0.08 } },
@@ -36,6 +36,7 @@
       contribution: 0,
       backend: { mode: "local", nexusKernel: false, orgFlow: false, aiNpc: false, knowledge: false, checkedAt: null },
       members: [],
+      remoteRoster: { organization: null, members: [], observedAt: null },
       tasks: [],
       knowledge: [],
       selectedSources: {},
@@ -86,6 +87,11 @@
       contribution: Math.trunc(clamp(source.contribution ?? 0, -999999, 999999)),
       backend: { ...base.backend, ...(source.backend || {}) },
       members: Array.isArray(source.members) ? source.members.slice(0, 12).map(normalizeMember) : [],
+      remoteRoster: {
+        organization: source.remoteRoster?.organization && typeof source.remoteRoster.organization === "object" ? copy(source.remoteRoster.organization) : null,
+        members: Array.isArray(source.remoteRoster?.members) ? source.remoteRoster.members.filter((entry) => entry && typeof entry === "object").slice(0, 12).map(copy) : [],
+        observedAt: typeof source.remoteRoster?.observedAt === "string" ? source.remoteRoster.observedAt : null
+      },
       tasks: retainedTasks.map((task) => ({ ...task, status: ['active', 'success', 'partial', 'failed', 'censured'].includes(task.status) ? task.status : 'failed' })),
       knowledge: Array.isArray(source.knowledge) ? source.knowledge.slice(-30).map((entry) => ({ ...entry })) : [],
       selectedSources: source.selectedSources && typeof source.selectedSources === "object" ? copy(source.selectedSources) : {},
@@ -606,5 +612,42 @@
     return state;
   }
 
-  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, hash };
+  function recordRemoteRoster(rawState, snapshot) {
+    const state = normalizeState(rawState);
+    const organization = snapshot?.organization;
+    const members = snapshot?.members;
+    if (!organization || typeof organization !== "object" || !Array.isArray(members)) throw new Error("官署实账名册无效");
+    const growth = organization.growthContribution;
+    if (!Number.isSafeInteger(growth)) throw new Error("官署实账贡献无效");
+    const normalized = members.slice(0, 12).map((entry) => {
+      if (!entry || !/^[A-Za-z0-9_.:-]+$/.test(String(entry.heroId || ""))) throw new Error("官署实账属官无效");
+      for (const key of ["contributionBalance", "lifetimeEarned", "lifetimeSpent"]) {
+        if (!Number.isSafeInteger(entry[key])) throw new Error("官署实账功绩无效");
+      }
+      return {
+        heroId: String(entry.heroId), office: String(entry.office || ""), role: String(entry.role || ""), level: String(entry.level || ""),
+        directManagerHeroId: entry.directManagerHeroId ? String(entry.directManagerHeroId) : null,
+        contributionBalance: entry.contributionBalance, lifetimeEarned: entry.lifetimeEarned, lifetimeSpent: entry.lifetimeSpent
+      };
+    });
+    const byHero = new Map(normalized.map((entry) => [entry.heroId, entry]));
+    state.members = state.members.map((member) => {
+      const account = byHero.get(member.id);
+      return account ? { ...member, office: account.office || account.role || member.office, merit: account.lifetimeEarned } : member;
+    });
+    state.contribution = growth;
+    if (String(organization.name || "").trim()) state.name = String(organization.name).trim();
+    state.remoteRoster = {
+      organization: {
+        name: String(organization.name || ""), state: String(organization.state || ""),
+        hierarchyVersion: Number.isSafeInteger(organization.hierarchyVersion) ? organization.hierarchyVersion : 0,
+        growthContribution: growth
+      },
+      members: normalized,
+      observedAt: new Date().toISOString()
+    };
+    return state;
+  }
+
+  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, recordRemoteRoster, hash };
 });

@@ -960,7 +960,8 @@
     renderOfficeCouncil();
     const currentType = $("#officeTaskType").value;
     $("#officeTaskType").innerHTML = Object.entries(organization.TASK_TYPES).map(([id, task]) => `<option value="${id}" ${id === currentType ? "selected" : ""}>${task.name} · ${task.duration}月</option>`).join("");
-    $("#officeMembers").innerHTML = org.members.map((member) => `<div><strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(member.office)}</span><small>功绩 ${member.merit >= 0 ? "+" : ""}${member.merit} · 信任 ${member.loyalty} · 关系 ${Number(org.relations[member.id] || 0) >= 0 ? "+" : ""}${Number(org.relations[member.id] || 0)} · 劳顿 ${member.fatigue}</small></div>`).join("") || "<p>随战役推进，出阵人物会进入官署名册。</p>";
+    const rosterIds = new Set((org.remoteRoster?.members || []).map((entry) => entry.heroId));
+    $("#officeMembers").innerHTML = org.members.map((member) => `<div><strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(member.office)}</span><small>功绩 ${member.merit >= 0 ? "+" : ""}${member.merit}${rosterIds.has(member.id) ? " · 官署实账" : ""} · 信任 ${member.loyalty} · 关系 ${Number(org.relations[member.id] || 0) >= 0 ? "+" : ""}${Number(org.relations[member.id] || 0)} · 劳顿 ${member.fatigue}</small></div>`).join("") || "<p>随战役推进，出阵人物会进入官署名册。</p>";
     $("#officeTaskLedger").innerHTML = [...org.tasks].reverse().slice(0, 10).map((task) => {
       const outcomeState = task.npcOutcome?.state;
       const outcomeLabel = outcomeState === "DELIVERED" ? " · 经历已形成" : outcomeState === "PENDING" ? (task.npcOutcome?.lastError ? " · 经历待重试" : " · 经历回写中") : "";
@@ -993,6 +994,10 @@
       profile.organization = organization.updateBackend(profile.organization, {
         nexusKernel: Boolean(services.nexusKernel?.online), orgFlow: Boolean(services.orgFlow?.online), aiNpc: Boolean(services.aiNpc?.online), knowledge: Boolean(services.knowledge?.online), remoteId: response.organizationId || profile.organization.remoteId || ""
       });
+      if (services.orgFlow?.online) {
+        const roster = await integration.organizationRoster();
+        profile.organization = organization.recordRemoteRoster(profile.organization, roster);
+      }
     } catch (_) {
       profile.organization = organization.updateBackend(profile.organization, { nexusKernel: false, orgFlow: false, aiNpc: false, knowledge: false });
     }

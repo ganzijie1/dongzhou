@@ -133,6 +133,7 @@ async function openReady(page) {
         body = { version: ++saveVersion, payload };
       }
       else if (pathName.endsWith("/integration/status")) body = { mode: "connected", organizationId: "org-e2e", services: { nexusKernel: { online: true, mode: "embedded", version: "0.2.0" }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } } };
+      else if (pathName.endsWith("/organization/roster")) body = { organization: { name: "东周军府", state: "ACTIVE", hierarchyVersion: 7, growthContribution: 245 }, members: [{ heroId: "DuBo", office: "司马", role: "军府主官", level: "manager", directManagerHeroId: null, contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 }, { heroId: "ZuoRu", office: "行人", role: "军府属官", level: "officer", directManagerHeroId: "DuBo", contributionBalance: 31, lifetimeEarned: 42, lifetimeSpent: 11 }] };
       else if (pathName.endsWith("/knowledge/search")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回·东郊索命", summary: "杜伯进谏", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }] }] };
       else if (pathName.endsWith("/knowledge/stages/01")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回·已发布本回史料", summary: "杜伯进谏", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }] }] };
       else if (pathName.endsWith("/npcs/sync")) body = { ready: false, npcs: [{ npcId: "42" }], relogin: [{ npcId: "42", receipt: { accepted: true } }] };
@@ -170,6 +171,7 @@ async function openReady(page) {
     await online.goto(onlineUrl.toString(), { waitUntil: "domcontentloaded" });
     await online.waitForSelector("#app:not([hidden])", { timeout: 45000 });
     await online.click("#campaignOfficeButton");
+    await online.waitForSelector("#officeMembers >> text=官署实账");
     const assignee = await online.locator("#officeMemberSelect option").evaluateAll((options) =>
       options.map((option) => option.value).find((value) => value && value !== "DuBo")
     );
