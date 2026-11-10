@@ -82,6 +82,9 @@
   const syncedNpcIds = new Set();
   const warmedNpcScheduleIds = new Set();
   const officeAssignmentSnapshots = new Map();
+  const campaignRoutePlans = new Map();
+  let campaignRouteSerial = 0;
+  let routeStartPending = false;
   let officeNpcSyncQueue = Promise.resolve();
   let officeNpcRefreshTimer = null;
   let officeNpcRefreshSerial = 0;
@@ -440,9 +443,57 @@
     $("#focusStageButton").textContent = !unlocked ? "尚未解锁" : isSaved ? "续写此局" : isCompleted ? "重温旧战" : "奉命出征";
     $("#focusStageButton").dataset.stageId = record.id;
     $("#focusStageButton").dataset.saved = isSaved ? "true" : "false";
+    renderCampaignRouteProof(record);
     $("#focusRestartButton").hidden = !isSaved;
     $("#focusRestartButton").dataset.stageId = isSaved ? record.id : "";
     renderWarCouncil(record);
+  }
+
+  function campaignRouteInput(record) {
+    const previous = campaign?.stages?.[Number(record.index) - 2];
+    if (!previous || Number(record.index) !== Number(previous.index) + 1) return null;
+    return {
+      from_stage_id: previous.id,
+      from_stage_index: Number(previous.index),
+      to_stage_id: record.id,
+      to_stage_index: Number(record.index)
+    };
+  }
+
+  function loadCampaignRoute(record, force = false) {
+    const input = campaignRouteInput(record);
+    if (!input) return Promise.resolve({ mode: "origin", found: true, provisionCost: 0 });
+    if (force) campaignRoutePlans.delete(record.id);
+    if (!campaignRoutePlans.has(record.id)) {
+      const pending = integration.campaignRoute(input).catch((error) => {
+        campaignRoutePlans.delete(record.id);
+        throw error;
+      });
+      campaignRoutePlans.set(record.id, pending);
+    }
+    return campaignRoutePlans.get(record.id);
+  }
+
+  function renderCampaignRouteProof(record) {
+    const proof = $("#focusRouteProof");
+    const serial = ++campaignRouteSerial;
+    if (Number(record.index) <= 1) {
+      proof.dataset.state = "origin";
+      proof.textContent = "王畿启程 · 无行军耗粮";
+      return;
+    }
+    proof.dataset.state = "loading";
+    proof.textContent = "史料路线核验中";
+    loadCampaignRoute(record).then((route) => {
+      if (serial !== campaignRouteSerial || $("#focusStageButton").dataset.stageId !== record.id) return;
+      const previous = campaign.stages[Number(record.index) - 2];
+      proof.dataset.state = "ready";
+      proof.textContent = `${previous.battleTitle} → ${record.battleTitle} · 行军 ${route.provisionCost} 军粮`;
+    }).catch(() => {
+      if (serial !== campaignRouteSerial || $("#focusStageButton").dataset.stageId !== record.id) return;
+      proof.dataset.state = "error";
+      proof.textContent = "史料路线暂不可用";
+    });
   }
 
   function stageOwnHeroes(record) {
@@ -540,10 +591,32 @@
 
   async function startStage(stageId, savedState = null, options = {}) {
     const record = findStageRecord(stageId);
-    if (!record || enemyRunning) return;
+    if (!record || enemyRunning || routeStartPending) return;
     if (!record.isProcedural && !systems.isStageUnlocked(record, profile, campaign.stages)) {
       showNotice("请先完成上一场战役");
       return;
+    }
+    const requiresRoute = !savedState && !record.isProcedural && Number(record.index) > 1 && !(profile.completed || []).includes(record.id);
+    let campaignRoute = null;
+    if (requiresRoute) {
+      const button = $("#focusStageButton");
+      routeStartPending = true;
+      if (button?.dataset.stageId === record.id) button.disabled = true;
+      try {
+        campaignRoute = await loadCampaignRoute(record);
+        const cost = Number(campaignRoute?.provisionCost);
+        if (!campaignRoute?.found || !Number.isInteger(cost) || cost < 0 || cost > 20) throw new Error("路线军粮配置无效");
+        if (profile.campaignResources.provisions < cost) {
+          showNotice(`行军需 ${cost} 军粮，请先在官署筹备`);
+          return;
+        }
+      } catch (error) {
+        showNotice(`史料路线核验失败，请稍后重试：${error.message}`);
+        return;
+      } finally {
+        routeStartPending = false;
+        if (button?.dataset.stageId === record.id) button.disabled = false;
+      }
     }
     setExerciseMenu(false);
     setCampaignSettings(false);
@@ -601,6 +674,14 @@
       profileBeforeDeployment = profile;
       profile = JSON.parse(JSON.stringify(profile));
     if (!savedState) {
+      if (campaignRoute) {
+        state.campaignRoute = campaignRoute;
+        profile.campaignResources.provisions = clamp(
+          profile.campaignResources.provisions - campaignRoute.provisionCost,
+          0,
+          200
+        );
+      }
       profile.organization = organization.syncMembers(profile.organization, record, displayName);
       const prepared = organization.consumeSupport(profile.organization, record.id);
       profile.organization = prepared.state;
@@ -622,6 +703,7 @@
       log(`难度：${{ easy: "简单", medium: "标准", hard: "艰难" }[preset.id]}；敌军等级 ${preset.enemyLevelOffset >= 0 ? "+" : ""}${preset.enemyLevelOffset}，生命 ×${preset.enemyHpMultiplier}，攻击 ×${preset.enemyPowerMultiplier}，防御 ×${preset.enemyDefenseMultiplier}。`, "event");
       const formation = systems.FORMATION_PRESETS[profile.formation];
       const vanguard = profile.stageVanguards[record.id];
+      if (state.campaignRoute) log(`史料行军：${state.campaignRoute.routeId}；军粮 -${state.campaignRoute.provisionCost}。`, "event");
       log(`军议：${formation.name}${vanguard ? `；${displayName(vanguard)}任先锋` : ""}；军粮 ${profile.campaignResources.provisions}，士气 ${profile.campaignResources.morale}${profile.campaignResources.provisions < 40 ? "；缺粮导致兵力与攻击下降" : ""}。`, "event");
       if (state.assist.active) log(`连续失利援助已启用：回合上限 +15%，临时金疮药 +1、士气 +8；首通铜钱 -10%。`, "event");
       if (state.organizationSupport?.sources?.length) {

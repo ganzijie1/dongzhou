@@ -139,6 +139,26 @@
     }).filter((item) => !terms.length || item.score).sort((a, b) => b.score - a.score || a.entry.index - b.entry.index).slice(0, limit).map((item) => item.entry);
     return { mode: "offline", query, results };
   }
+  function campaignRoute(input) {
+    if (!offline) {
+      return requestWithTransientRetry("/knowledge/routes", {
+        method: "POST",
+        body: JSON.stringify(input)
+      });
+    }
+    const fromMapId = 900000 + Number(input.from_stage_index);
+    const toMapId = 900000 + Number(input.to_stage_index);
+    return Promise.resolve({
+      mode: "offline",
+      found: true,
+      fromStageId: input.from_stage_id,
+      toStageId: input.to_stage_id,
+      fromMapId,
+      toMapId,
+      routeId: `offline_campaign_progression_${fromMapId}_${toMapId}`,
+      provisionCost: 2
+    });
+  }
   function syncNpcs(npcs) { return request("/npcs/sync", { method: "POST", body: JSON.stringify({ npcs: npcs.map((npc) => ({ hero_id: npc.heroId, name: npc.name })) }) }); }
   function npcState(heroId) { return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/state`); }
   function npcSchedule(heroId) { return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/schedule`); }
@@ -288,5 +308,5 @@
     return { mode: "offline", stageId, results: (data.entries || []).filter((entry) => entry.stageId === stageId) };
   }
 
-  return { initialize, persist, status, searchKnowledge, stageKnowledge, syncNpcs, npcState, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, campaignRoute, stageKnowledge, syncNpcs, npcState, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, isOffline: () => offline };
 });

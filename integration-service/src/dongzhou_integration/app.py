@@ -18,7 +18,7 @@ from nexus_kernel.kernel import Kernel, LoadedModule, Module, ModuleContext
 
 from .config import Settings
 from .assignments import AssignmentUnavailable, select_assignment
-from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CourtMandateRequest, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, OrganizationTaskRequest, SaveWriteRequest
+from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, OrganizationTaskRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
@@ -832,6 +832,85 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             raise ApiError("knowledge_unavailable", "Published stage knowledge is temporarily unavailable.", status_code=503) from error
         await store.add_codex(player_id, entries)
         return {"mode": "connected", "stageId": stage_id, "results": entries}
+
+    @router.post("/knowledge/routes")
+    async def campaign_route(
+        request: CampaignRouteRequest, player_id: UUID = Depends(player)
+    ) -> dict[str, Any]:
+        saved = await store.read_save(player_id)
+        payload = saved.get("payload", {})
+        completed = payload.get("completed", []) if isinstance(payload, dict) else []
+        if request.from_stage_id not in completed:
+            raise ApiError(
+                "campaign_route_locked",
+                "The preceding campaign stage is not complete.",
+                status_code=409,
+            )
+        from_map_id = 900000 + request.from_stage_index
+        to_map_id = 900000 + request.to_stage_index
+        try:
+            result = await upstreams.campaign_route(from_map_id, to_map_id)
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "knowledge_route_unavailable",
+                "Campaign route verification is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        route = None
+        for plan in result.get("plans", []):
+            if not isinstance(plan, dict):
+                continue
+            for step in plan.get("steps", []):
+                if not isinstance(step, dict):
+                    continue
+                for candidate in step.get("routes", []):
+                    if isinstance(candidate, dict) and candidate.get("method") == "campaign_progression":
+                        route = candidate
+                        break
+                if route is not None:
+                    break
+            if route is not None:
+                break
+        if route is None:
+            for candidate in result.get("routes", []):
+                if isinstance(candidate, dict) and candidate.get("method") == "campaign_progression":
+                    route = candidate
+                    break
+        if result.get("found") is not True or route is None:
+            raise ApiError(
+                "campaign_route_not_found",
+                "No published campaign route joins these stages.",
+                status_code=404,
+            )
+        detail = route.get("detail")
+        expected = {
+            "from_stage_id": request.from_stage_id,
+            "to_stage_id": request.to_stage_id,
+            "requires_completed_stage_id": request.from_stage_id,
+        }
+        if not isinstance(detail, dict) or any(detail.get(key) != value for key, value in expected.items()):
+            raise ApiError(
+                "campaign_route_invalid",
+                "The published campaign route does not match these stages.",
+                status_code=502,
+            )
+        provision_cost = detail.get("provision_cost")
+        if isinstance(provision_cost, bool) or not isinstance(provision_cost, int) or not 0 <= provision_cost <= 20:
+            raise ApiError(
+                "campaign_route_invalid",
+                "The published campaign route has an invalid provision cost.",
+                status_code=502,
+            )
+        return {
+            "mode": "connected",
+            "found": True,
+            "fromStageId": request.from_stage_id,
+            "toStageId": request.to_stage_id,
+            "fromMapId": from_map_id,
+            "toMapId": to_map_id,
+            "routeId": route.get("route_id"),
+            "provisionCost": provision_cost,
+        }
 
     @router.get("/knowledge/codex")
     async def list_codex(player_id: UUID = Depends(player)) -> dict[str, Any]:

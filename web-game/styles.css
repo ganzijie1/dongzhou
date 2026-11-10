@@ -3801,3 +3801,11 @@ button:focus-visible {
 .office-decision-result { min-height: 24px; margin-top: 10px; }
 @media (max-width: 640px) { .office-decision-form > div { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .office-diplomacy-fields { grid-template-columns: 1fr; } }
+.focus-route-proof {
+  margin: 10px 0 0;
+  color: #b9ad8b;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.focus-route-proof[data-state="ready"] { color: #d0b367; }
+.focus-route-proof[data-state="error"] { color: #c78678; }

@@ -239,6 +239,25 @@ class Upstreams:
             if isinstance(item, dict) and item.get("id") in ids
         ]
 
+    async def campaign_route(
+        self, from_map_id: int, to_map_id: int
+    ) -> dict[str, Any]:
+        response = await self._json(
+            "POST",
+            f"{self.settings.knowledge_url}/api/v1/map-transition/query",
+            token=self.settings.knowledge_token,
+            payload={
+                "from_doc_id": str(from_map_id),
+                "to_doc_id": str(to_map_id),
+                "max_depth": 1,
+                "methods": ["campaign_progression"],
+            },
+        )
+        data = response.get("data", response)
+        if not isinstance(data, dict):
+            raise UpstreamUnavailable("Knowledge campaign route response is invalid")
+        return data
+
     @staticmethod
     def _is_dongzhou_knowledge(item: Any) -> bool:
         if not isinstance(item, dict):

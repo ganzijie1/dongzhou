@@ -145,6 +145,21 @@ class KnowledgeSearchRequest(StrictModel):
     limit: int = Field(default=6, ge=1, le=20)
 
 
+class CampaignRouteRequest(StrictModel):
+    from_stage_id: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_.:-]+$")
+    from_stage_index: int = Field(ge=1, le=172)
+    to_stage_id: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_.:-]+$")
+    to_stage_index: int = Field(ge=2, le=172)
+
+    @model_validator(mode="after")
+    def validate_adjacent_stages(self) -> CampaignRouteRequest:
+        if self.to_stage_index != self.from_stage_index + 1:
+            raise ValueError("campaign route stages must be adjacent")
+        if self.to_stage_id == self.from_stage_id:
+            raise ValueError("campaign route stage IDs must differ")
+        return self
+
+
 class NpcInput(StrictModel):
     hero_id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$")
     name: str = Field(min_length=1, max_length=100)

@@ -33,6 +33,26 @@ def settings(path: Path) -> Settings:
 
 
 class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
+    async def test_campaign_route_uses_formal_map_transition_contract(self) -> None:
+        seen: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen.append(request)
+            return httpx.Response(200, json={"data": {"found": True, "plans": []}})
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            result = await Upstreams(settings(Path("unused")), client).campaign_route(900001, 900002)
+
+        self.assertTrue(result["found"])
+        self.assertEqual(seen[0].url.path, "/api/v1/map-transition/query")
+        self.assertEqual(seen[0].headers["Authorization"], "Bearer knowledge-token")
+        self.assertEqual(json.loads(seen[0].content), {
+            "from_doc_id": "900001",
+            "to_doc_id": "900002",
+            "max_depth": 1,
+            "methods": ["campaign_progression"],
+        })
+
     async def test_health_uses_formal_readiness_endpoints(self) -> None:
         paths: list[str] = []
 

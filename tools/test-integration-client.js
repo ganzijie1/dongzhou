@@ -27,6 +27,7 @@ let npcStateAttempts = 0;
 let npcScheduleAttempts = 0;
 let npcAssignmentAttempts = 0;
 let organizationReadAttempts = 0;
+let campaignRouteAttempts = 0;
 let organizationResponse = null;
 let storedProfile = {};
 let saveAttempts = 0;
@@ -57,6 +58,13 @@ global.fetch = async (url, options = {}) => {
     } else { storedProfile = body.payload; response = { version: ++saveVersion, payload: body.payload }; }
   }
   else if (url.endsWith("/save")) response = { version: saveVersion, payload: storedProfile };
+  else if (url.endsWith("/knowledge/routes")) {
+    campaignRouteAttempts += 1;
+    if (campaignRouteAttempts === 1) {
+      status = 503;
+      response = { error: { code: "knowledge_route_unavailable", message: "retry route" } };
+    } else response = { found: true, routeId: "campaign_progression_900001_900002", provisionCost: 2 };
+  }
   else if (url.endsWith("/court/mandates")) {
     mandateAttempts += 1;
     mandateIds.push(body.client_request_id);
@@ -119,6 +127,9 @@ const client = require("../web-game/integration-client.js");
   failNextSave = true;
   await assert.rejects(() => client.persist({ completed: ["01", "02"] }), /save unavailable/);
   await client.persist({ completed: ["01", "02", "03"] });
+  const route = await client.campaignRoute({ from_stage_id: "01", from_stage_index: 1, to_stage_id: "02", to_stage_index: 2 });
+  assert.strictEqual(route.provisionCost, 2);
+  assert.strictEqual(campaignRouteAttempts, 2);
   await client.npcState("DuBo");
   await client.npcSchedule("DuBo");
   const assignment = await client.npcAssignment("DuBo", "supply", "01");
@@ -187,7 +198,7 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(saveAttempts - attemptsBeforeConflict, 1, "Queued snapshots must not write after a conflict");
   await assert.rejects(() => client.persist({ completed: ["blocked"] }), /save_conflict_reload_required/);
   assert.strictEqual(saveConflictEvents, 1);
-  console.log(JSON.stringify({ result: "PASS", saveVersion, organizationAttempts, organizationReadAttempts, decisionAttempts, mandateAttempts, npcStateAttempts, npcScheduleAttempts, npcAssignmentAttempts, saveConflictEvents }));
+  console.log(JSON.stringify({ result: "PASS", saveVersion, organizationAttempts, organizationReadAttempts, campaignRouteAttempts, decisionAttempts, mandateAttempts, npcStateAttempts, npcScheduleAttempts, npcAssignmentAttempts, saveConflictEvents }));
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;
