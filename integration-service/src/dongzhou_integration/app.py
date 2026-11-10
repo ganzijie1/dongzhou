@@ -321,6 +321,16 @@ def _organization_task_chance(
         and not isinstance(readiness.get("score"), bool)
         else 65.0
     )
+    emergency = mandate.get("emergency") if isinstance(mandate, dict) else None
+    emergency_fit = (
+        8
+        if isinstance(emergency, dict)
+        and emergency.get("urgent") is True
+        and task_type in {"intelligence", "patrol"}
+        else 5
+        if isinstance(emergency, dict) and emergency.get("urgent") is True
+        else 0
+    )
     return max(
         25.0,
         min(
@@ -329,6 +339,7 @@ def _organization_task_chance(
             + office_fit
             + knowledge_fit
             + correspondence_fit
+            + emergency_fit
             + (loyalty - 60) * 0.2
             - fatigue * 0.22
             + (readiness_score - 65) * 0.5,
@@ -1070,17 +1081,17 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     async def reset_private_chat_runtime_state(
         request: AinpcPrivateChatRuntimeResetRequest,
     ) -> dict[str, Any]:
-        # Dongzhou persists messages synchronously and has no game-side send queue
-        # or waiting-reply record to cancel. The targeted reset is therefore an
-        # idempotent no-op, followed by a fresh authoritative runtime snapshot.
+        released = await store.reset_private_chat_pair_lease(
+            settings.game_server_id, request.ai_id, request.target_id
+        )
         state = await store.private_chat_runtime_state(
             settings.game_server_id, request.ai_id
         )
         return {
             "success": True,
-            "message": "runtime state already clear",
+            "message": "private chat pair lease released" if released else "runtime state already clear",
             "endedWaitingReplyCount": 0,
-            "clearedPendingMessageCount": 0,
+            "clearedPendingMessageCount": int(released),
             "clearedQueuedSendCount": 0,
             "uncancelledSendingCount": 0,
             "state": state,
@@ -1765,6 +1776,48 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=422,
             )
 
+        emergency_description = " ".join(
+            part.strip()
+            for part in (
+                request.stage_title,
+                str(evidence.get("name") or evidence.get("title") or ""),
+                str(evidence.get("summary") or evidence.get("content") or ""),
+                str(selected_option.get("text") or ""),
+                request.task_type,
+            )
+            if part.strip()
+        )[:1200]
+        clock = await store.read_game_clock()
+        emergency_timestamp = str(clock.get("virtualTime") or "")
+        try:
+            emergency = await upstreams.evaluate_emergency(
+                stable_npc_id(settings.ainpc_game_server_id, request.hero_id),
+                emergency_timestamp,
+                emergency_description,
+            )
+        except UpstreamUnavailable as error:
+            response = {
+                "state": "RETRYABLE",
+                "requestId": str(request.client_request_id),
+            }
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "RETRYABLE",
+                response,
+                str(error),
+            )
+            raise ApiError(
+                "ainpc_emergency_unavailable",
+                "AINPC could not assess this military report; the mandate can be retried.",
+                status_code=503,
+            ) from error
+        emergency = {
+            **emergency,
+            "assessedAt": emergency_timestamp,
+            "event": emergency_description,
+        }
+
         mandate_id = stable_event_id(player_id, request.client_request_id)
         evidence_trace = {
             "id": request.knowledge_id,
@@ -1789,6 +1842,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "text": str(selected_option.get("text") or ""),
             },
             "assignment": assignment,
+            "emergency": emergency,
             "kernel": {
                 "module": MandateWorkflowModule.name,
                 "moduleVersion": MandateWorkflowModule.version,
@@ -2000,6 +2054,15 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 f"{assignment.get('planId')}.{readiness_note}"
             )
             brief = brief.rstrip()[: max(0, 1000 - len(duty_note))] + duty_note
+        emergency = mandate.get("emergency") if isinstance(mandate, dict) else None
+        if isinstance(emergency, dict):
+            emergency_note = (
+                f" AINPC emergency assessment: "
+                f"{'urgent' if emergency.get('urgent') is True else 'routine'}, "
+                f"score {emergency.get('score')}, trace "
+                f"{emergency.get('interruptTraceId') or 'none'}."
+            )
+            brief = brief.rstrip()[: max(0, 1000 - len(emergency_note))] + emergency_note
         trigger = {
             "source": "ORGANIZATION_EVENT",
             "source_event_id": stable_event_id(player_id, request.client_request_id),

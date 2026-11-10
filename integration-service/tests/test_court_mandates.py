@@ -72,6 +72,16 @@ class MandateUpstreams:
             },
         }
 
+    async def evaluate_emergency(self, npc_id, timestamp, description):
+        assert npc_id > 0
+        assert timestamp
+        assert description
+        return {
+            "urgent": True,
+            "score": 81.25,
+            "interruptTraceId": "emergency_evaluate:test-trace",
+        }
+
     async def stage_knowledge(self, stage_id):
         if not self.knowledge_available:
             from dongzhou_integration.upstreams import UpstreamUnavailable
@@ -327,6 +337,14 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
                 "band": "watch",
                 "factors": {"runtime": -12.0, "duty": 8.1, "emotion": 6.0, "support": 2.0},
             }
+            assert mandate["emergency"] == {
+                "urgent": True,
+                "score": 81.25,
+                "interruptTraceId": "emergency_evaluate:test-trace",
+                "assessedAt": "0771-01-01 14:00:00",
+                "event": mandate["emergency"]["event"],
+            }
+            assert mandate["emergency"]["event"].startswith(mandate["stageTitle"])
             assert len(mandate["digest"]) == 64
 
             replay = client.post("/api/dongzhou/v1/court/mandates", json=body)
@@ -368,6 +386,7 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
             assert "mandate_id" not in upstreams.triggers[0]["parameters"]
             assert "mandate_digest" not in upstreams.triggers[0]["parameters"]
             assert "Readiness 59/100 (watch)." in upstreams.triggers[0]["brief"]
+            assert "AINPC emergency assessment: urgent, score 81.25" in upstreams.triggers[0]["brief"]
 
             mismatched = {
                 **order,
@@ -618,9 +637,11 @@ def test_diplomacy_operation_is_sealed_and_drives_orgflow_brief() -> None:
                 "Conduct the sealed fictional Dongzhou diplomacy mission for polity "
                 f"zheng. Nexus operation reference {operation_reference}. "
                 "Report only the in-game outcome. "
-                "Bound AINPC duty event-diplomacy (折冲诸侯) on 0772-10-22 from plan plan-1. "
-                "Readiness 58/100 (watch)."
-            )
+                    "Bound AINPC duty event-diplomacy (折冲诸侯) on 0772-10-22 from plan plan-1. "
+                    "Readiness 58/100 (watch). "
+                    "AINPC emergency assessment: urgent, score 81.25, "
+                    "trace emergency_evaluate:test-trace."
+                )
             assert "郑国" not in trigger["brief"]
             assert "互通军情" not in trigger["brief"]
             assert set(trigger["parameters"]) == {

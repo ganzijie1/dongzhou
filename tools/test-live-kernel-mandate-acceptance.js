@@ -123,6 +123,11 @@ saveJournal();
     assert.match(issued.mandate.assignment.planId, /^schedule-plan-/);
     assert(issued.mandate.assignment.eventId);
     assert(issued.mandate.assignment.date);
+    assert.equal(typeof issued.mandate.emergency?.urgent, "boolean");
+    assert(Number.isFinite(Number(issued.mandate.emergency?.score)) && Number(issued.mandate.emergency.score) >= 0);
+    assert(issued.mandate.emergency?.assessedAt);
+    assert(issued.mandate.emergency?.event);
+    if (issued.mandate.emergency.urgent) assert(issued.mandate.emergency.interruptTraceId);
     assert.equal(issued.task.mandate.id, issued.mandate.id);
     journal.remoteTask = issued.task.remoteResult;
     journal.mandateId = issued.mandate.id;
@@ -190,7 +195,12 @@ saveJournal();
     const result = {
       result: "PASS",
       mode: "real-services-browser-no-interception",
-      chain: ["knowledge", "npcCouncil", "nexusMandate", "organizationTask", "battleSupport"],
+      chain: ["knowledge", "npcCouncil", "emergencyAssessment", "nexusMandate", "organizationTask", "battleSupport"],
+      emergency: {
+        urgent: issued.mandate.emergency.urgent,
+        score: issued.mandate.emergency.score,
+        traced: Boolean(issued.mandate.emergency.interruptTraceId)
+      },
       mandateDigestPrefix: issued.mandate.digest.slice(0, 10),
       terminalResult: terminal.final_result,
       rewardProvisions: 24,

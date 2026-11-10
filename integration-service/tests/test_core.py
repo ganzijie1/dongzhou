@@ -149,6 +149,25 @@ class OrganizationOutcomeTests(unittest.TestCase):
             _organization_task_chance(task, "supply", member, baseline) + 4,
         )
 
+    def test_sealed_emergency_assessment_prioritizes_response(self) -> None:
+        task = {"id": "emergency-task", "dueMonth": 2, "knowledgeId": "dongzhou_stage_001"}
+        member = {"office": "none", "loyalty": 68, "fatigue": 10}
+        baseline = {"assignment": {"readiness": {"score": 65}}}
+        urgent = {**baseline, "emergency": {"urgent": True, "score": 0.8}}
+        routine = {**baseline, "emergency": {"urgent": False, "score": 0.2}}
+        self.assertEqual(
+            _organization_task_chance(task, "intelligence", member, urgent),
+            _organization_task_chance(task, "intelligence", member, baseline) + 8,
+        )
+        self.assertEqual(
+            _organization_task_chance(task, "supply", member, urgent),
+            _organization_task_chance(task, "supply", member, baseline) + 5,
+        )
+        self.assertEqual(
+            _organization_task_chance(task, "patrol", member, routine),
+            _organization_task_chance(task, "patrol", member, baseline),
+        )
+
     def test_npc_outcome_event_is_deterministic_and_normalizes_failure(self) -> None:
         outcome = {
             "task_id": "00000000-0000-4000-8000-000000000099",
@@ -740,6 +759,31 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
 
     async def asyncTearDown(self) -> None:
         self.temp.cleanup()
+
+    async def test_private_chat_reset_releases_only_requested_pair_lease(self) -> None:
+        first = {
+            "gameServerId": "91001",
+            "npcId": "101",
+            "taskId": "task-first",
+            "chatId": "101_202",
+            "topic": "first",
+            "participants": [
+                {"id": "101", "type": "NPC"},
+                {"id": "202", "type": "NPC"},
+            ],
+        }
+        second = {**first, "taskId": "task-second", "topic": "second"}
+        await self.store.register_private_chat(first)
+        with self.assertRaisesRegex(VersionConflict, "private_chat_pair_busy"):
+            await self.store.register_private_chat(second)
+
+        self.assertTrue(
+            await self.store.reset_private_chat_pair_lease("91001", "202", "101")
+        )
+        self.assertFalse(
+            await self.store.reset_private_chat_pair_lease("91001", "101", "202")
+        )
+        await self.store.register_private_chat(second)
 
     async def test_session_save_version_and_idempotency(self) -> None:
         installation_id = uuid4()

@@ -650,6 +650,20 @@ class Store:
             "observedAt": datetime.now(UTC).isoformat(),
         }
 
+    async def reset_private_chat_pair_lease(
+        self, game_server_id: str, npc_id: str, target_id: str
+    ) -> bool:
+        """Release only the requested NPC pair while preserving chat history."""
+        pair_key = ":".join(sorted((str(npc_id), str(target_id))))
+        async with self._lock:
+            with self._connection() as db:
+                result = db.execute(
+                    "DELETE FROM private_chat_pair_leases "
+                    "WHERE game_server_id=? AND pair_key=?",
+                    (game_server_id, pair_key),
+                )
+                return result.rowcount > 0
+
     @staticmethod
     def _correspondence_view(row: sqlite3.Row) -> dict[str, Any] | None:
         payload = json.loads(row["payload"])

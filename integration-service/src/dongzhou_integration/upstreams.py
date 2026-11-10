@@ -424,6 +424,52 @@ class Upstreams:
             payload={"game_server_id": str(self.settings.ainpc_game_server_id), "npc_id": str(npc_id), "force_regenerate": force_regenerate},
         )
 
+    async def evaluate_emergency(
+        self, npc_id: int, timestamp: str, description: str
+    ) -> dict[str, Any]:
+        response = await self._json(
+            "POST",
+            f"{self.settings.ainpc_url}/callback/emergency-assessment/evaluate",
+            token=self.settings.ainpc_token,
+            payload={
+                "npc_id": str(npc_id),
+                "game_server_id": str(self.settings.ainpc_game_server_id),
+                "EmergencyEvents": [
+                    {"timestamp": timestamp, "description": description}
+                ],
+            },
+        )
+        data = response.get("data")
+        results = data.get("results") if isinstance(data, dict) else None
+        scores = data.get("scores") if isinstance(data, dict) else None
+        trace_ids = data.get("interrupt_trace_ids") if isinstance(data, dict) else None
+        if (
+            response.get("code") not in (0, 200, "0", "200")
+            or not isinstance(results, list)
+            or len(results) != 1
+            or not isinstance(results[0], bool)
+            or not isinstance(scores, list)
+            or len(scores) != 1
+            or isinstance(scores[0], bool)
+            or not isinstance(scores[0], (int, float))
+            or not math.isfinite(float(scores[0]))
+            or float(scores[0]) < 0
+            or not isinstance(trace_ids, list)
+            or len(trace_ids) != 1
+            or not isinstance(trace_ids[0], str)
+            or (results[0] and not trace_ids[0])
+        ):
+            raise UpstreamUnavailable(
+                "AINPC returned an invalid emergency assessment.",
+                error_code="ainpc_emergency_assessment_invalid",
+                response_payload=response,
+            )
+        return {
+            "urgent": results[0],
+            "score": round(float(scores[0]), 6),
+            "interruptTraceId": trace_ids[0] or None,
+        }
+
     async def choose_dialogue(self, npc_id: int, payload: dict[str, Any]) -> dict[str, Any]:
         response = await self._json(
             "POST",

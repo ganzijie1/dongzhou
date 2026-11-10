@@ -168,13 +168,14 @@
     if (mandate.evidence.searchReceipt && (!/^[0-9a-f]{64}$/.test(String(mandate.evidence.searchReceipt.digest || "")) || !Array.isArray(mandate.evidence.retrieval?.channels) || !mandate.evidence.retrieval.channels.length)) throw new Error("内核军令检索回执无效");
     if (mandate.correspondence && (!/^[0-9a-f]{64}$/.test(String(mandate.correspondence.digest || "")) || mandate.correspondence.messageId !== mandate.council?.correspondence?.messageId || mandate.correspondence.digest !== mandate.council?.correspondence?.digest)) throw new Error("内核军令耳报来源无效");
     if (!mandate.assignment?.planId || !mandate.assignment?.eventId || mandate.assignment?.heroId !== mandate.heroId) throw new Error("内核军令未绑定属官当值日程");
+    if (mandate.emergency && (typeof mandate.emergency.urgent !== "boolean" || !Number.isFinite(Number(mandate.emergency.score)) || Number(mandate.emergency.score) < 0 || !mandate.emergency.assessedAt || !mandate.emergency.event || (mandate.emergency.urgent && !mandate.emergency.interruptTraceId))) throw new Error("内核军令紧急评估无效");
     if (mandate.state !== "ISSUED" || !/^[0-9a-f]{64}$/.test(String(mandate.digest || "")) || !["READY", "DEGRADED"].includes(mandate.kernel?.state)) throw new Error("内核军令尚未签发或印记无效");
     if (mandate.operation && (mandate.taskType !== "diplomacy" || mandate.operation.kind !== "diplomacy" || !mandate.operation.target_id || !mandate.operation.target_name || !mandate.operation.proposal)) throw new Error("外交军令缺少目标或主张");
     const previous = state.mandates.find((entry) => entry.id === mandate.id);
     if (previous && JSON.stringify(previous) !== JSON.stringify(mandate)) throw new Error("内核军令来源记录冲突");
     if (!previous) {
       state.mandates = [...state.mandates, mandate].slice(-50);
-      state.history.push({ month: state.month, tone: "order", text: `内核签发军令：${mandate.evidence.name} · ${mandate.council.text}` });
+      state.history.push({ month: state.month, tone: "order", text: `内核签发${mandate.emergency?.urgent ? "急报" : "军令"}：${mandate.evidence.name} · ${mandate.council.text}` });
     }
     return { state, mandate: copy(previous || mandate) };
   }

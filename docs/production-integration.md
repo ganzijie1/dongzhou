@@ -4,7 +4,7 @@
 
 浏览器只访问 `dongzhou-integration-service`。该服务基于 NexusKernel，持有服务端存档、玩家会话、幂等记录和上游凭据；H5 不直接访问 AINPC、orgFlowEngine 或 knowledge-jizhan。
 
-本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`；最新部署后真实服务验收 9/9 PASS，“查史料—NPC军议—NexusKernel签发军令—orgFlow派差—真实复命—战斗反馈—军令结案”已通过无拦截浏览器验收。当前网关镜像为 `dongzhou-integration:20261111-local-complete31`，AINPC 八角色为 `ainpc-app:v20261110-dongzhou-local-complete14`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete23`。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
+本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。此前真实服务完整闭环验收为 9/9 PASS；当前 `complete33` 又真实走通了“查史料—NPC 军议—AINPC 急报评估—NexusKernel 签发军令—orgFlow 建单”，最终 NPC 回调仍在已有有效任务队列中等待，不记为新闭环通过。当前网关镜像为 `dongzhou-integration:20261111-local-complete33`，AINPC 八角色为 `ainpc-app:v20261110-dongzhou-local-complete14`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete23`。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
 
 ## 发布顺序
 
@@ -27,6 +27,7 @@
 - 颁令请求在浏览器持久记录，受理回执确认写入云档后才清除。断线恢复重用原请求号，按远端任务号去重扣粮；云档冲突会阻止后续排队写入。
 - 在线颁令必须先读取本回已发布史料并取得当前属官的 AINPC 军议。网关随后调用 NexusKernel 真实运行模块状态，签发包含关卡、属官、差事、史料、军议和内核版本的规范军令；摘要使用规范 JSON 的 SHA-256，orgFlowEngine 任务参数中的军令号或摘要不匹配时直接拒绝。
 - 官署“府中耳报”只展示 AINPC 已持久化私聊中的白名单字段。玩家取用后，议政问题携带消息摘要短印；签令时网关重新读取原始消息，核验属官参与身份、完整 SHA-256 和议政印记，再由 NexusKernel 将消息证据封入军令。情报、外交任务获得 8 点成功率加成，其他任务获得 4 点；前端自造或篡改的消息、摘要和属官身份均不能通过签令。
+- 签令前，网关把关卡、已发布史料、属官裁断和差事组成一条确定的军情，调用 AINPC V2 正式全局入口 `POST /callback/emergency-assessment/evaluate`。返回的急报判定、评分、评估时刻和中断追踪号由 NexusKernel 一并封入军令摘要，并写入 orgFlowEngine 任务简报；急报为情报/巡防提供 8 点优先处置加成，其他差事提供 5 点，常报不加成。旧式 `/ai/npc/emergency/evaluate` 在 V2 网关不开放，不能作为联调地址。
 - 当前 AINPC 没有正式的玩家入站私聊回复契约，因此耳报玩法只提供调阅、取证、议政和签令，不宣称玩家可直接回复 NPC。后续若上游提供正式入站接口，必须沿用游戏服持久化与幂等回执，不能在 H5 内伪造对话。
 - 军令状态随任务从 `ISSUED` 进入 `ORDERED`。orgFlowEngine 终态先由网关校验并封存贡献、功绩和结案摘要，NexusKernel 再生成可恢复的复命裁决；玩家收纳后进入 `FULFILLED`、`PARTIAL` 或 `FAILED`，申斥后进入 `CENSURED`，战斗报告落档后进入 `RESOLVED`。军令、军议、史料和复命裁决随战备跨页面及云存档恢复，不以浏览器提示文字代替持久记录。
 - 官署任务的事实结果、组织贡献和成员功绩以 orgFlowEngine 正式虚拟任务终态为准，玩家申斥不能改写；申斥只取消本次战前助益或外交成功，并降低属官信任与关系。联网模式不会再用浏览器随机数结算，也不会在玩家裁决前发放奖励。
@@ -52,6 +53,7 @@
 - knowledge AKU schema 必须 `172/172` 通过，且工作台发布后用代表性人物、战役、军令各做召回验收。
 - orgFlowEngine 必须覆盖重复 `source_event_id`、服务重试、部分完成、失败和终态回读。
 - AINPC 必须覆盖 NPC 注册、情绪/关系读取、日程生成与读取、对话裁断的同一复合身份。
+- AINPC 紧急评估必须经 `POST /callback/emergency-assessment/evaluate` 实测，校验 `results`、`scores`、`interrupt_trace_ids` 三个数组一一对齐，且急报必须带非空追踪号；仅探测健康接口不算通过。
 - AINPC 日程验收必须确认事务 ID 全部位于 `9100101..9100112`，且抽查结果不含“机体、银河币、天关、飞船”等其他游戏词汇。首次强制重拟可能由 Actor 异步完成；随后用非强制生成接口读取已提交计划，并用 current 接口确认完整 90 天日程。
 - AINPC 私聊必须覆盖 `NDLLMChatWithPlayer`、`NDLLMSendPrivateMessage`、`QueryPrivateChatRuntimeState` 和 `ResetPrivateChatRuntimeState`。游戏服持久化消息并回调后才算送达；仅收到聊天请求不算成功。
 - 耳报验收还必须覆盖登录态 `GET /api/dongzhou/v1/npcs/{hero_id}/correspondence`、消息参与者过滤、摘要重算、议政短印校验以及军令内 `correspondence` 证据一致性；只验证页面展示不算通过。

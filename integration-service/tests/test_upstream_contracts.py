@@ -345,6 +345,15 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                 return httpx.Response(200, json={"record": {"state": "COMPLETED"}})
             if request.url.path == "/callback/game-reports/emergency":
                 return httpx.Response(200, json={"code": 200, "data": {"accepted": True}})
+            if request.url.path == "/callback/emergency-assessment/evaluate":
+                return httpx.Response(200, json={
+                    "code": 200,
+                    "data": {
+                        "results": [True],
+                        "scores": [0.875],
+                        "interrupt_trace_ids": ["emergency_evaluate:test"],
+                    },
+                })
             if request.url.path == "/callback/npc-dialogue/choice":
                 return httpx.Response(200, json={"code": 200, "data": {"index": 0, "type": "OPTION"}})
             return httpx.Response(200, json={"data": {"ok": True}})
@@ -365,6 +374,9 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
             await upstreams.npc_state(42)
             await upstreams.npc_schedule(42)
             await upstreams.generate_npc_schedule(42, False)
+            await upstreams.evaluate_emergency(
+                42, "0771-01-01 14:00:00", "Enemy riders reached the pass."
+            )
             await upstreams.choose_dialogue(42, {"dialogues": [{"options": [{"index": 0, "type": "OPTION"}]}], "metadata": {}})
             await upstreams.send_game_event(
                 "ORG_REPORT_START",
@@ -398,6 +410,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("/api/v1/relationship/all/91001/42", paths)
         self.assertIn("/api/v1/schedule-planning/current", paths)
         self.assertIn("/api/v1/schedule-planning/long-term/generate", paths)
+        self.assertIn("/callback/emergency-assessment/evaluate", paths)
         self.assertIn("/callback/npc-dialogue/choice", paths)
         self.assertIn("/internal/v1/organization-tasks/dialogues/report", paths)
         self.assertIn("/callback/game-reports/emergency", paths)
