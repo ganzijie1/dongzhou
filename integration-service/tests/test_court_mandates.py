@@ -17,6 +17,7 @@ class MandateUpstreams:
         self.triggers: list[dict[str, object]] = []
         self.knowledge_available = True
         self.assignment_available = True
+        self.task_snapshot: dict[str, object] | None = None
 
     async def health(self):
         return {
@@ -99,6 +100,21 @@ class MandateUpstreams:
     async def trigger_virtual_task(self, organization_id, payload):
         self.triggers.append(payload)
         return {"data": {"task_id": "00000000-0000-0000-0000-000000000099"}}
+
+    async def get_virtual_task(self, organization_id, task_id):
+        if self.task_snapshot is not None:
+            return {"data": self.task_snapshot}
+        return {
+            "data": {
+                "task_id": task_id,
+                "organization_id": organization_id,
+                "state": "IN_PROGRESS",
+                "final_result": None,
+                "contribution_eligible": True,
+                "responsible_member_id": "00000000-0000-0000-0000-000000000004",
+                "version": "2",
+            }
+        }
 
 
 def configured(path: Path) -> Settings:
@@ -247,6 +263,95 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
             )
             assert rejected.status_code == 422
             assert rejected.json()["error"]["code"] == "court_mandate_mismatch"
+
+
+def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> None:
+    with TemporaryDirectory() as directory:
+        upstreams = MandateUpstreams()
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=upstreams
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            council_id, _ = complete_council(client)
+            issued = client.post(
+                "/api/dongzhou/v1/court/mandates",
+                json=mandate_body(council_id),
+            ).json()["mandate"]
+            order = {
+                "client_request_id": str(uuid4()),
+                "task_type": "drill",
+                "assignee_hero_id": "ZuoRu",
+                "stage_id": "01",
+                "stage_title": "Dongzhou stage 01",
+                "brief": "Execute the sealed court mandate.",
+                "parameters": {
+                    "resource_units": 6,
+                    "assignee_name": "左儒",
+                    "mandate_id": issued["id"],
+                    "mandate_digest": issued["digest"],
+                },
+            }
+            task_id = client.post(
+                "/api/dongzhou/v1/organization/tasks", json=order
+            ).json()["taskId"]
+            settlement_id = str(uuid4())
+            upstreams.task_snapshot = {
+                "task_id": task_id,
+                "organization_id": "00000000-0000-0000-0000-000000000001",
+                "state": "SUCCEEDED",
+                "final_result": "SUCCESS",
+                "contribution_eligible": True,
+                "responsible_member_id": "00000000-0000-0000-0000-000000000004",
+                "version": "3",
+                "settlement": {
+                    "settlement_id": settlement_id,
+                    "task_id": task_id,
+                    "organization_id": "00000000-0000-0000-0000-000000000001",
+                    "member_id": "00000000-0000-0000-0000-000000000004",
+                    "result": "SUCCESS",
+                    "organization_delta": "100",
+                    "member_delta": "75",
+                    "source": "NPC_CONFIRMATION",
+                    "source_event_id": "dongzhou-result-1",
+                    "settled_game_time": "24306616800",
+                    "settled_clock_epoch": "dongzhou-v1",
+                    "settled_at": "2026-11-11T00:00:00Z",
+                },
+            }
+            first = client.get(f"/api/dongzhou/v1/organization/tasks/{task_id}")
+            assert first.status_code == 200
+            body = first.json()
+            assert body["settlement"] == {
+                "settlementId": settlement_id,
+                "taskId": task_id,
+                "organizationId": "00000000-0000-0000-0000-000000000001",
+                "memberId": "00000000-0000-0000-0000-000000000004",
+                "result": "SUCCESS",
+                "organizationDelta": 100,
+                "memberDelta": 75,
+                "source": "NPC_CONFIRMATION",
+                "sourceEventId": "dongzhou-result-1",
+                "settledGameTime": "24306616800",
+                "settledClockEpoch": "dongzhou-v1",
+                "settledAt": "2026-11-11T00:00:00Z",
+            }
+            closure = body["closureReceipt"]
+            assert closure["state"] == "SEALED"
+            assert closure["mandateId"] == issued["id"]
+            assert closure["mandateDigest"] == issued["digest"]
+            assert closure["settlement"]["settlementId"] == settlement_id
+            assert len(closure["digest"]) == 64
+            assert client.get(
+                f"/api/dongzhou/v1/organization/tasks/{task_id}"
+            ).json()["closureReceipt"] == closure
+
+            upstreams.task_snapshot["settlement"]["member_id"] = str(uuid4())
+            invalid = client.get(
+                f"/api/dongzhou/v1/organization/tasks/{task_id}"
+            )
+            assert invalid.status_code == 502
+            assert invalid.json()["error"]["code"] == "organization_settlement_invalid"
 
 
 def test_diplomacy_operation_is_sealed_and_drives_orgflow_brief() -> None:

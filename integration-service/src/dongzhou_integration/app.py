@@ -255,6 +255,134 @@ def _organization_final_result(value: Any) -> str | None:
     return None
 
 
+_SETTLING_RESULTS = {"SUCCESS", "PARTIAL", "FAILURE", "REJECTED"}
+_SETTLEMENT_SOURCES = {
+    "PLAYER_CONFIRMATION",
+    "NPC_CONFIRMATION",
+    "AI_TIMEOUT",
+    "RULE_FALLBACK",
+    "SYSTEM_RULE",
+}
+
+
+def _bounded_settlement_delta(value: Any, field: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        raise ValueError(f"{field}_invalid")
+    text = str(value)
+    if not text or text == "-0" or (
+        text[0] == "-" and (len(text) == 1 or not text[1:].isdigit())
+    ) or (text[0] != "-" and not text.isdigit()):
+        raise ValueError(f"{field}_invalid")
+    if (text.startswith("0") and len(text) > 1) or text.startswith("-0"):
+        raise ValueError(f"{field}_invalid")
+    parsed = int(text)
+    if abs(parsed) > 1_000_000:
+        raise ValueError(f"{field}_invalid")
+    return parsed
+
+
+def _authoritative_settlement(
+    snapshot: dict[str, Any],
+    *,
+    task_id: str,
+    organization_id: str,
+    member_id: str,
+) -> dict[str, Any] | None:
+    final_result = snapshot.get("final_result")
+    if final_result not in _SETTLING_RESULTS:
+        return None
+    settlement = snapshot.get("settlement")
+    if not isinstance(settlement, dict):
+        if snapshot.get("contribution_eligible") is False:
+            return None
+        raise ValueError("settlement_missing")
+    settlement_id = str(settlement.get("settlement_id") or "")
+    try:
+        UUID(settlement_id)
+    except ValueError as error:
+        raise ValueError("settlement_id_invalid") from error
+    if (
+        str(snapshot.get("task_id") or "") != task_id
+        or str(snapshot.get("organization_id") or "") != organization_id
+        or snapshot.get("contribution_eligible") is not True
+        or str(snapshot.get("responsible_member_id") or member_id) != member_id
+        or str(settlement.get("task_id") or "") != task_id
+        or str(settlement.get("organization_id") or "") != organization_id
+        or str(settlement.get("member_id") or "") != member_id
+        or settlement.get("result") != final_result
+        or settlement.get("source") not in _SETTLEMENT_SOURCES
+    ):
+        raise ValueError("settlement_ownership_invalid")
+    organization_delta = _bounded_settlement_delta(
+        settlement.get("organization_delta"), "organization_delta"
+    )
+    member_delta = _bounded_settlement_delta(
+        settlement.get("member_delta"), "member_delta"
+    )
+    if final_result in {"SUCCESS", "PARTIAL"} and (
+        organization_delta < 0 or member_delta < 0
+    ):
+        raise ValueError("settlement_delta_invalid")
+    if final_result == "FAILURE" and (
+        organization_delta > 0 or member_delta != 0
+    ):
+        raise ValueError("settlement_delta_invalid")
+    if final_result == "REJECTED" and (
+        organization_delta != 0 or member_delta > 0
+    ):
+        raise ValueError("settlement_delta_invalid")
+    source_event_id = str(settlement.get("source_event_id") or "")
+    settled_at = str(settlement.get("settled_at") or "")
+    if not source_event_id or len(source_event_id) > 256 or not settled_at:
+        raise ValueError("settlement_evidence_invalid")
+    return {
+        "settlementId": settlement_id,
+        "taskId": task_id,
+        "organizationId": organization_id,
+        "memberId": member_id,
+        "result": final_result,
+        "organizationDelta": organization_delta,
+        "memberDelta": member_delta,
+        "source": settlement["source"],
+        "sourceEventId": source_event_id,
+        "settledGameTime": settlement.get("settled_game_time"),
+        "settledClockEpoch": settlement.get("settled_clock_epoch"),
+        "settledAt": settled_at,
+    }
+
+
+def _closure_receipt(
+    *,
+    task_id: str,
+    original: dict[str, Any],
+    settlement: dict[str, Any],
+) -> dict[str, Any]:
+    parameters = original.get("parameters")
+    parameters = parameters if isinstance(parameters, dict) else {}
+    trace = {
+        "taskId": task_id,
+        "mandateId": parameters.get("mandate_id"),
+        "mandateDigest": parameters.get("mandate_digest"),
+        "settlement": settlement,
+        "kernel": {
+            "module": RuntimeModule.name,
+            "moduleVersion": RuntimeModule.version,
+            "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+        },
+    }
+    digest = hashlib.sha256(
+        json.dumps(
+            trace, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+        ).encode("utf-8")
+    ).hexdigest()
+    return {
+        "receiptId": "dongzhou:closure:" + settlement["settlementId"],
+        **trace,
+        "digest": digest,
+        "state": "SEALED",
+    }
+
+
 def _npc_outcome_event(outcome: dict[str, Any], final_result: str) -> dict[str, Any]:
     normalized = str(final_result or "FAILURE").upper()
     if normalized in {"SUCCESS", "SUCCEEDED"}:
@@ -1420,14 +1548,53 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
 
     @router.get("/organization/tasks/{task_id}")
     async def read_organization_task(task_id: UUID, player_id: UUID = Depends(player)) -> dict[str, Any]:
-        if not await store.owns_external_request(player_id, str(task_id), "organization_task"):
+        task_key = str(task_id)
+        original = await store.read_external_request(
+            player_id, task_key, "organization_task"
+        )
+        if original is None:
             raise ApiError("organization_task_not_found", "Task does not belong to this player.", status_code=404)
         try:
-            result = await upstreams.get_virtual_task(settings.orgflow_org_id, str(task_id))
+            result = await upstreams.get_virtual_task(settings.orgflow_org_id, task_key)
         except UpstreamUnavailable as error:
             raise ApiError("organization_unavailable", "Organization task state is temporarily unavailable.", status_code=503) from error
-        outcome = await store.game_event_status("npc-outcome:" + str(task_id))
-        return {"taskId": str(task_id), "result": result, "npcOutcome": outcome}
+        snapshot = result.get("data", result) if isinstance(result, dict) else None
+        if not isinstance(snapshot, dict):
+            raise ApiError(
+                "organization_contract_invalid",
+                "Organization service returned an invalid task snapshot.",
+                status_code=502,
+            )
+        assignee = str(original.get("assignee_hero_id") or "")
+        member_id = settings.orgflow_hero_members.get(assignee, "")
+        try:
+            settlement = _authoritative_settlement(
+                snapshot,
+                task_id=task_key,
+                organization_id=settings.orgflow_org_id,
+                member_id=member_id,
+            )
+        except ValueError as error:
+            raise ApiError(
+                "organization_settlement_invalid",
+                "Organization settlement does not match the original order.",
+                status_code=502,
+            ) from error
+        closure = (
+            _closure_receipt(
+                task_id=task_key, original=original, settlement=settlement
+            )
+            if settlement is not None
+            else None
+        )
+        outcome = await store.game_event_status("npc-outcome:" + task_key)
+        return {
+            "taskId": task_key,
+            "result": result,
+            "settlement": settlement,
+            "closureReceipt": closure,
+            "npcOutcome": outcome,
+        }
 
     application_settings = ApplicationSettings.model_validate({
         "service": {"name": "Dongzhou Integration Service", "version": "1.0.0"},

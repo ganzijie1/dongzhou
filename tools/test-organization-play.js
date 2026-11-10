@@ -57,14 +57,34 @@ assert.strictEqual(observed.tasks.at(-1).remoteState, "MEMBER_RESPONSE_PENDING")
 const waiting = play.advanceMonth(remote.state, { resolveLocalTasks: false });
 assert.strictEqual(waiting.tasks.at(-1).status, "active");
 assert.strictEqual(waiting.pendingSupport.some((entry) => entry.id === remote.task.id), false);
+const contributionBefore = remote.state.contribution;
+const meritBefore = remote.state.members.find((member) => member.id === "ZuoRu").merit;
+const authoritativeSettlement = {
+  settlementId: "00000000-0000-0000-0000-000000000020",
+  taskId: remote.task.remoteResult,
+  organizationId: "00000000-0000-0000-0000-000000000001",
+  memberId: "00000000-0000-0000-0000-000000000004",
+  result: "SUCCESS",
+  organizationDelta: 100,
+  memberDelta: 75,
+  source: "NPC_CONFIRMATION"
+};
+const closureReceipt = { state: "SEALED", digest: "c".repeat(64), settlement: authoritativeSettlement };
 state = play.reconcileRemoteTasks(remote.state, [{
   task_id: remote.task.remoteResult, state: "SUCCEEDED", final_result: "SUCCESS", version: "3",
+  settlement: authoritativeSettlement,
+  closureReceipt,
   npcOutcome: { state: "DELIVERED", attempts: 1 }
 }]);
 assert.strictEqual(state.tasks.at(-1).status, "success");
 assert.strictEqual(state.tasks.at(-1).remoteVersion, "3");
 assert.strictEqual(state.tasks.at(-1).npcOutcome.state, "DELIVERED");
 assert.ok(state.pendingSupport.some((entry) => entry.id === remote.task.id));
+assert.strictEqual(state.contribution, contributionBefore + 100);
+assert.strictEqual(state.members.find((member) => member.id === "ZuoRu").merit, meritBefore + 75);
+assert.strictEqual(state.settlements.at(-1).settlementId, authoritativeSettlement.settlementId);
+assert.deepStrictEqual(state.settlementIds, [authoritativeSettlement.settlementId]);
+assert.strictEqual(state.tasks.at(-1).closureReceipt.digest, "c".repeat(64));
 
 // 一位官员长时间等待外部复命时，其他官员反复办差不能把该任务挤出台账。
 let campaign = play.syncMembers(null, stage, (id) => id);

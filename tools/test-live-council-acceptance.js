@@ -28,6 +28,8 @@ const saveJournal=()=>fs.writeFileSync(privatePath,JSON.stringify(journal,null,2
   await page.selectOption('#officeMemberSelect','ZuoRu');
   journal.stage='knowledge';saveJournal();
   await page.click('#officeStageKnowledgeButton'); await page.waitForSelector('#officeKnowledgeResults article',{timeout:90000});
+  await page.click('#officeKnowledgeResults [data-source-index="0"]');
+  await page.waitForSelector('#officeKnowledgeResults >> text=已取为据');
   journal.stage='decision';saveJournal();
   const decisionResponse=page.waitForResponse(r=>new URL(r.url()).pathname.endsWith('/decisions')&&r.request().method()==='POST',{timeout:180000});
   await page.locator('#officeDecisionForm button[type=submit]').click();
@@ -51,12 +53,20 @@ const saveJournal=()=>fs.writeFileSync(privatePath,JSON.stringify(journal,null,2
   const before=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).campaignResources.provisions,PROFILE);
   await page.reload({waitUntil:'domcontentloaded'});await page.waitForSelector('#app:not([hidden])',{timeout:45000});
   const loaded=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),PROFILE); assert(loaded.organization.pendingSupport.some(x=>x.council?.id===council.id));
+  const settledTask=loaded.organization.tasks.find(x=>x.remoteResult===journal.remoteTask||x.settlement);
+  assert(settledTask?.settlement?.settlementId,'authoritative settlement missing');
+  assert.equal(settledTask.closureReceipt?.state,'SEALED');
+  assert.match(settledTask.closureReceipt?.digest||'',/^[0-9a-f]{64}$/);
+  assert(loaded.organization.settlementIds.includes(settledTask.settlement.settlementId));
+  assert(loaded.organization.contribution>0,'organization contribution was not booked');
+  assert(loaded.organization.members.find(x=>x.id===settledTask.assigneeId).merit>0,'member merit was not booked');
+  journal.remoteTask=settledTask.remoteResult;saveJournal();
   journal.stage='battle';saveJournal();
   await page.click('#focusStageButton'); await page.waitForFunction(key=>!!localStorage.getItem(key),BATTLE,{timeout:90000});
   const accepted=await page.evaluate(({p,b})=>({profile:JSON.parse(localStorage.getItem(p)),battle:JSON.parse(localStorage.getItem(b)),log:document.querySelector('#battleLog').innerText}),{p:PROFILE,b:BATTLE});
   assert.equal(accepted.battle.organizationSupport.provisions,24);assert.equal(accepted.battle.organizationSupport.councils[0].id,council.id);assert.equal(accepted.profile.campaignResources.provisions,before+24);assert(accepted.log.includes(council.knowledgeName));
   assert.equal(errors.length,0);assert(requests.knowledge&&requests.decision===1&&requests.orders===1&&requests.taskReads&&requests.saves>=4);
-  const result={result:'PASS',mode:'real-services-browser-no-interception',knowledgeRequests:requests.knowledge,npcDecisions:requests.decision,organizationOrders:requests.orders,taskReads:requests.taskReads,cloudWrites:requests.saves,councilBound:true,terminalResult:'SUCCESS',rewardProvisions:24,cloudReloadVerified:true,battleSourceVisible:true,realTaskCreated:true};
+  const result={result:'PASS',mode:'real-services-browser-no-interception',knowledgeRequests:requests.knowledge,npcDecisions:requests.decision,organizationOrders:requests.orders,taskReads:requests.taskReads,cloudWrites:requests.saves,councilBound:true,terminalResult:'SUCCESS',settlementId:settledTask.settlement.settlementId,organizationContribution:loaded.organization.contribution,memberMerit:loaded.organization.members.find(x=>x.id===settledTask.assigneeId).merit,closureDigest:settledTask.closureReceipt.digest,rewardProvisions:24,cloudReloadVerified:true,battleSourceVisible:true,realTaskCreated:true};
   fs.writeFileSync(publicPath,JSON.stringify(result,null,2));journal.stage='complete';journal.completedAt=new Date().toISOString();saveJournal();console.log(JSON.stringify(result));
  }catch(e){journal.stage='failed';journal.errorType=e.name;saveJournal();console.error(JSON.stringify({result:'FAIL',stage:journal.stage,errorType:e.name,details:String(e.message).slice(0,180)}));process.exitCode=1;}finally{await browser.close();}
 })();

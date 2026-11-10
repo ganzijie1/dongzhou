@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 7;
+  const SCHEMA_VERSION = 8;
   const TASK_TYPES = {
     supply: { name: "转运军粮", office: "司徒", duration: 1, cost: 8, base: 72, reward: { provisions: 24 } },
     drill: { name: "整训军阵", office: "司马", duration: 1, cost: 6, base: 68, reward: { attack: 0.08 } },
@@ -33,6 +33,7 @@
       month: 1,
       taskSequence: 0,
       influence: 12,
+      contribution: 0,
       backend: { mode: "local", nexusKernel: false, orgFlow: false, aiNpc: false, knowledge: false, checkedAt: null },
       members: [],
       tasks: [],
@@ -46,6 +47,8 @@
       relationEvents: [],
       archives: [],
       pendingSupport: [],
+      settlements: [],
+      settlementIds: [],
       history: []
     };
   }
@@ -56,7 +59,8 @@
       name: String(member?.name || `属官${index + 1}`),
       office: String(member?.office || ["司马", "司徒", "司寇", "行人"][index % 4]),
       loyalty: clamp(member?.loyalty ?? 68, 20, 100),
-      fatigue: clamp(member?.fatigue ?? 0, 0, 100)
+      fatigue: clamp(member?.fatigue ?? 0, 0, 100),
+      merit: Math.trunc(clamp(member?.merit ?? 0, -999999, 999999))
     };
   }
 
@@ -78,6 +82,7 @@
       month: Math.max(1, Math.floor(Number(source.month || 1))),
       taskSequence: Math.max(inheritedSequence, Number.isSafeInteger(source.taskSequence) && source.taskSequence >= 0 ? source.taskSequence : 0),
       influence: clamp(source.influence ?? 12, 0, 999),
+      contribution: Math.trunc(clamp(source.contribution ?? 0, -999999, 999999)),
       backend: { ...base.backend, ...(source.backend || {}) },
       members: Array.isArray(source.members) ? source.members.slice(0, 12).map(normalizeMember) : [],
       tasks: retainedTasks.map((task) => ({ ...task, status: ['active', 'success', 'partial', 'failed'].includes(task.status) ? task.status : 'failed' })),
@@ -95,6 +100,11 @@
       relationEvents: Array.isArray(source.relationEvents) ? source.relationEvents.filter(Boolean).slice(-80).map(copy) : [],
       archives: Array.isArray(source.archives) ? source.archives.filter(Boolean).slice(-80).map(copy) : [],
       pendingSupport: Array.isArray(source.pendingSupport) ? source.pendingSupport.filter((entry) => entry && typeof entry === "object").map((entry) => ({ ...entry })) : [],
+      settlements: Array.isArray(source.settlements) ? source.settlements.filter((entry) => entry && typeof entry.settlementId === "string").slice(-100).map(copy) : [],
+      settlementIds: [...new Set([
+        ...(Array.isArray(source.settlementIds) ? source.settlementIds : []),
+        ...(Array.isArray(source.settlements) ? source.settlements.map((entry) => entry?.settlementId) : [])
+      ].filter((value) => typeof value === "string" && value))],
       history: Array.isArray(source.history) ? source.history.slice(-40).map((entry) => ({ ...entry })) : []
     };
   }
@@ -395,6 +405,32 @@
       task.status = finalResult === "SUCCESS" ? "success" : finalResult === "PARTIAL" ? "partial" : "failed";
       task.resolvedMonth = state.month;
       task.remoteFinalResult = finalResult;
+      const settlement = snapshot.settlement;
+      const closureReceipt = snapshot.closureReceipt;
+      if (settlement && typeof settlement === "object") {
+        const settlementId = String(settlement.settlementId || "");
+        const organizationDelta = Number(settlement.organizationDelta);
+        const memberDelta = Number(settlement.memberDelta);
+        if (!settlementId || !Number.isSafeInteger(organizationDelta) || !Number.isSafeInteger(memberDelta)) {
+          throw new Error("组织结算凭据无效");
+        }
+        if (settlement.taskId !== task.remoteResult || settlement.result !== finalResult || settlement.memberId === undefined) {
+          throw new Error("组织结算与差事不匹配");
+        }
+        if (!closureReceipt || closureReceipt.state !== "SEALED" || closureReceipt.settlement?.settlementId !== settlementId) {
+          throw new Error("内核结案印记无效");
+        }
+        if (state.settlementIds.includes(settlementId)) continue;
+        state.contribution = Math.trunc(clamp(state.contribution + organizationDelta, -999999, 999999));
+        member.merit = Math.trunc(clamp(member.merit + memberDelta, -999999, 999999));
+        const influenceDelta = organizationDelta === 0 ? 0 : Math.sign(organizationDelta) * Math.max(1, Math.ceil(Math.abs(organizationDelta) / 50));
+        state.influence = clamp(state.influence + influenceDelta, 0, 999);
+        task.settlement = copy(settlement);
+        task.closureReceipt = copy(closureReceipt);
+        state.settlements.push({ ...copy(settlement), closureReceipt: copy(closureReceipt) });
+        state.settlements = state.settlements.slice(-100);
+        state.settlementIds.push(settlementId);
+      }
       const mandate = task.mandate ? state.mandates.find((entry) => entry.id === task.mandate.id) : null;
       if (mandate) {
         mandate.state = finalResult === "SUCCESS" ? "FULFILLED" : finalResult === "PARTIAL" ? "PARTIAL" : "FAILED";
@@ -403,14 +439,14 @@
       }
       if (success) {
         const factor = finalResult === "PARTIAL" ? 0.5 : 1;
-        state.influence = clamp(state.influence + (finalResult === "PARTIAL" ? 1 : 2), 0, 999);
+        if (!settlement) state.influence = clamp(state.influence + (finalResult === "PARTIAL" ? 1 : 2), 0, 999);
         member.loyalty = clamp(member.loyalty + 1, 20, 100);
         state.relations[member.id] = clamp(Number(state.relations[member.id] || 0) + 2, -100, 100);
         const reward = Object.fromEntries(Object.entries(definition.reward).map(([key, value]) => [key, Number(value) * factor]));
         state.pendingSupport.push({ id: task.id, stageId: task.stageId, source: task.name, memberId: member.id, council: task.council ? copy(task.council) : null, mandate: mandate ? copy(mandate) : task.mandate ? copy(task.mandate) : null, ...reward });
         state.history.push({ month: state.month, tone: "good", text: `${member.name}${finalResult === "PARTIAL" ? "部分办成" : "办成"}“${task.name}”，成果将用于${task.stageTitle || "下一战"}。` });
       } else {
-        state.influence = clamp(state.influence - 1, 0, 999);
+        if (!settlement) state.influence = clamp(state.influence - 1, 0, 999);
         state.history.push({ month: state.month, tone: "bad", text: `${member.name}未能办成“${task.name}”，军府未获助益。` });
       }
       if (task.operation?.kind === "diplomacy") {
