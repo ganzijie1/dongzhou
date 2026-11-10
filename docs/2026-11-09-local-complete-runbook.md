@@ -4,7 +4,7 @@
 
 - 游戏入口：`http://127.0.0.1:8780/`
 - 东周网关镜像：`dongzhou-integration:20261111-local-complete35`
-- AINPC 八角色镜像：`ainpc-app:v20261110-dongzhou-local-complete14`
+- AINPC 八角色镜像：`ainpc-app:v20261111-dongzhou-local-complete18`
 - orgFlow API/Worker 镜像：`org-flow-engine:dongzhou-local-complete23`
 - H5 完整包：`output/2026-11-11-dongzhou-integrated-h5-complete35.zip`
 - H5 SHA256：`D0B95636DC057C1C25799612A68EC1781B2841451B329A615A7D8A069BD57C54`
@@ -52,7 +52,7 @@ AINPC 容器通过宿主回环代理访问 LoongEQ、LoongMemory、输入预检�
 - 官署可调阅所选属官参与的真实 AINPC 私聊作为“府中耳报”。取用的消息摘要会进入军议，NexusKernel 签令时重新核验原消息、参与者和摘要并封存证据；情报/外交任务据此增加 8 点成功率，其他任务增加 4 点。该入口不提供虚构的玩家回复功能。
 - 每类官署任务会从真实 AINPC 日程选取与当前关卡最近的当值事务；军令签发前会重新校验计划号和事件号，并把角色状态、事件、日期及关卡范围封入 NexusKernel 摘要。orgFlow 任务简报会持久化同一当值事件，前端可直接查看“本关当值”。
 - 无 API 拦截的真实浏览器已完成同一任务的签发、领命、成功复命、云存档重载和战斗承接；恢复过程没有创建重复任务。证据为 `live-kernel-mandate-complete12.json`、`live-kernel-mandate-complete12.png` 与 `live-kernel-mandate-complete12-mobile.png`。
-- AINPC 八角色使用 `complete14` 镜像且健康、重启次数为零；LoongEQ 与 LoongMemory 从容器内返回 `ready`，真实左儒决策返回 `COMPLETED`。
+- AINPC 八角色使用 `complete18` 镜像且健康；LoongEQ 与 LoongMemory 从容器内返回 `ready`，真实左儒决策返回 `COMPLETED`。
 - orgFlow API/Worker 使用 `complete22` 镜像，通知意图无 `PENDING` 积压；真实晚到送达回执会以原通知 ID 对账，不会重复发私聊。
 - 全文检索和已发布史料通过真实浏览器验收，没有 API 模拟。
 - 正式外交链已通过无拦截真实浏览器验收：knowledge-jizhan 史料、AINPC 军议、NexusKernel 外交军令、orgFlow 任务、云端游说结果和盟约门禁完整贯通；本次真实结果为 `FAILURE`，页面正确拒绝结盟，云存档重载后仍一致。证据为 `live-diplomacy-acceptance-20261110-formal-diplomacy-complete17.json` 与同名 PNG。

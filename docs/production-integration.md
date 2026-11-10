@@ -4,7 +4,7 @@
 
 浏览器只访问 `dongzhou-integration-service`。该服务基于 NexusKernel，持有服务端存档、玩家会话、幂等记录和上游凭据；H5 不直接访问 AINPC、orgFlowEngine 或 knowledge-jizhan。
 
-本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。此前真实服务完整闭环验收为 9/9 PASS；当前 `complete35` 增加 AINPC 任务意愿闭环，只读读取已持久化动机并按差事相关性计算意愿，将原始快照、匹配信号和意愿结果封入 NexusKernel 军令及 orgFlow 任务。当前网关镜像为 `dongzhou-integration:20261111-local-complete35`，AINPC 八角色为 `ainpc-app:v20261111-dongzhou-local-complete15`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete23`。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
+本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。此前真实服务完整闭环验收为 9/9 PASS；当前 `complete35` 增加 AINPC 任务意愿闭环，只读读取已持久化动机并按差事相关性计算意愿，将原始快照、匹配信号和意愿结果封入 NexusKernel 军令及 orgFlow 任务。当前网关镜像为 `dongzhou-integration:20261111-local-complete35`，AINPC 八角色为 `ainpc-app:v20261111-dongzhou-local-complete18`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete23`。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
 
 ## 发布顺序
 
@@ -12,7 +12,7 @@
 2. 在 knowledge-jizhan 工作台登记新来源，执行 schema/内容一致性校验，发布并同步检索索引。管理模式不会自动导入。
 3. 在 orgFlowEngine 运行 `python scripts/publish_dongzhou_catalog.py --publish`，发布 `config/organizations/dongzhou_court_v2.json`，用 `dongzhou_court` 模板建立官署并导入武将；把每个稳定武将 ID 与其实际占用的岗位 UUID 写入 `DONGZHOU_ORGFLOW_HERO_SLOTS`。未映射武将会拒绝派单，不会错派给其他成员。
 4. 将 AINPC 的 `ORGANIZATION_TASK_SERVICE_BEARER_TOKEN` 以同值注入 `DONGZHOU_AINPC_TASK_TOKEN`。该令牌只用于服务端到期复命出站队列，禁止进入 H5、日志或存档。
-5. 用 AINPC 仓库的 `docker/v2/docker-compose-dongzhou.yml` 叠加环境。日程事务目录唯一 owner 是 Gateway；Business 通过 typed proxy 读取 Gateway，必须给 Gateway 配置 `AINPC_CONST_CSV_SCHEDULE_TRANSACTIONS`，指向东周专用 12 类官署事务，不替换通用 CSV。当前本机 Gateway、Global、Business 固定为 `ainpc-app:v20261110-dongzhou-local-complete14`，由 `docker/v2/docker-compose-dongzhou-local-complete.yml` 统一覆盖。保留基础配置的 entrypoint、网络、挂载、端口和托管凭据；更新现有实例前按 Docker 标签保留每个服务原 Compose 项目归属，不能把不同项目的现有容器统一当作新项目创建。目录升级不会自动迁移已提交日程，必须通过正式重拟接口并回读验收。
+5. 用 AINPC 仓库的 `docker/v2/docker-compose-dongzhou.yml` 叠加环境。日程事务目录唯一 owner 是 Gateway；Business 通过 typed proxy 读取 Gateway，必须给 Gateway 配置 `AINPC_CONST_CSV_SCHEDULE_TRANSACTIONS`，指向东周专用 12 类官署事务，不替换通用 CSV。当前本机 Gateway、Global、Business 固定为 `ainpc-app:v20261111-dongzhou-local-complete18`，由 `docker/v2/docker-compose-dongzhou-local-complete.yml` 统一覆盖。保留基础配置的 entrypoint、网络、挂载、端口和托管凭据；更新现有实例前按 Docker 标签保留每个服务原 Compose 项目归属，不能把不同项目的现有容器统一当作新项目创建。目录升级不会自动迁移已提交日程，必须通过正式重拟接口并回读验收。
 6. 启动 AINPC V2 的 gateway、global、business 实例及其 NATS/Mongo/Redis 依赖，确认目标 NPC 已注册且 Actor 可用。Windows 宿主执行 Compose 时必须把 `AINPC_DATA_ROOT` 设为实际宿主目录（当前环境为 `E:/game/.runtime/ainpc/v2`）；容器内路径沿基础配置挂载，不因宿主路径不同而直接改容器目录。
 7. 部署 integration gateway，执行 `/health/live`、`/health/ready` 和 `/api/dongzhou/v1/integration/status` 探测，再开放入口流量。
 
