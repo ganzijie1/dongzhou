@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 5;
+  const SCHEMA_VERSION = 6;
   const TASK_TYPES = {
     supply: { name: "转运军粮", office: "司徒", duration: 1, cost: 8, base: 72, reward: { provisions: 24 } },
     drill: { name: "整训军阵", office: "司马", duration: 1, cost: 6, base: 68, reward: { attack: 0.08 } },
@@ -144,6 +144,7 @@
     const mandate = input && typeof input === "object" ? copy(input) : null;
     if (!mandate?.id || !mandate.stageId || !mandate.heroId || !mandate.taskType) throw new Error("内核军令缺少关卡、属官或差事");
     if (!mandate.evidence?.id || !mandate.evidence?.source?.work || !mandate.council?.requestId || !mandate.council?.text) throw new Error("内核军令未绑定史料、选证与属官裁断");
+    if (!mandate.assignment?.planId || !mandate.assignment?.eventId || mandate.assignment?.heroId !== mandate.heroId) throw new Error("内核军令未绑定属官当值日程");
     if (!/^[0-9a-f]{64}$/.test(String(mandate.digest || "")) || !["READY", "DEGRADED"].includes(mandate.kernel?.state)) throw new Error("内核军令印记无效");
     if (mandate.operation && (mandate.taskType !== "diplomacy" || mandate.operation.kind !== "diplomacy" || !mandate.operation.target_id || !mandate.operation.target_name || !mandate.operation.proposal)) throw new Error("外交军令缺少目标或主张");
     const previous = state.mandates.find((entry) => entry.id === mandate.id);

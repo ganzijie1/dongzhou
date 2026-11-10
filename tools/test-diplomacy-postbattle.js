@@ -13,6 +13,7 @@ let remoteState = org.recordMandate(state, {
   id: "dongzhou:test:diplomacy", stageId: "01", stageTitle: "东郊索命", heroId: "envoy", taskType: "diplomacy",
   evidence: { id: "history-01", name: "本回史料", summary: "诸侯相攻", source: { index: 0, work: "《史记》", tier: "史实骨架", scope: "诸侯关系", url: "https://example.invalid/shiji" } },
   council: { requestId: "council-01", index: 0, text: "结盟" }, operation,
+  assignment: { heroId: "envoy", npcId: "43", runtimeState: "READY", planId: "plan-1", generationId: "gen-1", eventId: "event-diplomacy", transactionId: 9100106, name: "折冲诸侯", type: "外交", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "calm", intensity: 0, affectionCount: 0, relationshipCount: 0 } },
   kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "READY" },
   digest: "d".repeat(64), state: "ISSUED"
 }).state;

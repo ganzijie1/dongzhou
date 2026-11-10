@@ -142,6 +142,9 @@
   function syncNpcs(npcs) { return request("/npcs/sync", { method: "POST", body: JSON.stringify({ npcs: npcs.map((npc) => ({ hero_id: npc.heroId, name: npc.name })) }) }); }
   function npcState(heroId) { return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/state`); }
   function npcSchedule(heroId) { return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/schedule`); }
+  function npcAssignment(heroId, taskType, stageId) {
+    return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/assignments/${encodeURIComponent(taskType)}?stage_id=${encodeURIComponent(stageId)}`);
+  }
   function generateNpcSchedule(heroId) { return request(`/npcs/${encodeURIComponent(heroId)}/schedule`, { method: "POST", body: JSON.stringify({ force_regenerate: false }) }); }
   async function npcDecision(heroId, question, options) {
     const pendingKey = `dongzhou-pending-decision-v2:${JSON.stringify([heroId, question, options])}`;
@@ -153,14 +156,20 @@
   }
   function mandatePendingKey(input) {
     const operation = input.operation ? JSON.stringify(input.operation) : "";
-    const context = [input.stage_id, input.hero_id, input.knowledge_id, input.evidence_source_index, input.council_request_id, input.task_type, operation].join(":");
+    const context = [input.stage_id, input.hero_id, input.knowledge_id, input.evidence_source_index, input.council_request_id, input.task_type, input.schedule_plan_id, input.schedule_event_id, operation].join(":");
     return MANDATE_PENDING_PREFIX + context;
   }
   async function createCourtMandate(input) {
     const pendingKey = mandatePendingKey(input);
     const pending = read(pendingKey, null) || { ...input, client_request_id: input.client_request_id || root.crypto.randomUUID() };
     write(pendingKey, pending);
-    const result = await request("/court/mandates", { method: "POST", body: JSON.stringify(pending) });
+    let result;
+    try {
+      result = await request("/court/mandates", { method: "POST", body: JSON.stringify(pending) });
+    } catch (error) {
+      if ([400, 422].includes(error.status)) root.localStorage.removeItem(pendingKey);
+      throw error;
+    }
     if (result.state !== "ISSUED" || !result.mandate?.id || !result.mandate?.digest) {
       if (result.state === "REJECTED") root.localStorage.removeItem(pendingKey);
       throw new Error("内核尚未签发有效军令");
@@ -279,5 +288,5 @@
     return { mode: "offline", stageId, results: (data.entries || []).filter((entry) => entry.stageId === stageId) };
   }
 
-  return { initialize, persist, status, searchKnowledge, stageKnowledge, syncNpcs, npcState, npcSchedule, generateNpcSchedule, npcDecision, createCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, stageKnowledge, syncNpcs, npcState, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, isOffline: () => offline };
 });

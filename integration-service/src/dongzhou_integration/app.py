@@ -17,6 +17,7 @@ from nexus_kernel.gateway import ApiError, create_app
 from nexus_kernel.kernel import Kernel, LoadedModule, Module, ModuleContext
 
 from .config import Settings
+from .assignments import AssignmentUnavailable, select_assignment
 from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CourtMandateRequest, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, OrganizationTaskRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
@@ -710,6 +711,55 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             raise ApiError("ainpc_schedule_unavailable", "NPC schedule generation is temporarily unavailable.", status_code=503) from error
         return {"playerId": str(player_id), "heroId": hero_id, "npcId": str(npc_id), "schedule": result}
 
+    async def resolve_npc_assignment(
+        hero_id: str, task_type: str, stage_id: str
+    ) -> dict[str, Any]:
+        npc_id = stable_npc_id(settings.ainpc_game_server_id, hero_id)
+        try:
+            npc_state, schedule = await asyncio.gather(
+                upstreams.npc_state(npc_id),
+                upstreams.npc_schedule(npc_id),
+            )
+            runtime = await store.read_npc_runtime(
+                settings.game_server_id, str(npc_id)
+            )
+            return select_assignment(
+                hero_id=hero_id,
+                npc_id=str(npc_id),
+                task_type=task_type,
+                stage_id=stage_id,
+                npc_state=npc_state,
+                schedule_response=schedule,
+                runtime=runtime,
+            )
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "ainpc_assignment_unavailable",
+                "NPC state or schedule is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        except AssignmentUnavailable as error:
+            raise ApiError(
+                "ainpc_assignment_unavailable",
+                str(error),
+                status_code=503,
+            ) from error
+
+    @router.get("/npcs/{hero_id}/assignments/{task_type}")
+    async def read_npc_assignment(
+        hero_id: str,
+        task_type: str,
+        stage_id: str,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        assignment = await resolve_npc_assignment(hero_id, task_type, stage_id)
+        return {
+            "playerId": str(player_id),
+            "stageId": stage_id,
+            "taskType": task_type,
+            "assignment": assignment,
+        }
+
     @router.post("/npcs/{hero_id}/decisions")
     async def decide_with_npc(request: NpcDecisionRequest, hero_id: str, player_id: UUID = Depends(player)) -> dict[str, Any]:
         npc_id = stable_npc_id(settings.ainpc_game_server_id, hero_id)
@@ -905,6 +955,40 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=422,
             )
 
+        try:
+            assignment = await resolve_npc_assignment(
+                request.hero_id, request.task_type, request.stage_id
+            )
+        except ApiError as error:
+            response = {
+                "state": "RETRYABLE",
+                "requestId": str(request.client_request_id),
+            }
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "RETRYABLE",
+                response,
+                str(error),
+            )
+            raise
+        if (
+            assignment["planId"] != request.schedule_plan_id
+            or assignment["eventId"] != request.schedule_event_id
+        ):
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "REJECTED",
+                {"state": "REJECTED"},
+                "court_schedule_assignment_stale",
+            )
+            raise ApiError(
+                "court_schedule_assignment_stale",
+                "The selected NPC duty is no longer current; refresh the schedule before issuing the mandate.",
+                status_code=422,
+            )
+
         mandate_id = stable_event_id(player_id, request.client_request_id)
         trace = {
             "id": mandate_id,
@@ -924,6 +1008,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "index": request.decision_index,
                 "text": str(selected_option.get("text") or ""),
             },
+            "assignment": assignment,
             "kernel": {
                 "module": RuntimeModule.name,
                 "moduleVersion": RuntimeModule.version,
@@ -1021,6 +1106,14 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 f"{operation['target_id']}. Nexus operation reference {operation_reference}. "
                 "Report only the in-game outcome."
             )
+        assignment = mandate.get("assignment") if isinstance(mandate, dict) else None
+        if isinstance(assignment, dict):
+            duty_note = (
+                f" Bound AINPC duty {assignment.get('eventId')} "
+                f"({assignment.get('name')}) on {assignment.get('date')} from plan "
+                f"{assignment.get('planId')}."
+            )
+            brief = brief.rstrip()[: max(0, 1000 - len(duty_note))] + duty_note
         trigger = {
             "source": "ORGANIZATION_EVENT",
             "source_event_id": stable_event_id(player_id, request.client_request_id),

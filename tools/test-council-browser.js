@@ -36,6 +36,7 @@ async function setup(browser) {
     else if(p.endsWith('/knowledge/stages/01')) body={mode:'connected',results:[{id:'dongzhou_stage_001',name:'Stage One Source',summary:'Published source for this stage.',stageId:'01',sourceDetails:[{work:'《史记·周本纪》',tier:'史实骨架',scope:'千亩之败',url:'https://ctext.org/shiji/zhou-ben-ji'}]}]};
     else if(p.endsWith('/npcs/sync')) body={ready:true,npcs:[]};
     else if(p.endsWith('/state')) body={emotion:{data:{}},affection:{data:{}},relationships:{data:{}}};
+    else if(p.includes('/assignments/')) {const type=p.split('/').at(-1);body={assignment:{heroId:p.split('/').at(-3),npcId:'42',runtimeState:'READY',planId:'plan-browser',generationId:'generation-browser',eventId:`event-${type}`,transactionId:9100103,name:type==='supply'?'转运军粮':'检阅军阵',type:'军务',date:'0772-10-22',day:1,stageRange:{start:1,end:20},timeSlot:'',importance:90,state:{emotion:'calm',intensity:0,affectionCount:0,relationshipCount:0}}};}
     else if(p.endsWith('/schedule')) body={schedule:{data:{schedules:[]}}};
     else if(p.endsWith('/decisions')) {
       model.decisions.push(req.postDataJSON());
@@ -44,7 +45,7 @@ async function setup(browser) {
       body={state:'COMPLETED',decision:{data:{type:'OPTION',index:0,text:req.postDataJSON().options[0].text}}};
     } else if(p.endsWith('/court/mandates')) {
       const input=req.postDataJSON();model.mandates.push(input);
-      body={state:'ISSUED',mandate:{id:`dongzhou:council-test-player:${input.client_request_id}`,stageId:input.stage_id,stageTitle:'东郊索命',heroId:input.hero_id,taskType:input.task_type,evidence:{id:input.knowledge_id,name:'Stage One Source',summary:'Published source for this stage.',source:{index:input.evidence_source_index,work:'《史记·周本纪》',tier:'史实骨架',scope:'千亩之败',url:'https://ctext.org/shiji/zhou-ben-ji'}},council:{requestId:input.council_request_id,index:input.decision_index,text:'筹措军粮'},kernel:{module:'dongzhou_runtime',moduleVersion:'1.0.0',nexusKernelVersion:'0.2.0',state:'READY'},digest:'a'.repeat(64),state:'ISSUED'}};
+      body={state:'ISSUED',mandate:{id:`dongzhou:council-test-player:${input.client_request_id}`,stageId:input.stage_id,stageTitle:'东郊索命',heroId:input.hero_id,taskType:input.task_type,evidence:{id:input.knowledge_id,name:'Stage One Source',summary:'Published source for this stage.',source:{index:input.evidence_source_index,work:'《史记·周本纪》',tier:'史实骨架',scope:'千亩之败',url:'https://ctext.org/shiji/zhou-ben-ji'}},council:{requestId:input.council_request_id,index:input.decision_index,text:'筹措军粮'},assignment:{heroId:input.hero_id,npcId:'42',runtimeState:'READY',planId:input.schedule_plan_id,generationId:'generation-browser',eventId:input.schedule_event_id,transactionId:9100103,name:'转运军粮',type:'军需',date:'0772-10-22',day:1,stageRange:{start:1,end:20},timeSlot:'',importance:90,state:{emotion:'calm',intensity:0,affectionCount:0,relationshipCount:0}},kernel:{module:'dongzhou_runtime',moduleVersion:'1.0.0',nexusKernelVersion:'0.2.0',state:'READY'},digest:'a'.repeat(64),state:'ISSUED'}};
     } else if(p.endsWith('/organization/tasks')) {model.orders.push(req.postDataJSON());body={state:'ACCEPTED',taskId:'council-task'};}
     else if(p.endsWith('/organization/tasks/council-task')) body={result:{data:{task_id:'council-task',state:'SUCCEEDED',final_result:'SUCCESS',version:3}}};
     else {model.unexpected.push(p);return route.fulfill({status:404,body:'unexpected mock request'});}
@@ -75,7 +76,7 @@ async function decide(page) {await page.locator('#officeDecisionForm button[type
     await page.selectOption('#officeTaskType','supply');
     await page.locator('#officeUseCouncil').check();
     await page.click('#officeIssueButton');await page.waitForSelector('#officeTaskLedger li.active');
-    assert.equal(model.mandates.length,1);assert.equal(model.mandates[0].knowledge_id,'dongzhou_stage_001');assert.equal(model.mandates[0].evidence_source_index,0);assert.equal(model.mandates[0].council_request_id,model.cloud.organization.councils[0].id);
+    assert.equal(model.mandates.length,1);assert.equal(model.mandates[0].knowledge_id,'dongzhou_stage_001');assert.equal(model.mandates[0].evidence_source_index,0);assert.equal(model.mandates[0].schedule_event_id,'event-supply');assert.equal(model.mandates[0].council_request_id,model.cloud.organization.councils[0].id);
     assert.equal(model.orders.length,1);assert.equal(model.orders[0].parameters.mandate_id,model.cloud.organization.mandates[0].id);assert.equal(model.orders[0].parameters.mandate_digest,'a'.repeat(64));
     await page.waitForFunction(key=>!!JSON.parse(localStorage.getItem(key)).organization.tasks[0].council,PROFILE);
     assert.equal(model.cloud.organization.tasks[0].council.knowledgeId,'dongzhou_stage_001');

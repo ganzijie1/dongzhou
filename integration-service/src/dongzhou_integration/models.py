@@ -187,6 +187,8 @@ class CourtMandateRequest(StrictModel):
     hero_id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$")
     knowledge_id: str = Field(min_length=1, max_length=200)
     evidence_source_index: int = Field(default=0, ge=0, le=20)
+    schedule_plan_id: str = Field(min_length=1, max_length=128)
+    schedule_event_id: str = Field(min_length=1, max_length=256)
     council_request_id: UUID = Field(strict=False)
     decision_index: int = Field(ge=0, le=20)
     task_type: OrganizationTaskType

@@ -7,6 +7,8 @@ try { ({ chromium } = require(path.resolve(__dirname, "../output/playwright-runt
 catch (_) { ({ chromium } = require("playwright")); }
 const executablePath = [process.env.DONGZHOU_CHROMIUM_EXECUTABLE, "C:/Program Files/Google/Chrome/Application/chrome.exe", "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"].find((item) => item && fs.existsSync(item));
 const BASE_URL = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
+const WEB = path.resolve(__dirname, "../web-game");
+const BASE_ORIGIN = new URL(BASE_URL).origin;
 
 (async () => {
   const browser = await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}) });
@@ -22,6 +24,14 @@ const BASE_URL = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
   const scheduleGenerations = [];
   const mandates = [];
   const orders = [];
+  await page.route("**/*", async (route) => {
+    const requestUrl = new URL(route.request().url());
+    if (requestUrl.origin !== BASE_ORIGIN || requestUrl.pathname.startsWith("/api/")) return route.fallback();
+    const file = path.resolve(WEB, `.${decodeURIComponent(requestUrl.pathname === "/" ? "/index.html" : requestUrl.pathname)}`);
+    if (!file.startsWith(`${WEB}${path.sep}`) || !fs.existsSync(file) || !fs.statSync(file).isFile()) return route.fulfill({ status: 404, body: "not found" });
+    const contentTypes = { ".html": "text/html", ".js": "application/javascript", ".css": "text/css", ".json": "application/json", ".webp": "image/webp", ".png": "image/png", ".svg": "image/svg+xml", ".mp3": "audio/mpeg", ".ogg": "audio/ogg", ".wav": "audio/wav" };
+    return route.fulfill({ status: 200, contentType: contentTypes[path.extname(file)] || "application/octet-stream", body: fs.readFileSync(file) });
+  });
   await page.route("**/api/dongzhou/v1/**", async (route) => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
@@ -33,6 +43,7 @@ const BASE_URL = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
     else if (pathname.includes("/knowledge/stages/")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回史料", summary: "诸侯合纵可御强敌", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败与周宣王晚年", url: "https://ctext.org/shiji/zhou-ben-ji" }, { work: "《东周列国志》第一回", tier: "文学演绎", scope: "杜伯、左儒化厉索命", url: "https://zh.wikisource.org/zh-hans/东周列国志/第001回" }] }] };
     else if (pathname.endsWith("/npcs/sync")) { npcSyncs.push(request.postDataJSON()); body = { ready: true, npcs: [] }; }
     else if (/\/npcs\/[^/]+\/state$/.test(pathname)) body = { emotion: { data: { dominant: { emotion_type: "resolute", intensity: 70 } } }, affection: { data: { total: 1 } }, relationships: { data: { total: 2 } } };
+    else if (pathname.includes("/assignments/")) { const taskType = pathname.split("/").at(-1); const heroId = decodeURIComponent(pathname.split("/").at(-3)); body = { assignment: { heroId, npcId: "42", runtimeState: "READY", planId: "plan-browser", generationId: "generation-browser", eventId: `event-${taskType}`, transactionId: taskType === "diplomacy" ? 9100106 : 9100103, name: taskType === "diplomacy" ? "折冲诸侯" : "转运军粮", type: taskType === "diplomacy" ? "外交" : "军需", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "resolute", intensity: 70, affectionCount: 1, relationshipCount: 2 } } }; }
     else if (/\/npcs\/[^/]+\/schedule$/.test(pathname) && request.method() === "POST") { scheduleGenerations.push(decodeURIComponent(pathname.split("/").at(-2))); body = { schedule: { data: { schedules: [] } } }; }
     else if (/\/npcs\/[^/]+\/schedule$/.test(pathname)) body = { schedule: { data: { schedules: [] } } };
     else if (/\/npcs\/[^/]+\/decisions$/.test(pathname)) {
@@ -43,7 +54,7 @@ const BASE_URL = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
     } else if (pathname.endsWith("/court/mandates")) {
       const input = request.postDataJSON();
       mandates.push(input);
-      body = { state: "ISSUED", mandate: { id: `dongzhou:diplomacy-browser:${input.client_request_id}`, stageId: input.stage_id, stageTitle: "东郊索命", heroId: input.hero_id, taskType: input.task_type, evidence: { id: input.knowledge_id, name: "第一回史料", summary: "诸侯合纵可御强敌", source: { index: input.evidence_source_index, work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败与周宣王晚年", url: "https://ctext.org/shiji/zhou-ben-ji" } }, council: { requestId: input.council_request_id, index: input.decision_index, text: "先固军粮，再谋外援" }, operation: input.operation, kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "READY" }, digest: "c".repeat(64), state: "ISSUED" } };
+      body = { state: "ISSUED", mandate: { id: `dongzhou:diplomacy-browser:${input.client_request_id}`, stageId: input.stage_id, stageTitle: "东郊索命", heroId: input.hero_id, taskType: input.task_type, evidence: { id: input.knowledge_id, name: "第一回史料", summary: "诸侯合纵可御强敌", source: { index: input.evidence_source_index, work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败与周宣王晚年", url: "https://ctext.org/shiji/zhou-ben-ji" } }, council: { requestId: input.council_request_id, index: input.decision_index, text: "先固军粮，再谋外援" }, assignment: { heroId: input.hero_id, npcId: "42", runtimeState: "READY", planId: input.schedule_plan_id, generationId: "generation-browser", eventId: input.schedule_event_id, transactionId: 9100106, name: "折冲诸侯", type: "外交", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "resolute", intensity: 70, affectionCount: 1, relationshipCount: 2 } }, operation: input.operation, kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "READY" }, digest: "c".repeat(64), state: "ISSUED" } };
     } else if (pathname.endsWith("/organization/tasks")) {
       orders.push(request.postDataJSON());
       body = { state: "ACCEPTED", taskId: "00000000-0000-0000-0000-000000000077" };
@@ -75,7 +86,7 @@ const BASE_URL = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
     await page.click("#officeBetrayButton");
     await page.waitForSelector("#officeAllianceLedger >> text=背盟待战");
     const state = await page.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization);
-    assert.equal(state.schemaVersion, 5);
+    assert.equal(state.schemaVersion, 6);
     assert.equal(state.selectedSources["01"].tier, "史实骨架");
     assert.equal(state.diplomacy.lobbying.length, 1);
     assert.equal(state.diplomacy.alliances[0].status, "broken");
@@ -88,6 +99,7 @@ const BASE_URL = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
     assert(scheduleGenerations.filter((id) => id === "DuBo").length >= 2 && scheduleGenerations.filter((id) => id === "ZuoRu").length >= 2, "manager and assignee schedules must be refreshed while tasks advance");
     assert.equal(mandates.length, 1);
     assert.equal(mandates[0].evidence_source_index, 0);
+    assert.equal(mandates[0].schedule_event_id, "event-diplomacy");
     assert.deepEqual(mandates[0].operation, { kind: "diplomacy", target_id: "zheng", target_name: "郑国", proposal: "互通军情，共御强敌" });
     assert.equal(orders.length, 1);
     assert.equal(orders[0].task_type, "diplomacy");

@@ -15,11 +15,12 @@ try {
 const BASE = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
 const PROFILE = "dongzhou-h5-profile-v2";
 const BATTLE = "dongzhou-h5-battle-v2";
-const privateDirectory = path.resolve(__dirname, "../.agentwork/root/kernel-mandate-complete12");
+const acceptanceLabel = process.env.DONGZHOU_ACCEPTANCE_LABEL || "kernel-mandate-complete12";
+const privateDirectory = path.resolve(__dirname, `../.agentwork/root/${acceptanceLabel}`);
 const privatePath = path.join(privateDirectory, "acceptance-private.json");
 const outputDirectory = path.resolve(__dirname, "../output/integration-validation");
-const resultPath = path.join(outputDirectory, "live-kernel-mandate-complete12.json");
-const screenshotPath = path.join(outputDirectory, "live-kernel-mandate-complete12.png");
+const resultPath = path.join(outputDirectory, `live-${acceptanceLabel}.json`);
+const screenshotPath = path.join(outputDirectory, `live-${acceptanceLabel}.png`);
 fs.mkdirSync(privateDirectory, { recursive: true });
 fs.mkdirSync(outputDirectory, { recursive: true });
 
@@ -42,7 +43,7 @@ saveJournal();
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     await context.addInitScript((installation) => localStorage.setItem("dongzhou-installation-id-v1", installation), journal.installation);
     const page = await context.newPage();
-    const requests = { knowledge: 0, decision: 0, mandate: 0, order: 0, taskRead: 0, save: 0 };
+    const requests = { knowledge: 0, decision: 0, assignment: 0, mandate: 0, order: 0, taskRead: 0, save: 0 };
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
     page.on("response", (response) => {
@@ -50,6 +51,7 @@ saveJournal();
       const method = response.request().method();
       if (url.includes("/knowledge/stages/")) requests.knowledge += 1;
       if (url.includes("/decisions")) requests.decision += 1;
+      if (url.includes("/assignments/")) requests.assignment += 1;
       if (url.endsWith("/court/mandates")) requests.mandate += 1;
       if (url.endsWith("/organization/tasks") && method === "POST") requests.order += 1;
       if (url.includes("/organization/tasks/") && method === "GET") requests.taskRead += 1;
@@ -113,6 +115,11 @@ saveJournal();
       url: council.evidenceSource.url
     });
     assert.equal(issued.mandate.council.requestId, council.id);
+    assert.equal(issued.mandate.assignment.heroId, "ZuoRu");
+    assert.equal(issued.mandate.assignment.transactionId, 9100103);
+    assert.match(issued.mandate.assignment.planId, /^schedule-plan-/);
+    assert(issued.mandate.assignment.eventId);
+    assert(issued.mandate.assignment.date);
     assert.equal(issued.task.mandate.id, issued.mandate.id);
     journal.remoteTask = issued.task.remoteResult;
     journal.mandateId = issued.mandate.id;
@@ -174,7 +181,7 @@ saveJournal();
     assert.match(battle.log, /内核军令/);
     assert.match(battle.log, new RegExp(issued.mandate.digest.slice(0, 10)));
     assert.equal(pageErrors.length, 0);
-    assert(requests.knowledge > 0 && requests.decision === 1 && requests.mandate === 1 && requests.order === 1);
+    assert(requests.knowledge > 0 && requests.decision === 1 && requests.assignment > 0 && requests.mandate === 1 && requests.order === 1);
     assert(requests.taskRead > 0 && requests.save >= 4);
 
     const result = {

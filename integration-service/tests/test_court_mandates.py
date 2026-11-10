@@ -16,6 +16,7 @@ class MandateUpstreams:
     def __init__(self) -> None:
         self.triggers: list[dict[str, object]] = []
         self.knowledge_available = True
+        self.assignment_available = True
 
     async def health(self):
         return {
@@ -33,6 +34,39 @@ class MandateUpstreams:
     async def choose_dialogue(self, npc_id, payload):
         assert npc_id > 0
         return {"code": 200, "data": {"index": 1, "type": "OPTION"}}
+
+    async def npc_state(self, npc_id):
+        return {
+            "emotion": {"code": 200, "dominant": {"emotion_type": "calm", "intensity": 0.25}},
+            "affection": {"code": 200, "items": [{"target": "army"}], "total": 1},
+            "relationships": {"code": 200, "items": [], "total": 0},
+        }
+
+    async def npc_schedule(self, npc_id):
+        if not self.assignment_available:
+            from dongzhou_integration.upstreams import UpstreamUnavailable
+
+            raise UpstreamUnavailable("schedule restarting")
+        return {
+            "code": 200,
+            "data": {
+                "plan_id": "plan-1",
+                "generation_id": "generation-1",
+                "schedules": [{
+                    "day": 1,
+                    "date": "0772-10-22",
+                    "start_level": 1,
+                    "end_level": 20,
+                    "events": [
+                        {"id": "event-supply", "transaction_id": 9100103, "name": "转运军粮", "type": "军需", "importance": 80},
+                        {"id": "event-drill", "transaction_id": 9100102, "name": "检阅军阵", "type": "军事", "importance": 95},
+                        {"id": "event-patrol", "transaction_id": 9100104, "name": "巡察营垒", "type": "治安", "importance": 75},
+                        {"id": "event-intelligence", "transaction_id": 9100105, "name": "访求军情", "type": "谍报", "importance": 85},
+                        {"id": "event-diplomacy", "transaction_id": 9100106, "name": "折冲诸侯", "type": "外交", "importance": 90},
+                    ],
+                }],
+            },
+        }
 
     async def stage_knowledge(self, stage_id):
         if not self.knowledge_available:
@@ -129,6 +163,8 @@ def mandate_body(council_id: str, request_id: str | None = None) -> dict[str, ob
         "hero_id": "ZuoRu",
         "knowledge_id": "dongzhou_stage_001",
         "evidence_source_index": 0,
+        "schedule_plan_id": "plan-1",
+        "schedule_event_id": "event-drill",
         "council_request_id": council_id,
         "decision_index": 1,
         "task_type": "drill",
@@ -159,6 +195,15 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
                 "url": "https://ctext.org/shiji/zhou-ben-ji",
             }
             assert mandate["council"]["text"] == "整军强攻"
+            assert mandate["assignment"]["planId"] == "plan-1"
+            assert mandate["assignment"]["eventId"] == "event-drill"
+            assert mandate["assignment"]["transactionId"] == 9100102
+            assert mandate["assignment"]["state"] == {
+                "emotion": "calm",
+                "intensity": 0.25,
+                "affectionCount": 1,
+                "relationshipCount": 0,
+            }
             assert len(mandate["digest"]) == 64
 
             replay = client.post("/api/dongzhou/v1/court/mandates", json=body)
@@ -210,6 +255,7 @@ def test_diplomacy_operation_is_sealed_and_drives_orgflow_brief() -> None:
             body = {
                 **mandate_body(council_id),
                 "task_type": "diplomacy",
+                "schedule_event_id": "event-diplomacy",
                 "operation": {
                     "kind": "diplomacy",
                     "target_id": "zheng",
@@ -250,7 +296,8 @@ def test_diplomacy_operation_is_sealed_and_drives_orgflow_brief() -> None:
             assert trigger["brief"] == (
                 "Conduct the sealed fictional Dongzhou diplomacy mission for polity "
                 f"zheng. Nexus operation reference {operation_reference}. "
-                "Report only the in-game outcome."
+                "Report only the in-game outcome. "
+                "Bound AINPC duty event-diplomacy (折冲诸侯) on 0772-10-22 from plan plan-1."
             )
             assert "郑国" not in trigger["brief"]
             assert "互通军情" not in trigger["brief"]
@@ -302,6 +349,31 @@ def test_mandate_rejects_source_not_deliberated_by_npc() -> None:
             assert response.json()["error"]["code"] == "court_council_source_unverified"
 
 
+def test_assignment_preview_and_stale_schedule_are_enforced() -> None:
+    with TemporaryDirectory() as directory:
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=MandateUpstreams()
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            preview = client.get(
+                "/api/dongzhou/v1/npcs/ZuoRu/assignments/drill",
+                params={"stage_id": "01"},
+            )
+            assert preview.status_code == 200
+            assignment = preview.json()["assignment"]
+            assert assignment["eventId"] == "event-drill"
+            assert assignment["name"] == "检阅军阵"
+
+            council_id, _ = complete_council(client)
+            stale = client.post(
+                "/api/dongzhou/v1/court/mandates",
+                json={**mandate_body(council_id), "schedule_event_id": "event-old"},
+            )
+            assert stale.status_code == 422
+            assert stale.json()["error"]["code"] == "court_schedule_assignment_stale"
+
+
 def test_mandate_retries_knowledge_without_changing_request_id() -> None:
     with TemporaryDirectory() as directory:
         upstreams = MandateUpstreams()
@@ -321,3 +393,23 @@ def test_mandate_retries_knowledge_without_changing_request_id() -> None:
             assert retried.status_code == 200
             assert retried.json()["mandate"]["id"].endswith(request_id)
             UUID(retried.json()["mandate"]["id"].rsplit(":", 1)[-1])
+
+
+def test_mandate_retries_assignment_without_changing_request_id() -> None:
+    with TemporaryDirectory() as directory:
+        upstreams = MandateUpstreams()
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=upstreams
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            council_id, _ = complete_council(client)
+            request_id = str(uuid4())
+            body = mandate_body(council_id, request_id)
+            upstreams.assignment_available = False
+            failed = client.post("/api/dongzhou/v1/court/mandates", json=body)
+            assert failed.status_code == 503
+            upstreams.assignment_available = True
+            retried = client.post("/api/dongzhou/v1/court/mandates", json=body)
+            assert retried.status_code == 200
+            assert retried.json()["mandate"]["id"].endswith(request_id)

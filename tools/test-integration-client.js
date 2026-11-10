@@ -25,6 +25,7 @@ let sessionRequests = 0;
 let expireNextSave = false;
 let npcStateAttempts = 0;
 let npcScheduleAttempts = 0;
+let npcAssignmentAttempts = 0;
 let organizationReadAttempts = 0;
 let organizationResponse = null;
 let storedProfile = {};
@@ -96,6 +97,12 @@ global.fetch = async (url, options = {}) => {
       status = 503;
       response = { error: { code: "schedule_unavailable", message: "temporarily unavailable" } };
     } else response = { schedule: { data: { schedules: [] } } };
+  } else if (/\/npcs\/[^/]+\/assignments\/[^/?]+\?stage_id=/.test(url)) {
+    npcAssignmentAttempts += 1;
+    if (npcAssignmentAttempts === 1) {
+      status = 503;
+      response = { error: { code: "assignment_unavailable", message: "temporarily unavailable" } };
+    } else response = { assignment: { planId: "plan-1", eventId: "event-supply", heroId: "DuBo" } };
   } else response = {};
   return { ok: status < 400, status, json: async () => response };
 };
@@ -114,12 +121,15 @@ const client = require("../web-game/integration-client.js");
   await client.persist({ completed: ["01", "02", "03"] });
   await client.npcState("DuBo");
   await client.npcSchedule("DuBo");
+  const assignment = await client.npcAssignment("DuBo", "supply", "01");
   assert.strictEqual(npcStateAttempts, 2);
   assert.strictEqual(npcScheduleAttempts, 2);
+  assert.strictEqual(npcAssignmentAttempts, 2);
+  assert.strictEqual(assignment.assignment.eventId, "event-supply");
   await assert.rejects(() => client.npcDecision("DuBo", "test", ["one", "two"]), /decision unavailable/);
   await client.npcDecision("DuBo", "test", ["one", "two"]);
   assert.strictEqual(decisionIds[0], decisionIds[1]);
-  const mandateInput = { stage_id: "01", stage_title: "东郊索命", hero_id: "DuBo", knowledge_id: "dongzhou_stage_001", evidence_source_index: 0, council_request_id: decisionIds[1], decision_index: 0, task_type: "supply" };
+  const mandateInput = { stage_id: "01", stage_title: "东郊索命", hero_id: "DuBo", knowledge_id: "dongzhou_stage_001", evidence_source_index: 0, schedule_plan_id: "plan-1", schedule_event_id: "event-supply", council_request_id: decisionIds[1], decision_index: 0, task_type: "supply" };
   await assert.rejects(() => client.createCourtMandate(mandateInput), /retry mandate/);
   const mandate = await client.createCourtMandate(mandateInput);
   assert.strictEqual(mandateIds[0], mandateIds[1]);
@@ -177,7 +187,7 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(saveAttempts - attemptsBeforeConflict, 1, "Queued snapshots must not write after a conflict");
   await assert.rejects(() => client.persist({ completed: ["blocked"] }), /save_conflict_reload_required/);
   assert.strictEqual(saveConflictEvents, 1);
-  console.log(JSON.stringify({ result: "PASS", saveVersion, organizationAttempts, organizationReadAttempts, decisionAttempts, mandateAttempts, npcStateAttempts, npcScheduleAttempts, saveConflictEvents }));
+  console.log(JSON.stringify({ result: "PASS", saveVersion, organizationAttempts, organizationReadAttempts, decisionAttempts, mandateAttempts, npcStateAttempts, npcScheduleAttempts, npcAssignmentAttempts, saveConflictEvents }));
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;

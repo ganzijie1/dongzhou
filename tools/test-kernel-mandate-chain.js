@@ -39,6 +39,7 @@ const mandate = {
   taskType: "drill",
   evidence: { id: "dongzhou_stage_001", name: "东郊旧闻", summary: "杜伯蒙冤", source: { index: 0, work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" } },
   council: { requestId: councilInput.id, index: 1, text: "强攻" },
+  assignment: { heroId: "ZuoRu", npcId: "42", runtimeState: "READY", planId: "plan-1", generationId: "gen-1", eventId: "event-drill", transactionId: 9100102, name: "检阅军阵", type: "军事", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "calm", intensity: 0, affectionCount: 0, relationshipCount: 0 } },
   kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "READY" },
   digest: "a".repeat(64),
   state: "ISSUED"

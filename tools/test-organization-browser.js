@@ -141,13 +141,18 @@ async function openReady(page) {
         if (npcStateAttempts <= 6) return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "npc_unavailable", message: "NPC state is temporarily unavailable." } }) });
         body = { emotion: { data: { dominant: { emotion_type: "resolute", intensity: 72 } } }, affection: { data: { total: 2 } }, relationships: { data: { total: 3 } } };
       }
+      else if (pathName.includes("/assignments/")) {
+        const taskType = pathName.split("/").at(-1);
+        const heroId = decodeURIComponent(pathName.split("/").at(-3));
+        body = { assignment: { heroId, npcId: "42", runtimeState: "READY", planId: "plan-e2e", generationId: "generation-e2e", eventId: `event-${taskType}`, transactionId: taskType === "supply" ? 9100103 : 9100102, name: taskType === "supply" ? "转运军粮" : "检阅军阵", type: "军务", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "resolute", intensity: 72, affectionCount: 2, relationshipCount: 3 } } };
+      }
       else if (/\/npcs\/[^/]+\/schedule$/.test(pathName) && request.method() === "GET") body = { schedule: { data: { schedules: [{ date: "共和元年", events: [{ name: "整饬军粮" }, { name: "巡视营垒" }] }] } } };
       else if (/\/npcs\/[^/]+\/schedule$/.test(pathName)) body = { schedule: { data: { plan_id: "plan-e2e" } } };
       else if (/\/npcs\/[^/]+\/decisions$/.test(pathName)) body = { state: "COMPLETED", decision: { data: { index: 1, type: "OPTION", text: "整军强攻，争取先机" } } };
       else if (pathName.endsWith("/court/mandates")) {
         mandateAttempts += 1;
         const input = request.postDataJSON();
-        body = { state: "ISSUED", mandate: { id: `dongzhou:player-e2e:${input.client_request_id}`, stageId: input.stage_id, stageTitle: "东郊索命", heroId: input.hero_id, taskType: input.task_type, evidence: { id: input.knowledge_id, name: "第一回·已发布本回史料", summary: "杜伯进谏", source: { index: input.evidence_source_index, work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" } }, council: { requestId: input.council_request_id, index: input.decision_index, text: "整军强攻，争取先机" }, kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "READY" }, digest: "b".repeat(64), state: "ISSUED" } };
+        body = { state: "ISSUED", mandate: { id: `dongzhou:player-e2e:${input.client_request_id}`, stageId: input.stage_id, stageTitle: "东郊索命", heroId: input.hero_id, taskType: input.task_type, evidence: { id: input.knowledge_id, name: "第一回·已发布本回史料", summary: "杜伯进谏", source: { index: input.evidence_source_index, work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" } }, council: { requestId: input.council_request_id, index: input.decision_index, text: "整军强攻，争取先机" }, assignment: { heroId: input.hero_id, npcId: "42", runtimeState: "READY", planId: input.schedule_plan_id, generationId: "generation-e2e", eventId: input.schedule_event_id, transactionId: 9100103, name: "转运军粮", type: "军需", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "resolute", intensity: 72, affectionCount: 2, relationshipCount: 3 } }, kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "READY" }, digest: "b".repeat(64), state: "ISSUED" } };
       }
       else if (pathName.endsWith("/organization/tasks")) {
         orderAttempts += 1;

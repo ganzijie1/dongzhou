@@ -81,6 +81,7 @@
   const imageCache = new Map();
   const syncedNpcIds = new Set();
   const warmedNpcScheduleIds = new Set();
+  const officeAssignmentSnapshots = new Map();
   let officeNpcSyncQueue = Promise.resolve();
   let officeNpcRefreshTimer = null;
   let officeNpcRefreshSerial = 0;
@@ -877,10 +878,10 @@
     const currentType = $("#officeTaskType").value;
     $("#officeTaskType").innerHTML = Object.entries(organization.TASK_TYPES).map(([id, task]) => `<option value="${id}" ${id === currentType ? "selected" : ""}>${task.name} · ${task.duration}月</option>`).join("");
     $("#officeMembers").innerHTML = org.members.map((member) => `<div><strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(member.office)}</span><small>信任 ${member.loyalty} · 关系 ${Number(org.relations[member.id] || 0) >= 0 ? "+" : ""}${Number(org.relations[member.id] || 0)} · 劳顿 ${member.fatigue}</small></div>`).join("") || "<p>随战役推进，出阵人物会进入官署名册。</p>";
-    $("#officeTaskLedger").innerHTML = [...org.tasks].reverse().slice(0, 10).map((task) => `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}</strong><small>${task.status === "active" ? `${task.dueMonth}月复命` : task.status === "success" ? "办成" : task.status === "partial" ? "部分办成" : "未成"}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}</small></li>`).join("") || '<li class="empty">尚无差事</li>';
+    $("#officeTaskLedger").innerHTML = [...org.tasks].reverse().slice(0, 10).map((task) => `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}</strong><small>${task.status === "active" ? `${task.dueMonth}月复命` : task.status === "success" ? "办成" : task.status === "partial" ? "部分办成" : "未成"}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}${task.mandate?.assignment?.name ? ` · 当值${escapeHtml(task.mandate.assignment.name)}` : ""}</small></li>`).join("") || '<li class="empty">尚无差事</li>';
     $("#officeMandateLedger").innerHTML = [...org.mandates].reverse().slice(0, 6).map((mandate) => {
       const label = mandate.state === "RESOLVED" ? (mandate.outcome?.won ? "战后告捷" : "战后失利") : mandate.state === "FULFILLED" ? "复命待战" : mandate.state === "PARTIAL" ? "部分复命" : mandate.state === "FAILED" ? "执行未成" : mandate.state === "ORDERED" ? "属官执行中" : "已签发";
-      return `<li class="${escapeHtml(String(mandate.state || "issued").toLowerCase())}"><span>${escapeHtml(mandate.evidence?.name || "内核军令")}</span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(mandate.evidence?.source?.work || "未列出处")} · ${escapeHtml(mandate.evidence?.source?.tier || "来源")} · 印记 ${escapeHtml(String(mandate.digest || "").slice(0, 10))}</small></li>`;
+      return `<li class="${escapeHtml(String(mandate.state || "issued").toLowerCase())}"><span>${escapeHtml(mandate.evidence?.name || "内核军令")}</span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(mandate.evidence?.source?.work || "未列出处")} · ${escapeHtml(mandate.assignment?.date || "未定日")} ${escapeHtml(mandate.assignment?.name || "旧军令未封当值")} · 印记 ${escapeHtml(String(mandate.digest || "").slice(0, 10))}</small></li>`;
     }).join("") || '<li class="empty">完成史料查阅与属官裁断后，可签发内核军令。</li>';
     $("#officeAllianceLedger").innerHTML = [...org.diplomacy.alliances].reverse().map((pact) => `<li class="${pact.status}"><span>${escapeHtml(pact.targetName)}盟约</span><strong>${pact.status === "active" ? "生效" : pact.status === "broken" ? "背盟待战" : "战后结案"}</strong><small>关系 ${Number(org.diplomacy.relations[pact.targetId] || 0)} · ${escapeHtml(pact.terms.join("、"))}</small></li>`).join("") || '<li class="empty">尚无盟约</li>';
     $("#officeBattleArchive").innerHTML = [...org.archives].reverse().slice(0, 12).map((entry) => `<li><strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml(entry.text)} · ${escapeHtml(String(entry.stageId || "无关卡"))}</span></li>`).join("") || "<li><strong>尚无档案</strong><span>完成盟约、背盟或战役后将在此存照。</span></li>";
@@ -960,10 +961,37 @@
       const day = Array.isArray(plan.schedules) ? plan.schedules[0] : null;
       const events = Array.isArray(day?.events) ? day.events.slice(0, 3).map((event) => event.name).filter(Boolean) : [];
       panel.textContent = events.length ? `${day.date || "近日"}：${events.join("、")}` : "尚无已定日程";
+      await refreshOfficeNpcAssignment(member, requestSerial);
     } catch (error) {
       if (requestSerial && !isCurrentOfficeNpcRequest(requestSerial, member.id)) return;
       panel.textContent = "日程服务正在恢复，将自动重试…";
       scheduleOfficeNpcRefresh(member.id);
+    }
+  }
+
+  function officeAssignmentKey(memberId, taskType, stageId) {
+    return [memberId, taskType, stageId].join(":");
+  }
+
+  async function refreshOfficeNpcAssignment(memberOverride, requestSerial, taskTypeOverride) {
+    const panel = $("#officeNpcAssignment");
+    const member = memberOverride || profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
+    const taskType = taskTypeOverride || $("#officeTaskType").value;
+    const stageId = String(officeStage()?.id || "");
+    if (!panel || !member || !taskType || !stageId || integration.isOffline()) return null;
+    panel.textContent = "正在核对本关当值…";
+    try {
+      const response = await integration.npcAssignment(member.id, taskType, stageId);
+      if (requestSerial && !isCurrentOfficeNpcRequest(requestSerial, member.id)) return null;
+      const assignment = response.assignment;
+      if (!assignment?.planId || !assignment?.eventId) throw new Error("当值记录不完整");
+      officeAssignmentSnapshots.set(officeAssignmentKey(member.id, taskType, stageId), assignment);
+      panel.innerHTML = `<strong>本关当值</strong><span>${escapeHtml(assignment.date || "近日")} · ${escapeHtml(assignment.name || taskType)}${assignment.timeSlot ? ` · ${escapeHtml(assignment.timeSlot)}` : ""}</span><small>日程 ${escapeHtml(String(assignment.planId).slice(0, 18))} · 重要度 ${Number(assignment.importance || 0)}</small>`;
+      return assignment;
+    } catch (error) {
+      officeAssignmentSnapshots.delete(officeAssignmentKey(member.id, taskType, stageId));
+      panel.textContent = `本关没有可核验的当值安排：${error.message}`;
+      return null;
     }
   }
 
@@ -1210,12 +1238,16 @@
       let issuedMandate = null;
       let taskBaseState = profile.organization;
       if (!integration.isOffline()) {
+        const assignment = await refreshOfficeNpcAssignment(assignee, null, taskType);
+        if (!assignment) throw new Error("须先取得与本关差事匹配的属官当值安排");
         mandateInput = {
           stage_id: String(record?.id || "unknown"),
           stage_title: String(record?.battleTitle || record?.title || "未名战事"),
           hero_id: assigneeId,
           knowledge_id: knowledge.id,
           evidence_source_index: Number(evidence.source.index),
+          schedule_plan_id: assignment.planId,
+          schedule_event_id: assignment.eventId,
           council_request_id: council.id,
           decision_index: Number(council.index),
           task_type: taskType,
@@ -3048,7 +3080,7 @@
     $("#campaignOfficeButton").addEventListener("click", () => setCampaignOffice(true));
     $("#campaignOfficeCloseButton").addEventListener("click", () => setCampaignOffice(false));
     $("#campaignOfficeBackdrop").addEventListener("click", (event) => { if (event.target === event.currentTarget) setCampaignOffice(false); });
-    $("#officeTaskType").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOrganizationPanel(); });
+    $("#officeTaskType").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOrganizationPanel(); refreshOfficeNpcAssignment(); });
     $("#officeMemberSelect").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOfficeCouncil(); refreshOfficeNpcState(); });
     $("#officeScheduleButton").addEventListener("click", generateOfficeNpcSchedule);
     $("#officeDecisionForm").addEventListener("submit", requestOfficeNpcDecision);
