@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -176,23 +177,47 @@ class Upstreams:
         try:
             response = await self._json("POST", f"{self.settings.knowledge_url}/api/v1/player/search", token=self.settings.knowledge_token, payload=payload)
             channels = response.get("data", {}).get("channels", {})
-            ids: list[str] = []
-            for values in channels.values() if isinstance(channels, dict) else ():
-                for item in values if isinstance(values, list) else ():
+            channel_weights = {
+                "vector": 0.30,
+                "bm25": 0.25,
+                "entity": 0.15,
+                "graph": 0.15,
+                "category": 0.10,
+                "schedule_tag": 0.05,
+            }
+            provenance: dict[str, list[dict[str, Any]]] = {}
+            aggregates: dict[str, float] = {}
+            for channel, weight in channel_weights.items():
+                values = channels.get(channel, []) if isinstance(channels, dict) else []
+                for rank, item in enumerate(values if isinstance(values, list) else (), start=1):
                     identifier = str(item.get("id") or item.get("aku_id") or "") if isinstance(item, dict) else ""
-                    if identifier and identifier not in ids:
-                        ids.append(identifier)
+                    if not identifier:
+                        continue
+                    raw_score = item.get("score", 0)
+                    raw_normalized = item.get("normalized_score", item.get("normalizedScore", 0))
+                    score = float(raw_score) if isinstance(raw_score, (int, float)) and not isinstance(raw_score, bool) and math.isfinite(float(raw_score)) else 0.0
+                    normalized = float(raw_normalized) if isinstance(raw_normalized, (int, float)) and not isinstance(raw_normalized, bool) and math.isfinite(float(raw_normalized)) else 0.0
+                    normalized = max(0.0, min(1.0, normalized))
+                    provenance.setdefault(identifier, []).append({
+                        "channel": channel,
+                        "score": round(score, 6),
+                        "normalizedScore": round(normalized, 6),
+                        "rank": rank,
+                    })
+                    aggregates[identifier] = aggregates.get(identifier, 0.0) + normalized * weight
+            ids = sorted(provenance, key=lambda identifier: (-aggregates.get(identifier, 0.0), identifier))
             if not ids:
                 return "connected", []
             details = await self._json("POST", f"{self.settings.knowledge_url}/api/v1/aku/batch_get", token=self.settings.knowledge_token, payload={"ids": ids[:recall_limit]})
             raw = details.get("data", details)
             if isinstance(raw, dict):
                 raw = raw.get("items", raw.get("akus", list(raw.values())))
-            items = (
-                [item for item in raw if self._is_dongzhou_knowledge(item)][:limit]
-                if isinstance(raw, list)
-                else []
-            )
+            hydrated = {
+                str(item.get("id") or item.get("aku_id") or ""): item
+                for item in raw
+                if isinstance(item, dict) and self._is_dongzhou_knowledge(item)
+            } if isinstance(raw, list) else {}
+            items = [hydrated[identifier] for identifier in ids if identifier in hydrated][:limit]
             if self.settings.knowledge_file.exists():
                 catalog = json.loads(self.settings.knowledge_file.read_text(encoding="utf-8"))
                 metadata = {str(entry["id"]): entry for entry in catalog.get("entries", [])}
@@ -201,6 +226,16 @@ class Upstreams:
                         **item,
                         "stageId": metadata.get(str(item["id"]), {}).get("stageId", ""),
                         "sourceDetails": metadata.get(str(item["id"]), {}).get("sources", []),
+                        "retrieval": {
+                            "aggregateScore": round(aggregates.get(str(item["id"]), 0.0), 6),
+                            "strongestChannel": max(
+                                provenance.get(str(item["id"]), []),
+                                key=lambda value: (value["normalizedScore"], channel_weights[value["channel"]]),
+                                default={"channel": ""},
+                            )["channel"],
+                            "graphRelated": any(value["channel"] == "graph" for value in provenance.get(str(item["id"]), [])),
+                            "channels": provenance.get(str(item["id"]), []),
+                        },
                     }
                     for item in items
                 ]

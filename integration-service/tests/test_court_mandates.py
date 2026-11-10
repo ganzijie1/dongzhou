@@ -97,6 +97,29 @@ class MandateUpstreams:
             }
         ]
 
+    async def search_knowledge(self, query, limit):
+        return "connected", [{
+            "id": "dongzhou_stage_001",
+            "stageId": "01",
+            "name": "东郊旧闻",
+            "summary": "杜伯之谏与东郊军情。",
+            "sourceDetails": [{
+                "work": "《史记·周本纪》",
+                "tier": "史实骨架",
+                "scope": "千亩之败与周宣王晚年",
+                "url": "https://ctext.org/shiji/zhou-ben-ji",
+            }],
+            "retrieval": {
+                "aggregateScore": 0.47,
+                "strongestChannel": "graph",
+                "graphRelated": True,
+                "channels": [
+                    {"channel": "graph", "score": 1.0, "normalizedScore": 1.0, "rank": 1},
+                    {"channel": "bm25", "score": 7.0, "normalizedScore": 0.8, "rank": 2},
+                ],
+            },
+        }]
+
     async def trigger_virtual_task(self, organization_id, payload):
         self.triggers.append(payload)
         return {"data": {"task_id": "00000000-0000-0000-0000-000000000099"}}
@@ -294,6 +317,70 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
             )
             assert rejected.status_code == 422
             assert rejected.json()["error"]["code"] == "court_mandate_mismatch"
+
+
+def test_graph_search_receipt_is_sealed_into_council_and_mandate() -> None:
+    with TemporaryDirectory() as directory:
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=MandateUpstreams()
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            search_id = str(uuid4())
+            search_body = {
+                "client_request_id": search_id,
+                "stage_id": "01",
+                "query": "杜伯 东郊军情",
+                "limit": 6,
+            }
+            searched = client.post("/api/dongzhou/v1/knowledge/search", json=search_body)
+            assert searched.status_code == 200
+            receipt = searched.json()["searchReceipt"]
+            result = searched.json()["results"][0]
+            assert result["retrieval"]["graphRelated"] is True
+            assert result["searchReceipt"] == {"id": receipt["id"], "digest": receipt["digest"]}
+            replay = client.post("/api/dongzhou/v1/knowledge/search", json=search_body)
+            assert replay.json()["replayed"] is True
+            assert replay.json()["searchReceipt"] == receipt
+
+            council_id = str(uuid4())
+            council = client.post(
+                "/api/dongzhou/v1/npcs/ZuoRu/decisions",
+                json={
+                    "client_request_id": council_id,
+                    "question": (
+                        "东郊一战如何部署？\n选证：《史记·周本纪》｜史实骨架\n"
+                        f"检索回执：{receipt['digest'][:12]}"
+                    ),
+                    "options": [
+                        {"index": 0, "text": "固守军粮"},
+                        {"index": 1, "text": "整军强攻"},
+                    ],
+                    "topic": "court_decision",
+                },
+            )
+            assert council.status_code == 200
+            body = {
+                **mandate_body(council_id),
+                "knowledge_search_receipt_id": receipt["id"],
+                "knowledge_search_receipt_digest": receipt["digest"],
+            }
+            drafted = client.post("/api/dongzhou/v1/court/mandates", json=body)
+            assert drafted.status_code == 200
+            evidence = drafted.json()["mandate"]["evidence"]
+            assert evidence["retrieval"] == result["retrieval"]
+            assert evidence["searchReceipt"] == result["searchReceipt"]
+
+            tampered = client.post(
+                "/api/dongzhou/v1/court/mandates",
+                json={
+                    **body,
+                    "client_request_id": str(uuid4()),
+                    "knowledge_search_receipt_digest": "b" * 64,
+                },
+            )
+            assert tampered.status_code == 422
+            assert tampered.json()["error"]["code"] == "court_knowledge_receipt_unverified"
 
 
 def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> None:

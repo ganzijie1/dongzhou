@@ -206,8 +206,9 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         def handler(request: httpx.Request) -> httpx.Response:
             if request.url.path == "/api/v1/player/search":
                 return httpx.Response(200, json={"data": {"channels": {
-                    "vector": [{"id": "player_full_1"}, {"id": "dongzhou_stage_005"}],
-                    "bm25": [{"id": "dongzhou_stage_006"}],
+                    "vector": [{"id": "player_full_1", "score": 0.9, "normalized_score": 1.0}, {"id": "dongzhou_stage_005", "score": 0.8, "normalized_score": 0.8}],
+                    "bm25": [{"id": "dongzhou_stage_006", "score": 7.0, "normalized_score": 0.7}],
+                    "graph": [{"id": "dongzhou_stage_005", "score": 1.0, "normalized_score": 1.0}],
                 }}})
             payload = json.loads(request.content)
             seen_batch_ids.extend(payload["ids"])
@@ -238,7 +239,10 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([item["id"] for item in items], ["dongzhou_stage_005", "dongzhou_stage_006"])
         self.assertEqual(items[0]["stageId"], "04")
         self.assertEqual(items[0]["sourceDetails"], [source])
-        self.assertEqual(seen_batch_ids, ["player_full_1", "dongzhou_stage_005", "dongzhou_stage_006"])
+        self.assertEqual(items[0]["retrieval"]["strongestChannel"], "graph")
+        self.assertTrue(items[0]["retrieval"]["graphRelated"])
+        self.assertEqual([item["channel"] for item in items[0]["retrieval"]["channels"]], ["vector", "graph"])
+        self.assertEqual(seen_batch_ids, ["dongzhou_stage_005", "player_full_1", "dongzhou_stage_006"])
 
     async def test_http_business_error_preserves_contract_payload(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:

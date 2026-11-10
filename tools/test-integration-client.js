@@ -29,6 +29,7 @@ let npcScheduleAttempts = 0;
 let npcAssignmentAttempts = 0;
 let organizationReadAttempts = 0;
 let campaignRouteAttempts = 0;
+let knowledgeSearchInput = null;
 let organizationResponse = null;
 let storedProfile = {};
 let saveAttempts = 0;
@@ -65,6 +66,10 @@ global.fetch = async (url, options = {}) => {
       status = 503;
       response = { error: { code: "knowledge_route_unavailable", message: "retry route" } };
     } else response = { found: true, routeId: "campaign_progression_900001_900002", provisionCost: 2 };
+  }
+  else if (url.endsWith("/knowledge/search")) {
+    knowledgeSearchInput = body;
+    response = { mode: "connected", results: [{ id: "dongzhou_stage_001", stageId: "01", retrieval: { graphRelated: true, channels: [{ channel: "graph", normalizedScore: 1 }] }, searchReceipt: { id: "search-receipt", digest: "c".repeat(64) } }] };
   }
   else if (url.endsWith("/court/mandates")) {
     mandateAttempts += 1;
@@ -135,6 +140,10 @@ const client = require("../web-game/integration-client.js");
   const route = await client.campaignRoute({ from_stage_id: "01", from_stage_index: 1, to_stage_id: "02", to_stage_index: 2 });
   assert.strictEqual(route.provisionCost, 2);
   assert.strictEqual(campaignRouteAttempts, 2);
+  const knowledge = await client.searchKnowledge("杜伯 东郊", 6, "01");
+  assert.strictEqual(knowledgeSearchInput.stage_id, "01");
+  assert.match(knowledgeSearchInput.client_request_id, /^[0-9a-f-]{36}$/);
+  assert.strictEqual(knowledge.results[0].retrieval.graphRelated, true);
   await client.npcState("DuBo");
   await client.npcSchedule("DuBo");
   const assignment = await client.npcAssignment("DuBo", "supply", "01");

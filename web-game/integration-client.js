@@ -129,8 +129,8 @@
   }
 
   function status() { return request("/integration/status"); }
-  async function searchKnowledge(query, limit) {
-    if (!offline) return request("/knowledge/search", { method: "POST", body: JSON.stringify({ query, limit }) });
+  async function searchKnowledge(query, limit, stageId) {
+    if (!offline) return request("/knowledge/search", { method: "POST", body: JSON.stringify({ client_request_id: root.crypto.randomUUID(), ...(stageId ? { stage_id: String(stageId) } : {}), query, limit }) });
     const data = await root.fetch("scenario/dongzhou-knowledge.json", { cache: "no-store" }).then((response) => response.json());
     const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
     const results = (data.entries || []).map((entry) => {

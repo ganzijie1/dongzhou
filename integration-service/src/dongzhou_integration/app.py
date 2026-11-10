@@ -993,12 +993,77 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
 
     @router.post("/knowledge/search")
     async def search_knowledge(request: KnowledgeSearchRequest, player_id: UUID = Depends(player)) -> dict[str, Any]:
+        body = _payload(request)
+        if request.client_request_id is not None:
+            try:
+                created, previous = await store.begin_request(
+                    player_id, request.client_request_id, "knowledge_search", body
+                )
+            except VersionConflict as error:
+                raise ApiError(
+                    "idempotency_conflict",
+                    "The request identifier was already used with different input.",
+                    status_code=409,
+                ) from error
+            if not created:
+                if previous and previous.get("state") == "PENDING":
+                    raise ApiError(
+                        "request_in_progress",
+                        "The same knowledge search is still running.",
+                        status_code=409,
+                    )
+                return {"replayed": True, **(previous or {})}
         try:
             mode, results = await upstreams.search_knowledge(request.query, request.limit)
         except UpstreamUnavailable as error:
+            if request.client_request_id is not None:
+                await store.finish_request(
+                    player_id,
+                    request.client_request_id,
+                    "RETRYABLE",
+                    {"state": "RETRYABLE", "requestId": str(request.client_request_id)},
+                    str(error),
+                )
             raise ApiError("knowledge_unavailable", "Knowledge search is temporarily unavailable.", status_code=503) from error
         await store.add_codex(player_id, results)
-        return {"mode": mode, "query": request.query, "results": results}
+        response: dict[str, Any] = {"mode": mode, "query": request.query, "results": results}
+        if request.client_request_id is not None:
+            receipt_id = stable_event_id(player_id, request.client_request_id)
+            receipt_trace = {
+                "id": receipt_id,
+                "requestId": str(request.client_request_id),
+                "stageId": request.stage_id,
+                "query": request.query,
+                "results": [
+                    {
+                        "id": str(item.get("id") or item.get("aku_id") or ""),
+                        "stageId": str(item.get("stageId") or ""),
+                        "retrieval": item.get("retrieval"),
+                    }
+                    for item in results
+                    if isinstance(item, dict)
+                ],
+            }
+            receipt_digest = hashlib.sha256(
+                json.dumps(receipt_trace, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
+            ).hexdigest()
+            receipt = {**receipt_trace, "digest": receipt_digest}
+            response = {
+                **response,
+                "searchReceipt": receipt,
+                "results": [
+                    {**item, "searchReceipt": {"id": receipt_id, "digest": receipt_digest}}
+                    for item in results
+                ],
+            }
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "COMPLETED",
+                response,
+                external_id=receipt_id,
+            )
+        return response
 
     @router.get("/knowledge/stages/{stage_id}")
     async def stage_knowledge(stage_id: str, player_id: UUID = Depends(player)) -> dict[str, Any]:
@@ -1376,6 +1441,75 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "scope": str(source.get("scope") or ""),
             "url": str(source.get("url") or ""),
         }
+        retrieval: dict[str, Any] | None = None
+        retrieval_receipt: dict[str, str] | None = None
+        if bool(request.knowledge_search_receipt_id) != bool(request.knowledge_search_receipt_digest):
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "REJECTED",
+                {"state": "REJECTED"},
+                "court_knowledge_receipt_incomplete",
+            )
+            raise ApiError(
+                "court_knowledge_receipt_incomplete",
+                "A knowledge search receipt requires both its ID and digest.",
+                status_code=422,
+            )
+        if request.knowledge_search_receipt_id and request.knowledge_search_receipt_digest:
+            receipt_id = request.knowledge_search_receipt_id
+            receipt_request = await store.read_external_request(
+                player_id, receipt_id, "knowledge_search"
+            )
+            try:
+                receipt_request_id = UUID(receipt_id.rsplit(":", 1)[-1])
+            except ValueError:
+                receipt_request_id = None
+            receipt_record = (
+                await store.read_request(player_id, receipt_request_id, "knowledge_search")
+                if receipt_request_id is not None
+                else None
+            )
+            receipt_response = receipt_record.get("response") if receipt_record else None
+            receipt = receipt_response.get("searchReceipt") if isinstance(receipt_response, dict) else None
+            receipt_result = next(
+                (
+                    item
+                    for item in receipt_response.get("results", [])
+                    if isinstance(item, dict)
+                    and str(item.get("id") or item.get("aku_id") or "") == request.knowledge_id
+                    and str(item.get("stageId") or "") == request.stage_id
+                ),
+                None,
+            ) if isinstance(receipt_response, dict) else None
+            if (
+                receipt_request is None
+                or receipt_record is None
+                or receipt_record.get("state") != "COMPLETED"
+                or receipt_record.get("externalId") != receipt_id
+                or not isinstance(receipt, dict)
+                or receipt.get("digest") != request.knowledge_search_receipt_digest
+                or receipt.get("stageId") != request.stage_id
+                or not isinstance(receipt_result, dict)
+                or not isinstance(receipt_result.get("retrieval"), dict)
+            ):
+                await store.finish_request(
+                    player_id,
+                    request.client_request_id,
+                    "REJECTED",
+                    {"state": "REJECTED"},
+                    "court_knowledge_receipt_unverified",
+                )
+                raise ApiError(
+                    "court_knowledge_receipt_unverified",
+                    "The knowledge search receipt does not prove this stage evidence.",
+                    status_code=422,
+                )
+            retrieval = receipt_result["retrieval"]
+            retrieval_receipt = {
+                "id": receipt_id,
+                "digest": request.knowledge_search_receipt_digest,
+            }
         source_marker = f"选证：{canonical_source['work']}｜{canonical_source['tier']}"
         if source_marker not in str(council_request.get("question") or ""):
             await store.finish_request(
@@ -1388,6 +1522,19 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             raise ApiError(
                 "court_council_source_unverified",
                 "The NPC council did not deliberate on the selected published source.",
+                status_code=422,
+            )
+        if retrieval_receipt and f"检索回执：{retrieval_receipt['digest'][:12]}" not in str(council_request.get("question") or ""):
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "REJECTED",
+                {"state": "REJECTED"},
+                "court_council_retrieval_unverified",
+            )
+            raise ApiError(
+                "court_council_retrieval_unverified",
+                "The NPC council did not deliberate on the sealed retrieval evidence.",
                 status_code=422,
             )
 
@@ -1426,18 +1573,22 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             )
 
         mandate_id = stable_event_id(player_id, request.client_request_id)
+        evidence_trace = {
+            "id": request.knowledge_id,
+            "name": str(evidence.get("name") or evidence.get("title") or request.knowledge_id),
+            "summary": str(evidence.get("summary") or evidence.get("content") or ""),
+            "source": canonical_source,
+        }
+        if retrieval is not None and retrieval_receipt is not None:
+            evidence_trace["retrieval"] = retrieval
+            evidence_trace["searchReceipt"] = retrieval_receipt
         trace = {
             "id": mandate_id,
             "stageId": request.stage_id,
             "stageTitle": request.stage_title,
             "heroId": request.hero_id,
             "taskType": request.task_type,
-            "evidence": {
-                "id": request.knowledge_id,
-                "name": str(evidence.get("name") or evidence.get("title") or request.knowledge_id),
-                "summary": str(evidence.get("summary") or evidence.get("content") or ""),
-                "source": canonical_source,
-            },
+            "evidence": evidence_trace,
             "council": {
                 "requestId": str(request.council_request_id),
                 "question": str(council_request.get("question") or ""),

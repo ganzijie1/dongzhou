@@ -141,6 +141,8 @@ class AinpcPrivateMessageDeliveryQuery(StrictModel):
 
 
 class KnowledgeSearchRequest(StrictModel):
+    client_request_id: UUID | None = Field(default=None, strict=False)
+    stage_id: str | None = Field(default=None, min_length=1, max_length=64)
     query: str = Field(min_length=1, max_length=500)
     limit: int = Field(default=6, ge=1, le=20)
 
@@ -207,6 +209,8 @@ class CourtMandateRequest(StrictModel):
     council_request_id: UUID = Field(strict=False)
     decision_index: int = Field(ge=0, le=20)
     task_type: OrganizationTaskType
+    knowledge_search_receipt_id: str | None = Field(default=None, min_length=1, max_length=256)
+    knowledge_search_receipt_digest: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     operation: CourtMandateOperation | None = None
 
     @model_validator(mode="after")

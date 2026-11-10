@@ -1266,7 +1266,8 @@
     const knowledge = evidence?.knowledge;
     if (!knowledge || !evidence?.source) { panel.textContent = "请先查阅本回史料并选定出处，再请属官参议。"; return; }
     const sourceMarker = "选证：" + evidence.source.work + "｜" + evidence.source.tier;
-    const contextualQuestion = (question.slice(0, 900) + "\n史料：" + knowledge.name + "（" + knowledge.id + "）\n" + sourceMarker + "\n适用范围：" + String(evidence.source.scope || "未注明") + "\n" + String(knowledge.summary || "").slice(0, 500)).slice(0, 2000);
+    const retrievalMarker = evidence.source.searchReceipt ? "\n检索回执：" + evidence.source.searchReceipt.digest.slice(0, 12) + "\n发现路径：" + knowledgeRetrievalText(knowledge) : "";
+    const contextualQuestion = (question.slice(0, 900) + "\n史料：" + knowledge.name + "（" + knowledge.id + "）\n" + sourceMarker + retrievalMarker + "\n适用范围：" + String(evidence.source.scope || "未注明") + "\n" + String(knowledge.summary || "").slice(0, 500)).slice(0, 2000);
     officeCouncilInFlight = true;
     panel.textContent = `${member.name}正在权衡…`;
     try {
@@ -1428,6 +1429,10 @@
           council_request_id: council.id,
           decision_index: Number(council.index),
           task_type: taskType,
+          ...(evidence.source.searchReceipt ? {
+            knowledge_search_receipt_id: evidence.source.searchReceipt.id,
+            knowledge_search_receipt_digest: evidence.source.searchReceipt.digest
+          } : {}),
           ...(operation ? { operation } : {})
         };
         const issued = await integration.createCourtMandate(mandateInput);
@@ -1537,6 +1542,12 @@
   let officeKnowledgeRequestSerial = 0;
   let officeKnowledgeView = [];
 
+  function knowledgeRetrievalText(entry) {
+    const labels = { graph: "图谱牵连", entity: "实体命中", bm25: "原文命中", vector: "文义相近", category: "同类史料", schedule_tag: "时序相合" };
+    const channels = Array.isArray(entry?.retrieval?.channels) ? entry.retrieval.channels : [];
+    return channels.map((item) => `${labels[item.channel] || item.channel} ${Math.round(Number(item.normalizedScore || 0) * 100)}%`).join(" · ") || "本回目录";
+  }
+
   function renderOfficeKnowledgeResults() {
     const panel = $("#officeKnowledgeResults");
     const stageId = String(officeStage()?.id || "");
@@ -1548,7 +1559,7 @@
         const eligible = String(entry.stageId || "") === stageId;
         return `<button type="button" class="office-source-choice${active ? " selected" : ""}" data-knowledge-id="${escapeHtml(String(entry.id))}" data-source-index="${index}" ${eligible ? "" : "disabled"}><strong>${escapeHtml(String(source.work || "未名出处"))}</strong><span>${escapeHtml(String(source.tier || "来源"))}</span><small>${escapeHtml(String(source.scope || "未注明适用范围"))}</small><b>${active ? "已取为据" : eligible ? "取此为据" : "非本回史料"}</b></button>`;
       }).join("");
-      return `<article class="${selected?.knowledgeId === String(entry.id) ? "selected" : ""}"><strong>${escapeHtml(entry.name || entry.title || "史官条目")}</strong><p>${escapeHtml(entry.summary || entry.content || "")}</p><div class="office-source-choices">${sourceButtons || "<small>此条尚未发布可选出处。</small>"}</div></article>`;
+      return `<article class="${selected?.knowledgeId === String(entry.id) ? "selected" : ""}"><strong>${escapeHtml(entry.name || entry.title || "史官条目")}</strong><div class="office-retrieval-trace">${escapeHtml(knowledgeRetrievalText(entry))}</div><p>${escapeHtml(entry.summary || entry.content || "")}</p><div class="office-source-choices">${sourceButtons || "<small>此条尚未发布可选出处。</small>"}</div></article>`;
     }).join("") || "<p>简册中未查到相关记载。</p>";
   }
 
@@ -1603,7 +1614,7 @@
     const context = { serial: ++officeKnowledgeRequestSerial, stageId: String(officeStage()?.id || ""), query };
     $("#officeKnowledgeResults").innerHTML = "<p>史官正在检索简册……</p>";
     try {
-      const payload = await integration.searchKnowledge(query, 6);
+      const payload = await integration.searchKnowledge(query, 6, officeStage()?.id);
       showOfficeKnowledge(payload, context);
     } catch (_) {
       $("#officeKnowledgeResults").innerHTML = "<p>史官简册暂不可达，请稍后再查。</p>";

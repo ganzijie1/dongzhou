@@ -154,6 +154,7 @@
     const mandate = input && typeof input === "object" ? copy(input) : null;
     if (!mandate?.id || !mandate.stageId || !mandate.heroId || !mandate.taskType) throw new Error("内核军令缺少关卡、属官或差事");
     if (!mandate.evidence?.id || !mandate.evidence?.source?.work || !mandate.council?.requestId || !mandate.council?.text) throw new Error("内核军令未绑定史料、选证与属官裁断");
+    if (mandate.evidence.searchReceipt && (!/^[0-9a-f]{64}$/.test(String(mandate.evidence.searchReceipt.digest || "")) || !Array.isArray(mandate.evidence.retrieval?.channels) || !mandate.evidence.retrieval.channels.length)) throw new Error("内核军令检索回执无效");
     if (!mandate.assignment?.planId || !mandate.assignment?.eventId || mandate.assignment?.heroId !== mandate.heroId) throw new Error("内核军令未绑定属官当值日程");
     if (mandate.state !== "ISSUED" || !/^[0-9a-f]{64}$/.test(String(mandate.digest || "")) || !["READY", "DEGRADED"].includes(mandate.kernel?.state)) throw new Error("内核军令尚未签发或印记无效");
     if (mandate.operation && (mandate.taskType !== "diplomacy" || mandate.operation.kind !== "diplomacy" || !mandate.operation.target_id || !mandate.operation.target_name || !mandate.operation.proposal)) throw new Error("外交军令缺少目标或主张");
@@ -180,6 +181,7 @@
       scope: council.evidenceSource.scope, url: council.evidenceSource.url
     } : null;
     if (input.mandateId && (!mandate || mandate.stageId !== String(input.stageId || "") || mandate.heroId !== member.id || mandate.taskType !== input.type || mandate.evidence?.id !== input.knowledgeId || mandate.council?.requestId !== input.councilId || JSON.stringify(mandate.evidence?.source || null) !== JSON.stringify(councilSource))) throw new Error("内核军令与本次关卡、属官、选证或差事不匹配");
+    if (mandate?.evidence?.searchReceipt && JSON.stringify(mandate.evidence.searchReceipt) !== JSON.stringify(council?.evidenceSource?.searchReceipt || null)) throw new Error("内核军令与军议检索回执不匹配");
     const operation = input.operation && typeof input.operation === "object" ? copy(input.operation) : mandate?.operation ? copy(mandate.operation) : null;
     if (operation && (input.type !== "diplomacy" || operation.kind !== "diplomacy" || !operation.target_id || !operation.target_name || !operation.proposal || !mandate?.operation || JSON.stringify(operation) !== JSON.stringify(mandate.operation))) throw new Error("外交差事与内核军令不匹配");
     const active = state.tasks.some((task) => task.status === "active" && task.assigneeId === member.id);
@@ -504,7 +506,9 @@
     if (!stageId || !knowledge || !Number.isInteger(index) || !source?.work) throw new Error("所选出处不属于本回已发布史料");
     const selection = {
       knowledgeId: knowledge.id, index, work: String(source.work), tier: String(source.tier || "来源"),
-      scope: String(source.scope || ""), url: String(source.url || "")
+      scope: String(source.scope || ""), url: String(source.url || ""),
+      ...(knowledge.searchReceipt ? { searchReceipt: copy(knowledge.searchReceipt) } : {}),
+      ...(knowledge.retrieval ? { retrieval: copy(knowledge.retrieval) } : {})
     };
     state.selectedSources[stageId] = selection;
     state.history.push({ month: state.month, tone: "knowledge", text: `本回选证：${selection.work}（${selection.tier}）` });
@@ -516,9 +520,20 @@
     const state = normalizeState(rawState);
     if (!entry?.id) return state;
     const sources = Array.isArray(entry.sourceDetails) ? entry.sourceDetails : [];
+    const channels = Array.isArray(entry.retrieval?.channels) ? entry.retrieval.channels.filter((item) => item && ["vector", "bm25", "entity", "category", "schedule_tag", "graph"].includes(item.channel)).slice(0, 6).map((item) => ({
+      channel: item.channel, score: Number(item.score || 0), normalizedScore: clamp(item.normalizedScore, 0, 1), rank: Math.max(1, Math.trunc(Number(item.rank || 1)))
+    })) : [];
+    const retrieval = channels.length ? {
+      aggregateScore: clamp(entry.retrieval?.aggregateScore, 0, 1), strongestChannel: String(entry.retrieval?.strongestChannel || ""),
+      graphRelated: Boolean(entry.retrieval?.graphRelated), channels
+    } : null;
+    const searchReceipt = entry.searchReceipt && typeof entry.searchReceipt.id === "string" && /^[0-9a-f]{64}$/.test(String(entry.searchReceipt.digest || ""))
+      ? { id: entry.searchReceipt.id, digest: entry.searchReceipt.digest }
+      : null;
     state.knowledge = [{
       id: String(entry.id), name: String(entry.name || entry.title || "史官条目"), summary: String(entry.summary || ""),
       content: String(entry.content || ""), stageId: String(entry.stageId || ""),
+      ...(retrieval ? { retrieval } : {}), ...(searchReceipt ? { searchReceipt } : {}),
       sources: sources.filter((source) => source && typeof source === "object" && source.work).slice(0, 20).map((source, index) => ({
         index, work: String(source.work), tier: String(source.tier || "来源"), scope: String(source.scope || ""), url: String(source.url || "")
       }))

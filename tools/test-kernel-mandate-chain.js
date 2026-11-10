@@ -15,6 +15,8 @@ state = play.recordKnowledge(state, {
   stageId: "01",
   name: "东郊旧闻",
   summary: "杜伯蒙冤，东郊军心不稳。",
+  retrieval: { aggregateScore: 0.47, strongestChannel: "graph", graphRelated: true, channels: [{ channel: "graph", score: 1, normalizedScore: 1, rank: 1 }] },
+  searchReceipt: { id: "dongzhou:player:00000000-0000-4000-8000-000000000099", digest: "c".repeat(64) },
   sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }]
 });
 state = play.selectEvidence(state, { stageId: "01", knowledgeId: "dongzhou_stage_001", sourceIndex: 0 }).state;
@@ -37,7 +39,7 @@ const mandate = {
   stageTitle: "东郊索命",
   heroId: "ZuoRu",
   taskType: "drill",
-  evidence: { id: "dongzhou_stage_001", name: "东郊旧闻", summary: "杜伯蒙冤", source: { index: 0, work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" } },
+  evidence: { id: "dongzhou_stage_001", name: "东郊旧闻", summary: "杜伯蒙冤", source: { index: 0, work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }, retrieval: { aggregateScore: 0.47, strongestChannel: "graph", graphRelated: true, channels: [{ channel: "graph", score: 1, normalizedScore: 1, rank: 1 }] }, searchReceipt: { id: "dongzhou:player:00000000-0000-4000-8000-000000000099", digest: "c".repeat(64) } },
   council: { requestId: councilInput.id, index: 1, text: "强攻" },
   assignment: { heroId: "ZuoRu", npcId: "42", runtimeState: "READY", planId: "plan-1", generationId: "gen-1", eventId: "event-drill", transactionId: 9100102, name: "检阅军阵", type: "军事", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "calm", intensity: 0, affectionCount: 0, relationshipCount: 0 } },
   kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "READY" },
@@ -62,6 +64,8 @@ const created = play.createTask(state, {
 });
 created.task.remoteResult = "remote-mandate-task";
 assert.strictEqual(created.task.mandate.digest, mandate.digest);
+assert.equal(created.task.council.evidenceSource.retrieval.graphRelated, true);
+assert.equal(created.task.mandate.evidence.searchReceipt.digest, "c".repeat(64));
 assert.throws(() => play.createTask(state, {
   type: "patrol",
   assigneeId: "ZuoRu",
