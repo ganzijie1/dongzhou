@@ -3,11 +3,11 @@
 ## 入口与交付包
 
 - 游戏入口：`http://127.0.0.1:8780/`
-- 东周网关镜像：`dongzhou-integration:20261110-local-complete14`
+- 东周网关镜像：`dongzhou-integration:20261110-local-complete20`
 - AINPC 八角色镜像：`ainpc-app:v20261110-dongzhou-local-complete14`
 - orgFlow API/Worker 镜像：`org-flow-engine:dongzhou-local-complete22`
-- H5 完整包：`output/2026-11-10-dongzhou-integrated-h5-complete14.zip`
-- H5 SHA256：`3c46c444759d088ddf60026fec8efaa7d97f2d6cca0672991912847af55a22c8`
+- H5 完整包：`output/2026-11-10-dongzhou-integrated-h5-complete20.zip`
+- H5 SHA256：`9fdd14981f4e991126375eaa24924a22e2617e72279a17f9ce9e2f2c56fd2a6d`
 
 东周入口、AINPC 网关和 AINPC Mongo 分别只监听 `127.0.0.1:8780`、`127.0.0.1:9130` 和 `127.0.0.1:27117`。Docker Desktop 已登记为当前 Windows 用户登录后自动启动；各长期容器使用 `unless-stopped`。
 
@@ -53,8 +53,9 @@ AINPC 容器通过宿主回环代理访问 LoongEQ、LoongMemory、输入预检�
 - AINPC 八角色使用 `complete14` 镜像且健康、重启次数为零；LoongEQ 与 LoongMemory 从容器内返回 `ready`，真实左儒决策返回 `COMPLETED`。
 - orgFlow API/Worker 使用 `complete22` 镜像，通知意图无 `PENDING` 积压；真实晚到送达回执会以原通知 ID 对账，不会重复发私聊。
 - 全文检索和已发布史料通过真实浏览器验收，没有 API 模拟。
-- 原外交任务只保留一条本地/远端身份，最终真实结果为 `FAILED / FAILURE`，AINPC 复命已送达，outbox 已 `DELIVERED`。
+- 正式外交链已通过无拦截真实浏览器验收：knowledge-jizhan 史料、AINPC 军议、NexusKernel 外交军令、orgFlow 任务、云端游说结果和盟约门禁完整贯通；本次真实结果为 `FAILURE`，页面正确拒绝结盟，云存档重载后仍一致。证据为 `live-diplomacy-acceptance-20261110-formal-diplomacy-complete17.json` 与同名 PNG。
+- NPC 日程会在派单和每次月令推进时刷新；执行期、结果确认期不会因经理或执行人的旧日程停在 `WAITING_ACTIVE`。AINPC 复命和网关 `CHAT_START / CHAT_TURN / DELIVERY_RESULT` outbox 均已 `DELIVERED`。
 - 东周网关冷重启后，原存档、任务身份、失败终态和浏览器显示保持一致。
 - H5 包含 172 个关卡、4038 个文件、2520 条角色语音和 1126 个情境音乐 cue；发布校验无错误。
 
-验收记录位于 `output/integration-validation/`，其中最终只读检查为 `local-delivery-latest.json`，真实任务恢复验收为 `live-task-recovery-complete15.json`。
+验收记录位于 `output/integration-validation/`，其中最终只读检查为 `local-delivery-latest.json`，真实任务恢复验收为 `live-task-recovery-complete15.json`，正式外交链验收为 `live-diplomacy-acceptance-20261110-formal-diplomacy-complete17.json`。

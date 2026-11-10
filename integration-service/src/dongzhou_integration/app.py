@@ -883,6 +883,8 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "state": str(runtime_status["state"]).upper(),
             },
         }
+        if request.operation is not None:
+            trace["operation"] = request.operation.model_dump(mode="json")
         # Canonical JSON keeps the seal stable across retries and process restarts.
         digest = hashlib.sha256(
             json.dumps(trace, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
@@ -908,6 +910,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             raise ApiError("organization_hero_unconfigured", "The selected hero is not mapped to an active organization member and position.", status_code=422)
         mandate_id = request.parameters.mandate_id
         mandate_digest = request.parameters.mandate_digest
+        mandate: dict[str, Any] | None = None
         if bool(mandate_id) != bool(mandate_digest):
             raise ApiError(
                 "court_mandate_incomplete",
@@ -956,6 +959,20 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             if previous and previous.get("state") == "PENDING":
                 raise ApiError("request_in_progress", "The same organization order is still being processed.", status_code=409)
             return {"replayed": True, **(previous or {})}
+        effective_parameters = request.parameters.model_dump(
+            exclude={"mandate_id", "mandate_digest"}
+        )
+        brief = request.brief
+        operation = mandate.get("operation") if isinstance(mandate, dict) else None
+        if isinstance(operation, dict) and operation.get("kind") == "diplomacy":
+            operation_reference = hashlib.sha256(
+                json.dumps(operation, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
+            ).hexdigest()[:16]
+            brief = (
+                "Conduct the sealed fictional Dongzhou diplomacy mission for polity "
+                f"{operation['target_id']}. Nexus operation reference {operation_reference}. "
+                "Report only the in-game outcome."
+            )
         trigger = {
             "source": "ORGANIZATION_EVENT",
             "source_event_id": stable_event_id(player_id, request.client_request_id),
@@ -968,8 +985,8 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             ),
             "task_code": f"dongzhou.{request.task_type}",
             "expected_hierarchy_version": settings.orgflow_hierarchy_version,
-            "parameters": {**request.parameters.model_dump(), "stage_id": request.stage_id, "stage_title": request.stage_title, "assignee_hero_id": request.assignee_hero_id},
-            "brief": request.brief,
+            "parameters": {**effective_parameters, "stage_id": request.stage_id, "stage_title": request.stage_title, "assignee_hero_id": request.assignee_hero_id},
+            "brief": brief,
         }
         try:
             result = await upstreams.trigger_virtual_task(settings.orgflow_org_id, trigger)

@@ -152,7 +152,8 @@
     return { ...result, clientRequestId: pending.client_request_id };
   }
   function mandatePendingKey(input) {
-    const context = [input.stage_id, input.hero_id, input.knowledge_id, input.council_request_id, input.task_type].join(":");
+    const operation = input.operation ? JSON.stringify(input.operation) : "";
+    const context = [input.stage_id, input.hero_id, input.knowledge_id, input.council_request_id, input.task_type, operation].join(":");
     return MANDATE_PENDING_PREFIX + context;
   }
   async function createCourtMandate(input) {
@@ -229,7 +230,7 @@
   }
 
   async function createOrganizationTask(input, task) {
-    const pendingKey = `dongzhou-pending-task-v1:${input.task_type}:${input.assignee_hero_id}:${input.stage_id}`;
+    const pendingKey = `dongzhou-pending-task-v1:${input.task_type}:${input.assignee_hero_id}:${input.stage_id}:${input.parameters?.mandate_id || "unsealed"}`;
     const existing = read(ORDER_JOURNAL_KEY, {});
     if (Object.entries(existing).some(([key, entry]) => key !== pendingKey && entry.input?.assignee_hero_id === input.assignee_hero_id)) {
       throw new Error("该属官尚有待确认差事，请刷新恢复后再派单");

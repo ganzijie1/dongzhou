@@ -690,10 +690,13 @@ class Store:
                         "UPDATE player_game_clock SET month=? WHERE player_id=?",
                         (requested_month, str(player_id)),
                     )
-                    db.execute(
-                        "UPDATE game_clock SET month=MAX(month, ?),updated_at=CURRENT_TIMESTAMP WHERE singleton=1",
-                        (requested_month,),
-                    )
+                    if requested_month == current_month + 1:
+                        # The organization clock is a shared world clock. Every player's
+                        # first committed one-month advance moves it once; replaying the
+                        # same save month is idempotent even when that player joined late.
+                        db.execute(
+                            "UPDATE game_clock SET month=month+1,updated_at=CURRENT_TIMESTAMP WHERE singleton=1"
+                        )
         return await self.read_save(player_id)
 
     async def read_game_clock(self) -> dict[str, Any]:

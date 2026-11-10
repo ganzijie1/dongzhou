@@ -80,6 +80,8 @@
   const unitAnimations = new Map();
   const imageCache = new Map();
   const syncedNpcIds = new Set();
+  const warmedNpcScheduleIds = new Set();
+  let officeNpcSyncQueue = Promise.resolve();
   let officeNpcRefreshTimer = null;
   let officeNpcRefreshSerial = 0;
 
@@ -833,6 +835,7 @@
       setCampaignCamp(false);
       setCampaignSettings(false);
       renderOrganizationPanel();
+      syncOfficeNpcs(profile.organization.members).then(() => warmCurrentOfficeNpcSchedules()).catch(() => {});
       refreshOfficeNpcState();
       requestAnimationFrame(() => $("#campaignOfficeCloseButton").focus());
     } else {
@@ -874,7 +877,7 @@
     const currentType = $("#officeTaskType").value;
     $("#officeTaskType").innerHTML = Object.entries(organization.TASK_TYPES).map(([id, task]) => `<option value="${id}" ${id === currentType ? "selected" : ""}>${task.name} · ${task.duration}月</option>`).join("");
     $("#officeMembers").innerHTML = org.members.map((member) => `<div><strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(member.office)}</span><small>信任 ${member.loyalty} · 关系 ${Number(org.relations[member.id] || 0) >= 0 ? "+" : ""}${Number(org.relations[member.id] || 0)} · 劳顿 ${member.fatigue}</small></div>`).join("") || "<p>随战役推进，出阵人物会进入官署名册。</p>";
-    $("#officeTaskLedger").innerHTML = [...org.tasks].reverse().slice(0, 10).map((task) => `<li class="${task.status}"><span>${escapeHtml(task.name)}</span><strong>${escapeHtml(task.assigneeName)}</strong><small>${task.status === "active" ? `${task.dueMonth}月复命` : task.status === "success" ? "办成" : task.status === "partial" ? "部分办成" : "未成"}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》军议` : ""}</small></li>`).join("") || '<li class="empty">尚无差事</li>';
+    $("#officeTaskLedger").innerHTML = [...org.tasks].reverse().slice(0, 10).map((task) => `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}</strong><small>${task.status === "active" ? `${task.dueMonth}月复命` : task.status === "success" ? "办成" : task.status === "partial" ? "部分办成" : "未成"}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》军议` : ""}</small></li>`).join("") || '<li class="empty">尚无差事</li>';
     $("#officeMandateLedger").innerHTML = [...org.mandates].reverse().slice(0, 6).map((mandate) => {
       const label = mandate.state === "RESOLVED" ? (mandate.outcome?.won ? "战后告捷" : "战后失利") : mandate.state === "FULFILLED" ? "复命待战" : mandate.state === "PARTIAL" ? "部分复命" : mandate.state === "FAILED" ? "执行未成" : mandate.state === "ORDERED" ? "属官执行中" : "已签发";
       return `<li class="${escapeHtml(String(mandate.state || "issued").toLowerCase())}"><span>${escapeHtml(mandate.evidence?.name || "内核军令")}</span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(mandate.council?.text || "")} · 印记 ${escapeHtml(String(mandate.digest || "").slice(0, 10))}</small></li>`;
@@ -887,6 +890,7 @@
     if (!$("#officeDecisionQuestion").value) $("#officeDecisionQuestion").value = `${record?.battleTitle || "下一战"}应如何部署？`;
     const decisionDefaults = ["先固军粮，稳步推进", `整军强攻，争取${record?.objective || "先机"}`, "遣使探察，再定进退"];
     document.querySelectorAll(".office-decision-option").forEach((input, index) => { if (!input.value) input.value = decisionDefaults[index]; });
+    renderOfficeDiplomacyStatus();
   }
 
   async function refreshIntegrationStatus() {
@@ -928,10 +932,7 @@
     }
     panel.innerHTML = `<p>正在调阅 ${escapeHtml(member.name)} 的属官状态…</p>`;
     try {
-      if (!syncedNpcIds.has(member.id)) {
-        await integration.syncNpcs([{ heroId: member.id, name: member.name }]);
-        syncedNpcIds.add(member.id);
-      }
+      await syncOfficeNpcs([member]);
       const state = await integration.npcState(member.id);
       if (!isCurrentOfficeNpcRequest(serial, member.id)) return;
       const emotion = state.emotion?.data || state.emotion || {};
@@ -996,8 +997,74 @@
   }
 
   let officeLobbyInFlight = false;
+  function renderOfficeDiplomacyStatus() {
+    const panel = $("#officeDiplomacyResult");
+    if (!panel || officeLobbyInFlight || officeDiplomacyMutationInFlight) return;
+    const targetId = $("#officeDiplomacyTarget").value;
+    const alliance = [...profile.organization.diplomacy.alliances].reverse().find((entry) => entry.targetId === targetId && entry.status === "active");
+    if (alliance) {
+      panel.textContent = `与${alliance.targetName}的盟约正在生效。`;
+      return;
+    }
+    const activeTask = [...profile.organization.tasks].reverse().find((task) => task.status === "active" && task.operation?.kind === "diplomacy" && task.operation.target_id === targetId);
+    if (activeTask) {
+      panel.textContent = `${activeTask.assigneeName}正奉内核军令出使${activeTask.operation.target_name}，须待 orgFlow 复命。`;
+      return;
+    }
+    const lobbying = [...profile.organization.diplomacy.lobbying].reverse().find((entry) => entry.targetId === targetId);
+    if (lobbying?.outcome === "accepted") panel.textContent = `${lobbying.targetName}已接受“${lobbying.proposal}”，可正式缔盟。`;
+    else if (lobbying) panel.textContent = `${lobbying.targetName}未接受最近一次主张，须重新请领外交差事。`;
+    else panel.textContent = "外交军令须引用本回史料与属官军议，并经 orgFlow 复命后方可缔盟。";
+  }
+
+  async function commitOrganizationState(next) {
+    if (integration.isOffline()) {
+      saveOrganization(next);
+      return;
+    }
+    await integration.persist({ ...profile, organization: next });
+    profile.organization = next;
+    writeJson(PROFILE_KEY, profile);
+    renderOrganizationPanel();
+    if (profile.organization.backend.aiNpc) {
+      await syncOfficeNpcs(profile.organization.members).then(() => warmCurrentOfficeNpcSchedules()).catch(() => {});
+    }
+  }
+
+  function syncOfficeNpcs(members, force = false) {
+    if (integration.isOffline()) return Promise.resolve();
+    const requested = [...new Map((members || [])
+      .filter((member) => member?.id && member?.name)
+      .map((member) => [member.id, member])).values()];
+    officeNpcSyncQueue = officeNpcSyncQueue.catch(() => {}).then(async () => {
+      const pending = force ? requested : requested.filter((member) => !syncedNpcIds.has(member.id));
+      if (!pending.length) return;
+      await integration.syncNpcs(pending.map((member) => ({ heroId: member.id, name: member.name })));
+      pending.forEach((member) => syncedNpcIds.add(member.id));
+    });
+    return officeNpcSyncQueue;
+  }
+
+  function warmOfficeNpcSchedules(members, force = false) {
+    if (integration.isOffline()) return;
+    for (const member of members || []) {
+      if (!member?.id || (!force && warmedNpcScheduleIds.has(member.id))) continue;
+      warmedNpcScheduleIds.add(member.id);
+      // AINPC continues expired-plan regeneration after its HTTP wait budget. The
+      // organization worker then retries the same frozen private-chat intent.
+      integration.generateNpcSchedule(member.id).catch(() => {});
+    }
+  }
+
+  function warmCurrentOfficeNpcSchedules(force = false) {
+    const members = profile.organization.members;
+    const manager = members.find((member) => member.id === "DuBo") || { id: "DuBo", name: displayName("DuBo") };
+    const assignee = members.find((member) => member.id === $("#officeMemberSelect").value);
+    warmOfficeNpcSchedules([manager, assignee], force);
+  }
+
   async function lobbyPolity() {
-    if (officeLobbyInFlight || officeCouncilInFlight) return;
+    if (officeLobbyInFlight || officeCouncilInFlight || officeOrderInFlight) return;
     const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
     const stageId = String(officeStage()?.id || "");
     const knowledge = profile.organization.knowledge.find((entry) => entry.stageId === stageId);
@@ -1010,44 +1077,48 @@
     if (!member || !knowledge || !council || !proposal) { panel.textContent = "请先查本回史料并由当前使者完成军议，再提出盟约。"; return; }
     officeLobbyInFlight = true;
     $("#officeLobbyButton").disabled = true;
-    panel.textContent = member.name + "正在向" + targetName + "陈说利害…";
+    panel.textContent = member.name + "正在请领外交差事…";
     try {
-      const question = ("外交游说：向" + targetName + "提出“" + proposal + "”。依据《" + knowledge.name + "》与军议“" + council.text + "”。是否接受？").slice(0, 2000);
-      const response = await integration.npcDecision(member.id, question, ["接受盟约", "拒绝盟约"]);
-      const selected = response.decision?.data || response.decision || {};
-      if (response.state !== "COMPLETED" || selected.type !== "OPTION") throw new Error("游说尚未形成有效答复");
-      if (String(officeStage()?.id || "") !== stageId || $("#officeMemberSelect").value !== member.id || $("#officeDiplomacyTarget").value !== targetId || $("#officeDiplomacyProposal").value.trim() !== proposal) { panel.textContent = "游说条件已变化，本次答复不落档。"; return; }
-      const outcome = Number(selected.index) === 0 ? "accepted" : "rejected";
-      const noted = organization.recordLobbying(profile.organization, { id: "lobby:" + response.clientRequestId, stageId, targetId, targetName, memberId: member.id, knowledgeId: knowledge.id, councilId: council.id, proposal, outcome, decision: { type: selected.type, index: Number(selected.index), text: selected.text || "" } });
-      await integration.persist({ ...profile, organization: noted.state });
-      profile.organization = noted.state;
-      writeJson(PROFILE_KEY, profile);
-      renderOrganizationPanel();
-      panel.textContent = outcome === "accepted" ? targetName + "已接受主张，可正式缔盟。" : targetName + "拒绝了本次主张。";
+      if (integration.isOffline()) {
+        const accepted = organization.hash([stageId, member.id, targetId, proposal, profile.organization.month].join(":")) % 100 < 65;
+        const noted = organization.recordLobbying(profile.organization, { id: "lobby:offline:" + organization.hash([stageId, member.id, targetId, proposal].join(":")), stageId, targetId, targetName, memberId: member.id, knowledgeId: knowledge.id, councilId: council.id, proposal, outcome: accepted ? "accepted" : "rejected", decision: { type: "OFFLINE", index: accepted ? 0 : 1 } });
+        await commitOrganizationState(noted.state);
+        panel.textContent = accepted ? targetName + "已接受主张，可正式缔盟。" : targetName + "拒绝了本次主张。";
+        return;
+      }
+      const task = await issueOfficeTask({ kind: "diplomacy", target_id: targetId, target_name: targetName, proposal });
+      panel.textContent = task ? `${member.name}已奉内核军令出使${targetName}，须待 orgFlow 复命后方可缔盟。` : "外交差事未获受理，请核对军议与服务状态。";
     } catch (error) { panel.textContent = "游说暂不可用：" + error.message; }
     finally { officeLobbyInFlight = false; $("#officeLobbyButton").disabled = false; }
   }
 
-  function signAlliance() {
+  let officeDiplomacyMutationInFlight = false;
+  async function signAlliance() {
+    if (officeDiplomacyMutationInFlight) return;
     const targetId = $("#officeDiplomacyTarget").value;
-    const lobbying = [...profile.organization.diplomacy.lobbying].reverse().find((entry) => entry.targetId === targetId && entry.outcome === "accepted");
+    const lobbying = [...profile.organization.diplomacy.lobbying].reverse().find((entry) => entry.targetId === targetId);
+    officeDiplomacyMutationInFlight = true;
     try {
-      if (!lobbying) throw new Error("该诸侯尚未接受游说");
-      const signed = organization.createAlliance(profile.organization, { id: "pact:" + lobbying.id, lobbyingId: lobbying.id, terms: [$("#officeDiplomacyProposal").value.trim(), "共享本回军情"] });
-      saveOrganization(signed.state);
+      if (!lobbying || lobbying.outcome !== "accepted") throw new Error("该诸侯尚未接受最近一次游说");
+      const signed = organization.createAlliance(profile.organization, { id: "pact:" + lobbying.id, lobbyingId: lobbying.id, terms: [lobbying.proposal, "共享本回军情"] });
+      await commitOrganizationState(signed.state);
       $("#officeDiplomacyResult").textContent = "已与" + signed.alliance.targetName + "缔盟，盟约收入官署档案。";
     } catch (error) { $("#officeDiplomacyResult").textContent = error.message; }
+    finally { officeDiplomacyMutationInFlight = false; }
   }
 
-  function betrayAlliance() {
+  async function betrayAlliance() {
+    if (officeDiplomacyMutationInFlight) return;
     const targetId = $("#officeDiplomacyTarget").value;
     const alliance = profile.organization.diplomacy.alliances.find((entry) => entry.targetId === targetId && entry.status === "active");
+    officeDiplomacyMutationInFlight = true;
     try {
       if (!alliance) throw new Error("该诸侯没有生效盟约");
       const broken = organization.breakAlliance(profile.organization, { allianceId: alliance.id, stageId: String(officeStage()?.id || ""), reason: $("#officeDiplomacyProposal").value.trim() || "因战局而背盟" });
-      saveOrganization(broken.state);
+      await commitOrganizationState(broken.state);
       $("#officeDiplomacyResult").textContent = "已背弃与" + alliance.targetName + "的盟约；本战获得突袭之利，但士气与邦交受损。";
     } catch (error) { $("#officeDiplomacyResult").textContent = error.message; }
+    finally { officeDiplomacyMutationInFlight = false; }
   }
 
   let officeCouncilInFlight = false;
@@ -1090,8 +1161,8 @@
   }
 
   let officeOrderInFlight = false;
-  async function issueOfficeTask() {
-    if (officeOrderInFlight || officeCouncilInFlight) return;
+  async function issueOfficeTask(operation = null) {
+    if (officeOrderInFlight || officeCouncilInFlight) return null;
     officeOrderInFlight = true;
     $("#officeIssueButton").disabled = true;
     const record = officeStage();
@@ -1101,20 +1172,27 @@
       }
       if (!integration.isOffline() && profile.organization.backend.orgFlow && $("#officeMemberSelect").value === "DuBo") {
         showNotice("杜伯是当前组织负责人，不能向自己派单，请选择一名直属下属。");
-        return;
+        return null;
       }
-      const taskDefinition = organization.TASK_TYPES[$("#officeTaskType").value];
+      const taskType = operation?.kind === "diplomacy" ? "diplomacy" : $("#officeTaskType").value;
+      const taskDefinition = organization.TASK_TYPES[taskType];
       if (profile.campaignResources.provisions < taskDefinition.cost) {
         showNotice("军粮不足，无法颁下这项差事");
-        return;
+        return null;
       }
       const knowledge = profile.organization.knowledge.find((entry) => entry.stageId === String(record?.id || ""));
-      const council = $("#officeUseCouncil").checked ? currentOfficeCouncil() : null;
+      const council = operation ? currentOfficeCouncil() : $("#officeUseCouncil").checked ? currentOfficeCouncil() : null;
       const councilContext = council ? [council.stageId, council.memberId, council.knowledgeId, council.id].join(':') : "";
-      if ($("#officeUseCouncil").checked && (!council || $("#officeUseCouncil").dataset.councilContext !== councilContext)) throw new Error("军议选择已变化，请重新确认引用");
+      if ((operation || $("#officeUseCouncil").checked) && (!council || $("#officeUseCouncil").dataset.councilContext !== councilContext)) throw new Error("军议选择已变化，请重新确认引用");
       if (!integration.isOffline() && (!knowledge || !council)) throw new Error("联网授命必须引用本回史料与已保存军议");
-      const taskType = $("#officeTaskType").value;
       const assigneeId = $("#officeMemberSelect").value;
+      const assignee = profile.organization.members.find((member) => member.id === assigneeId);
+      const manager = profile.organization.members.find((member) => member.id === "DuBo") || { id: "DuBo", name: displayName("DuBo") };
+      if (!integration.isOffline()) {
+        if (!assignee) throw new Error("所选属官不在当前组织名册中");
+        await syncOfficeNpcs([manager, assignee], true);
+        warmOfficeNpcSchedules([manager, assignee]);
+      }
       let mandateInput = null;
       let issuedMandate = null;
       let taskBaseState = profile.organization;
@@ -1126,11 +1204,13 @@
           knowledge_id: knowledge.id,
           council_request_id: council.id,
           decision_index: Number(council.index),
-          task_type: taskType
+          task_type: taskType,
+          ...(operation ? { operation } : {})
         };
         const issued = await integration.createCourtMandate(mandateInput);
         issuedMandate = issued.mandate;
-        if (String(officeStage()?.id || "") !== String(record?.id || "") || $("#officeMemberSelect").value !== assigneeId || $("#officeTaskType").value !== taskType || currentOfficeCouncil()?.id !== council.id) {
+        const operationChanged = operation && ($("#officeDiplomacyTarget").value !== operation.target_id || $("#officeDiplomacyProposal").value.trim() !== operation.proposal);
+        if (String(officeStage()?.id || "") !== String(record?.id || "") || $("#officeMemberSelect").value !== assigneeId || (!operation && $("#officeTaskType").value !== taskType) || currentOfficeCouncil()?.id !== council.id || operationChanged) {
           throw new Error("授命条件已变化，请重新确认军议与差事");
         }
         taskBaseState = organization.recordMandate(taskBaseState, issuedMandate).state;
@@ -1142,7 +1222,8 @@
         stageTitle: record?.battleTitle,
         knowledgeId: knowledge?.id,
         councilId: council?.id,
-        mandateId: issuedMandate?.id
+        mandateId: issuedMandate?.id,
+        operation
       });
       const remote = integration.isOffline() ? { state: "OFFLINE" } : await integration.createOrganizationTask({
         task_type: created.task.type,
@@ -1171,8 +1252,10 @@
         saveOrganization(created.state);
       }
       showNotice(`${created.task.assigneeName}已领命：${created.task.name}`);
+      return created.task;
     } catch (error) {
       showNotice(error.message);
+      return null;
     } finally {
       officeOrderInFlight = false;
       $("#officeIssueButton").disabled = false;
@@ -1186,6 +1269,7 @@
     $("#officeAdvanceButton").disabled = true;
     try {
     if (!integration.isOffline()) {
+      warmCurrentOfficeNpcSchedules(true);
       if (!profile.organization.backend.orgFlow) {
         showNotice("组织流服务当前不可用，月令未推进，请稍后重试。");
         return;
@@ -1196,11 +1280,11 @@
         const snapshots = responses.map((response) => response.result?.data || response.result || null);
         const waiting = snapshots.some((snapshot) => !organization.remoteTaskReadyForAdvance(snapshot));
         if (waiting) {
-          saveOrganization(organization.reconcileRemoteTasks(profile.organization, snapshots, { advanceMonth: false }));
+          await commitOrganizationState(organization.reconcileRemoteTasks(profile.organization, snapshots, { advanceMonth: false }));
           showNotice("差事仍在受理，待属官确认后方可推进月令。");
           return;
         }
-        saveOrganization(organization.reconcileRemoteTasks(profile.organization, snapshots));
+        await commitOrganizationState(organization.reconcileRemoteTasks(profile.organization, snapshots));
         const latest = profile.organization.history.at(-1);
         showNotice(latest?.text || "月令已进，官署差事仍在办理");
       } catch (error) {
@@ -2920,10 +3004,11 @@
     $("#officeMemberSelect").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOfficeCouncil(); refreshOfficeNpcState(); });
     $("#officeScheduleButton").addEventListener("click", generateOfficeNpcSchedule);
     $("#officeDecisionForm").addEventListener("submit", requestOfficeNpcDecision);
+    $("#officeDiplomacyTarget").addEventListener("change", renderOfficeDiplomacyStatus);
     $("#officeLobbyButton").addEventListener("click", lobbyPolity);
     $("#officeAllianceButton").addEventListener("click", signAlliance);
     $("#officeBetrayButton").addEventListener("click", betrayAlliance);
-    $("#officeIssueButton").addEventListener("click", issueOfficeTask);
+    $("#officeIssueButton").addEventListener("click", () => issueOfficeTask());
     $("#officeAdvanceButton").addEventListener("click", advanceOfficeMonth);
     $("#officeKnowledgeForm").addEventListener("submit", searchOfficeKnowledge);
     $("#officeStageKnowledgeButton").addEventListener("click", loadOfficeStageKnowledge);

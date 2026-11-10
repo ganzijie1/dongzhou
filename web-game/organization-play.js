@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 3;
+  const SCHEMA_VERSION = 4;
   const TASK_TYPES = {
     supply: { name: "转运军粮", office: "司徒", duration: 1, cost: 8, base: 72, reward: { provisions: 24 } },
     drill: { name: "整训军阵", office: "司马", duration: 1, cost: 6, base: 68, reward: { attack: 0.08 } },
@@ -141,6 +141,7 @@
     if (!mandate?.id || !mandate.stageId || !mandate.heroId || !mandate.taskType) throw new Error("内核军令缺少关卡、属官或差事");
     if (!mandate.evidence?.id || !mandate.council?.requestId || !mandate.council?.text) throw new Error("内核军令未绑定史料与属官裁断");
     if (!/^[0-9a-f]{64}$/.test(String(mandate.digest || "")) || !["READY", "DEGRADED"].includes(mandate.kernel?.state)) throw new Error("内核军令印记无效");
+    if (mandate.operation && (mandate.taskType !== "diplomacy" || mandate.operation.kind !== "diplomacy" || !mandate.operation.target_id || !mandate.operation.target_name || !mandate.operation.proposal)) throw new Error("外交军令缺少目标或主张");
     const previous = state.mandates.find((entry) => entry.id === mandate.id);
     if (previous && JSON.stringify(previous) !== JSON.stringify(mandate)) throw new Error("内核军令来源记录冲突");
     if (!previous) {
@@ -160,6 +161,8 @@
     if (input.councilId && (!council || council.memberId !== member.id || council.stageId !== String(input.stageId || '') || council.knowledgeId !== input.knowledgeId)) throw new Error('军议与本次关卡、官员或史料不匹配');
     const mandate = input.mandateId ? state.mandates.find((entry) => entry.id === input.mandateId) : null;
     if (input.mandateId && (!mandate || mandate.stageId !== String(input.stageId || "") || mandate.heroId !== member.id || mandate.taskType !== input.type || mandate.evidence?.id !== input.knowledgeId || mandate.council?.requestId !== input.councilId)) throw new Error("内核军令与本次关卡、属官、史料或差事不匹配");
+    const operation = input.operation && typeof input.operation === "object" ? copy(input.operation) : mandate?.operation ? copy(mandate.operation) : null;
+    if (operation && (input.type !== "diplomacy" || operation.kind !== "diplomacy" || !operation.target_id || !operation.target_name || !operation.proposal || !mandate?.operation || JSON.stringify(operation) !== JSON.stringify(mandate.operation))) throw new Error("外交差事与内核军令不匹配");
     const active = state.tasks.some((task) => task.status === "active" && task.assigneeId === member.id);
     if (active) throw new Error(`${member.name}已有差事在身`);
     // 序号独立于可裁剪的台账，旧存档从已有任务 ID 恢复，读档后不会重复领单。
@@ -178,6 +181,7 @@
       knowledgeId: input.knowledgeId ? String(input.knowledgeId) : null,
       council: council ? copy(council) : null,
       mandate: mandate ? copy(mandate) : null,
+      operation,
       startedMonth: state.month,
       dueMonth: state.month + definition.duration,
       status: "active",
@@ -209,13 +213,17 @@
       decision: input?.decision ? copy(input.decision) : null, month: state.month
     };
     if (!record.proposal) throw new Error("游说主张不可为空");
-    const previous = state.diplomacy.lobbying.find((entry) => entry.id === id);
+    return applyLobbyingRecord(state, record);
+  }
+
+  function applyLobbyingRecord(state, record) {
+    const previous = state.diplomacy.lobbying.find((entry) => entry.id === record.id);
     if (previous && JSON.stringify(previous) !== JSON.stringify(record)) throw new Error("游说来源记录冲突");
     if (!previous) {
       state.diplomacy.lobbying = [...state.diplomacy.lobbying, record].slice(-30);
       const delta = record.outcome === "accepted" ? 8 : -4;
-      state.diplomacy.relations[targetId] = clamp(Number(state.diplomacy.relations[targetId] || 0) + delta, -100, 100);
-      state.history.push({ month: state.month, tone: record.outcome === "accepted" ? "good" : "bad", text: member.name + "游说" + targetName + (record.outcome === "accepted" ? "得其响应。" : "未获响应。") });
+      state.diplomacy.relations[record.targetId] = clamp(Number(state.diplomacy.relations[record.targetId] || 0) + delta, -100, 100);
+      state.history.push({ month: state.month, tone: record.outcome === "accepted" ? "good" : "bad", text: record.memberName + "游说" + record.targetName + (record.outcome === "accepted" ? "得其响应。" : "未获响应。") });
     }
     return { state, lobbying: copy(previous || record) };
   }
@@ -392,6 +400,25 @@
       } else {
         state.influence = clamp(state.influence - 1, 0, 999);
         state.history.push({ month: state.month, tone: "bad", text: `${member.name}未能办成“${task.name}”，军府未获助益。` });
+      }
+      if (task.operation?.kind === "diplomacy") {
+        const accepted = finalResult === "SUCCESS";
+        applyLobbyingRecord(state, {
+          id: "lobby:" + task.remoteResult,
+          stageId: task.stageId,
+          targetId: String(task.operation.target_id),
+          targetName: String(task.operation.target_name),
+          memberId: task.assigneeId,
+          memberName: task.assigneeName,
+          knowledge: { id: task.knowledgeId, name: task.council?.knowledgeName || task.knowledgeId, summary: task.council?.knowledgeSummary || "" },
+          council: task.council ? copy(task.council) : null,
+          proposal: String(task.operation.proposal),
+          outcome: accepted ? "accepted" : "rejected",
+          decision: { type: "ORGFLOW_RESULT", finalResult },
+          organizationTaskId: task.remoteResult,
+          mandateId: task.mandate?.id || null,
+          month: state.month
+        });
       }
       member.fatigue = clamp(member.fatigue - 8, 0, 100);
     }

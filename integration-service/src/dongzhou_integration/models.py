@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
 
 class StrictModel(BaseModel):
@@ -173,6 +173,13 @@ class NpcScheduleGenerateRequest(StrictModel):
 OrganizationTaskType = Literal["diplomacy", "drill", "intelligence", "patrol", "supply"]
 
 
+class CourtMandateOperation(StrictModel):
+    kind: Literal["diplomacy"]
+    target_id: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_.:-]+$")
+    target_name: str = Field(min_length=1, max_length=100)
+    proposal: str = Field(min_length=1, max_length=500)
+
+
 class CourtMandateRequest(StrictModel):
     client_request_id: UUID = Field(strict=False)
     stage_id: str = Field(min_length=1, max_length=64)
@@ -182,6 +189,13 @@ class CourtMandateRequest(StrictModel):
     council_request_id: UUID = Field(strict=False)
     decision_index: int = Field(ge=0, le=20)
     task_type: OrganizationTaskType
+    operation: CourtMandateOperation | None = None
+
+    @model_validator(mode="after")
+    def operation_matches_task(self) -> "CourtMandateRequest":
+        if self.operation is not None and self.task_type != "diplomacy":
+            raise ValueError("court mandate operation does not match task type")
+        return self
 
 
 class OrganizationTaskParameters(StrictModel):

@@ -7,6 +7,29 @@ state.members = [{ id: "envoy", name: "行人子羽", office: "行人", loyalty:
 state = org.recordKnowledge(state, { id: "history-01", name: "本回史料", summary: "诸侯相攻", stageId: "01" });
 const council = org.recordCouncil(state, { id: "council-01", stageId: "01", memberId: "envoy", knowledgeId: "history-01", question: "是否结盟", options: ["结盟", "拒盟"], index: 0 });
 state = council.state;
+const operation = { kind: "diplomacy", target_id: "qi", target_name: "齐国", proposal: "互通军情" };
+let remoteState = org.recordMandate(state, {
+  id: "dongzhou:test:diplomacy", stageId: "01", stageTitle: "东郊索命", heroId: "envoy", taskType: "diplomacy",
+  evidence: { id: "history-01", name: "本回史料", summary: "诸侯相攻" },
+  council: { requestId: "council-01", index: 0, text: "结盟" }, operation,
+  kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "READY" },
+  digest: "d".repeat(64), state: "ISSUED"
+}).state;
+const remoteCreated = org.createTask(remoteState, { type: "diplomacy", assigneeId: "envoy", stageId: "01", stageTitle: "东郊索命", knowledgeId: "history-01", councilId: "council-01", mandateId: "dongzhou:test:diplomacy", operation });
+remoteCreated.task.remoteResult = "00000000-0000-0000-0000-000000000077";
+remoteState = org.reconcileRemoteTasks(remoteCreated.state, [{ task_id: remoteCreated.task.remoteResult, state: "SUCCEEDED", final_result: "SUCCESS" }]);
+assert.equal(remoteState.diplomacy.lobbying.length, 1);
+assert.equal(remoteState.diplomacy.lobbying[0].targetId, "qi");
+assert.equal(remoteState.diplomacy.lobbying[0].outcome, "accepted");
+assert.equal(remoteState.diplomacy.lobbying[0].mandateId, "dongzhou:test:diplomacy");
+assert.equal(org.reconcileRemoteTasks(remoteState, [{ task_id: remoteCreated.task.remoteResult, state: "SUCCEEDED", final_result: "SUCCESS" }]).diplomacy.relations.qi, 8, "replayed remote result must not change diplomacy twice");
+assert.throws(() => org.createTask(remoteState, { type: "diplomacy", assigneeId: "envoy", stageId: "01", stageTitle: "东郊索命", knowledgeId: "history-01", councilId: "council-01", mandateId: "dongzhou:test:diplomacy", operation: { ...operation, target_id: "jin" } }), /外交差事/);
+const partialCreated = org.createTask(remoteState, { type: "diplomacy", assigneeId: "envoy", stageId: "01", stageTitle: "东郊索命", knowledgeId: "history-01", councilId: "council-01", mandateId: "dongzhou:test:diplomacy", operation });
+partialCreated.task.remoteResult = "00000000-0000-0000-0000-000000000078";
+const partialState = org.reconcileRemoteTasks(partialCreated.state, [{ task_id: partialCreated.task.remoteResult, state: "SUCCEEDED", final_result: "PARTIAL" }]);
+const partialLobbying = partialState.diplomacy.lobbying.at(-1);
+assert.equal(partialLobbying.outcome, "rejected", "partial orgFlow result must not authorize an alliance");
+assert.throws(() => org.createAlliance(partialState, { id: "pact:partial", lobbyingId: partialLobbying.id, terms: [operation.proposal] }), /获准/);
 const lobbyingInput = { id: "lobby-01", stageId: "01", targetId: "zheng", targetName: "郑国", memberId: "envoy", knowledgeId: "history-01", councilId: "council-01", proposal: "共同御敌", outcome: "accepted", decision: { type: "OPTION", index: 0 } };
 const lobbying = org.recordLobbying(state, lobbyingInput);
 state = lobbying.state;

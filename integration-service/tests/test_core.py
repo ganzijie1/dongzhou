@@ -931,10 +931,18 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(advanced["month"], 2)
         self.assertEqual(advanced["virtualTime"], "0771-01-31 14:00:00")
 
+        replayed = await self.store.write_save(player_id, 2, {"organization": {"month": 2}})
+        self.assertEqual(replayed["version"], 3)
+        self.assertEqual((await self.store.read_game_clock())["month"], 2)
+
+        late_player = await self.store.get_or_create_player(uuid4())
+        await self.store.write_save(late_player, 1, {"organization": {"month": 2}})
+        self.assertEqual((await self.store.read_game_clock())["month"], 3)
+
         with self.assertRaises(GameClockConflict):
-            await self.store.write_save(player_id, 2, {"organization": {"month": 4}})
+            await self.store.write_save(player_id, 3, {"organization": {"month": 4}})
         with self.assertRaises(GameClockConflict):
-            await self.store.write_save(player_id, 2, {"organization": {"month": 1}})
+            await self.store.write_save(player_id, 3, {"organization": {"month": 1}})
 
     async def test_due_remote_task_enqueues_one_authenticated_report_dialogue(self) -> None:
         player_id = await self.store.get_or_create_player(uuid4())

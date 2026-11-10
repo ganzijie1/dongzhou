@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from uuid import UUID, uuid4
@@ -159,7 +161,8 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
             accepted = client.post("/api/dongzhou/v1/organization/tasks", json=order)
             assert accepted.status_code == 200
             assert accepted.json()["state"] == "ACCEPTED"
-            assert upstreams.triggers[0]["parameters"]["mandate_id"] == mandate["id"]
+            assert "mandate_id" not in upstreams.triggers[0]["parameters"]
+            assert "mandate_digest" not in upstreams.triggers[0]["parameters"]
 
             mismatched = {
                 **order,
@@ -171,6 +174,94 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
             )
             assert rejected.status_code == 422
             assert rejected.json()["error"]["code"] == "court_mandate_mismatch"
+
+
+def test_diplomacy_operation_is_sealed_and_drives_orgflow_brief() -> None:
+    with TemporaryDirectory() as directory:
+        upstreams = MandateUpstreams()
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=upstreams
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            council_id, _ = complete_council(client)
+            body = {
+                **mandate_body(council_id),
+                "task_type": "diplomacy",
+                "operation": {
+                    "kind": "diplomacy",
+                    "target_id": "zheng",
+                    "target_name": "郑国",
+                    "proposal": "互通军情，共御强敌",
+                },
+            }
+            issued = client.post("/api/dongzhou/v1/court/mandates", json=body)
+            assert issued.status_code == 200
+            mandate = issued.json()["mandate"]
+            assert mandate["operation"] == body["operation"]
+
+            order = {
+                "client_request_id": str(uuid4()),
+                "task_type": "diplomacy",
+                "assignee_hero_id": "ZuoRu",
+                "stage_id": "01",
+                "stage_title": "Dongzhou stage 01",
+                "brief": "This browser text must not replace the sealed operation.",
+                "parameters": {
+                    "resource_units": 9,
+                    "assignee_name": "左儒",
+                    "mandate_id": mandate["id"],
+                    "mandate_digest": mandate["digest"],
+                },
+            }
+            accepted = client.post("/api/dongzhou/v1/organization/tasks", json=order)
+            assert accepted.status_code == 200
+            trigger = upstreams.triggers[0]
+            operation_reference = hashlib.sha256(
+                json.dumps(
+                    mandate["operation"],
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ).encode("utf-8")
+            ).hexdigest()[:16]
+            assert trigger["brief"] == (
+                "Conduct the sealed fictional Dongzhou diplomacy mission for polity "
+                f"zheng. Nexus operation reference {operation_reference}. "
+                "Report only the in-game outcome."
+            )
+            assert "郑国" not in trigger["brief"]
+            assert "互通军情" not in trigger["brief"]
+            assert set(trigger["parameters"]) == {
+                "resource_units",
+                "assignee_name",
+                "stage_id",
+                "stage_title",
+                "assignee_hero_id",
+            }
+
+
+def test_non_diplomacy_mandate_rejects_diplomacy_operation() -> None:
+    with TemporaryDirectory() as directory:
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=MandateUpstreams()
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            council_id, _ = complete_council(client)
+            response = client.post(
+                "/api/dongzhou/v1/court/mandates",
+                json={
+                    **mandate_body(council_id),
+                    "operation": {
+                        "kind": "diplomacy",
+                        "target_id": "zheng",
+                        "target_name": "郑国",
+                        "proposal": "互通军情",
+                    },
+                },
+            )
+            assert response.status_code == 422
 
 
 def test_mandate_retries_knowledge_without_changing_request_id() -> None:
