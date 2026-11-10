@@ -245,6 +245,8 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                 return httpx.Response(200, json={"code": 200, "message": "accepted"})
             if request.url.path == "/internal/v1/organization-tasks/dialogues/report":
                 return httpx.Response(200, json={"record": {"state": "COMPLETED"}})
+            if request.url.path == "/callback/game-reports/emergency":
+                return httpx.Response(200, json={"code": 200, "data": {"accepted": True}})
             if request.url.path == "/callback/npc-dialogue/choice":
                 return httpx.Response(200, json={"code": 200, "data": {"index": 0, "type": "OPTION"}})
             return httpx.Response(200, json={"data": {"ok": True}})
@@ -273,6 +275,16 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                     "game_server_id": "91001",
                 },
             )
+            await upstreams.send_game_event(
+                "NPC_TASK_OUTCOME",
+                {
+                    "game_server_id": "91001",
+                    "npc_id": "42",
+                    "npc_name": "Test NPC",
+                    "game_time": "0771-01-01 14:00:00",
+                    "events": [{"event_id": 7001, "event_name": "Task outcome"}],
+                },
+            )
             await client.aclose()
 
         paths = [request.url.path for request in seen]
@@ -288,6 +300,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("/api/v1/schedule-planning/long-term/generate", paths)
         self.assertIn("/callback/npc-dialogue/choice", paths)
         self.assertIn("/internal/v1/organization-tasks/dialogues/report", paths)
+        self.assertIn("/callback/game-reports/emergency", paths)
         org_requests = [request for request in seen if request.url.host == "org"]
         bearer_requests = [request for request in seen if request.url.host != "org"]
         self.assertTrue(all(request.headers.get("x-org-service-signature") for request in org_requests))
@@ -310,6 +323,24 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                     upstreams = Upstreams(settings(Path("unused")), client)
                     with self.assertRaises(UpstreamUnavailable):
                         await upstreams.choose_dialogue(42, payload)
+
+    async def test_npc_outcome_rejects_business_failure_for_outbox_retry(self) -> None:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(
+            lambda request: httpx.Response(200, json={"code": 500, "message": "rejected"})
+        )) as client:
+            upstreams = Upstreams(settings(Path("unused")), client)
+            with self.assertRaises(UpstreamUnavailable) as caught:
+                await upstreams.send_game_event(
+                    "NPC_TASK_OUTCOME",
+                    {
+                        "game_server_id": "91001",
+                        "npc_id": "42",
+                        "npc_name": "Test NPC",
+                        "game_time": "0771-01-01 14:00:00",
+                        "events": [],
+                    },
+                )
+        self.assertEqual(caught.exception.error_code, "ainpc_outcome_rejected")
 
     async def test_report_waits_for_member_acceptance_before_creating_dialogue(self) -> None:
         states = iter(["MEMBER_RESPONSE_PENDING", "IN_PROGRESS"])

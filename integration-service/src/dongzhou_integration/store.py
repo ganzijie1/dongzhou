@@ -319,6 +319,23 @@ class Store:
                     (event_id,),
                 )
 
+    async def game_event_status(self, event_id: str) -> dict[str, Any] | None:
+        async with self._lock:
+            with self._connection() as db:
+                row = db.execute(
+                    "SELECT state,attempts,last_error,updated_at "
+                    "FROM game_server_outbox WHERE event_id=?",
+                    (event_id,),
+                ).fetchone()
+        if row is None:
+            return None
+        return {
+            "state": str(row["state"]),
+            "attempts": int(row["attempts"]),
+            "lastError": row["last_error"],
+            "updatedAt": row["updated_at"],
+        }
+
     async def retry_game_event(self, event_id: str, error: str) -> None:
         async with self._lock:
             with self._connection() as db:

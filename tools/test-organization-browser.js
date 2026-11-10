@@ -161,7 +161,7 @@ async function openReady(page) {
           ? { state: "REJECTED", error: { message: "验收拒单" } }
           : { state: "ACCEPTED", taskId: "00000000-0000-0000-0000-000000000010" };
       }
-      else if (/\/organization\/tasks\//.test(pathName)) body = { taskId: "00000000-0000-0000-0000-000000000010", result: { data: { task_id: "00000000-0000-0000-0000-000000000010", state: "SUCCEEDED", final_result: "SUCCESS", version: "3" } } };
+      else if (/\/organization\/tasks\//.test(pathName)) body = { taskId: "00000000-0000-0000-0000-000000000010", npcOutcome: { state: "DELIVERED", attempts: 1, lastError: null }, result: { data: { task_id: "00000000-0000-0000-0000-000000000010", state: "SUCCEEDED", final_result: "SUCCESS", version: "3" } } };
       else return route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: { code: "not_mocked", message: pathName } }) });
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
     });
@@ -214,6 +214,7 @@ async function openReady(page) {
     if (mandateAttempts !== 2) throw new Error("Rejected order retry did not reuse the Nexus mandate request exactly once");
     await online.click("#officeAdvanceButton");
     await online.waitForSelector("#officeTaskLedger li.success");
+    await online.waitForSelector("#officeTaskLedger >> text=经历已形成");
     if (!savedRemoteTask) throw new Error("Remote task binding was not persisted");
     await online.screenshot({ path: path.join(OUT, "desktop-office-online.png"), fullPage: false });
     if (errors.length) throw new Error(`Page errors: ${errors.join(" | ")}`);

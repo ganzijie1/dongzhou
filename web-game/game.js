@@ -878,7 +878,11 @@
     const currentType = $("#officeTaskType").value;
     $("#officeTaskType").innerHTML = Object.entries(organization.TASK_TYPES).map(([id, task]) => `<option value="${id}" ${id === currentType ? "selected" : ""}>${task.name} · ${task.duration}月</option>`).join("");
     $("#officeMembers").innerHTML = org.members.map((member) => `<div><strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(member.office)}</span><small>信任 ${member.loyalty} · 关系 ${Number(org.relations[member.id] || 0) >= 0 ? "+" : ""}${Number(org.relations[member.id] || 0)} · 劳顿 ${member.fatigue}</small></div>`).join("") || "<p>随战役推进，出阵人物会进入官署名册。</p>";
-    $("#officeTaskLedger").innerHTML = [...org.tasks].reverse().slice(0, 10).map((task) => `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}</strong><small>${task.status === "active" ? `${task.dueMonth}月复命` : task.status === "success" ? "办成" : task.status === "partial" ? "部分办成" : "未成"}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}${task.mandate?.assignment?.name ? ` · 当值${escapeHtml(task.mandate.assignment.name)}` : ""}${Number.isFinite(Number(task.mandate?.assignment?.readiness?.score)) ? ` · 胜任${Number(task.mandate.assignment.readiness.score)}` : ""}</small></li>`).join("") || '<li class="empty">尚无差事</li>';
+    $("#officeTaskLedger").innerHTML = [...org.tasks].reverse().slice(0, 10).map((task) => {
+      const outcomeState = task.npcOutcome?.state;
+      const outcomeLabel = outcomeState === "DELIVERED" ? " · 经历已形成" : outcomeState === "PENDING" ? (task.npcOutcome?.lastError ? " · 经历待重试" : " · 经历回写中") : "";
+      return `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}</strong><small>${task.status === "active" ? `${task.dueMonth}月复命` : task.status === "success" ? "办成" : task.status === "partial" ? "部分办成" : "未成"}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}${task.mandate?.assignment?.name ? ` · 当值${escapeHtml(task.mandate.assignment.name)}` : ""}${Number.isFinite(Number(task.mandate?.assignment?.readiness?.score)) ? ` · 胜任${Number(task.mandate.assignment.readiness.score)}` : ""}${outcomeLabel}</small></li>`;
+    }).join("") || '<li class="empty">尚无差事</li>';
     $("#officeMandateLedger").innerHTML = [...org.mandates].reverse().slice(0, 6).map((mandate) => {
       const label = mandate.state === "RESOLVED" ? (mandate.outcome?.won ? "战后告捷" : "战后失利") : mandate.state === "FULFILLED" ? "复命待战" : mandate.state === "PARTIAL" ? "部分复命" : mandate.state === "FAILED" ? "执行未成" : mandate.state === "ORDERED" ? "属官执行中" : "已签发";
       const readiness = Number(mandate.assignment?.readiness?.score);
@@ -1328,7 +1332,12 @@
       const tasks = profile.organization.tasks.filter((task) => task.status === "active" && task.remoteResult);
       try {
         const responses = await Promise.all(tasks.map((task) => integration.organizationTask(task.remoteResult)));
-        const snapshots = responses.map((response) => response.result?.data || response.result || null);
+        const snapshots = responses.map((response) => {
+          const snapshot = response.result?.data || response.result || null;
+          return snapshot && typeof snapshot === "object"
+            ? { ...snapshot, npcOutcome: response.npcOutcome || null }
+            : snapshot;
+        });
         const waiting = snapshots.some((snapshot) => !organization.remoteTaskReadyForAdvance(snapshot));
         if (waiting) {
           await commitOrganizationState(organization.reconcileRemoteTasks(profile.organization, snapshots, { advanceMonth: false }));

@@ -102,12 +102,15 @@ class Upstreams:
                     "Organization task is not ready for a report.",
                     error_code="organization_report_not_ready",
                 )
+            report_payload = {
+                key: value for key, value in payload.items() if key != "npc_outcome"
+            }
             response = await self._json(
                 "POST",
                 self.settings.ainpc_url
                 + "/internal/v1/organization-tasks/dialogues/report",
                 token=self.settings.ainpc_task_token,
-                payload=payload,
+                payload=report_payload,
             )
             record = response.get("record")
             if not isinstance(record, dict) and isinstance(response.get("data"), dict):
@@ -132,6 +135,20 @@ class Upstreams:
                 raise UpstreamUnavailable(
                     "AINPC report dialogue is still in progress.",
                     error_code="ainpc_report_dialogue_pending",
+                    response_payload=response,
+                )
+            return response
+        if kind == "NPC_TASK_OUTCOME":
+            response = await self._json(
+                "POST",
+                self.settings.ainpc_url + "/callback/game-reports/emergency",
+                token=self.settings.ainpc_token,
+                payload=payload,
+            )
+            if response.get("code") not in (0, 200, "0", "200"):
+                raise UpstreamUnavailable(
+                    "AINPC rejected the organization outcome event.",
+                    error_code="ainpc_outcome_rejected",
                     response_payload=response,
                 )
             return response

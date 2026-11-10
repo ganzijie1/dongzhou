@@ -58,10 +58,12 @@ const waiting = play.advanceMonth(remote.state, { resolveLocalTasks: false });
 assert.strictEqual(waiting.tasks.at(-1).status, "active");
 assert.strictEqual(waiting.pendingSupport.some((entry) => entry.id === remote.task.id), false);
 state = play.reconcileRemoteTasks(remote.state, [{
-  task_id: remote.task.remoteResult, state: "SUCCEEDED", final_result: "SUCCESS", version: "3"
+  task_id: remote.task.remoteResult, state: "SUCCEEDED", final_result: "SUCCESS", version: "3",
+  npcOutcome: { state: "DELIVERED", attempts: 1 }
 }]);
 assert.strictEqual(state.tasks.at(-1).status, "success");
 assert.strictEqual(state.tasks.at(-1).remoteVersion, "3");
+assert.strictEqual(state.tasks.at(-1).npcOutcome.state, "DELIVERED");
 assert.ok(state.pendingSupport.some((entry) => entry.id === remote.task.id));
 
 // 一位官员长时间等待外部复命时，其他官员反复办差不能把该任务挤出台账。

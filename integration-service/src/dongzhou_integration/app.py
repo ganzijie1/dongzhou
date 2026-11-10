@@ -91,7 +91,23 @@ class RuntimeModule(Module):
                 continue
             for event in events:
                 try:
-                    await self.upstreams.send_game_event(event["kind"], event["payload"])
+                    receipt = await self.upstreams.send_game_event(
+                        event["kind"], event["payload"]
+                    )
+                    if event["kind"] == "ORG_REPORT_START":
+                        outcome = event["payload"].get("npc_outcome")
+                        if isinstance(outcome, dict):
+                            final_result = _organization_final_result(receipt)
+                            final_result = final_result or str(
+                                outcome.get("planned_result") or "FAILURE"
+                            )
+                            task_id = str(outcome.get("task_id") or "")
+                            if task_id:
+                                await self.store.enqueue_game_event(
+                                    "npc-outcome:" + task_id,
+                                    "NPC_TASK_OUTCOME",
+                                    _npc_outcome_event(outcome, final_result),
+                                )
                 except Exception as error:
                     await self.store.retry_game_event(event["eventId"], type(error).__name__)
                 else:
@@ -215,6 +231,95 @@ def _organization_task_succeeds(
     return _stable_roll(roll_key) < chance
 
 
+def _organization_final_result(value: Any) -> str | None:
+    if not isinstance(value, dict):
+        return None
+    final_result = value.get("final_result") or value.get("finalResult")
+    if isinstance(final_result, str) and final_result:
+        return final_result
+    state = str(value.get("state") or "").upper()
+    mapped = {
+        "SUCCEEDED": "SUCCESS",
+        "PARTIALLY_COMPLETED": "PARTIAL",
+        "FAILED": "FAILURE",
+        "REJECTED": "FAILURE",
+        "CANCELLED": "FAILURE",
+        "INVALIDATED": "FAILURE",
+    }.get(state)
+    if mapped:
+        return mapped
+    for key in ("task", "record", "data", "result"):
+        nested = _organization_final_result(value.get(key))
+        if nested:
+            return nested
+    return None
+
+
+def _npc_outcome_event(outcome: dict[str, Any], final_result: str) -> dict[str, Any]:
+    normalized = str(final_result or "FAILURE").upper()
+    if normalized in {"SUCCESS", "SUCCEEDED"}:
+        normalized = "SUCCESS"
+        result_text = "办成"
+    elif normalized in {"PARTIAL", "PARTIALLY_COMPLETED"}:
+        normalized = "PARTIAL"
+        result_text = "部分办成"
+    else:
+        normalized = "FAILURE"
+        result_text = "未能办成"
+    task_id = str(outcome["task_id"])
+    event_digest = hashlib.sha256(
+        f"dongzhou-org-outcome:{task_id}".encode("utf-8")
+    ).digest()
+    event_id = int.from_bytes(event_digest[:4], "big") & 0x7FFFFFFF or 1
+    npc_name = str(outcome.get("npc_name") or outcome.get("hero_id") or "属官")
+    task_name = str(outcome.get("task_name") or outcome.get("task_type") or "官署差事")
+    stage_title = str(outcome.get("stage_title") or outcome.get("stage_id") or "本关")
+    description = f"{npc_name}在《{stage_title}》的官署差事“{task_name}”{result_text}。"
+    metadata = {
+        key: outcome[key]
+        for key in (
+            "task_id",
+            "task_type",
+            "stage_id",
+            "stage_title",
+            "hero_id",
+            "manager_npc_id",
+            "mandate_id",
+            "mandate_digest",
+            "knowledge_id",
+            "evidence_source",
+            "readiness",
+            "planned_result",
+        )
+        if outcome.get(key) is not None
+    }
+    metadata.update(
+        {
+            "source_module": "dongzhou_integration",
+            "final_result": normalized,
+            "description": description,
+        }
+    )
+    return {
+        "game_server_id": str(outcome["game_server_id"]),
+        "npc_id": str(outcome["npc_id"]),
+        "npc_name": npc_name,
+        "game_time": str(outcome["game_time"]),
+        "events": [
+            {
+                "source_record_id": task_id,
+                "timestamp": str(outcome["game_time"]),
+                "event_id": event_id,
+                "event_name": "官署差事复命",
+                "event_type": "organization_task_result",
+                "params": description,
+                "metadata": metadata,
+                "interrupt_trace_id": "dongzhou-org-outcome:" + task_id,
+            }
+        ],
+    }
+
+
 async def _prepare_due_organization_reports(
     store: Store,
     settings: Settings,
@@ -251,6 +356,7 @@ async def _prepare_due_organization_reports(
         for item in members
         if isinstance(item, dict) and item.get("id")
     } if isinstance(members, list) else {}
+    clock = await store.read_game_clock()
     for task in tasks:
         if not isinstance(task, dict) or task.get("status") != "active":
             continue
@@ -321,6 +427,34 @@ async def _prepare_due_organization_reports(
             "player_info": {
                 "playerId": manager_npc_id,
                 "playerName": member_names.get(manager_hero_id, manager_hero_id)[:15],
+            },
+            "npc_outcome": {
+                "task_id": task_id,
+                "task_type": task_type,
+                "task_name": task_name,
+                "stage_id": str(original.get("stage_id") or ""),
+                "stage_title": stage_title,
+                "hero_id": assignee,
+                "npc_id": str(
+                    stable_npc_id(settings.ainpc_game_server_id, assignee)
+                ),
+                "npc_name": member_names.get(assignee, assignee),
+                "manager_npc_id": manager_npc_id,
+                "game_server_id": str(settings.ainpc_game_server_id),
+                "game_time": str(clock["virtualTime"]),
+                "mandate_id": mandate.get("id") if isinstance(mandate, dict) else None,
+                "mandate_digest": (
+                    mandate.get("digest") if isinstance(mandate, dict) else None
+                ),
+                "knowledge_id": str(original.get("knowledge_id") or ""),
+                "evidence_source": (
+                    mandate.get("evidence", {}).get("source")
+                    if isinstance(mandate, dict)
+                    and isinstance(mandate.get("evidence"), dict)
+                    else None
+                ),
+                "readiness": readiness if isinstance(readiness, dict) else None,
+                "planned_result": "SUCCESS" if success else "FAILURE",
             },
         }
         reports.append(report)
@@ -1213,7 +1347,8 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             result = await upstreams.get_virtual_task(settings.orgflow_org_id, str(task_id))
         except UpstreamUnavailable as error:
             raise ApiError("organization_unavailable", "Organization task state is temporarily unavailable.", status_code=503) from error
-        return {"taskId": str(task_id), "result": result}
+        outcome = await store.game_event_status("npc-outcome:" + str(task_id))
+        return {"taskId": str(task_id), "result": result, "npcOutcome": outcome}
 
     application_settings = ApplicationSettings.model_validate({
         "service": {"name": "Dongzhou Integration Service", "version": "1.0.0"},

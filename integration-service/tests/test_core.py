@@ -17,6 +17,7 @@ from pydantic import ValidationError
 
 from dongzhou_integration.app import (
     RuntimeModule,
+    _npc_outcome_event,
     _organization_task_chance,
     _prepare_due_organization_reports,
     _organization_task_succeeds,
@@ -133,6 +134,24 @@ class OrganizationOutcomeTests(unittest.TestCase):
             _organization_task_chance(task, "supply", member),
             _organization_task_chance(task, "supply", member, {"assignment": {}}),
         )
+
+    def test_npc_outcome_event_is_deterministic_and_normalizes_failure(self) -> None:
+        outcome = {
+            "task_id": "00000000-0000-4000-8000-000000000099",
+            "game_server_id": "91001",
+            "npc_id": "42",
+            "npc_name": "Zuo Ru",
+            "game_time": "0771-01-01 14:00:00",
+            "task_name": "Supply transport",
+            "stage_title": "Eastern Outskirts",
+        }
+        first = _npc_outcome_event(outcome, "REJECTED")
+        replay = _npc_outcome_event(outcome, "FAILED")
+        self.assertEqual(
+            first["events"][0]["event_id"], replay["events"][0]["event_id"]
+        )
+        self.assertEqual(first["events"][0]["metadata"]["final_result"], "FAILURE")
+        self.assertTrue(first["events"][0]["interrupt_trace_id"])
 
 
 class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
@@ -1031,6 +1050,11 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(events[0]["kind"], "ORG_REPORT_START")
         self.assertEqual(events[0]["payload"]["task_id"], str(task_id))
         self.assertEqual(events[0]["payload"]["purpose"], "report")
+        outcome = events[0]["payload"]["npc_outcome"]
+        self.assertEqual(outcome["task_id"], str(task_id))
+        self.assertEqual(outcome["npc_id"], str(stable_npc_id(91001, "ZuoRu")))
+        self.assertIn(outcome["planned_result"], {"SUCCESS", "FAILURE"})
+        self.assertEqual(outcome["game_time"], "0771-01-01 14:00:00")
         self.assertNotEqual(events[0]["payload"]["content"], reports[0]["content"])
         frozen_payload = events[0]["payload"]
         await self.store.finish_game_event(events[0]["eventId"])
@@ -1047,6 +1071,70 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(row["state"], "DELIVERED")
         self.assertEqual(json.loads(row["payload"]), frozen_payload)
         self.assertEqual(row["attempts"], 1)
+
+    async def test_terminal_report_chains_one_authoritative_npc_outcome(self) -> None:
+        class OutcomeUpstreams(_HealthyUpstreams):
+            def __init__(self) -> None:
+                self.events = []
+
+            async def send_game_event(self, kind, payload):
+                self.events.append((kind, payload))
+                if kind == "ORG_REPORT_START":
+                    return {"record": {"task": {"final_result": "PARTIAL"}}}
+                return {"code": 200}
+
+        task_id = str(uuid4())
+        outcome = {
+            "task_id": task_id,
+            "task_type": "supply",
+            "task_name": "Supply transport",
+            "stage_id": "01",
+            "stage_title": "Eastern Outskirts",
+            "hero_id": "ZuoRu",
+            "npc_id": "42",
+            "npc_name": "Zuo Ru",
+            "manager_npc_id": "41",
+            "game_server_id": "91001",
+            "game_time": "0771-01-01 14:00:00",
+            "mandate_id": "mandate-1",
+            "mandate_digest": "a" * 64,
+            "knowledge_id": "dongzhou_stage_001",
+            "evidence_source": {"work": "Records of Zhou", "tier": "history"},
+            "readiness": {"score": 72, "band": "watch"},
+            "planned_result": "SUCCESS",
+        }
+        await self.store.enqueue_game_event(
+            "org-report:" + task_id,
+            "ORG_REPORT_START",
+            {"task_id": task_id, "content": "report", "npc_outcome": outcome},
+        )
+        upstreams = OutcomeUpstreams()
+        dispatch = asyncio.create_task(
+            RuntimeModule(self.store, upstreams, None)._dispatch_game_events()
+        )
+        try:
+            deadline = asyncio.get_running_loop().time() + 2
+            while len(upstreams.events) < 2 and asyncio.get_running_loop().time() < deadline:
+                await asyncio.sleep(0.01)
+        finally:
+            dispatch.cancel()
+            await asyncio.gather(dispatch, return_exceptions=True)
+        self.assertEqual([kind for kind, _ in upstreams.events], ["ORG_REPORT_START", "NPC_TASK_OUTCOME"])
+        event = upstreams.events[1][1]
+        self.assertEqual(event["npc_id"], "42")
+        self.assertEqual(event["events"][0]["metadata"]["final_result"], "PARTIAL")
+        self.assertEqual(event["events"][0]["metadata"]["mandate_digest"], "a" * 64)
+        self.assertEqual(event["events"][0]["metadata"]["readiness"]["score"], 72)
+        self.assertEqual(event["events"][0]["source_record_id"], task_id)
+        self.assertGreater(event["events"][0]["event_id"], 0)
+        self.assertEqual(
+            event["events"][0]["event_id"],
+            _npc_outcome_event(outcome, "PARTIAL")["events"][0]["event_id"],
+        )
+        status = await self.store.game_event_status("npc-outcome:" + task_id)
+        self.assertEqual(status["state"], "DELIVERED")
+        self.assertEqual(status["attempts"], 1)
+        self.assertEqual(await self.store.pending_game_events(), [])
 
     async def test_save_and_report_outbox_roll_back_together(self) -> None:
         import sqlite3
