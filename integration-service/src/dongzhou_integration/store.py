@@ -762,6 +762,32 @@ class Store:
             with self._connection() as db:
                 db.execute("UPDATE requests SET state=?,response_payload=?,external_id=COALESCE(?,external_id),attempts=attempts+1,last_error=?,updated_at=CURRENT_TIMESTAMP WHERE player_id=? AND request_id=?", (state, json.dumps(response, ensure_ascii=False, separators=(",", ":")), external_id, error, str(player_id), str(request_id)))
 
+    async def transition_request(
+        self,
+        player_id: UUID,
+        request_id: UUID,
+        kind: str,
+        expected_state: str,
+        state: str,
+        response: dict[str, Any],
+    ) -> bool:
+        async with self._lock:
+            with self._connection() as db:
+                result = db.execute(
+                    "UPDATE requests SET state=?,response_payload=?,attempts=attempts+1,"
+                    "last_error=NULL,updated_at=CURRENT_TIMESTAMP "
+                    "WHERE player_id=? AND request_id=? AND kind=? AND state=?",
+                    (
+                        state,
+                        json.dumps(response, ensure_ascii=False, separators=(",", ":")),
+                        str(player_id),
+                        str(request_id),
+                        kind,
+                        expected_state,
+                    ),
+                )
+        return result.rowcount == 1
+
     async def read_request(
         self, player_id: UUID, request_id: UUID, kind: str
     ) -> dict[str, Any] | None:

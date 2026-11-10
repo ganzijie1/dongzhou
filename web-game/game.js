@@ -981,6 +981,7 @@
     const decisionDefaults = ["先固军粮，稳步推进", `整军强攻，争取${record?.objective || "先机"}`, "遣使探察，再定进退"];
     document.querySelectorAll(".office-decision-option").forEach((input, index) => { if (!input.value) input.value = decisionDefaults[index]; });
     renderOfficeDiplomacyStatus();
+    renderOfficeMandateApproval();
   }
 
   async function refreshIntegrationStatus() {
@@ -1293,6 +1294,89 @@
     }
   }
 
+  function renderOfficeMandateApproval() {
+    const pending = integration.pendingCourtMandate();
+    const panel = $("#officeMandateApproval");
+    panel.hidden = !pending;
+    if (!pending) return;
+    const issued = pending.result.state === "ISSUED";
+    const mandate = pending.result.mandate;
+    $("#officeMandateApprovalTitle").textContent = issued ? "军令已签，待下达" : "军令草案待签发";
+    $("#officeMandateApprovalDetail").textContent = `${mandate.evidence?.name || "史料军令"} · ${mandate.assignment?.name || "属官当值"} · 印记 ${String(mandate.digest || "").slice(0, 10)}`;
+    $("#officeMandateApproveButton").textContent = issued ? "下达" : "签发";
+    $("#officeMandateRejectButton").hidden = issued;
+  }
+
+  async function completeIssuedOfficeTask(mandateInput, issuedMandate) {
+    const record = officeStage();
+    const taskType = mandateInput.task_type;
+    const operation = mandateInput.operation || null;
+    const evidence = currentOfficeEvidence();
+    const knowledge = evidence?.knowledge;
+    const council = currentOfficeCouncil();
+    const assigneeId = mandateInput.hero_id;
+    const taskDefinition = organization.TASK_TYPES[taskType];
+    if (!taskDefinition || profile.campaignResources.provisions < taskDefinition.cost) throw new Error("军粮不足，无法下达这项军令");
+    if (String(record?.id || "") !== mandateInput.stage_id || $("#officeMemberSelect").value !== assigneeId || (!operation && $("#officeTaskType").value !== taskType) || knowledge?.id !== mandateInput.knowledge_id || Number(evidence?.source?.index) !== Number(mandateInput.evidence_source_index) || council?.id !== mandateInput.council_request_id) {
+      throw new Error("当前关卡、属官、史料或军议已改变，请恢复原选择后再下达");
+    }
+    const taskBaseState = organization.recordMandate(profile.organization, issuedMandate).state;
+    const created = organization.createTask(taskBaseState, {
+      type: taskType, assigneeId, stageId: record?.id, stageTitle: record?.battleTitle,
+      knowledgeId: knowledge.id, councilId: council.id, mandateId: issuedMandate.id, operation
+    });
+    const remote = await integration.createOrganizationTask({
+      task_type: created.task.type,
+      assignee_hero_id: created.task.assigneeId,
+      stage_id: String(record?.id || "unknown"),
+      stage_title: `Dongzhou stage ${record?.id || "unknown"}`,
+      brief: `Dongzhou office assignment for stage ${record?.id || "unknown"}; Nexus mandate ${created.task.mandate.id}.`,
+      parameters: {
+        resource_units: created.task.cost,
+        assignee_name: created.task.assigneeName,
+        mandate_id: created.task.mandate.id,
+        mandate_digest: created.task.mandate.digest
+      }
+    }, created.task);
+    profile.organization = organization.recordMandate(profile.organization, issuedMandate).state;
+    integration.applyOrganizationOrder(profile, created.task, remote);
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    renderOrganizationPanel();
+    await integration.persist(profile);
+    integration.acknowledgeCourtMandate(mandateInput);
+    renderOfficeMandateApproval();
+    showNotice(`${created.task.assigneeName}已领受${created.task.name}`);
+    return created.task;
+  }
+
+  async function resolveOfficeMandate(decision) {
+    if (officeOrderInFlight) return;
+    const pending = integration.pendingCourtMandate();
+    if (!pending) return;
+    officeOrderInFlight = true;
+    $("#officeMandateApproveButton").disabled = true;
+    $("#officeMandateRejectButton").disabled = true;
+    try {
+      let result = pending.result;
+      if (result.state === "REQUIRES_ACTION") {
+        result = await integration.resumeCourtMandate(result.mandate.id, result.action.actionId, decision);
+      }
+      if (result.state === "REJECTED") {
+        renderOfficeMandateApproval();
+        showNotice("军令草案已驳回，未派差也未耗用军粮");
+        return;
+      }
+      await completeIssuedOfficeTask(pending.input, result.mandate);
+    } catch (error) {
+      renderOfficeMandateApproval();
+      showNotice(error.message);
+    } finally {
+      officeOrderInFlight = false;
+      $("#officeMandateApproveButton").disabled = false;
+      $("#officeMandateRejectButton").disabled = false;
+    }
+  }
+
   let officeOrderInFlight = false;
   async function issueOfficeTask(operation = null) {
     if (officeOrderInFlight || officeCouncilInFlight) return null;
@@ -1347,12 +1431,17 @@
           ...(operation ? { operation } : {})
         };
         const issued = await integration.createCourtMandate(mandateInput);
+        if (issued.state === "REQUIRES_ACTION") {
+          renderOfficeMandateApproval();
+          showNotice("军令草案已交内核封存，请明确签发或驳回");
+          return null;
+        }
         issuedMandate = issued.mandate;
         const operationChanged = operation && ($("#officeDiplomacyTarget").value !== operation.target_id || $("#officeDiplomacyProposal").value.trim() !== operation.proposal);
         if (String(officeStage()?.id || "") !== String(record?.id || "") || $("#officeMemberSelect").value !== assigneeId || (!operation && $("#officeTaskType").value !== taskType) || currentOfficeCouncil()?.id !== council.id || operationChanged) {
           throw new Error("授命条件已变化，请重新确认军议与差事");
         }
-        taskBaseState = organization.recordMandate(taskBaseState, issuedMandate).state;
+        return await completeIssuedOfficeTask(mandateInput, issuedMandate);
       }
       const created = organization.createTask(taskBaseState, {
         type: taskType,
@@ -3187,6 +3276,8 @@
     $("#officeAllianceButton").addEventListener("click", signAlliance);
     $("#officeBetrayButton").addEventListener("click", betrayAlliance);
     $("#officeIssueButton").addEventListener("click", () => issueOfficeTask());
+    $("#officeMandateApproveButton").addEventListener("click", () => resolveOfficeMandate("APPROVE"));
+    $("#officeMandateRejectButton").addEventListener("click", () => resolveOfficeMandate("REJECT"));
     $("#officeAdvanceButton").addEventListener("click", advanceOfficeMonth);
     $("#officeKnowledgeForm").addEventListener("submit", searchOfficeKnowledge);
     $("#officeStageKnowledgeButton").addEventListener("click", loadOfficeStageKnowledge);

@@ -94,6 +94,9 @@ saveJournal();
     journal.stage = "kernel-mandate-and-order";
     saveJournal();
     await page.click("#officeIssueButton");
+    await page.waitForSelector("#officeMandateApproval:not([hidden])", { timeout: 90000 });
+    assert.equal(requests.order, 0, "Draft mandate must not create an organization order before player approval");
+    await page.click("#officeMandateApproveButton");
     await page.waitForFunction((key) => {
       const organization = JSON.parse(localStorage.getItem(key)).organization;
       return organization.tasks.some((task) => task.remoteResult && task.mandate)

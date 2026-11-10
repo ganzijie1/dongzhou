@@ -48,6 +48,7 @@ const mandate = {
 const recorded = play.recordMandate(state, mandate);
 state = recorded.state;
 assert.strictEqual(state.mandates.length, 1);
+assert.throws(() => play.recordMandate(state, { ...mandate, id: mandate.id + "-draft", state: "DRAFT" }), /尚未签发/);
 assert.throws(() => play.recordMandate(state, { ...mandate, digest: "b".repeat(64) }), /冲突/);
 
 const created = play.createTask(state, {

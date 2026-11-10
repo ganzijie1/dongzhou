@@ -19,6 +19,7 @@ let conflictNextSave = false;
 let decisionAttempts = 0;
 const decisionIds = [];
 let mandateAttempts = 0;
+let mandateResumeAttempts = 0;
 const mandateIds = [];
 let saveConflictEvents = 0;
 let sessionRequests = 0;
@@ -71,7 +72,11 @@ global.fetch = async (url, options = {}) => {
     if (mandateAttempts === 1) {
       status = 503;
       response = { error: { code: "knowledge_unavailable", message: "retry mandate" } };
-    } else response = { state: "ISSUED", mandate: { id: `dongzhou:player:${body.client_request_id}`, digest: "a".repeat(64) } };
+    } else response = { state: "REQUIRES_ACTION", mandate: { id: `dongzhou:player:${body.client_request_id}`, digest: "a".repeat(64), state: "DRAFT" }, action: { actionId: "00000000-0000-4000-8000-000000000099", code: "seal_court_mandate", type: "confirmation" } };
+  }
+  else if (/\/court\/mandates\/[^/]+\/resume$/.test(url)) {
+    mandateResumeAttempts += 1;
+    response = { state: body.decision === "APPROVE" ? "ISSUED" : "REJECTED", mandate: { id: decodeURIComponent(url.split("/").at(-2)), digest: "a".repeat(64), state: body.decision === "APPROVE" ? "ISSUED" : "REJECTED" } };
   }
   else if (url.endsWith("/organization/tasks")) {
     organizationAttempts += 1;
@@ -144,7 +149,13 @@ const client = require("../web-game/integration-client.js");
   await assert.rejects(() => client.createCourtMandate(mandateInput), /retry mandate/);
   const mandate = await client.createCourtMandate(mandateInput);
   assert.strictEqual(mandateIds[0], mandateIds[1]);
+  assert.strictEqual(mandate.state, "REQUIRES_ACTION");
+  assert.strictEqual(client.pendingCourtMandate().result.action.actionId, mandate.action.actionId);
   assert.ok([...values.keys()].some((key) => key.startsWith("dongzhou-pending-mandate-v1:")));
+  const approvedMandate = await client.resumeCourtMandate(mandate.mandate.id, mandate.action.actionId, "APPROVE");
+  assert.strictEqual(approvedMandate.state, "ISSUED");
+  assert.strictEqual(client.pendingCourtMandate().result.state, "ISSUED");
+  assert.strictEqual(mandateResumeAttempts, 1);
   client.acknowledgeCourtMandate(mandateInput);
   assert.ok(![...values.keys()].some((key) => key.startsWith("dongzhou-pending-mandate-v1:")));
   const input = { task_type: "supply", assignee_hero_id: "DuBo", stage_id: "01", stage_title: "东郊索命", brief: "test", parameters: {} };
@@ -198,7 +209,7 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(saveAttempts - attemptsBeforeConflict, 1, "Queued snapshots must not write after a conflict");
   await assert.rejects(() => client.persist({ completed: ["blocked"] }), /save_conflict_reload_required/);
   assert.strictEqual(saveConflictEvents, 1);
-  console.log(JSON.stringify({ result: "PASS", saveVersion, organizationAttempts, organizationReadAttempts, campaignRouteAttempts, decisionAttempts, mandateAttempts, npcStateAttempts, npcScheduleAttempts, npcAssignmentAttempts, saveConflictEvents }));
+  console.log(JSON.stringify({ result: "PASS", saveVersion, organizationAttempts, organizationReadAttempts, campaignRouteAttempts, decisionAttempts, mandateAttempts, mandateResumeAttempts, npcStateAttempts, npcScheduleAttempts, npcAssignmentAttempts, saveConflictEvents }));
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;

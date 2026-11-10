@@ -18,7 +18,7 @@ from nexus_kernel.kernel import Kernel, LoadedModule, Module, ModuleContext
 
 from .config import Settings
 from .assignments import AssignmentUnavailable, select_assignment
-from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, OrganizationTaskRequest, SaveWriteRequest
+from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, OrganizationTaskRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
@@ -124,6 +124,7 @@ class RuntimeModule(Module):
             force_relogin = False
             await asyncio.sleep(30)
 
+
     async def _reconcile_npcs_once(self, *, force_relogin: bool = False) -> None:
         login_round = "dongzhou-recovery-" + datetime.now(UTC).strftime(
             "%Y%m%dT%H%M%S%fZ"
@@ -155,6 +156,35 @@ class RuntimeModule(Module):
             str(clock["virtualTime"]),
             login_round,
         )
+
+
+class MandateWorkflowModule(Module):
+    name = "dongzhou_mandate_workflow"
+    version = "1.0.0"
+    dependencies = (RuntimeModule.name,)
+
+    @staticmethod
+    def draft(trace: dict[str, Any], digest: str) -> dict[str, Any]:
+        action_id = uuid5(NAMESPACE_URL, f"dongzhou-mandate-action:{digest}")
+        return {
+            "state": "REQUIRES_ACTION",
+            "mandate": {**trace, "digest": digest, "state": "DRAFT"},
+            "action": {
+                "actionId": str(action_id),
+                "code": "seal_court_mandate",
+                "type": "confirmation",
+                "prompt": "Confirm issuance of this court mandate?",
+                "options": ["APPROVE", "REJECT"],
+            },
+        }
+
+    @staticmethod
+    def resume(response: dict[str, Any], decision: str) -> dict[str, Any]:
+        mandate = response.get("mandate")
+        if not isinstance(mandate, dict):
+            raise ValueError("missing mandate draft")
+        state = "ISSUED" if decision == "APPROVE" else "REJECTED"
+        return {"state": state, "mandate": {**mandate, "state": state}}
 
 
 def _payload(value: BaseModel) -> dict[str, Any]:
@@ -594,7 +624,13 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     store = store or Store(settings.database_path)
     upstreams = upstreams or Upstreams(settings)
     module = RuntimeModule(store, upstreams, settings)
-    kernel = Kernel([LoadedModule(module=module, required=True, original_index=0)])
+    mandate_workflow = MandateWorkflowModule()
+    kernel = Kernel(
+        [
+            LoadedModule(module=module, required=True, original_index=0),
+            LoadedModule(module=mandate_workflow, required=True, original_index=1),
+        ]
+    )
     router = APIRouter(prefix="/api/dongzhou/v1")
     game_clock_router = APIRouter()
 
@@ -609,13 +645,25 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             {},
         )
         runtime_state = str(runtime.get("state") or "unknown").lower()
+        workflow = next(
+            (
+                item
+                for item in kernel_snapshot.get("modules", [])
+                if item.get("name") == MandateWorkflowModule.name
+            ),
+            {},
+        )
+        workflow_state = str(workflow.get("state") or "unknown").lower()
         return {
             **external,
             "nexusKernel": {
-                "online": runtime_state in {"ready", "degraded"},
+                "online": runtime_state in {"ready", "degraded"}
+                and workflow_state in {"ready", "degraded"},
                 "mode": "embedded",
                 "version": _NEXUS_KERNEL_VERSION,
                 "runtimeState": runtime_state,
+                "workflowModule": MandateWorkflowModule.name,
+                "workflowState": workflow_state,
             },
         }
 
@@ -1183,15 +1231,15 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         request: CourtMandateRequest, player_id: UUID = Depends(player)
     ) -> dict[str, Any]:
         kernel_snapshot = kernel.health_status()
-        runtime_status = next(
+        workflow_status = next(
             (
                 item
                 for item in kernel_snapshot.get("modules", [])
-                if item.get("name") == RuntimeModule.name
+                if item.get("name") == MandateWorkflowModule.name
             ),
             None,
         )
-        if not runtime_status or runtime_status.get("state") not in {"ready", "degraded"}:
+        if not workflow_status or workflow_status.get("state") not in {"ready", "degraded"}:
             raise ApiError(
                 "nexus_kernel_unavailable",
                 "NexusKernel is not ready to issue a court mandate.",
@@ -1398,10 +1446,10 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             },
             "assignment": assignment,
             "kernel": {
-                "module": RuntimeModule.name,
-                "moduleVersion": RuntimeModule.version,
+                "module": MandateWorkflowModule.name,
+                "moduleVersion": MandateWorkflowModule.version,
                 "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
-                "state": str(runtime_status["state"]).upper(),
+                "state": str(workflow_status["state"]).upper(),
             },
         }
         if request.operation is not None:
@@ -1410,16 +1458,76 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         digest = hashlib.sha256(
             json.dumps(trace, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
         ).hexdigest()
-        mandate = {**trace, "digest": digest, "state": "ISSUED"}
-        response = {"state": "ISSUED", "mandate": mandate}
+        response = mandate_workflow.draft(trace, digest)
         await store.finish_request(
             player_id,
             request.client_request_id,
-            "ISSUED",
+            "REQUIRES_ACTION",
             response,
             external_id=mandate_id,
         )
         return response
+
+    @router.post("/court/mandates/{mandate_id}/resume")
+    async def resume_court_mandate(
+        mandate_id: str,
+        request: CourtMandateResumeRequest,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        original = await store.read_external_request(
+            player_id, mandate_id, "court_mandate"
+        )
+        try:
+            request_id = UUID(mandate_id.rsplit(":", 1)[-1])
+        except ValueError as error:
+            raise ApiError(
+                "court_mandate_not_found",
+                "The court mandate was not found.",
+                status_code=404,
+            ) from error
+        record = await store.read_request(player_id, request_id, "court_mandate")
+        if original is None or record is None or record.get("externalId") != mandate_id:
+            raise ApiError(
+                "court_mandate_not_found",
+                "The court mandate was not found.",
+                status_code=404,
+            )
+        response = record.get("response")
+        if record.get("state") in {"ISSUED", "REJECTED"} and isinstance(response, dict):
+            return {"replayed": True, **response}
+        action = response.get("action") if isinstance(response, dict) else None
+        if record.get("state") != "REQUIRES_ACTION" or not isinstance(action, dict):
+            raise ApiError(
+                "court_mandate_not_resumable",
+                "The court mandate is not waiting for player action.",
+                status_code=409,
+            )
+        if action.get("actionId") != str(request.action_id):
+            raise ApiError(
+                "court_mandate_action_mismatch",
+                "The player action does not match this court mandate.",
+                status_code=409,
+            )
+        result = mandate_workflow.resume(response, request.decision)
+        transitioned = await store.transition_request(
+            player_id,
+            request_id,
+            "court_mandate",
+            "REQUIRES_ACTION",
+            result["state"],
+            result,
+        )
+        if not transitioned:
+            latest = await store.read_request(player_id, request_id, "court_mandate")
+            latest_response = latest.get("response") if latest else None
+            if latest and latest.get("state") in {"ISSUED", "REJECTED"} and isinstance(latest_response, dict):
+                return {"replayed": True, **latest_response}
+            raise ApiError(
+                "court_mandate_not_resumable",
+                "The court mandate is not waiting for player action.",
+                status_code=409,
+            )
+        return result
 
     @router.post("/organization/tasks")
     async def create_organization_task(request: OrganizationTaskRequest, player_id: UUID = Depends(player)) -> dict[str, Any]:
@@ -1460,7 +1568,9 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             )
             if (
                 mandate_record is None
+                or mandate_result.get("state") != "ISSUED"
                 or not isinstance(mandate, dict)
+                or mandate.get("state") != "ISSUED"
                 or mandate.get("digest") != mandate_digest
                 or mandate_record.get("stage_id") != request.stage_id
                 or mandate_record.get("hero_id") != request.assignee_hero_id

@@ -40,6 +40,8 @@ const saveJournal=()=>fs.writeFileSync(privatePath,JSON.stringify(journal,null,2
   await page.selectOption('#officeTaskType','supply'); await page.locator('#officeUseCouncil').check();
   journal.stage='order';saveJournal();
   await page.click('#officeIssueButton');
+  await page.waitForSelector('#officeMandateApproval:not([hidden])',{timeout:90000});
+  await page.click('#officeMandateApproveButton');
   await page.waitForFunction(key=>{const p=JSON.parse(localStorage.getItem(key));return p.organization.tasks.some(t=>t.remoteResult&&t.council);},PROFILE,{timeout:90000});
   const issued=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).organization.tasks.find(t=>t.remoteResult&&t.council),PROFILE);
   journal.remoteTask=issued.remoteResult;journal.localTask=issued.id;journal.stage='report-trigger';saveJournal();

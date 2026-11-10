@@ -3724,6 +3724,13 @@ button:focus-visible {
   background: rgba(5, 9, 7, .62);
 }
 .office-order-hint { min-height: 18px; margin: 11px 0 0; color: #888b82; font-size: 11px; }
+.office-mandate-approval { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; margin-top: 14px; padding: 12px 0; border-top: 1px solid rgba(191, 161, 91, .28); border-bottom: 1px solid rgba(191, 161, 91, .18); }
+.office-mandate-approval[hidden] { display: none; }
+.office-mandate-approval > div:first-child { display: grid; gap: 4px; min-width: 0; }
+.office-mandate-approval span { color: #b99344; font-size: 10px; }
+.office-mandate-approval strong { color: #e3d8bb; font-size: 13px; }
+.office-mandate-approval small { color: #888b82; overflow-wrap: anywhere; }
+.office-mandate-actions { display: flex; gap: 8px; }
 .office-members { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin-top: 18px; background: rgba(191, 161, 91, .13); }
 .office-members > div { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; padding: 11px 12px; background: #101510; }
 .office-members strong { color: #e3d8bb; font-size: 13px; }
@@ -3778,6 +3785,9 @@ button:focus-visible {
   .office-overview dl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
   .office-service-status { max-width: none; justify-content: flex-start; }
   .office-order-fields { grid-template-columns: 1fr; }
+  .office-mandate-approval { grid-template-columns: 1fr; }
+  .office-mandate-actions { display: flex; justify-content: flex-end; gap: 8px; }
+  .office-mandate-approval { grid-template-columns: 1fr; align-items: start; }
   .office-members, .office-knowledge-results { grid-template-columns: 1fr; }
 }
 .office-npc-state { margin: 10px 0 14px; padding: 10px 12px; border: 1px solid rgba(174, 146, 69, .28); background: rgba(8, 14, 10, .72); }

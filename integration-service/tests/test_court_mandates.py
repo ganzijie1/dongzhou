@@ -145,12 +145,14 @@ def configured(path: Path) -> Settings:
     )
 
 
-def start_session(client: TestClient) -> None:
+def start_session(client: TestClient, installation_id: str | None = None) -> str:
+    installation_id = installation_id or str(uuid4())
     response = client.post(
         "/api/dongzhou/v1/sessions/guest",
-        json={"installation_id": str(uuid4())},
+        json={"installation_id": installation_id},
     )
     assert response.status_code == 200
+    return installation_id
 
 
 def complete_council(client: TestClient) -> tuple[str, dict[str, object]]:
@@ -187,6 +189,18 @@ def mandate_body(council_id: str, request_id: str | None = None) -> dict[str, ob
     }
 
 
+def approve_mandate(client: TestClient, draft_response) -> dict[str, object]:
+    draft = draft_response.json()
+    mandate_id = draft["mandate"]["id"]
+    approved = client.post(
+        f"/api/dongzhou/v1/court/mandates/{mandate_id}/resume",
+        json={"action_id": draft["action"]["actionId"], "decision": "APPROVE"},
+    )
+    assert approved.status_code == 200
+    assert approved.json()["state"] == "ISSUED"
+    return approved.json()["mandate"]
+
+
 def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
     with TemporaryDirectory() as directory:
         upstreams = MandateUpstreams()
@@ -199,8 +213,11 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
             body = mandate_body(council_id)
             issued = client.post("/api/dongzhou/v1/court/mandates", json=body)
             assert issued.status_code == 200
-            mandate = issued.json()["mandate"]
-            assert mandate["state"] == "ISSUED"
+            draft = issued.json()
+            mandate = draft["mandate"]
+            assert draft["state"] == "REQUIRES_ACTION"
+            assert mandate["state"] == "DRAFT"
+            assert draft["action"]["code"] == "seal_court_mandate"
             assert mandate["kernel"]["state"] in {"READY", "DEGRADED"}
             assert mandate["evidence"]["id"] == "dongzhou_stage_001"
             assert mandate["evidence"]["source"] == {
@@ -231,6 +248,7 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
             assert replay.status_code == 200
             assert replay.json()["replayed"] is True
             assert replay.json()["mandate"] == mandate
+            assert replay.json()["action"] == draft["action"]
 
             order = {
                 "client_request_id": str(uuid4()),
@@ -246,6 +264,19 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
                     "mandate_digest": mandate["digest"],
                 },
             }
+            blocked = client.post("/api/dongzhou/v1/organization/tasks", json=order)
+            assert blocked.status_code == 422
+            assert blocked.json()["error"]["code"] == "court_mandate_mismatch"
+
+            wrong_action = client.post(
+                f"/api/dongzhou/v1/court/mandates/{mandate['id']}/resume",
+                json={"action_id": str(uuid4()), "decision": "APPROVE"},
+            )
+            assert wrong_action.status_code == 409
+            assert wrong_action.json()["error"]["code"] == "court_mandate_action_mismatch"
+
+            mandate = approve_mandate(client, issued)
+            assert mandate["state"] == "ISSUED"
             accepted = client.post("/api/dongzhou/v1/organization/tasks", json=order)
             assert accepted.status_code == 200
             assert accepted.json()["state"] == "ACCEPTED"
@@ -274,10 +305,11 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
         with TestClient(app) as client:
             start_session(client)
             council_id, _ = complete_council(client)
-            issued = client.post(
+            draft = client.post(
                 "/api/dongzhou/v1/court/mandates",
                 json=mandate_body(council_id),
-            ).json()["mandate"]
+            )
+            issued = approve_mandate(client, draft)
             order = {
                 "client_request_id": str(uuid4()),
                 "task_type": "drill",
@@ -376,7 +408,7 @@ def test_diplomacy_operation_is_sealed_and_drives_orgflow_brief() -> None:
             }
             issued = client.post("/api/dongzhou/v1/court/mandates", json=body)
             assert issued.status_code == 200
-            mandate = issued.json()["mandate"]
+            mandate = approve_mandate(client, issued)
             assert mandate["operation"] == body["operation"]
 
             order = {
@@ -525,3 +557,62 @@ def test_mandate_retries_assignment_without_changing_request_id() -> None:
             retried = client.post("/api/dongzhou/v1/court/mandates", json=body)
             assert retried.status_code == 200
             assert retried.json()["mandate"]["id"].endswith(request_id)
+
+
+def test_mandate_rejection_is_terminal_and_replayed() -> None:
+    with TemporaryDirectory() as directory:
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=MandateUpstreams()
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            council_id, _ = complete_council(client)
+            body = mandate_body(council_id)
+            draft = client.post("/api/dongzhou/v1/court/mandates", json=body).json()
+            rejected = client.post(
+                f"/api/dongzhou/v1/court/mandates/{draft['mandate']['id']}/resume",
+                json={"action_id": draft["action"]["actionId"], "decision": "REJECT"},
+            )
+            assert rejected.status_code == 200
+            assert rejected.json()["state"] == "REJECTED"
+            assert rejected.json()["mandate"]["state"] == "REJECTED"
+            replay = client.post("/api/dongzhou/v1/court/mandates", json=body)
+            assert replay.status_code == 200
+            assert replay.json()["replayed"] is True
+            assert replay.json()["state"] == "REJECTED"
+            contradictory = client.post(
+                f"/api/dongzhou/v1/court/mandates/{draft['mandate']['id']}/resume",
+                json={"action_id": draft["action"]["actionId"], "decision": "APPROVE"},
+            )
+            assert contradictory.status_code == 200
+            assert contradictory.json()["replayed"] is True
+            assert contradictory.json()["state"] == "REJECTED"
+
+
+def test_mandate_action_survives_application_restart() -> None:
+    with TemporaryDirectory() as directory:
+        database = Path(directory) / "gateway.sqlite3"
+        installation_id = str(uuid4())
+        app = build_application(configured(database), upstreams=MandateUpstreams())
+        with TestClient(app) as client:
+            start_session(client, installation_id)
+            council_id, _ = complete_council(client)
+            draft = client.post(
+                "/api/dongzhou/v1/court/mandates", json=mandate_body(council_id)
+            ).json()
+
+        restarted = build_application(configured(database), upstreams=MandateUpstreams())
+        with TestClient(restarted) as client:
+            start_session(client, installation_id)
+            approved = client.post(
+                f"/api/dongzhou/v1/court/mandates/{draft['mandate']['id']}/resume",
+                json={"action_id": draft["action"]["actionId"], "decision": "APPROVE"},
+            )
+            assert approved.status_code == 200
+            assert approved.json()["state"] == "ISSUED"
+            terminal_replay = client.post(
+                f"/api/dongzhou/v1/court/mandates/{draft['mandate']['id']}/resume",
+                json={"action_id": draft["action"]["actionId"], "decision": "APPROVE"},
+            )
+            assert terminal_replay.status_code == 200
+            assert terminal_replay.json()["replayed"] is True

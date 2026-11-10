@@ -102,6 +102,8 @@ saveJournal();
       await page.selectOption("#officeDiplomacyTarget", "zheng");
       await page.fill("#officeDiplomacyProposal", "互通军情，共御强敌，不索取财货");
       await page.click("#officeLobbyButton");
+      await page.waitForSelector("#officeMandateApproval:not([hidden])", { timeout: 90000 });
+      await page.click("#officeMandateApproveButton");
       await page.waitForFunction((key) => {
         const organization = JSON.parse(localStorage.getItem(key)).organization;
         const failed = document.querySelector("#officeDiplomacyResult")?.textContent?.startsWith("游说暂不可用：");

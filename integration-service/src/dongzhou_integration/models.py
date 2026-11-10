@@ -216,6 +216,11 @@ class CourtMandateRequest(StrictModel):
         return self
 
 
+class CourtMandateResumeRequest(StrictModel):
+    action_id: UUID = Field(strict=False)
+    decision: Literal["APPROVE", "REJECT"]
+
+
 class OrganizationTaskParameters(StrictModel):
     resource_units: int = Field(ge=0, le=200)
     assignee_name: str = Field(min_length=1, max_length=100)

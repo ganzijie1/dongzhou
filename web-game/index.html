@@ -238,6 +238,10 @@
               <label><span>差事</span><select id="officeTaskType"></select></label>
               <button id="officeIssueButton" class="large-button primary" type="button">授命</button>
             </div>
+            <div id="officeMandateApproval" class="office-mandate-approval" hidden>
+              <div><span>内核待裁</span><strong id="officeMandateApprovalTitle">军令草案待签发</strong><small id="officeMandateApprovalDetail"></small></div>
+              <div class="office-mandate-actions"><button id="officeMandateRejectButton" class="large-button" type="button">驳回</button><button id="officeMandateApproveButton" class="large-button primary" type="button">签发</button></div>
+            </div>
             <p id="officeOrderHint" class="office-order-hint"></p>
           </section>
           <section class="office-ledger" aria-labelledby="officeLedgerTitle">

@@ -181,8 +181,10 @@
   }
   async function createCourtMandate(input) {
     const pendingKey = mandatePendingKey(input);
-    const pending = read(pendingKey, null) || { ...input, client_request_id: input.client_request_id || root.crypto.randomUUID() };
-    write(pendingKey, pending);
+    const saved = read(pendingKey, null);
+    const pending = saved?.input || saved || { ...input, client_request_id: input.client_request_id || root.crypto.randomUUID() };
+    if (saved?.result?.state === "REQUIRES_ACTION") return saved.result;
+    write(pendingKey, { input: pending, result: saved?.result || null });
     let result;
     try {
       result = await request("/court/mandates", { method: "POST", body: JSON.stringify(pending) });
@@ -190,10 +192,49 @@
       if ([400, 422].includes(error.status)) root.localStorage.removeItem(pendingKey);
       throw error;
     }
-    if (result.state !== "ISSUED" || !result.mandate?.id || !result.mandate?.digest) {
+    const validMandate = result.mandate?.id && result.mandate?.digest;
+    if (result.state === "REQUIRES_ACTION" && validMandate && result.action?.actionId) {
+      write(pendingKey, { input: pending, result });
+      return result;
+    }
+    if (result.state !== "ISSUED" || !validMandate) {
       if (result.state === "REJECTED") root.localStorage.removeItem(pendingKey);
       throw new Error("内核尚未签发有效军令");
     }
+    write(pendingKey, { input: pending, result });
+    return result;
+  }
+  function pendingCourtMandate() {
+    for (let index = 0; index < Number(root.localStorage.length || 0); index += 1) {
+      const key = root.localStorage.key(index);
+      if (!key?.startsWith(MANDATE_PENDING_PREFIX)) continue;
+      const saved = read(key, null);
+      const input = saved?.input || saved;
+      const result = saved?.result;
+      if (input && ["REQUIRES_ACTION", "ISSUED"].includes(result?.state)) return { input, result };
+    }
+    return null;
+  }
+  async function resumeCourtMandate(mandateId, actionId, decision) {
+    let pendingKey = null;
+    let saved = null;
+    for (let index = 0; index < Number(root.localStorage.length || 0); index += 1) {
+      const key = root.localStorage.key(index);
+      if (!key?.startsWith(MANDATE_PENDING_PREFIX)) continue;
+      const candidate = read(key, null);
+      if (candidate?.result?.mandate?.id === mandateId) {
+        pendingKey = key;
+        saved = candidate;
+        break;
+      }
+    }
+    if (!pendingKey || !saved) throw new Error("未找到待裁决军令");
+    const result = await request(`/court/mandates/${encodeURIComponent(mandateId)}/resume`, {
+      method: "POST",
+      body: JSON.stringify({ action_id: actionId, decision })
+    });
+    if (result.state === "REJECTED") root.localStorage.removeItem(pendingKey);
+    else write(pendingKey, { ...saved, result });
     return result;
   }
   function acknowledgeCourtMandate(input) {
@@ -205,7 +246,8 @@
       const key = root.localStorage.key(index);
       if (!key?.startsWith(MANDATE_PENDING_PREFIX)) continue;
       const pending = read(key, null);
-      if (pending && String(input || "").endsWith(String(pending.client_request_id || ""))) root.localStorage.removeItem(key);
+      const requestInput = pending?.input || pending;
+      if (pending && (pending?.result?.mandate?.id === input || String(input || "").endsWith(String(requestInput?.client_request_id || "")))) root.localStorage.removeItem(key);
     }
   }
   function applyOrganizationOrder(profile, task, result) {
@@ -308,5 +350,5 @@
     return { mode: "offline", stageId, results: (data.entries || []).filter((entry) => entry.stageId === stageId) };
   }
 
-  return { initialize, persist, status, searchKnowledge, campaignRoute, stageKnowledge, syncNpcs, npcState, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, campaignRoute, stageKnowledge, syncNpcs, npcState, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, isOffline: () => offline };
 });
