@@ -17,6 +17,7 @@ from pydantic import ValidationError
 
 from dongzhou_integration.app import (
     RuntimeModule,
+    _organization_task_chance,
     _prepare_due_organization_reports,
     _organization_task_succeeds,
     build_application,
@@ -118,6 +119,20 @@ class OrganizationOutcomeTests(unittest.TestCase):
 
         self.assertTrue(_organization_task_succeeds(prepared, "supply", capable))
         self.assertFalse(_organization_task_succeeds(unprepared, "supply", exhausted))
+
+    def test_sealed_ainpc_readiness_materially_changes_task_chance(self) -> None:
+        task = {"id": "readiness-task", "dueMonth": 2, "knowledgeId": "dongzhou_stage_001"}
+        member = {"office": "司徒", "loyalty": 68, "fatigue": 10}
+        steady = {"assignment": {"readiness": {"score": 90}}}
+        strained = {"assignment": {"readiness": {"score": 30}}}
+        self.assertGreater(
+            _organization_task_chance(task, "supply", member, steady),
+            _organization_task_chance(task, "supply", member, strained) + 25,
+        )
+        self.assertEqual(
+            _organization_task_chance(task, "supply", member),
+            _organization_task_chance(task, "supply", member, {"assignment": {}}),
+        )
 
 
 class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):

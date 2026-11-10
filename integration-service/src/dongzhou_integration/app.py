@@ -170,24 +170,47 @@ def _stable_roll(value: str) -> int:
     return result % 100
 
 
-def _organization_task_succeeds(
-    task: dict[str, Any], task_type: str, member: dict[str, Any]
-) -> bool:
-    office_fit = 12 if str(member.get("office") or "") == _ORGANIZATION_TASK_OFFICES.get(task_type) else 0
-    knowledge_fit = 10 if task.get("knowledgeId") else 0
+def _organization_task_chance(
+    task: dict[str, Any],
+    task_type: str,
+    member: dict[str, Any],
+    mandate: dict[str, Any] | None = None,
+) -> float:
+    office_fit = 8 if str(member.get("office") or "") == _ORGANIZATION_TASK_OFFICES.get(task_type) else 0
+    knowledge_fit = 6 if task.get("knowledgeId") else 0
     loyalty = max(20.0, min(100.0, float(member.get("loyalty", 68) or 68)))
     fatigue = max(0.0, min(100.0, float(member.get("fatigue", 0) or 0)))
-    chance = max(
+    assignment = mandate.get("assignment") if isinstance(mandate, dict) else None
+    readiness = assignment.get("readiness") if isinstance(assignment, dict) else None
+    readiness_score = (
+        max(25.0, min(95.0, float(readiness.get("score"))))
+        if isinstance(readiness, dict)
+        and isinstance(readiness.get("score"), (int, float))
+        and not isinstance(readiness.get("score"), bool)
+        else 65.0
+    )
+    return max(
         25.0,
         min(
             95.0,
             _ORGANIZATION_TASK_BASE_CHANCE.get(task_type, 60)
             + office_fit
             + knowledge_fit
-            + (loyalty - 60) * 0.25
-            - fatigue * 0.22,
+            + (loyalty - 60) * 0.2
+            - fatigue * 0.22
+            + (readiness_score - 65) * 0.5,
         ),
     )
+
+
+def _organization_task_succeeds(
+    task: dict[str, Any],
+    task_type: str,
+    member: dict[str, Any],
+    mandate: dict[str, Any] | None = None,
+) -> bool:
+    loyalty = max(20.0, min(100.0, float(member.get("loyalty", 68) or 68)))
+    chance = _organization_task_chance(task, task_type, member, mandate)
     roll_key = f"{task.get('id', '')}:{task.get('dueMonth', '')}:{int(loyalty) if loyalty.is_integer() else loyalty}"
     return _stable_roll(roll_key) < chance
 
@@ -248,8 +271,28 @@ async def _prepare_due_organization_reports(
         assignee = str(original.get("assignee_hero_id") or "")
         if assignee not in settings.orgflow_hero_members:
             continue
+        mandate = None
+        parameters = original.get("parameters")
+        mandate_id = parameters.get("mandate_id") if isinstance(parameters, dict) else None
+        mandate_digest = parameters.get("mandate_digest") if isinstance(parameters, dict) else None
+        if isinstance(mandate_id, str) and isinstance(mandate_digest, str):
+            try:
+                mandate_request_id = UUID(mandate_id.rsplit(":", 1)[-1])
+            except ValueError:
+                mandate_request_id = None
+            if mandate_request_id is not None:
+                mandate_record = await store.read_request(
+                    player_id, mandate_request_id, "court_mandate"
+                )
+                candidate = (
+                    mandate_record.get("response", {}).get("mandate")
+                    if mandate_record
+                    else None
+                )
+                if isinstance(candidate, dict) and candidate.get("digest") == mandate_digest:
+                    mandate = candidate
         success = _organization_task_succeeds(
-            task, task_type, members_by_id.get(assignee, {})
+            task, task_type, members_by_id.get(assignee, {}), mandate
         )
         task_name = str(task.get("name") or task_type or "organization assignment")
         stage_title = str(original.get("stage_title") or "the assigned stage")
@@ -260,6 +303,10 @@ async def _prepare_due_organization_reports(
             else f"The {task_name} assignment for {stage_title} could not be completed. "
             "Report the failure truthfully to the direct manager."
         )
+        assignment = mandate.get("assignment") if isinstance(mandate, dict) else None
+        readiness = assignment.get("readiness") if isinstance(assignment, dict) else None
+        if isinstance(readiness, dict) and isinstance(readiness.get("score"), int):
+            content += f" The sealed duty readiness was {readiness['score']}/100."
         operation_id = str(uuid5(NAMESPACE_URL, f"dongzhou-org-report:{task_id}"))
         report = {
             "operation_id": operation_id,
@@ -1108,10 +1155,16 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             )
         assignment = mandate.get("assignment") if isinstance(mandate, dict) else None
         if isinstance(assignment, dict):
+            readiness = assignment.get("readiness")
+            readiness_note = (
+                f" Readiness {readiness.get('score')}/100 ({readiness.get('band')})."
+                if isinstance(readiness, dict)
+                else ""
+            )
             duty_note = (
                 f" Bound AINPC duty {assignment.get('eventId')} "
                 f"({assignment.get('name')}) on {assignment.get('date')} from plan "
-                f"{assignment.get('planId')}."
+                f"{assignment.get('planId')}.{readiness_note}"
             )
             brief = brief.rstrip()[: max(0, 1000 - len(duty_note))] + duty_note
         trigger = {

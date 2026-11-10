@@ -144,7 +144,7 @@ async function openReady(page) {
       else if (pathName.includes("/assignments/")) {
         const taskType = pathName.split("/").at(-1);
         const heroId = decodeURIComponent(pathName.split("/").at(-3));
-        body = { assignment: { heroId, npcId: "42", runtimeState: "READY", planId: "plan-e2e", generationId: "generation-e2e", eventId: `event-${taskType}`, transactionId: taskType === "supply" ? 9100103 : 9100102, name: taskType === "supply" ? "转运军粮" : "检阅军阵", type: "军务", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "resolute", intensity: 72, affectionCount: 2, relationshipCount: 3 } } };
+        body = { assignment: { heroId, npcId: "42", runtimeState: "READY", planId: "plan-e2e", generationId: "generation-e2e", eventId: `event-${taskType}`, transactionId: taskType === "supply" ? 9100103 : 9100102, name: taskType === "supply" ? "转运军粮" : "检阅军阵", type: "军务", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "resolute", intensity: 72, affectionCount: 2, relationshipCount: 3 }, readiness: { score: 82, band: "steady", factors: { runtime: 6, duty: 7.2, emotion: 0, support: 7 } } } };
       }
       else if (/\/npcs\/[^/]+\/schedule$/.test(pathName) && request.method() === "GET") body = { schedule: { data: { schedules: [{ date: "共和元年", events: [{ name: "整饬军粮" }, { name: "巡视营垒" }] }] } } };
       else if (/\/npcs\/[^/]+\/schedule$/.test(pathName)) body = { schedule: { data: { plan_id: "plan-e2e" } } };
@@ -152,7 +152,7 @@ async function openReady(page) {
       else if (pathName.endsWith("/court/mandates")) {
         mandateAttempts += 1;
         const input = request.postDataJSON();
-        body = { state: "ISSUED", mandate: { id: `dongzhou:player-e2e:${input.client_request_id}`, stageId: input.stage_id, stageTitle: "东郊索命", heroId: input.hero_id, taskType: input.task_type, evidence: { id: input.knowledge_id, name: "第一回·已发布本回史料", summary: "杜伯进谏", source: { index: input.evidence_source_index, work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" } }, council: { requestId: input.council_request_id, index: input.decision_index, text: "整军强攻，争取先机" }, assignment: { heroId: input.hero_id, npcId: "42", runtimeState: "READY", planId: input.schedule_plan_id, generationId: "generation-e2e", eventId: input.schedule_event_id, transactionId: 9100103, name: "转运军粮", type: "军需", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "resolute", intensity: 72, affectionCount: 2, relationshipCount: 3 } }, kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "READY" }, digest: "b".repeat(64), state: "ISSUED" } };
+        body = { state: "ISSUED", mandate: { id: `dongzhou:player-e2e:${input.client_request_id}`, stageId: input.stage_id, stageTitle: "东郊索命", heroId: input.hero_id, taskType: input.task_type, evidence: { id: input.knowledge_id, name: "第一回·已发布本回史料", summary: "杜伯进谏", source: { index: input.evidence_source_index, work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" } }, council: { requestId: input.council_request_id, index: input.decision_index, text: "整军强攻，争取先机" }, assignment: { heroId: input.hero_id, npcId: "42", runtimeState: "READY", planId: input.schedule_plan_id, generationId: "generation-e2e", eventId: input.schedule_event_id, transactionId: 9100103, name: "转运军粮", type: "军需", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "resolute", intensity: 72, affectionCount: 2, relationshipCount: 3 }, readiness: { score: 82, band: "steady", factors: { runtime: 6, duty: 7.2, emotion: 0, support: 7 } } }, kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "READY" }, digest: "b".repeat(64), state: "ISSUED" } };
       }
       else if (pathName.endsWith("/organization/tasks")) {
         orderAttempts += 1;
@@ -177,6 +177,7 @@ async function openReady(page) {
     await online.selectOption("#officeMemberSelect", assignee);
     await online.waitForSelector("#officeNpcState >> text=属官服务正在恢复", { timeout: 10000 });
     await online.waitForSelector("#officeNpcState >> text=resolute", { timeout: 15000 });
+    await online.waitForSelector("#officeNpcAssignment >> text=胜任 82/100", { timeout: 15000 });
     if (npcStateAttempts < 7) throw new Error("NPC state did not retry after the transient outage");
     await online.fill("#officeKnowledgeQuery", "杜伯");
     await online.click("#officeKnowledgeForm button[type=submit]");
@@ -205,6 +206,7 @@ async function openReady(page) {
     await online.waitForFunction(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.month === 2);
     releaseOrder();
     await online.waitForSelector("#officeTaskLedger li.active");
+    if (!/胜任82/.test(await online.locator("#officeTaskLedger li.active").innerText())) throw new Error("Sealed AINPC readiness is missing from the task ledger");
     const afterConcurrentOrder = await online.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")));
     if (afterConcurrentOrder.organization.month !== 2) throw new Error(`Accepted order rolled back a concurrent month advance: ${afterConcurrentOrder.organization.month}`);
     if (afterConcurrentOrder.campaignResources.provisions !== provisionsBeforeOrder - afterConcurrentOrder.organization.tasks[0].cost) throw new Error("Accepted order did not charge exactly once");

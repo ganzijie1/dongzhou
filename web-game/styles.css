@@ -3793,6 +3793,7 @@ button:focus-visible {
 .office-npc-assignment strong { color: #b69a4f; font-size: 12px; }
 .office-npc-assignment span, .office-npc-assignment small { min-width: 0; overflow-wrap: anywhere; }
 .office-npc-assignment small { grid-column: 2; color: #756b58; }
+.office-npc-assignment .office-npc-readiness { color: #9c8762; }
 @media (max-width: 640px) { .office-npc-schedule { align-items: flex-start; } .office-npc-assignment { grid-template-columns: 1fr; } .office-npc-assignment small { grid-column: 1; } }
 .office-decision-form { display: grid; gap: 8px; }
 .office-decision-form > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }

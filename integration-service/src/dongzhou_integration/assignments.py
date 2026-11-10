@@ -12,6 +12,14 @@ TASK_TRANSACTION_IDS = {
     "diplomacy": 9100106,
 }
 
+_POSITIVE_EMOTIONS = {
+    "calm": (6.0, 0.0),
+    "peace": (4.0, 0.04),
+    "joy": (3.0, 0.05),
+    "curiosity": (2.0, 0.03),
+}
+_DISRUPTIVE_EMOTIONS = {"anger", "fear", "sadness", "irritation", "shame"}
+
 
 class AssignmentUnavailable(ValueError):
     pass
@@ -54,6 +62,52 @@ def _number(value: Any, fallback: float = 0.0) -> float:
         return float(value)
     except (TypeError, ValueError, OverflowError):
         return fallback
+
+
+def assignment_readiness(
+    *,
+    runtime_state: str,
+    importance: int,
+    emotion: str,
+    intensity: float,
+    affection_count: int,
+    relationship_count: int,
+) -> dict[str, Any]:
+    normalized_emotion = emotion.casefold().strip() or "calm"
+    bounded_intensity = max(0.0, min(100.0, intensity))
+    runtime_factor = 6.0 if runtime_state == "READY" else -12.0
+    duty_factor = (max(0, min(100, importance)) - 50) * 0.18
+    if normalized_emotion in _POSITIVE_EMOTIONS:
+        base, coefficient = _POSITIVE_EMOTIONS[normalized_emotion]
+        emotion_factor = base + bounded_intensity * coefficient
+    elif normalized_emotion in _DISRUPTIVE_EMOTIONS:
+        emotion_factor = -bounded_intensity * 0.1
+    elif normalized_emotion == "surprise":
+        emotion_factor = -bounded_intensity * 0.03
+    else:
+        emotion_factor = 0.0
+    support_factor = min(
+        10.0,
+        max(0, affection_count) * 2.0 + max(0, relationship_count),
+    )
+    score = max(
+        25,
+        min(
+            95,
+            round(55 + runtime_factor + duty_factor + emotion_factor + support_factor),
+        ),
+    )
+    band = "steady" if score >= 75 else "watch" if score >= 55 else "strained"
+    return {
+        "score": score,
+        "band": band,
+        "factors": {
+            "runtime": round(runtime_factor, 1),
+            "duty": round(duty_factor, 1),
+            "emotion": round(emotion_factor, 1),
+            "support": round(support_factor, 1),
+        },
+    }
 
 
 def select_assignment(
@@ -99,6 +153,13 @@ def select_assignment(
     emotion = _payload(npc_state.get("emotion"))
     dominant = emotion.get("dominant") if isinstance(emotion.get("dominant"), dict) else {}
     runtime_state = str((runtime or {}).get("state") or "UNKNOWN").upper()
+    importance = max(0, min(100, _integer(event.get("importance"))))
+    state = {
+        "emotion": str(dominant.get("emotion_type") or "calm"),
+        "intensity": max(0.0, min(100.0, _number(dominant.get("intensity")))),
+        "affectionCount": _count(npc_state.get("affection")),
+        "relationshipCount": _count(npc_state.get("relationships")),
+    }
     return {
         "heroId": hero_id,
         "npcId": npc_id,
@@ -116,11 +177,14 @@ def select_assignment(
             "end": _integer(day.get("end_level")),
         },
         "timeSlot": str(event.get("time_slot") or ""),
-        "importance": max(0, min(100, _integer(event.get("importance")))),
-        "state": {
-            "emotion": str(dominant.get("emotion_type") or "calm"),
-            "intensity": max(0.0, _number(dominant.get("intensity"))),
-            "affectionCount": _count(npc_state.get("affection")),
-            "relationshipCount": _count(npc_state.get("relationships")),
-        },
+        "importance": importance,
+        "state": state,
+        "readiness": assignment_readiness(
+            runtime_state=runtime_state,
+            importance=importance,
+            emotion=state["emotion"],
+            intensity=state["intensity"],
+            affection_count=state["affectionCount"],
+            relationship_count=state["relationshipCount"],
+        ),
     }

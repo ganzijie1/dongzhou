@@ -3,11 +3,11 @@
 ## 入口与交付包
 
 - 游戏入口：`http://127.0.0.1:8780/`
-- 东周网关镜像：`dongzhou-integration:20261110-local-complete22`
+- 东周网关镜像：`dongzhou-integration:20261110-local-complete23`
 - AINPC 八角色镜像：`ainpc-app:v20261110-dongzhou-local-complete14`
 - orgFlow API/Worker 镜像：`org-flow-engine:dongzhou-local-complete22`
-- H5 完整包：`output/2026-11-10-dongzhou-integrated-h5-complete22.zip`
-- H5 SHA256：`c8bea5074b589d3e3b7954f97097cd3569a6a69e01ae9be47c2c26a2c77547a7`
+- H5 完整包：`output/2026-11-10-dongzhou-integrated-h5-complete23.zip`
+- H5 SHA256：`e12ab9f5173f37513595f9dda7b552850058fbfba4857860f18428535c480802`
 
 东周入口、AINPC 网关和 AINPC Mongo 分别只监听 `127.0.0.1:8780`、`127.0.0.1:9130` 和 `127.0.0.1:27117`。Docker Desktop 已登记为当前 Windows 用户登录后自动启动；各长期容器使用 `unless-stopped`。
 
@@ -57,6 +57,8 @@ AINPC 容器通过宿主回环代理访问 LoongEQ、LoongMemory、输入预检�
 - 正式外交链已通过无拦截真实浏览器验收：knowledge-jizhan 史料、AINPC 军议、NexusKernel 外交军令、orgFlow 任务、云端游说结果和盟约门禁完整贯通；本次真实结果为 `FAILURE`，页面正确拒绝结盟，云存档重载后仍一致。证据为 `live-diplomacy-acceptance-20261110-formal-diplomacy-complete17.json` 与同名 PNG。
 - NPC 日程会在派单和每次月令推进时刷新；执行期、结果确认期不会因经理或执行人的旧日程停在 `WAITING_ACTIVE`。AINPC 复命和网关 `CHAT_START / CHAT_TURN / DELIVERY_RESULT` outbox 均已 `DELIVERED`。
 - `ainpc-duty-complete22` 真实验收已证明史料、军议、当值校验、NexusKernel 签令及 orgFlow 建单成功；任务 `d4496a8e-7de8-504a-ba90-ad35bcd243e4` 的简报含当值计划与事件。该任务当前仍停在 `MEMBER_RESPONSE_PENDING`，原因是现有 AINPC 消息持久化队列超时，因此本轮不将 NPC 自动回应和任务终态记为通过。
+- NPC 当值状态现会计算为 `25-95` 的胜任度，并随 NexusKernel 授命摘要封存到 orgFlow 差事；月令结算使用封存分数调整成功概率，旧授命按中性 `65` 兼容。前端同时显示分数、档位、情绪和关系支持。
+- `ainpc-readiness-complete23` 真实验收创建了 NexusKernel 授命及 orgFlow 任务 `cc47d078-f232-5d9a-a24f-afebf5269039`；任务简报已封存 `Readiness 72/100 (watch)`。任务仍为 `MEMBER_RESPONSE_PENDING`；浏览器随后因 Docker Desktop 引擎失联报 `Failed to fetch`，因此本轮只确认真实建单和胜任度传递，不将异步任务终态记为通过。
 - 东周网关冷重启后，原存档、任务身份、失败终态和浏览器显示保持一致。
 - H5 包含 172 个关卡、4038 个文件、2520 条角色语音和 1126 个情境音乐 cue；发布校验无错误。
 

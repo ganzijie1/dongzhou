@@ -1,4 +1,4 @@
-from dongzhou_integration.assignments import AssignmentUnavailable, select_assignment
+from dongzhou_integration.assignments import AssignmentUnavailable, assignment_readiness, select_assignment
 
 
 def schedule(*days):
@@ -29,6 +29,32 @@ def test_selects_matching_duty_nearest_stage_range() -> None:
         "intensity": 0.7,
         "affectionCount": 2,
         "relationshipCount": 3,
+    }
+    assert result["readiness"] == {
+        "score": 74,
+        "band": "watch",
+        "factors": {"runtime": 6.0, "duty": 6.3, "emotion": 0.0, "support": 7.0},
+    }
+
+
+def test_readiness_uses_live_emotion_relationships_and_runtime() -> None:
+    steady = assignment_readiness(
+        runtime_state="READY", importance=95, emotion="peace", intensity=70,
+        affection_count=2, relationship_count=3,
+    )
+    strained = assignment_readiness(
+        runtime_state="RECOVERING", importance=40, emotion="fear", intensity=90,
+        affection_count=0, relationship_count=0,
+    )
+    assert steady == {
+        "score": 83,
+        "band": "steady",
+        "factors": {"runtime": 6.0, "duty": 8.1, "emotion": 6.8, "support": 7.0},
+    }
+    assert strained == {
+        "score": 32,
+        "band": "strained",
+        "factors": {"runtime": -12.0, "duty": -1.8, "emotion": -9.0, "support": 0.0},
     }
 
 
