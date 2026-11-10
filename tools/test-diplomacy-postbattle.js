@@ -45,7 +45,7 @@ assert.equal(replayed.state.archives.filter((entry) => entry.type === "battle").
 assert.throws(() => org.recordBattleOutcome(state, { ...reportInput, won: false }), /冲突/);
 
 const migrated = org.normalizeState({ schemaVersion: 1, relations: null, history: [{ text: "旧档" }] });
-assert.equal(migrated.schemaVersion, 2);
+assert.equal(migrated.schemaVersion, org.SCHEMA_VERSION);
 assert.deepEqual(migrated.diplomacy, { lobbying: [], alliances: [], relations: {} });
 assert.deepEqual(migrated.battleReports, []);
 assert.equal(migrated.history[0].text, "旧档");

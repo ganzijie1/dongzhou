@@ -4,7 +4,7 @@
 
 浏览器只访问 `dongzhou-integration-service`。该服务基于 NexusKernel，持有服务端存档、玩家会话、幂等记录和上游凭据；H5 不直接访问 AINPC、orgFlowEngine 或 knowledge-jizhan。
 
-本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`；最新部署后真实服务验收 9/9 PASS，“查史料—NPC军议—显式引用—官署派差—真实复命—战斗反馈”已通过无拦截浏览器验收。当前网关镜像为 `dongzhou-integration:20261110-local-complete11`，AINPC 八角色为 `ainpc-app:v20261110-dongzhou-local-complete14`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete22`。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
+本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`；最新部署后真实服务验收 9/9 PASS，“查史料—NPC军议—NexusKernel签发军令—orgFlow派差—真实复命—战斗反馈—军令结案”已通过无拦截浏览器验收。当前网关镜像为 `dongzhou-integration:20261110-local-complete14`，AINPC 八角色为 `ainpc-app:v20261110-dongzhou-local-complete14`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete22`。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
 
 ## 发布顺序
 
@@ -25,6 +25,8 @@
 - 联网存档以服务端版本号为准，并发旧版本写入返回 `409`。
 - 存档、到期复命出站事件及游戏时钟在同一 SQLite 事务提交，任何写入失败全部回滚。首次入队冻结复命结果，后续保存不覆盖结果，也不重新投递已完成事件；旧版本遗漏的复命在下一次保存时补入。
 - 颁令请求在浏览器持久记录，受理回执确认写入云档后才清除。断线恢复重用原请求号，按远端任务号去重扣粮；云档冲突会阻止后续排队写入。
+- 在线颁令必须先读取本回已发布史料并取得当前属官的 AINPC 军议。网关随后调用 NexusKernel 真实运行模块状态，签发包含关卡、属官、差事、史料、军议和内核版本的规范军令；摘要使用规范 JSON 的 SHA-256，orgFlowEngine 任务参数中的军令号或摘要不匹配时直接拒绝。
+- 军令状态随任务从 `ISSUED` 进入 `ORDERED`，复命后进入 `FULFILLED`、`PARTIAL` 或 `FAILED`，战斗报告落档后进入 `RESOLVED`。军令、军议和史料证据随战备跨页面及云存档恢复，不以浏览器提示文字代替持久记录。
 - 官署任务以 orgFlowEngine 正式虚拟任务终态为准。联网模式不会再用浏览器随机数结算。
 - 到期复命出队前重新读取真实任务：只有 `IN_PROGRESS` 才创建 AINPC 复命；尚未领命等非终态保留队列，已终态直接结束该队列事件。旧版本提前创建的失败复命不能靠重复 POST 恢复，需核实 AINPC 的恢复轮次和管理接口，不能换新操作号绕过幂等。
 - 颁令只有收到 `ACCEPTED` 和远端任务号后才扣粮、写入本地差事；拒单的幂等回放不会显示领命成功。提交期间禁用重复颁令，远端任务号与本地差事一并存档。

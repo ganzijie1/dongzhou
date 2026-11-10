@@ -170,14 +170,30 @@ class NpcScheduleGenerateRequest(StrictModel):
     force_regenerate: bool = False
 
 
+OrganizationTaskType = Literal["diplomacy", "drill", "intelligence", "patrol", "supply"]
+
+
+class CourtMandateRequest(StrictModel):
+    client_request_id: UUID = Field(strict=False)
+    stage_id: str = Field(min_length=1, max_length=64)
+    stage_title: str = Field(min_length=1, max_length=200)
+    hero_id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$")
+    knowledge_id: str = Field(min_length=1, max_length=200)
+    council_request_id: UUID = Field(strict=False)
+    decision_index: int = Field(ge=0, le=20)
+    task_type: OrganizationTaskType
+
+
 class OrganizationTaskParameters(StrictModel):
     resource_units: int = Field(ge=0, le=200)
     assignee_name: str = Field(min_length=1, max_length=100)
+    mandate_id: str | None = Field(default=None, min_length=1, max_length=256)
+    mandate_digest: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
 
 
 class OrganizationTaskRequest(StrictModel):
     client_request_id: UUID = Field(strict=False)
-    task_type: Literal["diplomacy", "drill", "intelligence", "patrol", "supply"]
+    task_type: OrganizationTaskType
     assignee_hero_id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$")
     stage_id: str = Field(min_length=1, max_length=64)
     stage_title: str = Field(min_length=1, max_length=200)

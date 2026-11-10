@@ -8,6 +8,7 @@
   const SESSION_KEY = "dongzhou-integration-session-v1";
   const INSTALLATION_KEY = "dongzhou-installation-id-v1";
   const ORDER_JOURNAL_KEY = "dongzhou-order-journal-v1";
+  const MANDATE_PENDING_PREFIX = "dongzhou-pending-mandate-v1:";
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
   let session = read(SESSION_KEY, null);
   let sessionPromise = null;
@@ -150,10 +151,46 @@
     root.localStorage.removeItem(pendingKey);
     return { ...result, clientRequestId: pending.client_request_id };
   }
+  function mandatePendingKey(input) {
+    const context = [input.stage_id, input.hero_id, input.knowledge_id, input.council_request_id, input.task_type].join(":");
+    return MANDATE_PENDING_PREFIX + context;
+  }
+  async function createCourtMandate(input) {
+    const pendingKey = mandatePendingKey(input);
+    const pending = read(pendingKey, null) || { ...input, client_request_id: input.client_request_id || root.crypto.randomUUID() };
+    write(pendingKey, pending);
+    const result = await request("/court/mandates", { method: "POST", body: JSON.stringify(pending) });
+    if (result.state !== "ISSUED" || !result.mandate?.id || !result.mandate?.digest) {
+      if (result.state === "REJECTED") root.localStorage.removeItem(pendingKey);
+      throw new Error("内核尚未签发有效军令");
+    }
+    return result;
+  }
+  function acknowledgeCourtMandate(input) {
+    if (input && typeof input === "object") {
+      root.localStorage.removeItem(mandatePendingKey(input));
+      return;
+    }
+    for (let index = Number(root.localStorage.length || 0) - 1; index >= 0; index -= 1) {
+      const key = root.localStorage.key(index);
+      if (!key?.startsWith(MANDATE_PENDING_PREFIX)) continue;
+      const pending = read(key, null);
+      if (pending && String(input || "").endsWith(String(pending.client_request_id || ""))) root.localStorage.removeItem(key);
+    }
+  }
   function applyOrganizationOrder(profile, task, result) {
     task = Object.values(read(ORDER_JOURNAL_KEY, {})).find((entry) => entry.result?.taskId === result.taskId)?.task || task;
     const org = profile.organization;
     if (org.tasks.some((entry) => entry.remoteResult === result.taskId)) return;
+    org.mandates ||= [];
+    if (task.mandate && !org.mandates.some((entry) => entry.id === task.mandate.id)) {
+      org.mandates.push(JSON.parse(JSON.stringify(task.mandate)));
+    }
+    const mandate = task.mandate ? org.mandates.find((entry) => entry.id === task.mandate.id) : null;
+    if (mandate) {
+      mandate.state = "ORDERED";
+      mandate.organizationTaskId = result.taskId;
+    }
     const restored = { ...task, remoteMirrored: true, remoteResult: result.taskId };
     org.tasks.push(restored);
     const sequence = /^dz-\d+-(\d+)-/.exec(task.id);
@@ -182,6 +219,7 @@
       try {
         const result = entry.result || await createOrganizationTask(entry.input, entry.task);
         applyOrganizationOrder(profile, entry.task, result);
+        if (entry.task.mandate?.id) acknowledgeCourtMandate(entry.task.mandate.id);
       } catch (error) {
         // Definitively rejected orders have no charge or binding to restore.
         if (read(ORDER_JOURNAL_KEY, {})[key]) throw error;
@@ -240,5 +278,5 @@
     return { mode: "offline", stageId, results: (data.entries || []).filter((entry) => entry.stageId === stageId) };
   }
 
-  return { initialize, persist, status, searchKnowledge, stageKnowledge, syncNpcs, npcState, npcSchedule, generateNpcSchedule, npcDecision, createOrganizationTask, applyOrganizationOrder, organizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, stageKnowledge, syncNpcs, npcState, npcSchedule, generateNpcSchedule, npcDecision, createCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, isOffline: () => offline };
 });

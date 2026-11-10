@@ -625,6 +625,7 @@
         const support = state.organizationSupport;
         log(`官署筹备已投入：${support.sources.join("、")}；军粮 +${support.provisions}，士气 +${support.morale}，攻击 +${Math.round(support.attack * 100)}%，防御 +${Math.round(support.defense * 100)}%，侦察 ${support.recon}。`, "event");
         for (const council of support.councils || []) log("军议依据：《" + council.knowledgeName + "》；" + council.memberName + "建议：" + council.text, "event");
+        for (const mandate of support.mandates || []) log("内核军令：" + mandate.council.text + "；印记 " + String(mandate.digest || "").slice(0, 10) + "。", "event");
       }
     }
     if (savedState) {
@@ -874,6 +875,10 @@
     $("#officeTaskType").innerHTML = Object.entries(organization.TASK_TYPES).map(([id, task]) => `<option value="${id}" ${id === currentType ? "selected" : ""}>${task.name} · ${task.duration}月</option>`).join("");
     $("#officeMembers").innerHTML = org.members.map((member) => `<div><strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(member.office)}</span><small>信任 ${member.loyalty} · 关系 ${Number(org.relations[member.id] || 0) >= 0 ? "+" : ""}${Number(org.relations[member.id] || 0)} · 劳顿 ${member.fatigue}</small></div>`).join("") || "<p>随战役推进，出阵人物会进入官署名册。</p>";
     $("#officeTaskLedger").innerHTML = [...org.tasks].reverse().slice(0, 10).map((task) => `<li class="${task.status}"><span>${escapeHtml(task.name)}</span><strong>${escapeHtml(task.assigneeName)}</strong><small>${task.status === "active" ? `${task.dueMonth}月复命` : task.status === "success" ? "办成" : task.status === "partial" ? "部分办成" : "未成"}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》军议` : ""}</small></li>`).join("") || '<li class="empty">尚无差事</li>';
+    $("#officeMandateLedger").innerHTML = [...org.mandates].reverse().slice(0, 6).map((mandate) => {
+      const label = mandate.state === "RESOLVED" ? (mandate.outcome?.won ? "战后告捷" : "战后失利") : mandate.state === "FULFILLED" ? "复命待战" : mandate.state === "PARTIAL" ? "部分复命" : mandate.state === "FAILED" ? "执行未成" : mandate.state === "ORDERED" ? "属官执行中" : "已签发";
+      return `<li class="${escapeHtml(String(mandate.state || "issued").toLowerCase())}"><span>${escapeHtml(mandate.evidence?.name || "内核军令")}</span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(mandate.council?.text || "")} · 印记 ${escapeHtml(String(mandate.digest || "").slice(0, 10))}</small></li>`;
+    }).join("") || '<li class="empty">完成史料查阅与属官裁断后，可签发内核军令。</li>';
     $("#officeAllianceLedger").innerHTML = [...org.diplomacy.alliances].reverse().map((pact) => `<li class="${pact.status}"><span>${escapeHtml(pact.targetName)}盟约</span><strong>${pact.status === "active" ? "生效" : pact.status === "broken" ? "背盟待战" : "战后结案"}</strong><small>关系 ${Number(org.diplomacy.relations[pact.targetId] || 0)} · ${escapeHtml(pact.terms.join("、"))}</small></li>`).join("") || '<li class="empty">尚无盟约</li>';
     $("#officeBattleArchive").innerHTML = [...org.archives].reverse().slice(0, 12).map((entry) => `<li><strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml(entry.text)} · ${escapeHtml(String(entry.stageId || "无关卡"))}</span></li>`).join("") || "<li><strong>尚无档案</strong><span>完成盟约、背盟或战役后将在此存照。</span></li>";
     const selectedTask = organization.TASK_TYPES[$("#officeTaskType").value] || organization.TASK_TYPES.supply;
@@ -987,7 +992,7 @@
     if (control.dataset.councilContext !== contextKey) control.checked = false;
     control.dataset.councilContext = contextKey;
     control.disabled = !council;
-    $("#officeCouncilHint").textContent = council ? "已保存：" + council.memberName + "据《" + council.knowledgeName + "》建议“" + council.text + "”。引用不替你选择差事，请确认差事类型。" : "先查本回史料，再请当前属官参议；派差前可选择引用。";
+    $("#officeCouncilHint").textContent = council ? "已保存：" + council.memberName + "据《" + council.knowledgeName + "》建议“" + council.text + "”。联网授命须勾选并由内核签发军令。" : "先查本回史料，再请当前属官参议；联网授命必须引用军议。";
   }
 
   let officeLobbyInFlight = false;
@@ -1091,6 +1096,9 @@
     $("#officeIssueButton").disabled = true;
     const record = officeStage();
     try {
+      if (!integration.isOffline() && profile.organization.backend.mode !== "connected") {
+        throw new Error("史官、属官、朝议或内核尚未全部通达，联网授命已暂停");
+      }
       if (!integration.isOffline() && profile.organization.backend.orgFlow && $("#officeMemberSelect").value === "DuBo") {
         showNotice("杜伯是当前组织负责人，不能向自己派单，请选择一名直属下属。");
         return;
@@ -1104,13 +1112,37 @@
       const council = $("#officeUseCouncil").checked ? currentOfficeCouncil() : null;
       const councilContext = council ? [council.stageId, council.memberId, council.knowledgeId, council.id].join(':') : "";
       if ($("#officeUseCouncil").checked && (!council || $("#officeUseCouncil").dataset.councilContext !== councilContext)) throw new Error("军议选择已变化，请重新确认引用");
-      const created = organization.createTask(profile.organization, {
-        type: $("#officeTaskType").value,
-        assigneeId: $("#officeMemberSelect").value,
+      if (!integration.isOffline() && (!knowledge || !council)) throw new Error("联网授命必须引用本回史料与已保存军议");
+      const taskType = $("#officeTaskType").value;
+      const assigneeId = $("#officeMemberSelect").value;
+      let mandateInput = null;
+      let issuedMandate = null;
+      let taskBaseState = profile.organization;
+      if (!integration.isOffline()) {
+        mandateInput = {
+          stage_id: String(record?.id || "unknown"),
+          stage_title: String(record?.battleTitle || record?.title || "未名战事"),
+          hero_id: assigneeId,
+          knowledge_id: knowledge.id,
+          council_request_id: council.id,
+          decision_index: Number(council.index),
+          task_type: taskType
+        };
+        const issued = await integration.createCourtMandate(mandateInput);
+        issuedMandate = issued.mandate;
+        if (String(officeStage()?.id || "") !== String(record?.id || "") || $("#officeMemberSelect").value !== assigneeId || $("#officeTaskType").value !== taskType || currentOfficeCouncil()?.id !== council.id) {
+          throw new Error("授命条件已变化，请重新确认军议与差事");
+        }
+        taskBaseState = organization.recordMandate(taskBaseState, issuedMandate).state;
+      }
+      const created = organization.createTask(taskBaseState, {
+        type: taskType,
+        assigneeId,
         stageId: record?.id,
         stageTitle: record?.battleTitle,
         knowledgeId: knowledge?.id,
-        councilId: council?.id
+        councilId: council?.id,
+        mandateId: issuedMandate?.id
       });
       const remote = integration.isOffline() ? { state: "OFFLINE" } : await integration.createOrganizationTask({
         task_type: created.task.type,
@@ -1119,14 +1151,21 @@
         // Keep the external protocol body neutral and stable. Narrative combat text and AINPC
         // output remain frozen in the signed save/task council snapshot for browser provenance.
         stage_title: `Dongzhou stage ${record?.id || "unknown"}`,
-        brief: `Dongzhou office assignment for stage ${record?.id || "unknown"}${council ? "; source council recorded in player save" : ""}.`,
-        parameters: { resource_units: created.task.cost, assignee_name: created.task.assigneeName }
+        brief: `Dongzhou office assignment for stage ${record?.id || "unknown"}${created.task.mandate ? `; Nexus mandate ${created.task.mandate.id}` : ""}.`,
+        parameters: {
+          resource_units: created.task.cost,
+          assignee_name: created.task.assigneeName,
+          mandate_id: created.task.mandate?.id,
+          mandate_digest: created.task.mandate?.digest
+        }
       }, created.task);
       if (!integration.isOffline()) {
+        profile.organization = organization.recordMandate(profile.organization, issuedMandate).state;
         integration.applyOrganizationOrder(profile, created.task, remote);
         localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
         renderOrganizationPanel();
         await integration.persist(profile);
+        integration.acknowledgeCourtMandate(mandateInput);
       } else {
         profile.campaignResources.provisions = clamp(profile.campaignResources.provisions - taskDefinition.cost, 0, 200);
         saveOrganization(created.state);

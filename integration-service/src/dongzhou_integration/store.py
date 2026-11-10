@@ -742,6 +742,25 @@ class Store:
             with self._connection() as db:
                 db.execute("UPDATE requests SET state=?,response_payload=?,external_id=COALESCE(?,external_id),attempts=attempts+1,last_error=?,updated_at=CURRENT_TIMESTAMP WHERE player_id=? AND request_id=?", (state, json.dumps(response, ensure_ascii=False, separators=(",", ":")), external_id, error, str(player_id), str(request_id)))
 
+    async def read_request(
+        self, player_id: UUID, request_id: UUID, kind: str
+    ) -> dict[str, Any] | None:
+        async with self._lock:
+            with self._connection() as db:
+                row = db.execute(
+                    "SELECT state,request_payload,response_payload,external_id "
+                    "FROM requests WHERE player_id=? AND request_id=? AND kind=?",
+                    (str(player_id), str(request_id), kind),
+                ).fetchone()
+        if row is None:
+            return None
+        return {
+            "state": row["state"],
+            "request": json.loads(row["request_payload"]),
+            "response": json.loads(row["response_payload"]) if row["response_payload"] else None,
+            "externalId": row["external_id"],
+        }
+
     async def read_external_request(
         self, player_id: UUID, external_id: str, kind: str
     ) -> dict[str, Any] | None:

@@ -88,6 +88,7 @@ async function openReady(page) {
     let saveVersion = 1;
     let npcStateAttempts = 0;
     let orderAttempts = 0;
+    let mandateAttempts = 0;
     let savedRemoteTask = false;
     let releaseOrder;
     const orderGate = new Promise((resolve) => { releaseOrder = resolve; });
@@ -115,6 +116,11 @@ async function openReady(page) {
       else if (/\/npcs\/[^/]+\/schedule$/.test(pathName) && request.method() === "GET") body = { schedule: { data: { schedules: [{ date: "共和元年", events: [{ name: "整饬军粮" }, { name: "巡视营垒" }] }] } } };
       else if (/\/npcs\/[^/]+\/schedule$/.test(pathName)) body = { schedule: { data: { plan_id: "plan-e2e" } } };
       else if (/\/npcs\/[^/]+\/decisions$/.test(pathName)) body = { state: "COMPLETED", decision: { data: { index: 1, type: "OPTION", text: "整军强攻，争取先机" } } };
+      else if (pathName.endsWith("/court/mandates")) {
+        mandateAttempts += 1;
+        const input = request.postDataJSON();
+        body = { state: "ISSUED", mandate: { id: `dongzhou:player-e2e:${input.client_request_id}`, stageId: input.stage_id, stageTitle: "东郊索命", heroId: input.hero_id, taskType: input.task_type, evidence: { id: input.knowledge_id, name: "第一回·已发布本回史料", summary: "杜伯进谏" }, council: { requestId: input.council_request_id, index: input.decision_index, text: "整军强攻，争取先机" }, kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "READY" }, digest: "b".repeat(64), state: "ISSUED" } };
+      }
       else if (pathName.endsWith("/organization/tasks")) {
         orderAttempts += 1;
         if (orderAttempts === 2) await orderGate;
@@ -148,6 +154,7 @@ async function openReady(page) {
     if (!stageKnowledge.some((entry) => entry.id === "dongzhou_stage_001" && entry.stageId === "01")) throw new Error("Published stage knowledge was not saved for preparation");
     await online.click("#officeDecisionForm button[type=submit]");
     await online.waitForSelector("#officeDecisionResult >> text=整军强攻");
+    await online.locator("#officeUseCouncil").check();
     const provisionsBeforeOrder = await online.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).campaignResources.provisions);
     await online.click("#officeIssueButton");
     await online.waitForFunction(() => !document.querySelector("#officeIssueButton").disabled);
@@ -164,9 +171,10 @@ async function openReady(page) {
     releaseOrder();
     await online.waitForSelector("#officeTaskLedger li.active");
     const afterConcurrentOrder = await online.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")));
-    if (afterConcurrentOrder.organization.month !== 2) throw new Error("Accepted order rolled back a concurrent month advance");
+    if (afterConcurrentOrder.organization.month !== 2) throw new Error(`Accepted order rolled back a concurrent month advance: ${afterConcurrentOrder.organization.month}`);
     if (afterConcurrentOrder.campaignResources.provisions !== provisionsBeforeOrder - afterConcurrentOrder.organization.tasks[0].cost) throw new Error("Accepted order did not charge exactly once");
     if (orderAttempts !== 2) throw new Error("Repeated click created duplicate remote orders");
+    if (mandateAttempts !== 2) throw new Error("Rejected order retry did not reuse the Nexus mandate request exactly once");
     await online.click("#officeAdvanceButton");
     await online.waitForSelector("#officeTaskLedger li.success");
     if (!savedRemoteTask) throw new Error("Remote task binding was not persisted");

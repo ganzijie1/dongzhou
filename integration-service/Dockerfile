@@ -1,6 +1,9 @@
 FROM python:3.12.12-slim AS builder
 
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1 PIP_NO_CACHE_DIR=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DEFAULT_TIMEOUT=180 \
+    PIP_RETRIES=8
 WORKDIR /build
 COPY services/NexusKernel /build/NexusKernel
 COPY integration-service /build/integration-service

@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 2;
+  const SCHEMA_VERSION = 3;
   const TASK_TYPES = {
     supply: { name: "转运军粮", office: "司徒", duration: 1, cost: 8, base: 72, reward: { provisions: 24 } },
     drill: { name: "整训军阵", office: "司马", duration: 1, cost: 6, base: 68, reward: { attack: 0.08 } },
@@ -38,6 +38,7 @@
       tasks: [],
       knowledge: [],
       councils: [],
+      mandates: [],
       relations: {},
       diplomacy: { lobbying: [], alliances: [], relations: {} },
       battleReports: [],
@@ -81,6 +82,7 @@
       tasks: retainedTasks.map((task) => ({ ...task, status: ['active', 'success', 'partial', 'failed'].includes(task.status) ? task.status : 'failed' })),
       knowledge: Array.isArray(source.knowledge) ? source.knowledge.slice(-30).map((entry) => ({ ...entry })) : [],
       councils: Array.isArray(source.councils) ? source.councils.filter((entry) => entry && typeof entry === 'object').slice(-30).map(copy) : [],
+      mandates: Array.isArray(source.mandates) ? source.mandates.filter((entry) => entry && typeof entry === "object").slice(-50).map(copy) : [],
       relations: source.relations && typeof source.relations === "object" ? { ...source.relations } : {},
       diplomacy: {
         lobbying: Array.isArray(source.diplomacy?.lobbying) ? source.diplomacy.lobbying.filter(Boolean).slice(-30).map(copy) : [],
@@ -133,6 +135,21 @@
     return { state, council: copy(previous || council) };
   }
 
+  function recordMandate(rawState, input) {
+    const state = normalizeState(rawState);
+    const mandate = input && typeof input === "object" ? copy(input) : null;
+    if (!mandate?.id || !mandate.stageId || !mandate.heroId || !mandate.taskType) throw new Error("内核军令缺少关卡、属官或差事");
+    if (!mandate.evidence?.id || !mandate.council?.requestId || !mandate.council?.text) throw new Error("内核军令未绑定史料与属官裁断");
+    if (!/^[0-9a-f]{64}$/.test(String(mandate.digest || "")) || !["READY", "DEGRADED"].includes(mandate.kernel?.state)) throw new Error("内核军令印记无效");
+    const previous = state.mandates.find((entry) => entry.id === mandate.id);
+    if (previous && JSON.stringify(previous) !== JSON.stringify(mandate)) throw new Error("内核军令来源记录冲突");
+    if (!previous) {
+      state.mandates = [...state.mandates, mandate].slice(-50);
+      state.history.push({ month: state.month, tone: "order", text: `内核签发军令：${mandate.evidence.name} · ${mandate.council.text}` });
+    }
+    return { state, mandate: copy(previous || mandate) };
+  }
+
   function createTask(rawState, input) {
     const state = normalizeState(rawState);
     const definition = TASK_TYPES[input?.type];
@@ -141,6 +158,8 @@
     if (!member) throw new Error("请选择承办官员");
     const council = input.councilId ? state.councils.find((entry) => entry.id === input.councilId) : null;
     if (input.councilId && (!council || council.memberId !== member.id || council.stageId !== String(input.stageId || '') || council.knowledgeId !== input.knowledgeId)) throw new Error('军议与本次关卡、官员或史料不匹配');
+    const mandate = input.mandateId ? state.mandates.find((entry) => entry.id === input.mandateId) : null;
+    if (input.mandateId && (!mandate || mandate.stageId !== String(input.stageId || "") || mandate.heroId !== member.id || mandate.taskType !== input.type || mandate.evidence?.id !== input.knowledgeId || mandate.council?.requestId !== input.councilId)) throw new Error("内核军令与本次关卡、属官、史料或差事不匹配");
     const active = state.tasks.some((task) => task.status === "active" && task.assigneeId === member.id);
     if (active) throw new Error(`${member.name}已有差事在身`);
     // 序号独立于可裁剪的台账，旧存档从已有任务 ID 恢复，读档后不会重复领单。
@@ -158,6 +177,7 @@
       stageTitle: String(input.stageTitle || ""),
       knowledgeId: input.knowledgeId ? String(input.knowledgeId) : null,
       council: council ? copy(council) : null,
+      mandate: mandate ? copy(mandate) : null,
       startedMonth: state.month,
       dueMonth: state.month + definition.duration,
       status: "active",
@@ -254,6 +274,7 @@
       turns: Math.max(0, Number(input.turns || 0)), ownLosses: Math.max(0, Number(input.ownLosses || 0)),
       terminalReason: String(input.terminalReason || ""), support,
       councils: Array.isArray(support.councils) ? support.councils.map(copy) : [],
+      mandates: Array.isArray(support.mandates) ? support.mandates.map(copy) : [],
       sources: Array.isArray(support.sources) ? support.sources.map(String) : [], month: state.month
     };
     const affected = new Set(report.councils.map((entry) => entry.memberId).filter(Boolean));
@@ -262,6 +283,13 @@
     for (const memberId of affected) {
       state.relations[memberId] = clamp(Number(state.relations[memberId] || 0) + delta, -100, 100);
       state.relationEvents.push({ id: id + ":" + memberId, reportId: id, stageId, memberId, delta, reason: input.won ? "战策奏效" : "战策受挫" });
+    }
+    for (const used of report.mandates) {
+      const mandate = state.mandates.find((entry) => entry.id === used.id);
+      if (!mandate) continue;
+      mandate.state = "RESOLVED";
+      mandate.reportId = id;
+      mandate.outcome = { won: input.won, turns: report.turns, ownLosses: report.ownLosses };
     }
     const betrayal = state.diplomacy.alliances.find((entry) => entry.status === "broken" && entry.betrayalStageId === stageId && !entry.resolvedReportId);
     if (betrayal) {
@@ -272,7 +300,7 @@
       report.betrayal = { allianceId: betrayal.id, targetId: betrayal.targetId, targetName: betrayal.targetName, reason: betrayal.betrayalReason };
     }
     state.battleReports.push(report);
-    state.archives.push({ id: "battle:" + id, month: state.month, type: "battle", stageId, title: report.stageTitle + (input.won ? "告捷" : "失利"), text: "用时" + report.turns + "回合，折损" + report.ownLosses + "部" + (report.sources.length ? "；筹备：" + report.sources.join("、") : "") });
+    state.archives.push({ id: "battle:" + id, month: state.month, type: "battle", stageId, title: report.stageTitle + (input.won ? "告捷" : "失利"), text: "用时" + report.turns + "回合，折损" + report.ownLosses + "部" + (report.sources.length ? "；筹备：" + report.sources.join("、") : "") + (report.mandates.length ? "；内核军令已结案" : "") });
     state.battleReports = state.battleReports.slice(-40);
     state.relationEvents = state.relationEvents.slice(-80);
     state.archives = state.archives.slice(-80);
@@ -347,13 +375,19 @@
       task.status = finalResult === "SUCCESS" ? "success" : finalResult === "PARTIAL" ? "partial" : "failed";
       task.resolvedMonth = state.month;
       task.remoteFinalResult = finalResult;
+      const mandate = task.mandate ? state.mandates.find((entry) => entry.id === task.mandate.id) : null;
+      if (mandate) {
+        mandate.state = finalResult === "SUCCESS" ? "FULFILLED" : finalResult === "PARTIAL" ? "PARTIAL" : "FAILED";
+        mandate.organizationTaskId = task.remoteResult;
+        mandate.organizationResult = finalResult;
+      }
       if (success) {
         const factor = finalResult === "PARTIAL" ? 0.5 : 1;
         state.influence = clamp(state.influence + (finalResult === "PARTIAL" ? 1 : 2), 0, 999);
         member.loyalty = clamp(member.loyalty + 1, 20, 100);
         state.relations[member.id] = clamp(Number(state.relations[member.id] || 0) + 2, -100, 100);
         const reward = Object.fromEntries(Object.entries(definition.reward).map(([key, value]) => [key, Number(value) * factor]));
-        state.pendingSupport.push({ id: task.id, stageId: task.stageId, source: task.name, memberId: member.id, council: task.council ? copy(task.council) : null, ...reward });
+        state.pendingSupport.push({ id: task.id, stageId: task.stageId, source: task.name, memberId: member.id, council: task.council ? copy(task.council) : null, mandate: mandate ? copy(mandate) : task.mandate ? copy(task.mandate) : null, ...reward });
         state.history.push({ month: state.month, tone: "good", text: `${member.name}${finalResult === "PARTIAL" ? "部分办成" : "办成"}“${task.name}”，成果将用于${task.stageTitle || "下一战"}。` });
       } else {
         state.influence = clamp(state.influence - 1, 0, 999);
@@ -378,9 +412,10 @@
       recon: total.recon + Number(entry.recon || 0),
       sources: [...total.sources, entry.source],
       councils: [...total.councils, ...(entry.council ? [copy(entry.council)] : [])],
+      mandates: [...total.mandates, ...(entry.mandate ? [copy(entry.mandate)] : [])],
       orders: [...total.orders, { id: entry.id, memberId: entry.memberId || null, source: entry.source }],
       alliances: [...total.alliances, ...(entry.alliance ? [copy(entry.alliance)] : [])]
-    }), { provisions: 0, morale: 0, attack: 0, defense: 0, recon: 0, sources: [], councils: [], orders: [], alliances: [] });
+    }), { provisions: 0, morale: 0, attack: 0, defense: 0, recon: 0, sources: [], councils: [], mandates: [], orders: [], alliances: [] });
     if (selected.length) state.history.push({ month: state.month, tone: "good", text: `${selected.length}项官署筹备已投入${stageKey ? `第${stageKey}战` : "战事"}。` });
     return { state, support };
   }
@@ -399,5 +434,5 @@
     return state;
   }
 
-  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordCouncil, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, consumeSupport, recordKnowledge, updateBackend, hash };
+  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, consumeSupport, recordKnowledge, updateBackend, hash };
 });

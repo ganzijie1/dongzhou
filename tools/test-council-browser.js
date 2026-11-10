@@ -14,7 +14,7 @@ const executablePath=['C:/Program Files/Google/Chrome/Application/chrome.exe','C
 const clone=x=>JSON.parse(JSON.stringify(x));
 async function setup(browser) {
   const context=await browser.newContext();
-  const model={cloud:{},version:0,orders:[],decisions:[],errors:[],unexpected:[],mode:'success',release:null};
+  const model={cloud:{},version:0,orders:[],decisions:[],mandates:[],errors:[],unexpected:[],mode:'success',release:null};
   await context.route('**/*', async route=>{
     const req=route.request(), u=new URL(req.url()), p=u.pathname;
     if(u.origin!==BASE_ORIGIN) {model.unexpected.push(req.url());return route.abort();}
@@ -42,6 +42,9 @@ async function setup(browser) {
       if(model.mode==='delay') await new Promise(resolve=>{model.release=resolve;});
       if(model.mode==='failure') return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:{message:'mock decision unavailable'}})});
       body={state:'COMPLETED',decision:{data:{type:'OPTION',index:0,text:req.postDataJSON().options[0].text}}};
+    } else if(p.endsWith('/court/mandates')) {
+      const input=req.postDataJSON();model.mandates.push(input);
+      body={state:'ISSUED',mandate:{id:`dongzhou:council-test-player:${input.client_request_id}`,stageId:input.stage_id,stageTitle:'东郊索命',heroId:input.hero_id,taskType:input.task_type,evidence:{id:input.knowledge_id,name:'Stage One Source',summary:'Published source for this stage.'},council:{requestId:input.council_request_id,index:input.decision_index,text:'筹措军粮'},kernel:{module:'dongzhou_runtime',moduleVersion:'1.0.0',nexusKernelVersion:'0.2.0',state:'READY'},digest:'a'.repeat(64),state:'ISSUED'}};
     } else if(p.endsWith('/organization/tasks')) {model.orders.push(req.postDataJSON());body={state:'ACCEPTED',taskId:'council-task'};}
     else if(p.endsWith('/organization/tasks/council-task')) body={result:{data:{task_id:'council-task',state:'SUCCEEDED',final_result:'SUCCESS',version:3}}};
     else {model.unexpected.push(p);return route.fulfill({status:404,body:'unexpected mock request'});}
@@ -72,17 +75,18 @@ async function decide(page) {await page.locator('#officeDecisionForm button[type
     await page.selectOption('#officeTaskType','supply');
     await page.locator('#officeUseCouncil').check();
     await page.click('#officeIssueButton');await page.waitForSelector('#officeTaskLedger li.active');
-    assert.equal(model.orders.length,1);assert.match(model.orders[0].brief,/source council recorded in player save/);assert.doesNotMatch(model.orders[0].brief,/Stage One Source/);
+    assert.equal(model.mandates.length,1);assert.equal(model.mandates[0].knowledge_id,'dongzhou_stage_001');assert.equal(model.mandates[0].council_request_id,model.cloud.organization.councils[0].id);
+    assert.equal(model.orders.length,1);assert.equal(model.orders[0].parameters.mandate_id,model.cloud.organization.mandates[0].id);assert.equal(model.orders[0].parameters.mandate_digest,'a'.repeat(64));
     await page.waitForFunction(key=>!!JSON.parse(localStorage.getItem(key)).organization.tasks[0].council,PROFILE);
     assert.equal(model.cloud.organization.tasks[0].council.knowledgeId,'dongzhou_stage_001');
     await page.click('#officeAdvanceButton');await page.waitForSelector('#officeTaskLedger li.success');
-    assert.equal(model.cloud.organization.pendingSupport[0].council.id,model.cloud.organization.tasks[0].council.id);
+    assert.equal(model.cloud.organization.pendingSupport[0].council.id,model.cloud.organization.tasks[0].council.id);assert.equal(model.cloud.organization.pendingSupport[0].mandate.id,model.cloud.organization.tasks[0].mandate.id);
     const before=model.cloud.campaignResources.provisions;
     await page.reload({waitUntil:'domcontentloaded'});await page.waitForSelector('#app:not([hidden])');
     await page.click('#focusStageButton');await page.waitForFunction(key=>!!localStorage.getItem(key),BATTLE);
     const battle=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),BATTLE);
-    assert.equal(battle.organizationSupport.provisions,24);assert.equal(battle.organizationSupport.councils[0].knowledgeId,'dongzhou_stage_001');
-    assert.match(await page.locator('#battleLog').innerText(),/Stage One Source/);
+    assert.equal(battle.organizationSupport.provisions,24);assert.equal(battle.organizationSupport.councils[0].knowledgeId,'dongzhou_stage_001');assert.equal(battle.organizationSupport.mandates[0].digest,'a'.repeat(64));
+    assert.match(await page.locator('#battleLog').innerText(),/Stage One Source/);assert.match(await page.locator('#battleLog').innerText(),/内核军令/);
     await page.waitForFunction(({key,before})=>JSON.parse(localStorage.getItem(key)).campaignResources.provisions===before+24,{key:PROFILE,before});
     const late=await setup(browser);await knowledge(late.page);late.model.mode='delay';await decide(late.page);
     while(late.model.decisions.length!==1) await new Promise(resolve=>setTimeout(resolve,10));
@@ -111,6 +115,6 @@ async function decide(page) {await page.locator('#officeDecisionForm button[type
     const mobileBox=await happy.page.evaluate(()=>{const drawer=document.querySelector('#campaignOfficeDrawer').getBoundingClientRect();return {left:drawer.left,right:drawer.right,width:innerWidth,scrollWidth:document.documentElement.scrollWidth};});
     assert(mobileBox.left>=0 && mobileBox.right<=mobileBox.width+1 && mobileBox.scrollWidth<=mobileBox.width+1);
     for(const test of [happy,late,failure,saveFail]) {assert.deepEqual(test.model.errors,[]);assert.deepEqual(test.model.unexpected,[]);}
-    console.log(JSON.stringify({result:'PASS',mockOnly:true,realServiceRequests:0,knowledgeRequired:true,explicitCouncilOptIn:true,councilBoundToTaskAndBattle:true,reward:24,lateMemberChangeDiscarded:true,failedDecisionNotSaved:true,failedCloudSaveRolledBack:true,mobile320NoOverflow:true}));
+    console.log(JSON.stringify({result:'PASS',mockOnly:true,realServiceRequests:0,knowledgeRequired:true,explicitCouncilOptIn:true,nexusMandateBoundToTaskAndBattle:true,councilBoundToTaskAndBattle:true,reward:24,lateMemberChangeDiscarded:true,failedDecisionNotSaved:true,failedCloudSaveRolledBack:true,mobile320NoOverflow:true}));
   } finally {await browser.close();}
 })().catch(error=>{console.error(error.stack||error.message);process.exitCode=1;});

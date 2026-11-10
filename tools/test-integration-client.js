@@ -7,7 +7,9 @@ global.location = { search: "" };
 global.localStorage = {
   getItem: (key) => values.has(key) ? values.get(key) : null,
   setItem: (key, value) => values.set(key, String(value)),
-  removeItem: (key) => values.delete(key)
+  removeItem: (key) => values.delete(key),
+  key: (index) => [...values.keys()][index] || null,
+  get length() { return values.size; }
 };
 let saveVersion = 1;
 let organizationAttempts = 0;
@@ -16,6 +18,8 @@ let failNextSave = false;
 let conflictNextSave = false;
 let decisionAttempts = 0;
 const decisionIds = [];
+let mandateAttempts = 0;
+const mandateIds = [];
 let saveConflictEvents = 0;
 let sessionRequests = 0;
 let expireNextSave = false;
@@ -52,6 +56,14 @@ global.fetch = async (url, options = {}) => {
     } else { storedProfile = body.payload; response = { version: ++saveVersion, payload: body.payload }; }
   }
   else if (url.endsWith("/save")) response = { version: saveVersion, payload: storedProfile };
+  else if (url.endsWith("/court/mandates")) {
+    mandateAttempts += 1;
+    mandateIds.push(body.client_request_id);
+    if (mandateAttempts === 1) {
+      status = 503;
+      response = { error: { code: "knowledge_unavailable", message: "retry mandate" } };
+    } else response = { state: "ISSUED", mandate: { id: `dongzhou:player:${body.client_request_id}`, digest: "a".repeat(64) } };
+  }
   else if (url.endsWith("/organization/tasks")) {
     organizationAttempts += 1;
     organizationIds.push(body.client_request_id);
@@ -107,6 +119,13 @@ const client = require("../web-game/integration-client.js");
   await assert.rejects(() => client.npcDecision("DuBo", "test", ["one", "two"]), /decision unavailable/);
   await client.npcDecision("DuBo", "test", ["one", "two"]);
   assert.strictEqual(decisionIds[0], decisionIds[1]);
+  const mandateInput = { stage_id: "01", stage_title: "东郊索命", hero_id: "DuBo", knowledge_id: "dongzhou_stage_001", council_request_id: decisionIds[1], decision_index: 0, task_type: "supply" };
+  await assert.rejects(() => client.createCourtMandate(mandateInput), /retry mandate/);
+  const mandate = await client.createCourtMandate(mandateInput);
+  assert.strictEqual(mandateIds[0], mandateIds[1]);
+  assert.ok([...values.keys()].some((key) => key.startsWith("dongzhou-pending-mandate-v1:")));
+  client.acknowledgeCourtMandate(mandateInput);
+  assert.ok(![...values.keys()].some((key) => key.startsWith("dongzhou-pending-mandate-v1:")));
   const input = { task_type: "supply", assignee_hero_id: "DuBo", stage_id: "01", stage_title: "东郊索命", brief: "test", parameters: {} };
   await assert.rejects(() => client.createOrganizationTask(input), /retry/);
   const accepted = await client.createOrganizationTask(input);
@@ -158,7 +177,7 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(saveAttempts - attemptsBeforeConflict, 1, "Queued snapshots must not write after a conflict");
   await assert.rejects(() => client.persist({ completed: ["blocked"] }), /save_conflict_reload_required/);
   assert.strictEqual(saveConflictEvents, 1);
-  console.log(JSON.stringify({ result: "PASS", saveVersion, organizationAttempts, organizationReadAttempts, decisionAttempts, npcStateAttempts, npcScheduleAttempts, saveConflictEvents }));
+  console.log(JSON.stringify({ result: "PASS", saveVersion, organizationAttempts, organizationReadAttempts, decisionAttempts, mandateAttempts, npcStateAttempts, npcScheduleAttempts, saveConflictEvents }));
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;

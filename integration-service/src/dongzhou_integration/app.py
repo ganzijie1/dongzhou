@@ -4,6 +4,7 @@ import asyncio
 from datetime import UTC, datetime
 import hashlib
 from importlib.metadata import version
+import json
 from typing import Annotated, Any
 from uuid import NAMESPACE_URL, UUID, uuid5
 
@@ -16,7 +17,7 @@ from nexus_kernel.gateway import ApiError, create_app
 from nexus_kernel.kernel import Kernel, LoadedModule, Module, ModuleContext
 
 from .config import Settings
-from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, OrganizationTaskRequest, SaveWriteRequest
+from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CourtMandateRequest, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, OrganizationTaskRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
@@ -739,6 +740,164 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         await store.finish_request(player_id, request.client_request_id, "COMPLETED", response)
         return response
 
+    @router.post("/court/mandates")
+    async def issue_court_mandate(
+        request: CourtMandateRequest, player_id: UUID = Depends(player)
+    ) -> dict[str, Any]:
+        kernel_snapshot = kernel.health_status()
+        runtime_status = next(
+            (
+                item
+                for item in kernel_snapshot.get("modules", [])
+                if item.get("name") == RuntimeModule.name
+            ),
+            None,
+        )
+        if not runtime_status or runtime_status.get("state") not in {"ready", "degraded"}:
+            raise ApiError(
+                "nexus_kernel_unavailable",
+                "NexusKernel is not ready to issue a court mandate.",
+                status_code=503,
+            )
+        body = _payload(request)
+        try:
+            created, previous = await store.begin_request(
+                player_id, request.client_request_id, "court_mandate", body
+            )
+        except VersionConflict as error:
+            raise ApiError(
+                "idempotency_conflict",
+                "The request identifier was already used with different input.",
+                status_code=409,
+            ) from error
+        if not created:
+            if previous and previous.get("state") == "PENDING":
+                raise ApiError(
+                    "request_in_progress",
+                    "The same court mandate is still being issued.",
+                    status_code=409,
+                )
+            return {"replayed": True, **(previous or {})}
+
+        council = await store.read_request(
+            player_id, request.council_request_id, "npc_decision"
+        )
+        council_request = council.get("request") if council else None
+        council_response = council.get("response") if council else None
+        raw_decision = council_response.get("decision") if isinstance(council_response, dict) else None
+        decision = raw_decision.get("data", raw_decision) if isinstance(raw_decision, dict) else None
+        options = council_request.get("options") if isinstance(council_request, dict) else None
+        selected_option = next(
+            (
+                option
+                for option in options or []
+                if isinstance(option, dict) and option.get("index") == request.decision_index
+            ),
+            None,
+        )
+        if (
+            not council
+            or council.get("state") != "COMPLETED"
+            or council_request.get("hero_id") != request.hero_id
+            or not isinstance(decision, dict)
+            or decision.get("type") != "OPTION"
+            or decision.get("index") != request.decision_index
+            or selected_option is None
+        ):
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "REJECTED",
+                {"state": "REJECTED"},
+                "court_council_unverified",
+            )
+            raise ApiError(
+                "court_council_unverified",
+                "The mandate must reference this player's completed NPC council decision.",
+                status_code=422,
+            )
+
+        try:
+            entries = await upstreams.stage_knowledge(request.stage_id)
+        except (UpstreamUnavailable, OSError, ValueError) as error:
+            response = {"state": "RETRYABLE", "requestId": str(request.client_request_id)}
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "RETRYABLE",
+                response,
+                str(error),
+            )
+            raise ApiError(
+                "knowledge_unavailable",
+                "Published knowledge is temporarily unavailable; the mandate can be retried.",
+                status_code=503,
+            ) from error
+        evidence = next(
+            (
+                entry
+                for entry in entries
+                if isinstance(entry, dict)
+                and str(entry.get("id") or entry.get("aku_id") or "")
+                == request.knowledge_id
+                and str(entry.get("stageId") or request.stage_id) == request.stage_id
+            ),
+            None,
+        )
+        if evidence is None:
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "REJECTED",
+                {"state": "REJECTED"},
+                "court_knowledge_unverified",
+            )
+            raise ApiError(
+                "court_knowledge_unverified",
+                "The mandate must reference published knowledge for this stage.",
+                status_code=422,
+            )
+
+        mandate_id = stable_event_id(player_id, request.client_request_id)
+        trace = {
+            "id": mandate_id,
+            "stageId": request.stage_id,
+            "stageTitle": request.stage_title,
+            "heroId": request.hero_id,
+            "taskType": request.task_type,
+            "evidence": {
+                "id": request.knowledge_id,
+                "name": str(evidence.get("name") or evidence.get("title") or request.knowledge_id),
+                "summary": str(evidence.get("summary") or evidence.get("content") or ""),
+            },
+            "council": {
+                "requestId": str(request.council_request_id),
+                "question": str(council_request.get("question") or ""),
+                "index": request.decision_index,
+                "text": str(selected_option.get("text") or ""),
+            },
+            "kernel": {
+                "module": RuntimeModule.name,
+                "moduleVersion": RuntimeModule.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": str(runtime_status["state"]).upper(),
+            },
+        }
+        # Canonical JSON keeps the seal stable across retries and process restarts.
+        digest = hashlib.sha256(
+            json.dumps(trace, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
+        ).hexdigest()
+        mandate = {**trace, "digest": digest, "state": "ISSUED"}
+        response = {"state": "ISSUED", "mandate": mandate}
+        await store.finish_request(
+            player_id,
+            request.client_request_id,
+            "ISSUED",
+            response,
+            external_id=mandate_id,
+        )
+        return response
+
     @router.post("/organization/tasks")
     async def create_organization_task(request: OrganizationTaskRequest, player_id: UUID = Depends(player)) -> dict[str, Any]:
         if not settings.orgflow_org_id or not settings.orgflow_manager_member_id:
@@ -747,6 +906,47 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         member_id = settings.orgflow_hero_members.get(request.assignee_hero_id)
         if not slot_id or not member_id:
             raise ApiError("organization_hero_unconfigured", "The selected hero is not mapped to an active organization member and position.", status_code=422)
+        mandate_id = request.parameters.mandate_id
+        mandate_digest = request.parameters.mandate_digest
+        if bool(mandate_id) != bool(mandate_digest):
+            raise ApiError(
+                "court_mandate_incomplete",
+                "Organization orders must provide both mandate ID and digest.",
+                status_code=422,
+            )
+        if mandate_id and mandate_digest:
+            mandate_record = await store.read_external_request(
+                player_id, mandate_id, "court_mandate"
+            )
+            try:
+                mandate_request_id = UUID(mandate_id.rsplit(":", 1)[-1])
+            except ValueError as error:
+                raise ApiError(
+                    "court_mandate_mismatch",
+                    "The court mandate does not match this organization order.",
+                    status_code=422,
+                ) from error
+            mandate_result = await store.read_request(
+                player_id, mandate_request_id, "court_mandate"
+            )
+            mandate = (
+                mandate_result.get("response", {}).get("mandate")
+                if mandate_result
+                else None
+            )
+            if (
+                mandate_record is None
+                or not isinstance(mandate, dict)
+                or mandate.get("digest") != mandate_digest
+                or mandate_record.get("stage_id") != request.stage_id
+                or mandate_record.get("hero_id") != request.assignee_hero_id
+                or mandate_record.get("task_type") != request.task_type
+            ):
+                raise ApiError(
+                    "court_mandate_mismatch",
+                    "The court mandate does not match this organization order.",
+                    status_code=422,
+                )
         body = _payload(request)
         try:
             created, previous = await store.begin_request(player_id, request.client_request_id, "organization_task", body)
