@@ -175,7 +175,12 @@ class RuntimeModule(Module):
                 str(clock["virtualTime"]),
                 login_round,
             )
-        await _sync_organization_supervision(self.upstreams, self.settings, npcs)
+        try:
+            await _sync_organization_supervision(self.upstreams, self.settings, npcs)
+        except UpstreamUnavailable:
+            # Organization hierarchy is eventually consistent and must not turn a
+            # healthy NPC actor recovery into a repeated relogin loop.
+            pass
 
 
 class MandateWorkflowModule(Module):
@@ -1536,9 +1541,14 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 activation = await upstreams.set_npcs_online(
                     pending, str(clock["virtualTime"]), f"dongzhou-{player_id.hex}"
                 )
-            relationship_sync = await _sync_organization_supervision(upstreams, settings, mapped)
         except UpstreamUnavailable as error:
             raise ApiError("ainpc_unavailable", "NPC service is temporarily unavailable.", status_code=503) from error
+        try:
+            relationship_sync: list[dict[str, Any]] | dict[str, Any] = (
+                await _sync_organization_supervision(upstreams, settings, mapped)
+            )
+        except UpstreamUnavailable:
+            relationship_sync = {"state": "UNAVAILABLE", "retryable": True}
         ready = not pending
         return {"playerId": str(player_id), "gameServerId": str(settings.ainpc_game_server_id), "npcs": mapped, "registration": result, "activation": activation, "relationshipSync": relationship_sync, "ready": ready, "state": "READY" if ready else "INITIALIZING"}
 

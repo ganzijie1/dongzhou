@@ -397,41 +397,46 @@ class Upstreams:
         return list(await asyncio.gather(*(relogin(npc_id, request_id) for npc_id, request_id in npcs)))
 
     async def online_npc_ids(self) -> set[str]:
-        page = 1
-        page_size = 100
-        online_ids: set[str] = set()
-        observed = 0
-        while True:
-            response = await self._json(
-                "GET",
-                f"{self.settings.ainpc_url}/admin/npc-lifecycle/online-npcs",
-                token=self.settings.ainpc_token,
-                params={
-                    "game_server_id": str(self.settings.ainpc_game_server_id),
-                    "page": page,
-                    "page_size": page_size,
-                },
-            )
-            data = response.get("data")
-            if not isinstance(data, dict) or data.get("complete") is not True:
-                raise UpstreamUnavailable("AINPC online actor snapshot is incomplete")
-            items = data.get("items")
-            total = data.get("total")
-            if not isinstance(items, list) or not isinstance(total, int) or total < 0:
-                raise UpstreamUnavailable("AINPC online actor snapshot is invalid")
-            observed += len(items)
-            online_ids.update(
-                str(item["npc_id"])
-                for item in items
-                if isinstance(item, dict)
-                and item.get("online") is True
-                and item.get("npc_id") is not None
-            )
-            if observed >= total:
-                return online_ids
-            if not items:
-                raise UpstreamUnavailable("AINPC online actor snapshot pagination is incomplete")
-            page += 1
+        attempts = 3
+        for attempt in range(attempts):
+            page = 1
+            page_size = 100
+            online_ids: set[str] = set()
+            observed = 0
+            while True:
+                response = await self._json(
+                    "GET",
+                    f"{self.settings.ainpc_url}/admin/npc-lifecycle/online-npcs",
+                    token=self.settings.ainpc_token,
+                    params={
+                        "game_server_id": str(self.settings.ainpc_game_server_id),
+                        "page": page,
+                        "page_size": page_size,
+                    },
+                )
+                data = response.get("data")
+                if not isinstance(data, dict) or data.get("complete") is not True:
+                    break
+                items = data.get("items")
+                total = data.get("total")
+                if not isinstance(items, list) or not isinstance(total, int) or total < 0:
+                    raise UpstreamUnavailable("AINPC online actor snapshot is invalid")
+                observed += len(items)
+                online_ids.update(
+                    str(item["npc_id"])
+                    for item in items
+                    if isinstance(item, dict)
+                    and item.get("online") is True
+                    and item.get("npc_id") is not None
+                )
+                if observed >= total:
+                    return online_ids
+                if not items:
+                    break
+                page += 1
+            if attempt + 1 < attempts:
+                await asyncio.sleep(0.1 * (attempt + 1))
+        raise UpstreamUnavailable("AINPC online actor snapshot is incomplete")
 
     async def npc_state(self, npc_id: int) -> dict[str, Any]:
         base = self.settings.ainpc_url

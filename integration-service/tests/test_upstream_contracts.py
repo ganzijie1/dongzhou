@@ -202,6 +202,44 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(seen_pages, [1, 2])
 
+    async def test_online_npc_ids_retries_the_whole_incomplete_snapshot(self) -> None:
+        seen_pages: list[int] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            page = int(request.url.params["page"])
+            seen_pages.append(page)
+            complete = len(seen_pages) > 1
+            return httpx.Response(200, json={"data": {
+                "complete": complete,
+                "total": 1,
+                "items": [{"npc_id": "42", "online": True}] if complete else [],
+            }})
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            upstreams = Upstreams(settings(Path("unused")), client)
+            self.assertEqual(await upstreams.online_npc_ids(), {"42"})
+
+        self.assertEqual(seen_pages, [1, 1])
+
+    async def test_online_npc_ids_rejects_snapshot_after_bounded_retries(self) -> None:
+        attempts = 0
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            nonlocal attempts
+            attempts += 1
+            return httpx.Response(200, json={"data": {
+                "complete": False, "total": 0, "items": [],
+            }})
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            upstreams = Upstreams(settings(Path("unused")), client)
+            with self.assertRaisesRegex(
+                UpstreamUnavailable, "online actor snapshot is incomplete"
+            ):
+                await upstreams.online_npc_ids()
+
+        self.assertEqual(attempts, 3)
+
     def test_failed_decision_is_retryable_with_same_request_id(self) -> None:
         attempts = []
 
