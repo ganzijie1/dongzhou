@@ -216,8 +216,23 @@ class OrganizationOutcomeTests(unittest.TestCase):
             and event["payload"]["npc_name"] == "左儒"
         )
         detail = outcome["events"][0]
+        outcome_entry = next(
+            event for event in first if event["kind"] == "NPC_BATTLE_OUTCOME"
+        )
+        self.assertTrue(outcome_entry["eventId"].startswith("battle-outcome-v2:"))
+        self.assertTrue(detail["source_record_id"].startswith("dongzhou-battle-v2:"))
         self.assertEqual(outcome["game_time"], "0771-04-01 14:00:00")
         self.assertEqual(detail["event_type"], "battle_result")
+        self.assertEqual(detail["metadata"]["standard_event_authority"], "game_server")
+        self.assertEqual(detail["metadata"]["actor_id"], outcome["npc_id"])
+        self.assertEqual(
+            detail["metadata"]["target_id"],
+            str(stable_player_id(settings.ainpc_game_server_id, player_id)),
+        )
+        self.assertEqual(detail["metadata"]["behavior_parent"], "protect")
+        self.assertEqual(detail["metadata"]["behavior_sub"], "support")
+        self.assertEqual(detail["metadata"]["result"], "success")
+        self.assertIs(detail["metadata"]["result_confirmed"], True)
         self.assertEqual(detail["metadata"]["mandate_ids"], ["mandate-1"])
         self.assertIn("繻葛之战告捷", detail["params"])
         self.assertEqual(detail["source_record_id"], detail["interrupt_trace_id"])

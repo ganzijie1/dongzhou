@@ -1055,6 +1055,9 @@ def _battle_game_events(
             if isinstance(item, dict) and item.get("id")
         ] if isinstance(report.get("mandates"), list) else []
         result_text = "告捷" if won else "失利"
+        player_target_id = str(
+            stable_player_id(settings.ainpc_game_server_id, player_id)
+        )
         content = (
             f"{stage_title}{result_text}，历时{turns}回合，己方折损{own_losses}部。"
             + (f"战前筹备：{'、'.join(sources[:3])}。" if sources else "")
@@ -1063,8 +1066,14 @@ def _battle_game_events(
             identity_digest = hashlib.sha256(
                 f"{player_id}\n{report_id}\n{hero_id}".encode("utf-8")
             ).hexdigest()
-            source_record_id = "dongzhou-battle:" + identity_digest[:48]
-            event_id = int.from_bytes(bytes.fromhex(identity_digest[:8]), "big") & 0x7FFFFFFF
+            outcome_digest = hashlib.sha256(
+                f"{identity_digest}\nbattle-semantics-v2".encode("utf-8")
+            ).hexdigest()
+            outcome_source_record_id = "dongzhou-battle-v2:" + outcome_digest[:48]
+            memory_source_record_id = "dongzhou-battle:" + identity_digest[:48]
+            event_id = int.from_bytes(
+                bytes.fromhex(outcome_digest[:8]), "big"
+            ) & 0x7FFFFFFF
             if event_id == 0:
                 event_id = 1
             npc_id = str(stable_npc_id(settings.ainpc_game_server_id, hero_id))
@@ -1075,13 +1084,26 @@ def _battle_game_events(
                 "npc_name": npc_name,
                 "game_time": battle_game_time,
                 "events": [{
-                    "source_record_id": source_record_id,
+                    "source_record_id": outcome_source_record_id,
                     "timestamp": battle_game_time,
                     "event_id": event_id,
                     "event_name": "东周战役" + result_text,
                     "event_type": "battle_result",
                     "params": content,
                     "metadata": {
+                        "standard_event_authority": "game_server",
+                        "event_instance_id": outcome_source_record_id,
+                        "actor_id": npc_id,
+                        "target_id": player_target_id,
+                        "behavior_parent": "protect" if won else "system",
+                        "behavior_sub": "support" if won else "battle_loss",
+                        "motivation": "campaign_duty",
+                        "result": "success" if won else "failure",
+                        "result_confirmed": True,
+                        "severity": 78 if won else 72,
+                        "confidence": 1.0,
+                        "source_module": "dongzhou_battle",
+                        "description": content,
                         "stage_id": stage_id[:64],
                         "stage_title": stage_title,
                         "won": won,
@@ -1091,7 +1113,7 @@ def _battle_game_events(
                         "mandate_ids": mandate_ids,
                         "sources": sources,
                     },
-                    "interrupt_trace_id": source_record_id,
+                    "interrupt_trace_id": outcome_source_record_id,
                 }],
             }
             memory = {
@@ -1102,12 +1124,12 @@ def _battle_game_events(
                 "messages": [{
                     "timestamp": battle_game_time,
                     "content": content,
-                    "message_id": source_record_id,
+                    "message_id": memory_source_record_id,
                 }],
             }
             events.extend((
                 {
-                    "eventId": "battle-outcome:" + identity_digest,
+                    "eventId": "battle-outcome-v2:" + outcome_digest,
                     "kind": "NPC_BATTLE_OUTCOME",
                     "payload": outcome,
                 },
