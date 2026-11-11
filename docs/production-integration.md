@@ -49,7 +49,7 @@
 
 ## 发布门禁
 
-当前验收记录（2026-11-11）：真实网关、AINPC、orgFlowEngine、knowledge-jizhan 和嵌入式 NexusKernel 均在线。无 API 拦截浏览器在任务 `cd9d873a-9264-53d1-bfc0-90048f909f11` 上验证了史料、军议、签令、领命、复命、NPC 审核、玩家收纳复命、云存档重载和战斗承接，且恢复没有重复建单；证据见 `output/integration-validation/live-kernel-mandate-complete38-race-fixed.json` 与 `live-kernel-mandate-complete40-final.png`。该任务及任务 `b2b66b37-732c-507b-970d-fb0ff7511698` 的长期经历已从 AINPC 自有持久库回读确认。东周网关测试为 `85 passed, 21 subtests passed`，12 席真实浏览器名册验收通过。实际公网 TLS、后端端口隔离、可信回调网络及宿主重启恢复仍需独立验收。
+当前验收记录（2026-11-11）：真实网关、AINPC、orgFlowEngine、knowledge-jizhan 和嵌入式 NexusKernel 均在线。无 API 拦截浏览器在任务 `cd9d873a-9264-53d1-bfc0-90048f909f11` 上验证了史料、军议、签令、领命、复命、NPC 审核、玩家收纳复命、云存档重载和战斗承接，且恢复没有重复建单；证据见 `output/integration-validation/live-kernel-mandate-complete38-race-fixed.json` 与 `live-kernel-mandate-complete40-final.png`。该任务及任务 `b2b66b37-732c-507b-970d-fb0ff7511698` 的长期经历已从 AINPC 自有持久库回读确认。公共库藏军需调拨已用真实浏览器验证 `task.execution` 余额 `80 -> 60`、军粮 `100 -> 112`、云档重载和幂等回放。东周网关测试为 `87 passed, 21 subtests passed`，12 席真实浏览器名册验收通过。实际公网 TLS、后端端口隔离、可信回调网络及宿主重启恢复仍需独立验收。
 
 运行 `integration-service/.venv/Scripts/python.exe tools/verify-live-integration.py --url <网关地址> --output output/integration-validation/live-smoke.json` 验证真实健康、独立访客存档及冲突隔离、首中末关卡已发布史料、AI 检索、NPC 状态和 90 天日程。任一项失败则退出码非零；此检查不会派差或推进共享游戏时钟，不能代替任务复命与发布验收。
 

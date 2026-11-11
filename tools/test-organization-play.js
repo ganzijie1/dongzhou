@@ -147,6 +147,32 @@ assert.strictEqual(state.settlements.at(-1).settlementId, authoritativeSettlemen
 assert.deepStrictEqual(state.settlementIds, [authoritativeSettlement.settlementId]);
 assert.strictEqual(state.tasks.at(-1).closureReceipt.digest, "c".repeat(64));
 
+const requisitionReceipt = {
+  state: "COMPLETED",
+  requestId: "00000000-0000-4000-8000-000000000040",
+  stageId: "01",
+  inventoryDebit: {
+    entryId: "00000000-0000-4000-8000-000000000041",
+    resourceKey: "task.execution",
+    delta: -20,
+    balanceAfter: 80,
+    accountVersion: 5,
+    inventoryRevision: 9
+  },
+  effect: { provisions: 12 }
+};
+const firstRequisition = play.recordInventoryRequisition(state, requisitionReceipt);
+assert.strictEqual(firstRequisition.applied, true);
+assert.strictEqual(firstRequisition.effect.provisions, 12);
+assert.deepStrictEqual(firstRequisition.state.inventoryRequisitionIds, [requisitionReceipt.requestId]);
+const replayedRequisition = play.recordInventoryRequisition(firstRequisition.state, { ...requisitionReceipt, replayed: true });
+assert.strictEqual(replayedRequisition.applied, false, "A replayed inventory receipt must not grant provisions twice");
+assert.strictEqual(replayedRequisition.state.inventoryRequisitions.length, 1);
+assert.throws(
+  () => play.recordInventoryRequisition(state, { ...requisitionReceipt, effect: { provisions: 20 } }),
+  /回执无效/
+);
+
 const supportBeforeCensure = state.pendingSupport.length;
 const contributionBeforeCensure = state.contribution;
 const censuredOrder = play.createTask(state, { type: "patrol", assigneeId: "ZuoRu", stageId: "02", stageTitle: "申斥测试" });

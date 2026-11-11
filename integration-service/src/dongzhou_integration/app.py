@@ -18,7 +18,7 @@ from nexus_kernel.kernel import Kernel, LoadedModule, Module, ModuleContext
 
 from .config import Settings
 from .assignments import AssignmentUnavailable, select_assignment
-from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
+from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
@@ -636,6 +636,48 @@ def _organization_inventory_reward_view(
         )
     ):
         raise ValueError("inventory reward does not match settlement")
+    return {
+        "entryId": entry_id,
+        "resourceKey": resource_key,
+        "delta": delta_units,
+        "balanceAfter": balance_after,
+        "accountVersion": account_version,
+        "inventoryRevision": inventory_revision,
+    }
+
+
+def _organization_inventory_requisition_view(
+    snapshot: Any,
+    settings: Settings,
+    *,
+    resource_key: str,
+    delta_units: int,
+) -> dict[str, Any]:
+    if not isinstance(snapshot, dict):
+        raise ValueError("inventory requisition must be an object")
+    entry_id = str(snapshot.get("entry_id") or "")
+    balance_after = snapshot.get("balance_after")
+    account_version = snapshot.get("account_version_after")
+    inventory_revision = snapshot.get("inventory_revision_after")
+    try:
+        UUID(entry_id)
+    except ValueError as error:
+        raise ValueError("inventory requisition entry id is invalid") from error
+    if (
+        str(snapshot.get("organization_id") or "") != settings.orgflow_org_id
+        or str(snapshot.get("game_server_id") or "") != str(settings.game_server_id)
+        or snapshot.get("resource_key") != resource_key
+        or snapshot.get("reason_code") != "CAMPAIGN_REQUISITION_APPROVED"
+        or snapshot.get("delta_units") != delta_units
+        or isinstance(balance_after, bool)
+        or not isinstance(balance_after, int)
+        or balance_after < 0
+        or any(
+            isinstance(value, bool) or not isinstance(value, int) or value < 1
+            for value in (account_version, inventory_revision)
+        )
+    ):
+        raise ValueError("inventory requisition does not match request")
     return {
         "entryId": entry_id,
         "resourceKey": resource_key,
@@ -2441,6 +2483,121 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "Organization inventory response is invalid.",
                 status_code=502,
             ) from error
+
+    @router.post("/organization/inventory/requisitions")
+    async def requisition_organization_inventory(
+        request: OrganizationInventoryRequisitionRequest,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        if not settings.orgflow_org_id:
+            raise ApiError(
+                "organization_not_configured",
+                "Organization integration is not configured.",
+                status_code=503,
+            )
+        payload = request.model_dump(mode="json")
+        try:
+            should_process, previous = await store.begin_request(
+                player_id,
+                request.client_request_id,
+                "organization_inventory_requisition",
+                payload,
+            )
+        except VersionConflict as error:
+            raise ApiError(
+                "organization_inventory_requisition_conflict",
+                "This inventory requisition ID was already used with different input.",
+                status_code=409,
+            ) from error
+        if not should_process:
+            if isinstance(previous, dict) and previous.get("state") == "COMPLETED":
+                return {"replayed": True, **previous}
+            raise ApiError(
+                "organization_inventory_requisition_in_progress",
+                "This inventory requisition is already in progress.",
+                status_code=409,
+            )
+
+        resource_key = "task.execution"
+        delta_units = -request.units
+        provisions = request.units * 3 // 5
+        try:
+            upstream_response = await upstreams.adjust_organization_inventory(
+                settings.orgflow_org_id,
+                {
+                    "resource_key": resource_key,
+                    "delta_units": delta_units,
+                    "reason_code": "CAMPAIGN_REQUISITION_APPROVED",
+                },
+                idempotency_key=(
+                    f"dongzhou-campaign-requisition:{player_id}:"
+                    f"{request.client_request_id}"
+                ),
+            )
+            receipt = _organization_inventory_requisition_view(
+                upstream_response.get("data")
+                if isinstance(upstream_response, dict)
+                else None,
+                settings,
+                resource_key=resource_key,
+                delta_units=delta_units,
+            )
+        except UpstreamUnavailable as error:
+            insufficient = (
+                error.status_code == 409
+                and error.error_code == "organization_inventory_balance_insufficient"
+            )
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "RETRYABLE",
+                {"state": "RETRYABLE"},
+                error=(
+                    "organization_inventory_insufficient"
+                    if insufficient
+                    else "organization_inventory_unavailable"
+                ),
+                external_id=request.stage_id,
+            )
+            raise ApiError(
+                "organization_inventory_insufficient"
+                if insufficient
+                else "organization_inventory_unavailable",
+                "The public inventory does not have enough task credit."
+                if insufficient
+                else "The organization inventory is temporarily unavailable.",
+                status_code=409 if insufficient else 503,
+            ) from error
+        except (AttributeError, TypeError, ValueError) as error:
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "RETRYABLE",
+                {"state": "RETRYABLE"},
+                error="organization_inventory_contract_invalid",
+                external_id=request.stage_id,
+            )
+            raise ApiError(
+                "organization_inventory_contract_invalid",
+                "The organization inventory returned an invalid requisition receipt.",
+                status_code=502,
+            ) from error
+
+        result = {
+            "state": "COMPLETED",
+            "requestId": str(request.client_request_id),
+            "stageId": request.stage_id,
+            "inventoryDebit": receipt,
+            "effect": {"provisions": provisions},
+        }
+        await store.finish_request(
+            player_id,
+            request.client_request_id,
+            "COMPLETED",
+            result,
+            external_id=request.stage_id,
+        )
+        return result
 
     @router.post("/organization/tasks")
     async def create_organization_task(request: OrganizationTaskRequest, player_id: UUID = Depends(player)) -> dict[str, Any]:

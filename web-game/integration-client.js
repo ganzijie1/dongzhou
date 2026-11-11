@@ -11,6 +11,7 @@
   const KNOWLEDGE_CODEX_KEY = "dongzhou-knowledge-codex-v1";
   const MANDATE_PENDING_PREFIX = "dongzhou-pending-mandate-v1:";
   const NPC_MESSAGE_PENDING_PREFIX = "dongzhou-pending-npc-message-v1:";
+  const INVENTORY_REQUISITION_PENDING_KEY = "dongzhou-pending-inventory-requisition-v1";
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
   let session = read(SESSION_KEY, null);
   let sessionPromise = null;
@@ -398,6 +399,36 @@
   function organizationTask(taskId) { return requestWithTransientRetry(`/organization/tasks/${encodeURIComponent(taskId)}`); }
   function organizationRoster() { return requestWithTransientRetry("/organization/roster"); }
   function organizationInventory() { return requestWithTransientRetry("/organization/inventory"); }
+  function pendingOrganizationInventoryRequisition() {
+    return read(INVENTORY_REQUISITION_PENDING_KEY, null);
+  }
+  async function requisitionOrganizationInventory(input) {
+    const pending = read(INVENTORY_REQUISITION_PENDING_KEY, null) || {
+      ...input,
+      client_request_id: input?.client_request_id || root.crypto.randomUUID()
+    };
+    write(INVENTORY_REQUISITION_PENDING_KEY, pending);
+    try {
+      return await request("/organization/inventory/requisitions", {
+        method: "POST",
+        body: JSON.stringify(pending)
+      });
+    } catch (error) {
+      if ([400, 422].includes(error.status) || [
+        "organization_inventory_insufficient",
+        "organization_inventory_requisition_conflict"
+      ].includes(error.code)) {
+        root.localStorage.removeItem(INVENTORY_REQUISITION_PENDING_KEY);
+      }
+      throw error;
+    }
+  }
+  function acknowledgeOrganizationInventoryRequisition(requestId) {
+    const pending = read(INVENTORY_REQUISITION_PENDING_KEY, null);
+    if (pending?.client_request_id === requestId) {
+      root.localStorage.removeItem(INVENTORY_REQUISITION_PENDING_KEY);
+    }
+  }
   function reviewOrganizationTask(taskId, input) {
     return request(`/organization/tasks/${encodeURIComponent(taskId)}/review`, { method: "POST", body: JSON.stringify(input) });
   }
@@ -414,5 +445,5 @@
     return { mode: "offline", stageId, results };
   }
 
-  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, syncNpcs, setNpcInteractionPreference, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationInventory, reviewOrganizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, syncNpcs, setNpcInteractionPreference, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationInventory, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
 });

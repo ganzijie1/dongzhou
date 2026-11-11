@@ -91,6 +91,7 @@
   let officeNpcRefreshTimer = null;
   let officeNpcRefreshSerial = 0;
   let officeInventoryView = null;
+  let officeInventoryRequisitionBusy = false;
   let officeMembershipLeavePending = false;
   let officeMembershipBusy = false;
   let officeCareerBusy = false;
@@ -208,6 +209,7 @@
       const integrated = await integration.initialize(profile);
       profile = systems.normalizeProfile(integrated.profile, campaign.stages);
       profile.organization = organization.normalizeState(profile.organization);
+      await recoverOfficeInventoryRequisition();
       if (!integration.isOffline()) {
         try {
           const preference = await integration.setNpcInteractionPreference(profile.settings.aiNpcInteractionEnabled);
@@ -971,6 +973,77 @@
       : accounts.length
         ? accounts.map((account) => `<li><span>${escapeHtml(officeInventoryLabel(account.resourceKey))}</span><strong>${Number(account.balance || 0)}</strong></li>`).join("")
         : `<li>${officeInventoryView?.error ? "稍后可重新调阅" : "当前无公共库存科目"}</li>`;
+    const taskCredit = accounts.find((account) => account.resourceKey === "task.execution")?.balance || 0;
+    const provisions = Number(profile?.campaignResources?.provisions || 0);
+    const requisition = $("#officeInventoryRequisition");
+    requisition.disabled = integration.isOffline()
+      || officeInventoryRequisitionBusy
+      || !officeInventoryView
+      || officeInventoryView.loading
+      || officeInventoryView.error
+      || taskCredit < 20
+      || provisions > 188;
+    $("#officeInventoryRequisitionFeedback").textContent = officeInventoryRequisitionBusy
+      ? "正在核准并落账"
+      : provisions > 188
+        ? "军粮已接近上限"
+        : taskCredit < 20 && officeInventoryView
+          ? "差事额度不足 20"
+          : "可补入 12 军粮";
+  }
+
+  async function applyOfficeInventoryRequisition(response, { render = true } = {}) {
+    const previousOrganization = profile.organization;
+    const previousResources = { ...profile.campaignResources };
+    const recorded = organization.recordInventoryRequisition(profile.organization, response);
+    if (recorded.applied) {
+      profile.organization = recorded.state;
+      profile.campaignResources = {
+        ...profile.campaignResources,
+        provisions: clamp(
+          Number(profile.campaignResources.provisions || 0) + recorded.effect.provisions,
+          0,
+          200
+        )
+      };
+      try {
+        await integration.persist(profile);
+      } catch (error) {
+        profile.organization = previousOrganization;
+        profile.campaignResources = previousResources;
+        throw error;
+      }
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    }
+    integration.acknowledgeOrganizationInventoryRequisition(response.requestId);
+    if (render) renderOrganizationPanel();
+    return recorded;
+  }
+
+  async function recoverOfficeInventoryRequisition() {
+    const pending = integration.pendingOrganizationInventoryRequisition();
+    if (!pending || integration.isOffline()) return;
+    const response = await integration.requisitionOrganizationInventory(pending);
+    await applyOfficeInventoryRequisition(response, { render: false });
+  }
+
+  async function requisitionOfficeInventory() {
+    if (officeInventoryRequisitionBusy) return;
+    const stageId = String(officeStage()?.id || "");
+    if (!stageId || Number(profile.campaignResources.provisions || 0) > 188) return;
+    officeInventoryRequisitionBusy = true;
+    renderOfficeInventory();
+    try {
+      const response = await integration.requisitionOrganizationInventory({ units: 20, stage_id: stageId });
+      const recorded = await applyOfficeInventoryRequisition(response);
+      await refreshOfficeInventory();
+      showNotice(recorded.applied ? `已从公共库藏调拨 20 点额度，补入 ${recorded.effect.provisions} 军粮` : "军需调拨已对账，无重复扣领");
+    } catch (error) {
+      showNotice(error.code === "organization_inventory_insufficient" ? "公共库藏差事额度不足" : error.message || "军需调拨暂未完成");
+    } finally {
+      officeInventoryRequisitionBusy = false;
+      renderOfficeInventory();
+    }
   }
 
   async function refreshOfficeInventory() {
@@ -3902,6 +3975,7 @@
     $("#officeMemberSelect").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOrganizationPanel(); refreshOfficeNpcState(); });
     $("#officeCorrespondenceRefresh").addEventListener("click", () => refreshOfficeCorrespondence());
     $("#officeInventoryRefresh").addEventListener("click", refreshOfficeInventory);
+    $("#officeInventoryRequisition").addEventListener("click", requisitionOfficeInventory);
     $("#officeMembershipApply").addEventListener("click", () => requestOfficeMembership("join"));
     $("#officeMembershipLeave").addEventListener("click", () => requestOfficeMembership("leave"));
     $("#officeMembershipLeaveConfirm").addEventListener("click", () => requestOfficeMembership("confirmLeave"));

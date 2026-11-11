@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 11;
+  const SCHEMA_VERSION = 12;
   const TASK_TYPES = {
     supply: { name: "转运军粮", office: "司徒", duration: 1, cost: 8, base: 72, reward: { provisions: 24 } },
     drill: { name: "整训军阵", office: "司马", duration: 1, cost: 6, base: 68, reward: { attack: 0.08 } },
@@ -51,6 +51,8 @@
       pendingSupport: [],
       settlements: [],
       settlementIds: [],
+      inventoryRequisitions: [],
+      inventoryRequisitionIds: [],
       history: []
     };
   }
@@ -114,6 +116,13 @@
       settlementIds: [...new Set([
         ...(Array.isArray(source.settlementIds) ? source.settlementIds : []),
         ...(Array.isArray(source.settlements) ? source.settlements.map((entry) => entry?.settlementId) : [])
+      ].filter((value) => typeof value === "string" && value))],
+      inventoryRequisitions: Array.isArray(source.inventoryRequisitions)
+        ? source.inventoryRequisitions.filter((entry) => entry && typeof entry.requestId === "string").slice(-100).map(copy)
+        : [],
+      inventoryRequisitionIds: [...new Set([
+        ...(Array.isArray(source.inventoryRequisitionIds) ? source.inventoryRequisitionIds : []),
+        ...(Array.isArray(source.inventoryRequisitions) ? source.inventoryRequisitions.map((entry) => entry?.requestId) : [])
       ].filter((value) => typeof value === "string" && value))],
       history: Array.isArray(source.history) ? source.history.slice(-40).map((entry) => ({ ...entry })) : []
     };
@@ -525,6 +534,55 @@
     return { state, task: copy(task) };
   }
 
+  function recordInventoryRequisition(rawState, response) {
+    const state = normalizeState(rawState);
+    const requestId = String(response?.requestId || "");
+    const stageId = String(response?.stageId || "");
+    const debit = response?.inventoryDebit;
+    const provisions = response?.effect?.provisions;
+    const validDebit = debit
+      && debit.resourceKey === "task.execution"
+      && Number.isSafeInteger(debit.delta)
+      && debit.delta < 0
+      && Number.isSafeInteger(debit.balanceAfter)
+      && debit.balanceAfter >= 0
+      && Number.isSafeInteger(debit.accountVersion)
+      && debit.accountVersion > 0
+      && Number.isSafeInteger(debit.inventoryRevision)
+      && debit.inventoryRevision > 0;
+    if (
+      response?.state !== "COMPLETED"
+      || !requestId
+      || !stageId
+      || !validDebit
+      || !Number.isSafeInteger(provisions)
+      || provisions <= 0
+      || provisions !== (-debit.delta * 3) / 5
+    ) {
+      throw new Error("军需调拨回执无效");
+    }
+    if (state.inventoryRequisitionIds.includes(requestId)) {
+      return { state, applied: false, effect: { provisions } };
+    }
+    const record = {
+      requestId,
+      stageId,
+      provisions,
+      inventoryDebit: copy(debit)
+    };
+    state.inventoryRequisitions.push(record);
+    state.inventoryRequisitions = state.inventoryRequisitions.slice(-100);
+    state.inventoryRequisitionIds.push(requestId);
+    state.inventoryRequisitionIds = [...new Set(state.inventoryRequisitionIds)].slice(-200);
+    state.history.push({
+      month: state.month,
+      tone: "good",
+      text: `公共库藏调拨 ${-debit.delta} 点差事额度，为第${stageId}战补入 ${provisions} 军粮。`
+    });
+    state.history = state.history.slice(-40);
+    return { state, applied: true, effect: { provisions } };
+  }
+
   function consumeSupport(rawState, stageId) {
     const state = normalizeState(rawState);
     const stageKey = String(stageId || "");
@@ -676,5 +734,5 @@
     return state;
   }
 
-  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, recordRemoteRoster, hash };
+  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, recordInventoryRequisition, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, recordRemoteRoster, hash };
 });

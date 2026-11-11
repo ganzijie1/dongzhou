@@ -243,6 +243,18 @@ class OrganizationTaskReviewRequest(StrictModel):
     decision: Literal["ACCEPT", "CENSURE"]
 
 
+class OrganizationInventoryRequisitionRequest(StrictModel):
+    client_request_id: UUID = Field(strict=False)
+    units: int = Field(ge=20, le=100)
+    stage_id: str = Field(min_length=1, max_length=64)
+
+    @model_validator(mode="after")
+    def units_are_full_lots(self) -> "OrganizationInventoryRequisitionRequest":
+        if self.units % 20:
+            raise ValueError("inventory requisition units must be a multiple of 20")
+        return self
+
+
 class OrganizationTaskParameters(StrictModel):
     resource_units: int = Field(ge=0, le=200)
     assignee_name: str = Field(min_length=1, max_length=100)
