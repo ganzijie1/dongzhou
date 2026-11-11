@@ -12,7 +12,7 @@ try {
 
 const BASE = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
 const JOURNAL = process.env.DONGZHOU_SETTLEMENT_JOURNAL
-  || path.resolve(__dirname, "../.agentwork/root/kernel-mandate-complete12/acceptance-private.json");
+  || path.resolve(__dirname, "../.agentwork/root/kernel-mandate-complete44-evidence/acceptance-private.json");
 const SCREENSHOT = path.resolve(__dirname, "../output/integration-validation/live-authoritative-settlement.png");
 const PROFILE = "dongzhou-h5-profile-v2";
 const executablePath = [
@@ -37,13 +37,29 @@ assert(journal.installation && taskId, "completed live task journal is incomplet
     await page.goto(BASE, { waitUntil: "domcontentloaded" });
     await page.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
 
-    const actual = await page.evaluate(async (id) => window.DongzhouIntegration.organizationTask(id), taskId);
+    let actual = await page.evaluate(async (id) => window.DongzhouIntegration.organizationTask(id), taskId);
     const snapshot = actual.result?.data || actual.result;
     assert.equal(snapshot.final_result, "SUCCESS");
     assert(actual.settlement?.settlementId);
     assert.equal(actual.closureReceipt?.state, "SEALED");
+    if (actual.review?.state === "REQUIRES_ACTION") {
+      const reviewed = await page.evaluate(
+        async ({ id, actionId }) => window.DongzhouIntegration.reviewOrganizationTask(id, {
+          action_id: actionId,
+          decision: "ACCEPT"
+        }),
+        { id: taskId, actionId: actual.review.action.actionId }
+      );
+      assert.equal(reviewed.state, "ACCEPTED");
+      actual = await page.evaluate(async (id) => window.DongzhouIntegration.organizationTask(id), taskId);
+    }
+    assert.equal(actual.review?.state, "ACCEPTED");
+    assert.match(actual.review?.review?.digest || "", /^[0-9a-f]{64}$/);
+    assert.equal(actual.npcOutcome?.state, "DELIVERED");
+    assert.equal(actual.npcOutcome?.event?.state, "DELIVERED");
+    assert.equal(actual.npcOutcome?.memory?.state, "DELIVERED");
 
-    const applied = await page.evaluate(({ id, snapshot, settlement, closureReceipt }) => {
+    const applied = await page.evaluate(({ id, snapshot, settlement, closureReceipt, review }) => {
       const play = window.DongzhouOrganizationPlay;
       let state = play.defaultState();
       state.members = [{ id: "ZuoRu", name: "左儒", office: "司徒", loyalty: 68, fatigue: 0, merit: 0 }];
@@ -51,7 +67,7 @@ assert(journal.installation && taskId, "completed live task journal is incomplet
         type: "supply", assigneeId: "ZuoRu", stageId: "01", stageTitle: "东郊索命"
       });
       created.task.remoteResult = id;
-      const input = { ...snapshot, settlement, closureReceipt };
+      const input = { ...snapshot, settlement, closureReceipt, review };
       const first = play.reconcileRemoteTasks(created.state, [input], { advanceMonth: false });
       const replayed = play.reconcileRemoteTasks(first, [input], { advanceMonth: false });
       const profile = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2"));
@@ -65,7 +81,7 @@ assert(journal.installation && taskId, "completed live task journal is incomplet
         settlementIds: replayed.settlementIds,
         closureDigest: replayed.tasks[0].closureReceipt.digest
       };
-    }, { id: taskId, snapshot, settlement: actual.settlement, closureReceipt: actual.closureReceipt });
+    }, { id: taskId, snapshot, settlement: actual.settlement, closureReceipt: actual.closureReceipt, review: actual.review });
 
     assert.equal(applied.firstContribution, actual.settlement.organizationDelta);
     assert.equal(applied.replayContribution, applied.firstContribution);
@@ -94,6 +110,9 @@ assert(journal.installation && taskId, "completed live task journal is incomplet
       organizationContribution: applied.replayContribution,
       memberMerit: applied.replayMerit,
       closureDigest: applied.closureDigest,
+      npcOutcome: actual.npcOutcome.state,
+      npcEvent: actual.npcOutcome.event.state,
+      npcMemory: actual.npcOutcome.memory.state,
       exactlyOnce: true,
       screenshot: SCREENSHOT
     }));
