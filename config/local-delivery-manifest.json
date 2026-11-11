@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "containers": {
     "dongzhou-integration-gateway-1": {
-      "image": "dongzhou-integration:20261111-local-complete62",
+      "image": "dongzhou-integration:20261111-local-complete64",
       "healthRequired": true
     },
     "ainpc-v2-global-dev": {
@@ -53,8 +53,8 @@
     "knowledge"
   ],
   "package": {
-    "path": "output/2026-11-11-dongzhou-integrated-h5-complete62.zip",
-    "sha256": "70a6dba337a8da8f0b21b0fa57873c13fc2d7e8d668d0d9dd0d6bd07e3e44cd9"
+    "path": "output/2026-11-11-dongzhou-integrated-h5-complete64.zip",
+    "sha256": "a589e7eeb25be558485538a545bd7f81de2925210434e90bf4018f7136f8aaa3"
   },
   "fulltextReport": "output/integration-validation/fulltext-browser-restored.json"
 }

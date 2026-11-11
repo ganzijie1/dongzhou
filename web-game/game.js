@@ -1084,7 +1084,7 @@
       });
       if (services.orgFlow?.online) {
         const roster = await integration.organizationRoster();
-        profile.organization = organization.recordRemoteRoster(profile.organization, roster);
+        profile.organization = organization.recordRemoteRoster(profile.organization, roster, displayName);
         await refreshOfficeInventory();
       }
     } catch (_) {

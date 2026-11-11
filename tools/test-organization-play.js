@@ -74,9 +74,15 @@ assert.strictEqual(state.members.find((member) => member.id === "ZuoRu").merit, 
 assert.strictEqual(state.remoteRoster.members[0].contributionBalance, 54);
 const internalOfficeState = play.recordRemoteRoster({ ...state, members: state.members.map((member) => member.id === "ZuoRu" ? { ...member, office: "officer_01" } : member) }, {
   organization: { name: "东周军府", state: "ACTIVE", hierarchyVersion: 4, growthContribution: 245 },
-  members: [{ heroId: "ZuoRu", office: "officer_01", role: "court_officer", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 }]
-});
-assert.strictEqual(internalOfficeState.members.find((member) => member.id === "ZuoRu").office, "属官");
+  members: [
+    { heroId: "ZuoRu", office: "officer_01", role: "court_officer", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 },
+    { heroId: "ZhouYouWang", office: "officer_02", role: "court_officer", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 12, lifetimeEarned: 14, lifetimeSpent: 2 }
+  ]
+}, (id) => ({ ZuoRu: "左儒", ZhouYouWang: "周幽王" }[id] || id));
+assert.strictEqual(internalOfficeState.members.find((member) => member.id === "ZuoRu").office, "司马");
+assert.deepStrictEqual(internalOfficeState.members.map((member) => member.name), ["左儒", "周幽王"]);
+assert.strictEqual(internalOfficeState.members.find((member) => member.id === "ZhouYouWang").office, "司徒");
+assert.strictEqual(internalOfficeState.members.find((member) => member.id === "ZhouYouWang").merit, 14);
 assert.throws(() => play.recordRemoteRoster(state, { organization: { growthContribution: 1 }, members: [{ heroId: "ZuoRu", contributionBalance: 0, lifetimeEarned: 1.5, lifetimeSpent: 0 }] }), /功绩无效/);
 
 let remote = play.createTask(state, { type: "supply", assigneeId: "ZuoRu", stageId: "01", stageTitle: "东郊索命" });

@@ -83,6 +83,9 @@ function heroPath(response, suffix) {
         { timeout: 60000 }
       );
 
+      const stateText = await page.locator('#officeNpcState').innerText();
+      const scheduleText = await page.locator('#officeNpcSchedule').innerText();
+
       const stateResponse = await page.evaluate(async (heroId) => {
         const response = await fetch(`api/dongzhou/v1/npcs/${encodeURIComponent(heroId)}/state`, {
           cache: 'no-store', credentials: 'same-origin'
@@ -98,8 +101,6 @@ function heroPath(response, suffix) {
         assert(businessOk(state[component]), `${option.heroId} ${component} failed`);
       }
 
-      const stateText = await page.locator('#officeNpcState').innerText();
-      const scheduleText = await page.locator('#officeNpcSchedule').innerText();
       members.push({
         heroId: option.heroId,
         npcId: state.npcId,

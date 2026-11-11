@@ -616,7 +616,7 @@
     return state;
   }
 
-  function recordRemoteRoster(rawState, snapshot) {
+  function recordRemoteRoster(rawState, snapshot, nameForId) {
     const state = normalizeState(rawState);
     const organization = snapshot?.organization;
     const members = snapshot?.members;
@@ -634,17 +634,29 @@
         contributionBalance: entry.contributionBalance, lifetimeEarned: entry.lifetimeEarned, lifetimeSpent: entry.lifetimeSpent
       };
     });
-    const byHero = new Map(normalized.map((entry) => [entry.heroId, entry]));
-    state.members = state.members.map((member) => {
-      const account = byHero.get(member.id);
-      if (!account) return member;
-      const internalOffice = /^(?:commander|court_officer|officer_\d+)$/i;
+    const existingByHero = new Map(state.members.map((member) => [member.id, member]));
+    const internalOffice = /^(?:commander|court_officer|officer_\d+)$/i;
+    const taskOffices = ["司马", "司徒", "司寇", "行人", "上卿"];
+    state.members = normalized.map((account, index) => {
+      const existing = existingByHero.get(account.heroId);
+      const slot = /^officer_(\d+)$/i.exec(account.office);
+      const mappedOffice = account.level === "owner" || account.role === "commander" || account.office === "commander"
+        ? "主官"
+        : slot
+          ? taskOffices[(Number(slot[1]) - 1) % taskOffices.length]
+          : "属官";
       const office = account.office && !internalOffice.test(account.office)
         ? account.office
-        : member.office && !internalOffice.test(member.office)
-          ? member.office
-          : account.level === "owner" || account.role === "commander" ? "主官" : "属官";
-      return { ...member, office, merit: account.lifetimeEarned };
+        : existing?.office && !internalOffice.test(existing.office)
+          ? existing.office
+          : mappedOffice;
+      return normalizeMember({
+        ...existing,
+        id: account.heroId,
+        name: existing?.name || (nameForId ? nameForId(account.heroId) : account.heroId),
+        office,
+        merit: account.lifetimeEarned
+      }, index);
     });
     state.contribution = growth;
     if (String(organization.name || "").trim()) state.name = String(organization.name).trim();

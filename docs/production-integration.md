@@ -4,7 +4,7 @@
 
 浏览器只访问 `dongzhou-integration-service`。该服务基于 NexusKernel，持有服务端存档、玩家会话、幂等记录和上游凭据；H5 不直接访问 AINPC、orgFlowEngine 或 knowledge-jizhan。
 
-本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。当前网关镜像为 `dongzhou-integration:20261111-local-complete62`，AINPC 八角色为 `ainpc-app:v20261111-dongzhou-local-complete50`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete24`。`complete62` 已覆盖双向府中书问、玩家来信偏好、90 天当值计划、组织谱系与贡献实账、任务启动竞态、过期日程恢复、人工复命裁决、任务结果回写 AINPC 长期记忆、属官到主管的定向关系协同，以及史料与军议对差事结算的可解释适配；真实浏览器已完成四服务签令到战斗承接，以及书问、名册、偏好和日程的独立无拦截验收。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
+本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。当前网关镜像为 `dongzhou-integration:20261111-local-complete64`，AINPC 八角色镜像为 `ainpc-app:v20261111-dongzhou-local-complete50`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete24`。`complete64` 已覆盖双向府中书问、玩家来信偏好、90 天当值计划、组织谱系与贡献实账、12 席权威名册的逐席操作、任务启动竞态、过期日程恢复、人工复命裁决、任务结果回写 AINPC 长期记忆、属官到主管的定向关系协同，以及史料与军议对差事结算的可解释适配；真实浏览器已完成四服务签令到战斗承接，以及书问、名册、偏好和日程的独立无拦截验收。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
 
 ## 发布顺序
 
@@ -49,7 +49,7 @@
 
 ## 发布门禁
 
-当前验收记录（2026-11-11）：真实网关、AINPC、orgFlowEngine、knowledge-jizhan 和嵌入式 NexusKernel 均在线。无 API 拦截浏览器在任务 `cd9d873a-9264-53d1-bfc0-90048f909f11` 上验证了史料、军议、签令、领命、复命、NPC 审核、玩家收纳复命、云存档重载和战斗承接，且恢复没有重复建单；证据见 `output/integration-validation/live-kernel-mandate-complete38-race-fixed.json` 与 `live-kernel-mandate-complete40-final.png`。该任务及任务 `b2b66b37-732c-507b-970d-fb0ff7511698` 的长期经历已从 AINPC 自有持久库回读确认。东周网关测试为 `73 passed, 21 subtests passed`，AINPC 组织任务适配为 `16 passed`。实际公网 TLS、后端端口隔离、可信回调网络及宿主重启恢复仍需独立验收。
+当前验收记录（2026-11-11）：真实网关、AINPC、orgFlowEngine、knowledge-jizhan 和嵌入式 NexusKernel 均在线。无 API 拦截浏览器在任务 `cd9d873a-9264-53d1-bfc0-90048f909f11` 上验证了史料、军议、签令、领命、复命、NPC 审核、玩家收纳复命、云存档重载和战斗承接，且恢复没有重复建单；证据见 `output/integration-validation/live-kernel-mandate-complete38-race-fixed.json` 与 `live-kernel-mandate-complete40-final.png`。该任务及任务 `b2b66b37-732c-507b-970d-fb0ff7511698` 的长期经历已从 AINPC 自有持久库回读确认。东周网关测试为 `85 passed, 21 subtests passed`，12 席真实浏览器名册验收通过。实际公网 TLS、后端端口隔离、可信回调网络及宿主重启恢复仍需独立验收。
 
 运行 `integration-service/.venv/Scripts/python.exe tools/verify-live-integration.py --url <网关地址> --output output/integration-validation/live-smoke.json` 验证真实健康、独立访客存档及冲突隔离、首中末关卡已发布史料、AI 检索、NPC 状态和 90 天日程。任一项失败则退出码非零；此检查不会派差或推进共享游戏时钟，不能代替任务复命与发布验收。
 

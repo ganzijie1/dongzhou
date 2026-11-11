@@ -8,7 +8,7 @@
 | --- | --- | --- | --- | --- |
 | knowledge-jizhan | 全文检索、按关卡读取已发布 AKU、战役路线、玩家简册 | 查阅、本回史料、选定出处、已得简册、行军路线 | 只接收 `dongzhou_stage_*`；出处和检索回执进入军议与军令 | `test-live-knowledge-browser.js`、`test-live-fulltext-browser.js`、`test-live-campaign-route-acceptance.js`、`verify-live-knowledge-campaign.py`、`live-integration-complete62.json` |
 | AINPC | NPC 注册与上线、主动来信偏好、状态/人格/动机/关系、双向私聊、90 天日程、关卡当值、军议裁断、急报评估 | 官署状态、府中书问、来信开关、拟定日程、本关当值、军议裁断 | 稳定 NPC/玩家身份；回复回调落库后展示；计划、事件、人格、意愿、关系和急报封入军令 | `verify-live-roster-npcs.py`、`test-live-office-npc-state.js`、`test-live-correspondence-acceptance.js`、`test-live-interaction-preference.js`、`test-live-schedule-browser.js`、`test-live-kernel-mandate-acceptance.js` |
-| orgFlowEngine | 权威名册、组织谱系、贡献账、公共库藏、虚拟任务、任务终态、人工复命审核 | 官署实账、直属主管、贡献收支、库藏、颁差、推进月令、收纳复命/申斥 | 贡献、功绩、任务结果和结案凭据以 orgFlow 为准；12 席均可调阅，负责人不可向自己派单 | `test-live-roster-ledger.js`、`test-live-office-roster-browser.js`、`test-live-office-inventory.js`、`test-live-office-acceptance.js`、`test-live-settlement-acceptance.js` |
+| orgFlowEngine | 权威名册、组织谱系、贡献账、公共库藏、虚拟任务、任务终态、人工复命审核 | 官署实账、直属主管、贡献收支、库藏、颁差、推进月令、收纳复命/申斥 | 贡献、功绩、任务结果和结案凭据以 orgFlow 为准；12 席均进入可操作官员集合，负责人不可向自己派单 | `test-live-roster-ledger.js`、`test-live-office-roster-browser.js`、`live-office-roster-browser.json`、`test-live-office-inventory.js`、`test-live-office-acceptance.js`、`test-live-settlement-acceptance.js` |
 | NexusKernel | 运行模块健康、规范军令、确认动作、恢复签发、终态复命裁决 | 内核军令草案、签发/驳回、复命待裁、军令簿 | 史料、军议、书问、当值、急报和适岗证据统一 SHA-256 封存；确认动作可恢复 | `test-live-kernel-mandate-acceptance.js`、`resume-live-kernel-mandate-acceptance.js`、`test-live-mandate-mobile.js`、`test-live-settlement-acceptance.js` |
 
 ## 跨服务闭环
