@@ -1252,9 +1252,13 @@
       const response = await integration.npcSchedule(member.id);
       if (requestSerial && !isCurrentOfficeNpcRequest(requestSerial, member.id)) return;
       const plan = response.schedule?.data || response.schedule || {};
-      const day = Array.isArray(plan.schedules) ? plan.schedules[0] : null;
-      const events = Array.isArray(day?.events) ? day.events.slice(0, 3).map((event) => event.name).filter(Boolean) : [];
-      panel.textContent = events.length ? `${day.date || "近日"}：${events.join("、")}` : "尚无已定日程";
+      const days = Array.isArray(plan.schedules) ? plan.schedules : [];
+      const day = days[0] || null;
+      const lastDay = days.at(-1) || null;
+      const events = Array.isArray(day?.events) ? day.events.slice(0, 5).map((event) => event.name).filter(Boolean) : [];
+      panel.innerHTML = days.length
+        ? `<strong>${days.length} 日当值</strong><span>${escapeHtml(day.date || plan.start_date || "近日")} 至 ${escapeHtml(lastDay?.date || plan.end_date || "未定")}</span><small>${events.length ? `首日：${escapeHtml(events.join("、"))}` : "首日尚无定事"} · 计划 ${escapeHtml(String(plan.plan_id || plan.generation_id || "未具名").slice(0, 24))}</small>`
+        : "尚无已定日程";
       await refreshOfficeNpcAssignment(member, requestSerial);
     } catch (error) {
       if (requestSerial && !isCurrentOfficeNpcRequest(requestSerial, member.id)) return;
@@ -1323,6 +1327,8 @@
   async function generateOfficeNpcSchedule() {
     const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
     if (!member) return;
+    const button = $("#officeScheduleButton");
+    button.disabled = true;
     $("#officeNpcSchedule").textContent = "正在拟定日程…";
     try {
       await integration.generateNpcSchedule(member.id);
@@ -1330,6 +1336,8 @@
     } catch (error) {
       $("#officeNpcSchedule").textContent = "日程服务正在恢复，请稍候重试。";
       scheduleOfficeNpcRefresh(member.id);
+    } finally {
+      button.disabled = false;
     }
   }
 

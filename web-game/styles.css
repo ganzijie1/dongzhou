@@ -3869,12 +3869,16 @@ button:focus-visible {
 @media (max-width: 640px) { .office-message-form, .office-correspondence-item { grid-template-columns: 1fr; } .office-message-form button, .office-correspondence-item button { justify-self: end; } }
 .office-npc-schedule { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 14px; }
 .office-npc-schedule > div { min-width: 0; color: #5e4b34; }
+#officeNpcSchedule { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 8px; }
+#officeNpcSchedule strong { color: #b69a4f; font-size: 12px; }
+#officeNpcSchedule span, #officeNpcSchedule small { min-width: 0; overflow-wrap: anywhere; }
+#officeNpcSchedule small { grid-column: 2; color: #756b58; }
 .office-npc-assignment { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 8px; margin-top: 7px; color: #d7cfb8; }
 .office-npc-assignment strong { color: #b69a4f; font-size: 12px; }
 .office-npc-assignment span, .office-npc-assignment small { min-width: 0; overflow-wrap: anywhere; }
 .office-npc-assignment small { grid-column: 2; color: #756b58; }
 .office-npc-assignment .office-npc-readiness { color: #9c8762; }
-@media (max-width: 640px) { .office-npc-schedule { align-items: flex-start; } .office-npc-assignment { grid-template-columns: 1fr; } .office-npc-assignment small { grid-column: 1; } }
+@media (max-width: 640px) { .office-npc-schedule { align-items: stretch; flex-direction: column; } .office-npc-schedule > button { align-self: end; } #officeNpcSchedule, .office-npc-assignment { grid-template-columns: 1fr; } #officeNpcSchedule small, .office-npc-assignment small { grid-column: 1; } }
 .office-decision-form { display: grid; gap: 8px; }
 .office-decision-form > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .office-decision-form input { min-width: 0; }
