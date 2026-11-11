@@ -117,6 +117,8 @@ async function openReady(page) {
     let npcStateAttempts = 0;
     let npcMessageTaskId = null;
     let npcCorrespondenceReads = 0;
+    let membershipJoined = false;
+    let membershipAction = null;
     let orderAttempts = 0;
     let mandateAttempts = 0;
     let organizationTaskReads = 0;
@@ -136,7 +138,7 @@ async function openReady(page) {
         body = { version: ++saveVersion, payload };
       }
       else if (pathName.endsWith("/integration/status")) body = { mode: "connected", organizationId: "org-e2e", services: { nexusKernel: { online: true, mode: "embedded", version: "0.2.0" }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } } };
-      else if (pathName.endsWith("/organization/roster")) body = { organization: { name: "东周军府", state: "ACTIVE", hierarchyVersion: 7, growthContribution: 245 }, members: [{ heroId: "DuBo", office: "司马", role: "军府主官", level: "manager", directManagerHeroId: null, contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 }, { heroId: "ZuoRu", office: "行人", role: "军府属官", level: "officer", directManagerHeroId: "DuBo", contributionBalance: 31, lifetimeEarned: 42, lifetimeSpent: 11 }] };
+      else if (pathName.endsWith("/organization/roster")) body = { organization: { name: "东周军府", state: "ACTIVE", hierarchyVersion: membershipJoined ? 8 : 7, growthContribution: 245 }, members: [{ heroId: "DuBo", office: "司马", role: "军府主官", level: "manager", directManagerHeroId: null, contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 }, { heroId: "ZuoRu", office: "行人", role: "军府属官", level: "officer", directManagerHeroId: "DuBo", contributionBalance: 31, lifetimeEarned: 42, lifetimeSpent: 11 }], playerMembership: membershipJoined ? { office: "officer_12", role: "court_officer", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 } : null, openPositions: membershipJoined ? [] : [{ office: "officer_12", role: "court_officer", level: "staff" }] };
       else if (pathName.endsWith("/knowledge/search")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回·东郊索命", summary: "杜伯进谏", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }] }] };
       else if (pathName.endsWith("/knowledge/stages/01")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回·已发布本回史料", summary: "杜伯进谏", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }] }] };
       else if (pathName.endsWith("/npcs/sync")) body = { ready: false, npcs: [{ npcId: "42" }], relogin: [{ npcId: "42", receipt: { accepted: true } }] };
@@ -146,12 +148,18 @@ async function openReady(page) {
         body = { emotion: { data: { dominant: { emotion_type: "resolute", intensity: 72 } } }, affection: { data: { total: 2 } }, relationships: { data: { total: 3 } }, personality: { available: true, profileId: "profile-zuoru", traits: { stubborn: 79, smooth: 48 }, dominantTraits: ["stubborn", "smooth"], templateSource: "identity", backgroundNote: "fixed profile", updatedAt: "2026-11-07T21:56:40.288000" }, motivation: { available: true, motives: [{ name: "情报核验", score: 35 }], revision: 2, updatedAt: "2026-11-10T08:01:52.476000", threshold: 80 } };
       }
       else if (/\/npcs\/[^/]+\/messages$/.test(pathName)) {
-        npcMessageTaskId = `playerchat-${request.postDataJSON().client_request_id}`;
+        const input = request.postDataJSON();
+        const message = String(input.content || "");
+        membershipAction = message.includes("加入组织申请") ? "join" : message.includes("退出东周") ? "confirmLeave" : null;
+        if (membershipAction === "join") membershipJoined = true;
+        if (membershipAction === "confirmLeave") membershipJoined = false;
+        npcMessageTaskId = `playerchat-${input.client_request_id}`;
         body = { state: "ACCEPTED", taskId: npcMessageTaskId };
       }
       else if (/\/npcs\/[^/]+\/correspondence$/.test(pathName)) {
         npcCorrespondenceReads += 1;
-        body = { npcId: "42", messages: npcMessageTaskId && npcCorrespondenceReads > 1 ? [{ messageId: "npc-reply-e2e", taskId: npcMessageTaskId, speakerId: "42", speakerName: "左儒", targetId: "99", targetName: "主君", targetType: "PLAYER", content: "北路军粮已经入仓。", emotion: "calm", digest: "d".repeat(64) }] : [] };
+        const reply = membershipAction === "join" ? "准你入仕，列入军府属官。" : membershipAction === "confirmLeave" ? "辞仕已办结。" : "北路军粮已经入仓。";
+        body = { npcId: "42", messages: npcMessageTaskId && npcCorrespondenceReads > 1 ? [{ messageId: `npc-reply-${npcCorrespondenceReads}`, taskId: npcMessageTaskId, speakerId: "42", speakerName: membershipAction ? "杜伯" : "左儒", targetId: "99", targetName: "主君", targetType: "PLAYER", content: reply, emotion: "calm", digest: "d".repeat(64) }] : [] };
       }
       else if (pathName.includes("/assignments/")) {
         const taskType = pathName.split("/").at(-1);
@@ -194,6 +202,14 @@ async function openReady(page) {
     await online.waitForSelector("#app:not([hidden])", { timeout: 45000 });
     await online.click("#campaignOfficeButton");
     await online.waitForSelector("#officeMembers >> text=官署实账");
+    await online.waitForFunction(() => !document.querySelector("#officeMembershipApply").disabled && /1 席可申请/.test(document.querySelector("#officeMembershipDetail").textContent));
+    await online.click("#officeMembershipApply");
+    await online.waitForSelector("#officeMembershipState >> text=已入仕", { timeout: 15000 });
+    await online.click("#officeMembershipLeave");
+    await online.waitForSelector("#officeMembershipLeaveConfirm:not([hidden])", { timeout: 15000 });
+    await online.click("#officeMembershipLeaveConfirm");
+    await online.waitForSelector("#officeMembershipState >> text=尚未入仕", { timeout: 15000 });
+    if (membershipJoined) throw new Error("Membership leave did not release the reserved position");
     const visibleMembers = await online.locator("#officeMemberSelect option").evaluateAll((options) => options.map((option) => option.value));
     if (!visibleMembers.includes("DuBo")) throw new Error("Organization manager is missing from the inspectable NPC roster");
     await online.selectOption("#officeMemberSelect", "DuBo");

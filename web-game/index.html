@@ -252,6 +252,11 @@
           <section class="office-ledger" aria-labelledby="officeLedgerTitle">
             <div class="office-section-heading"><div><span>功过有据</span><h3 id="officeLedgerTitle">属官与簿书</h3></div></div>
             <p id="officeRosterSummary" class="office-roster-summary" aria-live="polite">等待朝议实账名册</p>
+            <div class="office-membership" aria-live="polite">
+              <div><span>个人仕籍</span><strong id="officeMembershipState">尚未入仕</strong><small id="officeMembershipDetail">可向军府主官杜伯请仕</small></div>
+              <div class="office-membership-actions"><button id="officeMembershipApply" class="large-button primary" type="button">向杜伯请仕</button><button id="officeMembershipLeave" class="large-button" type="button" hidden>向杜伯请辞</button><button id="officeMembershipLeaveConfirm" class="large-button danger" type="button" hidden>确认辞仕</button></div>
+              <p id="officeMembershipFeedback">请仕与辞仕均由属官对话并经朝议规则裁定。</p>
+            </div>
             <div id="officeMembers" class="office-members"></div>
             <div id="officeNpcState" class="office-npc-state" aria-live="polite"></div>
             <div class="office-correspondence"><div class="office-correspondence-heading"><strong>府中书问</strong><button id="officeCorrespondenceRefresh" class="large-button" type="button">刷新</button></div><form id="officeMessageForm" class="office-message-form"><input id="officeMessageInput" maxlength="2000" required aria-label="给当前属官传话"><button class="large-button" type="submit">传话</button></form><div id="officeCorrespondence" class="office-correspondence-list" aria-live="polite"></div></div>

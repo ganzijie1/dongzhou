@@ -91,6 +91,8 @@
   let officeNpcRefreshTimer = null;
   let officeNpcRefreshSerial = 0;
   let officeInventoryView = null;
+  let officeMembershipLeavePending = false;
+  let officeMembershipBusy = false;
 
   const canvas = $("#battleCanvas");
   const ctx = canvas.getContext("2d");
@@ -1021,6 +1023,7 @@
     $("#officeRosterSummary").textContent = roster.organization
       ? `${roster.organization.name || org.name} · ${rosterMembers.length} 席在册 · 谱系 ${roster.organization.hierarchyVersion} · ${rosterState}`
       : "尚未取得朝议实账名册";
+    renderOfficeMembership(roster);
     $("#officeMembers").innerHTML = org.members.map((member) => {
       const account = rosterByHero.get(member.id);
       const manager = account?.directManagerHeroId ? displayName(account.directManagerHeroId) : null;
@@ -1073,6 +1076,91 @@
     renderOfficeDiplomacyStatus();
     renderOfficeMandateApproval();
     renderOfficeSettlementReview();
+  }
+
+  function officeMembershipPosition(value, fallback = "军府属官") {
+    const raw = String(value || "").trim();
+    if (!raw) return fallback;
+    if (/^commander$/i.test(raw)) return "主官";
+    if (/^(?:court_officer|officer_\d+)$/i.test(raw)) return "属官";
+    return raw;
+  }
+
+  function renderOfficeMembership(rosterOverride) {
+    const roster = rosterOverride || profile.organization.remoteRoster || {};
+    const membership = roster.playerMembership;
+    const vacancies = Array.isArray(roster.openPositions) ? roster.openPositions : [];
+    const apply = $("#officeMembershipApply");
+    const leave = $("#officeMembershipLeave");
+    const confirmLeave = $("#officeMembershipLeaveConfirm");
+    if (!apply || !leave || !confirmLeave) return;
+    if (membership) {
+      const manager = membership.directManagerHeroId ? displayName(membership.directManagerHeroId) : "军府主官";
+      $("#officeMembershipState").textContent = `已入仕 · ${officeMembershipPosition(membership.office)}`;
+      $("#officeMembershipDetail").textContent = `直属 ${manager} · 功绩 ${Number(membership.lifetimeEarned || 0)} · 可用贡献 ${Number(membership.contributionBalance || 0)}`;
+    } else {
+      $("#officeMembershipState").textContent = "尚未入仕";
+      $("#officeMembershipDetail").textContent = vacancies.length
+        ? `军府尚有 ${vacancies.length} 席可申请 · ${vacancies.map((entry) => officeMembershipPosition(entry.office)).join("、")}`
+        : "当前没有可申请的军府席位";
+      officeMembershipLeavePending = false;
+    }
+    apply.hidden = Boolean(membership);
+    leave.hidden = !membership || officeMembershipLeavePending;
+    confirmLeave.hidden = !membership || !officeMembershipLeavePending;
+    apply.disabled = officeMembershipBusy || !vacancies.length;
+    leave.disabled = officeMembershipBusy;
+    confirmLeave.disabled = officeMembershipBusy;
+  }
+
+  async function requestOfficeMembership(action) {
+    if (integration.isOffline() || officeMembershipBusy) return;
+    if (action === "leave") {
+      officeMembershipLeavePending = true;
+      $("#officeMembershipFeedback").textContent = "请再次确认辞仕；确认后将立即提交军府实账。";
+      renderOfficeMembership();
+      return;
+    }
+    const content = {
+      join: "我明确要求你现在提交我的加入组织申请：应聘东周朝廷军府属官岗位。",
+      confirmLeave: "我要退出东周朝廷。"
+    }[action];
+    if (!content) return;
+    officeMembershipBusy = true;
+    renderOfficeMembership();
+    $("#officeMembershipFeedback").textContent = action === "join" ? "请仕书已送杜伯，等待裁定……" : action === "leave" ? "请辞已送杜伯，等待确认……" : "辞仕确认已送杜伯，等待实账回读……";
+    try {
+      await syncOfficeNpcs(profile.organization.members.filter((member) => member.id === "DuBo"));
+      const accepted = await integration.sendNpcMessage("DuBo", content);
+      let reply = null;
+      for (let attempt = 0; attempt < 180; attempt += 1) {
+        if (attempt) await sleep(1000);
+        const [messages, roster] = await Promise.all([
+          integration.npcCorrespondence("DuBo", 12).catch(() => ({ messages: [] })),
+          integration.organizationRoster()
+        ]);
+        profile.organization = organization.recordRemoteRoster(profile.organization, roster, displayName);
+        reply = (messages.messages || []).find((message) => message.taskId === accepted.taskId) || reply;
+        const joined = Boolean(profile.organization.remoteRoster?.playerMembership);
+        if ((action === "join" && joined) || (action === "confirmLeave" && !joined)) break;
+      }
+      const joined = Boolean(profile.organization.remoteRoster?.playerMembership);
+      if (action === "join" && joined) {
+        $("#officeMembershipFeedback").textContent = "杜伯已准请仕，仕籍与贡献账户已写入朝议实账。";
+      } else if (action === "confirmLeave" && !joined) {
+        officeMembershipLeavePending = false;
+        $("#officeMembershipFeedback").textContent = "辞仕已完成，军府席位已经释放。";
+      } else {
+        $("#officeMembershipFeedback").textContent = reply?.content || "组织尚未变更，请稍后重试或在府中书问查看回信。";
+      }
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+      renderOrganizationPanel();
+    } catch (error) {
+      $("#officeMembershipFeedback").textContent = error.message || "仕籍请求暂未送达。";
+    } finally {
+      officeMembershipBusy = false;
+      renderOfficeMembership();
+    }
   }
 
   async function refreshIntegrationStatus() {
@@ -3740,6 +3828,9 @@
     $("#officeMemberSelect").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOrganizationPanel(); refreshOfficeNpcState(); });
     $("#officeCorrespondenceRefresh").addEventListener("click", () => refreshOfficeCorrespondence());
     $("#officeInventoryRefresh").addEventListener("click", refreshOfficeInventory);
+    $("#officeMembershipApply").addEventListener("click", () => requestOfficeMembership("join"));
+    $("#officeMembershipLeave").addEventListener("click", () => requestOfficeMembership("leave"));
+    $("#officeMembershipLeaveConfirm").addEventListener("click", () => requestOfficeMembership("confirmLeave"));
     $("#officeMessageForm").addEventListener("submit", sendOfficeNpcMessage);
     $("#officeCorrespondence").addEventListener("click", (event) => { const button = event.target.closest("[data-correspondence-id]"); if (button) selectOfficeCorrespondence(button.dataset.correspondenceId); });
     $("#officeScheduleButton").addEventListener("click", generateOfficeNpcSchedule);

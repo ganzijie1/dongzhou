@@ -3745,6 +3745,13 @@ button:focus-visible {
 .office-mandate-actions { display: flex; gap: 8px; }
 .office-members { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin-top: 18px; background: rgba(191, 161, 91, .13); }
 .office-roster-summary { margin: 12px 0 -8px; color: #898b82; font-size: 11px; overflow-wrap: anywhere; }
+.office-membership { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; align-items: center; margin-top: 18px; padding: 12px; border: 1px solid rgba(191, 161, 91, .2); background: #0d130e; }
+.office-membership > div:first-child { display: grid; gap: 3px; min-width: 0; }
+.office-membership > div:first-child span { color: #b99344; font-size: 10px; }
+.office-membership > div:first-child strong { color: #e3d8bb; font-size: 13px; }
+.office-membership > div:first-child small { color: #85887f; overflow-wrap: anywhere; }
+.office-membership-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.office-membership > p { grid-column: 1 / -1; margin: 0; color: #73776f; font-size: 10px; overflow-wrap: anywhere; }
 .office-members > div { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; padding: 11px 12px; background: #101510; }
 .office-members strong { color: #e3d8bb; font-size: 13px; }
 .office-members span { color: #b99344; font-size: 11px; }
@@ -3866,6 +3873,7 @@ button:focus-visible {
 .office-correspondence-item small { grid-column: 1 / -1; color: #74776f; }
 .office-correspondence-item.selected { box-shadow: inset 3px 0 #b99344; }
 @media (max-width: 640px) { .office-npc-state dl, .office-npc-relations ul { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .office-membership { grid-template-columns: 1fr; } .office-membership-actions { justify-content: flex-start; } }
 @media (max-width: 640px) { .office-message-form, .office-correspondence-item { grid-template-columns: 1fr; } .office-message-form button, .office-correspondence-item button { justify-self: end; } }
 .office-npc-schedule { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 14px; }
 .office-npc-schedule > div { min-width: 0; color: #5e4b34; }

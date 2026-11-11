@@ -36,7 +36,7 @@
       contribution: 0,
       backend: { mode: "local", nexusKernel: false, orgFlow: false, aiNpc: false, knowledge: false, checkedAt: null },
       members: [],
-      remoteRoster: { organization: null, members: [], observedAt: null },
+      remoteRoster: { organization: null, members: [], playerMembership: null, openPositions: [], observedAt: null },
       tasks: [],
       knowledge: [],
       selectedSources: {},
@@ -90,6 +90,8 @@
       remoteRoster: {
         organization: source.remoteRoster?.organization && typeof source.remoteRoster.organization === "object" ? copy(source.remoteRoster.organization) : null,
         members: Array.isArray(source.remoteRoster?.members) ? source.remoteRoster.members.filter((entry) => entry && typeof entry === "object").slice(0, 12).map(copy) : [],
+        playerMembership: source.remoteRoster?.playerMembership && typeof source.remoteRoster.playerMembership === "object" ? copy(source.remoteRoster.playerMembership) : null,
+        openPositions: Array.isArray(source.remoteRoster?.openPositions) ? source.remoteRoster.openPositions.filter((entry) => entry && typeof entry === "object").slice(0, 12).map(copy) : [],
         observedAt: typeof source.remoteRoster?.observedAt === "string" ? source.remoteRoster.observedAt : null
       },
       tasks: retainedTasks.map((task) => ({ ...task, status: ['active', 'success', 'partial', 'failed', 'censured'].includes(task.status) ? task.status : 'failed' })),
@@ -667,6 +669,8 @@
         growthContribution: growth
       },
       members: normalized,
+      playerMembership: snapshot?.playerMembership && typeof snapshot.playerMembership === "object" ? copy(snapshot.playerMembership) : null,
+      openPositions: Array.isArray(snapshot?.openPositions) ? snapshot.openPositions.filter((entry) => entry && typeof entry === "object").slice(0, 12).map(copy) : [],
       observedAt: new Date().toISOString()
     };
     return state;

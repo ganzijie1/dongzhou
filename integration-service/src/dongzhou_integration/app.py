@@ -470,7 +470,12 @@ def _organization_final_result(value: Any) -> str | None:
     return None
 
 
-def _organization_roster_view(snapshot: Any, settings: Settings) -> dict[str, Any]:
+def _organization_roster_view(
+    snapshot: Any,
+    settings: Settings,
+    *,
+    player_subject_id: str | None = None,
+) -> dict[str, Any]:
     if not isinstance(snapshot, dict):
         raise ValueError("roster snapshot must be an object")
     positions = snapshot.get("positions")
@@ -484,11 +489,17 @@ def _organization_roster_view(snapshot: Any, settings: Settings) -> dict[str, An
         if isinstance(position, dict) and position.get("position_slot_id")
     }
     sanitized_members: list[dict[str, Any]] = []
+    player_membership: dict[str, Any] | None = None
     for member in members:
         if not isinstance(member, dict):
             continue
         hero_id = hero_by_member.get(str(member.get("member_id") or ""))
-        if not hero_id:
+        is_player = (
+            player_subject_id is not None
+            and member.get("subject_type") == "PLAYER"
+            and str(member.get("subject_id") or "") == player_subject_id
+        )
+        if not hero_id and not is_player:
             continue
         position = position_by_slot.get(str(member.get("position_slot_id") or ""), {})
         manager_hero_id = hero_by_member.get(str(member.get("direct_manager_member_id") or ""))
@@ -502,6 +513,15 @@ def _organization_roster_view(snapshot: Any, settings: Settings) -> dict[str, An
         }
         if any(isinstance(value, bool) or not isinstance(value, int) for value in values.values()):
             raise ValueError("roster contribution account is invalid")
+        if is_player:
+            player_membership = {
+                "office": str(position.get("position_display_name") or ""),
+                "role": str(position.get("role_display_name") or ""),
+                "level": str(position.get("level_key") or ""),
+                "directManagerHeroId": manager_hero_id,
+                **values,
+            }
+            continue
         sanitized_members.append(
             {
                 "heroId": hero_id,
@@ -529,6 +549,18 @@ def _organization_roster_view(snapshot: Any, settings: Settings) -> dict[str, An
             "growthContribution": growth,
         },
         "members": sanitized_members,
+        "playerMembership": player_membership,
+        "openPositions": [
+            {
+                "office": str(position.get("position_display_name") or ""),
+                "role": str(position.get("role_display_name") or ""),
+                "level": str(position.get("level_key") or ""),
+            }
+            for position in positions
+            if isinstance(position, dict)
+            and position.get("state") == "OPEN"
+            and str(position.get("level_key") or "").lower() != "owner"
+        ],
     }
 
 
@@ -2304,7 +2336,6 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     async def read_organization_roster(
         player_id: UUID = Depends(player),
     ) -> dict[str, Any]:
-        del player_id
         if not settings.orgflow_org_id or not settings.orgflow_hero_members:
             raise ApiError(
                 "organization_not_configured",
@@ -2315,7 +2346,13 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             response = await upstreams.organization_roster(settings.orgflow_org_id)
             if not isinstance(response, dict):
                 raise ValueError("roster response must be an object")
-            return _organization_roster_view(response.get("data"), settings)
+            return _organization_roster_view(
+                response.get("data"),
+                settings,
+                player_subject_id=str(
+                    stable_player_id(settings.ainpc_game_server_id, player_id)
+                ),
+            )
         except UpstreamUnavailable as error:
             raise ApiError(
                 "organization_roster_unavailable",

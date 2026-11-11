@@ -5,13 +5,14 @@ from tempfile import TemporaryDirectory
 import json
 import unittest
 from dataclasses import replace
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import httpx
 from fastapi.testclient import TestClient
 
 from dongzhou_integration.app import build_application
 from dongzhou_integration.config import Settings
+from dongzhou_integration.security import stable_player_id
 from dongzhou_integration.upstreams import UpstreamUnavailable, Upstreams
 
 
@@ -33,8 +34,10 @@ def settings(path: Path) -> Settings:
 
 
 class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
-    async def test_roster_route_exposes_only_mapped_hero_accounts(self) -> None:
+    async def test_roster_route_exposes_mapped_heroes_and_current_player_only(self) -> None:
         class RosterUpstreams:
+            player_subject_id = "pending"
+
             async def health(self):
                 return {
                     "orgFlow": {"online": True},
@@ -56,7 +59,21 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                                 "position_display_name": "Marshal",
                                 "role_display_name": "Commander",
                                 "level_key": "manager",
-                            }
+                            },
+                            {
+                                "position_slot_id": "00000000-0000-0000-0000-000000000005",
+                                "position_display_name": "Court Officer",
+                                "role_display_name": "Officer",
+                                "level_key": "staff",
+                                "state": "OCCUPIED",
+                            },
+                            {
+                                "position_slot_id": "00000000-0000-0000-0000-000000000006",
+                                "position_display_name": "Open Court Officer",
+                                "role_display_name": "Officer",
+                                "level_key": "staff",
+                                "state": "OPEN",
+                            },
                         ],
                         "members": [
                             {
@@ -69,7 +86,19 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                             },
                             {
                                 "member_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
-                                "position_slot_id": None,
+                                "subject_type": "PLAYER",
+                                "subject_id": self.player_subject_id,
+                                "position_slot_id": "00000000-0000-0000-0000-000000000005",
+                                "direct_manager_member_id": "00000000-0000-0000-0000-000000000004",
+                                "contribution_balance": 9,
+                                "contribution_lifetime_earned": 12,
+                                "contribution_lifetime_spent": 3,
+                            },
+                            {
+                                "member_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+                                "subject_type": "PLAYER",
+                                "subject_id": "unrelated-player",
+                                "position_slot_id": "00000000-0000-0000-0000-000000000005",
                                 "direct_manager_member_id": None,
                                 "contribution_balance": 999,
                                 "contribution_lifetime_earned": 999,
@@ -84,12 +113,17 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
 
         with TemporaryDirectory() as directory:
             configured = settings(Path(directory) / "gateway.sqlite3")
-            application = build_application(configured, upstreams=RosterUpstreams())
+            upstreams = RosterUpstreams()
+            application = build_application(configured, upstreams=upstreams)
             with TestClient(application) as client:
-                client.post(
+                session = client.post(
                     "/api/dongzhou/v1/sessions/guest",
                     json={"installation_id": str(uuid4())},
                 )
+                upstreams.player_subject_id = str(stable_player_id(
+                    configured.ainpc_game_server_id,
+                    UUID(session.json()["playerId"]),
+                ))
                 response = client.get("/api/dongzhou/v1/organization/roster")
 
         self.assertEqual(response.status_code, 200)
@@ -104,8 +138,23 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
             "lifetimeEarned": 80,
             "lifetimeSpent": 26,
         }])
+        self.assertEqual(response.json()["playerMembership"], {
+            "office": "Court Officer",
+            "role": "Officer",
+            "level": "staff",
+            "directManagerHeroId": "DuBo",
+            "contributionBalance": 9,
+            "lifetimeEarned": 12,
+            "lifetimeSpent": 3,
+        })
+        self.assertEqual(response.json()["openPositions"], [{
+            "office": "Open Court Officer",
+            "role": "Officer",
+            "level": "staff",
+        }])
         self.assertNotIn("00000000-0000", response.text)
         self.assertNotIn("ffffffff-ffff", response.text)
+        self.assertNotIn("unrelated-player", response.text)
 
     async def test_campaign_route_uses_formal_map_transition_contract(self) -> None:
         seen: list[httpx.Request] = []

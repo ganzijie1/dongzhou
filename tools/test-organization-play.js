@@ -65,13 +65,17 @@ assert.strictEqual(state.backend.mode, "local");
 state = play.updateBackend(state, { aiNpc: true });
 state = play.recordRemoteRoster(state, {
   organization: { name: "东周军府", state: "ACTIVE", hierarchyVersion: 3, growthContribution: 245 },
-  members: [{ heroId: "ZuoRu", office: "司马", role: "军务属官", level: "officer", directManagerHeroId: "DuBo", contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 }]
+  members: [{ heroId: "ZuoRu", office: "司马", role: "军务属官", level: "officer", directManagerHeroId: "DuBo", contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 }],
+  playerMembership: { office: "officer_12", role: "court_officer", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 3, lifetimeEarned: 5, lifetimeSpent: 2 },
+  openPositions: []
 });
 assert.strictEqual(state.name, "东周军府");
 assert.strictEqual(state.contribution, 245);
 assert.strictEqual(state.members.find((member) => member.id === "ZuoRu").office, "司马");
 assert.strictEqual(state.members.find((member) => member.id === "ZuoRu").merit, 80);
 assert.strictEqual(state.remoteRoster.members[0].contributionBalance, 54);
+assert.strictEqual(state.remoteRoster.playerMembership.directManagerHeroId, "DuBo");
+assert.strictEqual(state.remoteRoster.playerMembership.lifetimeEarned, 5);
 const internalOfficeState = play.recordRemoteRoster({ ...state, members: state.members.map((member) => member.id === "ZuoRu" ? { ...member, office: "officer_01" } : member) }, {
   organization: { name: "东周军府", state: "ACTIVE", hierarchyVersion: 4, growthContribution: 245 },
   members: [

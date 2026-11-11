@@ -2,39 +2,39 @@
   "schemaVersion": 1,
   "containers": {
     "dongzhou-integration-gateway-1": {
-      "image": "dongzhou-integration:20261111-local-complete64",
+      "image": "dongzhou-integration:20261111-local-complete67",
       "healthRequired": true
     },
     "ainpc-v2-global-dev": {
-      "image": "ainpc-app:v20261111-dongzhou-local-complete50",
+      "image": "ainpc-app:v20261111-dongzhou-local-complete54",
       "healthRequired": true
     },
     "ainpc-v2-gateway-dev": {
-      "image": "ainpc-app:v20261111-dongzhou-local-complete50",
+      "image": "ainpc-app:v20261111-dongzhou-local-complete54",
       "healthRequired": true
     },
     "ainpc-v2-business-0-dev": {
-      "image": "ainpc-app:v20261111-dongzhou-local-complete50",
+      "image": "ainpc-app:v20261111-dongzhou-local-complete54",
       "healthRequired": true
     },
     "ainpc-v2-business-1-dev": {
-      "image": "ainpc-app:v20261111-dongzhou-local-complete50",
+      "image": "ainpc-app:v20261111-dongzhou-local-complete54",
       "healthRequired": true
     },
     "ainpc-v2-business-2-dev": {
-      "image": "ainpc-app:v20261111-dongzhou-local-complete50",
+      "image": "ainpc-app:v20261111-dongzhou-local-complete54",
       "healthRequired": true
     },
     "ainpc-v2-business-3-dev": {
-      "image": "ainpc-app:v20261111-dongzhou-local-complete50",
+      "image": "ainpc-app:v20261111-dongzhou-local-complete54",
       "healthRequired": true
     },
     "ainpc-v2-business-4-dev": {
-      "image": "ainpc-app:v20261111-dongzhou-local-complete50",
+      "image": "ainpc-app:v20261111-dongzhou-local-complete54",
       "healthRequired": true
     },
     "ainpc-v2-business-5-dev": {
-      "image": "ainpc-app:v20261111-dongzhou-local-complete50",
+      "image": "ainpc-app:v20261111-dongzhou-local-complete54",
       "healthRequired": true
     },
     "org-flow-engine-dev-api-1": {
@@ -53,8 +53,8 @@
     "knowledge"
   ],
   "package": {
-    "path": "output/2026-11-11-dongzhou-integrated-h5-complete64.zip",
-    "sha256": "a589e7eeb25be558485538a545bd7f81de2925210434e90bf4018f7136f8aaa3"
+    "path": "output/2026-11-11-dongzhou-integrated-h5-complete67.zip",
+    "sha256": "d93b8511c68d844743195d9cffe7b445b9f1ffaadcd47a288167d088173c781b"
   },
   "fulltextReport": "output/integration-validation/fulltext-browser-restored.json"
 }
