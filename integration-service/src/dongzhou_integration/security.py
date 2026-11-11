@@ -49,6 +49,14 @@ def stable_npc_id(game_server_id: int, hero_id: str) -> int:
     return int.from_bytes(digest, "big") & ((1 << 63) - 1) or 1
 
 
+def stable_player_id(game_server_id: int, player_id: UUID) -> int:
+    """Map a player session to AINPC's uint64 identity space without colliding with NPCs."""
+    digest = hashlib.blake2b(
+        f"dongzhou-player:{game_server_id}:{player_id}".encode(), digest_size=8
+    ).digest()
+    return (int.from_bytes(digest, "big") & ((1 << 63) - 1)) | (1 << 63)
+
+
 def stable_event_id(player_id: UUID, client_request_id: UUID) -> str:
     return f"dongzhou:{player_id}:{client_request_id}"
 

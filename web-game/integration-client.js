@@ -9,6 +9,7 @@
   const INSTALLATION_KEY = "dongzhou-installation-id-v1";
   const ORDER_JOURNAL_KEY = "dongzhou-order-journal-v1";
   const MANDATE_PENDING_PREFIX = "dongzhou-pending-mandate-v1:";
+  const NPC_MESSAGE_PENDING_PREFIX = "dongzhou-pending-npc-message-v1:";
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
   let session = read(SESSION_KEY, null);
   let sessionPromise = null;
@@ -162,6 +163,25 @@
   function syncNpcs(npcs) { return request("/npcs/sync", { method: "POST", body: JSON.stringify({ npcs: npcs.map((npc) => ({ hero_id: npc.heroId, name: npc.name })) }) }); }
   function npcState(heroId) { return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/state`); }
   function npcCorrespondence(heroId, limit = 20) { return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/correspondence?limit=${encodeURIComponent(limit)}`); }
+  async function sendNpcMessage(heroId, content) {
+    const pendingKey = NPC_MESSAGE_PENDING_PREFIX + heroId;
+    const saved = read(pendingKey, null);
+    const pending = saved?.content === content
+      ? saved
+      : { client_request_id: root.crypto.randomUUID(), content };
+    write(pendingKey, pending);
+    try {
+      const result = await request(`/npcs/${encodeURIComponent(heroId)}/messages`, {
+        method: "POST",
+        body: JSON.stringify(pending)
+      });
+      root.localStorage.removeItem(pendingKey);
+      return result;
+    } catch (error) {
+      if ([400, 404, 409, 422].includes(error.status)) root.localStorage.removeItem(pendingKey);
+      throw error;
+    }
+  }
   function npcSchedule(heroId) { return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/schedule`); }
   function npcAssignment(heroId, taskType, stageId) {
     return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/assignments/${encodeURIComponent(taskType)}?stage_id=${encodeURIComponent(stageId)}`);
@@ -355,5 +375,5 @@
     return { mode: "offline", stageId, results: (data.entries || []).filter((entry) => entry.stageId === stageId) };
   }
 
-  return { initialize, persist, status, searchKnowledge, campaignRoute, stageKnowledge, syncNpcs, npcState, npcCorrespondence, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, reviewOrganizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, campaignRoute, stageKnowledge, syncNpcs, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, reviewOrganizationTask, isOffline: () => offline };
 });

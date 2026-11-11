@@ -183,6 +183,11 @@ class NpcDecisionRequest(StrictModel):
     topic: str = Field(default="court_decision", min_length=1, max_length=100)
 
 
+class NpcMessageRequest(StrictModel):
+    client_request_id: UUID = Field(strict=False)
+    content: str = Field(min_length=1, max_length=2000)
+
+
 class NpcScheduleGenerateRequest(StrictModel):
     force_regenerate: bool = False
 

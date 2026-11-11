@@ -1040,18 +1040,49 @@
   async function refreshOfficeCorrespondence(memberOverride, requestSerial) {
     const member = memberOverride || profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
     const panel = $("#officeCorrespondence");
-    if (!panel || !member) return;
-    if (integration.isOffline()) { officeCorrespondenceView = []; panel.innerHTML = "<p>离线演算不调阅实时耳报。</p>"; return; }
-    panel.innerHTML = "<p>正在调阅府中耳报…</p>";
+    if (!panel || !member) return [];
+    if (integration.isOffline()) { officeCorrespondenceView = []; panel.innerHTML = "<p>离线演算不调阅实时耳报。</p>"; return []; }
+    panel.innerHTML = "<p>正在调阅府中书问…</p>";
     try {
       const response = await integration.npcCorrespondence(member.id, 12);
       if (requestSerial && !isCurrentOfficeNpcRequest(requestSerial, member.id)) return;
       officeCorrespondenceView = Array.isArray(response.messages) ? response.messages.map((message) => ({ ...message, npcId: response.npcId })) : [];
       renderOfficeCorrespondence(member);
+      return officeCorrespondenceView;
     } catch (error) {
       if (requestSerial && !isCurrentOfficeNpcRequest(requestSerial, member.id)) return;
       officeCorrespondenceView = [];
-      panel.innerHTML = "<p>耳报暂不可达。</p>";
+      panel.innerHTML = "<p>书问暂不可达。</p>";
+      return [];
+    }
+  }
+
+  async function sendOfficeNpcMessage(event) {
+    event.preventDefault();
+    const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
+    const input = $("#officeMessageInput");
+    const button = event.currentTarget.querySelector("button[type=submit]");
+    const content = input.value.trim();
+    if (!member || !content || integration.isOffline()) return;
+    button.disabled = true;
+    try {
+      const accepted = await integration.sendNpcMessage(member.id, content);
+      input.value = "";
+      showNotice(`传话已送达${member.name}`);
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        if (attempt) await sleep(1000);
+        if ($("#campaignOfficeBackdrop").hidden || $("#officeMemberSelect").value !== member.id) return;
+        const messages = await refreshOfficeCorrespondence(member);
+        if (messages.some((message) => message.taskId === accepted.taskId)) {
+          showNotice(`${member.name}已有回信`);
+          return;
+        }
+      }
+      showNotice("传话已受理，回信稍后可在府中书问查看");
+    } catch (error) {
+      showNotice(error.message || "传话暂未送达");
+    } finally {
+      button.disabled = false;
     }
   }
 
@@ -3414,6 +3445,7 @@
     $("#officeTaskType").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOrganizationPanel(); refreshOfficeNpcAssignment(); });
     $("#officeMemberSelect").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOfficeCouncil(); refreshOfficeNpcState(); });
     $("#officeCorrespondenceRefresh").addEventListener("click", () => refreshOfficeCorrespondence());
+    $("#officeMessageForm").addEventListener("submit", sendOfficeNpcMessage);
     $("#officeCorrespondence").addEventListener("click", (event) => { const button = event.target.closest("[data-correspondence-id]"); if (button) selectOfficeCorrespondence(button.dataset.correspondenceId); });
     $("#officeScheduleButton").addEventListener("click", generateOfficeNpcSchedule);
     $("#officeDecisionForm").addEventListener("submit", requestOfficeNpcDecision);

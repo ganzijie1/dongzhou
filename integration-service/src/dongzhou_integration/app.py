@@ -18,8 +18,8 @@ from nexus_kernel.kernel import Kernel, LoadedModule, Module, ModuleContext
 
 from .config import Settings
 from .assignments import AssignmentUnavailable, select_assignment
-from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
-from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, verify_session
+from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
+from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
 
@@ -252,6 +252,7 @@ def _correspondence_evidence(message: dict[str, Any]) -> dict[str, Any]:
         "speakerName": str(message.get("speakerName") or "")[:100],
         "targetId": str(message.get("targetId") or ""),
         "targetName": str(message.get("targetName") or "")[:100],
+        "targetType": str(message.get("targetType") or "")[:16],
         "content": str(message.get("content") or "")[:2000],
         "emotion": str(message.get("emotion") or "")[:100],
         "topic": str(message.get("topic") or "")[:1000],
@@ -1361,14 +1362,93 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         if limit < 1 or limit > 50:
             raise ApiError("correspondence_limit_invalid", "Correspondence limit must be between 1 and 50.", status_code=422)
         npc_id = str(stable_npc_id(settings.ainpc_game_server_id, hero_id))
+        player_peer_id = str(stable_player_id(settings.ainpc_game_server_id, player_id))
         messages = await store.list_npc_correspondence(
-            settings.game_server_id, npc_id, limit=limit
+            settings.game_server_id,
+            npc_id,
+            limit=limit,
+            player_peer_id=player_peer_id,
         )
         return {
             "playerId": str(player_id),
             "heroId": hero_id,
             "npcId": npc_id,
             "messages": [_correspondence_evidence(message) for message in messages],
+        }
+
+    @router.post("/npcs/{hero_id}/messages")
+    async def send_npc_message(
+        hero_id: str,
+        request: NpcMessageRequest,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        npc_id = str(stable_npc_id(settings.ainpc_game_server_id, hero_id))
+        player_peer_id = str(stable_player_id(settings.ainpc_game_server_id, player_id))
+        runtime = await store.read_npc_runtime(settings.game_server_id, npc_id)
+        if runtime is None or runtime.get("state") != "READY":
+            raise ApiError(
+                "npc_unavailable",
+                "NPC state is temporarily unavailable.",
+                status_code=503,
+            )
+        directory = await store.list_npcs(settings.game_server_id, include_offline=True)
+        npc = next((item for item in directory if str(item.get("id")) == npc_id), None)
+        if npc is None:
+            raise ApiError("npc_not_found", "NPC is not registered.", status_code=404)
+        clock = await store.read_game_clock()
+        task_id = "playerchat-" + hashlib.sha256(
+            f"{player_id}\n{request.client_request_id}".encode("utf-8")
+        ).hexdigest()[:32]
+        chat_id = f"{npc_id}_{player_peer_id}"
+        message_id = "player-" + request.client_request_id.hex
+        payload = {
+            "gameServerId": settings.game_server_id,
+            "npcId": npc_id,
+            "source": settings.game_server_id,
+            "speakerId": npc_id,
+            "taskId": task_id,
+            "chatId": chat_id,
+            "serverName": "Dongzhou",
+            "status": "inProgress",
+            "currTime": str(clock["virtualTime"]),
+            "topic": "府中问答",
+            "participants": [
+                {"id": npc_id, "name": str(npc.get("name") or hero_id), "type": "NPC"},
+                {"id": player_peer_id, "name": "主君", "type": "PLAYER"},
+            ],
+            "messages": [
+                {
+                    "id": message_id,
+                    "time": str(clock["virtualTime"]),
+                    "content": request.content,
+                    "speakerId": player_peer_id,
+                    "speakerName": "主君",
+                    "speakerEmotion": "calm",
+                    "isStopped": False,
+                }
+            ],
+        }
+        try:
+            await store.register_private_chat(payload)
+            accepted = await upstreams.send_game_event("CHAT_TURN", payload)
+        except VersionConflict as error:
+            raise ApiError(
+                "npc_message_conflict", "The message identity conflicts with an existing turn.", status_code=409
+            ) from error
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "ainpc_unavailable", "NPC service is temporarily unavailable.", status_code=503
+            ) from error
+        data = accepted.get("data", accepted)
+        if not isinstance(data, dict) or data.get("accepted") is False:
+            raise ApiError("npc_message_rejected", "NPC service rejected the message.", status_code=502)
+        return {
+            "state": "ACCEPTED",
+            "heroId": hero_id,
+            "npcId": npc_id,
+            "chatId": chat_id,
+            "taskId": task_id,
+            "messageId": message_id,
         }
 
     @router.get("/npcs/{hero_id}/schedule")

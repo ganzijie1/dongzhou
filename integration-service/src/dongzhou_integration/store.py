@@ -672,8 +672,28 @@ class Store:
         start = json.loads(row["start_payload"]) if row["start_payload"] else {}
         content = str(message.get("content") or "").strip()
         speaker_id = str(message.get("speakerId") or payload.get("aiId") or "")
+        participants = start.get("participants") or []
         target = payload.get("playerInfo") or {}
         target_id = str(target.get("playerId") or "")
+        if not target_id:
+            peers = [
+                item
+                for item in participants
+                if isinstance(item, dict)
+                and str(item.get("id") or "")
+                and str(item.get("id")) != speaker_id
+            ]
+            if len(peers) == 1:
+                target = peers[0]
+                target_id = str(target["id"])
+        target_type = next(
+            (
+                str(item.get("type") or "").upper()
+                for item in participants
+                if isinstance(item, dict) and str(item.get("id") or "") == target_id
+            ),
+            "PLAYER" if payload.get("isNpc") is False else "NPC",
+        )
         if not content or not speaker_id or not target_id:
             return None
         return {
@@ -683,7 +703,8 @@ class Store:
             "speakerId": speaker_id,
             "speakerName": str(message.get("speakerName") or speaker_id),
             "targetId": target_id,
-            "targetName": str(target.get("playerName") or target_id),
+            "targetName": str(target.get("playerName") or target.get("name") or target_id),
+            "targetType": target_type,
             "content": content[:2000],
             "emotion": str(message.get("speakerEmotion") or ""),
             "topic": str(start.get("topic") or "")[:1000],
@@ -693,7 +714,12 @@ class Store:
         }
 
     async def list_npc_correspondence(
-        self, game_server_id: str, npc_id: str, *, limit: int = 20
+        self,
+        game_server_id: str,
+        npc_id: str,
+        *,
+        limit: int = 20,
+        player_peer_id: str | None = None,
     ) -> list[dict[str, Any]]:
         bounded_limit = max(1, min(int(limit), 50))
         async with self._lock:
@@ -710,6 +736,12 @@ class Store:
         for row in rows:
             view = self._correspondence_view(row)
             if view is None or npc_id not in {view["speakerId"], view["targetId"]}:
+                continue
+            if (
+                view["targetType"] == "PLAYER"
+                and player_peer_id is not None
+                and view["targetId"] != player_peer_id
+            ):
                 continue
             messages.append(view)
             if len(messages) >= bounded_limit:

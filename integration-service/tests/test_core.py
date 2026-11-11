@@ -25,7 +25,7 @@ from dongzhou_integration.app import (
 )
 from dongzhou_integration.config import Settings
 from dongzhou_integration.models import GuestSessionRequest, NpcDecisionRequest, OrganizationTaskRequest
-from dongzhou_integration.security import issue_session, sign_orgflow_request, stable_event_id, stable_npc_id, verify_session
+from dongzhou_integration.security import issue_session, sign_orgflow_request, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from dongzhou_integration.store import GameClockConflict, Store, VersionConflict
 from dongzhou_integration.upstreams import Upstreams
 
@@ -107,6 +107,9 @@ class SecurityTests(unittest.TestCase):
         self.assertEqual(verify_session(issue_session(player_id, secret), secret), player_id)
         self.assertEqual(stable_npc_id(91001, "DuBo"), stable_npc_id(91001, "DuBo"))
         self.assertNotEqual(stable_npc_id(91001, "DuBo"), stable_npc_id(91001, "ZuoRu"))
+        self.assertGreaterEqual(stable_player_id(91001, player_id), 1 << 63)
+        self.assertLess(stable_npc_id(91001, "DuBo"), 1 << 63)
+        self.assertEqual(stable_player_id(91001, player_id), stable_player_id(91001, player_id))
         request_id = uuid4()
         self.assertEqual(stable_event_id(player_id, request_id), stable_event_id(player_id, request_id))
 

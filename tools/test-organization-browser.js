@@ -115,6 +115,8 @@ async function openReady(page) {
     online.on("pageerror", (error) => errors.push(error.message));
     let saveVersion = 1;
     let npcStateAttempts = 0;
+    let npcMessageTaskId = null;
+    let npcCorrespondenceReads = 0;
     let orderAttempts = 0;
     let mandateAttempts = 0;
     let savedRemoteTask = false;
@@ -141,6 +143,14 @@ async function openReady(page) {
         npcStateAttempts += 1;
         if (npcStateAttempts <= 6) return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "npc_unavailable", message: "NPC state is temporarily unavailable." } }) });
         body = { emotion: { data: { dominant: { emotion_type: "resolute", intensity: 72 } } }, affection: { data: { total: 2 } }, relationships: { data: { total: 3 } }, personality: { available: true, profileId: "profile-zuoru", traits: { stubborn: 79, smooth: 48 }, dominantTraits: ["stubborn", "smooth"], templateSource: "identity", backgroundNote: "fixed profile", updatedAt: "2026-11-07T21:56:40.288000" }, motivation: { available: true, motives: [{ name: "情报核验", score: 35 }], revision: 2, updatedAt: "2026-11-10T08:01:52.476000", threshold: 80 } };
+      }
+      else if (/\/npcs\/[^/]+\/messages$/.test(pathName)) {
+        npcMessageTaskId = `playerchat-${request.postDataJSON().client_request_id}`;
+        body = { state: "ACCEPTED", taskId: npcMessageTaskId };
+      }
+      else if (/\/npcs\/[^/]+\/correspondence$/.test(pathName)) {
+        npcCorrespondenceReads += 1;
+        body = { npcId: "42", messages: npcMessageTaskId && npcCorrespondenceReads > 1 ? [{ messageId: "npc-reply-e2e", taskId: npcMessageTaskId, speakerId: "42", speakerName: "左儒", targetId: "99", targetName: "主君", targetType: "PLAYER", content: "北路军粮已经入仓。", emotion: "calm", digest: "d".repeat(64) }] : [] };
       }
       else if (pathName.includes("/assignments/")) {
         const taskType = pathName.split("/").at(-1);
@@ -190,6 +200,9 @@ async function openReady(page) {
     await online.waitForSelector("#officeNpcAssignment >> text=胜任 82/100", { timeout: 15000 });
     await online.waitForSelector("#officeNpcAssignment >> text=适岗 56/100", { timeout: 15000 });
     await online.waitForSelector("#officeNpcAssignment >> text=意愿 50/100", { timeout: 15000 });
+    await online.fill("#officeMessageInput", "北路军粮可曾送到？");
+    await online.click("#officeMessageForm button[type=submit]");
+    await online.waitForSelector("#officeCorrespondence >> text=北路军粮已经入仓", { timeout: 15000 });
     if (npcStateAttempts < 7) throw new Error("NPC state did not retry after the transient outage");
     await online.fill("#officeKnowledgeQuery", "杜伯");
     await online.click("#officeKnowledgeForm button[type=submit]");

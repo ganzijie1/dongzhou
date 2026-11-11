@@ -26,6 +26,8 @@ let sessionRequests = 0;
 let expireNextSave = false;
 let npcStateAttempts = 0;
 let npcCorrespondenceAttempts = 0;
+let npcMessageAttempts = 0;
+const npcMessageIds = [];
 let npcScheduleAttempts = 0;
 let npcAssignmentAttempts = 0;
 let organizationReadAttempts = 0;
@@ -120,6 +122,13 @@ global.fetch = async (url, options = {}) => {
   } else if (/\/npcs\/[^/]+\/correspondence\?limit=/.test(url)) {
     npcCorrespondenceAttempts += 1;
     response = { messages: [{ messageId: "message-1", digest: "d".repeat(64) }] };
+  } else if (/\/npcs\/[^/]+\/messages$/.test(url)) {
+    npcMessageAttempts += 1;
+    npcMessageIds.push(body.client_request_id);
+    if (npcMessageAttempts === 1) {
+      status = 503;
+      response = { error: { code: "ainpc_unavailable", message: "retry message" } };
+    } else response = { state: "ACCEPTED", taskId: "playerchat-1" };
   } else if (/\/npcs\/[^/]+\/schedule$/.test(url) && !options.method) {
     npcScheduleAttempts += 1;
     if (npcScheduleAttempts === 1) {
@@ -165,6 +174,10 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(npcStateAttempts, 2);
   assert.strictEqual(npcCorrespondenceAttempts, 1);
   assert.strictEqual(correspondence.messages[0].messageId, "message-1");
+  await assert.rejects(() => client.sendNpcMessage("DuBo", "北路军粮如何？"), /retry message/);
+  const sentMessage = await client.sendNpcMessage("DuBo", "北路军粮如何？");
+  assert.strictEqual(sentMessage.taskId, "playerchat-1");
+  assert.strictEqual(npcMessageIds[0], npcMessageIds[1]);
   assert.strictEqual(npcScheduleAttempts, 2);
   assert.strictEqual(npcAssignmentAttempts, 2);
   assert.strictEqual(assignment.assignment.eventId, "event-supply");

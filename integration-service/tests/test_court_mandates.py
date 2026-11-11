@@ -11,13 +11,14 @@ from fastapi.testclient import TestClient
 
 from dongzhou_integration.app import build_application
 from dongzhou_integration.config import Settings
-from dongzhou_integration.security import stable_npc_id
+from dongzhou_integration.security import stable_npc_id, stable_player_id
 from dongzhou_integration.store import Store
 
 
 class MandateUpstreams:
     def __init__(self) -> None:
         self.triggers: list[dict[str, object]] = []
+        self.events: list[tuple[str, dict[str, object]]] = []
         self.knowledge_available = True
         self.assignment_available = True
         self.task_snapshot: dict[str, object] | None = None
@@ -31,6 +32,10 @@ class MandateUpstreams:
 
     async def close(self):
         return None
+
+    async def send_game_event(self, kind, payload):
+        self.events.append((kind, payload))
+        return {"code": 200, "data": {"accepted": True, "taskId": payload["taskId"]}}
 
     async def online_npc_ids(self):
         return set()
@@ -310,6 +315,82 @@ def test_ainpc_correspondence_is_recomputed_and_sealed() -> None:
             })
             assert tampered.status_code == 422
             assert tampered.json()["error"]["code"] == "court_correspondence_unverified"
+
+
+def test_player_message_uses_formal_ainpc_contract_and_scopes_reply() -> None:
+    with TemporaryDirectory() as directory:
+        database = Path(directory) / "gateway.sqlite3"
+        settings = configured(database)
+        store = Store(database)
+        asyncio.run(store.start())
+        npc_id = str(stable_npc_id(settings.ainpc_game_server_id, "ZuoRu"))
+        asyncio.run(store.upsert_npc_directory(settings.game_server_id, [
+            {"heroId": "ZuoRu", "name": "左儒", "npcId": npc_id}
+        ]))
+        asyncio.run(store.mark_npc_ready(
+            settings.game_server_id, npc_id, "login-zuoru", None, None, "startup-1"
+        ))
+        upstreams = MandateUpstreams()
+        app = build_application(settings, store=store, upstreams=upstreams)
+        request_id = str(uuid4())
+        with TestClient(app) as client:
+            guest = client.post(
+                "/api/dongzhou/v1/sessions/guest",
+                json={"installation_id": str(uuid4())},
+            )
+            assert guest.status_code == 200
+            first_player = UUID(guest.json()["playerId"])
+            sent = client.post(
+                "/api/dongzhou/v1/npcs/ZuoRu/messages",
+                json={"client_request_id": request_id, "content": "北路军粮可曾送到？"},
+            )
+            assert sent.status_code == 200, sent.text
+            accepted = sent.json()
+            assert accepted["state"] == "ACCEPTED"
+            assert upstreams.events[-1][0] == "CHAT_TURN"
+            payload = upstreams.events[-1][1]
+            player_peer_id = str(stable_player_id(settings.ainpc_game_server_id, first_player))
+            assert payload["status"] == "inProgress"
+            assert payload["npcId"] == npc_id
+            assert payload["messages"][0]["speakerId"] == player_peer_id
+            assert payload["participants"][1] == {
+                "id": player_peer_id, "name": "主君", "type": "PLAYER"
+            }
+
+            replay = client.post(
+                "/api/dongzhou/v1/npcs/ZuoRu/messages",
+                json={"client_request_id": request_id, "content": "北路军粮可曾送到？"},
+            )
+            assert replay.status_code == 200
+            assert replay.json()["taskId"] == accepted["taskId"]
+
+            asyncio.run(store.record_private_message({
+                "gameServerId": settings.game_server_id,
+                "aiId": npc_id,
+                "chatId": accepted["chatId"],
+                "taskId": accepted["taskId"],
+                "isNpc": False,
+                # AINPC delivery callbacks do not repeat playerInfo. The sealed
+                # chat session remains the authoritative participant record.
+                "playerInfo": None,
+                "data": {"message": {
+                    "id": "reply-to-player",
+                    "speakerId": npc_id,
+                    "speakerName": "左儒",
+                    "speakerEmotion": "calm",
+                    "content": "已由北路入仓。",
+                    "time": "0771-01-01 14:00:00",
+                }, "isFinish": False},
+            }))
+            own = client.get("/api/dongzhou/v1/npcs/ZuoRu/correspondence")
+            assert own.status_code == 200
+            assert [item["messageId"] for item in own.json()["messages"]] == ["reply-to-player"]
+            assert own.json()["messages"][0]["targetType"] == "PLAYER"
+
+            start_session(client)
+            other = client.get("/api/dongzhou/v1/npcs/ZuoRu/correspondence")
+            assert other.status_code == 200
+            assert other.json()["messages"] == []
 
 
 def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
