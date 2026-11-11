@@ -21,6 +21,7 @@ from dongzhou_integration.app import (
     _npc_outcome_event,
     _npc_outcome_memory,
     _npc_outcome_status,
+    _organization_supervision_links,
     _organization_task_chance,
     _prepare_due_organization_reports,
     _organization_task_succeeds,
@@ -118,6 +119,27 @@ class SecurityTests(unittest.TestCase):
 
 
 class OrganizationOutcomeTests(unittest.TestCase):
+    def test_organization_supervision_links_use_only_synced_direct_reports(self) -> None:
+        links = _organization_supervision_links(
+            {"members": [
+                {"heroId": "DuBo", "directManagerHeroId": None},
+                {"heroId": "ZuoRu", "directManagerHeroId": "DuBo"},
+                {"heroId": "Unknown", "directManagerHeroId": "DuBo"},
+            ]},
+            [
+                {"heroId": "DuBo", "name": "Du Bo", "npcId": "10"},
+                {"heroId": "ZuoRu", "name": "Zuo Ru", "npcId": "20"},
+            ],
+            "court-1",
+        )
+        self.assertEqual(links, [{
+            "heroId": "ZuoRu",
+            "managerHeroId": "DuBo",
+            "subordinateNpcId": "20",
+            "managerNpcId": "10",
+            "sourceEventId": "orgflow:court-1:supervision:ZuoRu:DuBo",
+        }])
+
     def test_evidence_fit_rewards_task_relevant_source_and_council_choice(self) -> None:
         fit = _evidence_task_fit(
             "diplomacy",

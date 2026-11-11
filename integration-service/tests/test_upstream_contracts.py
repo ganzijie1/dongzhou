@@ -385,6 +385,10 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                 })
             if request.url.path == "/callback/npc-dialogue/choice":
                 return httpx.Response(200, json={"code": 200, "data": {"index": 0, "type": "OPTION"}})
+            if request.url.path == "/api/v1/relationship/ensure-organization-supervision":
+                return httpx.Response(200, json={
+                    "code": 200, "created": True, "relationshipIds": ["relation-1"],
+                })
             return httpx.Response(200, json={"data": {"ok": True}})
 
         with TemporaryDirectory() as directory:
@@ -393,6 +397,12 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
             await upstreams.trigger_virtual_task("org-id", {"source_event_id": "stable"})
             await upstreams.get_virtual_task("org-id", "task-id")
             await upstreams.organization_roster("org-id")
+            relationship = await upstreams.ensure_organization_supervision(
+                subordinate_npc_id="42",
+                manager_npc_id="43",
+                source_event_id="orgflow:court:supervision:42:43",
+            )
+            self.assertTrue(relationship["created"])
             await upstreams.register_npcs([{"npcId": "42", "name": "杜伯"}])
             await upstreams.set_npcs_online(
                 [{"npcId": "42", "name": "Test NPC"}],
@@ -447,6 +457,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("/api/v1/emotion/current/91001/42", paths)
         self.assertIn("/api/v1/affection/targets/91001/42", paths)
         self.assertIn("/api/v1/relationship/all/91001/42", paths)
+        self.assertIn("/api/v1/relationship/ensure-organization-supervision", paths)
         self.assertIn("/api/v1/personality/profile/91001/42", paths)
         self.assertIn("/api/v1/motivation/snapshot/91001/42", paths)
         self.assertIn("/api/v1/schedule-planning/current", paths)

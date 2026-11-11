@@ -331,6 +331,27 @@ class Upstreams:
         payload = {"npc_data_list": [{"npc_id": npc["npcId"], "status": "active"} for npc in npcs]}
         return await self._json("POST", f"{self.settings.ainpc_url}/ai/npc/register/batch", token=self.settings.ainpc_token, payload=payload)
 
+    async def ensure_organization_supervision(
+        self, *, subordinate_npc_id: str, manager_npc_id: str, source_event_id: str,
+    ) -> dict[str, Any]:
+        response = await self._json(
+            "POST",
+            f"{self.settings.ainpc_url}/api/v1/relationship/ensure-organization-supervision",
+            token=self.settings.ainpc_token,
+            payload={
+                "game_server_id": str(self.settings.ainpc_game_server_id),
+                "npc_id": subordinate_npc_id,
+                "manager_npc_id": manager_npc_id,
+                "source_event_id": source_event_id,
+            },
+        )
+        if response.get("code") not in (0, 200, "0", "200") or not isinstance(response.get("created"), bool):
+            raise UpstreamUnavailable("AINPC returned an invalid organization relationship receipt")
+        relationship_ids = response.get("relationshipIds")
+        if not isinstance(relationship_ids, list) or not all(isinstance(value, str) and value for value in relationship_ids):
+            raise UpstreamUnavailable("AINPC returned an incomplete organization relationship receipt")
+        return response
+
     async def set_npcs_online(
         self, npcs: list[dict[str, str]], game_time: str, login_round: str
     ) -> list[dict[str, Any]]:

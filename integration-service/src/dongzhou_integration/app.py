@@ -527,6 +527,30 @@ def _organization_roster_view(snapshot: Any, settings: Settings) -> dict[str, An
     }
 
 
+def _organization_supervision_links(
+    roster: dict[str, Any], mapped_npcs: list[dict[str, str]], organization_id: str,
+) -> list[dict[str, str]]:
+    npc_by_hero = {npc["heroId"]: npc["npcId"] for npc in mapped_npcs}
+    links: list[dict[str, str]] = []
+    for member in roster.get("members", []):
+        if not isinstance(member, dict):
+            continue
+        hero_id = str(member.get("heroId") or "")
+        manager_hero_id = str(member.get("directManagerHeroId") or "")
+        subordinate_npc_id = npc_by_hero.get(hero_id)
+        manager_npc_id = npc_by_hero.get(manager_hero_id)
+        if not subordinate_npc_id or not manager_npc_id or subordinate_npc_id == manager_npc_id:
+            continue
+        links.append({
+            "heroId": hero_id,
+            "managerHeroId": manager_hero_id,
+            "subordinateNpcId": subordinate_npc_id,
+            "managerNpcId": manager_npc_id,
+            "sourceEventId": f"orgflow:{organization_id}:supervision:{hero_id}:{manager_hero_id}",
+        })
+    return links
+
+
 _SETTLING_RESULTS = {"SUCCESS", "PARTIAL", "FAILURE", "REJECTED"}
 _SETTLEMENT_SOURCES = {
     "PLAYER_CONFIRMATION",
@@ -1485,10 +1509,27 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 activation = await upstreams.set_npcs_online(
                     pending, str(clock["virtualTime"]), f"dongzhou-{player_id.hex}"
                 )
+            relationship_sync: list[dict[str, Any]] = []
+            if settings.orgflow_org_id and settings.orgflow_hero_members:
+                roster_response = await upstreams.organization_roster(settings.orgflow_org_id)
+                roster = _organization_roster_view(roster_response.get("data"), settings)
+                links = _organization_supervision_links(roster, mapped, settings.orgflow_org_id)
+                receipts = await asyncio.gather(*(
+                    upstreams.ensure_organization_supervision(
+                        subordinate_npc_id=link["subordinateNpcId"],
+                        manager_npc_id=link["managerNpcId"],
+                        source_event_id=link["sourceEventId"],
+                    )
+                    for link in links
+                ))
+                relationship_sync = [
+                    {**link, "created": receipt["created"], "relationshipIds": receipt["relationshipIds"]}
+                    for link, receipt in zip(links, receipts, strict=True)
+                ]
         except UpstreamUnavailable as error:
             raise ApiError("ainpc_unavailable", "NPC service is temporarily unavailable.", status_code=503) from error
         ready = not pending
-        return {"playerId": str(player_id), "gameServerId": str(settings.ainpc_game_server_id), "npcs": mapped, "registration": result, "activation": activation, "ready": ready, "state": "READY" if ready else "INITIALIZING"}
+        return {"playerId": str(player_id), "gameServerId": str(settings.ainpc_game_server_id), "npcs": mapped, "registration": result, "activation": activation, "relationshipSync": relationship_sync, "ready": ready, "state": "READY" if ready else "INITIALIZING"}
 
     @router.get("/npcs/{hero_id}/state")
     async def read_npc_state(hero_id: str, player_id: UUID = Depends(player)) -> dict[str, Any]:
