@@ -38,11 +38,11 @@
       "healthRequired": true
     },
     "org-flow-engine-dev-api-1": {
-      "image": "org-flow-engine:dongzhou-local-complete26",
+      "image": "org-flow-engine:dongzhou-local-complete27",
       "healthRequired": true
     },
     "org-flow-engine-dev-worker-1": {
-      "image": "org-flow-engine:dongzhou-local-complete26",
+      "image": "org-flow-engine:dongzhou-local-complete27",
       "healthRequired": false
     }
   },

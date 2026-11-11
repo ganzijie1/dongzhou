@@ -4,7 +4,7 @@
 
 浏览器只访问 `dongzhou-integration-service`。该服务基于 NexusKernel，持有服务端存档、玩家会话、幂等记录和上游凭据；H5 不直接访问 AINPC、orgFlowEngine 或 knowledge-jizhan。
 
-本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。当前网关镜像为 `dongzhou-integration:20261112-local-complete78`，AINPC 八角色镜像为 `ainpc-app:v20261111-dongzhou-local-complete58`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete26`。当前版本覆盖双向府中书问、玩家来信偏好、90 天当值计划、自主进言、已签军令临时插程、组织谱系与贡献实账、12 席权威名册、玩家仕途、人工复命裁决、军需调拨和史料军议结算；真实浏览器已完成四服务签令到战斗承接及 320px 进言验收。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
+本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。当前网关镜像为 `dongzhou-integration:20261112-local-complete79`，AINPC 八角色镜像为 `ainpc-app:v20261111-dongzhou-local-complete58`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete27`。当前版本覆盖双向府中书问、玩家来信偏好、90 天当值计划、自主进言、已签军令临时插程、组织谱系与贡献实账、12 席权威名册、玩家仕途、人工复命裁决、军需调拨和史料军议结算；真实浏览器已完成四服务签令到战斗承接及 320px 进言验收。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
 
 ## 发布顺序
 
@@ -36,6 +36,7 @@
 - 军令状态随任务从 `ISSUED` 进入 `ORDERED`。orgFlowEngine 终态先由网关校验并封存贡献、功绩和结案摘要，NexusKernel 再生成可恢复的复命裁决；玩家收纳后进入 `FULFILLED`、`PARTIAL` 或 `FAILED`，申斥后进入 `CENSURED`，战斗报告落档后进入 `RESOLVED`。军令、军议、史料和复命裁决随战备跨页面及云存档恢复，不以浏览器提示文字代替持久记录。
 - 公共库藏调拨同样经过 NexusKernel 确认动作。创建草案只封存资源科目、数量、战役和兑换效果，不调用 orgFlow；玩家签发后才以同一幂等请求扣除 `task.execution` 并补入军粮，驳回不扣账。签发中的请求可跨刷新恢复，且一旦进入结算便不能改为驳回，避免未知扣账被本地取消。
 - 官署任务的事实结果、组织贡献和成员功绩以 orgFlowEngine 正式虚拟任务终态为准，玩家申斥不能改写；申斥只取消本次战前助益或外交成功，并降低属官信任与关系。联网模式不会再用浏览器随机数结算，也不会在玩家裁决前发放奖励。
+- 组织层级升级后，AINPC 仍可读取旧层级中已结案任务的终态快照，以便人物经历、任务簿和恢复流程收敛；orgFlowEngine 会按当前组织重新核验主管、岗位、责任人与直属关系。该兼容只允许 `snapshot`，旧任务写操作及未终态任务仍按层级版本不一致拒绝。
 - 官署面板通过独立的 `organizations:roster:read` 服务权限读取 orgFlowEngine 名册快照；网关只保留配置映射内的英雄编号、官职和贡献账本，剥离组织、成员、岗位 UUID。页面标注“官署实账”的功绩与军府贡献来自该快照，不以本地累计值冒充远端真值。
 - 到期复命出队前重新读取真实任务：只有 `IN_PROGRESS` 才创建 AINPC 复命；尚未领命等非终态保留队列，已终态直接结束该队列事件。旧版本提前创建的失败复命不能靠重复 POST 恢复，需核实 AINPC 的恢复轮次和管理接口，不能换新操作号绕过幂等。
 - 复命终态会拆成 AINPC 重要事件和长期系统消息两条独立 outbox。重要事件驱动认知、情绪和关系链，系统消息进入 AINPC 自有 `ops_reports` 与 LoongMemory 观察链；两者分别重试，稳定 `source_record_id/message_id` 均绑定原 orgFlow 任务号。任务读取只有在两条都 `DELIVERED` 时返回“经历已形成”。启动迁移只从已送达的权威结果事件补长期消息，不重新计算结果或奖励。
