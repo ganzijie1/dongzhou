@@ -108,6 +108,25 @@
     } catch (error) { throw error; }
   }
 
+  function mergeServerBattleReceipts(target, source) {
+    const targetReports = target?.organization?.battleReports;
+    const sourceReports = source?.organization?.battleReports;
+    if (!Array.isArray(targetReports) || !Array.isArray(sourceReports)) return false;
+    const receipts = new Map(
+      sourceReports
+        .filter((report) => report?.id && report?.kernelReceipt?.kernel?.state === "SEALED")
+        .map((report) => [String(report.id), report.kernelReceipt])
+    );
+    let changed = false;
+    for (const report of targetReports) {
+      const receipt = receipts.get(String(report?.id || ""));
+      if (!receipt || report.kernelReceipt?.digest === receipt.digest) continue;
+      report.kernelReceipt = JSON.parse(JSON.stringify(receipt));
+      changed = true;
+    }
+    return changed;
+  }
+
   function persist(profile) {
     if (offline || !session?.playerId) return Promise.resolve(null);
     if (saveBlocked) return Promise.reject(new Error("save_conflict_reload_required"));
@@ -127,7 +146,13 @@
         throw error;
       }
       saveVersion = saved.version;
+      const receiptsChanged = mergeServerBattleReceipts(profile, saved.payload);
       acknowledgeOrganizationOrders(snapshot);
+      if (receiptsChanged && typeof root.dispatchEvent === "function" && typeof root.CustomEvent === "function") {
+        root.dispatchEvent(new root.CustomEvent("dongzhou-save-committed", {
+          detail: { battleReceiptsChanged: true }
+        }));
+      }
       return saved;
     });
     return persistChain;

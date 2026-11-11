@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from copy import deepcopy
 from datetime import UTC, date, datetime, timedelta
 import hashlib
 from importlib.metadata import version
@@ -185,7 +186,7 @@ class RuntimeModule(Module):
 
 class MandateWorkflowModule(Module):
     name = "dongzhou_mandate_workflow"
-    version = "1.2.0"
+    version = "1.3.0"
     dependencies = (RuntimeModule.name,)
 
     @staticmethod
@@ -976,6 +977,246 @@ def _npc_memory_from_event(event: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+class BattleReceiptConflict(ValueError):
+    pass
+
+
+def _battle_report_signature(report: dict[str, Any]) -> dict[str, Any]:
+    support = report.get("support") if isinstance(report.get("support"), dict) else {}
+
+    def references(entries: Any, hero_key: str) -> list[dict[str, str]]:
+        if not isinstance(entries, list):
+            return []
+        return sorted(
+            (
+                {
+                    "id": str(entry.get("id") or ""),
+                    "heroId": str(entry.get(hero_key) or ""),
+                }
+                for entry in entries
+                if isinstance(entry, dict)
+            ),
+            key=lambda entry: (entry["id"], entry["heroId"]),
+        )
+
+    return {
+        "reportId": str(report.get("id") or ""),
+        "stageId": str(report.get("stageId") or ""),
+        "won": report.get("won"),
+        "turns": report.get("turns"),
+        "ownLosses": report.get("ownLosses"),
+        "terminalReason": str(report.get("terminalReason") or ""),
+        "month": report.get("month"),
+        "councils": references(report.get("councils"), "memberId"),
+        "mandates": references(report.get("mandates"), "heroId"),
+        "orders": references(support.get("orders"), "memberId"),
+    }
+
+
+def _digest_json(value: dict[str, Any]) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            value,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def _seal_battle_reports(
+    player_id: UUID,
+    previous_payload: dict[str, Any],
+    submitted_payload: dict[str, Any],
+) -> dict[str, Any]:
+    payload = deepcopy(submitted_payload)
+    organization = payload.get("organization")
+    if not isinstance(organization, dict):
+        return payload
+    reports = organization.get("battleReports")
+    if not isinstance(reports, list):
+        return payload
+
+    previous_organization = previous_payload.get("organization")
+    if not isinstance(previous_organization, dict):
+        previous_organization = {}
+    previous_reports = {
+        str(report.get("id")): report
+        for report in previous_organization.get("battleReports", [])
+        if isinstance(report, dict) and report.get("id")
+    }
+    previous_councils = {
+        str(council.get("id")): council
+        for council in previous_organization.get("councils", [])
+        if isinstance(council, dict) and council.get("id")
+    }
+    previous_mandates = {
+        str(mandate.get("id")): mandate
+        for mandate in previous_organization.get("mandates", [])
+        if isinstance(mandate, dict) and mandate.get("id")
+    }
+    previous_tasks = {
+        str(task.get("id")): task
+        for task in previous_organization.get("tasks", [])
+        if isinstance(task, dict) and task.get("id")
+    }
+    previous_members = {
+        str(member.get("id"))
+        for member in previous_organization.get("members", [])
+        if isinstance(member, dict) and member.get("id")
+    }
+    previous_support = {
+        str(entry.get("id")): entry
+        for entry in previous_organization.get("pendingSupport", [])
+        if isinstance(entry, dict) and entry.get("id")
+    }
+
+    for report in reports[-40:]:
+        if not isinstance(report, dict):
+            continue
+        report_id = str(report.get("id") or "").strip()
+        stage_id = str(report.get("stageId") or "").strip()
+        if not report_id or not stage_id or not isinstance(report.get("won"), bool):
+            report.pop("kernelReceipt", None)
+            continue
+        signature = _battle_report_signature(report)
+        report_digest = _digest_json(signature)
+        previous_report = previous_reports.get(report_id)
+        if previous_report is not None:
+            previous_receipt = previous_report.get("kernelReceipt")
+            if not isinstance(previous_receipt, dict):
+                report.pop("kernelReceipt", None)
+                continue
+            receipt_trace = {
+                key: value
+                for key, value in previous_receipt.items()
+                if key != "digest"
+            }
+            if (
+                previous_receipt.get("digest") != _digest_json(receipt_trace)
+                or previous_receipt.get("reportDigest") != report_digest
+            ):
+                raise BattleReceiptConflict("battle_report_changed_after_seal")
+            report["kernelReceipt"] = deepcopy(previous_receipt)
+            continue
+
+        report.pop("kernelReceipt", None)
+        eligible_support = {
+            support_id: entry
+            for support_id, entry in previous_support.items()
+            if not entry.get("stageId") or str(entry.get("stageId")) == stage_id
+        }
+        verified_councils: list[dict[str, str]] = []
+        verified_mandates: list[dict[str, str]] = []
+        verified_orders: list[dict[str, str]] = []
+        participants: set[str] = set()
+
+        for council in report.get("councils", []):
+            if not isinstance(council, dict):
+                raise BattleReceiptConflict("battle_council_reference_invalid")
+            council_id = str(council.get("id") or "")
+            hero_id = str(council.get("memberId") or "")
+            source = previous_councils.get(council_id)
+            support_match = any(
+                isinstance(entry.get("council"), dict)
+                and str(entry["council"].get("id") or "") == council_id
+                for entry in eligible_support.values()
+            )
+            if (
+                not source
+                or not support_match
+                or str(source.get("stageId") or "") != stage_id
+                or str(source.get("memberId") or "") != hero_id
+                or hero_id not in previous_members
+            ):
+                raise BattleReceiptConflict("battle_council_reference_invalid")
+            verified_councils.append({"id": council_id, "heroId": hero_id})
+            participants.add(hero_id)
+
+        for mandate in report.get("mandates", []):
+            if not isinstance(mandate, dict):
+                raise BattleReceiptConflict("battle_mandate_reference_invalid")
+            mandate_id = str(mandate.get("id") or "")
+            hero_id = str(mandate.get("heroId") or "")
+            source = previous_mandates.get(mandate_id)
+            support_match = any(
+                isinstance(entry.get("mandate"), dict)
+                and str(entry["mandate"].get("id") or "") == mandate_id
+                for entry in eligible_support.values()
+            )
+            if (
+                not source
+                or not support_match
+                or str(source.get("stageId") or "") != stage_id
+                or str(source.get("heroId") or "") != hero_id
+                or str(source.get("digest") or "") != str(mandate.get("digest") or "")
+                or hero_id not in previous_members
+            ):
+                raise BattleReceiptConflict("battle_mandate_reference_invalid")
+            verified_mandates.append(
+                {"id": mandate_id, "heroId": hero_id, "digest": str(source.get("digest"))}
+            )
+            participants.add(hero_id)
+
+        support = report.get("support") if isinstance(report.get("support"), dict) else {}
+        for order in support.get("orders", []):
+            if not isinstance(order, dict):
+                raise BattleReceiptConflict("battle_order_reference_invalid")
+            order_id = str(order.get("id") or "")
+            hero_id = str(order.get("memberId") or "")
+            support_entry = eligible_support.get(order_id)
+            task = previous_tasks.get(order_id)
+            if not support_entry:
+                raise BattleReceiptConflict("battle_order_reference_invalid")
+            expected_hero = str(support_entry.get("memberId") or "")
+            if hero_id != expected_hero:
+                raise BattleReceiptConflict("battle_order_reference_invalid")
+            if hero_id and (
+                not task
+                or str(task.get("stageId") or "") != stage_id
+                or str(task.get("assigneeId") or "") != hero_id
+                or hero_id not in previous_members
+            ):
+                raise BattleReceiptConflict("battle_order_reference_invalid")
+            verified_orders.append({"id": order_id, "heroId": hero_id})
+            if hero_id:
+                participants.add(hero_id)
+
+        receipt_trace = {
+            "id": str(
+                uuid5(
+                    NAMESPACE_URL,
+                    f"dongzhou-battle-receipt:{player_id}:{report_id}",
+                )
+            ),
+            "reportId": report_id,
+            "reportDigest": report_digest,
+            "stageId": stage_id,
+            "won": report["won"],
+            "turns": report.get("turns"),
+            "ownLosses": report.get("ownLosses"),
+            "terminalReason": str(report.get("terminalReason") or ""),
+            "month": report.get("month"),
+            "verifiedParticipants": sorted(participants),
+            "verifiedSupport": {
+                "councils": sorted(verified_councils, key=lambda entry: entry["id"]),
+                "mandates": sorted(verified_mandates, key=lambda entry: entry["id"]),
+                "orders": sorted(verified_orders, key=lambda entry: entry["id"]),
+            },
+            "kernel": {
+                "module": MandateWorkflowModule.name,
+                "moduleVersion": MandateWorkflowModule.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "SEALED",
+            },
+        }
+        report["kernelReceipt"] = {
+            **receipt_trace,
+            "digest": _digest_json(receipt_trace),
+        }
+    return payload
+
+
 def _battle_game_events(
     settings: Settings,
     player_id: UUID,
@@ -1010,22 +1251,24 @@ def _battle_game_events(
         stage_id = str(report.get("stageId") or "").strip()
         if not report_id or not stage_id:
             continue
-        support = report.get("support") if isinstance(report.get("support"), dict) else {}
-        participant_ids: set[str] = set()
-        participant_sources = (
-            report.get("councils"),
-            report.get("mandates"),
-            support.get("orders"),
-        )
-        for entries in participant_sources:
-            if not isinstance(entries, list):
-                continue
-            for entry in entries:
-                if not isinstance(entry, dict):
-                    continue
-                hero_id = str(entry.get("memberId") or entry.get("heroId") or "")
-                if hero_id in member_names:
-                    participant_ids.add(hero_id)
+        receipt = report.get("kernelReceipt")
+        if not isinstance(receipt, dict):
+            continue
+        receipt_trace = {key: value for key, value in receipt.items() if key != "digest"}
+        kernel = receipt.get("kernel")
+        if (
+            receipt.get("digest") != _digest_json(receipt_trace)
+            or receipt.get("reportDigest") != _digest_json(_battle_report_signature(report))
+            or not isinstance(kernel, dict)
+            or kernel.get("module") != MandateWorkflowModule.name
+            or kernel.get("state") != "SEALED"
+        ):
+            continue
+        participant_ids = {
+            str(hero_id)
+            for hero_id in receipt.get("verifiedParticipants", [])
+            if str(hero_id) in member_names
+        } if isinstance(receipt.get("verifiedParticipants"), list) else set()
         if not participant_ids:
             continue
         turns = bounded_count(report.get("turns"))
@@ -1049,11 +1292,13 @@ def _battle_game_events(
             for item in report.get("sources", [])[:8]
             if str(item).strip()
         ] if isinstance(report.get("sources"), list) else []
+        verified_support = receipt.get("verifiedSupport")
+        mandate_entries = verified_support.get("mandates", []) if isinstance(verified_support, dict) else []
         mandate_ids = [
             str(item.get("id"))[:128]
-            for item in report.get("mandates", [])[:8]
+            for item in mandate_entries[:8]
             if isinstance(item, dict) and item.get("id")
-        ] if isinstance(report.get("mandates"), list) else []
+        ] if isinstance(mandate_entries, list) else []
         result_text = "告捷" if won else "失利"
         player_target_id = str(
             stable_player_id(settings.ainpc_game_server_id, player_id)
@@ -1067,9 +1312,9 @@ def _battle_game_events(
                 f"{player_id}\n{report_id}\n{hero_id}".encode("utf-8")
             ).hexdigest()
             outcome_digest = hashlib.sha256(
-                f"{identity_digest}\nbattle-semantics-v2".encode("utf-8")
+                f"{identity_digest}\nbattle-semantics-v3\n{receipt['digest']}".encode("utf-8")
             ).hexdigest()
-            outcome_source_record_id = "dongzhou-battle-v2:" + outcome_digest[:48]
+            outcome_source_record_id = "dongzhou-battle-v3:" + outcome_digest[:48]
             memory_source_record_id = "dongzhou-battle:" + identity_digest[:48]
             event_id = int.from_bytes(
                 bytes.fromhex(outcome_digest[:8]), "big"
@@ -1103,6 +1348,8 @@ def _battle_game_events(
                         "severity": 78 if won else 72,
                         "confidence": 1.0,
                         "source_module": "dongzhou_battle",
+                        "kernel_receipt_id": receipt["id"],
+                        "kernel_receipt_digest": receipt["digest"],
                         "description": content,
                         "stage_id": stage_id[:64],
                         "stage_title": stage_title,
@@ -1129,7 +1376,7 @@ def _battle_game_events(
             }
             events.extend((
                 {
-                    "eventId": "battle-outcome-v2:" + outcome_digest,
+                    "eventId": "battle-outcome-v3:" + outcome_digest,
                     "kind": "NPC_BATTLE_OUTCOME",
                     "payload": outcome,
                 },
@@ -1686,20 +1933,28 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     @router.put("/save")
     async def write_save(request: SaveWriteRequest, player_id: UUID = Depends(player)) -> dict[str, Any]:
         try:
+            previous = await store.read_save(player_id)
+            if previous["version"] != request.expected_version:
+                raise VersionConflict("save_version_conflict")
+            sealed_payload = _seal_battle_reports(
+                player_id,
+                previous["payload"],
+                request.payload,
+            )
             reports = await _prepare_due_organization_reports(
-                store, settings, player_id, request.payload
+                store, settings, player_id, sealed_payload
             )
             clock = await store.read_game_clock()
             battle_events = _battle_game_events(
                 settings,
                 player_id,
-                request.payload,
+                sealed_payload,
                 str(clock["virtualTime"]),
             )
             return await store.write_save(
                 player_id,
                 request.expected_version,
-                request.payload,
+                sealed_payload,
                 organization_reports=reports,
                 game_events=battle_events,
             )
@@ -1707,6 +1962,8 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             raise ApiError("save_version_conflict", "The save has changed; reload before writing.", status_code=409) from error
         except GameClockConflict as error:
             raise ApiError(str(error), "Organization month must advance exactly one step at a time.", status_code=409) from error
+        except BattleReceiptConflict as error:
+            raise ApiError(str(error), "Battle support provenance is invalid or the sealed report changed.", status_code=409) from error
 
     @router.post("/knowledge/search")
     async def search_knowledge(request: KnowledgeSearchRequest, player_id: UUID = Depends(player)) -> dict[str, Any]:

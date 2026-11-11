@@ -44,8 +44,15 @@ let organizationResponse = null;
 let npcInteractionPreferenceInput = null;
 let storedProfile = {};
 let saveAttempts = 0;
-global.CustomEvent = class CustomEvent { constructor(type) { this.type = type; } };
-global.dispatchEvent = (event) => { if (event.type === "dongzhou-save-conflict") saveConflictEvents += 1; };
+let sealNextBattleSave = false;
+let saveCommittedEvents = 0;
+global.CustomEvent = class CustomEvent {
+  constructor(type, options = {}) { this.type = type; this.detail = options.detail; }
+};
+global.dispatchEvent = (event) => {
+  if (event.type === "dongzhou-save-conflict") saveConflictEvents += 1;
+  if (event.type === "dongzhou-save-committed") saveCommittedEvents += 1;
+};
 global.fetch = async (url, options = {}) => {
   const body = options.body ? JSON.parse(options.body) : null;
   let status = 200;
@@ -68,7 +75,17 @@ global.fetch = async (url, options = {}) => {
       failNextSave = false;
       status = 503;
       response = { error: { message: "save unavailable" } };
-    } else { storedProfile = body.payload; response = { version: ++saveVersion, payload: body.payload }; }
+    } else {
+      storedProfile = JSON.parse(JSON.stringify(body.payload));
+      if (sealNextBattleSave) {
+        sealNextBattleSave = false;
+        storedProfile.organization.battleReports[0].kernelReceipt = {
+          digest: "b".repeat(64),
+          kernel: { state: "SEALED", moduleVersion: "1.3.0" }
+        };
+      }
+      response = { version: ++saveVersion, payload: storedProfile };
+    }
   }
   else if (url.endsWith("/save")) response = { version: saveVersion, payload: storedProfile };
   else if (url.endsWith("/knowledge/routes")) {
@@ -209,6 +226,11 @@ const client = require("../web-game/integration-client.js");
   failNextSave = true;
   await assert.rejects(() => client.persist({ completed: ["01", "02"] }), /save unavailable/);
   await client.persist({ completed: ["01", "02", "03"] });
+  const battleProfile = { organization: { battleReports: [{ id: "battle:01:test" }] } };
+  sealNextBattleSave = true;
+  await client.persist(battleProfile);
+  assert.strictEqual(battleProfile.organization.battleReports[0].kernelReceipt.digest, "b".repeat(64));
+  assert.strictEqual(saveCommittedEvents, 1);
   const route = await client.campaignRoute({ from_stage_id: "01", from_stage_index: 1, to_stage_id: "02", to_stage_index: 2 });
   assert.strictEqual(route.provisionCost, 2);
   assert.strictEqual(campaignRouteAttempts, 2);

@@ -13,10 +13,10 @@ try {
 }
 
 const root = path.resolve(__dirname, '..');
-const evidencePath = path.join(root, 'output', 'integration-validation', 'live-battle-emotion-complete82.json');
-const screenshotPath = path.join(root, 'output', 'integration-validation', 'live-battle-emotion-complete82.png');
+const evidencePath = path.join(root, 'output', 'integration-validation', 'live-battle-receipt-complete83.json');
+const screenshotPath = path.join(root, 'output', 'integration-validation', 'live-battle-receipt-complete83.png');
 const installationId = randomUUID();
-const reportId = `battle:emotion-complete82:${Date.now()}`;
+const reportId = `battle:receipt-complete83:${Date.now()}`;
 const executablePath = [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
@@ -52,6 +52,31 @@ function sha256(value) {
       const profile = JSON.parse(localStorage.getItem(profileKey));
       if (!profile?.organization?.members?.length) throw new Error('organization_roster_unavailable');
       const hero = profile.organization.members[0];
+      const council = {
+        id: `council:${reportId}`,
+        stageId: '01',
+        memberId: hero.id,
+        memberName: hero.name,
+        text: 'Hold formation and support the campaign.',
+      };
+      const orderId = `support:${reportId}`;
+      profile.organization.councils = [...(profile.organization.councils || []), council];
+      profile.organization.tasks = [...(profile.organization.tasks || []), {
+        id: orderId,
+        stageId: '01',
+        assigneeId: hero.id,
+        assigneeName: hero.name,
+        name: 'Campaign support',
+        status: 'success',
+      }];
+      profile.organization.pendingSupport = [...(profile.organization.pendingSupport || []), {
+        id: orderId,
+        stageId: '01',
+        memberId: hero.id,
+        source: 'Campaign support',
+        council,
+      }];
+      await window.DongzhouIntegration.persist(profile);
       const recorded = window.DongzhouOrganizationPlay.recordBattleOutcome(profile.organization, {
         id: reportId,
         stageId: '01',
@@ -67,20 +92,33 @@ function sha256(value) {
           orders: [{ id: `support:${reportId}`, memberId: hero.id, source: '官署筹备' }],
         },
       });
+      const report = recorded.state.battleReports.find((entry) => entry.id === reportId);
+      report.councils = [council];
+      report.mandates = [];
+      report.sources = ['Campaign support', 'Sealed council'];
+      report.support = {
+        sources: report.sources,
+        councils: [council],
+        mandates: [],
+        orders: [{ id: orderId, memberId: hero.id, source: 'Campaign support' }],
+      };
       profile.organization = recorded.state;
       localStorage.setItem(profileKey, JSON.stringify(profile));
       const saved = await window.DongzhouIntegration.persist(profile);
+      const sealedReport = saved.payload.organization.battleReports.find((entry) => entry.id === reportId);
+      if (!sealedReport?.kernelReceipt?.digest) throw new Error('kernel_battle_receipt_missing');
       const session = JSON.parse(localStorage.getItem('dongzhou-integration-session-v1'));
       return {
         playerId: session.playerId,
         version: saved.version,
         reportId: recorded.report.id,
         hero: { id: hero.id, name: hero.name },
+        receipt: sealedReport.kernelReceipt,
       };
     }, { reportId });
 
     const identityDigest = sha256(`${result.playerId}\n${result.reportId}\n${result.hero.id}`);
-    const outcomeDigest = sha256(`${identityDigest}\nbattle-semantics-v2`);
+    const outcomeDigest = sha256(`${identityDigest}\nbattle-semantics-v3\n${result.receipt.digest}`);
     let expectedEventId = Number(BigInt(`0x${outcomeDigest.slice(0, 8)}`) & 0x7fffffffn);
     if (expectedEventId === 0) expectedEventId = 1;
     console.log(JSON.stringify({ stage: 'wait-authoritative-emotion', expectedEventId, hero: result.hero }));
@@ -127,11 +165,14 @@ function sha256(value) {
       return text.includes(`joy ${intensity}`);
     }, persistedIntensity, { timeout: 60000 });
     const stateText = await page.locator('#officeNpcState').innerText();
+    const archiveText = await page.locator('#officeBattleArchive').innerText();
     assert(stateText.includes(`joy ${persistedIntensity}`));
+    assert(archiveText.includes('内核战果印记'));
+    assert(archiveText.includes(result.receipt.digest.slice(0, 12)));
     assert.equal(errors.length, 0);
     assert(saveResponses.some((entry) => entry.method === 'PUT' && entry.status === 200));
 
-    await page.locator('#officeNpcState').scrollIntoViewIfNeeded();
+    await page.locator('#officeBattleArchive').scrollIntoViewIfNeeded();
     fs.mkdirSync(path.dirname(evidencePath), { recursive: true });
     await page.screenshot({ path: screenshotPath, fullPage: true });
     const evidence = {
@@ -144,6 +185,7 @@ function sha256(value) {
       cloudStateHeroId: stateBody.heroId,
       saveResponses,
       officeRendered: stateText.includes(`joy ${persistedIntensity}`),
+      receiptRendered: archiveText.includes(result.receipt.digest.slice(0, 12)),
       screenshot: screenshotPath,
     };
     fs.writeFileSync(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`);

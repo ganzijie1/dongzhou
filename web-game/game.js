@@ -8,6 +8,11 @@
   const organization = window.DongzhouOrganizationPlay;
   const integration = window.DongzhouIntegration;
   window.addEventListener("dongzhou-save-conflict", () => showNotice("云端存档已在其他页面更新，本页已停止写入以保护进度。"));
+  window.addEventListener("dongzhou-save-committed", (event) => {
+    if (!event.detail?.battleReceiptsChanged) return;
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    if (!$("#campaignOfficeBackdrop")?.hidden) renderOrganizationPanel();
+  });
   const $ = (selector) => document.querySelector(selector);
   const asList = (value) => Array.isArray(value) ? value : Object.keys(value || {}).sort((a, b) => Number(a) - Number(b)).map((key) => value[key]);
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -1219,6 +1224,13 @@
     }).join("") || '<li class="empty">完成史料查阅与属官裁断后，可签发内核军令。</li>';
     $("#officeAllianceLedger").innerHTML = [...org.diplomacy.alliances].reverse().map((pact) => `<li class="${pact.status}"><span>${escapeHtml(pact.targetName)}盟约</span><strong>${pact.status === "active" ? "生效" : pact.status === "broken" ? "背盟待战" : "战后结案"}</strong><small>关系 ${Number(org.diplomacy.relations[pact.targetId] || 0)} · ${escapeHtml(pact.terms.join("、"))}</small></li>`).join("") || '<li class="empty">尚无盟约</li>';
     $("#officeBattleArchive").innerHTML = [...org.archives].reverse().slice(0, 12).map((entry) => `<li><strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml(entry.text)} · ${escapeHtml(String(entry.stageId || "无关卡"))}</span></li>`).join("") || "<li><strong>尚无档案</strong><span>完成盟约、背盟或战役后将在此存照。</span></li>";
+    const sealedBattleReport = [...org.battleReports].reverse().find((report) => report?.kernelReceipt?.kernel?.state === "SEALED");
+    if (sealedBattleReport) {
+      $("#officeBattleArchive").insertAdjacentHTML(
+        "afterbegin",
+        `<li><strong>\u5185\u6838\u6218\u679c\u5370\u8bb0</strong><span>${escapeHtml(sealedBattleReport.stageTitle || sealedBattleReport.stageId)} \u00b7 ${escapeHtml(String(sealedBattleReport.kernelReceipt.digest || "").slice(0, 12))} \u00b7 ${escapeHtml(String(sealedBattleReport.kernelReceipt.kernel.moduleVersion || ""))}</span></li>`
+      );
+    }
     const selectedTask = organization.TASK_TYPES[$("#officeTaskType").value] || organization.TASK_TYPES.supply;
     const leaderSelected = !integration.isOffline() && org.backend.orgFlow && $("#officeMemberSelect").value === "DuBo";
     $("#officeIssueButton").disabled = officeOrderInFlight || leaderSelected;

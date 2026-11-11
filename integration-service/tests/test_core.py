@@ -16,6 +16,7 @@ import httpx
 from pydantic import ValidationError
 
 from dongzhou_integration.app import (
+    BattleReceiptConflict,
     RuntimeModule,
     _battle_game_events,
     _evidence_task_fit,
@@ -25,6 +26,7 @@ from dongzhou_integration.app import (
     _organization_supervision_links,
     _organization_task_chance,
     _prepare_due_organization_reports,
+    _seal_battle_reports,
     _organization_task_succeeds,
     build_application,
 )
@@ -188,6 +190,44 @@ class OrganizationOutcomeTests(unittest.TestCase):
                 }],
             }
         }
+        report = payload["organization"]["battleReports"][0]
+        report["councils"] = [{"id": "council-1", "memberId": "ZuoRu"}]
+        report["mandates"] = [{
+            "id": "mandate-1",
+            "heroId": "ZuoRu",
+            "digest": "a" * 64,
+        }]
+        report["support"]["orders"] = [{"id": "order-1", "memberId": "DuBo"}]
+        previous_payload = {
+            "organization": {
+                "members": payload["organization"]["members"],
+                "councils": [{
+                    "id": "council-1",
+                    "stageId": "01",
+                    "memberId": "ZuoRu",
+                }],
+                "mandates": [{
+                    "id": "mandate-1",
+                    "stageId": "01",
+                    "heroId": "ZuoRu",
+                    "digest": "a" * 64,
+                }],
+                "tasks": [{
+                    "id": "order-1",
+                    "stageId": "01",
+                    "assigneeId": "DuBo",
+                }],
+                "pendingSupport": [{
+                    "id": "order-1",
+                    "stageId": "01",
+                    "memberId": "DuBo",
+                    "council": {"id": "council-1"},
+                    "mandate": {"id": "mandate-1"},
+                }],
+                "battleReports": [],
+            }
+        }
+        payload = _seal_battle_reports(player_id, previous_payload, payload)
         first = _battle_game_events(
             settings, player_id, payload, "0771-01-01 14:00:00"
         )
@@ -219,8 +259,8 @@ class OrganizationOutcomeTests(unittest.TestCase):
         outcome_entry = next(
             event for event in first if event["kind"] == "NPC_BATTLE_OUTCOME"
         )
-        self.assertTrue(outcome_entry["eventId"].startswith("battle-outcome-v2:"))
-        self.assertTrue(detail["source_record_id"].startswith("dongzhou-battle-v2:"))
+        self.assertTrue(outcome_entry["eventId"].startswith("battle-outcome-v3:"))
+        self.assertTrue(detail["source_record_id"].startswith("dongzhou-battle-v3:"))
         self.assertEqual(outcome["game_time"], "0771-04-01 14:00:00")
         self.assertEqual(detail["event_type"], "battle_result")
         self.assertEqual(detail["metadata"]["standard_event_authority"], "game_server")
@@ -234,9 +274,51 @@ class OrganizationOutcomeTests(unittest.TestCase):
         self.assertEqual(detail["metadata"]["result"], "success")
         self.assertIs(detail["metadata"]["result_confirmed"], True)
         self.assertEqual(detail["metadata"]["mandate_ids"], ["mandate-1"])
+        self.assertEqual(
+            detail["metadata"]["kernel_receipt_digest"],
+            payload["organization"]["battleReports"][0]["kernelReceipt"]["digest"],
+        )
         self.assertIn("繻葛之战告捷", detail["params"])
         self.assertEqual(detail["source_record_id"], detail["interrupt_trace_id"])
         self.assertNotIn(str(player_id), detail["source_record_id"])
+
+    def test_battle_receipt_rejects_forged_support_and_sealed_report_changes(self) -> None:
+        player_id = UUID("00000000-0000-4000-8000-000000000123")
+        previous = {
+            "organization": {
+                "members": [{"id": "DuBo", "name": "Du Bo"}],
+                "councils": [],
+                "mandates": [],
+                "tasks": [],
+                "pendingSupport": [],
+                "battleReports": [],
+            }
+        }
+        forged = {
+            "organization": {
+                **previous["organization"],
+                "battleReports": [{
+                    "id": "battle:forged",
+                    "stageId": "01",
+                    "won": True,
+                    "turns": 1,
+                    "ownLosses": 0,
+                    "councils": [],
+                    "mandates": [],
+                    "support": {"orders": [{"id": "missing", "memberId": "DuBo"}]},
+                }],
+            }
+        }
+        with self.assertRaisesRegex(BattleReceiptConflict, "battle_order_reference_invalid"):
+            _seal_battle_reports(player_id, previous, forged)
+
+        clean = json.loads(json.dumps(forged))
+        clean["organization"]["battleReports"][0]["support"]["orders"] = []
+        sealed = _seal_battle_reports(player_id, previous, clean)
+        changed = json.loads(json.dumps(sealed))
+        changed["organization"]["battleReports"][0]["won"] = False
+        with self.assertRaisesRegex(BattleReceiptConflict, "battle_report_changed_after_seal"):
+            _seal_battle_reports(player_id, sealed, changed)
 
     def test_organization_supervision_links_use_only_synced_direct_reports(self) -> None:
         links = _organization_supervision_links(
@@ -695,10 +777,39 @@ class AuthenticationRouteTests(unittest.TestCase):
                     "/api/dongzhou/v1/sessions/guest",
                     json={"installation_id": str(uuid4())},
                 )
-                response = client.put(
+                prepared = client.put(
                     "/api/dongzhou/v1/save",
                     json={
                         "expected_version": 1,
+                        "payload": {
+                            "organization": {
+                                "month": 1,
+                                "members": [
+                                    {"id": "ZuoRu", "name": "Zuo Ru"},
+                                    {"id": "DuBo", "name": "Du Bo"},
+                                ],
+                                "tasks": [],
+                                "councils": [{
+                                    "id": "council-route",
+                                    "stageId": "01",
+                                    "memberId": "ZuoRu",
+                                }],
+                                "mandates": [],
+                                "pendingSupport": [{
+                                    "id": "support-route",
+                                    "stageId": "01",
+                                    "council": {"id": "council-route"},
+                                }],
+                                "battleReports": [],
+                            }
+                        },
+                    },
+                )
+                self.assertEqual(prepared.status_code, 200, prepared.text)
+                response = client.put(
+                    "/api/dongzhou/v1/save",
+                    json={
+                        "expected_version": 2,
                         "payload": {
                             "organization": {
                                 "month": 1,
@@ -707,6 +818,13 @@ class AuthenticationRouteTests(unittest.TestCase):
                                     {"id": "DuBo", "name": "杜伯"},
                                 ],
                                 "tasks": [],
+                                "councils": [{
+                                    "id": "council-route",
+                                    "stageId": "01",
+                                    "memberId": "ZuoRu",
+                                }],
+                                "mandates": [],
+                                "pendingSupport": [],
                                 "battleReports": [{
                                     "id": "battle:01:route-test",
                                     "stageId": "01",
@@ -714,7 +832,7 @@ class AuthenticationRouteTests(unittest.TestCase):
                                     "won": False,
                                     "turns": 12,
                                     "ownLosses": 2,
-                                    "councils": [{"memberId": "ZuoRu"}],
+                                    "councils": [{"id": "council-route", "memberId": "ZuoRu"}],
                                     "mandates": [],
                                     "sources": ["左儒军议"],
                                     "support": {"orders": []},
