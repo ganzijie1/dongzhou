@@ -11,6 +11,7 @@ const PROFILE='dongzhou-h5-profile-v2', BATTLE='dongzhou-h5-battle-v2';
 const BASE_URL=process.env.DONGZHOU_TEST_URL || 'http://127.0.0.1:8780/';
 const BASE_ORIGIN=new URL(BASE_URL).origin;
 const CORRESPONDENCE={messageId:'correspondence-browser-1',digest:'d'.repeat(64),chatId:'chat-browser',taskId:'orgchat-browser',speakerId:'42',speakerName:'左儒',targetId:'99',targetName:'杜伯',content:'军粮路线已定，北道可行。',emotion:'calm',topic:'军粮',deliveredAt:'0772-10-22T08:00:00Z'};
+const CODEX_ENTRY={id:'dongzhou_stage_001',stageId:'01',name:'第一回·东郊索命',summary:'周宣王闻谣轻杀，杜伯与左儒化厉鸣冤。',keywords:['杜伯','左儒'],people:['周宣王','杜伯','左儒'],retrieval:{channels:[{channel:'graph',normalizedScore:1}]},sourceDetails:[{work:'《史记·周本纪》',tier:'史实骨架',scope:'千亩之败与宣王晚年',url:'https://ctext.org/shiji/zhou-ben-ji'},{work:'《东周列国志》第一回',tier:'文学演绎',scope:'杜伯、左儒化厉索命',url:'https://zh.wikisource.org/zh-hans/东周列国志/第001回'}]};
 const executablePath=['C:/Program Files/Google/Chrome/Application/chrome.exe','C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(p=>fs.existsSync(p));
 const clone=x=>JSON.parse(JSON.stringify(x));
 async function setup(browser) {
@@ -36,6 +37,7 @@ async function setup(browser) {
     } else if(p.endsWith('/integration/status')) body={mode:'connected',organizationId:'test',services:{nexusKernel:{online:true},orgFlow:{online:true},aiNpc:{online:true},knowledge:{online:true}}};
     else if(p.endsWith('/npcs/interaction-preference')) body={enabled:req.postDataJSON().enabled,source:'dongzhou-player-settings',updatedAt:'2026-11-11T12:00:00Z'};
     else if(p.endsWith('/organization/roster')) body={organization:{id:'test',name:'东周军府',state:'ACTIVE',growthContribution:0},members:[]};
+    else if(p.endsWith('/knowledge/codex')) body={results:[clone(CODEX_ENTRY)]};
     else if(p.endsWith('/knowledge/stages/01')) body={mode:'connected',results:[{id:'dongzhou_stage_001',name:'Stage One Source',summary:'Published source for this stage.',stageId:'01',sourceDetails:[{work:'《史记·周本纪》',tier:'史实骨架',scope:'千亩之败',url:'https://ctext.org/shiji/zhou-ben-ji'}]}]};
     else if(p.endsWith('/knowledge/search')) body={mode:'connected',results:[{id:'dongzhou_stage_001',name:'Stage One Source',summary:'Published source for this stage.',stageId:'01',retrieval:{aggregateScore:.47,strongestChannel:'graph',graphRelated:true,channels:[{channel:'graph',score:1,normalizedScore:1,rank:1},{channel:'bm25',score:7,normalizedScore:.8,rank:2}]},searchReceipt:{id:'dongzhou:council-test-player:00000000-0000-4000-8000-000000000088',digest:'c'.repeat(64)},sourceDetails:[{work:'《史记·周本纪》',tier:'史实骨架',scope:'千亩之败',url:'https://ctext.org/shiji/zhou-ben-ji'}]}]};
     else if(p.endsWith('/npcs/sync')) body={ready:true,npcs:[]};
@@ -76,7 +78,14 @@ async function decide(page) {await page.locator('#officeDecisionForm button[type
     const happy=await setup(browser), {page,model}=happy;
     await decide(page);await page.waitForTimeout(50);
     assert.equal(model.decisions.length,0);
-    await knowledge(page);await page.waitForSelector('[data-correspondence-id="correspondence-browser-1"]');await page.click('[data-correspondence-id="correspondence-browser-1"]');await decide(page);
+    await knowledge(page);
+    await page.click('#officeCodexToggle');await page.waitForSelector('#officeCodexList [data-codex-id="dongzhou_stage_001"]');
+    assert.match(await page.locator('#officeCodexDetail').innerText(),/杜伯 · 左儒/);
+    assert.equal(await page.locator('#officeCodexDetail a').first().getAttribute('href'),'https://ctext.org/shiji/zhou-ben-ji');
+    await page.fill('#officeCodexFilter','不存在的条目');await page.waitForSelector('#officeCodexSummary >> text=当前 0 卷');
+    await page.fill('#officeCodexFilter','杜伯');await page.waitForSelector('#officeCodexSummary >> text=当前 1 卷');
+    await page.click('#officeCodexToggle');
+    await page.waitForSelector('[data-correspondence-id="correspondence-browser-1"]');await page.click('[data-correspondence-id="correspondence-browser-1"]');await decide(page);
     await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key)).organization.councils.length===1,PROFILE);
     assert.match(model.decisions[0].question,/选证：《史记·周本纪》｜史实骨架/);
     assert.match(model.decisions[0].question,/耳报印记：dddddddddddd/);

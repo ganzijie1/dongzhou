@@ -3753,6 +3753,33 @@ button:focus-visible {
 .office-knowledge-results strong { color: #ded2b3; font-size: 12px; }
 .office-retrieval-trace { margin-top: 5px; color: #b99344; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
 .office-knowledge-results p { margin: 6px 0 0; color: #8f9289; font-size: 11px; line-height: 1.65; }
+.office-codex { margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(196, 172, 111, .2); }
+.office-codex[hidden] { display: none; }
+.office-codex-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, .45fr) 40px; gap: 10px; align-items: end; }
+.office-codex-toolbar label { display: grid; gap: 6px; color: #96988f; font-size: 10px; }
+.office-codex-toolbar input, .office-codex-toolbar select { min-width: 0; height: 40px; padding: 0 10px; color: #e4dcc5; border: 1px solid rgba(191, 161, 91, .28); border-radius: 0; background: rgba(9, 13, 10, .72); }
+.office-codex-refresh { width: 40px; height: 40px; color: #d8ad50; border: 1px solid rgba(191, 161, 91, .28); background: transparent; font-size: 20px; cursor: pointer; }
+.office-codex-refresh:disabled { opacity: .45; cursor: wait; }
+.office-codex-summary { margin: 10px 0; color: #b99344; font-size: 10px; }
+.office-codex-layout { min-height: 300px; display: grid; grid-template-columns: minmax(240px, .42fr) minmax(0, 1fr); border-top: 1px solid rgba(196, 172, 111, .16); }
+.office-codex-list { max-height: 430px; overflow: auto; border-right: 1px solid rgba(196, 172, 111, .16); }
+.office-codex-list > button { width: 100%; min-height: 92px; display: grid; gap: 5px; padding: 12px 14px; color: #8f9289; border: 0; border-bottom: 1px dotted rgba(196, 172, 111, .2); background: transparent; text-align: left; cursor: pointer; }
+.office-codex-list > button:hover, .office-codex-list > button.selected { background: rgba(185, 147, 68, .08); box-shadow: inset 2px 0 #b99344; }
+.office-codex-list span { color: #b99344; font-size: 9px; }
+.office-codex-list strong { color: #ded2b3; font-size: 12px; font-weight: 500; }
+.office-codex-list small { max-height: 3.1em; overflow: hidden; color: #858980; font-size: 10px; line-height: 1.55; }
+.office-codex-detail { min-width: 0; padding: 18px 22px; }
+.office-codex-detail header span, .office-codex-people > span, .office-codex-sources > span { color: #b99344; font-size: 9px; }
+.office-codex-detail h4 { margin: 5px 0 12px; color: #eadfbe; font: 600 21px/1.25 var(--font-display); }
+.office-codex-detail > p, .office-codex-people p { color: #9b9e94; font-size: 11px; line-height: 1.75; }
+.office-codex-trace { margin: 12px 0; color: #b99344; font-size: 10px; }
+.office-codex-people, .office-codex-sources { margin-top: 18px; }
+.office-codex-sources ol { margin: 8px 0 0; padding: 0; list-style: none; }
+.office-codex-sources li { padding: 10px 0; border-top: 1px dotted rgba(196, 172, 111, .2); }
+.office-codex-sources li div { display: flex; justify-content: space-between; gap: 10px; }
+.office-codex-sources a, .office-codex-sources strong { color: #ded2b3; font-size: 11px; }
+.office-codex-sources li span { color: #b99344; font-size: 9px; }
+.office-codex-sources li p { margin: 5px 0 0; color: #858980; font-size: 10px; line-height: 1.55; }
 .office-source-choices { display: grid; gap: 7px; margin-top: 10px; }
 .office-source-choice { width: 100%; min-height: 62px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; align-items: start; padding: 9px 10px; border: 1px solid rgba(196, 172, 111, .18); border-radius: 4px; background: rgba(15, 18, 14, .42); color: #9b9d94; text-align: left; letter-spacing: 0; cursor: pointer; }
 .office-source-choice:hover:not(:disabled), .office-source-choice.selected { border-color: rgba(158, 178, 122, .72); background: rgba(88, 104, 66, .18); }
@@ -3793,6 +3820,11 @@ button:focus-visible {
   .office-mandate-actions { display: flex; justify-content: flex-end; gap: 8px; }
   .office-mandate-approval { grid-template-columns: 1fr; align-items: start; }
   .office-members, .office-knowledge-results { grid-template-columns: 1fr; }
+  .office-codex-toolbar { grid-template-columns: 1fr 40px; }
+  .office-codex-toolbar label:first-child { grid-column: 1 / -1; }
+  .office-codex-layout { grid-template-columns: 1fr; }
+  .office-codex-list { max-height: 260px; border-right: 0; border-bottom: 1px solid rgba(196, 172, 111, .16); }
+  .office-codex-detail { padding: 16px 4px; }
   .office-task-ledger li { grid-template-columns: minmax(0, 1fr) auto; gap: 5px 12px; }
   .office-task-ledger li > small { grid-column: 1 / -1; }
 }

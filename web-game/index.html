@@ -280,10 +280,22 @@
             <ol id="officeAllianceLedger" class="office-task-ledger"></ol>
           </section>
           <section class="office-knowledge" aria-labelledby="officeKnowledgeTitle">
-            <div class="office-section-heading"><div><span>史官参议</span><h3 id="officeKnowledgeTitle">查阅本战旧闻</h3></div></div>
+            <div class="office-section-heading"><div><span>史官参议</span><h3 id="officeKnowledgeTitle">查阅本战旧闻</h3></div><button id="officeCodexToggle" class="large-button" type="button" aria-expanded="false" aria-controls="officeCodexPanel">已得简册</button></div>
             <form id="officeKnowledgeForm" class="office-knowledge-form"><input id="officeKnowledgeQuery" type="search" autocomplete="off" placeholder="输入人物、战役或军令"><button class="large-button" type="submit">查阅</button></form>
             <button id="officeStageKnowledgeButton" class="large-button" type="button">本回史料</button>
             <div id="officeKnowledgeResults" class="office-knowledge-results"></div>
+            <div id="officeCodexPanel" class="office-codex" hidden>
+              <div class="office-codex-toolbar">
+                <label><span>筛选简册</span><input id="officeCodexFilter" type="search" autocomplete="off" placeholder="人物、战役或出处"></label>
+                <label><span>所属战役</span><select id="officeCodexStage"><option value="all">全部已发现</option></select></label>
+                <button id="officeCodexRefresh" class="office-codex-refresh" type="button" aria-label="刷新史库" title="刷新史库">↻</button>
+              </div>
+              <p id="officeCodexSummary" class="office-codex-summary" aria-live="polite">尚未载入已得简册。</p>
+              <div class="office-codex-layout">
+                <div id="officeCodexList" class="office-codex-list" role="listbox" aria-label="已发现史料"></div>
+                <article id="officeCodexDetail" class="office-codex-detail" aria-live="polite"><p>选择一卷简册查看人物与出处。</p></article>
+              </div>
+            </div>
           </section>
           <section class="office-archives" aria-labelledby="officeArchivesTitle">
             <div class="office-section-heading"><div><span>功过存照</span><h3 id="officeArchivesTitle">官署历史档案</h3></div></div>

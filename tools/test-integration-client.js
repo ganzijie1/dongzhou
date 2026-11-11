@@ -34,6 +34,7 @@ let organizationReadAttempts = 0;
 let organizationReviewInput = null;
 let campaignRouteAttempts = 0;
 let knowledgeSearchInput = null;
+let knowledgeCodexRequests = 0;
 let organizationResponse = null;
 let npcInteractionPreferenceInput = null;
 let storedProfile = {};
@@ -75,6 +76,10 @@ global.fetch = async (url, options = {}) => {
   else if (url.endsWith("/knowledge/search")) {
     knowledgeSearchInput = body;
     response = { mode: "connected", results: [{ id: "dongzhou_stage_001", stageId: "01", retrieval: { graphRelated: true, channels: [{ channel: "graph", normalizedScore: 1 }] }, searchReceipt: { id: "search-receipt", digest: "c".repeat(64) } }] };
+  }
+  else if (url.endsWith("/knowledge/codex")) {
+    knowledgeCodexRequests += 1;
+    response = { results: [{ id: "dongzhou_stage_001", stageId: "01", name: "第一回·东郊索命" }] };
   }
   else if (url.endsWith("/organization/roster")) {
     response = { organization: { name: "东周军府", growthContribution: 245 }, members: [{ heroId: "DuBo", lifetimeEarned: 80 }] };
@@ -169,6 +174,9 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(knowledgeSearchInput.stage_id, "01");
   assert.match(knowledgeSearchInput.client_request_id, /^[0-9a-f-]{36}$/);
   assert.strictEqual(knowledge.results[0].retrieval.graphRelated, true);
+  const codex = await client.knowledgeCodex();
+  assert.strictEqual(codex.results[0].name, "第一回·东郊索命");
+  assert.strictEqual(knowledgeCodexRequests, 1);
   const roster = await client.organizationRoster();
   assert.strictEqual(roster.organization.growthContribution, 245);
   assert.strictEqual(roster.members[0].heroId, "DuBo");

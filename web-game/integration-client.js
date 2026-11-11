@@ -8,6 +8,7 @@
   const SESSION_KEY = "dongzhou-integration-session-v1";
   const INSTALLATION_KEY = "dongzhou-installation-id-v1";
   const ORDER_JOURNAL_KEY = "dongzhou-order-journal-v1";
+  const KNOWLEDGE_CODEX_KEY = "dongzhou-knowledge-codex-v1";
   const MANDATE_PENDING_PREFIX = "dongzhou-pending-mandate-v1:";
   const NPC_MESSAGE_PENDING_PREFIX = "dongzhou-pending-npc-message-v1:";
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
@@ -130,15 +131,46 @@
   }
 
   function status() { return request("/integration/status"); }
+  function rememberKnowledge(entries) {
+    const codex = read(KNOWLEDGE_CODEX_KEY, {});
+    for (const raw of entries || []) {
+      const entry = raw?.aku || raw?.data || raw;
+      const id = String(entry?.id || entry?.aku_id || "").trim();
+      if (id) codex[id] = {
+        id,
+        index: entry.index,
+        stageId: entry.stageId,
+        name: entry.name,
+        title: entry.title,
+        summary: entry.summary,
+        objective: entry.objective,
+        keywords: Array.isArray(entry.keywords) ? entry.keywords : [],
+        people: Array.isArray(entry.people) ? entry.people : [],
+        entities: Array.isArray(entry.entities?.npcs) ? { npcs: entry.entities.npcs } : undefined,
+        sourceDetails: Array.isArray(entry.sourceDetails) ? entry.sourceDetails : [],
+        sources: Array.isArray(entry.sources) ? entry.sources.filter((source) => source && typeof source === "object") : [],
+        retrieval: entry.retrieval,
+      };
+    }
+    write(KNOWLEDGE_CODEX_KEY, codex);
+  }
   async function searchKnowledge(query, limit, stageId) {
-    if (!offline) return request("/knowledge/search", { method: "POST", body: JSON.stringify({ client_request_id: root.crypto.randomUUID(), ...(stageId ? { stage_id: String(stageId) } : {}), query, limit }) });
+    if (!offline) {
+      const result = await request("/knowledge/search", { method: "POST", body: JSON.stringify({ client_request_id: root.crypto.randomUUID(), ...(stageId ? { stage_id: String(stageId) } : {}), query, limit }) });
+      return result;
+    }
     const data = await root.fetch("scenario/dongzhou-knowledge.json", { cache: "no-store" }).then((response) => response.json());
     const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
     const results = (data.entries || []).map((entry) => {
       const haystack = [entry.name, entry.summary, entry.content, ...(entry.keywords || [])].join(" ").toLocaleLowerCase();
       return { entry, score: terms.reduce((score, term) => score + (haystack.includes(term) ? 1 : 0), 0) };
     }).filter((item) => !terms.length || item.score).sort((a, b) => b.score - a.score || a.entry.index - b.entry.index).slice(0, limit).map((item) => item.entry);
+    rememberKnowledge(results);
     return { mode: "offline", query, results };
+  }
+  async function knowledgeCodex() {
+    if (!offline) return requestWithTransientRetry("/knowledge/codex");
+    return { mode: "offline", results: Object.values(read(KNOWLEDGE_CODEX_KEY, {})) };
   }
   function campaignRoute(input) {
     if (!offline) {
@@ -369,12 +401,17 @@
     return request(`/organization/tasks/${encodeURIComponent(taskId)}/review`, { method: "POST", body: JSON.stringify(input) });
   }
   async function stageKnowledge(stageId) {
-    if (!offline) return requestWithTransientRetry(`/knowledge/stages/${encodeURIComponent(stageId)}`);
+    if (!offline) {
+      const result = await requestWithTransientRetry(`/knowledge/stages/${encodeURIComponent(stageId)}`);
+      return result;
+    }
     const response = await root.fetch("scenario/dongzhou-knowledge.json", { cache: "no-store" });
     if (!response.ok) throw new Error("史料目录暂不可达");
     const data = await response.json();
-    return { mode: "offline", stageId, results: (data.entries || []).filter((entry) => entry.stageId === stageId) };
+    const results = (data.entries || []).filter((entry) => entry.stageId === stageId);
+    rememberKnowledge(results);
+    return { mode: "offline", stageId, results };
   }
 
-  return { initialize, persist, status, searchKnowledge, campaignRoute, stageKnowledge, syncNpcs, setNpcInteractionPreference, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, reviewOrganizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, syncNpcs, setNpcInteractionPreference, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, reviewOrganizationTask, isOffline: () => offline };
 });

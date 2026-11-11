@@ -1779,11 +1779,102 @@
 
   let officeKnowledgeRequestSerial = 0;
   let officeKnowledgeView = [];
+  let officeCodexRequestSerial = 0;
+  let officeCodexView = [];
+  let officeCodexSelectedId = "";
 
   function knowledgeRetrievalText(entry) {
     const labels = { graph: "图谱牵连", entity: "实体命中", bm25: "原文命中", vector: "文义相近", category: "同类史料", schedule_tag: "时序相合" };
     const channels = Array.isArray(entry?.retrieval?.channels) ? entry.retrieval.channels : [];
     return channels.map((item) => `${labels[item.channel] || item.channel} ${Math.round(Number(item.normalizedScore || 0) * 100)}%`).join(" · ") || "本回目录";
+  }
+
+  function safeKnowledgeUrl(value) {
+    try {
+      const url = new URL(String(value || ""), window.location.href);
+      return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function codexPeople(entry) {
+    const direct = Array.isArray(entry.people) ? entry.people : [];
+    const entities = Array.isArray(entry.entities?.npcs) ? entry.entities.npcs.map((item) => item?.name) : [];
+    return [...new Set([...direct, ...entities].map((item) => String(item || "").trim()).filter(Boolean))];
+  }
+
+  function codexSources(entry) {
+    const details = Array.isArray(entry.sourceDetails) ? entry.sourceDetails.filter((item) => item && typeof item === "object") : [];
+    const legacy = Array.isArray(entry.sources) ? entry.sources.filter((item) => item && typeof item === "object") : [];
+    return details.length ? details : legacy;
+  }
+
+  function renderOfficeCodex() {
+    const query = $("#officeCodexFilter").value.trim().toLocaleLowerCase();
+    const selectedStage = $("#officeCodexStage").value;
+    const stages = [...new Set(officeCodexView.map((entry) => String(entry.stageId || "")).filter(Boolean))]
+      .sort((left, right) => (findStageRecord(left)?.index || 9999) - (findStageRecord(right)?.index || 9999));
+    const stageSelect = $("#officeCodexStage");
+    stageSelect.innerHTML = `<option value="all">全部已发现</option>${stages.map((stageId) => `<option value="${escapeHtml(stageId)}">${escapeHtml(findStageRecord(stageId)?.battleTitle || `第 ${stageId} 战`)}</option>`).join("")}`;
+    stageSelect.value = stages.includes(selectedStage) ? selectedStage : "all";
+    const filtered = officeCodexView.filter((entry) => {
+      if (stageSelect.value !== "all" && String(entry.stageId || "") !== stageSelect.value) return false;
+      const people = codexPeople(entry);
+      const sources = codexSources(entry);
+      const keywords = Array.isArray(entry.keywords) ? entry.keywords : [];
+      const haystack = [entry.name, entry.title, entry.summary, entry.objective, ...keywords, ...people, ...sources.flatMap((source) => [source.work, source.tier, source.scope])].join(" ").toLocaleLowerCase();
+      return !query || haystack.includes(query);
+    });
+    if (!filtered.some((entry) => String(entry.id || entry.aku_id) === officeCodexSelectedId)) {
+      officeCodexSelectedId = String(filtered[0]?.id || filtered[0]?.aku_id || "");
+    }
+    $("#officeCodexSummary").textContent = `已得 ${officeCodexView.length} 卷 · 当前 ${filtered.length} 卷`;
+    $("#officeCodexList").innerHTML = filtered.map((entry) => {
+      const id = String(entry.id || entry.aku_id || "");
+      const active = id === officeCodexSelectedId;
+      const stage = findStageRecord(String(entry.stageId || ""));
+      return `<button type="button" role="option" aria-selected="${active}" class="${active ? "selected" : ""}" data-codex-id="${escapeHtml(id)}"><span>${escapeHtml(stage?.battleTitle || `第 ${entry.stageId || "?"} 战`)}</span><strong>${escapeHtml(entry.name || entry.title || "未名简册")}</strong><small>${escapeHtml(entry.summary || entry.objective || "尚无摘要")}</small></button>`;
+    }).join("") || "<p>没有符合筛选条件的已得简册。</p>";
+    const entry = filtered.find((item) => String(item.id || item.aku_id) === officeCodexSelectedId);
+    if (!entry) {
+      $("#officeCodexDetail").innerHTML = "<p>选择一卷简册查看人物与出处。</p>";
+      return;
+    }
+    const people = codexPeople(entry);
+    const sources = codexSources(entry);
+    const sourceRows = sources.map((source) => {
+      const href = safeKnowledgeUrl(source.url);
+      const title = escapeHtml(source.work || "未名出处");
+      return `<li><div><strong>${href ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${title}</a>` : title}</strong><span>${escapeHtml(source.tier || "来源")}</span></div><p>${escapeHtml(source.scope || "未注明适用范围")}</p></li>`;
+    }).join("");
+    $("#officeCodexDetail").innerHTML = `<header><span>${escapeHtml(findStageRecord(String(entry.stageId || ""))?.battleTitle || `第 ${entry.stageId || "?"} 战`)}</span><h4>${escapeHtml(entry.name || entry.title || "未名简册")}</h4></header><p>${escapeHtml(entry.summary || entry.objective || "尚无摘要")}</p><div class="office-codex-trace">${escapeHtml(knowledgeRetrievalText(entry))}</div>${people.length ? `<div class="office-codex-people"><span>相关人物</span><p>${people.map(escapeHtml).join(" · ")}</p></div>` : ""}<div class="office-codex-sources"><span>刊定出处</span><ol>${sourceRows || "<li><p>此卷尚未刊定外部出处。</p></li>"}</ol></div>`;
+  }
+
+  async function refreshOfficeCodex() {
+    const serial = ++officeCodexRequestSerial;
+    const refresh = $("#officeCodexRefresh");
+    refresh.disabled = true;
+    $("#officeCodexSummary").textContent = "史官正在清点已得简册……";
+    try {
+      const payload = await integration.knowledgeCodex();
+      if (serial !== officeCodexRequestSerial) return;
+      const raw = Array.isArray(payload.results) ? payload.results : [];
+      officeCodexView = raw.map((item) => item?.aku || item?.data || item).filter((item) => item?.id || item?.aku_id);
+      renderOfficeCodex();
+    } catch (error) {
+      if (serial === officeCodexRequestSerial) $("#officeCodexSummary").textContent = `史库暂不可达：${error.message}`;
+    } finally {
+      if (serial === officeCodexRequestSerial) refresh.disabled = false;
+    }
+  }
+
+  function setOfficeCodex(open) {
+    const expanded = Boolean(open);
+    $("#officeCodexPanel").hidden = !expanded;
+    $("#officeCodexToggle").setAttribute("aria-expanded", String(expanded));
+    if (expanded) refreshOfficeCodex();
+    else officeCodexRequestSerial += 1;
   }
 
   function renderOfficeKnowledgeResults() {
@@ -1826,6 +1917,7 @@
     renderOfficeCouncil();
     officeKnowledgeView = results;
     renderOfficeKnowledgeResults();
+    if (!$("#officeCodexPanel").hidden) refreshOfficeCodex();
     return true;
   }
 
@@ -3537,6 +3629,16 @@
     $("#officeKnowledgeForm").addEventListener("submit", searchOfficeKnowledge);
     $("#officeStageKnowledgeButton").addEventListener("click", loadOfficeStageKnowledge);
     $("#officeKnowledgeResults").addEventListener("click", selectOfficeEvidence);
+    $("#officeCodexToggle").addEventListener("click", () => setOfficeCodex($("#officeCodexPanel").hidden));
+    $("#officeCodexRefresh").addEventListener("click", refreshOfficeCodex);
+    $("#officeCodexFilter").addEventListener("input", renderOfficeCodex);
+    $("#officeCodexStage").addEventListener("change", renderOfficeCodex);
+    $("#officeCodexList").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-codex-id]");
+      if (!button) return;
+      officeCodexSelectedId = button.dataset.codexId;
+      renderOfficeCodex();
+    });
     document.querySelectorAll("[data-era-range]").forEach((button) => button.addEventListener("click", () => {
       $("#stageSearch").value = "";
       $("#stageRange").value = button.dataset.eraRange;
