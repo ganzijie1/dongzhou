@@ -3298,6 +3298,20 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     "The court mandate does not match this organization order.",
                     status_code=422,
                 )
+            schedule_event_id = f"dongzhou-mandate-{mandate_digest[:32]}"
+            schedule_request = await store.read_external_request(
+                player_id, schedule_event_id, "court_mandate_schedule"
+            )
+            if (
+                not isinstance(schedule_request, dict)
+                or schedule_request.get("mandateId") != mandate_id
+                or schedule_request.get("mandate_digest") != mandate_digest
+            ):
+                raise ApiError(
+                    "court_mandate_schedule_required",
+                    "The issued mandate must receive an AINPC schedule decision before organization dispatch.",
+                    status_code=409,
+                )
         body = _payload(request)
         try:
             created, previous = await store.begin_request(player_id, request.client_request_id, "organization_task", body)

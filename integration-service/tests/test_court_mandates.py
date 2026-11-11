@@ -338,6 +338,18 @@ def approve_mandate(client: TestClient, draft_response) -> dict[str, object]:
     return approved.json()["mandate"]
 
 
+def schedule_mandate(client: TestClient, mandate: dict[str, object]) -> dict[str, object]:
+    scheduled = client.post(
+        f"/api/dongzhou/v1/court/mandates/{mandate['id']}/schedule",
+        json={
+            "client_request_id": str(uuid4()),
+            "mandate_digest": mandate["digest"],
+        },
+    )
+    assert scheduled.status_code == 200, scheduled.text
+    return scheduled.json()["scheduleReceipt"]
+
+
 def test_ainpc_correspondence_is_recomputed_and_sealed() -> None:
     with TemporaryDirectory() as directory:
         database = Path(directory) / "gateway.sqlite3"
@@ -647,6 +659,14 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
 
             mandate = approve_mandate(client, issued)
             assert mandate["state"] == "ISSUED"
+            missing_schedule = client.post(
+                "/api/dongzhou/v1/organization/tasks", json=order
+            )
+            assert missing_schedule.status_code == 409
+            assert (
+                missing_schedule.json()["error"]["code"]
+                == "court_mandate_schedule_required"
+            )
             schedule_request_id = str(uuid4())
             scheduled = client.post(
                 f"/api/dongzhou/v1/court/mandates/{mandate['id']}/schedule",
@@ -794,6 +814,7 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
                 json=mandate_body(council_id),
             )
             issued = approve_mandate(client, draft)
+            schedule_mandate(client, issued)
             order = {
                 "client_request_id": str(uuid4()),
                 "task_type": "drill",
@@ -941,6 +962,7 @@ def test_diplomacy_operation_is_sealed_and_drives_orgflow_brief() -> None:
             assert issued.status_code == 200
             mandate = approve_mandate(client, issued)
             assert mandate["operation"] == body["operation"]
+            schedule_mandate(client, mandate)
 
             order = {
                 "client_request_id": str(uuid4()),
