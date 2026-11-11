@@ -44,6 +44,7 @@ class RuntimeModule(Module):
 
     async def on_start(self, context: ModuleContext) -> None:
         await self.store.start()
+        await self._backfill_npc_memories()
         self.services = await self.upstreams.health()
         self._health_task = asyncio.create_task(self._poll_health(), name="dongzhou-upstream-health")
         self._game_event_task = asyncio.create_task(
@@ -83,6 +84,20 @@ class RuntimeModule(Module):
             await asyncio.sleep(10)
             self.services = await self.upstreams.health()
 
+    async def _backfill_npc_memories(self) -> None:
+        for outcome in await self.store.npc_outcomes_missing_memory():
+            event_id = str(outcome.get("eventId") or "")
+            if not event_id.startswith("npc-outcome:"):
+                continue
+            task_id = event_id.removeprefix("npc-outcome:")
+            payload = outcome.get("payload")
+            if task_id and isinstance(payload, dict):
+                await self.store.enqueue_game_event(
+                    "npc-memory:" + task_id,
+                    "NPC_TASK_MEMORY",
+                    _npc_memory_from_event(payload),
+                )
+
     async def _dispatch_game_events(self) -> None:
         while True:
             events = await self.store.pending_game_events()
@@ -107,6 +122,11 @@ class RuntimeModule(Module):
                                     "npc-outcome:" + task_id,
                                     "NPC_TASK_OUTCOME",
                                     _npc_outcome_event(outcome, final_result),
+                                )
+                                await self.store.enqueue_game_event(
+                                    "npc-memory:" + task_id,
+                                    "NPC_TASK_MEMORY",
+                                    _npc_outcome_memory(outcome, final_result),
                                 )
                 except Exception as error:
                     await self.store.retry_game_event(event["eventId"], type(error).__name__)
@@ -636,6 +656,57 @@ def _npc_outcome_event(outcome: dict[str, Any], final_result: str) -> dict[str, 
                 "interrupt_trace_id": "dongzhou-org-outcome:" + task_id,
             }
         ],
+    }
+
+
+def _npc_outcome_memory(outcome: dict[str, Any], final_result: str) -> dict[str, Any]:
+    return _npc_memory_from_event(_npc_outcome_event(outcome, final_result))
+
+
+def _npc_memory_from_event(event: dict[str, Any]) -> dict[str, Any]:
+    detail = event["events"][0]
+    task_id = str(detail["source_record_id"])
+    return {
+        "game_server_id": event["game_server_id"],
+        "npc_id": event["npc_id"],
+        "npc_name": event["npc_name"],
+        "game_time": event["game_time"],
+        "messages": [
+            {
+                "timestamp": event["game_time"],
+                "content": detail["params"],
+                "message_id": "dongzhou-org-outcome:" + task_id,
+            }
+        ],
+    }
+
+
+def _npc_outcome_status(
+    event: dict[str, Any] | None, memory: dict[str, Any] | None
+) -> dict[str, Any] | None:
+    if event is None and memory is None:
+        return None
+    parts = {"event": event, "memory": memory}
+    states = [part.get("state") for part in parts.values() if isinstance(part, dict)]
+    delivered = len(states) == 2 and all(state == "DELIVERED" for state in states)
+    last_error = next(
+        (
+            part.get("lastError")
+            for part in parts.values()
+            if isinstance(part, dict) and part.get("lastError")
+        ),
+        None,
+    )
+    return {
+        "state": "DELIVERED" if delivered else "PENDING",
+        "attempts": sum(
+            int(part.get("attempts") or 0)
+            for part in parts.values()
+            if isinstance(part, dict)
+        ),
+        "lastError": last_error,
+        "event": event,
+        "memory": memory,
     }
 
 
@@ -2257,7 +2328,10 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 and isinstance(recorded_response, dict)
                 else pending_review
             )
-        outcome = await store.game_event_status("npc-outcome:" + task_key)
+        outcome = _npc_outcome_status(
+            await store.game_event_status("npc-outcome:" + task_key),
+            await store.game_event_status("npc-memory:" + task_key),
+        )
         return {
             "taskId": task_key,
             "result": result,

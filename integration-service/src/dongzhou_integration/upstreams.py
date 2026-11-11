@@ -153,6 +153,20 @@ class Upstreams:
                     response_payload=response,
                 )
             return response
+        if kind == "NPC_TASK_MEMORY":
+            response = await self._json(
+                "POST",
+                self.settings.ainpc_url + "/callback/game-reports/system-message",
+                token=self.settings.ainpc_token,
+                payload=payload,
+            )
+            if response.get("code") not in (0, 200, "0", "200"):
+                raise UpstreamUnavailable(
+                    "AINPC rejected the organization outcome memory.",
+                    error_code="ainpc_outcome_memory_rejected",
+                    response_payload=response,
+                )
+            return response
         paths = {
             "CHAT_START": "/api/v1/social-interaction/chat",
             "CHAT_TURN": "/api/v1/social-interaction/chat",

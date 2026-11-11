@@ -345,6 +345,8 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                 return httpx.Response(200, json={"record": {"state": "COMPLETED"}})
             if request.url.path == "/callback/game-reports/emergency":
                 return httpx.Response(200, json={"code": 200, "data": {"accepted": True}})
+            if request.url.path == "/callback/game-reports/system-message":
+                return httpx.Response(200, json={"code": 200, "data": {"accepted": True}})
             if request.url.path == "/callback/emergency-assessment/evaluate":
                 return httpx.Response(200, json={
                     "code": 200,
@@ -423,6 +425,16 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                     "events": [{"event_id": 7001, "event_name": "Task outcome"}],
                 },
             )
+            await upstreams.send_game_event(
+                "NPC_TASK_MEMORY",
+                {
+                    "game_server_id": "91001",
+                    "npc_id": "42",
+                    "npc_name": "Test NPC",
+                    "game_time": "0771-01-01 14:00:00",
+                    "messages": [{"timestamp": "0771-01-01 14:00:00", "content": "Task completed", "message_id": "task-id"}],
+                },
+            )
             await client.aclose()
 
         paths = [request.url.path for request in seen]
@@ -443,6 +455,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("/callback/npc-dialogue/choice", paths)
         self.assertIn("/internal/v1/organization-tasks/dialogues/report", paths)
         self.assertIn("/callback/game-reports/emergency", paths)
+        self.assertIn("/callback/game-reports/system-message", paths)
         org_requests = [request for request in seen if request.url.host == "org"]
         bearer_requests = [request for request in seen if request.url.host != "org"]
         self.assertTrue(all(request.headers.get("x-org-service-signature") for request in org_requests))

@@ -3,7 +3,7 @@
 ## 入口与交付包
 
 - 游戏入口：`http://127.0.0.1:8780/`
-- 东周网关镜像：`dongzhou-integration:20261111-local-complete40`
+- 东周网关镜像：`dongzhou-integration:20261111-local-complete42`
 - AINPC 八角色镜像：`ainpc-app:v20261111-dongzhou-local-complete20`
 - orgFlow API/Worker 镜像：`org-flow-engine:dongzhou-local-complete23`
 - H5 完整包：`output/2026-11-11-dongzhou-integrated-h5-complete37.zip`
@@ -66,6 +66,7 @@ AINPC 容器通过宿主回环代理访问 LoongEQ、LoongMemory、输入预检�
 - AINPC `complete20` 将长组织通知按最多 800 字、64 字重叠的片段逐段送入 AIFirewall；任一片段被替换即整体拦截，任一调用失败仍整体不可用，保持 fail-closed。原 1038 字通知已从上游 `502` 恢复为正式策略判定，orgFlow 随后自动重试并完成同一任务。
 - `ainpc-readiness-complete23` 曾因 Docker Desktop 引擎失联只确认胜任度传递；其异步终态缺口已由后续 `complete38-race-fixed` 同任务全链验收覆盖。
 - 官署终态现增加第二个 NexusKernel 人在回路：orgFlowEngine 的贡献、功绩和终态先生成不可改写的封存凭据，玩家必须在官署选择“收纳复命”或“申斥”后才能推进月令。收纳才发放战前助益；申斥仍照录上游贡献与功绩，但取消战前助益或外交成功并扣减属官信任、关系。裁决按任务、玩家、结案摘要幂等保存，刷新和重试不会重复领奖或更换决定。
+- `complete42` 将 orgFlowEngine 的权威任务终态同时回写 AINPC 重要事件和长期系统消息。两条事件使用独立 outbox 重试，只有两者均送达时簿书才显示“经历已形成”；网关升级时会按已封存结果幂等补齐旧任务缺失的长期记忆，不重算成败或奖励。真实任务 `b2b66b37-732c-507b-970d-fb0ff7511698` 与 `cd9d873a-9264-53d1-bfc0-90048f909f11` 已在 AINPC `ops_reports` 持久化为左儒的可读经历，稳定消息号均为 `dongzhou-org-outcome:<task_id>`。
 - 东周网关冷重启后，原存档、任务身份、失败终态和浏览器显示保持一致。
 - H5 包含 172 个关卡、4038 个文件、2520 条角色语音和 1126 个情境音乐 cue；发布校验无错误。
 

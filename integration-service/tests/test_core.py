@@ -18,6 +18,8 @@ from pydantic import ValidationError
 from dongzhou_integration.app import (
     RuntimeModule,
     _npc_outcome_event,
+    _npc_outcome_memory,
+    _npc_outcome_status,
     _organization_task_chance,
     _prepare_due_organization_reports,
     _organization_task_succeeds,
@@ -187,7 +189,24 @@ class OrganizationOutcomeTests(unittest.TestCase):
             first["events"][0]["event_id"], replay["events"][0]["event_id"]
         )
         self.assertEqual(first["events"][0]["metadata"]["final_result"], "FAILURE")
+
+        memory = _npc_outcome_memory(outcome, "REJECTED")
+        self.assertEqual(memory["messages"][0]["content"], first["events"][0]["params"])
+        self.assertEqual(
+            memory["messages"][0]["message_id"],
+            "dongzhou-org-outcome:00000000-0000-4000-8000-000000000099",
+        )
         self.assertTrue(first["events"][0]["interrupt_trace_id"])
+
+    def test_npc_outcome_status_requires_event_and_memory(self) -> None:
+        delivered = {"state": "DELIVERED", "attempts": 1, "lastError": None}
+        pending = {"state": "PENDING", "attempts": 2, "lastError": "temporary"}
+        self.assertEqual(_npc_outcome_status(delivered, None)["state"], "PENDING")
+        combined = _npc_outcome_status(delivered, pending)
+        self.assertEqual(combined["state"], "PENDING")
+        self.assertEqual(combined["attempts"], 3)
+        self.assertEqual(combined["lastError"], "temporary")
+        self.assertEqual(_npc_outcome_status(delivered, delivered)["state"], "DELIVERED")
 
 
 class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
@@ -1175,13 +1194,17 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         )
         try:
             deadline = asyncio.get_running_loop().time() + 2
-            while len(upstreams.events) < 2 and asyncio.get_running_loop().time() < deadline:
+            while len(upstreams.events) < 3 and asyncio.get_running_loop().time() < deadline:
                 await asyncio.sleep(0.01)
         finally:
             dispatch.cancel()
             await asyncio.gather(dispatch, return_exceptions=True)
-        self.assertEqual([kind for kind, _ in upstreams.events], ["ORG_REPORT_START", "NPC_TASK_OUTCOME"])
-        event = upstreams.events[1][1]
+        self.assertEqual(
+            {kind for kind, _ in upstreams.events},
+            {"ORG_REPORT_START", "NPC_TASK_OUTCOME", "NPC_TASK_MEMORY"},
+        )
+        payloads = {kind: payload for kind, payload in upstreams.events}
+        event = payloads["NPC_TASK_OUTCOME"]
         self.assertEqual(event["npc_id"], "42")
         self.assertEqual(event["events"][0]["metadata"]["final_result"], "PARTIAL")
         self.assertEqual(event["events"][0]["metadata"]["mandate_digest"], "a" * 64)
@@ -1195,7 +1218,41 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         status = await self.store.game_event_status("npc-outcome:" + task_id)
         self.assertEqual(status["state"], "DELIVERED")
         self.assertEqual(status["attempts"], 1)
+        memory = payloads["NPC_TASK_MEMORY"]
+        self.assertEqual(memory["messages"][0]["content"], event["events"][0]["params"])
+        memory_status = await self.store.game_event_status("npc-memory:" + task_id)
+        self.assertEqual(memory_status["state"], "DELIVERED")
+        self.assertEqual(memory_status["attempts"], 1)
         self.assertEqual(await self.store.pending_game_events(), [])
+
+    async def test_startup_backfills_missing_npc_memory_once(self) -> None:
+        task_id = str(uuid4())
+        outcome = {
+            "task_id": task_id,
+            "game_server_id": "91001",
+            "npc_id": "42",
+            "npc_name": "Zuo Ru",
+            "game_time": "0771-01-01 14:00:00",
+            "task_name": "Supply transport",
+            "stage_title": "Eastern Outskirts",
+        }
+        await self.store.enqueue_game_event(
+            "npc-outcome:" + task_id,
+            "NPC_TASK_OUTCOME",
+            _npc_outcome_event(outcome, "SUCCESS"),
+        )
+        await self.store.finish_game_event("npc-outcome:" + task_id)
+        runtime = RuntimeModule(self.store, _HealthyUpstreams(), None)
+        await runtime._backfill_npc_memories()
+        first = await self.store.pending_game_events()
+        self.assertEqual([item["kind"] for item in first], ["NPC_TASK_MEMORY"])
+        self.assertEqual(
+            first[0]["payload"]["messages"][0]["message_id"],
+            "dongzhou-org-outcome:" + task_id,
+        )
+        await runtime._backfill_npc_memories()
+        replay = await self.store.pending_game_events()
+        self.assertEqual(replay, first)
 
     async def test_save_and_report_outbox_roll_back_together(self) -> None:
         import sqlite3

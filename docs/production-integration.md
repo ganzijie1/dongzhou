@@ -4,7 +4,7 @@
 
 浏览器只访问 `dongzhou-integration-service`。该服务基于 NexusKernel，持有服务端存档、玩家会话、幂等记录和上游凭据；H5 不直接访问 AINPC、orgFlowEngine 或 knowledge-jizhan。
 
-本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。当前网关镜像为 `dongzhou-integration:20261111-local-complete40`，AINPC 八角色为 `ainpc-app:v20261111-dongzhou-local-complete20`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete23`。`complete40` 已覆盖双向府中书问、任务启动竞态、过期日程持久生成等待、人工复命裁决及可读账簿；真实浏览器已完成同一任务从四服务签令到战斗承接的闭环。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
+本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。当前网关镜像为 `dongzhou-integration:20261111-local-complete42`，AINPC 八角色为 `ainpc-app:v20261111-dongzhou-local-complete20`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete23`。`complete42` 已覆盖双向府中书问、任务启动竞态、过期日程持久生成等待、人工复命裁决、可读账簿及任务结果回写 AINPC 长期记忆；真实浏览器已完成同一任务从四服务签令到战斗承接的闭环。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
 
 ## 发布顺序
 
@@ -35,6 +35,7 @@
 - 官署任务的事实结果、组织贡献和成员功绩以 orgFlowEngine 正式虚拟任务终态为准，玩家申斥不能改写；申斥只取消本次战前助益或外交成功，并降低属官信任与关系。联网模式不会再用浏览器随机数结算，也不会在玩家裁决前发放奖励。
 - 官署面板通过独立的 `organizations:roster:read` 服务权限读取 orgFlowEngine 名册快照；网关只保留配置映射内的英雄编号、官职和贡献账本，剥离组织、成员、岗位 UUID。页面标注“官署实账”的功绩与军府贡献来自该快照，不以本地累计值冒充远端真值。
 - 到期复命出队前重新读取真实任务：只有 `IN_PROGRESS` 才创建 AINPC 复命；尚未领命等非终态保留队列，已终态直接结束该队列事件。旧版本提前创建的失败复命不能靠重复 POST 恢复，需核实 AINPC 的恢复轮次和管理接口，不能换新操作号绕过幂等。
+- 复命终态会拆成 AINPC 重要事件和长期系统消息两条独立 outbox。重要事件驱动认知、情绪和关系链，系统消息进入 AINPC 自有 `ops_reports` 与 LoongMemory 观察链；两者分别重试，稳定 `source_record_id/message_id` 均绑定原 orgFlow 任务号。任务读取只有在两条都 `DELIVERED` 时返回“经历已形成”。启动迁移只从已送达的权威结果事件补长期消息，不重新计算结果或奖励。
 - 颁令只有收到 `ACCEPTED` 和远端任务号后才扣粮、写入本地差事；拒单的幂等回放不会显示领命成功。提交期间禁用重复颁令，远端任务号与本地差事一并存档。
 - 官署台账最多保留最近 40 条已结束差事，所有未复命差事继续保留；未投入战斗的筹备不随台账裁剪。持久序号独立于台账长度，旧存档从现有差事编号迁移。
 - 战斗完整初始化成功后才提交战备消费，部署与开场脚本异常均回滚；消费日志在云保存失败后恢复，按战备业务 ID 去重，跨页面重叠消费只补云档中真实剩余份额。恢复无法写回云档时暂停进入游戏，避免沿用未消费的旧档。
@@ -46,7 +47,7 @@
 
 ## 发布门禁
 
-当前验收记录（2026-11-11）：真实网关、AINPC、orgFlowEngine、knowledge-jizhan 和嵌入式 NexusKernel 均在线。无 API 拦截浏览器在任务 `cd9d873a-9264-53d1-bfc0-90048f909f11` 上验证了史料、军议、签令、领命、复命、NPC 审核、玩家收纳复命、云存档重载和战斗承接，且恢复没有重复建单；证据见 `output/integration-validation/live-kernel-mandate-complete38-race-fixed.json` 与 `live-kernel-mandate-complete40-final.png`。东周网关测试为 `71 passed, 21 subtests passed`，AINPC 组织任务适配为 `16 passed`。实际公网 TLS、后端端口隔离、可信回调网络及宿主重启恢复仍需独立验收。
+当前验收记录（2026-11-11）：真实网关、AINPC、orgFlowEngine、knowledge-jizhan 和嵌入式 NexusKernel 均在线。无 API 拦截浏览器在任务 `cd9d873a-9264-53d1-bfc0-90048f909f11` 上验证了史料、军议、签令、领命、复命、NPC 审核、玩家收纳复命、云存档重载和战斗承接，且恢复没有重复建单；证据见 `output/integration-validation/live-kernel-mandate-complete38-race-fixed.json` 与 `live-kernel-mandate-complete40-final.png`。该任务及任务 `b2b66b37-732c-507b-970d-fb0ff7511698` 的长期经历已从 AINPC 自有持久库回读确认。东周网关测试为 `73 passed, 21 subtests passed`，AINPC 组织任务适配为 `16 passed`。实际公网 TLS、后端端口隔离、可信回调网络及宿主重启恢复仍需独立验收。
 
 运行 `integration-service/.venv/Scripts/python.exe tools/verify-live-integration.py --url <网关地址> --output output/integration-validation/live-smoke.json` 验证真实健康、独立访客存档及冲突隔离、首中末关卡已发布史料、AI 检索、NPC 状态和 90 天日程。任一项失败则退出码非零；此检查不会派差或推进共享游戏时钟，不能代替任务复命与发布验收。
 
