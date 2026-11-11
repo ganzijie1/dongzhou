@@ -4,7 +4,7 @@
 
 浏览器只访问 `dongzhou-integration-service`。该服务基于 NexusKernel，持有服务端存档、玩家会话、幂等记录和上游凭据；H5 不直接访问 AINPC、orgFlowEngine 或 knowledge-jizhan。
 
-本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。此前真实服务完整闭环验收为 9/9 PASS；`complete35` 增加 AINPC 任务意愿闭环，当前 `complete37` 又将官署书问补成玩家与 NPC 的正式双向私聊。当前网关镜像为 `dongzhou-integration:20261111-local-complete37`，AINPC 八角色为 `ainpc-app:v20261111-dongzhou-local-complete18`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete23`。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
+本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。此前真实服务完整闭环验收为 9/9 PASS；`complete35` 增加 AINPC 任务意愿闭环，当前 `complete37` 又将官署书问补成玩家与 NPC 的正式双向私聊。当前网关镜像为 `dongzhou-integration:20261111-local-complete37`，AINPC 八角色为 `ainpc-app:v20261111-dongzhou-local-complete19`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete23`。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
 
 ## 发布顺序
 
@@ -12,7 +12,7 @@
 2. 在 knowledge-jizhan 工作台登记新来源，执行 schema/内容一致性校验，发布并同步检索索引。管理模式不会自动导入。
 3. 在 orgFlowEngine 运行 `python scripts/publish_dongzhou_catalog.py --publish`，发布 `config/organizations/dongzhou_court_v2.json`，用 `dongzhou_court` 模板建立官署并导入武将；把每个稳定武将 ID 与其实际占用的岗位 UUID 写入 `DONGZHOU_ORGFLOW_HERO_SLOTS`。未映射武将会拒绝派单，不会错派给其他成员。
 4. 将 AINPC 的 `ORGANIZATION_TASK_SERVICE_BEARER_TOKEN` 以同值注入 `DONGZHOU_AINPC_TASK_TOKEN`。该令牌只用于服务端到期复命出站队列，禁止进入 H5、日志或存档。
-5. 用 AINPC 仓库的 `docker/v2/docker-compose-dongzhou.yml` 叠加环境。日程事务目录唯一 owner 是 Gateway；Business 通过 typed proxy 读取 Gateway，必须给 Gateway 配置 `AINPC_CONST_CSV_SCHEDULE_TRANSACTIONS`，指向东周专用 12 类官署事务，不替换通用 CSV。当前本机 Gateway、Global、Business 固定为 `ainpc-app:v20261111-dongzhou-local-complete18`，由 `docker/v2/docker-compose-dongzhou-local-complete.yml` 统一覆盖。保留基础配置的 entrypoint、网络、挂载、端口和托管凭据；更新现有实例前按 Docker 标签保留每个服务原 Compose 项目归属，不能把不同项目的现有容器统一当作新项目创建。目录升级不会自动迁移已提交日程，必须通过正式重拟接口并回读验收。
+5. 用 AINPC 仓库的 `docker/v2/docker-compose-dongzhou.yml` 叠加环境。日程事务目录唯一 owner 是 Gateway；Business 通过 typed proxy 读取 Gateway，必须给 Gateway 配置 `AINPC_CONST_CSV_SCHEDULE_TRANSACTIONS`，指向东周专用 12 类官署事务，不替换通用 CSV。当前本机 Gateway、Global、Business 固定为 `ainpc-app:v20261111-dongzhou-local-complete19`，由 `docker/v2/docker-compose-dongzhou-local-complete.yml` 统一覆盖。保留基础配置的 entrypoint、网络、挂载、端口和托管凭据；更新现有实例前按 Docker 标签保留每个服务原 Compose 项目归属，不能把不同项目的现有容器统一当作新项目创建。目录升级不会自动迁移已提交日程，必须通过正式重拟接口并回读验收。
 6. 启动 AINPC V2 的 gateway、global、business 实例及其 NATS/Mongo/Redis 依赖，确认目标 NPC 已注册且 Actor 可用。Windows 宿主执行 Compose 时必须把 `AINPC_DATA_ROOT` 设为实际宿主目录（当前环境为 `E:/game/.runtime/ainpc/v2`）；容器内路径沿基础配置挂载，不因宿主路径不同而直接改容器目录。
 7. 部署 integration gateway，执行 `/health/live`、`/health/ready` 和 `/api/dongzhou/v1/integration/status` 探测，再开放入口流量。
 
@@ -30,6 +30,7 @@
 - 签令前，网关把关卡、已发布史料、属官裁断和差事组成一条确定的军情，调用 AINPC V2 正式全局入口 `POST /callback/emergency-assessment/evaluate`。返回的急报判定、评分、评估时刻和中断追踪号由 NexusKernel 一并封入军令摘要，并写入 orgFlowEngine 任务简报；急报为情报/巡防提供 8 点优先处置加成，其他差事提供 5 点，常报不加成。旧式 `/ai/npc/emergency/evaluate` 在 V2 网关不开放，不能作为联调地址。
 - 属官状态使用 AINPC 正式人格档案接口并强制 `auto_initialize=false`。军粮、整训、巡防、情报、外交分别按性格特征计算适岗分，分数会影响胜任度和最终成功概率；人格档案、主性格、任务适岗分及影响因子由 NexusKernel 封入军令，并写入 orgFlowEngine 任务简报。档案缺失时按中性因子继续游戏，东周不会代替 AINPC 生成人格或写回档案。
 - 玩家传话使用 AINPC 正式 `CHAT_TURN` 入站契约，不在 H5 内生成或伪造回复。网关以玩家 UUID 派生不与 NPC 冲突的稳定 ID，先登记双人会话，再以客户端请求 UUID 派生幂等任务和消息 ID。NPC 回复必须经过 `NDLLMSendPrivateMessage` 回调持久化后才可展示；回调省略 `playerInfo` 时，以同任务封存的唯一非说话者参与者恢复目标，并继续按当前玩家稳定 ID 隔离读取。
+- AINPC Business 组织模块通过 typed contract 暴露已有的只读组织知识 owner。书问涉及组织、任务或贡献时，AINPC 以当前 NPC、玩家、会话和源消息绑定的范围查询 orgFlowEngine，并在表达前校验响应身份和披露证明；知识可读与贡献无权访问是两种正式结果，均不得被模型扩权或改写。
 - 军令状态随任务从 `ISSUED` 进入 `ORDERED`。orgFlowEngine 终态先由网关校验并封存贡献、功绩和结案摘要，NexusKernel 再生成可恢复的复命裁决；玩家收纳后进入 `FULFILLED`、`PARTIAL` 或 `FAILED`，申斥后进入 `CENSURED`，战斗报告落档后进入 `RESOLVED`。军令、军议、史料和复命裁决随战备跨页面及云存档恢复，不以浏览器提示文字代替持久记录。
 - 官署任务的事实结果、组织贡献和成员功绩以 orgFlowEngine 正式虚拟任务终态为准，玩家申斥不能改写；申斥只取消本次战前助益或外交成功，并降低属官信任与关系。联网模式不会再用浏览器随机数结算，也不会在玩家裁决前发放奖励。
 - 官署面板通过独立的 `organizations:roster:read` 服务权限读取 orgFlowEngine 名册快照；网关只保留配置映射内的英雄编号、官职和贡献账本，剥离组织、成员、岗位 UUID。页面标注“官署实账”的功绩与军府贡献来自该快照，不以本地累计值冒充远端真值。
