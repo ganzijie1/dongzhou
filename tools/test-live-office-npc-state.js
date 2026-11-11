@@ -12,7 +12,7 @@ try {
 }
 
 const root = path.resolve(__dirname, '..');
-const output = path.join(root, 'output', 'integration-validation', 'live-office-npc-state-complete53.png');
+const output = path.join(root, 'output', 'integration-validation', 'live-office-npc-state-complete80.png');
 const executablePath = [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
@@ -23,13 +23,17 @@ const executablePath = [
   const context = await browser.newContext({ viewport: { width: 1365, height: 900 } });
   const page = await context.newPage();
   const requests = { sync: 0, state: 0, schedule: 0 };
+  const scheduleStatuses = [];
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.name));
   page.on('response', (response) => {
     const pathname = new URL(response.url()).pathname;
     if (pathname.endsWith('/npcs/sync')) requests.sync += 1;
     if (/\/npcs\/[^/]+\/state$/.test(pathname)) requests.state += 1;
-    if (/\/npcs\/[^/]+\/schedule$/.test(pathname)) requests.schedule += 1;
+    if (/\/npcs\/[^/]+\/schedule$/.test(pathname)) {
+      requests.schedule += 1;
+      scheduleStatuses.push({ method: response.request().method(), status: response.status() });
+    }
   });
 
   try {
@@ -43,15 +47,14 @@ const executablePath = [
     assert.equal(stateBody.knownNpcIds[stateBody.heroId], stateBody.npcId);
     await page.waitForSelector('#campaignOfficeBackdrop:not([hidden])');
     await page.waitForSelector('#officeNpcState strong', { timeout: 45000 });
-    await page.waitForFunction(() => {
-      const text = document.querySelector('#officeNpcSchedule')?.textContent || '';
-      return text && !text.includes('正在');
-    }, null, { timeout: 45000 });
+    await page.waitForSelector('#officeNpcSchedule strong', { timeout: 90000 });
 
     const stateText = await page.locator('#officeNpcState').innerText();
     const scheduleText = await page.locator('#officeNpcSchedule').innerText();
-    assert(!/temporarily unavailable|正在恢复/i.test(stateText));
+    assert(!/temporarily unavailable|正在恢复|暂不可用/i.test(stateText));
+    assert(!/temporarily unavailable|正在恢复|暂不可用/i.test(scheduleText));
     assert(stateText.trim().length > 0 && scheduleText.trim().length > 0);
+    assert(scheduleStatuses.some((entry) => entry.method === 'GET' && entry.status === 200));
     const relationshipItems = stateBody.relationships?.data?.items || stateBody.relationships?.items || [];
     if (relationshipItems.length) {
       assert.match(stateText, /人情簿/);
@@ -62,7 +65,7 @@ const executablePath = [
 
     fs.mkdirSync(path.dirname(output), { recursive: true });
     await page.screenshot({ path: output, fullPage: true });
-    console.log(JSON.stringify({ result: 'PASS', mode: 'real-services-browser-no-interception', requests, knownHeroes: Object.keys(stateBody.knownNpcIds).length, relationshipDetails: relationshipItems.length, screenshot: output }));
+    console.log(JSON.stringify({ result: 'PASS', mode: 'real-services-browser-no-interception', requests, scheduleStatuses, knownHeroes: Object.keys(stateBody.knownNpcIds).length, relationshipDetails: relationshipItems.length, screenshot: output }));
   } finally {
     await browser.close();
   }
