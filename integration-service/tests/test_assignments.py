@@ -1,6 +1,7 @@
 from dongzhou_integration.assignments import (
     AssignmentUnavailable,
     assignment_readiness,
+    manager_support,
     motivation_task_fit,
     personality_task_fit,
     select_assignment,
@@ -19,14 +20,21 @@ def test_selects_matching_duty_nearest_stage_range() -> None:
         stage_id="12b",
         npc_state={
             "emotion": {"dominant": {"emotion_type": "focused", "intensity": 0.7}},
-            "affection": {"items": [1, 2]},
-            "relationships": {"total": 3},
+            "affection": {"items": [
+                {"target_id": "41", "dominant_affection_type": "respect", "max_value": 50, "affection_count": 2},
+                {"target_id": "99", "dominant_affection_type": "hatred", "max_value": 100, "affection_count": 4},
+            ]},
+            "relationships": {"items": [
+                {"target_id": "41", "relation_type": "organization", "relation_sub": "superior_subordinate", "is_bilateral": True},
+                {"target_id": "99", "relation_type": "family", "is_bilateral": True},
+            ]},
         },
         schedule_response=schedule(
             {"day": 1, "date": "0772-01-01", "start_level": 1, "end_level": 5, "events": [{"id": "old", "transaction_id": 9100105}]},
             {"day": 4, "date": "0772-01-04", "start_level": 10, "end_level": 20, "events": [{"id": "right", "transaction_id": 9100105, "name": "访求军情", "importance": 85}]},
         ),
         runtime={"state": "READY"},
+        manager_npc_id="41",
     )
     assert result["eventId"] == "right"
     assert result["runtimeState"] == "READY"
@@ -34,12 +42,23 @@ def test_selects_matching_duty_nearest_stage_range() -> None:
         "emotion": "focused",
         "intensity": 0.7,
         "affectionCount": 2,
-        "relationshipCount": 3,
+        "relationshipCount": 2,
+    }
+    assert result["managerSupport"] == {
+        "managerNpcId": "41",
+        "affection": {"type": "respect", "value": 50.0, "count": 2},
+        "relationships": [{
+            "type": "organization",
+            "subtype": "superior_subordinate",
+            "title": "",
+            "bilateral": True,
+        }],
+        "factor": 5.5,
     }
     assert result["readiness"] == {
-        "score": 74,
+        "score": 73,
         "band": "watch",
-        "factors": {"runtime": 6.0, "duty": 6.3, "emotion": 0.0, "support": 7.0, "personality": 0.0, "motivation": 0.0},
+        "factors": {"runtime": 6.0, "duty": 6.3, "emotion": 0.0, "support": 5.5, "personality": 0.0, "motivation": 0.0},
     }
     assert result["personality"] == {
         "available": False,
@@ -48,6 +67,34 @@ def test_selects_matching_duty_nearest_stage_range() -> None:
     assert result["motivation"] == {
         "available": False,
         "fit": {"available": False, "score": None, "band": "unavailable", "factor": 0.0, "signals": []},
+    }
+
+
+def test_manager_support_uses_only_the_named_manager_and_can_be_negative() -> None:
+    support = manager_support(
+        {
+            "affection": {"data": {"items": [
+                {"target_id": "manager", "dominant_affection_type": "hatred", "max_value": 100, "affection_count": 3},
+                {"target_id": "other", "dominant_affection_type": "love", "max_value": 100, "affection_count": 9},
+            ]}},
+            "relationships": {"data": {"items": [
+                {"target_id": "manager", "relation_type": "organization", "relation_sub": "superior_subordinate", "is_active": True},
+                {"target_id": "other", "relation_type": "family", "is_bilateral": True, "is_active": True},
+                {"target_id": "manager", "relation_type": "family", "is_bilateral": True, "is_active": False},
+            ]}},
+        },
+        "manager",
+    )
+    assert support == {
+        "managerNpcId": "manager",
+        "affection": {"type": "hatred", "value": 100.0, "count": 3},
+        "relationships": [{
+            "type": "organization",
+            "subtype": "superior_subordinate",
+            "title": "",
+            "bilateral": False,
+        }],
+        "factor": -4.0,
     }
 
 

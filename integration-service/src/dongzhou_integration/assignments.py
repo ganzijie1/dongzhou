@@ -73,6 +73,12 @@ _TASK_MOTIVATION_KEYWORDS = {
     "diplomacy": ("diplomacy", "外交", "盟", "交涉", "游说", "诸侯", "使者"),
 }
 
+_POSITIVE_AFFECTIONS = {
+    "love", "adoration", "kinship", "friendship", "dependence", "respect", "appreciation"
+}
+_NEGATIVE_AFFECTIONS = {"annoyance": -4.0, "hatred": -6.0}
+_RELATIONSHIP_WEIGHTS = {"family": 3.0, "legal": 2.0, "organization": 2.0, "social": 1.0}
+
 
 class AssignmentUnavailable(ValueError):
     pass
@@ -97,6 +103,65 @@ def _count(value: Any) -> int:
         return total
     items = payload.get("items")
     return len(items) if isinstance(items, list) else 0
+
+
+def manager_support(npc_state: dict[str, Any], manager_npc_id: str) -> dict[str, Any]:
+    manager_id = str(manager_npc_id)
+    affection_items = _payload(npc_state.get("affection")).get("items")
+    relationship_items = _payload(npc_state.get("relationships")).get("items")
+    affection_items = affection_items if isinstance(affection_items, list) else []
+    relationship_items = relationship_items if isinstance(relationship_items, list) else []
+
+    affection = next(
+        (
+            item for item in affection_items
+            if isinstance(item, dict) and str(item.get("target_id") or "") == manager_id
+        ),
+        None,
+    )
+    affection_factor = 0.0
+    affection_snapshot = None
+    if isinstance(affection, dict):
+        affection_type = str(affection.get("dominant_affection_type") or "").casefold()
+        value = max(0.0, min(100.0, _number(affection.get("max_value"))))
+        if affection_type in _POSITIVE_AFFECTIONS:
+            affection_factor = value * 0.06
+        elif affection_type in _NEGATIVE_AFFECTIONS:
+            affection_factor = value * _NEGATIVE_AFFECTIONS[affection_type] / 100.0
+        affection_snapshot = {
+            "type": affection_type,
+            "value": round(value, 1),
+            "count": max(0, _integer(affection.get("affection_count"))),
+        }
+
+    relationships = []
+    relationship_factor = 0.0
+    for item in relationship_items:
+        if (
+            not isinstance(item, dict)
+            or str(item.get("target_id") or "") != manager_id
+            or item.get("is_active") is False
+        ):
+            continue
+        relation_type = str(item.get("relation_type") or "").casefold()
+        relationship_factor += _RELATIONSHIP_WEIGHTS.get(relation_type, 0.0)
+        if item.get("is_bilateral") is True:
+            relationship_factor += 0.5
+        relationships.append(
+            {
+                "type": relation_type,
+                "subtype": str(item.get("relation_sub") or ""),
+                "title": str(item.get("title") or ""),
+                "bilateral": item.get("is_bilateral") is True,
+            }
+        )
+    factor = max(-8.0, min(10.0, affection_factor + min(4.0, relationship_factor)))
+    return {
+        "managerNpcId": manager_id,
+        "affection": affection_snapshot,
+        "relationships": relationships,
+        "factor": round(factor, 1),
+    }
 
 
 def _integer(value: Any, fallback: int = 0) -> int:
@@ -125,6 +190,7 @@ def assignment_readiness(
     intensity: float,
     affection_count: int,
     relationship_count: int,
+    support_factor: float | None = None,
     personality_factor: float = 0.0,
     motivation_factor: float = 0.0,
 ) -> dict[str, Any]:
@@ -141,9 +207,10 @@ def assignment_readiness(
         emotion_factor = -bounded_intensity * 0.03
     else:
         emotion_factor = 0.0
-    support_factor = min(
-        10.0,
-        max(0, affection_count) * 2.0 + max(0, relationship_count),
+    support_factor = (
+        min(10.0, max(0, affection_count) * 2.0 + max(0, relationship_count))
+        if support_factor is None
+        else max(-8.0, min(10.0, support_factor))
     )
     bounded_personality_factor = max(-8.0, min(8.0, personality_factor))
     bounded_motivation_factor = max(-8.0, min(6.0, motivation_factor))
@@ -257,6 +324,7 @@ def select_assignment(
     runtime: dict[str, Any] | None,
     personality: dict[str, Any] | None = None,
     motivation: dict[str, Any] | None = None,
+    manager_npc_id: str | None = None,
 ) -> dict[str, Any]:
     transaction_id = TASK_TRANSACTION_IDS.get(task_type)
     if transaction_id is None:
@@ -294,6 +362,9 @@ def select_assignment(
     importance = max(0, min(100, _integer(event.get("importance"))))
     fit = personality_task_fit(task_type, personality)
     willingness = motivation_task_fit(task_type, motivation)
+    support = manager_support(npc_state, manager_npc_id) if manager_npc_id else {
+        "managerNpcId": None, "affection": None, "relationships": [], "factor": 0.0
+    }
     state = {
         "emotion": str(dominant.get("emotion_type") or "calm"),
         "intensity": max(0.0, min(100.0, _number(dominant.get("intensity")))),
@@ -327,6 +398,7 @@ def select_assignment(
             **(motivation or {"available": False}),
             "fit": willingness,
         },
+        "managerSupport": support,
         "readiness": assignment_readiness(
             runtime_state=runtime_state,
             importance=importance,
@@ -334,6 +406,7 @@ def select_assignment(
             intensity=state["intensity"],
             affection_count=state["affectionCount"],
             relationship_count=state["relationshipCount"],
+            support_factor=support["factor"],
             personality_factor=fit["factor"],
             motivation_factor=willingness["factor"],
         ),

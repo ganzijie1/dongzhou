@@ -4,7 +4,7 @@
 
 浏览器只访问 `dongzhou-integration-service`。该服务基于 NexusKernel，持有服务端存档、玩家会话、幂等记录和上游凭据；H5 不直接访问 AINPC、orgFlowEngine 或 knowledge-jizhan。
 
-本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。当前网关镜像为 `dongzhou-integration:20261111-local-complete42`，AINPC 八角色为 `ainpc-app:v20261111-dongzhou-local-complete20`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete23`。`complete42` 已覆盖双向府中书问、任务启动竞态、过期日程持久生成等待、人工复命裁决、可读账簿及任务结果回写 AINPC 长期记忆；真实浏览器已完成同一任务从四服务签令到战斗承接的闭环。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
+本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。当前网关镜像为 `dongzhou-integration:20261111-local-complete43`，AINPC 八角色为 `ainpc-app:v20261111-dongzhou-local-complete20`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete23`。`complete43` 已覆盖双向府中书问、任务启动竞态、过期日程持久生成等待、人工复命裁决、可读账簿、任务结果回写 AINPC 长期记忆，以及属官到主管的定向关系协同；真实浏览器已完成同一任务从四服务签令到战斗承接的闭环。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
 
 ## 发布顺序
 
@@ -36,6 +36,7 @@
 - 官署面板通过独立的 `organizations:roster:read` 服务权限读取 orgFlowEngine 名册快照；网关只保留配置映射内的英雄编号、官职和贡献账本，剥离组织、成员、岗位 UUID。页面标注“官署实账”的功绩与军府贡献来自该快照，不以本地累计值冒充远端真值。
 - 到期复命出队前重新读取真实任务：只有 `IN_PROGRESS` 才创建 AINPC 复命；尚未领命等非终态保留队列，已终态直接结束该队列事件。旧版本提前创建的失败复命不能靠重复 POST 恢复，需核实 AINPC 的恢复轮次和管理接口，不能换新操作号绕过幂等。
 - 复命终态会拆成 AINPC 重要事件和长期系统消息两条独立 outbox。重要事件驱动认知、情绪和关系链，系统消息进入 AINPC 自有 `ops_reports` 与 LoongMemory 观察链；两者分别重试，稳定 `source_record_id/message_id` 均绑定原 orgFlow 任务号。任务读取只有在两条都 `DELIVERED` 时返回“经历已形成”。启动迁移只从已送达的权威结果事件补长期消息，不重新计算结果或奖励。
+- 差事胜任度中的关系协同只读取属官指向当前 orgFlow 主管的 AINPC 好感和有效关系；其他目标不会参与。正向好感与上下级关系加分，厌恶和仇恨扣分，主管关系快照与最终因子随 NexusKernel 军令封存，避免结算时因实时状态变化而重算。
 - 颁令只有收到 `ACCEPTED` 和远端任务号后才扣粮、写入本地差事；拒单的幂等回放不会显示领命成功。提交期间禁用重复颁令，远端任务号与本地差事一并存档。
 - 官署台账最多保留最近 40 条已结束差事，所有未复命差事继续保留；未投入战斗的筹备不随台账裁剪。持久序号独立于台账长度，旧存档从现有差事编号迁移。
 - 战斗完整初始化成功后才提交战备消费，部署与开场脚本异常均回滚；消费日志在云保存失败后恢复，按战备业务 ID 去重，跨页面重叠消费只补云档中真实剩余份额。恢复无法写回云档时暂停进入游戏，避免沿用未消费的旧档。

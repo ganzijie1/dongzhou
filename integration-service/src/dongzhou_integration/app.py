@@ -865,6 +865,19 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     )
     router = APIRouter(prefix="/api/dongzhou/v1")
     game_clock_router = APIRouter()
+    manager_hero_id = next(
+        (
+            hero_id
+            for hero_id, member_id in settings.orgflow_hero_members.items()
+            if member_id == settings.orgflow_manager_member_id
+        ),
+        None,
+    )
+    manager_npc_id = (
+        str(stable_npc_id(settings.ainpc_game_server_id, manager_hero_id))
+        if manager_hero_id
+        else None
+    )
 
     def service_statuses(external: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
         kernel_snapshot = kernel.health_status()
@@ -1562,6 +1575,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 runtime=runtime,
                 personality=npc_state.get("personality"),
                 motivation=npc_state.get("motivation"),
+                manager_npc_id=manager_npc_id,
             )
         except UpstreamUnavailable as error:
             raise ApiError(

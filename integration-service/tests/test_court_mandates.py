@@ -14,6 +14,8 @@ from dongzhou_integration.config import Settings
 from dongzhou_integration.security import stable_npc_id, stable_player_id
 from dongzhou_integration.store import Store
 
+MANAGER_NPC_ID = str(stable_npc_id(91001, "DuBo"))
+
 
 class MandateUpstreams:
     def __init__(self) -> None:
@@ -47,7 +49,12 @@ class MandateUpstreams:
     async def npc_state(self, npc_id):
         return {
             "emotion": {"code": 200, "dominant": {"emotion_type": "calm", "intensity": 0.25}},
-            "affection": {"code": 200, "items": [{"target": "army"}], "total": 1},
+            "affection": {"code": 200, "items": [{
+                "target_id": MANAGER_NPC_ID,
+                "dominant_affection_type": "respect",
+                "max_value": 33.3,
+                "affection_count": 1,
+            }], "total": 1},
             "relationships": {"code": 200, "items": [], "total": 0},
             "personality": {
                 "available": True,
@@ -187,8 +194,14 @@ def configured(path: Path) -> Settings:
         orgflow_audience="org-flow-engine-administration",
         orgflow_org_id="00000000-0000-0000-0000-000000000001",
         orgflow_manager_member_id="00000000-0000-0000-0000-000000000002",
-        orgflow_hero_slots={"ZuoRu": "00000000-0000-0000-0000-000000000003"},
-        orgflow_hero_members={"ZuoRu": "00000000-0000-0000-0000-000000000004"},
+        orgflow_hero_slots={
+            "DuBo": "00000000-0000-0000-0000-000000000005",
+            "ZuoRu": "00000000-0000-0000-0000-000000000003",
+        },
+        orgflow_hero_members={
+            "DuBo": "00000000-0000-0000-0000-000000000002",
+            "ZuoRu": "00000000-0000-0000-0000-000000000004",
+        },
         orgflow_hierarchy_version=7,
         game_server_id="91001",
         ainpc_url="http://ainpc",
@@ -428,6 +441,12 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
                 "intensity": 0.25,
                 "affectionCount": 1,
                 "relationshipCount": 0,
+            }
+            assert mandate["assignment"]["managerSupport"] == {
+                "managerNpcId": MANAGER_NPC_ID,
+                "affection": {"type": "respect", "value": 33.3, "count": 1},
+                "relationships": [],
+                "factor": 2.0,
             }
             assert mandate["assignment"]["readiness"] == {
                 "score": 60,
