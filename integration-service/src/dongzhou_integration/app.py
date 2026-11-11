@@ -1588,7 +1588,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         except UpstreamUnavailable as error:
             raise ApiError("ainpc_unavailable", "NPC state is temporarily unavailable.", status_code=503) from error
         runtime = await store.read_npc_runtime(settings.game_server_id, str(npc_id))
-        return {"playerId": str(player_id), "heroId": hero_id, "npcId": str(npc_id), "runtime": runtime or {"state": "INITIALIZING"}, **state}
+        known_npc_ids = {
+            known_hero_id: str(stable_npc_id(settings.ainpc_game_server_id, known_hero_id))
+            for known_hero_id in settings.orgflow_hero_members
+        }
+        return {"playerId": str(player_id), "heroId": hero_id, "npcId": str(npc_id), "knownNpcIds": known_npc_ids, "runtime": runtime or {"state": "INITIALIZING"}, **state}
 
     @router.get("/npcs/{hero_id}/correspondence")
     async def read_npc_correspondence(

@@ -3834,6 +3834,12 @@ button:focus-visible {
 .office-npc-state dl div { min-width: 0; }
 .office-npc-state dt { color: #6d5a43; font-size: 12px; }
 .office-npc-state dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.office-npc-relations { margin-top: 10px; padding-top: 9px; border-top: 1px dotted rgba(174, 146, 69, .24); }
+.office-npc-relations > span { color: #b99344; font-size: 10px; }
+.office-npc-relations ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 14px; margin: 7px 0 0; padding: 0; list-style: none; }
+.office-npc-relations li { display: flex; justify-content: space-between; gap: 8px; min-width: 0; color: #8f9289; font-size: 11px; }
+.office-npc-relations li strong { min-width: 0; overflow-wrap: anywhere; color: #d8cfb5; font-weight: 500; }
+.office-npc-relations li span { flex: none; color: #9b8352; }
 .office-correspondence { margin: 0 0 14px; border-top: 1px solid rgba(174, 146, 69, .22); border-bottom: 1px solid rgba(174, 146, 69, .14); padding: 10px 0; }
 .office-correspondence-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .office-message-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: 8px; }
@@ -3844,7 +3850,7 @@ button:focus-visible {
 .office-correspondence-item span { color: #b9b19d; font-size: 12px; }
 .office-correspondence-item small { grid-column: 1 / -1; color: #74776f; }
 .office-correspondence-item.selected { box-shadow: inset 3px 0 #b99344; }
-@media (max-width: 640px) { .office-npc-state dl { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .office-npc-state dl, .office-npc-relations ul { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .office-message-form, .office-correspondence-item { grid-template-columns: 1fr; } .office-message-form button, .office-correspondence-item button { justify-self: end; } }
 .office-npc-schedule { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 14px; }
 .office-npc-schedule > div { min-width: 0; color: #5e4b34; }

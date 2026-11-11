@@ -12,7 +12,7 @@ try {
 }
 
 const root = path.resolve(__dirname, '..');
-const output = path.join(root, 'output', 'integration-validation', 'live-office-npc-state-complete21.png');
+const output = path.join(root, 'output', 'integration-validation', 'live-office-npc-state-complete53.png');
 const executablePath = [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
@@ -35,7 +35,12 @@ const executablePath = [
   try {
     await page.goto('http://127.0.0.1:8780/', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#app:not([hidden])', { timeout: 45000 });
+    const stateResponsePromise = page.waitForResponse((response) => /\/npcs\/[^/]+\/state$/.test(new URL(response.url()).pathname));
     await page.click('#campaignOfficeButton');
+    const stateResponse = await stateResponsePromise;
+    assert.equal(stateResponse.status(), 200);
+    const stateBody = await stateResponse.json();
+    assert.equal(stateBody.knownNpcIds[stateBody.heroId], stateBody.npcId);
     await page.waitForSelector('#campaignOfficeBackdrop:not([hidden])');
     await page.waitForSelector('#officeNpcState strong', { timeout: 45000 });
     await page.waitForFunction(() => {
@@ -47,12 +52,17 @@ const executablePath = [
     const scheduleText = await page.locator('#officeNpcSchedule').innerText();
     assert(!/temporarily unavailable|正在恢复/i.test(stateText));
     assert(stateText.trim().length > 0 && scheduleText.trim().length > 0);
+    const relationshipItems = stateBody.relationships?.data?.items || stateBody.relationships?.items || [];
+    if (relationshipItems.length) {
+      assert.match(stateText, /人情簿/);
+      assert.match(stateText, /杜伯/);
+    }
     assert(requests.sync >= 1 && requests.state >= 1 && requests.schedule >= 1);
     assert.equal(errors.length, 0);
 
     fs.mkdirSync(path.dirname(output), { recursive: true });
     await page.screenshot({ path: output, fullPage: true });
-    console.log(JSON.stringify({ result: 'PASS', mode: 'real-services-browser-no-interception', requests, screenshot: output }));
+    console.log(JSON.stringify({ result: 'PASS', mode: 'real-services-browser-no-interception', requests, knownHeroes: Object.keys(stateBody.knownNpcIds).length, relationshipDetails: relationshipItems.length, screenshot: output }));
   } finally {
     await browser.close();
   }

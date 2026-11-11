@@ -42,7 +42,7 @@ async function setup(browser) {
     else if(p.endsWith('/knowledge/search')) body={mode:'connected',results:[{id:'dongzhou_stage_001',name:'Stage One Source',summary:'Published source for this stage.',stageId:'01',retrieval:{aggregateScore:.47,strongestChannel:'graph',graphRelated:true,channels:[{channel:'graph',score:1,normalizedScore:1,rank:1},{channel:'bm25',score:7,normalizedScore:.8,rank:2}]},searchReceipt:{id:'dongzhou:council-test-player:00000000-0000-4000-8000-000000000088',digest:'c'.repeat(64)},sourceDetails:[{work:'《史记·周本纪》',tier:'史实骨架',scope:'千亩之败',url:'https://ctext.org/shiji/zhou-ben-ji'}]}]};
     else if(p.endsWith('/npcs/sync')) body={ready:true,npcs:[]};
     else if(p.endsWith('/correspondence')) body={heroId:p.split('/').at(-2),npcId:'42',messages:[clone(CORRESPONDENCE)]};
-    else if(p.endsWith('/state')) body={emotion:{data:{}},affection:{data:{}},relationships:{data:{}}};
+    else if(p.endsWith('/state')) body={knownNpcIds:{DuBo:'41',ZuoRu:'42'},emotion:{data:{}},affection:{data:{items:[{target_id:'42',dominant_affection_type:'respect',max_value:68}],total:1}},relationships:{data:{items:[{target_id:'42',relation_type:'organization',relation_sub:'superior_subordinate',title:'司徒',is_bilateral:true,is_active:true}],total:1}}};
     else if(p.includes('/assignments/')) {const type=p.split('/').at(-1);body={assignment:{heroId:p.split('/').at(-3),npcId:'42',runtimeState:'READY',planId:'plan-browser',generationId:'generation-browser',eventId:`event-${type}`,transactionId:9100103,name:type==='supply'?'转运军粮':'检阅军阵',type:'军务',date:'0772-10-22',day:1,stageRange:{start:1,end:20},timeSlot:'',importance:90,state:{emotion:'calm',intensity:0,affectionCount:0,relationshipCount:0}}};}
     else if(p.endsWith('/schedule')) body={schedule:{data:{schedules:[]}}};
     else if(p.endsWith('/decisions')) {
@@ -76,6 +76,9 @@ async function decide(page) {await page.locator('#officeDecisionForm button[type
   const browser=await chromium.launch({headless:true,...(executablePath?{executablePath}:{})});
   try {
     const happy=await setup(browser), {page,model}=happy;
+    await page.waitForSelector('#officeNpcState >> text=人情簿');
+    assert.match(await page.locator('#officeNpcState').innerText(),/左儒[\s\S]*敬重 68/);
+    assert.match(await page.locator('#officeNpcState').innerText(),/左儒[\s\S]*司徒 · 相互/);
     await decide(page);await page.waitForTimeout(50);
     assert.equal(model.decisions.length,0);
     await knowledge(page);

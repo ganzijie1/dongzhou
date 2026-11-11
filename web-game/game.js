@@ -1042,6 +1042,31 @@
 
   let officeCorrespondenceView = [];
 
+  function officeNpcPeerName(state, targetId) {
+    const heroId = Object.entries(state.knownNpcIds || {}).find(([, npcId]) => String(npcId) === String(targetId))?.[0];
+    return profile.organization.members.find((member) => member.id === heroId)?.name || "未具名人物";
+  }
+
+  function officeAffectionText(type) {
+    return ({ love: "亲爱", respect: "敬重", trust: "信赖", friendship: "亲善", hatred: "仇恨", disgust: "厌恶", fear: "畏惧" })[String(type || "").toLowerCase()] || "牵挂";
+  }
+
+  function officeRelationshipText(item) {
+    if (item.title) return item.title;
+    return ({ superior_subordinate: "上下级", family: "亲族", friend: "友朋", rival: "对手", organization: "同僚" })[item.relation_sub || item.relation_type] || "往来";
+  }
+
+  function officeNpcRelations(state, affection, relationships) {
+    const rows = [];
+    for (const item of Array.isArray(affection.items) ? affection.items : []) {
+      rows.push(`<li><strong>${escapeHtml(officeNpcPeerName(state, item.target_id))}</strong><span>${escapeHtml(officeAffectionText(item.dominant_affection_type))} ${Math.round(Number(item.max_value || 0))}</span></li>`);
+    }
+    for (const item of Array.isArray(relationships.items) ? relationships.items.filter((entry) => entry?.is_active !== false) : []) {
+      rows.push(`<li><strong>${escapeHtml(officeNpcPeerName(state, item.target_id))}</strong><span>${escapeHtml(officeRelationshipText(item))}${item.is_bilateral ? " · 相互" : ""}</span></li>`);
+    }
+    return rows.length ? `<div class="office-npc-relations"><span>人情簿</span><ul>${rows.slice(0, 8).join("")}</ul></div>` : "";
+  }
+
   function renderOfficeCorrespondence(member) {
     const panel = $("#officeCorrespondence");
     if (!panel || !member) return;
@@ -1135,7 +1160,7 @@
       const affection = state.affection?.data || state.affection || {};
       const relationships = state.relationships?.data || state.relationships || {};
       const dominant = emotion.dominant || {};
-      panel.innerHTML = `<strong>${escapeHtml(member.name)} · ${escapeHtml(member.office)}</strong><dl><div><dt>心境</dt><dd>${escapeHtml(dominant.emotion_type || "calm")} ${Math.round(Number(dominant.intensity || 0))}</dd></div><div><dt>牵挂</dt><dd>${Number(affection.total || affection.items?.length || 0)}</dd></div><div><dt>人际</dt><dd>${Number(relationships.total || relationships.items?.length || 0)}</dd></div></dl>`;
+      panel.innerHTML = `<strong>${escapeHtml(member.name)} · ${escapeHtml(member.office)}</strong><dl><div><dt>心境</dt><dd>${escapeHtml(dominant.emotion_type || "calm")} ${Math.round(Number(dominant.intensity || 0))}</dd></div><div><dt>牵挂</dt><dd>${Number(affection.total || affection.items?.length || 0)}</dd></div><div><dt>人际</dt><dd>${Number(relationships.total || relationships.items?.length || 0)}</dd></div></dl>${officeNpcRelations(state, affection, relationships)}`;
       const personality = state.personality || { available: false };
       panel.querySelector("dl")?.insertAdjacentHTML("beforeend", `<div><dt>性情</dt><dd>${escapeHtml(officePersonalityText(personality))}</dd></div>`);
       const motivation = state.motivation || { available: false };
