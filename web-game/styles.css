@@ -3738,7 +3738,8 @@ button:focus-visible {
 .office-members span { color: #b99344; font-size: 11px; }
 .office-members small { grid-column: 1 / -1; color: #85887f; }
 .office-task-ledger { margin: 15px 0 0; padding: 0; list-style: none; }
-.office-task-ledger li { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; padding: 9px 0; border-bottom: 1px dotted rgba(196, 172, 111, .18); font-size: 11px; }
+.office-task-ledger li { display: grid; grid-template-columns: minmax(140px, .7fr) minmax(64px, auto) minmax(0, 1.4fr); gap: 14px; padding: 9px 0; border-bottom: 1px dotted rgba(196, 172, 111, .18); font-size: 11px; }
+.office-task-ledger li > span, .office-task-ledger li > small { min-width: 0; overflow-wrap: anywhere; }
 .office-task-ledger strong { color: #d9cfb5; font-weight: 500; }
 .office-task-ledger small { color: #898b82; }
 .office-task-ledger .success small { color: #9eb27a; }
@@ -3792,6 +3793,8 @@ button:focus-visible {
   .office-mandate-actions { display: flex; justify-content: flex-end; gap: 8px; }
   .office-mandate-approval { grid-template-columns: 1fr; align-items: start; }
   .office-members, .office-knowledge-results { grid-template-columns: 1fr; }
+  .office-task-ledger li { grid-template-columns: minmax(0, 1fr) auto; gap: 5px 12px; }
+  .office-task-ledger li > small { grid-column: 1 / -1; }
 }
 .office-npc-state { margin: 10px 0 14px; padding: 10px 12px; border: 1px solid rgba(174, 146, 69, .28); background: rgba(8, 14, 10, .72); }
 .office-npc-state > strong { display: block; margin-bottom: 8px; }

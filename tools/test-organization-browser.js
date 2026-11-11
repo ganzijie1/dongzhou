@@ -119,6 +119,7 @@ async function openReady(page) {
     let npcCorrespondenceReads = 0;
     let orderAttempts = 0;
     let mandateAttempts = 0;
+    let organizationTaskReads = 0;
     let savedRemoteTask = false;
     let releaseOrder;
     const orderGate = new Promise((resolve) => { releaseOrder = resolve; });
@@ -177,7 +178,12 @@ async function openReady(page) {
           ? { state: "REJECTED", error: { message: "验收拒单" } }
           : { state: "ACCEPTED", taskId: "00000000-0000-0000-0000-000000000010" };
       }
-      else if (/\/organization\/tasks\//.test(pathName)) body = { taskId: "00000000-0000-0000-0000-000000000010", npcOutcome: { state: "DELIVERED", attempts: 1, lastError: null }, result: { data: { task_id: "00000000-0000-0000-0000-000000000010", state: "SUCCEEDED", final_result: "SUCCESS", version: "3" } } };
+      else if (/\/organization\/tasks\//.test(pathName)) {
+        organizationTaskReads += 1;
+        body = organizationTaskReads === 1
+          ? { taskId: "00000000-0000-0000-0000-000000000010", result: { data: { task_id: "00000000-0000-0000-0000-000000000010", state: "MEMBER_RESPONSE_PENDING", execution_started_game_time: null, final_result: null, version: "2" } } }
+          : { taskId: "00000000-0000-0000-0000-000000000010", npcOutcome: { state: "DELIVERED", attempts: 1, lastError: null }, result: { data: { task_id: "00000000-0000-0000-0000-000000000010", state: "SUCCEEDED", execution_started_game_time: 24306616800, final_result: "SUCCESS", version: "3" } } };
+      }
       else return route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: { code: "not_mocked", message: pathName } }) });
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
     });
@@ -243,6 +249,9 @@ async function openReady(page) {
     await online.click("#officeAdvanceButton");
     await online.waitForSelector("#officeTaskLedger li.success");
     await online.waitForSelector("#officeTaskLedger >> text=经历已形成");
+    const taskNameWidth = await online.locator("#officeTaskLedger li.success > span").evaluate((element) => element.getBoundingClientRect().width);
+    if (taskNameWidth < 100) throw new Error(`Task ledger name column collapsed to ${taskNameWidth}px`);
+    if (organizationTaskReads < 2) throw new Error("A pending organization task was not polled within the same month advance");
     if (!savedRemoteTask) throw new Error("Remote task binding was not persisted");
     await online.screenshot({ path: path.join(OUT, "desktop-office-online.png"), fullPage: false });
     if (errors.length) throw new Error(`Page errors: ${errors.join(" | ")}`);

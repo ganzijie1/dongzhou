@@ -68,6 +68,11 @@ saveJournal();
     }, { timeout: 45000 });
     await page.selectOption("#officeMemberSelect", "ZuoRu");
 
+    const recoveringExisting = resume && Boolean(journal.remoteTask && journal.mandateId);
+    let council;
+    let issued;
+
+    if (!recoveringExisting) {
     journal.stage = "knowledge";
     saveJournal();
     await page.click("#officeStageKnowledgeButton");
@@ -84,7 +89,7 @@ saveJournal();
     await page.locator("#officeDecisionForm button[type=submit]").click();
     assert.equal((await decisionResponse).status(), 200);
     await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).organization.councils.length > 0, PROFILE, { timeout: 180000 });
-    const council = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).organization.councils.at(-1), PROFILE);
+    council = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).organization.councils.at(-1), PROFILE);
     assert.equal(council.memberId, "ZuoRu");
     assert.equal(council.stageId, "01");
     assert(council.evidenceSource?.work);
@@ -102,7 +107,7 @@ saveJournal();
       return organization.tasks.some((task) => task.remoteResult && task.mandate)
         && organization.mandates.some((mandate) => mandate.state === "ORDERED");
     }, PROFILE, { timeout: 120000 });
-    const issued = await page.evaluate((key) => {
+    issued = await page.evaluate((key) => {
       const organization = JSON.parse(localStorage.getItem(key)).organization;
       const task = organization.tasks.find((entry) => entry.remoteResult && entry.mandate);
       return { task, mandate: organization.mandates.find((entry) => entry.id === task.mandate.id) };
@@ -140,10 +145,25 @@ saveJournal();
     assert.match(await page.locator("#officeMandateLedger").innerText(), /属官执行中/);
     assert.match(await page.locator("#officeMandateLedger").innerText(), /印记/);
 
-    journal.stage = "report-trigger";
-    saveJournal();
-    await page.click("#officeAdvanceButton");
-    await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, { timeout: 90000 });
+    } else {
+      ({ council, issued } = await page.evaluate(({ key, remoteTask, mandateId }) => {
+        const organization = JSON.parse(localStorage.getItem(key)).organization;
+        const task = organization.tasks.find((entry) => entry.remoteResult === remoteTask);
+        const mandate = organization.mandates.find((entry) => entry.id === mandateId);
+        const matchingCouncil = organization.councils.find((entry) => entry.id === mandate?.council?.requestId);
+        return { council: matchingCouncil, issued: { task, mandate } };
+      }, { key: PROFILE, remoteTask: journal.remoteTask, mandateId: journal.mandateId }));
+      assert(issued.task && issued.mandate && council, "Existing acceptance task is missing from the restored profile");
+    }
+
+    if (!recoveringExisting) {
+      journal.stage = "report-trigger";
+      saveJournal();
+      const monthBeforeReport = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).organization.month, PROFILE);
+      await page.click("#officeAdvanceButton");
+      await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, { timeout: 240000 });
+      await page.waitForFunction(({ key, month }) => JSON.parse(localStorage.getItem(key)).organization.month > month, { key: PROFILE, month: monthBeforeReport }, { timeout: 90000 });
+    }
     const terminal = await page.evaluate(async (taskId) => {
       const deadline = Date.now() + 240000;
       while (Date.now() < deadline) {
@@ -162,6 +182,16 @@ saveJournal();
     journal.stage = "reconcile";
     saveJournal();
     await page.click("#officeAdvanceButton");
+    await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, { timeout: 90000 });
+    let settlementReviewed = false;
+    if (await page.locator("#officeSettlementReview").isVisible()) {
+      await page.click("#officeSettlementAcceptButton");
+      await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).organization.tasks.some((task) => task.pendingReview?.state === "ACCEPTED"), PROFILE, { timeout: 90000 });
+      await page.waitForFunction(() => !document.querySelector("#officeSettlementAcceptButton").disabled, { timeout: 90000 });
+      settlementReviewed = true;
+      await page.click("#officeAdvanceButton");
+      await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, { timeout: 90000 });
+    }
     await page.waitForFunction((key) => {
       const organization = JSON.parse(localStorage.getItem(key)).organization;
       return organization.pendingSupport.some((entry) => entry.mandate)
@@ -189,7 +219,9 @@ saveJournal();
     assert.match(battle.log, /内核军令/);
     assert.match(battle.log, new RegExp(issued.mandate.digest.slice(0, 10)));
     assert.equal(pageErrors.length, 0);
-    assert(requests.knowledge > 0 && requests.decision === 1 && requests.assignment > 0 && requests.mandate === 1 && requests.order === 1);
+    if (!recoveringExisting) {
+      assert(requests.knowledge > 0 && requests.decision === 1 && requests.assignment > 0 && requests.mandate === 1 && requests.order === 1);
+    }
     assert(requests.taskRead > 0 && requests.save >= 4);
 
     const result = {
@@ -203,6 +235,7 @@ saveJournal();
       },
       mandateDigestPrefix: issued.mandate.digest.slice(0, 10),
       terminalResult: terminal.final_result,
+      settlementReviewed,
       rewardProvisions: 24,
       cloudReloadVerified: true,
       battleLogVerified: true,

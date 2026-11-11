@@ -1317,6 +1317,40 @@
     warmOfficeNpcSchedules([manager, assignee], force);
   }
 
+  function schedulePlanId(response) {
+    return response?.schedule?.data?.plan_id || response?.data?.plan_id || null;
+  }
+
+  async function ensureOfficeNpcScheduleReady(member) {
+    if (!member?.id) return;
+    let previousPlanId = null;
+    try {
+      previousPlanId = schedulePlanId(await integration.npcSchedule(member.id));
+    } catch (_) {}
+    try {
+      await integration.generateNpcSchedule(member.id);
+      return;
+    } catch (_) {
+      // Expired-plan generation is durable and can outlive the gateway HTTP budget.
+    }
+    const deadline = Date.now() + 180000;
+    while (Date.now() < deadline) {
+      await sleep(2000);
+      try {
+        const currentPlanId = schedulePlanId(await integration.npcSchedule(member.id));
+        if (currentPlanId && currentPlanId !== previousPlanId) return;
+      } catch (_) {}
+    }
+    throw new Error(`${member.name || member.id}的当值日程尚未续拟完成`);
+  }
+
+  async function ensureCurrentOfficeNpcSchedulesReady() {
+    const members = profile.organization.members;
+    const manager = members.find((member) => member.id === "DuBo") || { id: "DuBo", name: displayName("DuBo") };
+    const assignee = members.find((member) => member.id === $("#officeMemberSelect").value);
+    await Promise.all([manager, assignee].filter(Boolean).map(ensureOfficeNpcScheduleReady));
+  }
+
   async function lobbyPolity() {
     if (officeLobbyInFlight || officeCouncilInFlight || officeOrderInFlight) return;
     const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
@@ -1660,26 +1694,50 @@
   }
 
   let officeAdvanceInFlight = false;
+
+  function organizationTaskSnapshot(response) {
+    const snapshot = response.result?.data || response.result || null;
+    return snapshot && typeof snapshot === "object"
+      ? { ...snapshot, settlement: response.settlement || null, closureReceipt: response.closureReceipt || null, npcOutcome: response.npcOutcome || null, review: response.review || null }
+      : snapshot;
+  }
+
+  async function readOrganizationTaskSnapshots(tasks) {
+    const responses = await Promise.all(tasks.map((task) => integration.organizationTask(task.remoteResult)));
+    return responses.map(organizationTaskSnapshot);
+  }
+
+  async function waitForOrganizationTasksToStart(tasks, initialSnapshots) {
+    let snapshots = initialSnapshots;
+    const deadline = Date.now() + 30000;
+    while (snapshots.some((snapshot) => !organization.remoteTaskReadyForAdvance(snapshot))) {
+      if (snapshots.some((snapshot) => snapshot?.review?.state === "REQUIRES_ACTION") || Date.now() >= deadline) break;
+      await sleep(1500);
+      snapshots = await readOrganizationTaskSnapshots(tasks);
+    }
+    return snapshots;
+  }
+
   async function advanceOfficeMonth() {
     if (officeAdvanceInFlight) return;
     officeAdvanceInFlight = true;
     $("#officeAdvanceButton").disabled = true;
     try {
     if (!integration.isOffline()) {
-      warmCurrentOfficeNpcSchedules(true);
       if (!profile.organization.backend.orgFlow) {
         showNotice("组织流服务当前不可用，月令未推进，请稍后重试。");
         return;
       }
+      try {
+        await ensureCurrentOfficeNpcSchedulesReady();
+      } catch (error) {
+        showNotice(error.message + "，月令未推进。");
+        return;
+      }
       const tasks = profile.organization.tasks.filter((task) => task.status === "active" && task.remoteResult);
       try {
-        const responses = await Promise.all(tasks.map((task) => integration.organizationTask(task.remoteResult)));
-        const snapshots = responses.map((response) => {
-          const snapshot = response.result?.data || response.result || null;
-          return snapshot && typeof snapshot === "object"
-            ? { ...snapshot, settlement: response.settlement || null, closureReceipt: response.closureReceipt || null, npcOutcome: response.npcOutcome || null, review: response.review || null }
-            : snapshot;
-        });
+        const initialSnapshots = await readOrganizationTaskSnapshots(tasks);
+        const snapshots = await waitForOrganizationTasksToStart(tasks, initialSnapshots);
         const waiting = snapshots.some((snapshot) => !organization.remoteTaskReadyForAdvance(snapshot));
         if (waiting) {
           await commitOrganizationState(organization.reconcileRemoteTasks(profile.organization, snapshots, { advanceMonth: false }));

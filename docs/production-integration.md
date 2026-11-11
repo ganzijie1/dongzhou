@@ -4,7 +4,7 @@
 
 浏览器只访问 `dongzhou-integration-service`。该服务基于 NexusKernel，持有服务端存档、玩家会话、幂等记录和上游凭据；H5 不直接访问 AINPC、orgFlowEngine 或 knowledge-jizhan。
 
-本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。此前真实服务完整闭环验收为 9/9 PASS；`complete35` 增加 AINPC 任务意愿闭环，当前 `complete37` 又将官署书问补成玩家与 NPC 的正式双向私聊。当前网关镜像为 `dongzhou-integration:20261111-local-complete37`，AINPC 八角色为 `ainpc-app:v20261111-dongzhou-local-complete19`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete23`。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
+本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。当前网关镜像为 `dongzhou-integration:20261111-local-complete40`，AINPC 八角色为 `ainpc-app:v20261111-dongzhou-local-complete20`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete23`。`complete40` 已覆盖双向府中书问、任务启动竞态、过期日程持久生成等待、人工复命裁决及可读账簿；真实浏览器已完成同一任务从四服务签令到战斗承接的闭环。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
 
 ## 发布顺序
 
@@ -12,13 +12,13 @@
 2. 在 knowledge-jizhan 工作台登记新来源，执行 schema/内容一致性校验，发布并同步检索索引。管理模式不会自动导入。
 3. 在 orgFlowEngine 运行 `python scripts/publish_dongzhou_catalog.py --publish`，发布 `config/organizations/dongzhou_court_v2.json`，用 `dongzhou_court` 模板建立官署并导入武将；把每个稳定武将 ID 与其实际占用的岗位 UUID 写入 `DONGZHOU_ORGFLOW_HERO_SLOTS`。未映射武将会拒绝派单，不会错派给其他成员。
 4. 将 AINPC 的 `ORGANIZATION_TASK_SERVICE_BEARER_TOKEN` 以同值注入 `DONGZHOU_AINPC_TASK_TOKEN`。该令牌只用于服务端到期复命出站队列，禁止进入 H5、日志或存档。
-5. 用 AINPC 仓库的 `docker/v2/docker-compose-dongzhou.yml` 叠加环境。日程事务目录唯一 owner 是 Gateway；Business 通过 typed proxy 读取 Gateway，必须给 Gateway 配置 `AINPC_CONST_CSV_SCHEDULE_TRANSACTIONS`，指向东周专用 12 类官署事务，不替换通用 CSV。当前本机 Gateway、Global、Business 固定为 `ainpc-app:v20261111-dongzhou-local-complete19`，由 `docker/v2/docker-compose-dongzhou-local-complete.yml` 统一覆盖。保留基础配置的 entrypoint、网络、挂载、端口和托管凭据；更新现有实例前按 Docker 标签保留每个服务原 Compose 项目归属，不能把不同项目的现有容器统一当作新项目创建。目录升级不会自动迁移已提交日程，必须通过正式重拟接口并回读验收。
+5. 用 AINPC 仓库的 `docker/v2/docker-compose-dongzhou.yml` 叠加环境。日程事务目录唯一 owner 是 Gateway；Business 通过 typed proxy 读取 Gateway，必须给 Gateway 配置 `AINPC_CONST_CSV_SCHEDULE_TRANSACTIONS`，指向东周专用 12 类官署事务，不替换通用 CSV。当前本机 Gateway、Global、Business 固定为 `ainpc-app:v20261111-dongzhou-local-complete20`，由 `docker/v2/docker-compose-dongzhou-local-complete.yml` 统一覆盖。保留基础配置的 entrypoint、网络、挂载、端口和托管凭据；更新现有实例前按 Docker 标签保留每个服务原 Compose 项目归属，不能把不同项目的现有容器统一当作新项目创建。目录升级不会自动迁移已提交日程，必须通过正式重拟接口并回读验收。
 6. 启动 AINPC V2 的 gateway、global、business 实例及其 NATS/Mongo/Redis 依赖，确认目标 NPC 已注册且 Actor 可用。Windows 宿主执行 Compose 时必须把 `AINPC_DATA_ROOT` 设为实际宿主目录（当前环境为 `E:/game/.runtime/ainpc/v2`）；容器内路径沿基础配置挂载，不因宿主路径不同而直接改容器目录。
 7. 部署 integration gateway，执行 `/health/live`、`/health/ready` 和 `/api/dongzhou/v1/integration/status` 探测，再开放入口流量。
 
 ## 身份与真值
 
-日程目录配置检查可运行 `integration-service/.venv/Scripts/python.exe tools/test-dongzhou-schedule-owner.py`。它仅解析合并配置、在无网络临时容器读取所选镜像目录，不启动 AINPC 服务或修改计划。已有计划的真值在 AINPC Mongo `schedule_plans`，按游戏服与 NPC 复合身份保存；`current` 直接返回已提交计划，非强制生成会复用当日可执行的旧计划，重启和更换目录不会自动迁移。先验收 Gateway 实际目录，再经授权对明确 NPC 调用正式重拟接口；`force_regenerate=true` 会产生真实规划并覆盖当前计划，不能在健康检查或修复验证中偷偷调用。迁移验收须核对完整 90 天的事务 ID 均为 `9100101..9100112`、无异游戏内容，并确认持久计划版本变化及重启读取一致。
+日程目录配置检查可运行 `integration-service/.venv/Scripts/python.exe tools/test-dongzhou-schedule-owner.py`。它仅解析合并配置、在无网络临时容器读取所选镜像目录，不启动 AINPC 服务或修改计划。已有计划的真值在 AINPC Mongo `schedule_plans`，按游戏服与 NPC 复合身份保存；`current` 直接返回已提交计划，非强制生成会复用当日可执行的旧计划，重启和更换目录不会自动迁移。过期计划的持久生成可超过 Gateway 的 30 秒 HTTP 预算；调用方收到超时后必须轮询 `current`，确认计划号变化且新时间窗已写回，不能把超时本身当作失败或成功。先验收 Gateway 实际目录，再经授权对明确 NPC 调用正式重拟接口；`force_regenerate=true` 会产生真实规划并覆盖当前计划，不能在健康检查或修复验证中偷偷调用。迁移验收须核对完整 90 天的事务 ID 均为 `9100101..9100112`、无异游戏内容，并确认持久计划版本变化及重启读取一致。
 
 - 玩家会话是 HttpOnly、SameSite=Strict 的签名 Cookie；原生客户端可用同一签名 Bearer。
 - `hero_id` 通过固定 BLAKE2 映射为 AINPC 63 位正整数，重启和扩容后不变。
@@ -46,7 +46,7 @@
 
 ## 发布门禁
 
-当前验收记录（2026-11-10）：全文检索已恢复；真实网关 9 项检查通过，AINPC 八角色健康且重启次数为零，LoongEQ 与 LoongMemory 从容器内返回 `ready`。无 API 拦截浏览器已验证属官状态、日程和真实决策，证据见 `output/integration-validation/live-integration-complete19.json` 与 `live-office-npc-state-complete19.png`。此前 503 保留为历史故障，不再作为当前阻塞项。这是本次功能恢复证据，实际公网 TLS、后端端口隔离、可信回调网络及宿主重启恢复仍需独立验收。
+当前验收记录（2026-11-11）：真实网关、AINPC、orgFlowEngine、knowledge-jizhan 和嵌入式 NexusKernel 均在线。无 API 拦截浏览器在任务 `cd9d873a-9264-53d1-bfc0-90048f909f11` 上验证了史料、军议、签令、领命、复命、NPC 审核、玩家收纳复命、云存档重载和战斗承接，且恢复没有重复建单；证据见 `output/integration-validation/live-kernel-mandate-complete38-race-fixed.json` 与 `live-kernel-mandate-complete40-final.png`。东周网关测试为 `71 passed, 21 subtests passed`，AINPC 组织任务适配为 `16 passed`。实际公网 TLS、后端端口隔离、可信回调网络及宿主重启恢复仍需独立验收。
 
 运行 `integration-service/.venv/Scripts/python.exe tools/verify-live-integration.py --url <网关地址> --output output/integration-validation/live-smoke.json` 验证真实健康、独立访客存档及冲突隔离、首中末关卡已发布史料、AI 检索、NPC 状态和 90 天日程。任一项失败则退出码非零；此检查不会派差或推进共享游戏时钟，不能代替任务复命与发布验收。
 
