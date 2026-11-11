@@ -171,6 +171,10 @@ class NpcSyncRequest(StrictModel):
     npcs: list[NpcInput] = Field(min_length=1, max_length=50)
 
 
+class NpcInteractionPreferenceRequest(StrictModel):
+    enabled: bool
+
+
 class NpcDecisionOption(StrictModel):
     index: int = Field(ge=0, le=20)
     text: str = Field(min_length=1, max_length=500)

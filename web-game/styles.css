@@ -1146,7 +1146,7 @@ button:focus-visible {
   .campaign-actions { max-width: 62%; }
   .campaign-setting, .setting-toggle { display: none; }
   .campaign-setting.map-detail-setting { display: flex; }
-  .setting-toggle.voice-setting { display: flex; }
+  .setting-toggle.voice-setting, .setting-toggle.npc-interaction-setting { display: flex; }
   .campaign-toolbar { grid-template-columns: 1fr 150px; padding: 10px 14px; }
   .campaign-focus { min-height: 430px; grid-template-columns: minmax(0, 1fr) 128px; }
   .focus-map img { width: 100%; }

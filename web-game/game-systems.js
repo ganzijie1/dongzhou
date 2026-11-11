@@ -179,6 +179,7 @@
         mapDetail: MAP_DETAIL_MODES.includes(source.settings?.mapDetail)
           ? source.settings.mapDetail : "balanced",
         telemetryEnabled: source.settings?.telemetryEnabled !== false,
+        aiNpcInteractionEnabled: source.settings?.aiNpcInteractionEnabled !== false,
         feedbackEnabled: source.settings?.feedbackEnabled !== false,
         transparentAssist: source.settings?.transparentAssist !== false,
         voiceEnabled: source.settings?.voiceEnabled !== false,

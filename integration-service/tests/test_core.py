@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 import time
 import unittest
 from unittest.mock import patch
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 import httpx
@@ -53,6 +53,21 @@ class _CapturingUpstreams(_HealthyUpstreams):
     async def send_game_event(self, kind, payload):
         self.events.append((kind, payload))
         return {"code": 200}
+
+
+class _NpcPreferenceUpstreams(_HealthyUpstreams):
+    def __init__(self, *, applied_enabled=None) -> None:
+        self.calls: list[tuple[int, bool]] = []
+        self.applied_enabled = applied_enabled
+
+    async def sync_player_ai_interaction(self, player_id, enabled):
+        self.calls.append((player_id, enabled))
+        applied = enabled if self.applied_enabled is None else self.applied_enabled
+        return {
+            "enabled": applied,
+            "source": "dongzhou-player-settings",
+            "updatedAt": "2026-11-11T12:00:00Z",
+        }
 
 
 class _NpcRecoveryUpstreams(_HealthyUpstreams):
@@ -573,6 +588,77 @@ class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
 
 
 class AuthenticationRouteTests(unittest.TestCase):
+    def test_npc_interaction_preference_persists_only_confirmed_state(self) -> None:
+        with TemporaryDirectory() as directory, patch.dict(
+            "os.environ",
+            {
+                "DONGZHOU_ENV": "development",
+                "DONGZHOU_WEB_ROOT": directory,
+                "DONGZHOU_PUBLIC_ORIGIN": "http://testserver",
+                "DONGZHOU_DATABASE_PATH": str(Path(directory) / "gateway.sqlite3"),
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            upstreams = _NpcPreferenceUpstreams()
+            application = build_application(
+                settings,
+                store=Store(settings.database_path),
+                upstreams=upstreams,
+            )
+            installation_id = uuid4()
+            with TestClient(application) as client:
+                guest = client.post(
+                    "/api/dongzhou/v1/sessions/guest",
+                    json={"installation_id": str(installation_id)},
+                )
+                self.assertEqual(guest.status_code, 200)
+                player_id = UUID(guest.json()["playerId"])
+                response = client.post(
+                    "/api/dongzhou/v1/npcs/interaction-preference",
+                    json={"enabled": False},
+                )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()["enabled"])
+        self.assertEqual(
+            upstreams.calls,
+            [(stable_player_id(settings.ainpc_game_server_id, player_id), False)],
+        )
+
+    def test_npc_interaction_preference_rejects_mismatched_state(self) -> None:
+        with TemporaryDirectory() as directory, patch.dict(
+            "os.environ",
+            {
+                "DONGZHOU_ENV": "development",
+                "DONGZHOU_WEB_ROOT": directory,
+                "DONGZHOU_PUBLIC_ORIGIN": "http://testserver",
+                "DONGZHOU_DATABASE_PATH": str(Path(directory) / "gateway.sqlite3"),
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            application = build_application(
+                settings,
+                store=Store(settings.database_path),
+                upstreams=_NpcPreferenceUpstreams(applied_enabled=True),
+            )
+            with TestClient(application) as client:
+                client.post(
+                    "/api/dongzhou/v1/sessions/guest",
+                    json={"installation_id": str(uuid4())},
+                )
+                response = client.post(
+                    "/api/dongzhou/v1/npcs/interaction-preference",
+                    json={"enabled": False},
+                )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(
+            response.json()["error"]["code"],
+            "ainpc_interaction_preference_not_applied",
+        )
+
     def test_npc_sync_stays_available_when_org_hierarchy_is_restarting(self) -> None:
         with TemporaryDirectory() as directory, patch.dict(
             "os.environ",

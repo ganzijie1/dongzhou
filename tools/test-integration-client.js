@@ -35,6 +35,7 @@ let organizationReviewInput = null;
 let campaignRouteAttempts = 0;
 let knowledgeSearchInput = null;
 let organizationResponse = null;
+let npcInteractionPreferenceInput = null;
 let storedProfile = {};
 let saveAttempts = 0;
 global.CustomEvent = class CustomEvent { constructor(type) { this.type = type; } };
@@ -77,6 +78,10 @@ global.fetch = async (url, options = {}) => {
   }
   else if (url.endsWith("/organization/roster")) {
     response = { organization: { name: "东周军府", growthContribution: 245 }, members: [{ heroId: "DuBo", lifetimeEarned: 80 }] };
+  }
+  else if (url.endsWith("/npcs/interaction-preference")) {
+    npcInteractionPreferenceInput = body;
+    response = { enabled: body.enabled, source: "dongzhou-player-settings", updatedAt: "2026-11-11T12:00:00Z" };
   }
   else if (url.endsWith("/court/mandates")) {
     mandateAttempts += 1;
@@ -167,6 +172,9 @@ const client = require("../web-game/integration-client.js");
   const roster = await client.organizationRoster();
   assert.strictEqual(roster.organization.growthContribution, 245);
   assert.strictEqual(roster.members[0].heroId, "DuBo");
+  const interactionPreference = await client.setNpcInteractionPreference(false);
+  assert.strictEqual(interactionPreference.enabled, false);
+  assert.deepStrictEqual(npcInteractionPreferenceInput, { enabled: false });
   await client.npcState("DuBo");
   const correspondence = await client.npcCorrespondence("DuBo", 12);
   await client.npcSchedule("DuBo");

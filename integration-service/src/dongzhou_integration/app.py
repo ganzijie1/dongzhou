@@ -18,7 +18,7 @@ from nexus_kernel.kernel import Kernel, LoadedModule, Module, ModuleContext
 
 from .config import Settings
 from .assignments import AssignmentUnavailable, select_assignment
-from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
+from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
@@ -1551,6 +1551,34 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             relationship_sync = {"state": "UNAVAILABLE", "retryable": True}
         ready = not pending
         return {"playerId": str(player_id), "gameServerId": str(settings.ainpc_game_server_id), "npcs": mapped, "registration": result, "activation": activation, "relationshipSync": relationship_sync, "ready": ready, "state": "READY" if ready else "INITIALIZING"}
+
+    @router.post("/npcs/interaction-preference")
+    async def set_npc_interaction_preference(
+        request: NpcInteractionPreferenceRequest,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        ai_player_id = stable_player_id(settings.ainpc_game_server_id, player_id)
+        try:
+            preference = await upstreams.sync_player_ai_interaction(
+                ai_player_id, request.enabled
+            )
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "ainpc_interaction_preference_unavailable",
+                "NPC interaction preference is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        if preference["enabled"] is not request.enabled:
+            raise ApiError(
+                "ainpc_interaction_preference_not_applied",
+                "NPC interaction preference was not applied.",
+                status_code=503,
+            )
+        return {
+            "playerId": str(player_id),
+            "aiPlayerId": str(ai_player_id),
+            **preference,
+        }
 
     @router.get("/npcs/{hero_id}/state")
     async def read_npc_state(hero_id: str, player_id: UUID = Depends(player)) -> dict[str, Any]:

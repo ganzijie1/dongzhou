@@ -147,10 +147,12 @@ const normalized = systems.normalizeProfile({ settings: { battleDifficulty: "nig
 assert.equal(normalized.settings.battleDifficulty, "medium");
 assert.equal(normalized.settings.mapDetail, "balanced");
 assert.equal(normalized.settings.voiceEnabled, true);
+assert.equal(normalized.settings.aiNpcInteractionEnabled, true);
 assert.equal(normalized.settings.voiceVolume, 0.85);
 assert.equal(normalized.settings.musicEnabled, true);
 assert.equal(normalized.settings.musicVolume, 0.42);
 assert.equal(systems.normalizeProfile({ settings: { voiceEnabled: false, voiceVolume: 2 } }, stages).settings.voiceEnabled, false);
+assert.equal(systems.normalizeProfile({ settings: { aiNpcInteractionEnabled: false } }, stages).settings.aiNpcInteractionEnabled, false);
 assert.equal(systems.normalizeProfile({ settings: { voiceVolume: 2 } }, stages).settings.voiceVolume, 1);
 assert.equal(systems.normalizeProfile({ settings: { musicEnabled: false, musicVolume: -1 } }, stages).settings.musicEnabled, false);
 assert.equal(systems.normalizeProfile({ settings: { musicVolume: -1 } }, stages).settings.musicVolume, 0);

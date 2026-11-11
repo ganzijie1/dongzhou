@@ -428,6 +428,19 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                     "code": 200, "created": True, "deactivatedManagerNpcIds": [],
                     "relationshipIds": ["relation-1"],
                 })
+            if request.url.path == "/ai/npc/player-ai-interaction/sync":
+                body = json.loads(request.content)
+                return httpx.Response(200, json={
+                    "code": 200,
+                    "message": "success",
+                    "data": {
+                        "gameServerId": body["game_server_id"],
+                        "playerId": body["player_id"],
+                        "enabled": body["enabled"],
+                        "source": body["source"],
+                        "updatedAt": "2026-11-11T12:00:00Z",
+                    },
+                })
             return httpx.Response(200, json={"data": {"ok": True}})
 
         with TemporaryDirectory() as directory:
@@ -449,6 +462,8 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                 "dongzhou-player",
             )
             await upstreams.request_npc_relogin(42, "dongzhou:test:42")
+            preference = await upstreams.sync_player_ai_interaction(42, False)
+            self.assertFalse(preference["enabled"])
             await upstreams.npc_state(42)
             await upstreams.npc_schedule(42)
             await upstreams.generate_npc_schedule(42, False)
@@ -493,6 +508,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("/ai/npc/register/batch", paths)
         self.assertIn("/callback/npc-lifecycle/online_state", paths)
         self.assertIn("/api/v1/npc-lifecycle/relogin", paths)
+        self.assertIn("/ai/npc/player-ai-interaction/sync", paths)
         self.assertIn("/api/v1/emotion/current/91001/42", paths)
         self.assertIn("/api/v1/affection/targets/91001/42", paths)
         self.assertIn("/api/v1/relationship/all/91001/42", paths)
@@ -506,6 +522,16 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("/internal/v1/organization-tasks/dialogues/report", paths)
         self.assertIn("/callback/game-reports/emergency", paths)
         self.assertIn("/callback/game-reports/system-message", paths)
+        preference_request = next(
+            request for request in seen
+            if request.url.path == "/ai/npc/player-ai-interaction/sync"
+        )
+        self.assertEqual(json.loads(preference_request.content), {
+            "game_server_id": "91001",
+            "player_id": "42",
+            "enabled": False,
+            "source": "dongzhou-player-settings",
+        })
         org_requests = [request for request in seen if request.url.host == "org"]
         bearer_requests = [request for request in seen if request.url.host != "org"]
         self.assertTrue(all(request.headers.get("x-org-service-signature") for request in org_requests))

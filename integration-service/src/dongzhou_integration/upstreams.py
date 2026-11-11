@@ -331,6 +331,39 @@ class Upstreams:
         payload = {"npc_data_list": [{"npc_id": npc["npcId"], "status": "active"} for npc in npcs]}
         return await self._json("POST", f"{self.settings.ainpc_url}/ai/npc/register/batch", token=self.settings.ainpc_token, payload=payload)
 
+    async def sync_player_ai_interaction(
+        self, player_id: int, enabled: bool
+    ) -> dict[str, Any]:
+        response = await self._json(
+            "POST",
+            f"{self.settings.ainpc_url}/ai/npc/player-ai-interaction/sync",
+            token=self.settings.ainpc_token,
+            payload={
+                "game_server_id": str(self.settings.ainpc_game_server_id),
+                "player_id": str(player_id),
+                "enabled": enabled,
+                "source": "dongzhou-player-settings",
+            },
+        )
+        data = response.get("data")
+        if (
+            response.get("code") not in (0, 200, "0", "200")
+            or not isinstance(data, dict)
+            or str(data.get("gameServerId") or "")
+            != str(self.settings.ainpc_game_server_id)
+            or str(data.get("playerId") or "") != str(player_id)
+            or not isinstance(data.get("enabled"), bool)
+            or not str(data.get("updatedAt") or "").strip()
+        ):
+            raise UpstreamUnavailable(
+                "AINPC returned an invalid player interaction preference"
+            )
+        return {
+            "enabled": data["enabled"],
+            "source": str(data.get("source") or ""),
+            "updatedAt": str(data["updatedAt"]),
+        }
+
     async def ensure_organization_supervision(
         self, *, subordinate_npc_id: str, manager_npc_id: str | None, source_event_id: str,
     ) -> dict[str, Any]:

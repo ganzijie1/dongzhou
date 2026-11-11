@@ -202,6 +202,14 @@
       const integrated = await integration.initialize(profile);
       profile = systems.normalizeProfile(integrated.profile, campaign.stages);
       profile.organization = organization.normalizeState(profile.organization);
+      if (!integration.isOffline()) {
+        try {
+          await integration.setNpcInteractionPreference(profile.settings.aiNpcInteractionEnabled);
+        } catch (error) {
+          if (!profile.settings.aiNpcInteractionEnabled) throw error;
+          console.warn("NPC interaction preference sync deferred", error);
+        }
+      }
       await recoverPreparation();
       writeJson(PROFILE_KEY, profile);
       runtime = new DongzhouLuaRuntime(campaign);
@@ -3386,6 +3394,7 @@
     $("#campaignDifficulty").value = profile.settings.battleDifficulty;
     $("#mapDetailSetting").value = profile.settings.mapDetail;
     $("#telemetryToggle").checked = profile.settings.telemetryEnabled && profile.difficultyBandit.enabled;
+    $("#npcInteractionToggle").checked = profile.settings.aiNpcInteractionEnabled;
     $("#feedbackToggle").checked = profile.settings.feedbackEnabled;
     $("#musicToggle").checked = profile.settings.musicEnabled;
     $("#musicVolume").value = Math.round(profile.settings.musicVolume * 100);
@@ -3603,6 +3612,23 @@
       profile.settings.telemetryEnabled = event.currentTarget.checked;
       profile.difficultyBandit.enabled = event.currentTarget.checked;
       writeJson(PROFILE_KEY, profile);
+    });
+    $("#npcInteractionToggle").addEventListener("change", async (event) => {
+      const input = event.currentTarget;
+      const requested = input.checked;
+      input.disabled = true;
+      try {
+        const result = await integration.setNpcInteractionPreference(requested);
+        if (result.enabled !== requested) throw new Error("NPC interaction preference was not applied");
+        profile.settings.aiNpcInteractionEnabled = requested;
+        writeJson(PROFILE_KEY, profile);
+        showNotice(requested ? "已允许属官主动来信" : "已停止属官主动来信");
+      } catch (error) {
+        input.checked = profile.settings.aiNpcInteractionEnabled;
+        showNotice(error.message);
+      } finally {
+        input.disabled = false;
+      }
     });
     $("#feedbackToggle").addEventListener("change", (event) => {
       profile.settings.feedbackEnabled = event.currentTarget.checked;
