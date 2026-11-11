@@ -194,12 +194,15 @@ async function openReady(page) {
     await online.waitForSelector("#app:not([hidden])", { timeout: 45000 });
     await online.click("#campaignOfficeButton");
     await online.waitForSelector("#officeMembers >> text=官署实账");
-    const assignee = await online.locator("#officeMemberSelect option").evaluateAll((options) =>
-      options.map((option) => option.value).find((value) => value && value !== "DuBo")
-    );
+    const visibleMembers = await online.locator("#officeMemberSelect option").evaluateAll((options) => options.map((option) => option.value));
+    if (!visibleMembers.includes("DuBo")) throw new Error("Organization manager is missing from the inspectable NPC roster");
+    await online.selectOption("#officeMemberSelect", "DuBo");
+    await online.waitForFunction(() => document.querySelector("#officeIssueButton").disabled && /组织负责人/.test(document.querySelector("#officeOrderHint").textContent));
+    await online.waitForSelector("#officeNpcState >> text=属官服务正在恢复", { timeout: 10000 });
+    await online.waitForSelector("#officeNpcState >> text=resolute", { timeout: 15000 });
+    const assignee = visibleMembers.find((value) => value && value !== "DuBo");
     if (!assignee) throw new Error("No non-manager organization assignee is available");
     await online.selectOption("#officeMemberSelect", assignee);
-    await online.waitForSelector("#officeNpcState >> text=属官服务正在恢复", { timeout: 10000 });
     await online.waitForSelector("#officeNpcState >> text=resolute", { timeout: 15000 });
     await online.waitForSelector("#officeNpcState >> text=情报核验 35", { timeout: 15000 });
     await online.waitForSelector("#officeNpcState >> text=固执 79", { timeout: 15000 });

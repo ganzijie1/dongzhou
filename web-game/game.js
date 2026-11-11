@@ -1005,11 +1005,12 @@
     $("#officeServiceStatus").innerHTML = serviceLabels.map(([key, label]) => `<span class="${org.backend[key] ? "online" : "local"}"><i></i>${label}${org.backend[key] ? "通达" : "本地推演"}</span>`).join("");
     $("#officeModeText").textContent = integration.isOffline() ? "当前为显式离线演算，属官与官署结果仅保存在本机。" : org.backend.mode === "connected" ? "朝议、属官与史官已互通；远端未确认的结果不会在本地结算。" : "官署服务暂不可达，联网玩法已暂停。";
     const currentMember = $("#officeMemberSelect").value;
-    const assignableMembers = !integration.isOffline() && org.backend.orgFlow
-      ? org.members.filter((member) => member.id !== "DuBo")
-      : org.members;
-    $("#officeMemberSelect").innerHTML = assignableMembers.map((member) => `<option value="${escapeHtml(member.id)}">${escapeHtml(member.name)} · ${escapeHtml(member.office)}</option>`).join("");
-    if (assignableMembers.some((member) => member.id === currentMember)) $("#officeMemberSelect").value = currentMember;
+    const visibleMembers = [
+      ...org.members.filter((member) => member.id !== "DuBo"),
+      ...org.members.filter((member) => member.id === "DuBo")
+    ];
+    $("#officeMemberSelect").innerHTML = visibleMembers.map((member) => `<option value="${escapeHtml(member.id)}">${escapeHtml(member.name)} · ${escapeHtml(member.office)}</option>`).join("");
+    if (visibleMembers.some((member) => member.id === currentMember)) $("#officeMemberSelect").value = currentMember;
     renderOfficeCouncil();
     const currentType = $("#officeTaskType").value;
     $("#officeTaskType").innerHTML = Object.entries(organization.TASK_TYPES).map(([id, task]) => `<option value="${id}" ${id === currentType ? "selected" : ""}>${task.name} · ${task.duration}月</option>`).join("");
@@ -1059,7 +1060,12 @@
     $("#officeAllianceLedger").innerHTML = [...org.diplomacy.alliances].reverse().map((pact) => `<li class="${pact.status}"><span>${escapeHtml(pact.targetName)}盟约</span><strong>${pact.status === "active" ? "生效" : pact.status === "broken" ? "背盟待战" : "战后结案"}</strong><small>关系 ${Number(org.diplomacy.relations[pact.targetId] || 0)} · ${escapeHtml(pact.terms.join("、"))}</small></li>`).join("") || '<li class="empty">尚无盟约</li>';
     $("#officeBattleArchive").innerHTML = [...org.archives].reverse().slice(0, 12).map((entry) => `<li><strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml(entry.text)} · ${escapeHtml(String(entry.stageId || "无关卡"))}</span></li>`).join("") || "<li><strong>尚无档案</strong><span>完成盟约、背盟或战役后将在此存照。</span></li>";
     const selectedTask = organization.TASK_TYPES[$("#officeTaskType").value] || organization.TASK_TYPES.supply;
-    $("#officeOrderHint").textContent = `${record?.battleTitle || "下一战"}：${selectedTask.name}需要 ${selectedTask.cost} 份军府资源，办成后形成战前助益。`;
+    const leaderSelected = !integration.isOffline() && org.backend.orgFlow && $("#officeMemberSelect").value === "DuBo";
+    $("#officeIssueButton").disabled = officeOrderInFlight || leaderSelected;
+    $("#officeIssueButton").title = leaderSelected ? "组织负责人可供调阅，但不能向自己派单" : "";
+    $("#officeOrderHint").textContent = leaderSelected
+      ? "杜伯为组织负责人：可调阅状态、书问与日程，但须选择直属属官承办差事。"
+      : `${record?.battleTitle || "下一战"}：${selectedTask.name}需要 ${selectedTask.cost} 份军府资源，办成后形成战前助益。`;
     if (!$("#officeKnowledgeQuery").value) $("#officeKnowledgeQuery").value = `${record?.battleTitle || ""} ${record?.objective || ""}`.trim();
     if (!$("#officeDecisionQuestion").value) $("#officeDecisionQuestion").value = `${record?.battleTitle || "下一战"}应如何部署？`;
     const decisionDefaults = ["先固军粮，稳步推进", `整军强攻，争取${record?.objective || "先机"}`, "遣使探察，再定进退"];
@@ -1808,7 +1814,8 @@
       return null;
     } finally {
       officeOrderInFlight = false;
-      $("#officeIssueButton").disabled = false;
+      const leaderSelected = !integration.isOffline() && profile.organization.backend.orgFlow && $("#officeMemberSelect").value === "DuBo";
+      $("#officeIssueButton").disabled = leaderSelected;
     }
   }
 
@@ -3730,7 +3737,7 @@
     $("#campaignOfficeCloseButton").addEventListener("click", () => setCampaignOffice(false));
     $("#campaignOfficeBackdrop").addEventListener("click", (event) => { if (event.target === event.currentTarget) setCampaignOffice(false); });
     $("#officeTaskType").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOrganizationPanel(); refreshOfficeNpcAssignment(); });
-    $("#officeMemberSelect").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOfficeCouncil(); refreshOfficeNpcState(); });
+    $("#officeMemberSelect").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOrganizationPanel(); refreshOfficeNpcState(); });
     $("#officeCorrespondenceRefresh").addEventListener("click", () => refreshOfficeCorrespondence());
     $("#officeInventoryRefresh").addEventListener("click", refreshOfficeInventory);
     $("#officeMessageForm").addEventListener("submit", sendOfficeNpcMessage);

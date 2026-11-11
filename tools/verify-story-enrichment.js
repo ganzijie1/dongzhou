@@ -11,6 +11,7 @@ const stages = new Map(campaign.stages.map((stage) => [stage.id, stage]));
 const expected = ["01", "02", "03", "03b", "04", "04a", "05", "06", "07", "07b", "08", "08a"];
 const eventIds = new Set();
 let runtimeEvents = 0;
+let defaultLiterarySources = 0;
 
 assert.equal(overrides.schemaVersion, 1);
 assert.deepEqual(Object.keys(overrides.stages), expected);
@@ -38,6 +39,19 @@ for (const id of expected) {
   }
 }
 
+for (const stage of campaign.stages) {
+  const sources = Array.isArray(stage.story?.source_basis) ? stage.story.source_basis : [];
+  assert.ok(sources.length, `${stage.id} has no player-facing source boundary`);
+  assert.ok(sources.every((source) => source.work && source.tier && source.scope && /^https:\/\//.test(source.url)), `${stage.id} has incomplete source metadata`);
+  if (!expected.includes(stage.id)) {
+    defaultLiterarySources++;
+    assert.equal(sources.length, 1, `${stage.id} should have one derived literary source`);
+    assert.equal(sources[0].tier, "文学演绎", `${stage.id} derived source must not claim historical authority`);
+    assert.match(sources[0].work, /^《东周列国志》/, `${stage.id} derived source names the wrong work`);
+    assert.match(sources[0].url, /东周列国志\/第\d{3}回$/, `${stage.id} derived source URL is not chapter-specific`);
+  }
+}
+
 assert.equal(runtimeEvents, 21);
 assert.equal(stages.get("02").story.intro.length, 26);
 assert.ok(stages.get("02").story.intro.filter((entry) => entry.speaker !== "旁白").length >= 18);
@@ -49,5 +63,6 @@ console.log(JSON.stringify({
   enrichedStages: expected.length,
   runtimeEvents,
   chapter2Lines: stages.get("02").story.intro.length,
-  sourceRecords: expected.reduce((count, id) => count + overrides.stages[id].source_basis.length, 0)
+  sourceRecords: campaign.stages.reduce((count, stage) => count + stage.story.source_basis.length, 0),
+  defaultLiterarySources
 }, null, 2));

@@ -59,6 +59,26 @@ function asArray(value) {
     .map(([, child]) => child);
 }
 
+function withDefaultLiterarySource(story, stageId) {
+  const sources = asArray(story?.source_basis);
+  if (sources.length) return story;
+  const chapterNumber = Number.parseInt(String(stageId).match(/^\d+/)?.[0] || "", 10);
+  if (!Number.isInteger(chapterNumber) || chapterNumber < 1 || chapterNumber > 108) {
+    throw new Error(`Cannot derive Dongzhou chapter source for stage ${stageId}`);
+  }
+  const chapter = story?.chapter || `第${chapterNumber}回`;
+  const battle = story?.battle_title || story?.title || `第${chapterNumber}回关卡`;
+  return {
+    ...story,
+    source_basis: [{
+      tier: "文学演绎",
+      work: `《东周列国志》${chapter}`,
+      url: `https://zh.wikisource.org/zh-hans/东周列国志/第${String(chapterNumber).padStart(3, "0")}回`,
+      scope: `${battle}的情节骨架与人物对白；具体战场调度为游戏化改编`
+    }]
+  };
+}
+
 function discoverStageGlobals() {
   const globals = new Set([
     "gitems", "gcommanders", "gduel_enabled", "gduels", "gevents_enabled",
@@ -181,7 +201,10 @@ for (let index = 0; index < stageFiles.length; index++) {
     lua(source, `dongzhou/stage/${file}`);
     const stage = toPlain(getGlobal("gstage"));
     const baseStory = toPlain(getGlobal("gstory"));
-    const story = { ...baseStory, ...(storyOverrides[id] || {}) };
+    const story = withDefaultLiterarySource(
+      { ...baseStory, ...(storyOverrides[id] || {}) },
+      id
+    );
     const mapAsset = story?.map_asset || null;
     if (!mapAsset || !fs.existsSync(path.join(MAP_ROOT, mapAsset))) missingMaps.push({ id, mapAsset });
     const record = {
