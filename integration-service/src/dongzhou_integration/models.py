@@ -199,6 +199,15 @@ class NpcScheduleGenerateRequest(StrictModel):
 OrganizationTaskType = Literal["diplomacy", "drill", "intelligence", "patrol", "supply"]
 
 
+class NpcThoughtRequest(StrictModel):
+    client_request_id: UUID = Field(strict=False)
+    stage_id: str = Field(min_length=1, max_length=64)
+    stage_title: str = Field(min_length=1, max_length=200)
+    knowledge_id: str = Field(min_length=1, max_length=200)
+    evidence_source_index: int = Field(default=0, ge=0, le=20)
+    task_type: OrganizationTaskType
+
+
 class CourtMandateOperation(StrictModel):
     kind: Literal["diplomacy"]
     target_id: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_.:-]+$")
@@ -222,6 +231,8 @@ class CourtMandateRequest(StrictModel):
     knowledge_search_receipt_digest: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     correspondence_message_id: str | None = Field(default=None, min_length=1, max_length=256)
     correspondence_digest: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    thought_request_id: UUID | None = Field(default=None, strict=False)
+    thought_digest: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     operation: CourtMandateOperation | None = None
 
     @model_validator(mode="after")
@@ -230,6 +241,8 @@ class CourtMandateRequest(StrictModel):
             raise ValueError("court mandate operation does not match task type")
         if bool(self.correspondence_message_id) != bool(self.correspondence_digest):
             raise ValueError("court mandate correspondence reference is incomplete")
+        if bool(self.thought_request_id) != bool(self.thought_digest):
+            raise ValueError("court mandate thought reference is incomplete")
         return self
 
 

@@ -88,7 +88,7 @@ const BASE_ORIGIN = new URL(BASE_URL).origin;
     await page.click("#officeBetrayButton");
     await page.waitForSelector("#officeAllianceLedger >> text=背盟待战");
     const state = await page.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization);
-    assert.equal(state.schemaVersion, 12);
+    assert.equal(state.schemaVersion, 13);
     assert.equal(state.selectedSources["01"].tier, "史实骨架");
     assert.equal(state.diplomacy.lobbying.length, 1);
     assert.equal(state.diplomacy.alliances[0].status, "broken");

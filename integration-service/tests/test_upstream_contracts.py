@@ -472,6 +472,26 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                 })
             if request.url.path == "/callback/npc-dialogue/choice":
                 return httpx.Response(200, json={"code": 200, "data": {"index": 0, "type": "OPTION"}})
+            if request.url.path == "/callback/spontaneous-thought/generate":
+                body = json.loads(request.content)
+                return httpx.Response(200, json={
+                    "code": 200,
+                    "data": {
+                        "npc_id": body["npc_id"],
+                        "timestamp": body["current_time"],
+                        "route_to": "delayed",
+                        "thought": {
+                            "thought_description": "先核军情，再定进退",
+                            "schedule_category": "军事",
+                            "importance": 75,
+                            "urgency_level": "urgent_but_lower",
+                            "target_motives": [{"motive_name": "情报核验", "score": 5, "reason": "军情未明"}],
+                            "reasoning": "当值与史料相合",
+                            "has_thought": True,
+                            "handler_key": "",
+                        },
+                    },
+                })
             if request.url.path == "/api/v1/relationship/ensure-organization-supervision":
                 return httpx.Response(200, json={
                     "code": 200, "created": True, "deactivatedManagerNpcIds": [],
@@ -530,6 +550,15 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                 42, "0771-01-01 14:00:00", "Enemy riders reached the pass."
             )
             await upstreams.choose_dialogue(42, {"dialogues": [{"options": [{"index": 0, "type": "OPTION"}]}], "metadata": {}})
+            thought = await upstreams.generate_spontaneous_thought(42, {
+                "operation_id": "dongzhou-thought:test",
+                "npc_context": {"npc_name": "左儒"},
+                "current_schedule_description": "检阅军阵",
+                "current_schedule_importance": 90,
+                "current_time": "0771-01-01 14:00:00",
+            })
+            self.assertEqual(thought["routeTo"], "delayed")
+            self.assertEqual(thought["thought"]["targetMotives"][0]["name"], "情报核验")
             await upstreams.send_game_event(
                 "ORG_REPORT_START",
                 {
@@ -592,6 +621,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("/api/v1/schedule-planning/long-term/generate", paths)
         self.assertIn("/callback/emergency-assessment/evaluate", paths)
         self.assertIn("/callback/npc-dialogue/choice", paths)
+        self.assertIn("/callback/spontaneous-thought/generate", paths)
         self.assertIn("/internal/v1/organization-tasks/dialogues/report", paths)
         self.assertIn("/callback/game-reports/emergency", paths)
         self.assertIn("/callback/game-reports/system-message", paths)

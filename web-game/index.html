@@ -282,10 +282,11 @@
             <ol id="officeTaskLedger" class="office-task-ledger"></ol>
           </section>
           <section class="office-counsel" aria-labelledby="officeCounselTitle">
-            <div class="office-section-heading"><div><span>属官自决</span><h3 id="officeCounselTitle">军议裁断</h3></div></div>
+            <div class="office-section-heading"><div><span>属官自决</span><h3 id="officeCounselTitle">军议裁断</h3></div><button id="officeThoughtButton" class="large-button" type="button">请其进言</button></div>
+            <div id="officeThoughtResult" class="office-thought-result" aria-live="polite"></div>
             <form id="officeDecisionForm" class="office-decision-form">
               <input id="officeDecisionQuestion" maxlength="2000" required aria-label="军议议题">
-              <div><input class="office-decision-option" maxlength="500" required aria-label="方案一"><input class="office-decision-option" maxlength="500" required aria-label="方案二"><input class="office-decision-option" maxlength="500" required aria-label="方案三"></div>
+              <div><textarea class="office-decision-option" maxlength="500" rows="4" required aria-label="方案一"></textarea><textarea class="office-decision-option" maxlength="500" rows="4" required aria-label="方案二"></textarea><textarea class="office-decision-option" maxlength="500" rows="4" required aria-label="方案三"></textarea></div>
               <button class="large-button" type="submit">请其裁断</button>
             </form>
             <div id="officeDecisionResult" class="office-decision-result" aria-live="polite"></div>

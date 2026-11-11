@@ -1663,6 +1663,14 @@
     return source && knowledge ? { source, knowledge } : null;
   }
 
+  function currentOfficeThought() {
+    const stageId = String(officeStage()?.id || "");
+    const evidence = currentOfficeEvidence();
+    const heroId = $("#officeMemberSelect").value;
+    const taskType = $("#officeTaskType").value;
+    return [...(profile.organization.thoughts || [])].reverse().find((entry) => entry.stageId === stageId && entry.heroId === heroId && entry.taskType === taskType && entry.knowledgeId === evidence?.knowledge.id && Number(entry.source?.index) === Number(evidence?.source.index));
+  }
+
   function currentOfficeCouncil() {
     const stageId = String(officeStage()?.id || "");
     const evidence = currentOfficeEvidence();
@@ -1680,7 +1688,57 @@
     control.dataset.councilContext = contextKey;
     control.disabled = !council;
     const evidence = currentOfficeEvidence();
-    $("#officeCouncilHint").textContent = council ? "已保存：" + council.memberName + "据" + council.evidenceSource.work + (council.correspondence ? "及府中耳报" : "") + "建议“" + council.text + "”。联网授命须勾选并由内核签发军令。" : evidence ? "已选证：" + evidence.source.work + "（" + evidence.source.tier + "）。请当前属官据此参议。" : "先查本回史料并选定出处，再请当前属官参议。";
+    $("#officeCouncilHint").textContent = council ? "已保存：" + council.memberName + "据" + council.evidenceSource.work + (council.correspondence ? "及府中耳报" : "") + (council.thought ? "，采纳自主进言" : "") + "建议“" + council.text + "”。联网授命须勾选并由内核签发军令。" : evidence ? "已选证：" + evidence.source.work + "（" + evidence.source.tier + "）。请当前属官据此参议。" : "先查本回史料并选定出处，再请当前属官参议。";
+    const thought = currentOfficeThought();
+    $("#officeThoughtButton").disabled = officeThoughtInFlight || integration.isOffline() || !evidence;
+    if (!officeThoughtInFlight) {
+      $("#officeThoughtResult").innerHTML = thought?.thought?.hasThought
+        ? `<strong>${escapeHtml(thought.heroId === $("#officeMemberSelect").value ? "属官进言" : "进言")}</strong><span>${escapeHtml(thought.thought.description)} · 重要度 ${Number(thought.thought.importance)} · 印记 ${escapeHtml(String(thought.digest || "").slice(0, 10))}</span>`
+        : thought ? "当前当值与史料未引发新的进言。" : "";
+    }
+  }
+
+  let officeThoughtInFlight = false;
+  async function requestOfficeNpcThought() {
+    if (officeThoughtInFlight || integration.isOffline()) return;
+    const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
+    const stage = officeStage();
+    const evidence = currentOfficeEvidence();
+    const taskType = $("#officeTaskType").value;
+    if (!member || !stage || !evidence) {
+      $("#officeThoughtResult").textContent = "请先选择属官、本回史料和出处。";
+      return;
+    }
+    const context = [String(stage.id), member.id, taskType, evidence.knowledge.id, Number(evidence.source.index)].join(":");
+    officeThoughtInFlight = true;
+    $("#officeThoughtButton").disabled = true;
+    $("#officeThoughtResult").textContent = `${member.name}正在据当值与史料斟酌进言…`;
+    try {
+      const response = await integration.npcThought(member.id, {
+        stage_id: String(stage.id),
+        stage_title: String(stage.battleTitle || stage.title || "未名战事"),
+        knowledge_id: evidence.knowledge.id,
+        evidence_source_index: Number(evidence.source.index),
+        task_type: taskType
+      });
+      const currentEvidence = currentOfficeEvidence();
+      const currentContext = [String(officeStage()?.id || ""), $("#officeMemberSelect").value, $("#officeTaskType").value, currentEvidence?.knowledge.id, Number(currentEvidence?.source.index)].join(":");
+      if (context !== currentContext) throw new Error("进言期间选择已改变，请恢复原选择后重试");
+      if (response.state !== "COMPLETED" || !response.thoughtReceipt) throw new Error("属官尚未形成可核验进言");
+      const noted = organization.recordThought(profile.organization, response.thoughtReceipt);
+      await integration.persist({ ...profile, organization: noted.state });
+      profile.organization = noted.state;
+      writeJson(PROFILE_KEY, profile);
+      if (noted.thought.thought.hasThought) {
+        const options = [...document.querySelectorAll(".office-decision-option")];
+        options[2].value = noted.thought.councilProposal;
+      }
+    } catch (error) {
+      $("#officeThoughtResult").textContent = `进言暂不可用：${error.message}`;
+    } finally {
+      officeThoughtInFlight = false;
+      renderOfficeCouncil();
+    }
   }
 
   let officeLobbyInFlight = false;
@@ -1876,7 +1934,9 @@
         panel.textContent = "史料或选证已更新，本轮议决不落档，请重新参议。";
         return;
       }
-      const noted = organization.recordCouncil(profile.organization, { id: response.clientRequestId, stageId, memberId: member.id, knowledgeId: knowledge.id, knowledgeName: knowledge.name, knowledgeSummary: knowledge.summary, evidenceSourceIndex: evidence.source.index, question: contextualQuestion, options, index: selected.index });
+      const thought = currentOfficeThought();
+      const selectedThought = thought?.thought?.hasThought === true && thought.councilProposal === options[selected.index] ? thought : null;
+      const noted = organization.recordCouncil(profile.organization, { id: response.clientRequestId, stageId, memberId: member.id, knowledgeId: knowledge.id, knowledgeName: knowledge.name, knowledgeSummary: knowledge.summary, evidenceSourceIndex: evidence.source.index, question: contextualQuestion, options, index: selected.index, ...(selectedThought ? { thoughtRequestId: selectedThought.requestId, thoughtDigest: selectedThought.digest } : {}) });
       await integration.persist({ ...profile, organization: noted.state });
       profile.organization = noted.state;
       writeJson(PROFILE_KEY, profile);
@@ -2065,6 +2125,7 @@
           decision_index: Number(council.index),
           task_type: taskType,
           ...(council.correspondence ? { correspondence_message_id: council.correspondence.messageId, correspondence_digest: council.correspondence.digest } : {}),
+          ...(council.thought ? { thought_request_id: council.thought.requestId, thought_digest: council.thought.digest } : {}),
           ...(evidence.source.searchReceipt ? {
             knowledge_search_receipt_id: evidence.source.searchReceipt.id,
             knowledge_search_receipt_digest: evidence.source.searchReceipt.digest
@@ -4068,6 +4129,7 @@
     $("#officeMessageForm").addEventListener("submit", sendOfficeNpcMessage);
     $("#officeCorrespondence").addEventListener("click", (event) => { const button = event.target.closest("[data-correspondence-id]"); if (button) selectOfficeCorrespondence(button.dataset.correspondenceId); });
     $("#officeScheduleButton").addEventListener("click", generateOfficeNpcSchedule);
+    $("#officeThoughtButton").addEventListener("click", requestOfficeNpcThought);
     $("#officeDecisionForm").addEventListener("submit", requestOfficeNpcDecision);
     $("#officeDiplomacyTarget").addEventListener("change", renderOfficeDiplomacyStatus);
     $("#officeLobbyButton").addEventListener("click", lobbyPolity);

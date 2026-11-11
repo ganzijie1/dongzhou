@@ -722,6 +722,90 @@ class Upstreams:
             )
         return response
 
+    async def generate_spontaneous_thought(
+        self, npc_id: int, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        response = await self._json(
+            "POST",
+            f"{self.settings.ainpc_url}/callback/spontaneous-thought/generate",
+            token=self.settings.ainpc_token,
+            payload={
+                "game_server_id": str(self.settings.ainpc_game_server_id),
+                "npc_id": str(npc_id),
+                **payload,
+            },
+        )
+        data = response.get("data")
+        thought = data.get("thought") if isinstance(data, dict) else None
+        motives = thought.get("target_motives") if isinstance(thought, dict) else None
+        valid_number = lambda value: (
+            not isinstance(value, bool)
+            and isinstance(value, (int, float))
+            and math.isfinite(float(value))
+        )
+        valid_motives = (
+            isinstance(motives, list)
+            and len(motives) <= 16
+            and all(
+                isinstance(item, dict)
+                and isinstance(item.get("motive_name"), str)
+                and 0 < len(item["motive_name"].strip()) <= 100
+                and valid_number(item.get("score"))
+                and isinstance(item.get("reason", ""), str)
+                and len(item.get("reason", "")) <= 1000
+                for item in motives
+            )
+        )
+        if (
+            response.get("code") != 200
+            or not isinstance(data, dict)
+            or str(data.get("npc_id") or "") != str(npc_id)
+            or not isinstance(data.get("timestamp"), str)
+            or not data["timestamp"].strip()
+            or data.get("route_to") not in {"none", "delayed", "temp_schedule"}
+            or not isinstance(thought, dict)
+            or not isinstance(thought.get("has_thought"), bool)
+            or not isinstance(thought.get("thought_description"), str)
+            or not 0 < len(thought["thought_description"].strip()) <= 2000
+            or not valid_number(thought.get("importance"))
+            or not 0 <= float(thought["importance"]) <= 100
+            or thought.get("urgency_level") not in {
+                "not_urgent_not_important",
+                "urgent_but_lower",
+                "urgent_and_higher",
+            }
+            or not isinstance(thought.get("reasoning", ""), str)
+            or len(thought.get("reasoning", "")) > 4000
+            or thought.get("handler_key", "") not in {"", "bag_cleanup"}
+            or not valid_motives
+        ):
+            raise UpstreamUnavailable(
+                "AINPC returned an invalid spontaneous thought.",
+                error_code="ainpc_spontaneous_thought_invalid",
+                response_payload=response,
+            )
+        return {
+            "npcId": str(npc_id),
+            "timestamp": data["timestamp"],
+            "routeTo": data["route_to"],
+            "thought": {
+                "description": thought["thought_description"].strip(),
+                "scheduleCategory": str(thought.get("schedule_category") or "未分类")[:100],
+                "importance": round(float(thought["importance"]), 3),
+                "urgencyLevel": thought["urgency_level"],
+                "targetMotives": [
+                    {
+                        "name": item["motive_name"].strip(),
+                        "score": round(float(item["score"]), 3),
+                        "reason": item.get("reason", ""),
+                    }
+                    for item in motives
+                ],
+                "reasoning": thought.get("reasoning", ""),
+                "hasThought": thought["has_thought"],
+            },
+        }
+
     async def trigger_virtual_task(self, organization_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         path = f"/internal/v1/organization-administration/organizations/{organization_id}/virtual-task-triggers"
 

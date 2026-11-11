@@ -3905,8 +3905,11 @@ button:focus-visible {
 @media (max-width: 640px) { .office-npc-schedule { align-items: stretch; flex-direction: column; } .office-npc-schedule > button { align-self: end; } #officeNpcSchedule, .office-npc-assignment { grid-template-columns: 1fr; } #officeNpcSchedule small, .office-npc-assignment small { grid-column: 1; } }
 .office-decision-form { display: grid; gap: 8px; }
 .office-decision-form > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.office-decision-form input { min-width: 0; }
+.office-decision-form input, .office-decision-form textarea { min-width: 0; }
+.office-decision-form textarea { width: 100%; min-height: 96px; resize: vertical; line-height: 1.45; }
 .office-decision-result { min-height: 24px; margin-top: 10px; }
+.office-thought-result { min-height: 24px; margin: 8px 0 10px; color: var(--muted); }
+.office-thought-result strong { color: var(--gold); margin-right: 8px; }
 @media (max-width: 640px) { .office-decision-form > div { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .office-diplomacy-fields { grid-template-columns: 1fr; } }
 .focus-route-proof {

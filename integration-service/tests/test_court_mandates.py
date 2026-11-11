@@ -25,6 +25,7 @@ class MandateUpstreams:
         self.knowledge_available = True
         self.assignment_available = True
         self.task_snapshot: dict[str, object] | None = None
+        self.thoughts: list[tuple[int, dict[str, object]]] = []
 
     async def health(self):
         return {
@@ -46,6 +47,25 @@ class MandateUpstreams:
     async def choose_dialogue(self, npc_id, payload):
         assert npc_id > 0
         return {"code": 200, "data": {"index": 1, "type": "OPTION"}}
+
+    async def generate_spontaneous_thought(self, npc_id, payload):
+        self.thoughts.append((npc_id, payload))
+        return {
+            "npcId": str(npc_id),
+            "timestamp": payload["current_time"],
+            "routeTo": "delayed",
+            "thought": {
+                "description": "先据旧闻整军，再试探东郊虚实",
+                "scheduleCategory": "军事",
+                "importance": 86.0,
+                "urgencyLevel": "urgent_but_lower",
+                "targetMotives": [
+                    {"name": "情报核验", "score": 8.0, "reason": "东郊军情未明"}
+                ],
+                "reasoning": "史料与当前职责都要求先核实敌情。",
+                "hasThought": True,
+            },
+        }
 
     async def npc_state(self, npc_id):
         return {
@@ -439,6 +459,78 @@ def test_player_message_uses_formal_ainpc_contract_and_scopes_reply() -> None:
             other = client.get("/api/dongzhou/v1/npcs/ZuoRu/correspondence")
             assert other.status_code == 200
             assert other.json()["messages"] == []
+
+
+def test_spontaneous_thought_is_idempotent_and_sealed_into_selected_council() -> None:
+    with TemporaryDirectory() as directory:
+        upstreams = MandateUpstreams()
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=upstreams
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            thought_id = str(uuid4())
+            thought_body = {
+                "client_request_id": thought_id,
+                "stage_id": "01",
+                "stage_title": "东郊索命",
+                "knowledge_id": "dongzhou_stage_001",
+                "evidence_source_index": 0,
+                "task_type": "drill",
+            }
+            generated = client.post(
+                "/api/dongzhou/v1/npcs/ZuoRu/thoughts", json=thought_body
+            )
+            assert generated.status_code == 200, generated.text
+            receipt = generated.json()["thoughtReceipt"]
+            assert receipt["thought"]["description"] == "先据旧闻整军，再试探东郊虚实"
+            assert receipt["councilProposal"] == "采纳ZuoRu进言，依本回史料执行检阅军阵"
+            assert receipt["source"]["work"] == "《史记·周本纪》"
+            assert len(receipt["digest"]) == 64
+            assert upstreams.thoughts[0][1]["operation_id"].endswith(thought_id)
+
+            replay = client.post(
+                "/api/dongzhou/v1/npcs/ZuoRu/thoughts", json=thought_body
+            )
+            assert replay.status_code == 200
+            assert replay.json()["replayed"] is True
+            assert len(upstreams.thoughts) == 1
+
+            council_id = str(uuid4())
+            council = client.post(
+                "/api/dongzhou/v1/npcs/ZuoRu/decisions",
+                json={
+                    "client_request_id": council_id,
+                    "question": "东郊一战如何部署？\n选证：《史记·周本纪》｜史实骨架",
+                    "options": [
+                        {"index": 0, "text": "固守军粮"},
+                        {"index": 1, "text": receipt["councilProposal"]},
+                    ],
+                    "topic": "court_decision",
+                },
+            )
+            assert council.status_code == 200
+            body = {
+                **mandate_body(council_id),
+                "thought_request_id": thought_id,
+                "thought_digest": receipt["digest"],
+            }
+            draft = client.post("/api/dongzhou/v1/court/mandates", json=body)
+            assert draft.status_code == 200, draft.text
+            mandate = draft.json()["mandate"]
+            assert mandate["thought"]["digest"] == receipt["digest"]
+            assert mandate["council"]["thought"]["requestId"] == thought_id
+
+            tampered = client.post(
+                "/api/dongzhou/v1/court/mandates",
+                json={
+                    **body,
+                    "client_request_id": str(uuid4()),
+                    "thought_digest": "0" * 64,
+                },
+            )
+            assert tampered.status_code == 422
+            assert tampered.json()["error"]["code"] == "court_thought_unverified"
 
 
 def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:

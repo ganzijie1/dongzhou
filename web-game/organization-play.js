@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 12;
+  const SCHEMA_VERSION = 13;
   const TASK_TYPES = {
     supply: { name: "转运军粮", office: "司徒", duration: 1, cost: 8, base: 72, reward: { provisions: 24 } },
     drill: { name: "整训军阵", office: "司马", duration: 1, cost: 6, base: 68, reward: { attack: 0.08 } },
@@ -41,6 +41,7 @@
       knowledge: [],
       selectedSources: {},
       selectedCorrespondence: {},
+      thoughts: [],
       councils: [],
       mandates: [],
       relations: {},
@@ -100,6 +101,7 @@
       knowledge: Array.isArray(source.knowledge) ? source.knowledge.slice(-30).map((entry) => ({ ...entry })) : [],
       selectedSources: source.selectedSources && typeof source.selectedSources === "object" ? copy(source.selectedSources) : {},
       selectedCorrespondence: source.selectedCorrespondence && typeof source.selectedCorrespondence === "object" ? copy(source.selectedCorrespondence) : {},
+      thoughts: Array.isArray(source.thoughts) ? source.thoughts.filter((entry) => entry && typeof entry === "object").slice(-30).map(copy) : [],
       councils: Array.isArray(source.councils) ? source.councils.filter((entry) => entry && typeof entry === 'object').slice(-30).map(copy) : [],
       mandates: Array.isArray(source.mandates) ? source.mandates.filter((entry) => entry && typeof entry === "object").slice(-50).map(copy) : [],
       relations: source.relations && typeof source.relations === "object" ? { ...source.relations } : {},
@@ -160,15 +162,32 @@
     if (!Number.isInteger(input.index) || input.index < 0 || input.index >= options.length) throw new Error('军议结果不属于本次方案');
     if (!String(input.question || '').trim() || !String(input.id || '').trim()) throw new Error('军议缺少来源记录');
     if (correspondence && (correspondence.heroId !== member.id || !/^[0-9a-f]{64}$/.test(String(correspondence.digest || "")))) throw new Error('所选耳报不属于当前属官');
+    const thought = input.thoughtRequestId ? state.thoughts.find((entry) => entry.requestId === input.thoughtRequestId) : null;
+    if (input.thoughtRequestId && (!thought || thought.digest !== input.thoughtDigest || thought.heroId !== member.id || thought.stageId !== stageId || thought.knowledgeId !== knowledge.id || Number(thought.source?.index) !== Number(input.evidenceSourceIndex) || thought.thought?.hasThought !== true || thought.councilProposal !== options[input.index])) throw new Error('属官进言与本次军议结果不匹配');
     const council = { id: String(input.id), stageId, memberId: member.id, memberName: member.name,
       knowledgeId: knowledge.id, knowledgeName: String(input.knowledgeName || knowledge.name),
       knowledgeSummary: String(input.knowledgeSummary ?? knowledge.summary ?? ''), evidenceSource: copy(evidenceSource), question: String(input.question),
       correspondence: correspondence ? copy(correspondence) : null,
+      thought: thought ? copy(thought) : null,
       options: options.slice(), index: input.index, text: options[input.index] };
     const previous = state.councils.find((entry) => entry.id === council.id);
     if (previous && JSON.stringify(previous) !== JSON.stringify(council)) throw new Error('军议来源记录冲突');
     if (!previous) state.councils = [...state.councils, council].slice(-30);
     return { state, council: copy(previous || council) };
+  }
+
+  function recordThought(rawState, input) {
+    const state = normalizeState(rawState);
+    const receipt = input && typeof input === "object" ? copy(input) : null;
+    const member = state.members.find((entry) => entry.id === receipt?.heroId);
+    const knowledge = state.knowledge.find((entry) => entry.id === receipt?.knowledgeId && entry.stageId === receipt?.stageId);
+    if (!receipt?.requestId || !/^[0-9a-f]{64}$/.test(String(receipt.digest || "")) || !member || !knowledge) throw new Error("属官进言回执无效");
+    if (!receipt.source?.work || !Number.isInteger(Number(receipt.source.index)) || !receipt.assignment?.planId || !receipt.assignment?.eventId || !receipt.taskType) throw new Error("属官进言缺少史证或当值记录");
+    if (!receipt.thought || typeof receipt.thought.hasThought !== "boolean" || !String(receipt.thought.description || "").trim() || !String(receipt.councilProposal || "").trim() || String(receipt.councilProposal).length > 48 || !Number.isFinite(Number(receipt.thought.importance))) throw new Error("属官进言内容无效");
+    const previous = state.thoughts.find((entry) => entry.requestId === receipt.requestId);
+    if (previous && JSON.stringify(previous) !== JSON.stringify(receipt)) throw new Error("属官进言来源记录冲突");
+    if (!previous) state.thoughts = [...state.thoughts, receipt].slice(-30);
+    return { state, thought: copy(previous || receipt) };
   }
 
   function recordMandate(rawState, input) {
@@ -179,6 +198,7 @@
     if (mandate.evidence.searchReceipt && (!/^[0-9a-f]{64}$/.test(String(mandate.evidence.searchReceipt.digest || "")) || !Array.isArray(mandate.evidence.retrieval?.channels) || !mandate.evidence.retrieval.channels.length)) throw new Error("内核军令检索回执无效");
     if (mandate.evidenceFit && (mandate.evidenceFit.taskType !== mandate.taskType || !Number.isFinite(Number(mandate.evidenceFit.factor)) || Number(mandate.evidenceFit.factor) < 0 || Number(mandate.evidenceFit.factor) > 9 || !["strong", "aligned", "weak"].includes(mandate.evidenceFit.band) || !Array.isArray(mandate.evidenceFit.signals))) throw new Error("内核军令史证适配无效");
     if (mandate.correspondence && (!/^[0-9a-f]{64}$/.test(String(mandate.correspondence.digest || "")) || mandate.correspondence.messageId !== mandate.council?.correspondence?.messageId || mandate.correspondence.digest !== mandate.council?.correspondence?.digest)) throw new Error("内核军令耳报来源无效");
+    if (mandate.thought && (!/^[0-9a-f]{64}$/.test(String(mandate.thought.digest || "")) || mandate.thought.requestId !== mandate.council?.thought?.requestId || mandate.thought.digest !== mandate.council?.thought?.digest)) throw new Error("内核军令进言来源无效");
     if (!mandate.assignment?.planId || !mandate.assignment?.eventId || mandate.assignment?.heroId !== mandate.heroId) throw new Error("内核军令未绑定属官当值日程");
     if (mandate.assignment.personality?.available === true && (!mandate.assignment.personality.profileId || !Array.isArray(mandate.assignment.personality.dominantTraits) || mandate.assignment.personality.fit?.available !== true || !Number.isFinite(Number(mandate.assignment.personality.fit.score)) || Number(mandate.assignment.personality.fit.score) < 0 || Number(mandate.assignment.personality.fit.score) > 100)) throw new Error("内核军令人格适岗证据无效");
     if (mandate.assignment.motivation?.available === true && (!Array.isArray(mandate.assignment.motivation.motives) || mandate.assignment.motivation.fit?.available !== true || !Number.isFinite(Number(mandate.assignment.motivation.fit.score)) || Number(mandate.assignment.motivation.fit.score) < 0 || Number(mandate.assignment.motivation.fit.score) > 100)) throw new Error("内核军令任务意愿证据无效");
@@ -210,6 +230,7 @@
     if (input.mandateId && (!mandate || mandate.stageId !== String(input.stageId || "") || mandate.heroId !== member.id || mandate.taskType !== input.type || mandate.evidence?.id !== input.knowledgeId || mandate.council?.requestId !== input.councilId || JSON.stringify(mandate.evidence?.source || null) !== JSON.stringify(councilSource))) throw new Error("内核军令与本次关卡、属官、选证或差事不匹配");
     if (mandate?.evidence?.searchReceipt && JSON.stringify(mandate.evidence.searchReceipt) !== JSON.stringify(council?.evidenceSource?.searchReceipt || null)) throw new Error("内核军令与军议检索回执不匹配");
     if ((mandate?.correspondence?.messageId || null) !== (council?.correspondence?.messageId || null) || (mandate?.correspondence?.digest || null) !== (council?.correspondence?.digest || null)) throw new Error("内核军令与军议耳报不匹配");
+    if ((mandate?.thought?.requestId || null) !== (council?.thought?.requestId || null) || (mandate?.thought?.digest || null) !== (council?.thought?.digest || null)) throw new Error("内核军令与军议进言不匹配");
     const operation = input.operation && typeof input.operation === "object" ? copy(input.operation) : mandate?.operation ? copy(mandate.operation) : null;
     if (operation && (input.type !== "diplomacy" || operation.kind !== "diplomacy" || !operation.target_id || !operation.target_name || !operation.proposal || !mandate?.operation || JSON.stringify(operation) !== JSON.stringify(mandate.operation))) throw new Error("外交差事与内核军令不匹配");
     const active = state.tasks.some((task) => task.status === "active" && task.assigneeId === member.id);
@@ -734,5 +755,5 @@
     return state;
   }
 
-  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, recordInventoryRequisition, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, recordRemoteRoster, hash };
+  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordThought, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, recordInventoryRequisition, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, recordRemoteRoster, hash };
 });

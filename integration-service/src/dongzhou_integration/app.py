@@ -18,7 +18,7 @@ from nexus_kernel.kernel import Kernel, LoadedModule, Module, ModuleContext
 
 from .config import Settings
 from .assignments import AssignmentUnavailable, select_assignment
-from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
+from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
@@ -1938,6 +1938,183 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "assignment": assignment,
         }
 
+    @router.post("/npcs/{hero_id}/thoughts")
+    async def generate_npc_thought(
+        request: NpcThoughtRequest,
+        hero_id: str,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        body = _payload(request)
+        try:
+            created, previous = await store.begin_request(
+                player_id,
+                request.client_request_id,
+                "npc_spontaneous_thought",
+                {"hero_id": hero_id, **body},
+            )
+        except VersionConflict as error:
+            raise ApiError(
+                "idempotency_conflict",
+                "The request identifier was already used with different input.",
+                status_code=409,
+            ) from error
+        if not created:
+            if previous and previous.get("state") == "PENDING":
+                raise ApiError(
+                    "request_in_progress",
+                    "The same NPC thought is still being generated.",
+                    status_code=409,
+                )
+            return {"replayed": True, **(previous or {})}
+
+        try:
+            entries, assignment = await asyncio.gather(
+                upstreams.stage_knowledge(request.stage_id),
+                resolve_npc_assignment(hero_id, request.task_type, request.stage_id),
+            )
+        except (UpstreamUnavailable, ApiError, OSError, ValueError) as error:
+            response = {
+                "state": "RETRYABLE",
+                "requestId": str(request.client_request_id),
+            }
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "RETRYABLE",
+                response,
+                str(error),
+            )
+            raise ApiError(
+                "npc_thought_context_unavailable",
+                "The NPC duty or published knowledge is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        evidence = next(
+            (
+                entry
+                for entry in entries
+                if isinstance(entry, dict)
+                and str(entry.get("id") or entry.get("aku_id") or "")
+                == request.knowledge_id
+                and str(entry.get("stageId") or request.stage_id) == request.stage_id
+            ),
+            None,
+        )
+        source_details = evidence.get("sourceDetails") if isinstance(evidence, dict) else None
+        source = (
+            source_details[request.evidence_source_index]
+            if isinstance(source_details, list)
+            and request.evidence_source_index < len(source_details)
+            else None
+        )
+        if evidence is None or not isinstance(source, dict) or not str(source.get("work") or "").strip():
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "REJECTED",
+                {"state": "REJECTED"},
+                "npc_thought_evidence_unverified",
+            )
+            raise ApiError(
+                "npc_thought_evidence_unverified",
+                "The NPC thought must use published evidence for this stage.",
+                status_code=422,
+            )
+
+        npc_id = stable_npc_id(settings.ainpc_game_server_id, hero_id)
+        directory = await store.list_npcs(settings.game_server_id, include_offline=True)
+        npc_row = next((item for item in directory if str(item.get("id")) == str(npc_id)), None)
+        npc_name = str((npc_row or {}).get("name") or hero_id)
+        personality = assignment.get("personality") if isinstance(assignment.get("personality"), dict) else {}
+        motivation = assignment.get("motivation") if isinstance(assignment.get("motivation"), dict) else {}
+        canonical_source = {
+            "index": request.evidence_source_index,
+            "work": str(source.get("work") or ""),
+            "tier": str(source.get("tier") or "来源"),
+            "scope": str(source.get("scope") or ""),
+            "url": str(source.get("url") or ""),
+        }
+        clock = await store.read_game_clock()
+        operation_id = f"dongzhou-thought:{player_id}:{request.client_request_id}"
+        thought_payload = {
+            "operation_id": operation_id,
+            "npc_context": {
+                "npc_name": npc_name,
+                "background": str(personality.get("backgroundNote") or ""),
+                "personality": list(personality.get("dominantTraits") or []),
+                "profession": _ORGANIZATION_TASK_OFFICES[request.task_type],
+                "profession_description": f"承担{assignment['name']}，就当前军情向主君进言。",
+                "current_location": request.stage_title,
+                "environment_description": str(evidence.get("summary") or evidence.get("content") or "")[:1200],
+                "recent_events": [
+                    f"本回任务：{assignment['name']}",
+                    f"所据史料：{canonical_source['work']}｜{canonical_source['scope']}",
+                ],
+                "knowledge_context": [
+                    str(evidence.get("name") or evidence.get("title") or request.knowledge_id),
+                    str(evidence.get("summary") or evidence.get("content") or "")[:1800],
+                ],
+                "motivation_state": motivation,
+                "properties_summary": (
+                    f"情绪={assignment['state']['emotion']}；胜任度={assignment['readiness']['score']}；"
+                    f"职责={assignment['name']}"
+                ),
+            },
+            "current_schedule_description": assignment["name"],
+            "current_schedule_importance": assignment["importance"],
+            "current_time": str(clock.get("virtualTime") or ""),
+        }
+        try:
+            generated = await upstreams.generate_spontaneous_thought(npc_id, thought_payload)
+        except UpstreamUnavailable as error:
+            response = {
+                "state": "RETRYABLE",
+                "requestId": str(request.client_request_id),
+            }
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "RETRYABLE",
+                response,
+                str(error),
+            )
+            raise ApiError(
+                "ainpc_thought_unavailable",
+                "AINPC could not form a verified thought; the request can be retried.",
+                status_code=503,
+            ) from error
+        receipt = {
+            "requestId": str(request.client_request_id),
+            "operationId": operation_id,
+            "heroId": hero_id,
+            "npcId": str(npc_id),
+            "stageId": request.stage_id,
+            "taskType": request.task_type,
+            "knowledgeId": request.knowledge_id,
+            "source": canonical_source,
+            "assignment": {
+                "planId": assignment["planId"],
+                "eventId": assignment["eventId"],
+                "name": assignment["name"],
+            },
+            **generated,
+        }
+        receipt["councilProposal"] = (
+            f"采纳{npc_name}进言，依本回史料执行{assignment['name']}"
+        )[:48]
+        receipt["digest"] = hashlib.sha256(
+            json.dumps(receipt, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
+        ).hexdigest()
+        response = {
+            "state": "COMPLETED",
+            "requestId": str(request.client_request_id),
+            "thoughtReceipt": receipt,
+        }
+        await store.finish_request(
+            player_id, request.client_request_id, "COMPLETED", response
+        )
+        return response
+
     @router.post("/npcs/{hero_id}/decisions")
     async def decide_with_npc(request: NpcDecisionRequest, hero_id: str, player_id: UUID = Depends(player)) -> dict[str, Any]:
         npc_id = stable_npc_id(settings.ainpc_game_server_id, hero_id)
@@ -2044,6 +2221,49 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "The mandate must reference this player's completed NPC council decision.",
                 status_code=422,
             )
+
+        thought_receipt: dict[str, Any] | None = None
+        if request.thought_request_id is not None and request.thought_digest is not None:
+            thought_record = await store.read_request(
+                player_id, request.thought_request_id, "npc_spontaneous_thought"
+            )
+            thought_response = thought_record.get("response") if thought_record else None
+            candidate = (
+                thought_response.get("thoughtReceipt")
+                if isinstance(thought_response, dict)
+                else None
+            )
+            candidate_thought = candidate.get("thought") if isinstance(candidate, dict) else None
+            candidate_source = candidate.get("source") if isinstance(candidate, dict) else None
+            if (
+                not thought_record
+                or thought_record.get("state") != "COMPLETED"
+                or not isinstance(candidate, dict)
+                or candidate.get("requestId") != str(request.thought_request_id)
+                or candidate.get("digest") != request.thought_digest
+                or candidate.get("heroId") != request.hero_id
+                or candidate.get("stageId") != request.stage_id
+                or candidate.get("taskType") != request.task_type
+                or candidate.get("knowledgeId") != request.knowledge_id
+                or not isinstance(candidate_source, dict)
+                or candidate_source.get("index") != request.evidence_source_index
+                or not isinstance(candidate_thought, dict)
+                or candidate_thought.get("hasThought") is not True
+                or candidate.get("councilProposal") != selected_option.get("text")
+            ):
+                await store.finish_request(
+                    player_id,
+                    request.client_request_id,
+                    "REJECTED",
+                    {"state": "REJECTED"},
+                    "court_thought_unverified",
+                )
+                raise ApiError(
+                    "court_thought_unverified",
+                    "The mandate thought is not a verified selected proposal from this NPC.",
+                    status_code=422,
+                )
+            thought_receipt = candidate
 
         correspondence: dict[str, Any] | None = None
         if request.correspondence_message_id and request.correspondence_digest:
@@ -2357,6 +2577,12 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "state": str(workflow_status["state"]).upper(),
             },
         }
+        if thought_receipt is not None:
+            trace["thought"] = thought_receipt
+            trace["council"]["thought"] = {
+                "requestId": thought_receipt["requestId"],
+                "digest": thought_receipt["digest"],
+            }
         if correspondence is not None:
             trace["correspondence"] = correspondence
             trace["council"]["correspondence"] = correspondence

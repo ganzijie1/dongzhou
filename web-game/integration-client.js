@@ -11,6 +11,7 @@
   const KNOWLEDGE_CODEX_KEY = "dongzhou-knowledge-codex-v1";
   const MANDATE_PENDING_PREFIX = "dongzhou-pending-mandate-v1:";
   const NPC_MESSAGE_PENDING_PREFIX = "dongzhou-pending-npc-message-v1:";
+  const NPC_THOUGHT_PENDING_PREFIX = "dongzhou-pending-npc-thought-v1:";
   const INVENTORY_REQUISITION_PENDING_KEY = "dongzhou-pending-inventory-requisition-v1";
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
   let session = read(SESSION_KEY, null);
@@ -229,9 +230,26 @@
     root.localStorage.removeItem(pendingKey);
     return { ...result, clientRequestId: pending.client_request_id };
   }
+  async function npcThought(heroId, input) {
+    const context = [heroId, input.stage_id, input.knowledge_id, input.evidence_source_index, input.task_type].join(":");
+    const pendingKey = NPC_THOUGHT_PENDING_PREFIX + context;
+    const pending = read(pendingKey, null) || { ...input, client_request_id: root.crypto.randomUUID() };
+    write(pendingKey, pending);
+    try {
+      const result = await request(`/npcs/${encodeURIComponent(heroId)}/thoughts`, {
+        method: "POST",
+        body: JSON.stringify(pending)
+      });
+      root.localStorage.removeItem(pendingKey);
+      return result;
+    } catch (error) {
+      if ([400, 404, 422].includes(error.status)) root.localStorage.removeItem(pendingKey);
+      throw error;
+    }
+  }
   function mandatePendingKey(input) {
     const operation = input.operation ? JSON.stringify(input.operation) : "";
-    const context = [input.stage_id, input.hero_id, input.knowledge_id, input.evidence_source_index, input.council_request_id, input.task_type, input.schedule_plan_id, input.schedule_event_id, input.correspondence_message_id || "", input.correspondence_digest || "", operation].join(":");
+    const context = [input.stage_id, input.hero_id, input.knowledge_id, input.evidence_source_index, input.council_request_id, input.task_type, input.schedule_plan_id, input.schedule_event_id, input.correspondence_message_id || "", input.correspondence_digest || "", input.thought_request_id || "", input.thought_digest || "", operation].join(":");
     return MANDATE_PENDING_PREFIX + context;
   }
   async function createCourtMandate(input) {
@@ -478,5 +496,5 @@
     return { mode: "offline", stageId, results };
   }
 
-  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, syncNpcs, setNpcInteractionPreference, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationInventory, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, syncNpcs, setNpcInteractionPreference, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationInventory, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
 });
