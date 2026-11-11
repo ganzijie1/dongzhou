@@ -17,6 +17,7 @@ from pydantic import ValidationError
 
 from dongzhou_integration.app import (
     RuntimeModule,
+    _evidence_task_fit,
     _npc_outcome_event,
     _npc_outcome_memory,
     _npc_outcome_status,
@@ -117,6 +118,40 @@ class SecurityTests(unittest.TestCase):
 
 
 class OrganizationOutcomeTests(unittest.TestCase):
+    def test_evidence_fit_rewards_task_relevant_source_and_council_choice(self) -> None:
+        fit = _evidence_task_fit(
+            "diplomacy",
+            {"tier": "编年史实", "scope": "诸侯交质与盟约"},
+            "遣使交涉，再定进退",
+            has_search_receipt=True,
+        )
+        self.assertEqual(fit, {
+            "taskType": "diplomacy",
+            "factor": 9.0,
+            "band": "strong",
+            "signals": [
+                {"kind": "sourceTier", "label": "编年史实", "factor": 2.0},
+                {"kind": "sourceScope", "label": "诸侯", "factor": 2.0},
+                {"kind": "councilChoice", "label": "遣使", "factor": 4.0},
+                {"kind": "searchReceipt", "label": "verified", "factor": 1.0},
+            ],
+        })
+
+    def test_sealed_evidence_fit_replaces_legacy_flat_knowledge_bonus(self) -> None:
+        task = {"id": "evidence-task", "dueMonth": 2, "knowledgeId": "dongzhou_stage_001"}
+        member = {"office": "none", "loyalty": 68, "fatigue": 10}
+        baseline = {"assignment": {"readiness": {"score": 65}}}
+        weak = {**baseline, "evidenceFit": {"taskType": "intelligence", "factor": 2.0}}
+        strong = {**baseline, "evidenceFit": {"taskType": "intelligence", "factor": 9.0}}
+        self.assertEqual(
+            _organization_task_chance(task, "intelligence", member, strong),
+            _organization_task_chance(task, "intelligence", member, weak) + 7,
+        )
+        self.assertEqual(
+            _organization_task_chance(task, "intelligence", member, baseline),
+            _organization_task_chance(task, "intelligence", member, weak) + 4,
+        )
+
     def test_preparation_and_office_fit_materially_change_outcome(self) -> None:
         prepared = {"id": "task-4", "dueMonth": 2, "knowledgeId": "dongzhou_stage_004"}
         unprepared = {**prepared, "knowledgeId": None}

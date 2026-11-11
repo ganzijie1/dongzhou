@@ -304,6 +304,57 @@ _ORGANIZATION_TASK_OFFICES = {
     "diplomacy": "上卿",
 }
 
+_TASK_EVIDENCE_KEYWORDS = {
+    "supply": ("军粮", "粮秣", "粮", "补给", "转运", "辎重"),
+    "drill": ("整军", "军阵", "操练", "训练", "强攻", "攻防", "战场", "调度"),
+    "patrol": ("巡察", "巡", "营垒", "警戒", "守备", "防守"),
+    "intelligence": ("探察", "军情", "情报", "谍", "侦察", "耳报", "心理"),
+    "diplomacy": ("遣使", "使者", "诸侯", "盟", "议和", "交质", "交涉", "出使"),
+}
+
+
+def _evidence_task_fit(
+    task_type: str,
+    source: dict[str, Any],
+    council_text: str,
+    *,
+    has_search_receipt: bool = False,
+) -> dict[str, Any]:
+    keywords = _TASK_EVIDENCE_KEYWORDS.get(task_type, ())
+    tier = str(source.get("tier") or "")
+    scope = str(source.get("scope") or "")
+    signals: list[dict[str, Any]] = []
+    factor = 0.0
+
+    if any(marker in tier for marker in ("史实", "编年", "正史")):
+        factor += 2.0
+        signals.append({"kind": "sourceTier", "label": tier, "factor": 2.0})
+    elif tier:
+        factor += 1.0
+        signals.append({"kind": "sourceTier", "label": tier, "factor": 1.0})
+
+    scope_matches = [keyword for keyword in keywords if keyword in scope]
+    if scope_matches:
+        factor += 2.0
+        signals.append({"kind": "sourceScope", "label": scope_matches[0], "factor": 2.0})
+
+    council_matches = [keyword for keyword in keywords if keyword in council_text]
+    if council_matches:
+        factor += 4.0
+        signals.append({"kind": "councilChoice", "label": council_matches[0], "factor": 4.0})
+
+    if has_search_receipt:
+        factor += 1.0
+        signals.append({"kind": "searchReceipt", "label": "verified", "factor": 1.0})
+
+    factor = min(9.0, factor)
+    return {
+        "taskType": task_type,
+        "factor": factor,
+        "band": "strong" if factor >= 7 else "aligned" if factor >= 4 else "weak",
+        "signals": signals,
+    }
+
 
 def _stable_roll(value: str) -> int:
     result = 2166136261
@@ -320,7 +371,17 @@ def _organization_task_chance(
     mandate: dict[str, Any] | None = None,
 ) -> float:
     office_fit = 8 if str(member.get("office") or "") == _ORGANIZATION_TASK_OFFICES.get(task_type) else 0
-    knowledge_fit = 6 if task.get("knowledgeId") else 0
+    evidence_fit = mandate.get("evidenceFit") if isinstance(mandate, dict) else None
+    knowledge_fit = (
+        max(0.0, min(9.0, float(evidence_fit.get("factor"))))
+        if isinstance(evidence_fit, dict)
+        and evidence_fit.get("taskType") == task_type
+        and isinstance(evidence_fit.get("factor"), (int, float))
+        and not isinstance(evidence_fit.get("factor"), bool)
+        else 6.0
+        if task.get("knowledgeId")
+        else 0.0
+    )
     correspondence_fit = (
         8
         if isinstance(mandate, dict)
@@ -1995,6 +2056,12 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         if retrieval is not None and retrieval_receipt is not None:
             evidence_trace["retrieval"] = retrieval
             evidence_trace["searchReceipt"] = retrieval_receipt
+        evidence_fit = _evidence_task_fit(
+            request.task_type,
+            canonical_source,
+            str(selected_option.get("text") or ""),
+            has_search_receipt=retrieval_receipt is not None,
+        )
         trace = {
             "id": mandate_id,
             "stageId": request.stage_id,
@@ -2002,6 +2069,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "heroId": request.hero_id,
             "taskType": request.task_type,
             "evidence": evidence_trace,
+            "evidenceFit": evidence_fit,
             "council": {
                 "requestId": str(request.council_request_id),
                 "question": str(council_request.get("question") or ""),
@@ -2235,6 +2303,13 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 f"{assignment.get('planId')}.{readiness_note}{personality_note}{motivation_note}"
             )
             brief = brief.rstrip()[: max(0, 1000 - len(duty_note))] + duty_note
+        evidence_fit = mandate.get("evidenceFit") if isinstance(mandate, dict) else None
+        if isinstance(evidence_fit, dict):
+            evidence_note = (
+                f" Sealed evidence fit {evidence_fit.get('factor')}/9 "
+                f"({evidence_fit.get('band')}) for {evidence_fit.get('taskType')}."
+            )
+            brief = brief.rstrip()[: max(0, 1000 - len(evidence_note))] + evidence_note
         emergency = mandate.get("emergency") if isinstance(mandate, dict) else None
         if isinstance(emergency, dict):
             emergency_note = (

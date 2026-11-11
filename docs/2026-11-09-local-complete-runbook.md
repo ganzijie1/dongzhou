@@ -3,7 +3,7 @@
 ## 入口与交付包
 
 - 游戏入口：`http://127.0.0.1:8780/`
-- 东周网关镜像：`dongzhou-integration:20261111-local-complete43`
+- 东周网关镜像：`dongzhou-integration:20261111-local-complete44`
 - AINPC 八角色镜像：`ainpc-app:v20261111-dongzhou-local-complete20`
 - orgFlow API/Worker 镜像：`org-flow-engine:dongzhou-local-complete23`
 - H5 完整包：`output/2026-11-11-dongzhou-integrated-h5-complete37.zip`
@@ -68,7 +68,8 @@ AINPC 容器通过宿主回环代理访问 LoongEQ、LoongMemory、输入预检�
 - 官署终态现增加第二个 NexusKernel 人在回路：orgFlowEngine 的贡献、功绩和终态先生成不可改写的封存凭据，玩家必须在官署选择“收纳复命”或“申斥”后才能推进月令。收纳才发放战前助益；申斥仍照录上游贡献与功绩，但取消战前助益或外交成功并扣减属官信任、关系。裁决按任务、玩家、结案摘要幂等保存，刷新和重试不会重复领奖或更换决定。
 - `complete42` 将 orgFlowEngine 的权威任务终态同时回写 AINPC 重要事件和长期系统消息。两条事件使用独立 outbox 重试，只有两者均送达时簿书才显示“经历已形成”；网关升级时会按已封存结果幂等补齐旧任务缺失的长期记忆，不重算成败或奖励。真实任务 `b2b66b37-732c-507b-970d-fb0ff7511698` 与 `cd9d873a-9264-53d1-bfc0-90048f909f11` 已在 AINPC `ops_reports` 持久化为左儒的可读经历，稳定消息号均为 `dongzhou-org-outcome:<task_id>`。
 - `complete43` 将 AINPC 协同加成收紧为属官到当前主管的具体关系：正向好感与有效上下级关系加分，厌恶或仇恨扣分，其他人物的关系不再误入胜任度。主管 ID、好感、有效关系和最终因子随 NexusKernel 军令封存，任务簿显示 `协同+N/-N`。真实只读验收确认左儒当前对主管杜伯无关系记录，因此军粮当值为 `协同+0`，没有人工补造状态。
+- `complete44` 让史料选择和 AINPC 军议结论真正进入结算：来源层级、出处范围、军议与差事类型的匹配、检索回执分别形成信号，合计封存为 `0-9` 的史证适配度。新差事按封存分数替代旧的固定知识加成，旧军令仍按中性 `6` 兼容；NexusKernel 军令、orgFlow 简报和官署簿书共同显示同一值。
 - 东周网关冷重启后，原存档、任务身份、失败终态和浏览器显示保持一致。
 - H5 包含 172 个关卡、4038 个文件、2520 条角色语音和 1126 个情境音乐 cue；发布校验无错误。
 
-验收记录位于 `output/integration-validation/`，其中当前真实四服务任务验收为 `live-kernel-mandate-complete38-race-fixed.json`，最终账簿截图为 `live-kernel-mandate-complete40-final.png`，正式外交链验收为 `live-diplomacy-acceptance-20261110-formal-diplomacy-complete17.json`。
+验收记录位于 `output/integration-validation/`。当前史证适配四服务闭环为 `live-kernel-mandate-complete44-evidence.json`，任务 `2b8be328-e06a-5d53-9d36-1d288d1cf3e0` 以 `史证 2/9（弱）` 进入 NexusKernel、orgFlow、复命裁决与战斗承接并最终 `SUCCESS`；正式外交链验收为 `live-diplomacy-acceptance-20261110-formal-diplomacy-complete17.json`。

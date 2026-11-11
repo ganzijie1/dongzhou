@@ -68,6 +68,19 @@ saveJournal();
     }, { timeout: 45000 });
     await page.selectOption("#officeMemberSelect", "ZuoRu");
 
+    if (resume && !(journal.remoteTask && journal.mandateId)) {
+      const recovered = await page.evaluate((key) => {
+        const organization = JSON.parse(localStorage.getItem(key)).organization;
+        const task = [...organization.tasks].reverse().find((entry) => entry.remoteResult && entry.mandate?.evidenceFit);
+        return task ? { remoteTask: task.remoteResult, mandateId: task.mandate.id } : null;
+      }, PROFILE);
+      if (recovered) {
+        journal.remoteTask = recovered.remoteTask;
+        journal.mandateId = recovered.mandateId;
+        journal.stage = "recovered-existing-task";
+        saveJournal();
+      }
+    }
     const recoveringExisting = resume && Boolean(journal.remoteTask && journal.mandateId);
     let council;
     let issued;
@@ -112,6 +125,11 @@ saveJournal();
       const task = organization.tasks.find((entry) => entry.remoteResult && entry.mandate);
       return { task, mandate: organization.mandates.find((entry) => entry.id === task.mandate.id) };
     }, PROFILE);
+    council = await page.evaluate(({ key, requestId }) => {
+      const organization = JSON.parse(localStorage.getItem(key)).organization;
+      return organization.councils.find((entry) => entry.id === requestId);
+    }, { key: PROFILE, requestId: issued.mandate.council.requestId });
+    assert(council, "The sealed mandate council is missing from the saved ledger");
     assert.equal(issued.mandate.kernel.state, "READY");
     assert.match(issued.mandate.digest, /^[0-9a-f]{64}$/);
     assert.equal(issued.mandate.evidence.id, council.knowledgeId);
@@ -122,6 +140,13 @@ saveJournal();
       scope: council.evidenceSource.scope,
       url: council.evidenceSource.url
     });
+    assert.equal(issued.mandate.evidenceFit.taskType, "supply");
+    assert(Array.isArray(issued.mandate.evidenceFit.signals));
+    assert.equal(
+      issued.mandate.evidenceFit.factor,
+      /军粮|粮秣|补给|转运|辎重/.test(issued.mandate.council.text) ? 6 : 2,
+      "Evidence fit must reflect the sealed AINPC council choice"
+    );
     assert.equal(issued.mandate.council.requestId, council.id);
     assert.equal(issued.mandate.assignment.heroId, "ZuoRu");
     assert.equal(issued.mandate.assignment.transactionId, 9100103);
@@ -144,6 +169,7 @@ saveJournal();
     assert(imageSize > 10000, "mandate screenshot is unexpectedly blank");
     assert.match(await page.locator("#officeMandateLedger").innerText(), /属官执行中/);
     assert.match(await page.locator("#officeMandateLedger").innerText(), /印记/);
+    assert.match(await page.locator("#officeMandateLedger").innerText(), new RegExp(`史证${issued.mandate.evidenceFit.factor}/9`));
 
     } else {
       ({ council, issued } = await page.evaluate(({ key, remoteTask, mandateId }) => {
@@ -163,6 +189,20 @@ saveJournal();
       await page.click("#officeAdvanceButton");
       await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, { timeout: 240000 });
       await page.waitForFunction(({ key, month }) => JSON.parse(localStorage.getItem(key)).organization.month > month, { key: PROFILE, month: monthBeforeReport }, { timeout: 90000 });
+    } else {
+      const remoteBeforeAdvance = await page.evaluate(async (taskId) => {
+        const response = await fetch("/api/dongzhou/v1/organization/tasks/" + encodeURIComponent(taskId));
+        const body = response.ok ? await response.json() : null;
+        return body?.result?.data || body?.result || null;
+      }, issued.task.remoteResult);
+      if (!remoteBeforeAdvance?.final_result) {
+        journal.stage = "recovery-report-trigger";
+        saveJournal();
+        const monthBeforeReport = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).organization.month, PROFILE);
+        await page.click("#officeAdvanceButton");
+        await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, { timeout: 240000 });
+        await page.waitForFunction(({ key, month }) => JSON.parse(localStorage.getItem(key)).organization.month > month, { key: PROFILE, month: monthBeforeReport }, { timeout: 90000 });
+      }
     }
     const terminal = await page.evaluate(async (taskId) => {
       const deadline = Date.now() + 240000;
@@ -233,6 +273,7 @@ saveJournal();
         score: issued.mandate.emergency.score,
         traced: Boolean(issued.mandate.emergency.interruptTraceId)
       },
+      evidenceFit: issued.mandate.evidenceFit,
       mandateDigestPrefix: issued.mandate.digest.slice(0, 10),
       terminalResult: terminal.final_result,
       settlementReviewed,

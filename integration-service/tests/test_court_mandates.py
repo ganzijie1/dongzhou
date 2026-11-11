@@ -432,6 +432,15 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
                 "scope": "千亩之败与周宣王晚年",
                 "url": "https://ctext.org/shiji/zhou-ben-ji",
             }
+            assert mandate["evidenceFit"] == {
+                "taskType": "drill",
+                "factor": 6.0,
+                "band": "aligned",
+                "signals": [
+                    {"kind": "sourceTier", "label": "史实骨架", "factor": 2.0},
+                    {"kind": "councilChoice", "label": "整军", "factor": 4.0},
+                ],
+            }
             assert mandate["council"]["text"] == "整军强攻"
             assert mandate["assignment"]["planId"] == "plan-1"
             assert mandate["assignment"]["eventId"] == "event-drill"
@@ -762,6 +771,7 @@ def test_diplomacy_operation_is_sealed_and_drives_orgflow_brief() -> None:
                     "Readiness 58/100 (watch). "
                     "Personality task fit 48/100 (strained). "
                     "Motivation task willingness 50/100 (neutral). "
+                    "Sealed evidence fit 2.0/9 (weak) for diplomacy. "
                     "AINPC emergency assessment: urgent, score 81.25, "
                     "trace emergency_evaluate:test-trace."
                 )
