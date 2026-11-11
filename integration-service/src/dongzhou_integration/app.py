@@ -166,16 +166,16 @@ class RuntimeModule(Module):
         online_ids = await self.upstreams.online_npc_ids()
         missing = [npc for npc in npcs if npc["npcId"] not in online_ids]
         pending = npcs if force_relogin else missing
-        if not pending:
-            return
         if missing:
             await self.upstreams.register_npcs(missing)
-        clock = await self.store.read_game_clock()
-        await self.upstreams.set_npcs_online(
-            pending,
-            str(clock["virtualTime"]),
-            login_round,
-        )
+        if pending:
+            clock = await self.store.read_game_clock()
+            await self.upstreams.set_npcs_online(
+                pending,
+                str(clock["virtualTime"]),
+                login_round,
+            )
+        await _sync_organization_supervision(self.upstreams, self.settings, npcs)
 
 
 class MandateWorkflowModule(Module):
@@ -549,6 +549,33 @@ def _organization_supervision_links(
             "sourceEventId": f"orgflow:{organization_id}:supervision:{hero_id}:{manager_hero_id or 'none'}",
         })
     return links
+
+
+async def _sync_organization_supervision(
+    upstreams: Upstreams, settings: Settings, mapped_npcs: list[dict[str, str]],
+) -> list[dict[str, Any]]:
+    if not settings.orgflow_org_id or not settings.orgflow_hero_members:
+        return []
+    roster_response = await upstreams.organization_roster(settings.orgflow_org_id)
+    roster = _organization_roster_view(roster_response.get("data"), settings)
+    links = _organization_supervision_links(roster, mapped_npcs, settings.orgflow_org_id)
+    receipts = await asyncio.gather(*(
+        upstreams.ensure_organization_supervision(
+            subordinate_npc_id=link["subordinateNpcId"],
+            manager_npc_id=link["managerNpcId"],
+            source_event_id=link["sourceEventId"],
+        )
+        for link in links
+    ))
+    return [
+        {
+            **link,
+            "created": receipt["created"],
+            "deactivatedManagerNpcIds": receipt.get("deactivatedManagerNpcIds", []),
+            "relationshipIds": receipt["relationshipIds"],
+        }
+        for link, receipt in zip(links, receipts, strict=True)
+    ]
 
 
 _SETTLING_RESULTS = {"SUCCESS", "PARTIAL", "FAILURE", "REJECTED"}
@@ -1509,28 +1536,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 activation = await upstreams.set_npcs_online(
                     pending, str(clock["virtualTime"]), f"dongzhou-{player_id.hex}"
                 )
-            relationship_sync: list[dict[str, Any]] = []
-            if settings.orgflow_org_id and settings.orgflow_hero_members:
-                roster_response = await upstreams.organization_roster(settings.orgflow_org_id)
-                roster = _organization_roster_view(roster_response.get("data"), settings)
-                links = _organization_supervision_links(roster, mapped, settings.orgflow_org_id)
-                receipts = await asyncio.gather(*(
-                    upstreams.ensure_organization_supervision(
-                        subordinate_npc_id=link["subordinateNpcId"],
-                        manager_npc_id=link["managerNpcId"],
-                        source_event_id=link["sourceEventId"],
-                    )
-                    for link in links
-                ))
-                relationship_sync = [
-                    {
-                        **link,
-                        "created": receipt["created"],
-                        "deactivatedManagerNpcIds": receipt.get("deactivatedManagerNpcIds", []),
-                        "relationshipIds": receipt["relationshipIds"],
-                    }
-                    for link, receipt in zip(links, receipts, strict=True)
-                ]
+            relationship_sync = await _sync_organization_supervision(upstreams, settings, mapped)
         except UpstreamUnavailable as error:
             raise ApiError("ainpc_unavailable", "NPC service is temporarily unavailable.", status_code=503) from error
         ready = not pending

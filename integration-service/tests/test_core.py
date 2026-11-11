@@ -56,10 +56,17 @@ class _CapturingUpstreams(_HealthyUpstreams):
 
 
 class _NpcRecoveryUpstreams(_HealthyUpstreams):
-    def __init__(self, online_ids=()) -> None:
+    def __init__(self, online_ids=(), roster=None) -> None:
         self.registrations: list[list[dict[str, str]]] = []
         self.activations: list[tuple[list[dict[str, str]], str, str]] = []
         self.online_ids = set(online_ids)
+        self.roster = roster or {
+            "data": {
+                "name": "Dongzhou Court", "state": "ACTIVE", "hierarchy_version": 1,
+                "growth_contribution_points": 0, "positions": [], "members": [],
+            }
+        }
+        self.supervision: list[dict[str, object]] = []
 
     async def online_npc_ids(self):
         return set(self.online_ids)
@@ -71,6 +78,16 @@ class _NpcRecoveryUpstreams(_HealthyUpstreams):
     async def set_npcs_online(self, npcs, game_time, login_round):
         self.activations.append((npcs, game_time, login_round))
         return []
+
+    async def organization_roster(self, organization_id):
+        return self.roster
+
+    async def ensure_organization_supervision(self, **values):
+        self.supervision.append(values)
+        return {
+            "code": 200, "created": False, "deactivatedManagerNpcIds": [],
+            "relationshipIds": ["existing"] if values["manager_npc_id"] else [],
+        }
 
 
 class SecurityTests(unittest.TestCase):
@@ -339,6 +356,57 @@ class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(upstreams.registrations, [])
         self.assertEqual(upstreams.activations, [])
+
+    async def test_periodic_recovery_reconciles_org_hierarchy_without_actor_relogin(self) -> None:
+        with TemporaryDirectory() as directory, patch.dict(
+            "os.environ",
+            {
+                "DONGZHOU_ENV": "development",
+                "DONGZHOU_DATABASE_PATH": str(Path(directory) / "gateway.sqlite3"),
+                "DONGZHOU_ORGFLOW_ORG_ID": "00000000-0000-4000-8000-000000000100",
+                "DONGZHOU_ORGFLOW_MANAGER_MEMBER_ID": "00000000-0000-4000-8000-000000000101",
+                "DONGZHOU_ORGFLOW_HERO_MEMBERS": "DuBo=00000000-0000-4000-8000-000000000101,ZuoRu=00000000-0000-4000-8000-000000000102",
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            store = Store(settings.database_path)
+            await store.start()
+            du_bo = {"heroId": "DuBo", "name": "Du Bo", "npcId": "10"}
+            zuo_ru = {"heroId": "ZuoRu", "name": "Zuo Ru", "npcId": "20"}
+            await store.upsert_npc_directory(settings.game_server_id, [du_bo, zuo_ru])
+            manager_member = settings.orgflow_hero_members["DuBo"]
+            subordinate_member = settings.orgflow_hero_members["ZuoRu"]
+            roster = {
+                "data": {
+                    "name": "Dongzhou Court", "state": "ACTIVE", "hierarchy_version": 2,
+                    "growth_contribution_points": 0,
+                    "positions": [
+                        {"position_slot_id": "manager", "position_display_name": "司马", "role_display_name": "manager", "level_key": "L1"},
+                        {"position_slot_id": "worker", "position_display_name": "属官", "role_display_name": "worker", "level_key": "L2"},
+                    ],
+                    "members": [
+                        {"member_id": manager_member, "position_slot_id": "manager", "direct_manager_member_id": None, "contribution_balance": 0, "contribution_lifetime_earned": 0, "contribution_lifetime_spent": 0},
+                        {"member_id": subordinate_member, "position_slot_id": "worker", "direct_manager_member_id": manager_member, "contribution_balance": 0, "contribution_lifetime_earned": 0, "contribution_lifetime_spent": 0},
+                    ],
+                }
+            }
+            upstreams = _NpcRecoveryUpstreams(online_ids={"10", "20"}, roster=roster)
+
+            await RuntimeModule(store, upstreams, settings)._reconcile_npcs_once()
+
+        self.assertEqual(upstreams.registrations, [])
+        self.assertEqual(upstreams.activations, [])
+        self.assertEqual(upstreams.supervision, [
+            {
+                "subordinate_npc_id": "10", "manager_npc_id": None,
+                "source_event_id": f"orgflow:{settings.orgflow_org_id}:supervision:DuBo:none",
+            },
+            {
+                "subordinate_npc_id": "20", "manager_npc_id": "10",
+                "source_event_id": f"orgflow:{settings.orgflow_org_id}:supervision:ZuoRu:DuBo",
+            },
+        ])
 
     async def test_cold_start_reactivates_actor_despite_stale_online_directory_flag(self) -> None:
         with TemporaryDirectory() as directory, patch.dict(
