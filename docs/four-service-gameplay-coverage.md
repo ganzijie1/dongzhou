@@ -7,7 +7,7 @@
 | 来源 | 东周服务契约 | 玩家入口 | 权威结果 | 真实证据 |
 | --- | --- | --- | --- | --- |
 | knowledge-jizhan | 全文检索、按关卡读取已发布 AKU、战役路线、玩家简册 | 查阅、本回史料、选定出处、已得简册、行军路线 | 只接收 `dongzhou_stage_*`；出处和检索回执进入军议与军令 | `test-live-knowledge-browser.js`、`test-live-fulltext-browser.js`、`test-live-campaign-route-acceptance.js`、`verify-live-knowledge-campaign.py`、`live-integration-complete62.json` |
-| AINPC | NPC 注册与上线、主动来信偏好、状态/人格/动机/关系、双向私聊、90 天日程、关卡当值、自主念头、军议裁断、已签军令临时插程、玩家本人领差/响应/复命、急报评估 | 官署状态、府中书问、来信开关、拟定日程、本关当值、请其进言、军议裁断、签发后下达、我的差事 | 稳定 NPC/玩家身份；进言读取当前当值、动机与史料并真实触发动机路由；已签军令经日程 owner 裁定为今日插程、后续排程或拒绝，并形成独立防篡改回执 | `verify-live-roster-npcs.py`、`test-live-office-npc-state.js`、`test-live-spontaneous-thought.js`、`test-live-correspondence-acceptance.js`、`test-live-interaction-preference.js`、`test-live-schedule-browser.js`、`test-live-player-career-browser.js`、`test-live-kernel-mandate-acceptance.js` |
+| AINPC | NPC 注册与上线、主动来信偏好、状态/人格/动机/关系、双向私聊、90 天日程、关卡当值、自主念头、军议裁断、已签军令临时插程、玩家本人领差/响应/复命、急报评估、参战结果与长期经历 | 官署状态、府中书问、来信开关、拟定日程、本关当值、请其进言、军议裁断、签发后下达、我的差事、官署战报 | 稳定 NPC/玩家身份；进言读取当前当值、动机与史料并真实触发动机路由；已签军令经日程 owner 裁定为今日插程、后续排程或拒绝，并形成独立防篡改回执；实际参战属官收到幂等的重要事件和长期系统消息 | `verify-live-roster-npcs.py`、`test-live-office-npc-state.js`、`test-live-spontaneous-thought.js`、`test-live-correspondence-acceptance.js`、`test-live-interaction-preference.js`、`test-live-schedule-browser.js`、`test-live-player-career-browser.js`、`test-live-kernel-mandate-acceptance.js`、`test-live-battle-memory.js` |
 | orgFlowEngine | 权威名册、玩家入仕/辞仕、组织谱系、贡献账、公共库藏、虚拟任务、玩家本人任务申请、任务终态、人工复命审核 | 个人仕籍、我的差事、直属主管、贡献收支、库藏、军需调拨、颁差、推进月令、收纳复命/申斥 | 岗位候选、任务候选、责任人响应、直属审核、贡献、功绩和结案凭据均以 orgFlow 为准；验收奖励进入 `task.execution` 实账，玩家可按 20 点一批调拨为 12 军粮；12 席均进入可操作官员集合，负责人不可向自己派单 | `test-live-membership-browser.js`、`test-live-player-career-browser.js`、`live-player-career-browser.json`、`test-live-roster-ledger.js`、`test-live-office-roster-browser.js`、`test-live-office-inventory.js`、`test-live-inventory-requisition.js`、`test-live-office-acceptance.js`、`test-live-settlement-acceptance.js` |
 | NexusKernel | 运行模块健康、规范军令、确认动作、恢复签发、终态复命裁决、公共资源支出裁可 | 内核军令草案、签发/驳回、复命待裁、军需调拨待裁、军令簿 | 史料、军议、AINPC 进言、书问、当值、急报、适岗证据和军需支出统一 SHA-256 封存；确认动作可恢复，未签发或驳回的调拨不扣库 | `test-live-kernel-mandate-acceptance.js`、`test-live-spontaneous-thought.js`、`resume-live-kernel-mandate-acceptance.js`、`test-live-mandate-mobile.js`、`test-live-settlement-acceptance.js`、`test-live-inventory-requisition.js` |
 
@@ -23,6 +23,8 @@
 
 组织层级后续调整不会让已结案差事从人物经历中消失。AINPC 可按原任务号只读回看终态快照，但 orgFlow 会用当前名册重新核验组织、主管、岗位、责任人和直属关系；只有已终态任务的 `snapshot` 获得兼容，旧层级上的领命、复命及其他写操作仍被拒绝。
 
+战斗结算同样进入人物经历。网关只从战报中的军议、军令和筹备指令提取当前权威名册内的实际参与者，为每人生成稳定的重要事件和长期系统消息；存档与事件原子提交、相同重试不会重复，未知或未参与角色不受影响。同一事件号若携带不同结果会使整个存档事务回滚，防止云档与 NPC 经历分叉。
+
 玩家本人仕途是独立的权威闭环：先由 orgFlow 写入 `officer_12` 仕籍，再通过 AINPC 与直属杜伯查询本人岗位目录、按名称申请、调阅待办、接受和复命；orgFlow 校验每一步并在杜伯审核通过后结算贡献。浏览器只展示 AINPC 回信和 orgFlow 名册回读，不自行创建任务或增加贡献。
 
 当前无拦截完整任务证据为：
@@ -33,10 +35,11 @@
 - `live-player-career-browser.json`：玩家请仕、可领目录、按名称领差、待办、受命、复命、直属审核和贡献 `0 -> 100`。
 - `live-mandate-schedule-complete77.png`：真实史料、军议、Nexus 签发、AINPC 日程中断、orgFlow 派差、复命审核、库存奖励、云档与战斗承接。
 - `live-office-npc-state-complete80.png`：层级升级后真实人物状态、关系与 90 日当值均恢复为可读，最终状态和日程请求为 `200`，页面无“暂不可用”。
+- `live-battle-memory-complete81.json`：独立玩家的繻葛之战战报经云档重载仍在官署可见；公子吕两条 AINPC 事件一次送达，周幽王两条在短暂不可用后由 outbox 第 7 次重试送达。
 
 ## 当前验证基线
 
-- 网关：`89 passed`，另有 `21 subtests passed`。
+- 网关：`92 passed`，另有 `21 subtests passed`。
 - 前端：集成客户端、组织玩法、战斗系统、官署浏览器、军议浏览器和外交浏览器全部通过。
 - 真实冒烟：四项能力在线；独立访客存档往返、版本冲突和玩家隔离通过；172/172 关已发布史料、171/171 条连续行军路线通过；172 关共有 184 条分层出处，其中 160 关使用明确标注的《东周列国志》文学底本边界；左儒计划为 90 天、436 项东周事务。
 - 权威名册：12/12 NPC 状态与 90 天计划通过；真实浏览器逐席显示心境、关系、性情、动机与日程，杜伯可调阅但不可向自己派单。
@@ -44,6 +47,7 @@
 - 军需调拨：真实浏览器无拦截证明草案阶段零扣款、NexusKernel 签发后公共库藏 `60 -> 40`、军粮 `100 -> 112`、驳回零扣款；云档重载保持一致，同一请求回放不重复扣领。
 - 属官进言：真实左儒进言返回 `COMPLETED / hasThought=true`，重要度多次实测为 `72-78`，动机路由为 `delayed`；真实 Chromium 完成进言、军议选中、Nexus 草案封存同一摘要和玩家驳回，未派发 orgFlow 差事；320px 长文自动换行且无横向溢出，证据为 `live-spontaneous-thought-mobile.png`。
 - 军令入程：真实 Chromium 无拦截只发出 1 次日程中断请求，AINPC 正式日程 owner 返回并落下可校验回执，随后 orgFlow 任务 `SUCCESS`、玩家收纳复命、公共库藏 `40 -> 140`、军粮奖励、云档重载和战斗承接全部通过；证据为 `live-mandate-schedule-complete77.png`。
+- 战后经历：真实 Chromium 无拦截写入繻葛之战战报并从云档重载官署档案；两名实际参与属官共四条重要事件/长期系统消息最终均为 `DELIVERED`。公子吕两条一次送达，周幽王两条在上游短暂不可用后由 outbox 第 7 次重试送达，最终错误为空。该状态证明 AINPC 正式回调接收成功，不替代下游异步记忆整理状态。
 - 本地交付：网关、AINPC、orgFlow 和九个依赖容器均符合镜像、健康与 `unless-stopped` 约束；完整 H5 包哈希通过；检查过程业务写入为 0。
 
 ## 非玩法边界

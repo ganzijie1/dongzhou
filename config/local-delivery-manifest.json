@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "containers": {
     "dongzhou-integration-gateway-1": {
-      "image": "dongzhou-integration:20261112-local-complete79",
+      "image": "dongzhou-integration:20261112-local-complete81",
       "healthRequired": true
     },
     "ainpc-v2-global-dev": {

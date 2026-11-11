@@ -139,7 +139,7 @@ class Upstreams:
                     response_payload=response,
                 )
             return response
-        if kind == "NPC_TASK_OUTCOME":
+        if kind in {"NPC_TASK_OUTCOME", "NPC_BATTLE_OUTCOME"}:
             response = await self._json(
                 "POST",
                 self.settings.ainpc_url + "/callback/game-reports/emergency",
@@ -153,7 +153,7 @@ class Upstreams:
                     response_payload=response,
                 )
             return response
-        if kind == "NPC_TASK_MEMORY":
+        if kind in {"NPC_TASK_MEMORY", "NPC_BATTLE_MEMORY"}:
             response = await self._json(
                 "POST",
                 self.settings.ainpc_url + "/callback/game-reports/system-message",

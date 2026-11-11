@@ -4,7 +4,7 @@
 
 浏览器只访问 `dongzhou-integration-service`。该服务基于 NexusKernel，持有服务端存档、玩家会话、幂等记录和上游凭据；H5 不直接访问 AINPC、orgFlowEngine 或 knowledge-jizhan。
 
-本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。当前网关镜像为 `dongzhou-integration:20261112-local-complete79`，AINPC 八角色镜像为 `ainpc-app:v20261111-dongzhou-local-complete58`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete27`。当前版本覆盖双向府中书问、玩家来信偏好、90 天当值计划、自主进言、已签军令临时插程、组织谱系与贡献实账、12 席权威名册、玩家仕途、人工复命裁决、军需调拨和史料军议结算；真实浏览器已完成四服务签令到战斗承接及 320px 进言验收。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
+本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。当前网关镜像为 `dongzhou-integration:20261112-local-complete81`，AINPC 八角色镜像为 `ainpc-app:v20261111-dongzhou-local-complete58`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete27`。当前版本覆盖双向府中书问、玩家来信偏好、90 天当值计划、自主进言、已签军令临时插程、组织谱系与贡献实账、12 席权威名册、玩家仕途、人工复命裁决、军需调拨、史料军议结算以及实际参战属官的战后重要事件与长期经历；真实浏览器已完成四服务签令到战斗承接、战报回写及 320px 进言验收。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
 
 ## 发布顺序
 

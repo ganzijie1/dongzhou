@@ -802,6 +802,7 @@ class Store:
     async def write_save(
         self, player_id: UUID, expected_version: int, payload: dict[str, Any],
         *, organization_reports: list[dict[str, Any]] | None = None,
+        game_events: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
         requested_month = _organization_month(payload)
@@ -830,6 +831,31 @@ class Store:
                         "VALUES (?, 'ORG_REPORT_START', ?)",
                         ("org-report:" + str(report["task_id"]),
                          json.dumps(report, ensure_ascii=False, separators=(",", ":"), sort_keys=True)),
+                    )
+                for event in game_events or []:
+                    event_id = str(event["eventId"])
+                    event_kind = str(event["kind"])
+                    event_payload = json.dumps(
+                        event["payload"],
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                        sort_keys=True,
+                    )
+                    existing_event = db.execute(
+                        "SELECT event_kind,payload FROM game_server_outbox WHERE event_id=?",
+                        (event_id,),
+                    ).fetchone()
+                    if existing_event is not None:
+                        if (
+                            existing_event["event_kind"] != event_kind
+                            or existing_event["payload"] != event_payload
+                        ):
+                            raise VersionConflict("game_event_idempotency_conflict")
+                        continue
+                    db.execute(
+                        "INSERT INTO game_server_outbox(event_id,event_kind,payload) "
+                        "VALUES (?,?,?)",
+                        (event_id, event_kind, event_payload),
                     )
                 if requested_month is not None:
                     db.execute(

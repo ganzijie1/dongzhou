@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 import hashlib
 from importlib.metadata import version
 import json
@@ -976,6 +976,150 @@ def _npc_memory_from_event(event: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _battle_game_events(
+    settings: Settings,
+    player_id: UUID,
+    payload: dict[str, Any],
+    game_time: str,
+) -> list[dict[str, Any]]:
+    def bounded_count(value: Any) -> int:
+        if isinstance(value, bool):
+            return 0
+        try:
+            return max(0, min(10_000, int(value or 0)))
+        except (TypeError, ValueError, OverflowError):
+            return 0
+
+    organization = payload.get("organization")
+    if not isinstance(organization, dict):
+        return []
+    members = organization.get("members")
+    reports = organization.get("battleReports")
+    if not isinstance(members, list) or not isinstance(reports, list):
+        return []
+    member_names = {
+        str(member.get("id")): str(member.get("name") or member.get("id"))[:100]
+        for member in members
+        if isinstance(member, dict) and str(member.get("id") or "")
+    }
+    events: list[dict[str, Any]] = []
+    for report in reports[-40:]:
+        if not isinstance(report, dict) or not isinstance(report.get("won"), bool):
+            continue
+        report_id = str(report.get("id") or "").strip()
+        stage_id = str(report.get("stageId") or "").strip()
+        if not report_id or not stage_id:
+            continue
+        support = report.get("support") if isinstance(report.get("support"), dict) else {}
+        participant_ids: set[str] = set()
+        participant_sources = (
+            report.get("councils"),
+            report.get("mandates"),
+            support.get("orders"),
+        )
+        for entries in participant_sources:
+            if not isinstance(entries, list):
+                continue
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    continue
+                hero_id = str(entry.get("memberId") or entry.get("heroId") or "")
+                if hero_id in member_names:
+                    participant_ids.add(hero_id)
+        if not participant_ids:
+            continue
+        turns = bounded_count(report.get("turns"))
+        own_losses = bounded_count(report.get("ownLosses"))
+        won = bool(report["won"])
+        stage_title = str(report.get("stageTitle") or stage_id).strip()[:160]
+        battle_game_time = game_time
+        report_month = report.get("month")
+        if (
+            not isinstance(report_month, bool)
+            and isinstance(report_month, int)
+            and 1 <= report_month <= 10_000
+        ):
+            virtual_date = date(771, 1, 1) + timedelta(days=(report_month - 1) * 30)
+            battle_game_time = (
+                f"{virtual_date.year:04d}-{virtual_date.month:02d}-{virtual_date.day:02d} "
+                "14:00:00"
+            )
+        sources = [
+            str(item).strip()[:120]
+            for item in report.get("sources", [])[:8]
+            if str(item).strip()
+        ] if isinstance(report.get("sources"), list) else []
+        mandate_ids = [
+            str(item.get("id"))[:128]
+            for item in report.get("mandates", [])[:8]
+            if isinstance(item, dict) and item.get("id")
+        ] if isinstance(report.get("mandates"), list) else []
+        result_text = "告捷" if won else "失利"
+        content = (
+            f"{stage_title}{result_text}，历时{turns}回合，己方折损{own_losses}部。"
+            + (f"战前筹备：{'、'.join(sources[:3])}。" if sources else "")
+        )[:1000]
+        for hero_id in sorted(participant_ids):
+            identity_digest = hashlib.sha256(
+                f"{player_id}\n{report_id}\n{hero_id}".encode("utf-8")
+            ).hexdigest()
+            source_record_id = "dongzhou-battle:" + identity_digest[:48]
+            event_id = int.from_bytes(bytes.fromhex(identity_digest[:8]), "big") & 0x7FFFFFFF
+            if event_id == 0:
+                event_id = 1
+            npc_id = str(stable_npc_id(settings.ainpc_game_server_id, hero_id))
+            npc_name = member_names[hero_id]
+            outcome = {
+                "game_server_id": str(settings.ainpc_game_server_id),
+                "npc_id": npc_id,
+                "npc_name": npc_name,
+                "game_time": battle_game_time,
+                "events": [{
+                    "source_record_id": source_record_id,
+                    "timestamp": battle_game_time,
+                    "event_id": event_id,
+                    "event_name": "东周战役" + result_text,
+                    "event_type": "battle_result",
+                    "params": content,
+                    "metadata": {
+                        "stage_id": stage_id[:64],
+                        "stage_title": stage_title,
+                        "won": won,
+                        "turns": turns,
+                        "own_losses": own_losses,
+                        "hero_id": hero_id,
+                        "mandate_ids": mandate_ids,
+                        "sources": sources,
+                    },
+                    "interrupt_trace_id": source_record_id,
+                }],
+            }
+            memory = {
+                "game_server_id": str(settings.ainpc_game_server_id),
+                "npc_id": npc_id,
+                "npc_name": npc_name,
+                "game_time": battle_game_time,
+                "messages": [{
+                    "timestamp": battle_game_time,
+                    "content": content,
+                    "message_id": source_record_id,
+                }],
+            }
+            events.extend((
+                {
+                    "eventId": "battle-outcome:" + identity_digest,
+                    "kind": "NPC_BATTLE_OUTCOME",
+                    "payload": outcome,
+                },
+                {
+                    "eventId": "battle-memory:" + identity_digest,
+                    "kind": "NPC_BATTLE_MEMORY",
+                    "payload": memory,
+                },
+            ))
+    return events
+
+
 def _npc_outcome_status(
     event: dict[str, Any] | None, memory: dict[str, Any] | None
 ) -> dict[str, Any] | None:
@@ -1523,8 +1667,19 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             reports = await _prepare_due_organization_reports(
                 store, settings, player_id, request.payload
             )
+            clock = await store.read_game_clock()
+            battle_events = _battle_game_events(
+                settings,
+                player_id,
+                request.payload,
+                str(clock["virtualTime"]),
+            )
             return await store.write_save(
-                player_id, request.expected_version, request.payload, organization_reports=reports
+                player_id,
+                request.expected_version,
+                request.payload,
+                organization_reports=reports,
+                game_events=battle_events,
             )
         except VersionConflict as error:
             raise ApiError("save_version_conflict", "The save has changed; reload before writing.", status_code=409) from error

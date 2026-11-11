@@ -17,6 +17,7 @@ from pydantic import ValidationError
 
 from dongzhou_integration.app import (
     RuntimeModule,
+    _battle_game_events,
     _evidence_task_fit,
     _npc_outcome_event,
     _npc_outcome_memory,
@@ -154,6 +155,74 @@ class SecurityTests(unittest.TestCase):
 
 
 class OrganizationOutcomeTests(unittest.TestCase):
+    def test_battle_reports_create_deduplicated_events_for_participating_npcs(self) -> None:
+        settings = type("SettingsView", (), {"ainpc_game_server_id": 91001})()
+        player_id = UUID("00000000-0000-4000-8000-000000000123")
+        payload = {
+            "organization": {
+                "members": [
+                    {"id": "DuBo", "name": "杜伯"},
+                    {"id": "ZuoRu", "name": "左儒"},
+                    {"id": "SiTu", "name": "司徒"},
+                ],
+                "battleReports": [{
+                    "id": "battle:01:1000",
+                    "stageId": "01",
+                    "stageTitle": "繻葛之战",
+                    "won": True,
+                    "turns": 8,
+                    "ownLosses": 1,
+                    "month": 4,
+                    "councils": [
+                        {"memberId": "ZuoRu"},
+                        {"memberId": "Unknown"},
+                    ],
+                    "mandates": [{"id": "mandate-1", "heroId": "ZuoRu"}],
+                    "sources": ["左儒军议", "军粮转运"],
+                    "support": {
+                        "orders": [
+                            {"memberId": "DuBo"},
+                            {"memberId": "ZuoRu"},
+                        ]
+                    },
+                }],
+            }
+        }
+        first = _battle_game_events(
+            settings, player_id, payload, "0771-01-01 14:00:00"
+        )
+        replay = _battle_game_events(
+            settings, player_id, payload, "0772-01-01 14:00:00"
+        )
+
+        self.assertEqual(first, replay)
+        self.assertEqual(
+            [event["kind"] for event in first],
+            [
+                "NPC_BATTLE_OUTCOME",
+                "NPC_BATTLE_MEMORY",
+                "NPC_BATTLE_OUTCOME",
+                "NPC_BATTLE_MEMORY",
+            ],
+        )
+        self.assertEqual(
+            {event["payload"]["npc_name"] for event in first},
+            {"杜伯", "左儒"},
+        )
+        outcome = next(
+            event["payload"]
+            for event in first
+            if event["kind"] == "NPC_BATTLE_OUTCOME"
+            and event["payload"]["npc_name"] == "左儒"
+        )
+        detail = outcome["events"][0]
+        self.assertEqual(outcome["game_time"], "0771-04-01 14:00:00")
+        self.assertEqual(detail["event_type"], "battle_result")
+        self.assertEqual(detail["metadata"]["mandate_ids"], ["mandate-1"])
+        self.assertIn("繻葛之战告捷", detail["params"])
+        self.assertEqual(detail["source_record_id"], detail["interrupt_trace_id"])
+        self.assertNotIn(str(player_id), detail["source_record_id"])
+
     def test_organization_supervision_links_use_only_synced_direct_reports(self) -> None:
         links = _organization_supervision_links(
             {"members": [
@@ -588,6 +657,77 @@ class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
 
 
 class AuthenticationRouteTests(unittest.TestCase):
+    def test_save_dispatches_participating_npc_battle_outcome_and_memory(self) -> None:
+        with TemporaryDirectory() as directory, patch.dict(
+            "os.environ",
+            {
+                "DONGZHOU_ENV": "development",
+                "DONGZHOU_WEB_ROOT": directory,
+                "DONGZHOU_PUBLIC_ORIGIN": "http://testserver",
+                "DONGZHOU_DATABASE_PATH": str(Path(directory) / "gateway.sqlite3"),
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            upstreams = _CapturingUpstreams()
+            application = build_application(
+                settings,
+                store=Store(settings.database_path),
+                upstreams=upstreams,
+            )
+            with TestClient(application) as client:
+                client.post(
+                    "/api/dongzhou/v1/sessions/guest",
+                    json={"installation_id": str(uuid4())},
+                )
+                response = client.put(
+                    "/api/dongzhou/v1/save",
+                    json={
+                        "expected_version": 1,
+                        "payload": {
+                            "organization": {
+                                "month": 1,
+                                "members": [
+                                    {"id": "ZuoRu", "name": "左儒"},
+                                    {"id": "DuBo", "name": "杜伯"},
+                                ],
+                                "tasks": [],
+                                "battleReports": [{
+                                    "id": "battle:01:route-test",
+                                    "stageId": "01",
+                                    "stageTitle": "繻葛之战",
+                                    "won": False,
+                                    "turns": 12,
+                                    "ownLosses": 2,
+                                    "councils": [{"memberId": "ZuoRu"}],
+                                    "mandates": [],
+                                    "sources": ["左儒军议"],
+                                    "support": {"orders": []},
+                                }],
+                            }
+                        },
+                    },
+                )
+                self.assertEqual(response.status_code, 200, response.text)
+                deadline = time.monotonic() + 2
+                while len(upstreams.events) < 2 and time.monotonic() < deadline:
+                    time.sleep(0.01)
+
+        self.assertEqual(
+            {kind for kind, _ in upstreams.events},
+            {"NPC_BATTLE_OUTCOME", "NPC_BATTLE_MEMORY"},
+        )
+        self.assertEqual({payload["npc_name"] for _, payload in upstreams.events}, {"左儒"})
+        outcome = next(
+            payload
+            for kind, payload in upstreams.events
+            if kind == "NPC_BATTLE_OUTCOME"
+        )
+        self.assertEqual(
+            outcome["events"][0]["event_type"],
+            "battle_result",
+        )
+
     def test_npc_interaction_preference_persists_only_confirmed_state(self) -> None:
         with TemporaryDirectory() as directory, patch.dict(
             "os.environ",
@@ -1566,6 +1706,63 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(VersionConflict):
             await restored.write_save(player_id, 1, {}, organization_reports=[{"task_id": str(uuid4())}])
         self.assertEqual(len(await restored.pending_game_events()), 1)
+
+    async def test_battle_events_commit_with_save_and_do_not_requeue_after_delivery(self) -> None:
+        player_id = await self.store.get_or_create_player(uuid4())
+        game_events = [
+            {
+                "eventId": "battle-outcome:stable",
+                "kind": "NPC_BATTLE_OUTCOME",
+                "payload": {"events": [{"event_id": 1}]},
+            },
+            {
+                "eventId": "battle-memory:stable",
+                "kind": "NPC_BATTLE_MEMORY",
+                "payload": {"messages": [{"message_id": "stable"}]},
+            },
+        ]
+        await self.store.write_save(
+            player_id,
+            1,
+            {"completed": ["01"]},
+            game_events=game_events,
+        )
+        pending = await self.store.pending_game_events()
+        self.assertEqual(
+            {event["kind"] for event in pending},
+            {"NPC_BATTLE_OUTCOME", "NPC_BATTLE_MEMORY"},
+        )
+        await self.store.finish_game_event("battle-outcome:stable")
+        await self.store.finish_game_event("battle-memory:stable")
+        await self.store.write_save(
+            player_id,
+            2,
+            {"completed": ["01"]},
+            game_events=game_events,
+        )
+        self.assertEqual(await self.store.pending_game_events(), [])
+        with self.store._connection() as db:
+            rows = db.execute(
+                "SELECT state,attempts FROM game_server_outbox ORDER BY event_id"
+            ).fetchall()
+        self.assertEqual(
+            [(row["state"], row["attempts"]) for row in rows],
+            [("DELIVERED", 1), ("DELIVERED", 1)],
+        )
+        conflicting = [
+            {**game_events[0], "payload": {"result": "changed"}},
+            game_events[1],
+        ]
+        with self.assertRaisesRegex(
+            VersionConflict, "game_event_idempotency_conflict"
+        ):
+            await self.store.write_save(
+                player_id,
+                3,
+                {"completed": ["01", "02"]},
+                game_events=conflicting,
+            )
+        self.assertEqual((await self.store.read_save(player_id))["version"], 3)
 
     async def test_npc_ready_callback_is_persisted_idempotently(self) -> None:
         await self.store.mark_npc_ready("91001", "42", "round-1", 1, 6, "startup-1")

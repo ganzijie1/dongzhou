@@ -3,7 +3,7 @@
 ## 入口与交付包
 
 - 游戏入口：`http://127.0.0.1:8780/`
-- 东周网关镜像：`dongzhou-integration:20261112-local-complete79`
+- 东周网关镜像：`dongzhou-integration:20261112-local-complete81`
 - AINPC 八角色镜像：`ainpc-app:v20261111-dongzhou-local-complete58`
 - orgFlow API/Worker 镜像：`org-flow-engine:dongzhou-local-complete27`
 - H5 完整包：`output/2026-11-11-dongzhou-integrated-h5-complete69.zip`
@@ -74,6 +74,7 @@ AINPC 容器通过宿主回环代理访问 LoongEQ、LoongMemory、输入预检�
 - `complete78` 将已签军令接入 AINPC 正式日程中断：签发后先由 `schedule-interrupts` owner 按急报、当前当值和游戏时钟裁定并实际插入今日或未来日程，再派发 orgFlow 差事。日程事件号从军令摘要稳定派生，客户端请求与服务端回执均可重放且不重复插程；回执随军令簿、差事和云档保存。真实无拦截 Chromium 只发出 1 次日程请求，随后完成任务 `SUCCESS`、收纳复命、库存 `40 -> 140`、战前军粮奖励、云档重载及战斗承接，证据为 `live-mandate-schedule-complete77.png`。
 - `complete79` 将 AINPC 入程从浏览器流程约定提升为网关硬门禁：任何携带 NexusKernel 军令的 orgFlow 派差，必须先反查到同一玩家、军令号和摘要的已完成日程裁定记录；直接调用派差 API、入程失败、跨玩家或篡改摘要均不能绕过。真实无拦截 Chromium 已在原任务 `3c859b7e-6c76-5531-90ee-bfa41a84fd17` 上续跑完成知识检索、军议、急报裁定、NexusKernel 签令、AINPC 入程、orgFlow 执行与直属审核、战斗支援和云档重载，终态为 `SUCCESS`，库存 `140 -> 240`，证据为 `live-mandate-schedule-gate-complete79b.json` 与同名 PNG。
 - `complete80` 将层级升级后的历史终态任务恢复为严格只读：AINPC 可继续查询已结案差事的 `snapshot`，orgFlow 会按当前名册复核组织、主管、岗位、责任人与直属关系；领命、复命等写操作和所有未终态任务仍要求原层级版本完全一致。真实历史任务 `2b8be328-e06a-5d53-9d36-1d288d1cf3e0` 的层级版本为 `1`、当前组织版本为 `8`，部署 `complete27` 后同一次轮询由 `503` 恢复为 `200`，AINPC 随即停止重复轮询，没有重开任务或产生业务写入。真实无拦截 Chromium 随后同时验证人物状态与日程最终响应为 `200`，页面没有“正在恢复”或“暂不可用”文案，证据为 `live-office-npc-state-complete80.png`。
+- `complete81` 将战后回报写入实际参战属官的 AINPC 认知链：军议、军令或筹备中的权威属官各获得一条 `NPC_BATTLE_OUTCOME` 重要事件和一条 `NPC_BATTLE_MEMORY` 长期系统消息，未参与或未知角色不会收到。战报、云存档和两类事件在同一 SQLite 事务提交，稳定事件号支持跨月重放去重；同号异文会冲突并整体回滚。真实无拦截 Chromium 完成繻葛之战回报、云档重载和官署档案回读；公子吕两条 outbox 一次送达，周幽王两条在 AINPC 短暂不可用后于第 7 次自动重试送达，最终四条均为 `DELIVERED` 且错误清空。证据为 `live-battle-memory-complete81.json` 与同名 PNG。`DELIVERED` 表示 AINPC 正式回调已接收，不替代其下游异步记忆整理状态。
 - `complete62` 已将当前四服务结果补成玩家可读界面：府中书问以稳定访客隔离并显示正式人物名，orgFlow 名册显示 12 席谱系、贡献余额、累计收支与直属主管，AINPC 主动来信偏好显示真实同步状态，90 天当值计划显示起止日期、首日事项和计划印记。对应无拦截验收为 `live-correspondence-acceptance.png`、`live-roster-ledger.png`、`live-interaction-preference.png` 与 `live-schedule-browser.png`。
 - `complete64` 将 orgFlow 权威名册的 12 席全部合并进可操作官员集合，不再只显示当前关卡的两名角色。新增成员使用游戏正式中文名并将内部岗位编号映射为可派差官职；既有忠诚、疲劳与关系状态保留。真实无拦截浏览器已逐席确认 12/12 AINPC 均为 `READY`，可调阅性情、动机和 90 日当值，证据为 `live-office-roster-browser.json` 与同名 PNG。
 - `complete67` 开放玩家申请 `officer_12` 军府属官席位，并显示直属杜伯与 orgFlow 权威贡献账户。入仕只以权威名册回写为成功，最长等待 180 秒；辞仕需要界面二次确认后才发送明确退出请求。真实无拦截浏览器已完成入仕、名册回读、辞仕和席位释放，证据为 `live-membership-browser.json`、`live-membership-joined.png` 与 `live-membership-released.png`。

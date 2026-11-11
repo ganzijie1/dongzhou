@@ -621,6 +621,30 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                     "messages": [{"timestamp": "0771-01-01 14:00:00", "content": "Task completed", "message_id": "task-id"}],
                 },
             )
+            await upstreams.send_game_event(
+                "NPC_BATTLE_OUTCOME",
+                {
+                    "game_server_id": "91001",
+                    "npc_id": "42",
+                    "npc_name": "Test NPC",
+                    "game_time": "0771-01-01 14:00:00",
+                    "events": [{"event_id": 7002, "event_name": "Battle outcome"}],
+                },
+            )
+            await upstreams.send_game_event(
+                "NPC_BATTLE_MEMORY",
+                {
+                    "game_server_id": "91001",
+                    "npc_id": "42",
+                    "npc_name": "Test NPC",
+                    "game_time": "0771-01-01 14:00:00",
+                    "messages": [{
+                        "timestamp": "0771-01-01 14:00:00",
+                        "content": "Battle completed",
+                        "message_id": "battle-id",
+                    }],
+                },
+            )
             await client.aclose()
 
         paths = [request.url.path for request in seen]
@@ -657,8 +681,8 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("/callback/npc-dialogue/choice", paths)
         self.assertIn("/callback/spontaneous-thought/generate", paths)
         self.assertIn("/internal/v1/organization-tasks/dialogues/report", paths)
-        self.assertIn("/callback/game-reports/emergency", paths)
-        self.assertIn("/callback/game-reports/system-message", paths)
+        self.assertEqual(paths.count("/callback/game-reports/emergency"), 2)
+        self.assertEqual(paths.count("/callback/game-reports/system-message"), 2)
         preference_request = next(
             request for request in seen
             if request.url.path == "/ai/npc/player-ai-interaction/sync"
