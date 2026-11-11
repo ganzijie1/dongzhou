@@ -93,6 +93,7 @@
   let officeInventoryView = null;
   let officeMembershipLeavePending = false;
   let officeMembershipBusy = false;
+  let officeCareerBusy = false;
 
   const canvas = $("#battleCanvas");
   const ctx = canvas.getContext("2d");
@@ -1111,6 +1112,74 @@
     apply.disabled = officeMembershipBusy || !vacancies.length;
     leave.disabled = officeMembershipBusy;
     confirmLeave.disabled = officeMembershipBusy;
+    renderOfficeCareer(roster);
+  }
+
+  function renderOfficeCareer(rosterOverride) {
+    const roster = rosterOverride || profile.organization.remoteRoster || {};
+    const membership = roster.playerMembership;
+    const panel = $("#officeCareer");
+    if (!panel) return;
+    panel.hidden = !membership;
+    if (!membership) return;
+    $("#officeCareerAccount").textContent = `可用贡献 ${Number(membership.contributionBalance || 0)} · 累计功绩 ${Number(membership.lifetimeEarned || 0)}`;
+    panel.querySelectorAll("button, input").forEach((control) => { control.disabled = officeCareerBusy; });
+  }
+
+  async function requestOfficeCareer(action, detail = "") {
+    if (integration.isOffline() || officeCareerBusy || !profile.organization.remoteRoster?.playerMembership) return;
+    const commands = {
+      options: "请列出我当前岗位可以领取的组织任务。",
+      request: `我申请领取组织任务：${detail}，请现在派发给我。`,
+      inbox: "请列出你与我之间已经下发、已经领取的组织任务和待办事项。",
+      accept: "我接受你刚才下发给我的组织任务。",
+      result: "我已完成当前组织任务，请审核我的完成成果。"
+    };
+    const content = action === "result"
+      ? `${commands.result}完成情况：${detail}`
+      : commands[action];
+    if (!content) return;
+    officeCareerBusy = true;
+    renderOfficeCareer();
+    $("#officeCareerFeedback").textContent = ({ options: "正在向杜伯查询可领差事……", request: "领差申请已送杜伯，等待派发……", inbox: "正在调阅我的任务待办……", accept: "受命回执已送杜伯……", result: "复命已送杜伯，等待审核与贡献结算……" })[action];
+    try {
+      await syncOfficeNpcs(profile.organization.members.filter((member) => member.id === "DuBo"));
+      const accepted = await integration.sendNpcMessage("DuBo", content);
+      let reply = null;
+      for (let attempt = 0; attempt < 90; attempt += 1) {
+        if (attempt) await sleep(1000);
+        const messages = await integration.npcCorrespondence("DuBo", 20).catch(() => ({ messages: [] }));
+        reply = (messages.messages || []).find((message) => message.taskId === accepted.taskId) || null;
+        if (reply) break;
+      }
+      const roster = await integration.organizationRoster();
+      profile.organization = organization.recordRemoteRoster(profile.organization, roster, displayName);
+      $("#officeCareerFeedback").textContent = reply?.content || "军府已受理，权威回信稍后可在府中书问查看。";
+      if (action === "request" && detail) $("#officeCareerTaskName").value = "";
+      if (action === "result" && detail) $("#officeCareerResult").value = "";
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+      renderOrganizationPanel();
+      if ($("#officeMemberSelect").value === "DuBo") await refreshOfficeCorrespondence(profile.organization.members.find((member) => member.id === "DuBo"));
+    } catch (error) {
+      $("#officeCareerFeedback").textContent = error.message || "差事请求暂未送达。";
+    } finally {
+      officeCareerBusy = false;
+      renderOfficeCareer();
+    }
+  }
+
+  function submitOfficeCareerResult(event) {
+    event.preventDefault();
+    const summary = $("#officeCareerResult").value.trim();
+    if (!summary) return;
+    requestOfficeCareer("result", summary);
+  }
+
+  function submitOfficeCareerRequest(event) {
+    event.preventDefault();
+    const taskName = $("#officeCareerTaskName").value.trim();
+    if (!taskName) return;
+    requestOfficeCareer("request", taskName);
   }
 
   async function requestOfficeMembership(action) {
@@ -3831,6 +3900,11 @@
     $("#officeMembershipApply").addEventListener("click", () => requestOfficeMembership("join"));
     $("#officeMembershipLeave").addEventListener("click", () => requestOfficeMembership("leave"));
     $("#officeMembershipLeaveConfirm").addEventListener("click", () => requestOfficeMembership("confirmLeave"));
+    $("#officeCareerOptions").addEventListener("click", () => requestOfficeCareer("options"));
+    $("#officeCareerRequestForm").addEventListener("submit", submitOfficeCareerRequest);
+    $("#officeCareerInbox").addEventListener("click", () => requestOfficeCareer("inbox"));
+    $("#officeCareerAccept").addEventListener("click", () => requestOfficeCareer("accept"));
+    $("#officeCareerResultForm").addEventListener("submit", submitOfficeCareerResult);
     $("#officeMessageForm").addEventListener("submit", sendOfficeNpcMessage);
     $("#officeCorrespondence").addEventListener("click", (event) => { const button = event.target.closest("[data-correspondence-id]"); if (button) selectOfficeCorrespondence(button.dataset.correspondenceId); });
     $("#officeScheduleButton").addEventListener("click", generateOfficeNpcSchedule);

@@ -3,11 +3,11 @@
 ## 入口与交付包
 
 - 游戏入口：`http://127.0.0.1:8780/`
-- 东周网关镜像：`dongzhou-integration:20261111-local-complete67`
-- AINPC 八角色镜像：`ainpc-app:v20261111-dongzhou-local-complete54`
+- 东周网关镜像：`dongzhou-integration:20261111-local-complete69`
+- AINPC 八角色镜像：`ainpc-app:v20261111-dongzhou-local-complete57`
 - orgFlow API/Worker 镜像：`org-flow-engine:dongzhou-local-complete24`
-- H5 完整包：`output/2026-11-11-dongzhou-integrated-h5-complete67.zip`
-- H5 SHA256：`D93B8511C68D844743195D9CFFE7B445B9F1FFAADCD47A288167D088173C781B`
+- H5 完整包：`output/2026-11-11-dongzhou-integrated-h5-complete69.zip`
+- H5 SHA256：`8776541A490913DDEE6C180693E5DFE834D73E2706B61C5792D2056F162D1766`
 
 东周入口、AINPC 网关和 AINPC Mongo 分别只监听 `127.0.0.1:8780`、`127.0.0.1:9130` 和 `127.0.0.1:27117`。Docker Desktop 已登记为当前 Windows 用户登录后自动启动；各长期容器使用 `unless-stopped`。
 
@@ -72,6 +72,7 @@ AINPC 容器通过宿主回环代理访问 LoongEQ、LoongMemory、输入预检�
 - `complete62` 已将当前四服务结果补成玩家可读界面：府中书问以稳定访客隔离并显示正式人物名，orgFlow 名册显示 12 席谱系、贡献余额、累计收支与直属主管，AINPC 主动来信偏好显示真实同步状态，90 天当值计划显示起止日期、首日事项和计划印记。对应无拦截验收为 `live-correspondence-acceptance.png`、`live-roster-ledger.png`、`live-interaction-preference.png` 与 `live-schedule-browser.png`。
 - `complete64` 将 orgFlow 权威名册的 12 席全部合并进可操作官员集合，不再只显示当前关卡的两名角色。新增成员使用游戏正式中文名并将内部岗位编号映射为可派差官职；既有忠诚、疲劳与关系状态保留。真实无拦截浏览器已逐席确认 12/12 AINPC 均为 `READY`，可调阅性情、动机和 90 日当值，证据为 `live-office-roster-browser.json` 与同名 PNG。
 - `complete67` 开放玩家申请 `officer_12` 军府属官席位，并显示直属杜伯与 orgFlow 权威贡献账户。入仕只以权威名册回写为成功，最长等待 180 秒；辞仕需要界面二次确认后才发送明确退出请求。真实无拦截浏览器已完成入仕、名册回读、辞仕和席位释放，证据为 `live-membership-browser.json`、`live-membership-joined.png` 与 `live-membership-released.png`。
+- `complete69` 补全玩家作为属官的仕途闭环：入仕后可向杜伯查询本人岗位的可领目录，按具体名称申请任务，调阅待办，接受任务并提交口头复命。AINPC `complete57` 将这些固定界面命令确定性路由到既有组织事务，orgFlow 继续负责候选校验、任务状态、直属审核和贡献结算。真实无拦截玩家从 `officer_12` 领取并完成 `Intelligence mission`，杜伯审核通过，贡献余额由 `0` 增至 `100`，随后辞仕释放席位；证据为 `live-player-career-browser.json` 与 `live-player-career-browser.png`。
 - 东周网关冷重启后，原存档、任务身份、失败终态和浏览器显示保持一致。
 - H5 包含 172 个关卡、4038 个文件、2520 条角色语音和 1126 个情境音乐 cue；发布校验无错误。
 

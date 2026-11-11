@@ -257,6 +257,23 @@
               <div class="office-membership-actions"><button id="officeMembershipApply" class="large-button primary" type="button">向杜伯请仕</button><button id="officeMembershipLeave" class="large-button" type="button" hidden>向杜伯请辞</button><button id="officeMembershipLeaveConfirm" class="large-button danger" type="button" hidden>确认辞仕</button></div>
               <p id="officeMembershipFeedback">请仕与辞仕均由属官对话并经朝议规则裁定。</p>
             </div>
+            <div id="officeCareer" class="office-career" hidden>
+              <div class="office-career-heading"><div><span>属官办差</span><strong>我的差事</strong></div><small id="officeCareerAccount">可用贡献 0</small></div>
+              <div class="office-career-actions">
+                <button id="officeCareerOptions" class="large-button" type="button">查看可领差事</button>
+                <button id="officeCareerInbox" class="large-button" type="button">查看我的待办</button>
+                <button id="officeCareerAccept" class="large-button primary" type="button">接受差事</button>
+              </div>
+              <form id="officeCareerRequestForm" class="office-career-result">
+                <input id="officeCareerTaskName" maxlength="200" required aria-label="申请差事名称" placeholder="填写目录中的差事名称">
+                <button class="large-button primary" type="submit">申请差事</button>
+              </form>
+              <form id="officeCareerResultForm" class="office-career-result">
+                <input id="officeCareerResult" maxlength="1000" required aria-label="差事完成情况" placeholder="填写完成情况与成果">
+                <button class="large-button primary" type="submit">复命</button>
+              </form>
+              <p id="officeCareerFeedback" aria-live="polite">可先查看当前岗位的可领差事。</p>
+            </div>
             <div id="officeMembers" class="office-members"></div>
             <div id="officeNpcState" class="office-npc-state" aria-live="polite"></div>
             <div class="office-correspondence"><div class="office-correspondence-heading"><strong>府中书问</strong><button id="officeCorrespondenceRefresh" class="large-button" type="button">刷新</button></div><form id="officeMessageForm" class="office-message-form"><input id="officeMessageInput" maxlength="2000" required aria-label="给当前属官传话"><button class="large-button" type="submit">传话</button></form><div id="officeCorrespondence" class="office-correspondence-list" aria-live="polite"></div></div>

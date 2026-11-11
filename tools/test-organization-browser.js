@@ -119,6 +119,8 @@ async function openReady(page) {
     let npcCorrespondenceReads = 0;
     let membershipJoined = false;
     let membershipAction = null;
+    let careerAction = null;
+    const careerActions = [];
     let orderAttempts = 0;
     let mandateAttempts = 0;
     let organizationTaskReads = 0;
@@ -151,6 +153,13 @@ async function openReady(page) {
         const input = request.postDataJSON();
         const message = String(input.content || "");
         membershipAction = message.includes("加入组织申请") ? "join" : message.includes("退出东周") ? "confirmLeave" : null;
+        careerAction = message.includes("可以领取的组织任务") ? "options"
+          : message.includes("申请领取组织任务：") ? "request"
+          : message.includes("任务和待办事项") ? "inbox"
+          : message.includes("接受你刚才下发") ? "accept"
+          : message.includes("完成当前组织任务") ? "result"
+          : null;
+        if (careerAction) careerActions.push({ action: careerAction, message });
         if (membershipAction === "join") membershipJoined = true;
         if (membershipAction === "confirmLeave") membershipJoined = false;
         npcMessageTaskId = `playerchat-${input.client_request_id}`;
@@ -158,7 +167,14 @@ async function openReady(page) {
       }
       else if (/\/npcs\/[^/]+\/correspondence$/.test(pathName)) {
         npcCorrespondenceReads += 1;
-        const reply = membershipAction === "join" ? "准你入仕，列入军府属官。" : membershipAction === "confirmLeave" ? "辞仕已办结。" : "北路军粮已经入仓。";
+        const careerReplies = {
+          options: "你当前岗位可以向我申请的组织任务有：一、核验军粮账册。",
+          request: "核验军粮账册已经派发给你，请明确回复是否接受。",
+          inbox: "已有一项核验军粮账册任务等待你处理。",
+          accept: "已记录受命，核验军粮账册开始执行。",
+          result: "复命已收纳，贡献已经结算。"
+        };
+        const reply = membershipAction === "join" ? "准你入仕，列入军府属官。" : membershipAction === "confirmLeave" ? "辞仕已办结。" : careerReplies[careerAction] || "北路军粮已经入仓。";
         body = { npcId: "42", messages: npcMessageTaskId && npcCorrespondenceReads > 1 ? [{ messageId: `npc-reply-${npcCorrespondenceReads}`, taskId: npcMessageTaskId, speakerId: "42", speakerName: membershipAction ? "杜伯" : "左儒", targetId: "99", targetName: "主君", targetType: "PLAYER", content: reply, emotion: "calm", digest: "d".repeat(64) }] : [] };
       }
       else if (pathName.includes("/assignments/")) {
@@ -205,10 +221,26 @@ async function openReady(page) {
     await online.waitForFunction(() => !document.querySelector("#officeMembershipApply").disabled && /1 席可申请/.test(document.querySelector("#officeMembershipDetail").textContent));
     await online.click("#officeMembershipApply");
     await online.waitForSelector("#officeMembershipState >> text=已入仕", { timeout: 15000 });
+    await online.waitForSelector("#officeCareer:not([hidden])", { timeout: 15000 });
+    await online.click("#officeCareerOptions");
+    await online.waitForSelector("#officeCareerFeedback >> text=核验军粮账册", { timeout: 15000 });
+    await online.fill("#officeCareerTaskName", "核验军粮账册");
+    await online.click("#officeCareerRequestForm button[type=submit]");
+    await online.waitForSelector("#officeCareerFeedback >> text=已经派发", { timeout: 15000 });
+    await online.click("#officeCareerInbox");
+    await online.waitForSelector("#officeCareerFeedback >> text=等待你处理", { timeout: 15000 });
+    await online.click("#officeCareerAccept");
+    await online.waitForSelector("#officeCareerFeedback >> text=开始执行", { timeout: 15000 });
+    await online.fill("#officeCareerResult", "核清军粮三十车，账册已封存");
+    await online.click("#officeCareerResultForm button[type=submit]");
+    await online.waitForSelector("#officeCareerFeedback >> text=贡献已经结算", { timeout: 15000 });
+    if (careerActions.map((entry) => entry.action).join(",") !== "options,request,inbox,accept,result") throw new Error(`Unexpected player career sequence: ${JSON.stringify(careerActions)}`);
+    if (!careerActions.at(-1).message.includes("核清军粮三十车，账册已封存")) throw new Error("Player result summary was not sent to the manager");
     await online.click("#officeMembershipLeave");
     await online.waitForSelector("#officeMembershipLeaveConfirm:not([hidden])", { timeout: 15000 });
     await online.click("#officeMembershipLeaveConfirm");
     await online.waitForSelector("#officeMembershipState >> text=尚未入仕", { timeout: 15000 });
+    if (!(await online.locator("#officeCareer").isHidden())) throw new Error("Player career controls remained visible after leaving the court");
     if (membershipJoined) throw new Error("Membership leave did not release the reserved position");
     const visibleMembers = await online.locator("#officeMemberSelect option").evaluateAll((options) => options.map((option) => option.value));
     if (!visibleMembers.includes("DuBo")) throw new Error("Organization manager is missing from the inspectable NPC roster");
