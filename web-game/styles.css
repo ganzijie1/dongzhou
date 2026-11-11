@@ -3723,6 +3723,7 @@ button:focus-visible {
 .office-inventory .office-inventory-actions { display: grid; gap: 3px; justify-items: stretch; }
 .office-inventory-actions .large-button { min-width: 126px; height: 34px; padding: 0 10px; }
 .office-inventory-actions small { color: #73776f; font-size: 9px; text-align: center; }
+.office-inventory-approval { width: 100%; margin-top: 0; }
 .office-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .office-section-heading span { color: #b99344; font-size: 10px; }
 .office-section-heading h3 { margin: 4px 0 0; color: #e9dec0; font: 600 21px/1.2 var(--font-display); }

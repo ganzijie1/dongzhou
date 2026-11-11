@@ -32,6 +32,9 @@ let npcScheduleAttempts = 0;
 let npcAssignmentAttempts = 0;
 let organizationReadAttempts = 0;
 let organizationReviewInput = null;
+let inventoryRequisitionAttempts = 0;
+let inventoryRequisitionResumeAttempts = 0;
+let inventoryRequisitionInput = null;
 let campaignRouteAttempts = 0;
 let knowledgeSearchInput = null;
 let knowledgeCodexRequests = 0;
@@ -86,6 +89,29 @@ global.fetch = async (url, options = {}) => {
   }
   else if (url.endsWith("/organization/inventory")) {
     response = { organizationId: "court", gameServerId: "91001", revision: 7, accounts: [{ resourceKey: "task.execution", balance: 128, version: 3 }] };
+  }
+  else if (url.endsWith("/organization/inventory/requisitions")) {
+    inventoryRequisitionAttempts += 1;
+    inventoryRequisitionInput = body;
+    response = {
+      state: "REQUIRES_ACTION",
+      requestId: body.client_request_id,
+      stageId: body.stage_id,
+      requisition: { id: `dongzhou:requisition:player:${body.client_request_id}`, units: body.units, effect: { provisions: 12 }, digest: "d".repeat(64), state: "DRAFT" },
+      action: { actionId: "00000000-0000-4000-8000-000000000088", code: "approve_inventory_requisition", type: "confirmation" }
+    };
+  }
+  else if (/\/organization\/inventory\/requisitions\/[^/]+\/resume$/.test(url)) {
+    inventoryRequisitionResumeAttempts += 1;
+    const requisitionId = decodeURIComponent(url.split("/").at(-2));
+    const requestId = requisitionId.split(":").at(-1);
+    response = body.decision === "REJECT" ? {
+      state: "REJECTED", requestId, stageId: "01", requisition: { id: requisitionId, state: "REJECTED" }
+    } : {
+      state: "COMPLETED", requestId, stageId: "01", requisition: { id: requisitionId, state: "COMPLETED" },
+      inventoryDebit: { entryId: "entry-1", resourceKey: "task.execution", delta: -20, balanceAfter: 108, accountVersion: 4, inventoryRevision: 8 },
+      effect: { provisions: 12 }
+    };
   }
   else if (url.endsWith("/npcs/interaction-preference")) {
     npcInteractionPreferenceInput = body;
@@ -186,6 +212,17 @@ const client = require("../web-game/integration-client.js");
   const inventory = await client.organizationInventory();
   assert.strictEqual(inventory.accounts[0].balance, 128);
   assert.strictEqual(inventory.revision, 7);
+  const requisition = await client.requisitionOrganizationInventory({ units: 20, stage_id: "01" });
+  assert.strictEqual(requisition.state, "REQUIRES_ACTION");
+  assert.strictEqual(inventoryRequisitionInput.units, 20);
+  assert.strictEqual(client.pendingOrganizationInventoryRequisition().result.action.actionId, requisition.action.actionId);
+  const approvedRequisition = await client.resumeOrganizationInventoryRequisition(requisition.requisition.id, requisition.action.actionId, "APPROVE");
+  assert.strictEqual(approvedRequisition.state, "COMPLETED");
+  assert.strictEqual(approvedRequisition.effect.provisions, 12);
+  assert.strictEqual(inventoryRequisitionAttempts, 1);
+  assert.strictEqual(inventoryRequisitionResumeAttempts, 1);
+  client.acknowledgeOrganizationInventoryRequisition(approvedRequisition.requestId);
+  assert.strictEqual(client.pendingOrganizationInventoryRequisition(), null);
   const interactionPreference = await client.setNpcInteractionPreference(false);
   assert.strictEqual(interactionPreference.enabled, false);
   assert.deepStrictEqual(npcInteractionPreferenceInput, { enabled: false });

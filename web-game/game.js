@@ -975,9 +975,24 @@
         : `<li>${officeInventoryView?.error ? "稍后可重新调阅" : "当前无公共库存科目"}</li>`;
     const taskCredit = accounts.find((account) => account.resourceKey === "task.execution")?.balance || 0;
     const provisions = Number(profile?.campaignResources?.provisions || 0);
+    const pending = integration.pendingOrganizationInventoryRequisition();
+    const pendingResult = pending?.result;
+    const approval = $("#officeInventoryApproval");
+    const waitingForDecision = ["REQUIRES_ACTION", "RETRYABLE"].includes(pendingResult?.state);
+    approval.hidden = !waitingForDecision;
+    if (waitingForDecision) {
+      const requisitionDraft = pendingResult.requisition || {};
+      const retrying = pending.decision === "APPROVE" || pendingResult.state === "RETRYABLE";
+      $("#officeInventoryApprovalDetail").textContent = retrying
+        ? `已签发，等待实账落定 · 印记 ${String(requisitionDraft.digest || "").slice(0, 10)}`
+        : `调拨 ${Number(requisitionDraft.units || 0)} 点差事额度，补入 ${Number(requisitionDraft.effect?.provisions || 0)} 军粮 · 印记 ${String(requisitionDraft.digest || "").slice(0, 10)}`;
+      $("#officeInventoryApprove").disabled = officeInventoryRequisitionBusy;
+      $("#officeInventoryReject").disabled = officeInventoryRequisitionBusy || retrying;
+    }
     const requisition = $("#officeInventoryRequisition");
     requisition.disabled = integration.isOffline()
       || officeInventoryRequisitionBusy
+      || Boolean(pending)
       || !officeInventoryView
       || officeInventoryView.loading
       || officeInventoryView.error
@@ -985,6 +1000,8 @@
       || provisions > 188;
     $("#officeInventoryRequisitionFeedback").textContent = officeInventoryRequisitionBusy
       ? "正在核准并落账"
+      : waitingForDecision
+        ? pending.decision === "APPROVE" ? "签发待实账落定" : "内核草案待裁"
       : provisions > 188
         ? "军粮已接近上限"
         : taskCredit < 20 && officeInventoryView
@@ -1021,10 +1038,34 @@
   }
 
   async function recoverOfficeInventoryRequisition() {
-    const pending = integration.pendingOrganizationInventoryRequisition();
+    let pending = integration.pendingOrganizationInventoryRequisition();
     if (!pending || integration.isOffline()) return;
-    const response = await integration.requisitionOrganizationInventory(pending);
-    await applyOfficeInventoryRequisition(response, { render: false });
+    try {
+      let response = pending.result || await integration.requisitionOrganizationInventory(pending.input);
+      pending = integration.pendingOrganizationInventoryRequisition();
+      if (response.state === "COMPLETED") {
+        await applyOfficeInventoryRequisition(response, { render: false });
+        return;
+      }
+      if (response.state === "REJECTED") {
+        integration.acknowledgeOrganizationInventoryRequisition(response.requestId);
+        return;
+      }
+      if (pending?.decision && response.requisition?.id && response.action?.actionId) {
+        response = await integration.resumeOrganizationInventoryRequisition(
+          response.requisition.id,
+          response.action.actionId,
+          pending.decision
+        );
+        if (response.state === "COMPLETED") {
+          await applyOfficeInventoryRequisition(response, { render: false });
+        } else if (response.state === "REJECTED") {
+          integration.acknowledgeOrganizationInventoryRequisition(response.requestId);
+        }
+      }
+    } catch (error) {
+      console.warn("Inventory requisition recovery deferred", error);
+    }
   }
 
   async function requisitionOfficeInventory() {
@@ -1035,11 +1076,49 @@
     renderOfficeInventory();
     try {
       const response = await integration.requisitionOrganizationInventory({ units: 20, stage_id: stageId });
-      const recorded = await applyOfficeInventoryRequisition(response);
-      await refreshOfficeInventory();
-      showNotice(recorded.applied ? `已从公共库藏调拨 20 点额度，补入 ${recorded.effect.provisions} 军粮` : "军需调拨已对账，无重复扣领");
+      if (response.state === "COMPLETED") {
+        const recorded = await applyOfficeInventoryRequisition(response);
+        await refreshOfficeInventory();
+        showNotice(recorded.applied ? `已从公共库藏调拨 20 点额度，补入 ${recorded.effect.provisions} 军粮` : "军需调拨已对账，无重复扣领");
+      } else if (["REQUIRES_ACTION", "RETRYABLE"].includes(response.state)) {
+        renderOfficeInventory();
+        showNotice(response.state === "RETRYABLE" ? "已签发的军需调拨等待实账重试" : "军需调拨草案已由内核封存，请明确签发或驳回");
+      } else {
+        throw new Error("军需调拨草案状态无效");
+      }
     } catch (error) {
-      showNotice(error.code === "organization_inventory_insufficient" ? "公共库藏差事额度不足" : error.message || "军需调拨暂未完成");
+      showNotice(error.message || "军需调拨草案暂未生成");
+    } finally {
+      officeInventoryRequisitionBusy = false;
+      renderOfficeInventory();
+    }
+  }
+
+  async function decideOfficeInventoryRequisition(decision) {
+    if (officeInventoryRequisitionBusy) return;
+    const pending = integration.pendingOrganizationInventoryRequisition();
+    const response = pending?.result;
+    if (!["REQUIRES_ACTION", "RETRYABLE"].includes(response?.state) || !response.requisition?.id || !response.action?.actionId) return;
+    officeInventoryRequisitionBusy = true;
+    renderOfficeInventory();
+    try {
+      const result = await integration.resumeOrganizationInventoryRequisition(
+        response.requisition.id,
+        response.action.actionId,
+        decision
+      );
+      if (result.state === "REJECTED") {
+        integration.acknowledgeOrganizationInventoryRequisition(result.requestId);
+        showNotice("军需调拨草案已驳回，公共库藏未支出");
+      } else if (result.state === "COMPLETED") {
+        const recorded = await applyOfficeInventoryRequisition(result);
+        await refreshOfficeInventory();
+        showNotice(recorded.applied ? `军需调拨已签发，补入 ${recorded.effect.provisions} 军粮` : "军需调拨已对账，无重复扣领");
+      } else {
+        throw new Error("军需调拨未能落定");
+      }
+    } catch (error) {
+      showNotice(error.code === "organization_inventory_insufficient" ? "公共库藏差事额度不足，签发草案已保留" : error.message || "军需调拨暂未完成");
     } finally {
       officeInventoryRequisitionBusy = false;
       renderOfficeInventory();
@@ -3976,6 +4055,8 @@
     $("#officeCorrespondenceRefresh").addEventListener("click", () => refreshOfficeCorrespondence());
     $("#officeInventoryRefresh").addEventListener("click", refreshOfficeInventory);
     $("#officeInventoryRequisition").addEventListener("click", requisitionOfficeInventory);
+    $("#officeInventoryApprove").addEventListener("click", () => decideOfficeInventoryRequisition("APPROVE"));
+    $("#officeInventoryReject").addEventListener("click", () => decideOfficeInventoryRequisition("REJECT"));
     $("#officeMembershipApply").addEventListener("click", () => requestOfficeMembership("join"));
     $("#officeMembershipLeave").addEventListener("click", () => requestOfficeMembership("leave"));
     $("#officeMembershipLeaveConfirm").addEventListener("click", () => requestOfficeMembership("confirmLeave"));

@@ -1,6 +1,7 @@
 "use strict";
 
 const assert = require("assert/strict");
+const { randomUUID } = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
@@ -12,9 +13,10 @@ try {
 }
 
 const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
-const installationId = "00000000-0000-4000-8000-000000005011";
-const requestId = "00000000-0000-4000-8000-000000005012";
+const installationId = "00000000-0000-4000-8000-000000005021";
+const requestId = "00000000-0000-4000-8000-000000005022";
 const pendingKey = "dongzhou-pending-inventory-requisition-v1";
+const approvalScreenshot = path.resolve(__dirname, "../output/integration-validation/inventory-requisition-approval-mobile.png");
 const executablePath = [
   process.env.DONGZHOU_CHROMIUM_EXECUTABLE,
   "C:/Program Files/Google/Chrome/Application/chrome.exe",
@@ -50,13 +52,27 @@ const executablePath = [
         stage_id: "01"
       }));
     }, { key: pendingKey, request: requestId });
-    const responsePromise = page.waitForResponse((response) => (
+    const draftResponsePromise = page.waitForResponse((response) => (
       new URL(response.url()).pathname === "/api/dongzhou/v1/organization/inventory/requisitions"
       && response.status() === 200
     ));
     await page.click("#officeInventoryRequisition");
-    const response = await responsePromise;
-    const receipt = await response.json();
+    const draftResponse = await draftResponsePromise;
+    let receipt = await draftResponse.json();
+    if (receipt.state === "REQUIRES_ACTION") {
+      assert.equal(receipt.requisition.kernel.module, "dongzhou_mandate_workflow");
+      assert.equal(receipt.requisition.state, "DRAFT");
+      assert.equal(receipt.action.code, "approve_inventory_requisition");
+      const draftInventory = await page.evaluate(() => window.DongzhouIntegration.organizationInventory());
+      assert.equal(draftInventory.accounts.find((entry) => entry.resourceKey === "task.execution")?.balance, beforeBalance, "Draft creation must not debit inventory");
+      await page.waitForSelector("#officeInventoryApproval:not([hidden])");
+      assert.match(await page.locator("#officeInventoryApproval").innerText(), /内核待裁/);
+      const approvalResponsePromise = page.waitForResponse((response) => (
+        new URL(response.url()).pathname.endsWith("/resume") && response.status() === 200
+      ));
+      await page.click("#officeInventoryApprove");
+      receipt = await (await approvalResponsePromise).json();
+    }
     assert.equal(receipt.state, "COMPLETED");
     assert.equal(receipt.requestId, requestId);
     assert.equal(receipt.inventoryDebit.delta, -20);
@@ -101,6 +117,44 @@ const executablePath = [
     assert.equal(replay.pending, null);
     const finalInventory = await page.evaluate(() => window.DongzhouIntegration.organizationInventory());
     assert.equal(finalInventory.accounts.find((entry) => entry.resourceKey === "task.execution")?.balance, afterBalance);
+
+    const rejectionRequestId = randomUUID();
+    const beforeRejection = finalInventory.accounts.find((entry) => entry.resourceKey === "task.execution")?.balance;
+    await page.click("#campaignOfficeButton").catch(() => {});
+    await page.waitForFunction(() => !document.querySelector("#officeInventoryRequisition")?.disabled);
+    await page.evaluate(({ key, request }) => {
+      localStorage.setItem(key, JSON.stringify({
+        input: { client_request_id: request, units: 20, stage_id: "01" },
+        result: null,
+        decision: null
+      }));
+    }, { key: pendingKey, request: rejectionRequestId });
+    const rejectionDraftPromise = page.waitForResponse((response) => (
+      new URL(response.url()).pathname === "/api/dongzhou/v1/organization/inventory/requisitions"
+      && response.status() === 200
+    ));
+    await page.click("#officeInventoryRequisition");
+    assert.equal((await (await rejectionDraftPromise).json()).state, "REQUIRES_ACTION");
+    await page.waitForSelector("#officeInventoryApproval:not([hidden])");
+    await page.setViewportSize({ width: 320, height: 760 });
+    await page.locator("#officeInventoryApproval").scrollIntoViewIfNeeded();
+    const approvalLayout = await page.locator("#officeInventoryApproval").evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      return { left: box.left, right: box.right, viewport: innerWidth, scrollWidth: document.documentElement.scrollWidth };
+    });
+    assert.ok(approvalLayout.left >= 0 && approvalLayout.right <= approvalLayout.viewport + 1, JSON.stringify(approvalLayout));
+    assert.ok(approvalLayout.scrollWidth <= approvalLayout.viewport + 1, JSON.stringify(approvalLayout));
+    fs.mkdirSync(path.dirname(approvalScreenshot), { recursive: true });
+    await page.locator("#officeInventoryApproval").screenshot({ path: approvalScreenshot });
+    const rejectionPromise = page.waitForResponse((response) => (
+      new URL(response.url()).pathname.endsWith("/resume") && response.status() === 200
+    ));
+    await page.click("#officeInventoryReject");
+    const rejected = await (await rejectionPromise).json();
+    assert.equal(rejected.state, "REJECTED");
+    await page.waitForFunction(() => !localStorage.getItem("dongzhou-pending-inventory-requisition-v1"));
+    const afterRejection = await page.evaluate(() => window.DongzhouIntegration.organizationInventory());
+    assert.equal(afterRejection.accounts.find((entry) => entry.resourceKey === "task.execution")?.balance, beforeRejection, "Rejected draft must not debit inventory");
     assert.deepEqual(errors, []);
 
     console.log(JSON.stringify({
@@ -110,7 +164,11 @@ const executablePath = [
       balance: `${beforeBalance}->${afterBalance}`,
       provisions: `${before.profile.campaignResources.provisions}->${after.profile.campaignResources.provisions}`,
       reload: "PASS",
-      replay: "NO_DOUBLE_APPLY"
+      replay: "NO_DOUBLE_APPLY",
+      nexusApproval: "REQUIRED",
+      rejection: "NO_DEBIT",
+      mobileNoOverflow: true,
+      approvalScreenshot
     }));
   } finally {
     await browser.close();

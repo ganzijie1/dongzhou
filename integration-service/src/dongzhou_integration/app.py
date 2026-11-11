@@ -185,7 +185,7 @@ class RuntimeModule(Module):
 
 class MandateWorkflowModule(Module):
     name = "dongzhou_mandate_workflow"
-    version = "1.1.0"
+    version = "1.2.0"
     dependencies = (RuntimeModule.name,)
 
     @staticmethod
@@ -210,6 +210,28 @@ class MandateWorkflowModule(Module):
             raise ValueError("missing mandate draft")
         state = "ISSUED" if decision == "APPROVE" else "REJECTED"
         return {"state": state, "mandate": {**mandate, "state": state}}
+
+    @staticmethod
+    def draft_inventory_requisition(
+        trace: dict[str, Any], digest: str
+    ) -> dict[str, Any]:
+        action_id = uuid5(
+            NAMESPACE_URL,
+            f"dongzhou-inventory-requisition-action:{digest}",
+        )
+        return {
+            "state": "REQUIRES_ACTION",
+            "requestId": trace["requestId"],
+            "stageId": trace["stageId"],
+            "requisition": {**trace, "digest": digest, "state": "DRAFT"},
+            "action": {
+                "actionId": str(action_id),
+                "code": "approve_inventory_requisition",
+                "type": "confirmation",
+                "prompt": "Approve this public inventory requisition?",
+                "options": ["APPROVE", "REJECT"],
+            },
+        }
 
     @staticmethod
     def review_settlement(
@@ -2502,6 +2524,8 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 request.client_request_id,
                 "organization_inventory_requisition",
                 payload,
+                retry_states=(),
+                reclaim_pending=False,
             )
         except VersionConflict as error:
             raise ApiError(
@@ -2510,7 +2534,10 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=409,
             ) from error
         if not should_process:
-            if isinstance(previous, dict) and previous.get("state") == "COMPLETED":
+            if isinstance(previous, dict) and (
+                previous.get("state") in {"COMPLETED", "REJECTED"}
+                or isinstance(previous.get("requisition"), dict)
+            ):
                 return {"replayed": True, **previous}
             raise ApiError(
                 "organization_inventory_requisition_in_progress",
@@ -2519,8 +2546,184 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             )
 
         resource_key = "task.execution"
-        delta_units = -request.units
         provisions = request.units * 3 // 5
+        requisition_id = (
+            f"dongzhou:requisition:{player_id}:{request.client_request_id}"
+        )
+        trace = {
+            "id": requisition_id,
+            "requestId": str(request.client_request_id),
+            "stageId": request.stage_id,
+            "resourceKey": resource_key,
+            "units": request.units,
+            "effect": {"provisions": provisions},
+            "kernel": {
+                "module": MandateWorkflowModule.name,
+                "moduleVersion": MandateWorkflowModule.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "REQUIRES_ACTION",
+            },
+        }
+        digest = hashlib.sha256(
+            json.dumps(
+                trace,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                sort_keys=True,
+            ).encode("utf-8")
+        ).hexdigest()
+        result = mandate_workflow.draft_inventory_requisition(trace, digest)
+        await store.finish_request(
+            player_id,
+            request.client_request_id,
+            "REQUIRES_ACTION",
+            result,
+            external_id=requisition_id,
+        )
+        return result
+
+    @router.post("/organization/inventory/requisitions/{requisition_id}/resume")
+    async def resume_organization_inventory_requisition(
+        requisition_id: str,
+        request: CourtMandateResumeRequest,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        if not settings.orgflow_org_id:
+            raise ApiError(
+                "organization_not_configured",
+                "Organization integration is not configured.",
+                status_code=503,
+            )
+        try:
+            request_id = UUID(requisition_id.rsplit(":", 1)[-1])
+        except ValueError as error:
+            raise ApiError(
+                "organization_inventory_requisition_not_found",
+                "The inventory requisition was not found.",
+                status_code=404,
+            ) from error
+        record = await store.read_request(
+            player_id,
+            request_id,
+            "organization_inventory_requisition",
+        )
+        if record is None or record.get("externalId") != requisition_id:
+            raise ApiError(
+                "organization_inventory_requisition_not_found",
+                "The inventory requisition was not found.",
+                status_code=404,
+            )
+        previous = record.get("response")
+        if record.get("state") in {"COMPLETED", "REJECTED"} and isinstance(
+            previous, dict
+        ):
+            return {"replayed": True, **previous}
+        action = previous.get("action") if isinstance(previous, dict) else None
+        requisition = (
+            previous.get("requisition") if isinstance(previous, dict) else None
+        )
+        if not isinstance(action, dict) or not isinstance(requisition, dict):
+            raise ApiError(
+                "organization_inventory_requisition_not_resumable",
+                "The inventory requisition is not waiting for player action.",
+                status_code=409,
+            )
+        if action.get("actionId") != str(request.action_id):
+            raise ApiError(
+                "organization_inventory_requisition_action_mismatch",
+                "The player action does not match this inventory requisition.",
+                status_code=409,
+            )
+        request_payload = record.get("request") or {}
+        units = request_payload.get("units")
+        stage_id = request_payload.get("stage_id")
+        if isinstance(units, bool) or not isinstance(units, int) or not stage_id:
+            raise ApiError(
+                "organization_inventory_requisition_contract_invalid",
+                "The stored inventory requisition is invalid.",
+                status_code=500,
+            )
+        if request.decision == "REJECT":
+            if record.get("state") != "REQUIRES_ACTION":
+                raise ApiError(
+                    "organization_inventory_requisition_not_rejectable",
+                    "An approved inventory requisition cannot be rejected while it is settling.",
+                    status_code=409,
+                )
+            result = {
+                "state": "REJECTED",
+                "requestId": str(request_id),
+                "stageId": str(requisition["stageId"]),
+                "requisition": {
+                    **requisition,
+                    "state": "REJECTED",
+                    "kernel": {
+                        **dict(requisition.get("kernel") or {}),
+                        "state": "REJECTED",
+                    },
+                },
+            }
+            transitioned = await store.transition_request(
+                player_id,
+                request_id,
+                "organization_inventory_requisition",
+                "REQUIRES_ACTION",
+                "REJECTED",
+                result,
+            )
+            if transitioned:
+                return result
+            latest = await store.read_request(
+                player_id, request_id, "organization_inventory_requisition"
+            )
+            latest_response = latest.get("response") if latest else None
+            if latest and latest.get("state") == "REJECTED" and isinstance(
+                latest_response, dict
+            ):
+                return {"replayed": True, **latest_response}
+            raise ApiError(
+                "organization_inventory_requisition_not_rejectable",
+                "The inventory requisition is already settling.",
+                status_code=409,
+            )
+
+        pending = {
+            **previous,
+            "state": "PENDING",
+            "requisition": {
+                **requisition,
+                "state": "APPROVING",
+                "kernel": {
+                    **dict(requisition.get("kernel") or {}),
+                    "state": "APPROVING",
+                },
+            },
+        }
+        claimed = await store.claim_request(
+            player_id,
+            request_id,
+            "organization_inventory_requisition",
+            ("REQUIRES_ACTION", "RETRYABLE"),
+            pending,
+        )
+        if not claimed:
+            latest = await store.read_request(
+                player_id, request_id, "organization_inventory_requisition"
+            )
+            latest_response = latest.get("response") if latest else None
+            if latest and latest.get("state") in {"COMPLETED", "REJECTED"} and isinstance(
+                latest_response, dict
+            ):
+                return {"replayed": True, **latest_response}
+            raise ApiError(
+                "organization_inventory_requisition_in_progress",
+                "This inventory requisition is already settling.",
+                status_code=409,
+            )
+
+        resource_key = "task.execution"
+        delta_units = -units
+        provisions = units * 3 // 5
         try:
             upstream_response = await upstreams.adjust_organization_inventory(
                 settings.orgflow_org_id,
@@ -2531,7 +2734,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 },
                 idempotency_key=(
                     f"dongzhou-campaign-requisition:{player_id}:"
-                    f"{request.client_request_id}"
+                    f"{request_id}"
                 ),
             )
             receipt = _organization_inventory_requisition_view(
@@ -2549,15 +2752,26 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             )
             await store.finish_request(
                 player_id,
-                request.client_request_id,
+                request_id,
                 "RETRYABLE",
-                {"state": "RETRYABLE"},
+                {
+                    **previous,
+                    "state": "RETRYABLE",
+                    "requisition": {
+                        **requisition,
+                        "state": "APPROVAL_RETRYABLE",
+                        "kernel": {
+                            **dict(requisition.get("kernel") or {}),
+                            "state": "APPROVAL_RETRYABLE",
+                        },
+                    },
+                },
                 error=(
                     "organization_inventory_insufficient"
                     if insufficient
                     else "organization_inventory_unavailable"
                 ),
-                external_id=request.stage_id,
+                external_id=requisition_id,
             )
             raise ApiError(
                 "organization_inventory_insufficient"
@@ -2571,11 +2785,22 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         except (AttributeError, TypeError, ValueError) as error:
             await store.finish_request(
                 player_id,
-                request.client_request_id,
+                request_id,
                 "RETRYABLE",
-                {"state": "RETRYABLE"},
+                {
+                    **previous,
+                    "state": "RETRYABLE",
+                    "requisition": {
+                        **requisition,
+                        "state": "APPROVAL_RETRYABLE",
+                        "kernel": {
+                            **dict(requisition.get("kernel") or {}),
+                            "state": "APPROVAL_RETRYABLE",
+                        },
+                    },
+                },
                 error="organization_inventory_contract_invalid",
-                external_id=request.stage_id,
+                external_id=requisition_id,
             )
             raise ApiError(
                 "organization_inventory_contract_invalid",
@@ -2585,17 +2810,25 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
 
         result = {
             "state": "COMPLETED",
-            "requestId": str(request.client_request_id),
-            "stageId": request.stage_id,
+            "requestId": str(request_id),
+            "stageId": str(stage_id),
+            "requisition": {
+                **requisition,
+                "state": "COMPLETED",
+                "kernel": {
+                    **dict(requisition.get("kernel") or {}),
+                    "state": "COMPLETED",
+                },
+            },
             "inventoryDebit": receipt,
             "effect": {"provisions": provisions},
         }
         await store.finish_request(
             player_id,
-            request.client_request_id,
+            request_id,
             "COMPLETED",
             result,
-            external_id=request.stage_id,
+            external_id=requisition_id,
         )
         return result
 

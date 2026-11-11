@@ -134,10 +134,30 @@ def test_inventory_requisition_is_authoritative_and_idempotent(tmp_path):
         ).status_code == 200
         response = client.post(route, json=payload)
         assert response.status_code == 200
-        result = response.json()
+        draft = response.json()
+        assert draft["state"] == "REQUIRES_ACTION"
+        assert draft["requestId"] == request_id
+        assert draft["stageId"] == "01"
+        assert draft["requisition"]["state"] == "DRAFT"
+        assert draft["requisition"]["effect"] == {"provisions": 12}
+        assert draft["requisition"]["kernel"]["module"] == "dongzhou_mandate_workflow"
+        assert draft["action"]["code"] == "approve_inventory_requisition"
+        assert len(upstreams.adjustment_calls) == 0
+
+        approval_route = f"{route}/{draft['requisition']['id']}/resume"
+        bad_action = client.post(
+            approval_route,
+            json={"action_id": str(uuid4()), "decision": "APPROVE"},
+        )
+        assert bad_action.status_code == 409
+        result_response = client.post(
+            approval_route,
+            json={"action_id": draft["action"]["actionId"], "decision": "APPROVE"},
+        )
+        assert result_response.status_code == 200
+        result = result_response.json()
         assert result["state"] == "COMPLETED"
-        assert result["requestId"] == request_id
-        assert result["stageId"] == "01"
+        assert result["requisition"]["state"] == "COMPLETED"
         assert result["effect"] == {"provisions": 12}
         assert result["inventoryDebit"]["resourceKey"] == "task.execution"
         assert result["inventoryDebit"]["delta"] == -20
@@ -149,8 +169,34 @@ def test_inventory_requisition_is_authoritative_and_idempotent(tmp_path):
         assert replay.json()["replayed"] is True
         assert len(upstreams.adjustment_calls) == 1
 
+        approval_replay = client.post(
+            approval_route,
+            json={"action_id": draft["action"]["actionId"], "decision": "APPROVE"},
+        )
+        assert approval_replay.status_code == 200
+        assert approval_replay.json()["replayed"] is True
+        assert len(upstreams.adjustment_calls) == 1
+
         conflict = client.post(route, json={**payload, "units": 40})
         assert conflict.status_code == 409
+        assert len(upstreams.adjustment_calls) == 1
+
+        rejected_payload = {
+            "client_request_id": str(uuid4()),
+            "units": 20,
+            "stage_id": "01",
+        }
+        rejected_draft = client.post(route, json=rejected_payload).json()
+        rejected = client.post(
+            f"{route}/{rejected_draft['requisition']['id']}/resume",
+            json={
+                "action_id": rejected_draft["action"]["actionId"],
+                "decision": "REJECT",
+            },
+        )
+        assert rejected.status_code == 200
+        assert rejected.json()["state"] == "REJECTED"
+        assert rejected.json()["requisition"]["kernel"]["state"] == "REJECTED"
         assert len(upstreams.adjustment_calls) == 1
 
 
@@ -179,12 +225,29 @@ def test_inventory_requisition_retries_after_insufficient_balance(tmp_path):
             "/api/dongzhou/v1/sessions/guest",
             json={"installation_id": str(uuid4())},
         )
-        response = client.post(route, json=payload)
+        draft = client.post(route, json=payload).json()
+        approval_route = f"{route}/{draft['requisition']['id']}/resume"
+        approval = {
+            "action_id": draft["action"]["actionId"],
+            "decision": "APPROVE",
+        }
+        response = client.post(approval_route, json=approval)
         assert response.status_code == 409
         assert response.json()["error"]["code"] == "organization_inventory_insufficient"
 
+        replayed_draft = client.post(route, json=payload)
+        assert replayed_draft.status_code == 200
+        assert replayed_draft.json()["replayed"] is True
+        assert replayed_draft.json()["state"] == "RETRYABLE"
+        assert replayed_draft.json()["requisition"]["state"] == "APPROVAL_RETRYABLE"
+        cannot_reject = client.post(
+            approval_route,
+            json={**approval, "decision": "REJECT"},
+        )
+        assert cannot_reject.status_code == 409
+
         account["balance"] = 30
-        retried = client.post(route, json=payload)
+        retried = client.post(approval_route, json=approval)
         assert retried.status_code == 200
         assert retried.json()["inventoryDebit"]["balanceAfter"] == 10
         assert len(upstreams.adjustment_calls) == 2

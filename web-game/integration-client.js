@@ -400,22 +400,38 @@
   function organizationRoster() { return requestWithTransientRetry("/organization/roster"); }
   function organizationInventory() { return requestWithTransientRetry("/organization/inventory"); }
   function pendingOrganizationInventoryRequisition() {
-    return read(INVENTORY_REQUISITION_PENDING_KEY, null);
+    const stored = read(INVENTORY_REQUISITION_PENDING_KEY, null);
+    if (!stored) return null;
+    if (stored.input) return stored;
+    return { input: stored, result: null, decision: null };
   }
   async function requisitionOrganizationInventory(input) {
-    const pending = read(INVENTORY_REQUISITION_PENDING_KEY, null) || {
-      ...input,
-      client_request_id: input?.client_request_id || root.crypto.randomUUID()
+    const existing = pendingOrganizationInventoryRequisition();
+    const journal = existing || {
+      input: {
+        ...input,
+        client_request_id: input?.client_request_id || root.crypto.randomUUID()
+      },
+      result: null,
+      decision: null
     };
-    write(INVENTORY_REQUISITION_PENDING_KEY, pending);
+    write(INVENTORY_REQUISITION_PENDING_KEY, journal);
+    if (journal.result && ["REQUIRES_ACTION", "RETRYABLE", "COMPLETED", "REJECTED"].includes(journal.result.state)) {
+      return journal.result;
+    }
     try {
-      return await request("/organization/inventory/requisitions", {
+      const result = await request("/organization/inventory/requisitions", {
         method: "POST",
-        body: JSON.stringify(pending)
+        body: JSON.stringify(journal.input)
       });
+      write(INVENTORY_REQUISITION_PENDING_KEY, {
+        ...journal,
+        result,
+        decision: result.state === "RETRYABLE" ? "APPROVE" : journal.decision
+      });
+      return result;
     } catch (error) {
       if ([400, 422].includes(error.status) || [
-        "organization_inventory_insufficient",
         "organization_inventory_requisition_conflict"
       ].includes(error.code)) {
         root.localStorage.removeItem(INVENTORY_REQUISITION_PENDING_KEY);
@@ -423,9 +439,26 @@
       throw error;
     }
   }
+  async function resumeOrganizationInventoryRequisition(requisitionId, actionId, decision) {
+    const journal = pendingOrganizationInventoryRequisition();
+    if (!journal?.input || journal.result?.requisition?.id !== requisitionId) {
+      throw new Error("军需调拨草案与待裁记录不匹配");
+    }
+    const pending = { ...journal, decision };
+    write(INVENTORY_REQUISITION_PENDING_KEY, pending);
+    const result = await request(
+      `/organization/inventory/requisitions/${encodeURIComponent(requisitionId)}/resume`,
+      {
+        method: "POST",
+        body: JSON.stringify({ action_id: actionId, decision })
+      }
+    );
+    write(INVENTORY_REQUISITION_PENDING_KEY, { ...pending, result });
+    return result;
+  }
   function acknowledgeOrganizationInventoryRequisition(requestId) {
-    const pending = read(INVENTORY_REQUISITION_PENDING_KEY, null);
-    if (pending?.client_request_id === requestId) {
+    const pending = pendingOrganizationInventoryRequisition();
+    if (pending?.input?.client_request_id === requestId) {
       root.localStorage.removeItem(INVENTORY_REQUISITION_PENDING_KEY);
     }
   }
@@ -445,5 +478,5 @@
     return { mode: "offline", stageId, results };
   }
 
-  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, syncNpcs, setNpcInteractionPreference, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationInventory, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, syncNpcs, setNpcInteractionPreference, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationInventory, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
 });

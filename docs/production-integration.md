@@ -32,6 +32,7 @@
 - 玩家传话使用 AINPC 正式 `CHAT_TURN` 入站契约，不在 H5 内生成或伪造回复。网关以玩家 UUID 派生不与 NPC 冲突的稳定 ID，先登记双人会话，再以客户端请求 UUID 派生幂等任务和消息 ID。NPC 回复必须经过 `NDLLMSendPrivateMessage` 回调持久化后才可展示；回调省略 `playerInfo` 时，以同任务封存的唯一非说话者参与者恢复目标，并继续按当前玩家稳定 ID 隔离读取。
 - AINPC Business 组织模块通过 typed contract 暴露已有的只读组织知识 owner。书问涉及组织、任务或贡献时，AINPC 以当前 NPC、玩家、会话和源消息绑定的范围查询 orgFlowEngine，并在表达前校验响应身份和披露证明；知识可读与贡献无权访问是两种正式结果，均不得被模型扩权或改写。
 - 军令状态随任务从 `ISSUED` 进入 `ORDERED`。orgFlowEngine 终态先由网关校验并封存贡献、功绩和结案摘要，NexusKernel 再生成可恢复的复命裁决；玩家收纳后进入 `FULFILLED`、`PARTIAL` 或 `FAILED`，申斥后进入 `CENSURED`，战斗报告落档后进入 `RESOLVED`。军令、军议、史料和复命裁决随战备跨页面及云存档恢复，不以浏览器提示文字代替持久记录。
+- 公共库藏调拨同样经过 NexusKernel 确认动作。创建草案只封存资源科目、数量、战役和兑换效果，不调用 orgFlow；玩家签发后才以同一幂等请求扣除 `task.execution` 并补入军粮，驳回不扣账。签发中的请求可跨刷新恢复，且一旦进入结算便不能改为驳回，避免未知扣账被本地取消。
 - 官署任务的事实结果、组织贡献和成员功绩以 orgFlowEngine 正式虚拟任务终态为准，玩家申斥不能改写；申斥只取消本次战前助益或外交成功，并降低属官信任与关系。联网模式不会再用浏览器随机数结算，也不会在玩家裁决前发放奖励。
 - 官署面板通过独立的 `organizations:roster:read` 服务权限读取 orgFlowEngine 名册快照；网关只保留配置映射内的英雄编号、官职和贡献账本，剥离组织、成员、岗位 UUID。页面标注“官署实账”的功绩与军府贡献来自该快照，不以本地累计值冒充远端真值。
 - 到期复命出队前重新读取真实任务：只有 `IN_PROGRESS` 才创建 AINPC 复命；尚未领命等非终态保留队列，已终态直接结束该队列事件。旧版本提前创建的失败复命不能靠重复 POST 恢复，需核实 AINPC 的恢复轮次和管理接口，不能换新操作号绕过幂等。
@@ -49,7 +50,7 @@
 
 ## 发布门禁
 
-当前验收记录（2026-11-11）：真实网关、AINPC、orgFlowEngine、knowledge-jizhan 和嵌入式 NexusKernel 均在线。无 API 拦截浏览器在任务 `cd9d873a-9264-53d1-bfc0-90048f909f11` 上验证了史料、军议、签令、领命、复命、NPC 审核、玩家收纳复命、云存档重载和战斗承接，且恢复没有重复建单；证据见 `output/integration-validation/live-kernel-mandate-complete38-race-fixed.json` 与 `live-kernel-mandate-complete40-final.png`。该任务及任务 `b2b66b37-732c-507b-970d-fb0ff7511698` 的长期经历已从 AINPC 自有持久库回读确认。公共库藏军需调拨已用真实浏览器验证 `task.execution` 余额 `80 -> 60`、军粮 `100 -> 112`、云档重载和幂等回放。东周网关测试为 `87 passed, 21 subtests passed`，12 席真实浏览器名册验收通过。实际公网 TLS、后端端口隔离、可信回调网络及宿主重启恢复仍需独立验收。
+当前验收记录（2026-11-12）：真实网关、AINPC、orgFlowEngine、knowledge-jizhan 和嵌入式 NexusKernel 均在线。无 API 拦截浏览器在任务 `cd9d873a-9264-53d1-bfc0-90048f909f11` 上验证了史料、军议、签令、领命、复命、NPC 审核、玩家收纳复命、云存档重载和战斗承接，且恢复没有重复建单；证据见 `output/integration-validation/live-kernel-mandate-complete38-race-fixed.json` 与 `live-kernel-mandate-complete40-final.png`。该任务及任务 `b2b66b37-732c-507b-970d-fb0ff7511698` 的长期经历已从 AINPC 自有持久库回读确认。公共库藏军需调拨已用真实浏览器证明草案零扣款、NexusKernel 签发后 `task.execution` 余额 `60 -> 40`、军粮 `100 -> 112`、驳回零扣款、云档重载和幂等回放；320px 确认面板无溢出。东周网关测试为 `87 passed, 21 subtests passed`，12 席真实浏览器名册验收通过。实际公网 TLS、后端端口隔离、可信回调网络及宿主重启恢复仍需独立验收。
 
 运行 `integration-service/.venv/Scripts/python.exe tools/verify-live-integration.py --url <网关地址> --output output/integration-validation/live-smoke.json` 验证真实健康、独立访客存档及冲突隔离、首中末关卡已发布史料、AI 检索、NPC 状态和 90 天日程。任一项失败则退出码非零；此检查不会派差或推进共享游戏时钟，不能代替任务复命与发布验收。
 

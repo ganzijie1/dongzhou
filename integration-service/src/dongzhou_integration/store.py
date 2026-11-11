@@ -864,7 +864,16 @@ class Store:
             "updatedAt": row["updated_at"],
         }
 
-    async def begin_request(self, player_id: UUID, request_id: UUID, kind: str, payload: dict[str, Any]) -> tuple[bool, dict[str, Any] | None]:
+    async def begin_request(
+        self,
+        player_id: UUID,
+        request_id: UUID,
+        kind: str,
+        payload: dict[str, Any],
+        *,
+        retry_states: tuple[str, ...] = ("RETRYABLE",),
+        reclaim_pending: bool = True,
+    ) -> tuple[bool, dict[str, Any] | None]:
         encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
         async with self._lock:
             with self._connection() as db:
@@ -877,8 +886,10 @@ class Store:
                 if row:
                     if row["kind"] != kind or row["request_payload"] != encoded:
                         raise VersionConflict("idempotency_conflict")
-                    if row["state"] == "RETRYABLE" or (
-                        row["state"] == "PENDING" and bool(row["lease_expired"])
+                    if row["state"] in retry_states or (
+                        reclaim_pending
+                        and row["state"] == "PENDING"
+                        and bool(row["lease_expired"])
                     ):
                         db.execute("UPDATE requests SET state='PENDING',updated_at=CURRENT_TIMESTAMP WHERE player_id=? AND request_id=?", (str(player_id), str(request_id)))
                         return True, None
@@ -913,6 +924,35 @@ class Store:
                         str(request_id),
                         kind,
                         expected_state,
+                    ),
+                )
+        return result.rowcount == 1
+
+    async def claim_request(
+        self,
+        player_id: UUID,
+        request_id: UUID,
+        kind: str,
+        expected_states: tuple[str, ...],
+        response: dict[str, Any],
+    ) -> bool:
+        if not expected_states:
+            raise ValueError("expected_states must not be empty")
+        placeholders = ",".join("?" for _ in expected_states)
+        async with self._lock:
+            with self._connection() as db:
+                result = db.execute(
+                    "UPDATE requests SET state='PENDING',response_payload=?,"
+                    "attempts=attempts+1,last_error=NULL,updated_at=CURRENT_TIMESTAMP "
+                    "WHERE player_id=? AND request_id=? AND kind=? AND "
+                    f"(state IN ({placeholders}) OR "
+                    "(state='PENDING' AND updated_at < datetime('now','-2 minutes')))",
+                    (
+                        json.dumps(response, ensure_ascii=False, separators=(",", ":")),
+                        str(player_id),
+                        str(request_id),
+                        kind,
+                        *expected_states,
                     ),
                 )
         return result.rowcount == 1
