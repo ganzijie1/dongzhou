@@ -16,7 +16,8 @@
 
   const KNOWN_NAMES = {
     DuBo: "杜伯", ZuoRu: "左儒", ZhouXuanWang: "周宣王", YinJiFu: "尹吉甫", ZhaoHu: "召虎",
-    RoyalGuard: "王城卫士", ZhouYouWang: "周幽王", ZhengHuanGong: "郑桓公", ZhengZhuangGong: "郑庄公",
+    RoyalGuard: "王城卫士", ZhouYouWang: "周幽王", GuoShiFu: "虢石父", ZhengHuanGong: "郑桓公", ZhengWuGong: "郑武公", ZhengZhuangGong: "郑庄公",
+    GongZiCheng3: "公子成", GongZiLu: "公子吕", ZhengVanguard: "郑军先锋", ZhengVanguard2: "郑军先锋", QinXiangGong: "秦襄公",
     ShenHou: "申侯", QuanRongLord: "犬戎主将", QuanRongWarrior: "犬戎武士", QuanRongArcher: "犬戎弓手",
     JinLiGong58: "晋厉公", LuanShu58: "栾书", ShiXie58: "士燮", HanJue48: "韩厥", XiQi58: "郤锜",
     XiZhi58: "郤至", XunYing54: "荀罃", QinHuanGongMasui: "秦桓公", ChengChaMasui: "成差",
@@ -1082,10 +1083,17 @@
   }
 
   let officeCorrespondenceView = [];
+  let officeKnownNpcIds = {};
 
   function officeNpcPeerName(state, targetId) {
     const heroId = Object.entries(state.knownNpcIds || {}).find(([, npcId]) => String(npcId) === String(targetId))?.[0];
     return profile.organization.members.find((member) => member.id === heroId)?.name || "未具名人物";
+  }
+
+  function officeCanonicalMemberName(name) {
+    const raw = String(name || "");
+    const heroId = Object.entries(officeKnownNpcIds).find(([, npcId]) => String(npcId) === raw)?.[0] || raw;
+    return profile.organization.members.find((member) => member.id === heroId)?.name || KNOWN_NAMES[heroId] || raw;
   }
 
   function officeAffectionText(type) {
@@ -1114,8 +1122,9 @@
     const selected = profile.organization.selectedCorrespondence?.[String(officeStage()?.id || "")];
     panel.innerHTML = officeCorrespondenceView.map((message) => {
       const isSelected = selected?.messageId === message.messageId && selected?.heroId === member.id;
-      const peerName = message.speakerId === message.npcId ? message.targetName : message.speakerName;
-      return `<div class="office-correspondence-item${isSelected ? " selected" : ""}"><strong>${escapeHtml(message.speakerName || member.name)}</strong><button class="large-button" type="button" data-correspondence-id="${escapeHtml(message.messageId)}">${isSelected ? "已取用" : "取为线索"}</button><span>${escapeHtml(message.content)}</span><small>${escapeHtml(peerName || "府中属官")} · ${escapeHtml(message.emotion || "calm")} · 印记 ${escapeHtml(String(message.digest || "").slice(0, 10))}</small></div>`;
+      const peerName = officeCanonicalMemberName(message.speakerId === message.npcId ? message.targetName : message.speakerName);
+      const speakerName = message.speakerId === message.npcId ? member.name : officeCanonicalMemberName(message.speakerName);
+      return `<div class="office-correspondence-item${isSelected ? " selected" : ""}"><strong>${escapeHtml(speakerName || member.name)}</strong><button class="large-button" type="button" data-correspondence-id="${escapeHtml(message.messageId)}">${isSelected ? "已取用" : "取为线索"}</button><span>${escapeHtml(message.content)}</span><small>${escapeHtml(peerName || "府中属官")} · ${escapeHtml(message.emotion || "calm")} · 印记 ${escapeHtml(String(message.digest || "").slice(0, 10))}</small></div>`;
     }).join("") || "<p>尚未收到与该属官有关的府中耳报。</p>";
   }
 
@@ -1197,6 +1206,7 @@
       await syncOfficeNpcs([member]);
       const state = await integration.npcState(member.id);
       if (!isCurrentOfficeNpcRequest(serial, member.id)) return;
+      officeKnownNpcIds = { ...officeKnownNpcIds, ...(state.knownNpcIds || {}) };
       const emotion = state.emotion?.data || state.emotion || {};
       const affection = state.affection?.data || state.affection || {};
       const relationships = state.relationships?.data || state.relationships || {};
