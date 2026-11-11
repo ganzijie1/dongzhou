@@ -637,7 +637,14 @@
     const byHero = new Map(normalized.map((entry) => [entry.heroId, entry]));
     state.members = state.members.map((member) => {
       const account = byHero.get(member.id);
-      return account ? { ...member, office: account.office || account.role || member.office, merit: account.lifetimeEarned } : member;
+      if (!account) return member;
+      const internalOffice = /^(?:commander|court_officer|officer_\d+)$/i;
+      const office = account.office && !internalOffice.test(account.office)
+        ? account.office
+        : member.office && !internalOffice.test(member.office)
+          ? member.office
+          : account.level === "owner" || account.role === "commander" ? "主官" : "属官";
+      return { ...member, office, merit: account.lifetimeEarned };
     });
     state.contribution = growth;
     if (String(organization.name || "").trim()) state.name = String(organization.name).trim();

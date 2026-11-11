@@ -1009,8 +1009,22 @@
     renderOfficeCouncil();
     const currentType = $("#officeTaskType").value;
     $("#officeTaskType").innerHTML = Object.entries(organization.TASK_TYPES).map(([id, task]) => `<option value="${id}" ${id === currentType ? "selected" : ""}>${task.name} · ${task.duration}月</option>`).join("");
-    const rosterIds = new Set((org.remoteRoster?.members || []).map((entry) => entry.heroId));
-    $("#officeMembers").innerHTML = org.members.map((member) => `<div><strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(member.office)}</span><small>功绩 ${member.merit >= 0 ? "+" : ""}${member.merit}${rosterIds.has(member.id) ? " · 官署实账" : ""} · 信任 ${member.loyalty} · 关系 ${Number(org.relations[member.id] || 0) >= 0 ? "+" : ""}${Number(org.relations[member.id] || 0)} · 劳顿 ${member.fatigue}</small></div>`).join("") || "<p>随战役推进，出阵人物会进入官署名册。</p>";
+    const roster = org.remoteRoster || { organization: null, members: [] };
+    const rosterMembers = Array.isArray(roster.members) ? roster.members : [];
+    const rosterByHero = new Map(rosterMembers.map((entry) => [entry.heroId, entry]));
+    const rosterState = roster.organization?.state === "ACTIVE" ? "在署" : roster.organization?.state || "待核";
+    $("#officeRosterSummary").textContent = roster.organization
+      ? `${roster.organization.name || org.name} · ${rosterMembers.length} 席在册 · 谱系 ${roster.organization.hierarchyVersion} · ${rosterState}`
+      : "尚未取得朝议实账名册";
+    $("#officeMembers").innerHTML = org.members.map((member) => {
+      const account = rosterByHero.get(member.id);
+      const manager = account?.directManagerHeroId ? displayName(account.directManagerHeroId) : null;
+      const role = account ? (account.level === "owner" || account.role === "commander" ? "主官" : "属官") : null;
+      const remoteLine = account
+        ? `<small class="office-member-account">${escapeHtml(role)} · 可用贡献 ${account.contributionBalance} · 累计 ${account.lifetimeEarned} · 已用 ${account.lifetimeSpent}${manager ? ` · 上呈${escapeHtml(manager)}` : " · 统辖官署"}</small>`
+        : "";
+      return `<div data-roster-hero="${escapeHtml(member.id)}"><strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(member.office)}</span><small>功绩 ${member.merit >= 0 ? "+" : ""}${member.merit}${account ? " · 官署实账" : ""} · 信任 ${member.loyalty} · 关系 ${Number(org.relations[member.id] || 0) >= 0 ? "+" : ""}${Number(org.relations[member.id] || 0)} · 劳顿 ${member.fatigue}</small>${remoteLine}</div>`;
+    }).join("") || "<p>随战役推进，出阵人物会进入官署名册。</p>";
     $("#officeTaskLedger").innerHTML = [...org.tasks].reverse().slice(0, 10).map((task) => {
       const outcomeState = task.npcOutcome?.state;
       const outcomeLabel = outcomeState === "DELIVERED" ? " · 经历已形成" : outcomeState === "PENDING" ? (task.npcOutcome?.lastError ? " · 经历待重试" : " · 经历回写中") : "";

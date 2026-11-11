@@ -3740,10 +3740,12 @@ button:focus-visible {
 .office-settlement-review { border-top-color: rgba(178, 112, 88, .35); }
 .office-mandate-actions { display: flex; gap: 8px; }
 .office-members { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin-top: 18px; background: rgba(191, 161, 91, .13); }
+.office-roster-summary { margin: 12px 0 -8px; color: #898b82; font-size: 11px; overflow-wrap: anywhere; }
 .office-members > div { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; padding: 11px 12px; background: #101510; }
 .office-members strong { color: #e3d8bb; font-size: 13px; }
 .office-members span { color: #b99344; font-size: 11px; }
 .office-members small { grid-column: 1 / -1; color: #85887f; }
+.office-members .office-member-account { color: #b4a77e; }
 .office-task-ledger { margin: 15px 0 0; padding: 0; list-style: none; }
 .office-task-ledger li { display: grid; grid-template-columns: minmax(140px, .7fr) minmax(64px, auto) minmax(0, 1.4fr); gap: 14px; padding: 9px 0; border-bottom: 1px dotted rgba(196, 172, 111, .18); font-size: 11px; }
 .office-task-ledger li > span, .office-task-ledger li > small { min-width: 0; overflow-wrap: anywhere; }
