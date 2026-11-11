@@ -186,7 +186,7 @@ class RuntimeModule(Module):
 
 class MandateWorkflowModule(Module):
     name = "dongzhou_mandate_workflow"
-    version = "1.3.0"
+    version = "1.4.0"
     dependencies = (RuntimeModule.name,)
 
     @staticmethod
@@ -1024,10 +1024,154 @@ def _digest_json(value: dict[str, Any]) -> str:
     ).hexdigest()
 
 
+async def _battle_support_attestations(
+    store: Store,
+    player_id: UUID,
+    previous_payload: dict[str, Any],
+    submitted_payload: dict[str, Any],
+) -> dict[str, set[str]]:
+    organization = submitted_payload.get("organization")
+    previous_organization = previous_payload.get("organization")
+    if not isinstance(organization, dict) or not isinstance(previous_organization, dict):
+        return {"councils": set(), "mandates": set(), "orders": set()}
+
+    reports = organization.get("battleReports")
+    if not isinstance(reports, list):
+        return {"councils": set(), "mandates": set(), "orders": set()}
+    councils: dict[str, tuple[str, str]] = {}
+    mandates: dict[str, tuple[str, str]] = {}
+    orders: dict[str, str] = {}
+    for report in reports[-40:]:
+        if not isinstance(report, dict):
+            continue
+        report_councils = report.get("councils")
+        for council in report_councils if isinstance(report_councils, list) else []:
+            if isinstance(council, dict) and council.get("id"):
+                councils[str(council["id"])] = (
+                    str(council.get("memberId") or ""),
+                    str(report.get("stageId") or ""),
+                )
+        report_mandates = report.get("mandates")
+        for mandate in report_mandates if isinstance(report_mandates, list) else []:
+            if isinstance(mandate, dict) and mandate.get("id"):
+                mandates[str(mandate["id"])] = (
+                    str(mandate.get("heroId") or ""),
+                    str(mandate.get("digest") or ""),
+                )
+        support = report.get("support")
+        if not isinstance(support, dict):
+            continue
+        support_orders = support.get("orders")
+        for order in support_orders if isinstance(support_orders, list) else []:
+            if isinstance(order, dict) and order.get("id") and order.get("memberId"):
+                orders[str(order["id"])] = str(order["memberId"])
+
+    attested = {"councils": set(), "mandates": set(), "orders": set()}
+    previous_councils = {
+        str(council.get("id")): council
+        for council in previous_organization.get("councils", [])
+        if isinstance(council, dict) and council.get("id")
+    }
+    for council_id, (hero_id, stage_id) in councils.items():
+        try:
+            request_id = UUID(council_id)
+        except ValueError:
+            continue
+        record = await store.read_request(player_id, request_id, "npc_decision")
+        request = record.get("request") if record else None
+        response = record.get("response") if record else None
+        raw_decision = response.get("decision") if isinstance(response, dict) else None
+        decision = raw_decision.get("data", raw_decision) if isinstance(raw_decision, dict) else None
+        source = previous_councils.get(council_id)
+        request_options = request.get("options") if isinstance(request, dict) else None
+        source_options = source.get("options") if isinstance(source, dict) else None
+        option_texts = [
+            str(option.get("text") or "")
+            for option in request_options
+            if isinstance(option, dict)
+        ] if isinstance(request_options, list) else []
+        selected_index = decision.get("index") if isinstance(decision, dict) else None
+        selected_text = (
+            option_texts[selected_index]
+            if isinstance(selected_index, int) and 0 <= selected_index < len(option_texts)
+            else None
+        )
+        if (
+            record
+            and record.get("state") == "COMPLETED"
+            and isinstance(request, dict)
+            and isinstance(source, dict)
+            and isinstance(decision, dict)
+            and str(request.get("hero_id") or "") == hero_id
+            and str(request.get("stage_id") or "") == stage_id
+            and str(source.get("memberId") or "") == hero_id
+            and str(source.get("stageId") or "") == stage_id
+            and request.get("question") == source.get("question")
+            and option_texts == source_options
+            and decision.get("type") == "OPTION"
+            and selected_index == source.get("index")
+            and selected_text == source.get("text")
+        ):
+            attested["councils"].add(council_id)
+
+    for mandate_id, (hero_id, digest) in mandates.items():
+        try:
+            request_id = UUID(mandate_id.rsplit(":", 1)[-1])
+        except ValueError:
+            continue
+        record = await store.read_request(player_id, request_id, "court_mandate")
+        response = record.get("response") if record else None
+        mandate = response.get("mandate") if isinstance(response, dict) else None
+        if (
+            record
+            and record.get("state") == "ISSUED"
+            and isinstance(mandate, dict)
+            and mandate.get("id") == mandate_id
+            and mandate.get("state") == "ISSUED"
+            and str(mandate.get("heroId") or "") == hero_id
+            and str(mandate.get("digest") or "") == digest
+        ):
+            attested["mandates"].add(mandate_id)
+
+    previous_tasks = {
+        str(task.get("id")): task
+        for task in previous_organization.get("tasks", [])
+        if isinstance(task, dict) and task.get("id")
+    }
+    for order_id, hero_id in orders.items():
+        task = previous_tasks.get(order_id)
+        remote_id = str(task.get("remoteResult") or "") if task else ""
+        if not task or not remote_id:
+            continue
+        record = await store.read_external_request_record(
+            player_id, remote_id, "organization_task"
+        )
+        original = record.get("request") if record else None
+        response = record.get("response") if record else None
+        terminal = response.get("terminal") if isinstance(response, dict) else None
+        settlement = terminal.get("settlement") if isinstance(terminal, dict) else None
+        closure = terminal.get("closureReceipt") if isinstance(terminal, dict) else None
+        task_closure = task.get("closureReceipt")
+        if (
+            isinstance(original, dict)
+            and isinstance(settlement, dict)
+            and isinstance(closure, dict)
+            and isinstance(task_closure, dict)
+            and str(original.get("assignee_hero_id") or "") == hero_id
+            and str(original.get("stage_id") or "") == str(task.get("stageId") or "")
+            and settlement.get("result") in {"SUCCESS", "PARTIAL"}
+            and closure.get("state") == "SEALED"
+            and closure.get("digest") == task_closure.get("digest")
+        ):
+            attested["orders"].add(order_id)
+    return attested
+
+
 def _seal_battle_reports(
     player_id: UUID,
     previous_payload: dict[str, Any],
     submitted_payload: dict[str, Any],
+    attestations: dict[str, set[str]] | None = None,
 ) -> dict[str, Any]:
     payload = deepcopy(submitted_payload)
     organization = payload.get("organization")
@@ -1109,9 +1253,11 @@ def _seal_battle_reports(
         verified_councils: list[dict[str, str]] = []
         verified_mandates: list[dict[str, str]] = []
         verified_orders: list[dict[str, str]] = []
+        rejected_support: list[dict[str, str]] = []
         participants: set[str] = set()
 
-        for council in report.get("councils", []):
+        report_councils = report.get("councils")
+        for council in report_councils if isinstance(report_councils, list) else []:
             if not isinstance(council, dict):
                 raise BattleReceiptConflict("battle_council_reference_invalid")
             council_id = str(council.get("id") or "")
@@ -1130,10 +1276,18 @@ def _seal_battle_reports(
                 or hero_id not in previous_members
             ):
                 raise BattleReceiptConflict("battle_council_reference_invalid")
+            if attestations is not None and council_id not in attestations.get("councils", set()):
+                rejected_support.append({
+                    "kind": "council",
+                    "id": council_id,
+                    "reason": "server_attestation_missing",
+                })
+                continue
             verified_councils.append({"id": council_id, "heroId": hero_id})
             participants.add(hero_id)
 
-        for mandate in report.get("mandates", []):
+        report_mandates = report.get("mandates")
+        for mandate in report_mandates if isinstance(report_mandates, list) else []:
             if not isinstance(mandate, dict):
                 raise BattleReceiptConflict("battle_mandate_reference_invalid")
             mandate_id = str(mandate.get("id") or "")
@@ -1153,13 +1307,21 @@ def _seal_battle_reports(
                 or hero_id not in previous_members
             ):
                 raise BattleReceiptConflict("battle_mandate_reference_invalid")
+            if attestations is not None and mandate_id not in attestations.get("mandates", set()):
+                rejected_support.append({
+                    "kind": "mandate",
+                    "id": mandate_id,
+                    "reason": "server_attestation_missing",
+                })
+                continue
             verified_mandates.append(
                 {"id": mandate_id, "heroId": hero_id, "digest": str(source.get("digest"))}
             )
             participants.add(hero_id)
 
         support = report.get("support") if isinstance(report.get("support"), dict) else {}
-        for order in support.get("orders", []):
+        support_orders = support.get("orders")
+        for order in support_orders if isinstance(support_orders, list) else []:
             if not isinstance(order, dict):
                 raise BattleReceiptConflict("battle_order_reference_invalid")
             order_id = str(order.get("id") or "")
@@ -1178,6 +1340,17 @@ def _seal_battle_reports(
                 or hero_id not in previous_members
             ):
                 raise BattleReceiptConflict("battle_order_reference_invalid")
+            if (
+                hero_id
+                and attestations is not None
+                and order_id not in attestations.get("orders", set())
+            ):
+                rejected_support.append({
+                    "kind": "order",
+                    "id": order_id,
+                    "reason": "server_attestation_missing",
+                })
+                continue
             verified_orders.append({"id": order_id, "heroId": hero_id})
             if hero_id:
                 participants.add(hero_id)
@@ -1203,6 +1376,10 @@ def _seal_battle_reports(
                 "mandates": sorted(verified_mandates, key=lambda entry: entry["id"]),
                 "orders": sorted(verified_orders, key=lambda entry: entry["id"]),
             },
+            "rejectedSupport": sorted(
+                rejected_support,
+                key=lambda entry: (entry["kind"], entry["id"]),
+            ),
             "kernel": {
                 "module": MandateWorkflowModule.name,
                 "moduleVersion": MandateWorkflowModule.version,
@@ -1936,10 +2113,17 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             previous = await store.read_save(player_id)
             if previous["version"] != request.expected_version:
                 raise VersionConflict("save_version_conflict")
+            attestations = await _battle_support_attestations(
+                store,
+                player_id,
+                previous["payload"],
+                request.payload,
+            )
             sealed_payload = _seal_battle_reports(
                 player_id,
                 previous["payload"],
                 request.payload,
+                attestations,
             )
             reports = await _prepare_due_organization_reports(
                 store, settings, player_id, sealed_payload
@@ -3957,7 +4141,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             await store.game_event_status("npc-outcome:" + task_key),
             await store.game_event_status("npc-memory:" + task_key),
         )
-        return {
+        task_state = {
             "taskId": task_key,
             "result": result,
             "settlement": settlement,
@@ -3965,6 +4149,15 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "npcOutcome": outcome,
             "review": review,
         }
+        if settlement is not None and closure is not None:
+            await store.cache_external_request_result(
+                player_id,
+                task_key,
+                "organization_task",
+                "terminal",
+                task_state,
+            )
+        return task_state
 
     @router.get("/organization/tasks/{task_id}")
     async def read_organization_task(task_id: UUID, player_id: UUID = Depends(player)) -> dict[str, Any]:

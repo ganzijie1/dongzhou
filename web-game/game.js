@@ -1226,9 +1226,11 @@
     $("#officeBattleArchive").innerHTML = [...org.archives].reverse().slice(0, 12).map((entry) => `<li><strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml(entry.text)} · ${escapeHtml(String(entry.stageId || "无关卡"))}</span></li>`).join("") || "<li><strong>尚无档案</strong><span>完成盟约、背盟或战役后将在此存照。</span></li>";
     const sealedBattleReport = [...org.battleReports].reverse().find((report) => report?.kernelReceipt?.kernel?.state === "SEALED");
     if (sealedBattleReport) {
+      const verifiedCount = Number(sealedBattleReport.kernelReceipt.verifiedParticipants?.length || 0);
+      const rejectedCount = Number(sealedBattleReport.kernelReceipt.rejectedSupport?.length || 0);
       $("#officeBattleArchive").insertAdjacentHTML(
         "afterbegin",
-        `<li><strong>\u5185\u6838\u6218\u679c\u5370\u8bb0</strong><span>${escapeHtml(sealedBattleReport.stageTitle || sealedBattleReport.stageId)} \u00b7 ${escapeHtml(String(sealedBattleReport.kernelReceipt.digest || "").slice(0, 12))} \u00b7 ${escapeHtml(String(sealedBattleReport.kernelReceipt.kernel.moduleVersion || ""))}</span></li>`
+        `<li><strong>\u5185\u6838\u6218\u679c\u5370\u8bb0</strong><span>${escapeHtml(sealedBattleReport.stageTitle || sealedBattleReport.stageId)} \u00b7 ${escapeHtml(String(sealedBattleReport.kernelReceipt.digest || "").slice(0, 12))} \u00b7 ${escapeHtml(String(sealedBattleReport.kernelReceipt.kernel.moduleVersion || ""))} \u00b7 ${verifiedCount}\u4eba\u8ba4\u8bc1${rejectedCount ? ` \u00b7 ${rejectedCount}\u9879\u672a\u8ba4\u8bc1` : ""}</span></li>`
       );
     }
     const selectedTask = organization.TASK_TYPES[$("#officeTaskType").value] || organization.TASK_TYPES.supply;
@@ -1939,7 +1941,7 @@
     officeCouncilInFlight = true;
     panel.textContent = `${member.name}正在权衡…`;
     try {
-      const response = await integration.npcDecision(member.id, contextualQuestion, options);
+      const response = await integration.npcDecision(member.id, contextualQuestion, options, stageId);
       if (String(officeStage()?.id || "") !== stageId || $("#officeMemberSelect").value !== member.id || $("#officeDecisionQuestion").value.trim() !== question || JSON.stringify([...document.querySelectorAll(".office-decision-option")].map((input) => input.value.trim()).filter(Boolean)) !== JSON.stringify(options)) { panel.textContent = "选择已改变，本轮结果不用于当前派差，请重新参议。"; return; }
       const selected = response.decision?.data || response.decision || {};
       if (response.state !== "COMPLETED" || selected.type !== "OPTION") throw new Error("军议尚未返回有效方案");

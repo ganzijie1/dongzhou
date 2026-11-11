@@ -1014,6 +1014,67 @@ class Store:
                 ).fetchone()
         return None if row is None else json.loads(row["request_payload"])
 
+    async def read_external_request_record(
+        self, player_id: UUID, external_id: str, kind: str
+    ) -> dict[str, Any] | None:
+        async with self._lock:
+            with self._connection() as db:
+                row = db.execute(
+                    "SELECT state,request_payload,response_payload FROM requests "
+                    "WHERE player_id=? AND external_id=? AND kind=?",
+                    (str(player_id), external_id, kind),
+                ).fetchone()
+        if row is None:
+            return None
+        return {
+            "state": row["state"],
+            "request": json.loads(row["request_payload"]),
+            "response": (
+                json.loads(row["response_payload"])
+                if row["response_payload"]
+                else None
+            ),
+        }
+
+    async def cache_external_request_result(
+        self,
+        player_id: UUID,
+        external_id: str,
+        kind: str,
+        result_key: str,
+        result: dict[str, Any],
+    ) -> bool:
+        async with self._lock:
+            with self._connection() as db:
+                row = db.execute(
+                    "SELECT response_payload FROM requests "
+                    "WHERE player_id=? AND external_id=? AND kind=?",
+                    (str(player_id), external_id, kind),
+                ).fetchone()
+                if row is None:
+                    return False
+                response = (
+                    json.loads(row["response_payload"])
+                    if row["response_payload"]
+                    else {}
+                )
+                response[result_key] = result
+                db.execute(
+                    "UPDATE requests SET response_payload=?,updated_at=CURRENT_TIMESTAMP "
+                    "WHERE player_id=? AND external_id=? AND kind=?",
+                    (
+                        json.dumps(
+                            response,
+                            ensure_ascii=False,
+                            separators=(",", ":"),
+                        ),
+                        str(player_id),
+                        external_id,
+                        kind,
+                    ),
+                )
+        return True
+
     async def owns_external_request(self, player_id: UUID, external_id: str, kind: str) -> bool:
         async with self._lock:
             with self._connection() as db:

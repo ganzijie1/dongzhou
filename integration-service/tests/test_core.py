@@ -18,6 +18,7 @@ from pydantic import ValidationError
 from dongzhou_integration.app import (
     BattleReceiptConflict,
     RuntimeModule,
+    _battle_support_attestations,
     _battle_game_events,
     _evidence_task_fit,
     _npc_outcome_event,
@@ -56,6 +57,9 @@ class _CapturingUpstreams(_HealthyUpstreams):
     async def send_game_event(self, kind, payload):
         self.events.append((kind, payload))
         return {"code": 200}
+
+    async def choose_dialogue(self, npc_id, payload):
+        return {"data": {"type": "OPTION", "index": 0}}
 
 
 class _NpcPreferenceUpstreams(_HealthyUpstreams):
@@ -319,6 +323,54 @@ class OrganizationOutcomeTests(unittest.TestCase):
         changed["organization"]["battleReports"][0]["won"] = False
         with self.assertRaisesRegex(BattleReceiptConflict, "battle_report_changed_after_seal"):
             _seal_battle_reports(player_id, sealed, changed)
+
+    def test_battle_receipt_excludes_support_without_server_attestation(self) -> None:
+        player_id = UUID("00000000-0000-4000-8000-000000000123")
+        council_id = str(uuid4())
+        previous = {
+            "organization": {
+                "members": [{"id": "ZuoRu", "name": "Zuo Ru"}],
+                "councils": [{
+                    "id": council_id,
+                    "stageId": "01",
+                    "memberId": "ZuoRu",
+                }],
+                "mandates": [],
+                "tasks": [],
+                "pendingSupport": [{
+                    "id": "support-1",
+                    "stageId": "01",
+                    "council": {"id": council_id},
+                }],
+                "battleReports": [],
+            }
+        }
+        submitted = json.loads(json.dumps(previous))
+        submitted["organization"]["pendingSupport"] = []
+        submitted["organization"]["battleReports"] = [{
+            "id": "battle:unattested",
+            "stageId": "01",
+            "won": True,
+            "turns": 3,
+            "ownLosses": 0,
+            "councils": [{"id": council_id, "memberId": "ZuoRu"}],
+            "mandates": [],
+            "support": {"orders": []},
+        }]
+        sealed = _seal_battle_reports(
+            player_id,
+            previous,
+            submitted,
+            {"councils": set(), "mandates": set(), "orders": set()},
+        )
+        receipt = sealed["organization"]["battleReports"][0]["kernelReceipt"]
+        self.assertEqual(receipt["verifiedParticipants"], [])
+        self.assertEqual(receipt["verifiedSupport"]["councils"], [])
+        self.assertEqual(receipt["rejectedSupport"], [{
+            "kind": "council",
+            "id": council_id,
+            "reason": "server_attestation_missing",
+        }])
 
     def test_organization_supervision_links_use_only_synced_direct_reports(self) -> None:
         links = _organization_supervision_links(
@@ -777,6 +829,21 @@ class AuthenticationRouteTests(unittest.TestCase):
                     "/api/dongzhou/v1/sessions/guest",
                     json={"installation_id": str(uuid4())},
                 )
+                council_id = str(uuid4())
+                council_response = client.post(
+                    "/api/dongzhou/v1/npcs/ZuoRu/decisions",
+                    json={
+                        "client_request_id": council_id,
+                        "stage_id": "01",
+                        "question": "How should the campaign be supported?",
+                        "options": [
+                            {"index": 0, "text": "Hold formation"},
+                            {"index": 1, "text": "Advance"},
+                        ],
+                        "topic": "court_decision",
+                    },
+                )
+                self.assertEqual(council_response.status_code, 200, council_response.text)
                 prepared = client.put(
                     "/api/dongzhou/v1/save",
                     json={
@@ -790,15 +857,19 @@ class AuthenticationRouteTests(unittest.TestCase):
                                 ],
                                 "tasks": [],
                                 "councils": [{
-                                    "id": "council-route",
+                                    "id": council_id,
                                     "stageId": "01",
                                     "memberId": "ZuoRu",
+                                    "question": "How should the campaign be supported?",
+                                    "options": ["Hold formation", "Advance"],
+                                    "index": 0,
+                                    "text": "Hold formation",
                                 }],
                                 "mandates": [],
                                 "pendingSupport": [{
                                     "id": "support-route",
                                     "stageId": "01",
-                                    "council": {"id": "council-route"},
+                                    "council": {"id": council_id},
                                 }],
                                 "battleReports": [],
                             }
@@ -819,9 +890,13 @@ class AuthenticationRouteTests(unittest.TestCase):
                                 ],
                                 "tasks": [],
                                 "councils": [{
-                                    "id": "council-route",
+                                    "id": council_id,
                                     "stageId": "01",
                                     "memberId": "ZuoRu",
+                                    "question": "How should the campaign be supported?",
+                                    "options": ["Hold formation", "Advance"],
+                                    "index": 0,
+                                    "text": "Hold formation",
                                 }],
                                 "mandates": [],
                                 "pendingSupport": [],
@@ -832,7 +907,7 @@ class AuthenticationRouteTests(unittest.TestCase):
                                     "won": False,
                                     "turns": 12,
                                     "ownLosses": 2,
-                                    "councils": [{"id": "council-route", "memberId": "ZuoRu"}],
+                                    "councils": [{"id": council_id, "memberId": "ZuoRu"}],
                                     "mandates": [],
                                     "sources": ["左儒军议"],
                                     "support": {"orders": []},
@@ -860,6 +935,92 @@ class AuthenticationRouteTests(unittest.TestCase):
             outcome["events"][0]["event_type"],
             "battle_result",
         )
+
+    def test_save_excludes_client_only_battle_support_from_npc_events(self) -> None:
+        with TemporaryDirectory() as directory, patch.dict(
+            "os.environ",
+            {
+                "DONGZHOU_ENV": "development",
+                "DONGZHOU_WEB_ROOT": directory,
+                "DONGZHOU_PUBLIC_ORIGIN": "http://testserver",
+                "DONGZHOU_DATABASE_PATH": str(Path(directory) / "gateway.sqlite3"),
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            upstreams = _CapturingUpstreams()
+            application = build_application(
+                settings,
+                store=Store(settings.database_path),
+                upstreams=upstreams,
+            )
+            fake_council_id = str(uuid4())
+            with TestClient(application) as client:
+                client.post(
+                    "/api/dongzhou/v1/sessions/guest",
+                    json={"installation_id": str(uuid4())},
+                )
+                prepared = client.put(
+                    "/api/dongzhou/v1/save",
+                    json={
+                        "expected_version": 1,
+                        "payload": {"organization": {
+                            "month": 1,
+                            "members": [{"id": "ZuoRu", "name": "Zuo Ru"}],
+                            "councils": [{
+                                "id": fake_council_id,
+                                "stageId": "01",
+                                "memberId": "ZuoRu",
+                            }],
+                            "mandates": [],
+                            "tasks": [],
+                            "pendingSupport": [{
+                                "id": "fake-support",
+                                "stageId": "01",
+                                "council": {"id": fake_council_id},
+                            }],
+                            "battleReports": [],
+                        }},
+                    },
+                )
+                self.assertEqual(prepared.status_code, 200, prepared.text)
+                submitted = client.put(
+                    "/api/dongzhou/v1/save",
+                    json={
+                        "expected_version": 2,
+                        "payload": {"organization": {
+                            "month": 1,
+                            "members": [{"id": "ZuoRu", "name": "Zuo Ru"}],
+                            "councils": [{
+                                "id": fake_council_id,
+                                "stageId": "01",
+                                "memberId": "ZuoRu",
+                            }],
+                            "mandates": [],
+                            "tasks": [],
+                            "pendingSupport": [],
+                            "battleReports": [{
+                                "id": "battle:client-only",
+                                "stageId": "01",
+                                "won": True,
+                                "turns": 2,
+                                "ownLosses": 0,
+                                "councils": [{
+                                    "id": fake_council_id,
+                                    "memberId": "ZuoRu",
+                                }],
+                                "mandates": [],
+                                "support": {"orders": []},
+                            }],
+                        }},
+                    },
+                )
+                self.assertEqual(submitted.status_code, 200, submitted.text)
+                receipt = submitted.json()["payload"]["organization"]["battleReports"][0]["kernelReceipt"]
+                self.assertEqual(receipt["verifiedParticipants"], [])
+                self.assertEqual(receipt["rejectedSupport"][0]["id"], fake_council_id)
+                time.sleep(0.05)
+                self.assertEqual(upstreams.events, [])
 
     def test_npc_interaction_preference_persists_only_confirmed_state(self) -> None:
         with TemporaryDirectory() as directory, patch.dict(
@@ -1378,12 +1539,162 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         request_id = uuid4()
         created, _ = await self.store.begin_request(player_id, request_id, "organization_task", {"type": "supply"})
         self.assertTrue(created)
-        await self.store.finish_request(player_id, request_id, "ACCEPTED", {"state": "ACCEPTED"})
+        await self.store.finish_request(
+            player_id,
+            request_id,
+            "ACCEPTED",
+            {"state": "ACCEPTED", "taskId": "task-1"},
+            external_id="task-1",
+        )
         created, replay = await self.store.begin_request(player_id, request_id, "organization_task", {"type": "supply"})
         self.assertFalse(created)
-        self.assertEqual(replay, {"state": "ACCEPTED"})
+        self.assertEqual(replay, {"state": "ACCEPTED", "taskId": "task-1"})
+        self.assertTrue(await self.store.cache_external_request_result(
+            player_id,
+            "task-1",
+            "organization_task",
+            "terminal",
+            {"settlement": {"result": "SUCCESS"}},
+        ))
+        record = await self.store.read_external_request_record(
+            player_id, "task-1", "organization_task"
+        )
+        self.assertEqual(record["request"], {"type": "supply"})
+        self.assertEqual(
+            record["response"]["terminal"]["settlement"]["result"],
+            "SUCCESS",
+        )
         with self.assertRaises(VersionConflict):
             await self.store.begin_request(player_id, request_id, "organization_task", {"type": "drill"})
+
+    async def test_battle_support_attestations_require_server_records(self) -> None:
+        player_id = await self.store.get_or_create_player(uuid4())
+        council_id = uuid4()
+        created, _ = await self.store.begin_request(
+            player_id,
+            council_id,
+            "npc_decision",
+            {
+                "hero_id": "ZuoRu",
+                "stage_id": "01",
+                "question": "Hold or advance?",
+                "options": [
+                    {"index": 0, "text": "Hold"},
+                    {"index": 1, "text": "Advance"},
+                ],
+            },
+        )
+        self.assertTrue(created)
+        await self.store.finish_request(
+            player_id,
+            council_id,
+            "COMPLETED",
+            {
+                "state": "COMPLETED",
+                "decision": {"data": {"type": "OPTION", "index": 0}},
+            },
+        )
+
+        mandate_request_id = uuid4()
+        mandate_id = f"dongzhou:{player_id}:{mandate_request_id}"
+        mandate_digest = "a" * 64
+        created, _ = await self.store.begin_request(
+            player_id,
+            mandate_request_id,
+            "court_mandate",
+            {"hero_id": "ZuoRu", "stage_id": "01"},
+        )
+        self.assertTrue(created)
+        await self.store.finish_request(
+            player_id,
+            mandate_request_id,
+            "ISSUED",
+            {
+                "state": "ISSUED",
+                "mandate": {
+                    "id": mandate_id,
+                    "state": "ISSUED",
+                    "heroId": "ZuoRu",
+                    "digest": mandate_digest,
+                },
+            },
+            external_id=mandate_id,
+        )
+
+        organization_request_id = uuid4()
+        remote_task_id = str(uuid4())
+        created, _ = await self.store.begin_request(
+            player_id,
+            organization_request_id,
+            "organization_task",
+            {"assignee_hero_id": "ZuoRu", "stage_id": "01"},
+        )
+        self.assertTrue(created)
+        await self.store.finish_request(
+            player_id,
+            organization_request_id,
+            "ACCEPTED",
+            {"state": "ACCEPTED", "taskId": remote_task_id},
+            external_id=remote_task_id,
+        )
+        closure = {"state": "SEALED", "digest": "b" * 64}
+        await self.store.cache_external_request_result(
+            player_id,
+            remote_task_id,
+            "organization_task",
+            "terminal",
+            {
+                "settlement": {"result": "SUCCESS"},
+                "closureReceipt": closure,
+            },
+        )
+
+        previous = {
+            "organization": {
+                "councils": [{
+                    "id": str(council_id),
+                    "stageId": "01",
+                    "memberId": "ZuoRu",
+                    "question": "Hold or advance?",
+                    "options": ["Hold", "Advance"],
+                    "index": 0,
+                    "text": "Hold",
+                }],
+                "tasks": [{
+                    "id": "local-order-1",
+                    "stageId": "01",
+                    "assigneeId": "ZuoRu",
+                    "remoteResult": remote_task_id,
+                    "closureReceipt": closure,
+                }]
+            }
+        }
+        submitted = {
+            "organization": {
+                "battleReports": [{
+                    "stageId": "01",
+                    "councils": [{"id": str(council_id), "memberId": "ZuoRu"}],
+                    "mandates": [{
+                        "id": mandate_id,
+                        "heroId": "ZuoRu",
+                        "digest": mandate_digest,
+                    }],
+                    "support": {"orders": [{
+                        "id": "local-order-1",
+                        "memberId": "ZuoRu",
+                    }]},
+                }]
+            }
+        }
+        attested = await _battle_support_attestations(
+            self.store,
+            player_id,
+            previous,
+            submitted,
+        )
+        self.assertEqual(attested["councils"], {str(council_id)})
+        self.assertEqual(attested["mandates"], {mandate_id})
+        self.assertEqual(attested["orders"], {"local-order-1"})
 
     async def test_explicit_redelivery_requeues_same_completed_game_event(self) -> None:
         payload = {"taskId": "stable-task", "topic": "stable-topic"}

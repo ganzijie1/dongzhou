@@ -81,7 +81,7 @@ global.fetch = async (url, options = {}) => {
         sealNextBattleSave = false;
         storedProfile.organization.battleReports[0].kernelReceipt = {
           digest: "b".repeat(64),
-          kernel: { state: "SEALED", moduleVersion: "1.3.0" }
+          kernel: { state: "SEALED", moduleVersion: "1.4.0" }
         };
       }
       response = { version: ++saveVersion, payload: storedProfile };

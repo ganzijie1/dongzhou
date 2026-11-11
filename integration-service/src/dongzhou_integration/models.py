@@ -182,6 +182,7 @@ class NpcDecisionOption(StrictModel):
 
 class NpcDecisionRequest(StrictModel):
     client_request_id: UUID = Field(strict=False)
+    stage_id: str | None = Field(default=None, min_length=1, max_length=64)
     question: str = Field(min_length=1, max_length=2000)
     options: list[NpcDecisionOption] = Field(min_length=2, max_length=8)
     topic: str = Field(default="court_decision", min_length=1, max_length=100)

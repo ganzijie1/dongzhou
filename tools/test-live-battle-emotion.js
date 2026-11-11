@@ -13,10 +13,10 @@ try {
 }
 
 const root = path.resolve(__dirname, '..');
-const evidencePath = path.join(root, 'output', 'integration-validation', 'live-battle-receipt-complete83.json');
-const screenshotPath = path.join(root, 'output', 'integration-validation', 'live-battle-receipt-complete83.png');
+const evidencePath = path.join(root, 'output', 'integration-validation', 'live-battle-receipt-complete85.json');
+const screenshotPath = path.join(root, 'output', 'integration-validation', 'live-battle-receipt-complete85.png');
 const installationId = randomUUID();
-const reportId = `battle:receipt-complete83:${Date.now()}`;
+const reportId = `battle:receipt-complete85:${Date.now()}`;
 const executablePath = [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
@@ -52,27 +52,38 @@ function sha256(value) {
       const profile = JSON.parse(localStorage.getItem(profileKey));
       if (!profile?.organization?.members?.length) throw new Error('organization_roster_unavailable');
       const hero = profile.organization.members[0];
+      const councilId = crypto.randomUUID();
+      const councilQuestion = 'How should the campaign be supported?';
+      const councilOptions = ['Hold formation', 'Advance'];
+      const councilResponse = await fetch(`/api/dongzhou/v1/npcs/${encodeURIComponent(hero.id)}/decisions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_request_id: councilId,
+          stage_id: '01',
+          question: councilQuestion,
+          options: councilOptions.map((text, index) => ({ index, text })),
+          topic: 'court_decision',
+        }),
+      });
+      if (!councilResponse.ok) throw new Error(`council_failed:${councilResponse.status}`);
+      const councilResult = await councilResponse.json();
+      const selected = councilResult.decision?.data || councilResult.decision;
+      if (selected?.type !== 'OPTION' || !Number.isInteger(selected.index)) throw new Error('council_decision_invalid');
       const council = {
-        id: `council:${reportId}`,
+        id: councilId,
         stageId: '01',
         memberId: hero.id,
         memberName: hero.name,
-        text: 'Hold formation and support the campaign.',
+        question: councilQuestion,
+        options: councilOptions,
+        index: selected.index,
+        text: councilOptions[selected.index],
       };
-      const orderId = `support:${reportId}`;
       profile.organization.councils = [...(profile.organization.councils || []), council];
-      profile.organization.tasks = [...(profile.organization.tasks || []), {
-        id: orderId,
-        stageId: '01',
-        assigneeId: hero.id,
-        assigneeName: hero.name,
-        name: 'Campaign support',
-        status: 'success',
-      }];
       profile.organization.pendingSupport = [...(profile.organization.pendingSupport || []), {
-        id: orderId,
+        id: `support:${reportId}`,
         stageId: '01',
-        memberId: hero.id,
         source: 'Campaign support',
         council,
       }];
@@ -100,7 +111,7 @@ function sha256(value) {
         sources: report.sources,
         councils: [council],
         mandates: [],
-        orders: [{ id: orderId, memberId: hero.id, source: 'Campaign support' }],
+        orders: [],
       };
       profile.organization = recorded.state;
       localStorage.setItem(profileKey, JSON.stringify(profile));
@@ -116,6 +127,10 @@ function sha256(value) {
         receipt: sealedReport.kernelReceipt,
       };
     }, { reportId });
+
+    assert.deepEqual(result.receipt.verifiedParticipants, [result.hero.id]);
+    assert.equal(result.receipt.verifiedSupport.councils.length, 1);
+    assert.deepEqual(result.receipt.rejectedSupport, []);
 
     const identityDigest = sha256(`${result.playerId}\n${result.reportId}\n${result.hero.id}`);
     const outcomeDigest = sha256(`${identityDigest}\nbattle-semantics-v3\n${result.receipt.digest}`);
