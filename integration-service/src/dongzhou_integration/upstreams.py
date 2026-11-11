@@ -332,7 +332,7 @@ class Upstreams:
         return await self._json("POST", f"{self.settings.ainpc_url}/ai/npc/register/batch", token=self.settings.ainpc_token, payload=payload)
 
     async def ensure_organization_supervision(
-        self, *, subordinate_npc_id: str, manager_npc_id: str, source_event_id: str,
+        self, *, subordinate_npc_id: str, manager_npc_id: str | None, source_event_id: str,
     ) -> dict[str, Any]:
         response = await self._json(
             "POST",

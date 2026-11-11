@@ -529,7 +529,7 @@ def _organization_roster_view(snapshot: Any, settings: Settings) -> dict[str, An
 
 def _organization_supervision_links(
     roster: dict[str, Any], mapped_npcs: list[dict[str, str]], organization_id: str,
-) -> list[dict[str, str]]:
+) -> list[dict[str, Any]]:
     npc_by_hero = {npc["heroId"]: npc["npcId"] for npc in mapped_npcs}
     links: list[dict[str, str]] = []
     for member in roster.get("members", []):
@@ -539,14 +539,14 @@ def _organization_supervision_links(
         manager_hero_id = str(member.get("directManagerHeroId") or "")
         subordinate_npc_id = npc_by_hero.get(hero_id)
         manager_npc_id = npc_by_hero.get(manager_hero_id)
-        if not subordinate_npc_id or not manager_npc_id or subordinate_npc_id == manager_npc_id:
+        if not subordinate_npc_id or (manager_npc_id is not None and subordinate_npc_id == manager_npc_id):
             continue
         links.append({
             "heroId": hero_id,
             "managerHeroId": manager_hero_id,
             "subordinateNpcId": subordinate_npc_id,
             "managerNpcId": manager_npc_id,
-            "sourceEventId": f"orgflow:{organization_id}:supervision:{hero_id}:{manager_hero_id}",
+            "sourceEventId": f"orgflow:{organization_id}:supervision:{hero_id}:{manager_hero_id or 'none'}",
         })
     return links
 
@@ -1523,7 +1523,12 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     for link in links
                 ))
                 relationship_sync = [
-                    {**link, "created": receipt["created"], "relationshipIds": receipt["relationshipIds"]}
+                    {
+                        **link,
+                        "created": receipt["created"],
+                        "deactivatedManagerNpcIds": receipt.get("deactivatedManagerNpcIds", []),
+                        "relationshipIds": receipt["relationshipIds"],
+                    }
                     for link, receipt in zip(links, receipts, strict=True)
                 ]
         except UpstreamUnavailable as error:

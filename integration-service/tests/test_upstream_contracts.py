@@ -387,7 +387,8 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                 return httpx.Response(200, json={"code": 200, "data": {"index": 0, "type": "OPTION"}})
             if request.url.path == "/api/v1/relationship/ensure-organization-supervision":
                 return httpx.Response(200, json={
-                    "code": 200, "created": True, "relationshipIds": ["relation-1"],
+                    "code": 200, "created": True, "deactivatedManagerNpcIds": [],
+                    "relationshipIds": ["relation-1"],
                 })
             return httpx.Response(200, json={"data": {"ok": True}})
 

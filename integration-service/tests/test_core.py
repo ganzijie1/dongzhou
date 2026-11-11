@@ -133,6 +133,12 @@ class OrganizationOutcomeTests(unittest.TestCase):
             "court-1",
         )
         self.assertEqual(links, [{
+            "heroId": "DuBo",
+            "managerHeroId": "",
+            "subordinateNpcId": "10",
+            "managerNpcId": None,
+            "sourceEventId": "orgflow:court-1:supervision:DuBo:none",
+        }, {
             "heroId": "ZuoRu",
             "managerHeroId": "DuBo",
             "subordinateNpcId": "20",
