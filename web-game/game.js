@@ -41,6 +41,7 @@
   let voiceManifest = { entries: [] };
   let musicManifest = { cues: [] };
   let runtime;
+  let npcInteractionPreferenceState = integration.isOffline() ? "offline" : "pending";
   let profile = readJson(PROFILE_KEY, { completed: [], lastStage: null });
   let stageRecord = null;
   let state = null;
@@ -206,9 +207,12 @@
       profile.organization = organization.normalizeState(profile.organization);
       if (!integration.isOffline()) {
         try {
-          await integration.setNpcInteractionPreference(profile.settings.aiNpcInteractionEnabled);
+          const preference = await integration.setNpcInteractionPreference(profile.settings.aiNpcInteractionEnabled);
+          if (preference.enabled !== profile.settings.aiNpcInteractionEnabled) throw new Error("NPC interaction preference was not applied");
+          npcInteractionPreferenceState = "synced";
         } catch (error) {
           if (!profile.settings.aiNpcInteractionEnabled) throw error;
+          npcInteractionPreferenceState = "deferred";
           console.warn("NPC interaction preference sync deferred", error);
         }
       }
@@ -3578,11 +3582,28 @@
     $("#mapDetailSetting").value = profile.settings.mapDetail;
     $("#telemetryToggle").checked = profile.settings.telemetryEnabled && profile.difficultyBandit.enabled;
     $("#npcInteractionToggle").checked = profile.settings.aiNpcInteractionEnabled;
+    renderNpcInteractionPreference();
     $("#feedbackToggle").checked = profile.settings.feedbackEnabled;
     $("#musicToggle").checked = profile.settings.musicEnabled;
     $("#musicVolume").value = Math.round(profile.settings.musicVolume * 100);
     $("#voiceToggle").checked = profile.settings.voiceEnabled;
     $("#voiceVolume").value = Math.round(profile.settings.voiceVolume * 100);
+  }
+
+  function renderNpcInteractionPreference() {
+    const status = $("#npcInteractionStatus");
+    if (!status) return;
+    const enabled = Boolean(profile.settings.aiNpcInteractionEnabled);
+    const labels = {
+      offline: "离线演算，不接收主动来信",
+      pending: "等待属官服务确认",
+      syncing: "正在同步属官服务",
+      deferred: "属官服务待恢复，稍后重试",
+      failed: `同步失败，仍保持${enabled ? "开启" : "关闭"}`,
+      synced: enabled ? "主动来信已开启" : "主动来信已关闭",
+    };
+    status.dataset.state = npcInteractionPreferenceState;
+    status.textContent = labels[npcInteractionPreferenceState] || labels.pending;
   }
 
   function exportTelemetry() {
@@ -3811,17 +3832,22 @@
       const input = event.currentTarget;
       const requested = input.checked;
       input.disabled = true;
+      npcInteractionPreferenceState = "syncing";
+      renderNpcInteractionPreference();
       try {
         const result = await integration.setNpcInteractionPreference(requested);
         if (result.enabled !== requested) throw new Error("NPC interaction preference was not applied");
         profile.settings.aiNpcInteractionEnabled = requested;
         writeJson(PROFILE_KEY, profile);
+        npcInteractionPreferenceState = "synced";
         showNotice(requested ? "已允许属官主动来信" : "已停止属官主动来信");
       } catch (error) {
         input.checked = profile.settings.aiNpcInteractionEnabled;
+        npcInteractionPreferenceState = "failed";
         showNotice(error.message);
       } finally {
         input.disabled = false;
+        renderNpcInteractionPreference();
       }
     });
     $("#feedbackToggle").addEventListener("change", (event) => {

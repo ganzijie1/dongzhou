@@ -1014,6 +1014,10 @@ button:focus-visible {
 .voice-volume-setting input { width: 76px; accent-color: #a37d3d; }
 .setting-toggle { height: 38px; display: flex; align-items: center; gap: 6px; padding: 0 9px; color: #aaa697; border: 1px solid var(--line); font-size: 10px; cursor: pointer; }
 .setting-toggle input { accent-color: #a37d3d; }
+.npc-interaction-control { display: grid; gap: 5px; }
+.npc-interaction-control small { color: #7f8179; font-size: 10px; }
+.npc-interaction-control small[data-state="synced"] { color: #9eaa83; }
+.npc-interaction-control small[data-state="failed"], .npc-interaction-control small[data-state="deferred"] { color: #c3936f; }
 .campaign-focus {
   position: relative; z-index: 2; isolation: isolate;
   width: min(1440px, 100%); min-height: 390px; margin: 0 auto;
