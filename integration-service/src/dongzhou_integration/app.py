@@ -605,6 +605,47 @@ def _organization_inventory_view(snapshot: Any, settings: Settings) -> dict[str,
     }
 
 
+def _organization_inventory_reward_view(
+    snapshot: Any,
+    settings: Settings,
+    *,
+    resource_key: str,
+    delta_units: int,
+) -> dict[str, Any]:
+    if not isinstance(snapshot, dict):
+        raise ValueError("inventory reward must be an object")
+    entry_id = str(snapshot.get("entry_id") or "")
+    organization_id = str(snapshot.get("organization_id") or "")
+    game_server_id = str(snapshot.get("game_server_id") or "")
+    balance_after = snapshot.get("balance_after")
+    account_version = snapshot.get("account_version_after")
+    inventory_revision = snapshot.get("inventory_revision_after")
+    try:
+        UUID(entry_id)
+    except ValueError as error:
+        raise ValueError("inventory reward entry id is invalid") from error
+    if (
+        organization_id != settings.orgflow_org_id
+        or game_server_id != str(settings.game_server_id)
+        or snapshot.get("resource_key") != resource_key
+        or snapshot.get("reason_code") != "TASK_SETTLEMENT_ACCEPTED"
+        or snapshot.get("delta_units") != delta_units
+        or any(
+            isinstance(value, bool) or not isinstance(value, int) or value < 1
+            for value in (balance_after, account_version, inventory_revision)
+        )
+    ):
+        raise ValueError("inventory reward does not match settlement")
+    return {
+        "entryId": entry_id,
+        "resourceKey": resource_key,
+        "delta": delta_units,
+        "balanceAfter": balance_after,
+        "accountVersion": account_version,
+        "inventoryRevision": inventory_revision,
+    }
+
+
 def _organization_supervision_links(
     roster: dict[str, Any], mapped_npcs: list[dict[str, str]], organization_id: str,
 ) -> list[dict[str, Any]]:
@@ -2520,6 +2561,48 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 f"{emergency.get('interruptTraceId') or 'none'}."
             )
             brief = brief.rstrip()[: max(0, 1000 - len(emergency_note))] + emergency_note
+        try:
+            roster_response = await upstreams.organization_roster(
+                settings.orgflow_org_id
+            )
+            roster = _organization_roster_view(
+                roster_response.get("data"), settings
+            )
+            hierarchy_version = roster["organization"]["hierarchyVersion"]
+        except UpstreamUnavailable as error:
+            response = {
+                "state": "RETRYABLE",
+                "requestId": str(request.client_request_id),
+            }
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "RETRYABLE",
+                response,
+                str(error),
+            )
+            raise ApiError(
+                "organization_roster_unavailable",
+                "The order is retained until the current organization hierarchy can be read.",
+                status_code=503,
+            ) from error
+        except (KeyError, TypeError, ValueError) as error:
+            response = {
+                "state": "FAILED",
+                "requestId": str(request.client_request_id),
+            }
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "FAILED",
+                response,
+                str(error),
+            )
+            raise ApiError(
+                "organization_roster_contract_invalid",
+                "Organization roster response is invalid.",
+                status_code=502,
+            ) from error
         trigger = {
             "source": "ORGANIZATION_EVENT",
             "source_event_id": stable_event_id(player_id, request.client_request_id),
@@ -2531,7 +2614,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 stable_npc_id(settings.ainpc_game_server_id, request.assignee_hero_id)
             ),
             "task_code": f"dongzhou.{request.task_type}",
-            "expected_hierarchy_version": settings.orgflow_hierarchy_version,
+            "expected_hierarchy_version": hierarchy_version,
             "parameters": {**effective_parameters, "stage_id": request.stage_id, "stage_title": request.stage_title, "assignee_hero_id": request.assignee_hero_id},
             "brief": brief,
         }
@@ -2707,6 +2790,55 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=409,
             )
         result = mandate_workflow.resume_settlement_review(review, request.decision)
+        reward_units = settlement["organizationDelta"] if request.decision == "ACCEPT" else 0
+        if reward_units > 0:
+            resource_key = "task.execution"
+            idempotency_key = f"dongzhou-settlement-reward:{settlement['settlementId']}"
+            try:
+                reward_response = await upstreams.adjust_organization_inventory(
+                    settings.orgflow_org_id,
+                    {
+                        "resource_key": resource_key,
+                        "delta_units": reward_units,
+                        "reason_code": "TASK_SETTLEMENT_ACCEPTED",
+                    },
+                    idempotency_key=idempotency_key,
+                )
+                reward = _organization_inventory_reward_view(
+                    reward_response.get("data") if isinstance(reward_response, dict) else None,
+                    settings,
+                    resource_key=resource_key,
+                    delta_units=reward_units,
+                )
+            except UpstreamUnavailable as error:
+                await store.finish_request(
+                    player_id,
+                    review_id,
+                    "RETRYABLE",
+                    {"state": "RETRYABLE"},
+                    error="organization_inventory_unavailable",
+                    external_id=task_key,
+                )
+                raise ApiError(
+                    "organization_inventory_unavailable",
+                    "The organization reward ledger is temporarily unavailable.",
+                    status_code=503,
+                ) from error
+            except (AttributeError, TypeError, ValueError) as error:
+                await store.finish_request(
+                    player_id,
+                    review_id,
+                    "RETRYABLE",
+                    {"state": "RETRYABLE"},
+                    error="organization_inventory_contract_invalid",
+                    external_id=task_key,
+                )
+                raise ApiError(
+                    "organization_inventory_contract_invalid",
+                    "The organization reward ledger returned an invalid receipt.",
+                    status_code=502,
+                ) from error
+            result["inventoryReward"] = reward
         await store.finish_request(
             player_id,
             review_id,

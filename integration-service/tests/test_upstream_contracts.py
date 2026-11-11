@@ -499,6 +499,15 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
             await upstreams.get_virtual_task("org-id", "task-id")
             await upstreams.organization_roster("org-id")
             await upstreams.organization_inventory("org-id")
+            await upstreams.adjust_organization_inventory(
+                "org-id",
+                {
+                    "resource_key": "task.execution",
+                    "delta_units": 100,
+                    "reason_code": "TASK_SETTLEMENT_ACCEPTED",
+                },
+                idempotency_key="dongzhou-settlement-reward:settlement-1",
+            )
             relationship = await upstreams.ensure_organization_supervision(
                 subordinate_npc_id="42",
                 manager_npc_id="43",
@@ -556,6 +565,19 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("/internal/v1/organization-administration/organizations/org-id/virtual-tasks/task-id", paths)
         self.assertIn("/internal/v1/organization-administration/organizations/org-id/roster", paths)
         self.assertIn("/internal/v1/organization-administration/organizations/org-id/inventory", paths)
+        adjustment_request = next(
+            request for request in seen
+            if request.url.path.endswith("/inventory-adjustments")
+        )
+        self.assertEqual(
+            adjustment_request.headers.get("idempotency-key"),
+            "dongzhou-settlement-reward:settlement-1",
+        )
+        self.assertEqual(json.loads(adjustment_request.content), {
+            "resource_key": "task.execution",
+            "delta_units": 100,
+            "reason_code": "TASK_SETTLEMENT_ACCEPTED",
+        })
         self.assertIn("/ai/npc/register/batch", paths)
         self.assertIn("/callback/npc-lifecycle/online_state", paths)
         self.assertIn("/api/v1/npc-lifecycle/relogin", paths)

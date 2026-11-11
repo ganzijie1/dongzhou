@@ -21,6 +21,7 @@ class MandateUpstreams:
     def __init__(self) -> None:
         self.triggers: list[dict[str, object]] = []
         self.events: list[tuple[str, dict[str, object]]] = []
+        self.inventory_adjustments: list[tuple[str, dict[str, object], str]] = []
         self.knowledge_available = True
         self.assignment_available = True
         self.task_snapshot: dict[str, object] | None = None
@@ -165,6 +166,20 @@ class MandateUpstreams:
         self.triggers.append(payload)
         return {"data": {"task_id": "00000000-0000-0000-0000-000000000099"}}
 
+    async def organization_roster(self, organization_id):
+        return {
+            "data": {
+                "organization_id": organization_id,
+                "game_server_id": "91001",
+                "name": "Dongzhou Court",
+                "state": "ACTIVE",
+                "hierarchy_version": 8,
+                "growth_contribution_points": 0,
+                "positions": [],
+                "members": [],
+            }
+        }
+
     async def get_virtual_task(self, organization_id, task_id):
         if self.task_snapshot is not None:
             return {"data": self.task_snapshot}
@@ -177,6 +192,26 @@ class MandateUpstreams:
                 "contribution_eligible": True,
                 "responsible_member_id": "00000000-0000-0000-0000-000000000004",
                 "version": "2",
+            }
+        }
+
+    async def adjust_organization_inventory(
+        self, organization_id, payload, *, idempotency_key
+    ):
+        self.inventory_adjustments.append(
+            (organization_id, dict(payload), idempotency_key)
+        )
+        return {
+            "data": {
+                "entry_id": "00000000-0000-4000-8000-000000000088",
+                "organization_id": organization_id,
+                "game_server_id": "91001",
+                "resource_key": payload["resource_key"],
+                "reason_code": payload["reason_code"],
+                "delta_units": payload["delta_units"],
+                "balance_after": payload["delta_units"],
+                "account_version_after": 1,
+                "inventory_revision_after": 1,
             }
         }
 
@@ -511,6 +546,7 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
             accepted = client.post("/api/dongzhou/v1/organization/tasks", json=order)
             assert accepted.status_code == 200
             assert accepted.json()["state"] == "ACCEPTED"
+            assert upstreams.triggers[0]["expected_hierarchy_version"] == 8
             assert "mandate_id" not in upstreams.triggers[0]["parameters"]
             assert "mandate_digest" not in upstreams.triggers[0]["parameters"]
             assert "Readiness 60/100 (watch)." in upstreams.triggers[0]["brief"]
@@ -690,12 +726,30 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert accepted.json()["state"] == "ACCEPTED"
             assert accepted.json()["review"]["decision"] == "ACCEPT"
             assert len(accepted.json()["review"]["digest"]) == 64
+            assert accepted.json()["inventoryReward"] == {
+                "entryId": "00000000-0000-4000-8000-000000000088",
+                "resourceKey": "task.execution",
+                "delta": 100,
+                "balanceAfter": 100,
+                "accountVersion": 1,
+                "inventoryRevision": 1,
+            }
+            assert upstreams.inventory_adjustments == [(
+                "00000000-0000-0000-0000-000000000001",
+                {
+                    "resource_key": "task.execution",
+                    "delta_units": 100,
+                    "reason_code": "TASK_SETTLEMENT_ACCEPTED",
+                },
+                f"dongzhou-settlement-reward:{settlement_id}",
+            )]
             replay = client.post(
                 f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
                 json={"action_id": review["action"]["actionId"], "decision": "ACCEPT"},
             )
             assert replay.status_code == 200
             assert replay.json()["replayed"] is True
+            assert len(upstreams.inventory_adjustments) == 1
             conflict = client.post(
                 f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
                 json={"action_id": review["action"]["actionId"], "decision": "CENSURE"},

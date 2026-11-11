@@ -1776,7 +1776,12 @@
       const response = await integration.reviewOrganizationTask(task.remoteResult, { action_id: task.pendingReview.action.actionId, decision });
       const recorded = organization.recordTaskReview(profile.organization, { taskId: task.remoteResult, review: response });
       await commitOrganizationState(recorded.state);
-      showNotice(decision === "ACCEPT" ? "复命已收纳，推进月令后发放战前助益。" : "复命已申斥，簿书功过照录但不发放战前助益。");
+      if (response.inventoryReward) await refreshOfficeInventory();
+      showNotice(decision === "ACCEPT"
+        ? response.inventoryReward
+          ? `复命已收纳，公共库藏差事额度 +${Number(response.inventoryReward.delta || 0)}，推进月令后发放战前助益。`
+          : "复命已收纳，推进月令后发放战前助益。"
+        : "复命已申斥，簿书功过照录但不发放战前助益。");
     } catch (error) {
       showNotice(error.message);
     } finally {

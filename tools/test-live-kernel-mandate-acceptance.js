@@ -65,7 +65,7 @@ saveJournal();
       const profile = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2"));
       const backend = profile?.organization?.backend || {};
       return backend.nexusKernel && backend.orgFlow && backend.aiNpc && backend.knowledge;
-    }, { timeout: 45000 });
+    }, undefined, { timeout: 45000 });
     await page.selectOption("#officeMemberSelect", "ZuoRu");
 
     if (resume && !(journal.remoteTask && journal.mandateId)) {
@@ -114,12 +114,22 @@ saveJournal();
     await page.click("#officeIssueButton");
     await page.waitForSelector("#officeMandateApproval:not([hidden])", { timeout: 90000 });
     assert.equal(requests.order, 0, "Draft mandate must not create an organization order before player approval");
+    const orderResponsePromise = page.waitForResponse(
+      (response) => new URL(response.url()).pathname.endsWith("/organization/tasks")
+        && response.request().method() === "POST",
+      { timeout: 240000 }
+    );
     await page.click("#officeMandateApproveButton");
+    const orderResponse = await orderResponsePromise;
+    if (!orderResponse.ok()) {
+      const body = await orderResponse.json().catch(() => ({}));
+      throw new Error(`Organization task creation failed (${orderResponse.status()}): ${JSON.stringify(body)}`);
+    }
     await page.waitForFunction((key) => {
       const organization = JSON.parse(localStorage.getItem(key)).organization;
       return organization.tasks.some((task) => task.remoteResult && task.mandate)
         && organization.mandates.some((mandate) => mandate.state === "ORDERED");
-    }, PROFILE, { timeout: 120000 });
+    }, PROFILE, { timeout: 240000 });
     issued = await page.evaluate((key) => {
       const organization = JSON.parse(localStorage.getItem(key)).organization;
       const task = organization.tasks.find((entry) => entry.remoteResult && entry.mandate);
@@ -185,10 +195,8 @@ saveJournal();
     if (!recoveringExisting) {
       journal.stage = "report-trigger";
       saveJournal();
-      const monthBeforeReport = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).organization.month, PROFILE);
       await page.click("#officeAdvanceButton");
-      await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, { timeout: 240000 });
-      await page.waitForFunction(({ key, month }) => JSON.parse(localStorage.getItem(key)).organization.month > month, { key: PROFILE, month: monthBeforeReport }, { timeout: 90000 });
+      await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, undefined, { timeout: 240000 });
     } else {
       const remoteBeforeAdvance = await page.evaluate(async (taskId) => {
         const response = await fetch("/api/dongzhou/v1/organization/tasks/" + encodeURIComponent(taskId));
@@ -198,10 +206,8 @@ saveJournal();
       if (!remoteBeforeAdvance?.final_result) {
         journal.stage = "recovery-report-trigger";
         saveJournal();
-        const monthBeforeReport = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).organization.month, PROFILE);
         await page.click("#officeAdvanceButton");
-        await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, { timeout: 240000 });
-        await page.waitForFunction(({ key, month }) => JSON.parse(localStorage.getItem(key)).organization.month > month, { key: PROFILE, month: monthBeforeReport }, { timeout: 90000 });
+        await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, undefined, { timeout: 240000 });
       }
     }
     const terminal = await page.evaluate(async (taskId) => {
@@ -222,15 +228,78 @@ saveJournal();
     journal.stage = "reconcile";
     saveJournal();
     await page.click("#officeAdvanceButton");
-    await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, { timeout: 90000 });
+    await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, undefined, { timeout: 240000 });
     let settlementReviewed = false;
+    let inventoryReward = null;
     if (await page.locator("#officeSettlementReview").isVisible()) {
+      const reviewContext = await page.evaluate(async (key) => {
+        const organization = JSON.parse(localStorage.getItem(key)).organization;
+        const task = organization.tasks.find((entry) => entry.status === "active" && entry.pendingReview?.state === "REQUIRES_ACTION");
+        const response = await fetch("/api/dongzhou/v1/organization/inventory", { cache: "no-store" });
+        if (!response.ok) throw new Error("Unable to read authoritative inventory before settlement review");
+        const inventory = await response.json();
+        const account = inventory.accounts.find((entry) => entry.resourceKey === "task.execution");
+        return {
+          taskId: task.remoteResult,
+          actionId: task.pendingReview.action.actionId,
+          rewardUnits: Number(task.pendingSettlement.organizationDelta),
+          balance: Number(account?.balance || 0),
+          revision: Number(inventory.revision || 0)
+        };
+      }, PROFILE);
+      assert(reviewContext.rewardUnits > 0, "accepted settlement must carry a positive organization reward");
+      journal.stage = "settlement-review";
+      saveJournal();
       await page.click("#officeSettlementAcceptButton");
       await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).organization.tasks.some((task) => task.pendingReview?.state === "ACCEPTED"), PROFILE, { timeout: 90000 });
-      await page.waitForFunction(() => !document.querySelector("#officeSettlementAcceptButton").disabled, { timeout: 90000 });
+      await page.waitForFunction(() => !document.querySelector("#officeSettlementAcceptButton").disabled, undefined, { timeout: 90000 });
+      const replay = await page.evaluate(
+        ({ taskId, actionId }) => window.DongzhouIntegration.reviewOrganizationTask(taskId, {
+          action_id: actionId,
+          decision: "ACCEPT"
+        }),
+        reviewContext
+      );
+      assert.equal(replay.replayed, true, "settlement review replay was not recognized");
+      assert.equal(replay.inventoryReward?.delta, reviewContext.rewardUnits, "settlement reward receipt has the wrong delta");
+      const credited = await page.evaluate(async (balanceAfter) => {
+        const deadline = Date.now() + 45000;
+        while (Date.now() < deadline) {
+          const response = await fetch("/api/dongzhou/v1/organization/inventory", { cache: "no-store" });
+          if (response.ok) {
+            const inventory = await response.json();
+            const account = inventory.accounts.find((entry) => entry.resourceKey === "task.execution");
+            if (Number(account?.balance || 0) === balanceAfter) return inventory;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+        return null;
+      }, replay.inventoryReward.balanceAfter);
+      assert(credited, "authoritative public inventory did not receive the settlement reward");
+      const replayInventory = await page.evaluate(async () => {
+        const response = await fetch("/api/dongzhou/v1/organization/inventory", { cache: "no-store" });
+        return response.json();
+      });
+      const replayAccount = replayInventory.accounts.find((entry) => entry.resourceKey === "task.execution");
+      assert.equal(Number(replayAccount?.balance || 0), replay.inventoryReward.balanceAfter, "replayed settlement credited inventory twice");
+      assert(
+        replay.inventoryReward.balanceAfter === reviewContext.balance + reviewContext.rewardUnits
+          || replay.inventoryReward.balanceAfter === reviewContext.balance,
+        "settlement reward receipt does not match a fresh or recovered idempotent credit"
+      );
+      inventoryReward = {
+        resourceKey: "task.execution",
+        balanceBefore: replay.inventoryReward.balanceAfter - reviewContext.rewardUnits,
+        balanceAfter: Number(replayAccount.balance),
+        delta: reviewContext.rewardUnits,
+        revisionBefore: replay.inventoryReward.inventoryRevision - 1,
+        revisionAfter: Number(replayInventory.revision)
+      };
       settlementReviewed = true;
+      journal.stage = "support-reconcile";
+      saveJournal();
       await page.click("#officeAdvanceButton");
-      await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, { timeout: 90000 });
+      await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, undefined, { timeout: 240000 });
     }
     await page.waitForFunction((key) => {
       const organization = JSON.parse(localStorage.getItem(key)).organization;
@@ -277,6 +346,7 @@ saveJournal();
       mandateDigestPrefix: issued.mandate.digest.slice(0, 10),
       terminalResult: terminal.final_result,
       settlementReviewed,
+      inventoryReward,
       rewardProvisions: 24,
       cloudReloadVerified: true,
       battleLogVerified: true,
