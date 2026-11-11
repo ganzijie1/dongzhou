@@ -147,6 +147,44 @@ assert.strictEqual(state.settlements.at(-1).settlementId, authoritativeSettlemen
 assert.deepStrictEqual(state.settlementIds, [authoritativeSettlement.settlementId]);
 assert.strictEqual(state.tasks.at(-1).closureReceipt.digest, "c".repeat(64));
 
+const failedParent = play.createTask(state, { type: "patrol", assigneeId: "ZuoRu", stageId: "01", stageTitle: "Dongzhou stage 01" });
+failedParent.task.remoteResult = "00000000-0000-0000-0000-000000000050";
+const remediationId = "00000000-0000-0000-0000-000000000051";
+const remediated = play.reconcileRemoteTasks(failedParent.state, [{
+  task_id: failedParent.task.remoteResult,
+  state: "FAILED",
+  final_result: "FAILURE",
+  version: "4",
+  followUps: [{
+    intentId: "00000000-0000-0000-0000-000000000052",
+    taskId: remediationId,
+    state: "CREATED",
+    source: "REMEDIATION",
+    taskType: "patrol",
+    ruleId: "dongzhou_patrol_failure_remediation",
+    stageId: "01",
+    stageTitle: "Dongzhou stage 01",
+    assigneeHeroId: "ZuoRu"
+  }]
+}], { advanceMonth: false });
+const remediation = remediated.tasks.find((task) => task.remoteResult === remediationId);
+assert.strictEqual(remediated.tasks.find((task) => task.remoteResult === failedParent.task.remoteResult).status, "failed");
+assert.strictEqual(remediation.status, "active");
+assert.strictEqual(remediation.cost, 0);
+assert.strictEqual(remediation.derivation.predecessorTaskId, failedParent.task.remoteResult);
+assert.match(remediation.name, /补救/);
+assert.strictEqual(play.remoteTaskReadyForAdvance({ final_result: "FAILURE", followUps: [{ state: "PENDING" }] }), false);
+remediated.members.push({ id: "QinXiangGong", name: "秦襄公", office: "司马", loyalty: 68, fatigue: 0, merit: 0 });
+const reassignedRemediation = play.reconcileRemoteTasks(remediated, [{
+  task_id: remediationId,
+  state: "IN_PROGRESS",
+  final_result: null,
+  version: "5",
+  assigneeHeroId: "QinXiangGong"
+}], { advanceMonth: false });
+assert.strictEqual(reassignedRemediation.tasks.find((task) => task.remoteResult === remediationId).assigneeId, "QinXiangGong");
+assert.strictEqual(reassignedRemediation.tasks.find((task) => task.remoteResult === remediationId).assigneeName, "秦襄公");
+
 const requisitionReceipt = {
   state: "COMPLETED",
   requestId: "00000000-0000-4000-8000-000000000040",

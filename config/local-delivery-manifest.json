@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "containers": {
     "dongzhou-integration-gateway-1": {
-      "image": "dongzhou-integration:20261112-local-complete85",
+      "image": "dongzhou-integration:20261112-local-complete86",
       "healthRequired": true
     },
     "ainpc-v2-global-dev": {
@@ -38,11 +38,11 @@
       "healthRequired": true
     },
     "org-flow-engine-dev-api-1": {
-      "image": "org-flow-engine:dongzhou-local-complete27",
+      "image": "org-flow-engine:dongzhou-local-complete86",
       "healthRequired": true
     },
     "org-flow-engine-dev-worker-1": {
-      "image": "org-flow-engine:dongzhou-local-complete27",
+      "image": "org-flow-engine:dongzhou-local-complete86",
       "healthRequired": false
     }
   },

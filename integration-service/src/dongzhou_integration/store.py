@@ -8,7 +8,7 @@ from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 import sqlite3
 from typing import Any, Iterator
-from uuid import UUID, uuid4
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 
 class VersionConflict(RuntimeError):
@@ -1071,6 +1071,63 @@ class Store:
                         str(player_id),
                         external_id,
                         kind,
+                    ),
+                )
+        return True
+
+    async def register_derived_external_request(
+        self,
+        player_id: UUID,
+        external_id: str,
+        kind: str,
+        payload: dict[str, Any],
+    ) -> bool:
+        request_id = uuid5(
+            NAMESPACE_URL,
+            f"dongzhou-derived-request:{player_id}:{kind}:{external_id}",
+        )
+        encoded = json.dumps(
+            payload,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        response = json.dumps(
+            {"state": "ACCEPTED", "taskId": external_id, "derived": True},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        async with self._lock:
+            with self._connection() as db:
+                row = db.execute(
+                    "SELECT request_payload,external_id FROM requests "
+                    "WHERE player_id=? AND request_id=? AND kind=?",
+                    (str(player_id), str(request_id), kind),
+                ).fetchone()
+                if row is not None:
+                    if row["request_payload"] != encoded or row["external_id"] != external_id:
+                        raise VersionConflict("derived_request_conflict")
+                    return False
+                owner = db.execute(
+                    "SELECT player_id,request_payload FROM requests "
+                    "WHERE external_id=? AND kind=?",
+                    (external_id, kind),
+                ).fetchone()
+                if owner is not None:
+                    if owner["player_id"] != str(player_id) or owner["request_payload"] != encoded:
+                        raise VersionConflict("derived_request_owner_conflict")
+                    return False
+                db.execute(
+                    "INSERT INTO requests(player_id,request_id,kind,state,request_payload,"
+                    "response_payload,external_id,attempts) VALUES (?,?,?,?,?,?,?,1)",
+                    (
+                        str(player_id),
+                        str(request_id),
+                        kind,
+                        "ACCEPTED",
+                        encoded,
+                        response,
+                        external_id,
                     ),
                 )
         return True

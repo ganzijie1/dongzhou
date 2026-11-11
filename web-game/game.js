@@ -942,6 +942,7 @@
       setCampaignCamp(false);
       setCampaignSettings(false);
       renderOrganizationPanel();
+      refreshOfficeTaskSnapshots().catch((error) => showNotice(`官署簿书暂不可达：${error.message}`));
       syncOfficeNpcs(profile.organization.members).then(() => warmCurrentOfficeNpcSchedules()).catch(() => {});
       refreshOfficeNpcState();
       requestAnimationFrame(() => $("#campaignOfficeCloseButton").focus());
@@ -2225,13 +2226,24 @@
   function organizationTaskSnapshot(response) {
     const snapshot = response.result?.data || response.result || null;
     return snapshot && typeof snapshot === "object"
-      ? { ...snapshot, settlement: response.settlement || null, closureReceipt: response.closureReceipt || null, npcOutcome: response.npcOutcome || null, review: response.review || null }
+      ? { ...snapshot, assigneeHeroId: response.assigneeHeroId || null, settlement: response.settlement || null, closureReceipt: response.closureReceipt || null, npcOutcome: response.npcOutcome || null, review: response.review || null, followUps: Array.isArray(response.followUps) ? response.followUps : [] }
       : snapshot;
   }
 
   async function readOrganizationTaskSnapshots(tasks) {
     const responses = await Promise.all(tasks.map((task) => integration.organizationTask(task.remoteResult)));
     return responses.map(organizationTaskSnapshot);
+  }
+
+  let officeTaskRefreshSerial = 0;
+
+  async function refreshOfficeTaskSnapshots() {
+    const serial = ++officeTaskRefreshSerial;
+    const tasks = profile.organization.tasks.filter((task) => task.status === "active" && task.remoteResult);
+    if (!tasks.length || integration.isOffline() || !profile.organization.backend.orgFlow) return;
+    const snapshots = await readOrganizationTaskSnapshots(tasks);
+    if (serial !== officeTaskRefreshSerial) return;
+    await commitOrganizationState(organization.reconcileRemoteTasks(profile.organization, snapshots, { advanceMonth: false }));
   }
 
   async function waitForOrganizationTasksToStart(tasks, initialSnapshots) {

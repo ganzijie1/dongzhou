@@ -223,6 +223,7 @@ class MandateUpstreams:
                 "final_result": None,
                 "contribution_eligible": True,
                 "responsible_member_id": "00000000-0000-0000-0000-000000000004",
+                "position_slot_id": "00000000-0000-0000-0000-000000000003",
                 "version": "2",
             }
         }
@@ -268,6 +269,7 @@ def configured(path: Path) -> Settings:
         orgflow_hero_members={
             "DuBo": "00000000-0000-0000-0000-000000000002",
             "ZuoRu": "00000000-0000-0000-0000-000000000004",
+            "QinXiangGong": "00000000-0000-0000-0000-000000000006",
         },
         orgflow_hierarchy_version=7,
         game_server_id="91001",
@@ -883,7 +885,7 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert review["state"] == "REQUIRES_ACTION"
             assert review["review"]["settlementId"] == settlement_id
             assert review["review"]["closureDigest"] == closure["digest"]
-            assert review["review"]["kernel"]["moduleVersion"] == "1.4.0"
+            assert review["review"]["kernel"]["moduleVersion"] == "1.5.0"
             wrong_action = client.post(
                 f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
                 json={"action_id": str(uuid4()), "decision": "ACCEPT"},
@@ -936,6 +938,135 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             )
             assert invalid.status_code == 502
             assert invalid.json()["error"]["code"] == "organization_settlement_invalid"
+
+
+def test_failure_task_registers_authoritative_remediation() -> None:
+    with TemporaryDirectory() as directory:
+        upstreams = MandateUpstreams()
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=upstreams
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            council_id, _ = complete_council(client)
+            draft = client.post(
+                "/api/dongzhou/v1/court/mandates",
+                json=mandate_body(council_id),
+            )
+            issued = approve_mandate(client, draft)
+            schedule_mandate(client, issued)
+            order = {
+                "client_request_id": str(uuid4()),
+                "task_type": "drill",
+                "assignee_hero_id": "ZuoRu",
+                "stage_id": "01",
+                "stage_title": "Dongzhou stage 01",
+                "brief": "Execute the sealed court mandate.",
+                "parameters": {
+                    "resource_units": 6,
+                    "assignee_name": "Zuo Ru",
+                    "mandate_id": issued["id"],
+                    "mandate_digest": issued["digest"],
+                },
+            }
+            task_id = client.post(
+                "/api/dongzhou/v1/organization/tasks", json=order
+            ).json()["taskId"]
+            derived_task_id = str(uuid4())
+            intent_id = str(uuid4())
+            settlement_id = str(uuid4())
+            upstreams.task_snapshot = {
+                "task_id": task_id,
+                "organization_id": "00000000-0000-0000-0000-000000000001",
+                "state": "FAILED",
+                "final_result": "FAILURE",
+                "contribution_eligible": True,
+                "responsible_member_id": "00000000-0000-0000-0000-000000000004",
+                "position_slot_id": "00000000-0000-0000-0000-000000000003",
+                "version": "4",
+                "settlement": {
+                    "settlement_id": settlement_id,
+                    "task_id": task_id,
+                    "organization_id": "00000000-0000-0000-0000-000000000001",
+                    "member_id": "00000000-0000-0000-0000-000000000004",
+                    "result": "FAILURE",
+                    "organization_delta": "0",
+                    "member_delta": "0",
+                    "source": "NPC_CONFIRMATION",
+                    "source_event_id": "dongzhou-remediation-result",
+                    "settled_game_time": "24306616800",
+                    "settled_clock_epoch": "dongzhou-v1",
+                    "settled_at": "2026-11-12T00:00:00Z",
+                },
+                "derivations": [{
+                    "intent_id": intent_id,
+                    "predecessor_task_id": task_id,
+                    "root_task_id": task_id,
+                    "planned_task_id": derived_task_id,
+                    "created_task_id": derived_task_id,
+                    "rule_id": "dongzhou_drill_failure_remediation",
+                    "source": "REMEDIATION",
+                    "target_task_code": "dongzhou.supply",
+                    "target_position_selector": "SAME_POSITION",
+                    "target_position_slot_id": "00000000-0000-0000-0000-000000000003",
+                    "parameter_strategy": "TARGET_DEFAULTS",
+                    "target_default_parameters": {
+                        "assignee_hero_id": "unassigned",
+                        "assignee_name": "Unassigned",
+                        "resource_units": 0,
+                        "stage_id": "unknown",
+                        "stage_title": "Unknown stage",
+                    },
+                    "generation_depth": 1,
+                    "trigger_result": "FAILURE",
+                    "state": "CREATED",
+                }],
+            }
+            response = client.get(
+                f"/api/dongzhou/v1/organization/tasks/{task_id}"
+            )
+            assert response.status_code == 200
+            assert response.json()["followUps"] == [{
+                "intentId": intent_id,
+                "taskId": derived_task_id,
+                "state": "CREATED",
+                "source": "REMEDIATION",
+                "taskType": "supply",
+                "ruleId": "dongzhou_drill_failure_remediation",
+                "stageId": "01",
+                "stageTitle": "Dongzhou stage 01",
+                "assigneeHeroId": "ZuoRu",
+            }]
+            upstreams.task_snapshot = {
+                "task_id": derived_task_id,
+                "organization_id": "00000000-0000-0000-0000-000000000001",
+                "state": "FAILED",
+                "final_result": "FAILURE",
+                "contribution_eligible": True,
+                "responsible_member_id": "00000000-0000-0000-0000-000000000006",
+                "version": "1",
+                "derivations": [],
+                "settlement": {
+                    "settlement_id": str(uuid4()),
+                    "task_id": derived_task_id,
+                    "organization_id": "00000000-0000-0000-0000-000000000001",
+                    "member_id": "00000000-0000-0000-0000-000000000006",
+                    "result": "FAILURE",
+                    "organization_delta": "0",
+                    "member_delta": "0",
+                    "source": "NPC_CONFIRMATION",
+                    "source_event_id": "dongzhou-remediation-child-result",
+                    "settled_game_time": "24306616800",
+                    "settled_clock_epoch": "dongzhou-v1",
+                    "settled_at": "2026-11-12T00:01:00Z",
+                },
+            }
+            child = client.get(
+                f"/api/dongzhou/v1/organization/tasks/{derived_task_id}"
+            )
+            assert child.status_code == 200
+            assert child.json()["taskId"] == derived_task_id
+            assert child.json()["assigneeHeroId"] == "QinXiangGong"
 
 
 def test_diplomacy_operation_is_sealed_and_drives_orgflow_brief() -> None:

@@ -1564,6 +1564,33 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
             record["response"]["terminal"]["settlement"]["result"],
             "SUCCESS",
         )
+        derived_id = "00000000-0000-4000-8000-000000000099"
+        derived_payload = {
+            "task_type": "supply",
+            "derived_from_task_id": "task-1",
+        }
+        self.assertTrue(
+            await self.store.register_derived_external_request(
+                player_id,
+                derived_id,
+                "organization_task",
+                derived_payload,
+            )
+        )
+        self.assertFalse(
+            await self.store.register_derived_external_request(
+                player_id,
+                derived_id,
+                "organization_task",
+                derived_payload,
+            )
+        )
+        self.assertEqual(
+            await self.store.read_external_request(
+                player_id, derived_id, "organization_task"
+            ),
+            derived_payload,
+        )
         with self.assertRaises(VersionConflict):
             await self.store.begin_request(player_id, request_id, "organization_task", {"type": "drill"})
 

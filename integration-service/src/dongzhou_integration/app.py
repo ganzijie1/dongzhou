@@ -186,7 +186,7 @@ class RuntimeModule(Module):
 
 class MandateWorkflowModule(Module):
     name = "dongzhou_mandate_workflow"
-    version = "1.4.0"
+    version = "1.5.0"
     dependencies = (RuntimeModule.name,)
 
     @staticmethod
@@ -888,6 +888,108 @@ def _closure_receipt(
         "digest": digest,
         "state": "SEALED",
     }
+
+
+def _derived_follow_ups(
+    task_id: str,
+    original: dict[str, Any],
+    snapshot: dict[str, Any],
+) -> list[dict[str, Any]]:
+    derivations = snapshot.get("derivations")
+    if derivations is None:
+        return []
+    if not isinstance(derivations, list) or len(derivations) > 8:
+        raise ValueError("organization_derivations_invalid")
+    final_result = str(snapshot.get("final_result") or "")
+    expected_source = {
+        "SUCCESS": "FOLLOW_UP",
+        "PARTIAL": "FOLLOW_UP",
+        "FAILURE": "REMEDIATION",
+    }.get(final_result)
+    source_task_type = str(original.get("task_type") or "")
+    follow_up_targets = {
+        "diplomacy": "intelligence",
+        "drill": "supply",
+        "intelligence": "patrol",
+        "patrol": "drill",
+        "supply": "patrol",
+    }
+    success_targets = {
+        "diplomacy": "supply",
+        "drill": "patrol",
+        "intelligence": "diplomacy",
+        "patrol": "intelligence",
+        "supply": "patrol",
+    }
+    if source_task_type not in follow_up_targets:
+        raise ValueError("organization_derivation_source_invalid")
+    expected_target = (
+        success_targets[source_task_type]
+        if final_result == "SUCCESS"
+        else follow_up_targets[source_task_type]
+    )
+    expected_rule_suffix = {
+        "SUCCESS": "success_follow_up",
+        "PARTIAL": "partial_follow_up",
+        "FAILURE": "failure_remediation",
+    }.get(final_result)
+    expected_defaults = {
+        "assignee_hero_id": "unassigned",
+        "assignee_name": "Unassigned",
+        "resource_units": 0,
+        "stage_id": "unknown",
+        "stage_title": "Unknown stage",
+    }
+    follow_ups: list[dict[str, Any]] = []
+    for derivation in derivations:
+        if not isinstance(derivation, dict):
+            raise ValueError("organization_derivation_invalid")
+        if str(derivation.get("predecessor_task_id") or "") != task_id:
+            continue
+        if (
+            expected_source is None
+            or derivation.get("state") not in {"PENDING", "CREATED", "SKIPPED"}
+            or str(derivation.get("root_task_id") or "") != task_id
+            or derivation.get("generation_depth") != 1
+            or derivation.get("trigger_result") != final_result
+            or derivation.get("source") != expected_source
+            or derivation.get("target_position_selector") != "SAME_POSITION"
+            or derivation.get("parameter_strategy") != "TARGET_DEFAULTS"
+            or derivation.get("target_position_slot_id") != snapshot.get("position_slot_id")
+            or derivation.get("target_default_parameters") != expected_defaults
+        ):
+            raise ValueError("organization_derivation_invalid")
+        target_code = str(derivation.get("target_task_code") or "")
+        task_type = target_code.removeprefix("dongzhou.")
+        expected_rule = f"dongzhou_{source_task_type}_{expected_rule_suffix}"
+        if task_type != expected_target or derivation.get("rule_id") != expected_rule:
+            raise ValueError("organization_derivation_target_invalid")
+        state = str(derivation["state"])
+        intent_id = str(derivation.get("intent_id") or "")
+        planned_task_id = str(derivation.get("planned_task_id") or "")
+        created_task_id = str(derivation.get("created_task_id") or "")
+        UUID(intent_id)
+        UUID(planned_task_id)
+        if state == "CREATED":
+            if created_task_id != planned_task_id:
+                raise ValueError("organization_derivation_task_invalid")
+            UUID(created_task_id)
+        elif created_task_id:
+            raise ValueError("organization_derivation_task_invalid")
+        follow_ups.append(
+            {
+                "intentId": intent_id,
+                "taskId": created_task_id or None,
+                "state": state,
+                "source": expected_source,
+                "taskType": task_type,
+                "ruleId": expected_rule,
+                "stageId": str(original.get("stage_id") or ""),
+                "stageTitle": str(original.get("stage_title") or ""),
+                "assigneeHeroId": str(original.get("assignee_hero_id") or ""),
+            }
+        )
+    return follow_ups
 
 
 def _npc_outcome_event(outcome: dict[str, Any], final_result: str) -> dict[str, Any]:
@@ -4094,8 +4196,62 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "Organization service returned an invalid task snapshot.",
                 status_code=502,
             )
+        try:
+            follow_ups = _derived_follow_ups(task_key, original, snapshot)
+            for follow_up in follow_ups:
+                if follow_up["state"] != "CREATED" or not follow_up["taskId"]:
+                    continue
+                parameters = original.get("parameters")
+                parameters = parameters if isinstance(parameters, dict) else {}
+                await store.register_derived_external_request(
+                    player_id,
+                    follow_up["taskId"],
+                    "organization_task",
+                    {
+                        "task_type": follow_up["taskType"],
+                        "assignee_hero_id": follow_up["assigneeHeroId"],
+                        "stage_id": follow_up["stageId"],
+                        "stage_title": follow_up["stageTitle"],
+                        "brief": "Automatic organization follow-up for " + task_key,
+                        "parameters": {
+                            "resource_units": 0,
+                            "assignee_name": str(
+                                parameters.get("assignee_name")
+                                or follow_up["assigneeHeroId"]
+                            ),
+                        },
+                        "derived_from_task_id": task_key,
+                        "derivation_intent_id": follow_up["intentId"],
+                        "derivation_source": follow_up["source"],
+                        "derivation_rule_id": follow_up["ruleId"],
+                    },
+                )
+        except (TypeError, ValueError, VersionConflict) as error:
+            raise ApiError(
+                "organization_task_derivation_invalid",
+                "The organization follow-up lineage is invalid.",
+                status_code=502,
+            ) from error
         assignee = str(original.get("assignee_hero_id") or "")
         member_id = settings.orgflow_hero_members.get(assignee, "")
+        if original.get("derived_from_task_id"):
+            responsible_member_id = str(snapshot.get("responsible_member_id") or "")
+            authoritative_assignee = next(
+                (
+                    hero_id
+                    for hero_id, configured_member_id in settings.orgflow_hero_members.items()
+                    if configured_member_id == responsible_member_id
+                ),
+                "",
+            )
+            if not authoritative_assignee:
+                raise ApiError(
+                    "organization_task_assignee_invalid",
+                    "The organization follow-up has an unknown responsible member.",
+                    status_code=502,
+                )
+            assignee = authoritative_assignee
+            member_id = responsible_member_id
         try:
             settlement = _authoritative_settlement(
                 snapshot,
@@ -4143,11 +4299,13 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         )
         task_state = {
             "taskId": task_key,
+            "assigneeHeroId": assignee,
             "result": result,
             "settlement": settlement,
             "closureReceipt": closure,
             "npcOutcome": outcome,
             "review": review,
+            "followUps": follow_ups,
         }
         if settlement is not None and closure is not None:
             await store.cache_external_request_result(

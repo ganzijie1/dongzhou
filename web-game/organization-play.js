@@ -437,6 +437,7 @@
   function remoteTaskReadyForAdvance(snapshot) {
     if (!snapshot || typeof snapshot !== "object") return false;
     if (snapshot.final_result) {
+      if (Array.isArray(snapshot.followUps) && snapshot.followUps.some((entry) => entry?.state === "PENDING")) return false;
       if (!snapshot.settlement) return true;
       return ["ACCEPTED", "CENSURED"].includes(snapshot.review?.state);
     }
@@ -444,8 +445,58 @@
       && snapshot.execution_started_game_time !== undefined;
   }
 
+  function registerDerivedTasks(state, snapshots) {
+    const knownRemoteIds = new Set(state.tasks.map((task) => String(task.remoteResult || "")).filter(Boolean));
+    for (const snapshot of snapshots || []) {
+      if (!snapshot || typeof snapshot !== "object" || !Array.isArray(snapshot.followUps)) continue;
+      const parent = state.tasks.find((task) => String(task.remoteResult || "") === String(snapshot.task_id || ""));
+      if (!parent) continue;
+      for (const followUp of snapshot.followUps) {
+        if (!followUp || followUp.state !== "CREATED" || !followUp.taskId || knownRemoteIds.has(String(followUp.taskId))) continue;
+        if (!Object.prototype.hasOwnProperty.call(TASK_TYPES, followUp.taskType)) throw new Error("组织追办任务类型无效");
+        if (!['FOLLOW_UP', 'REMEDIATION'].includes(followUp.source)) throw new Error("组织追办来源无效");
+        if (String(followUp.assigneeHeroId) !== String(parent.assigneeId) || String(followUp.stageId) !== String(parent.stageId)) {
+          throw new Error("组织追办与原差事不匹配");
+        }
+        const definition = TASK_TYPES[followUp.taskType];
+        const label = followUp.source === 'REMEDIATION' ? '补救' : '追办';
+        state.tasks.push({
+          ...copy(parent),
+          id: `${parent.id}:${String(followUp.intentId || followUp.taskId)}`,
+          type: followUp.taskType,
+          name: `${label} · ${definition.name}`,
+          cost: 0,
+          status: 'active',
+          createdMonth: state.month,
+          dueMonth: state.month + definition.duration,
+          resolvedMonth: null,
+          remoteResult: String(followUp.taskId),
+          remoteState: 'DERIVED',
+          remoteVersion: null,
+          remoteMirrored: true,
+          remoteFinalResult: null,
+          mandate: null,
+          settlement: null,
+          closureReceipt: null,
+          pendingSettlement: null,
+          pendingReview: null,
+          npcOutcome: null,
+          derivation: {
+            intentId: String(followUp.intentId || ''),
+            source: followUp.source,
+            ruleId: String(followUp.ruleId || ''),
+            predecessorTaskId: String(parent.remoteResult),
+          },
+        });
+        knownRemoteIds.add(String(followUp.taskId));
+        state.history.push({ month: state.month, tone: followUp.source === 'REMEDIATION' ? 'bad' : 'neutral', text: `${parent.assigneeName}接到“${parent.name}”的${label}差事。` });
+      }
+    }
+  }
+
   function reconcileRemoteTasks(rawState, snapshots, options = {}) {
     const state = normalizeState(rawState);
+    registerDerivedTasks(state, snapshots);
     const advance = options.advanceMonth !== false;
     if (advance) {
       state.month += 1;
@@ -456,6 +507,12 @@
       if (task.status !== "active" || !task.remoteResult) continue;
       const snapshot = byId.get(String(task.remoteResult));
       if (!snapshot) continue;
+      if (task.derivation && snapshot.assigneeHeroId && String(snapshot.assigneeHeroId) !== String(task.assigneeId)) {
+        const authoritativeMember = state.members.find((entry) => String(entry.id) === String(snapshot.assigneeHeroId));
+        if (!authoritativeMember) throw new Error("组织追办责任人无效");
+        task.assigneeId = authoritativeMember.id;
+        task.assigneeName = authoritativeMember.name;
+      }
       task.remoteState = snapshot.state;
       task.remoteVersion = snapshot.version;
       if (snapshot.npcOutcome && typeof snapshot.npcOutcome === "object") {
