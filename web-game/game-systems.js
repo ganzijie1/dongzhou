@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const PROFILE_VERSION = 9;
+  const PROFILE_VERSION = 10;
   const TELEMETRY_SCHEMA = "dongzhou-battle-v4";
   const REPLAY_SCHEMA = "dongzhou-replay-v1";
   const POLICY_VERSION = "happo-2026-11-02";
@@ -122,6 +122,49 @@
     return { enabled: source.enabled !== false, epsilon: clamp(Number(source.epsilon ?? 0.1), 0, 0.2), arms };
   }
 
+  function normalizeKnowledgeQuiz(raw) {
+    const source = raw && typeof raw === "object" ? raw : {};
+    const pending = source.pending && typeof source.pending === "object"
+      && source.pending.question && source.pending.action ? source.pending : null;
+    return {
+      score: Math.max(0, Number(source.score || 0)),
+      pending,
+      receipts: [...new Set(Array.isArray(source.receipts) ? source.receipts.map(String) : [])].slice(-100),
+      history: Array.isArray(source.history) ? source.history.slice(-20) : []
+    };
+  }
+
+  function recordKnowledgeQuizResult(rawProfile, result) {
+    const profile = rawProfile && typeof rawProfile === "object" ? rawProfile : {};
+    profile.knowledgeQuiz = normalizeKnowledgeQuiz(profile.knowledgeQuiz);
+    const receipt = result?.receipt;
+    const digest = String(receipt?.digest || "");
+    const kernel = receipt?.kernel;
+    const score = Number(result?.score);
+    const valid = /^[0-9a-f]{64}$/.test(digest)
+      && kernel?.module === "dongzhou_knowledge_tournament"
+      && kernel?.state === "SEALED"
+      && [0, 10].includes(score)
+      && typeof result?.correct === "boolean"
+      && (result.correct ? score === 10 : score === 0)
+      && Number.isInteger(result?.selectedIndex)
+      && Number.isInteger(result?.correctIndex)
+      && ["COMPLETED", "EXPIRED"].includes(result?.state)
+      && (result?.state !== "EXPIRED" || result.correct === false)
+      && typeof result?.questionId === "string";
+    if (!valid) return { ok: false, reason: "invalid-receipt", profile };
+    if (profile.knowledgeQuiz.receipts.includes(digest)) {
+      return { ok: true, replayed: true, profile };
+    }
+    profile.knowledgeQuiz.score += score;
+    profile.knowledgeQuiz.receipts = [...profile.knowledgeQuiz.receipts, digest].slice(-100);
+    profile.knowledgeQuiz.history = [...profile.knowledgeQuiz.history, result].slice(-20);
+    if (profile.knowledgeQuiz.pending?.question?.id === result.questionId) {
+      profile.knowledgeQuiz.pending = null;
+    }
+    return { ok: true, replayed: false, profile };
+  }
+
   function normalizeProfile(raw, stages) {
     const source = raw && typeof raw === "object" ? raw : {};
     const completed = [...new Set(Array.isArray(source.completed) ? source.completed.map(String) : [])];
@@ -163,6 +206,7 @@
       replays: Array.isArray(source.replays) ? source.replays.slice(-20) : [],
       tutorial: { completed: Boolean(source.tutorial?.completed), dismissed: Boolean(source.tutorial?.dismissed) },
       battleHistory,
+      knowledgeQuiz: normalizeKnowledgeQuiz(source.knowledgeQuiz),
       difficultyBandit: { ...normalizeBandit(source.difficultyBandit), enabled: source.settings?.telemetryEnabled !== false && source.difficultyBandit?.enabled !== false },
       formation: FORMATION_PRESETS[source.formation] ? source.formation : "balanced",
       stageVanguards: source.stageVanguards && typeof source.stageVanguards === "object" ? { ...source.stageVanguards } : {},
@@ -918,7 +962,7 @@
 
   return {
     PROFILE_VERSION, TELEMETRY_SCHEMA, REPLAY_SCHEMA, POLICY_VERSION, RUNTIME_VERSION, DIFFICULTIES, DIFFICULTY_PRESETS, MAP_DETAIL_MODES, FORMATION_PRESETS, SKILLS, EQUIPMENT, EQUIPMENT_SLOTS, PROGRESSION,
-    normalizeProfile, unlockedThrough, isStageUnlocked, recommendedStageLevel, effectiveUnitLevel, effectiveHeroLevel, masteryForHero,
+    normalizeProfile, normalizeKnowledgeQuiz, recordKnowledgeQuizResult, unlockedThrough, isStageUnlocked, recommendedStageLevel, effectiveUnitLevel, effectiveHeroLevel, masteryForHero,
     armyRankForClears, armyXpForClears, heroLevelCap, heroLevelFromXp, unitGrowthBonuses, formationModifiers, heroSkillRank, retryAssist, restArmy, missionContract, dailyChallenge,
     difficultyPreset, effectiveTurnLimit, unitDifficultyModifiers,
     equipmentBonuses, availableEquipment, buyEquipment, equipItem, buySupply,

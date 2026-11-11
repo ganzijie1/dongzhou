@@ -542,5 +542,21 @@
     return { mode: "offline", stageId, results };
   }
 
-  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, syncNpcs, setNpcInteractionPreference, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationInventory, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
+  function startKnowledgeQuiz(stageId, clientRequestId) {
+    if (offline) return Promise.reject(new Error("knowledge_quiz_requires_online"));
+    return request("/knowledge/quiz", {
+      method: "POST",
+      body: JSON.stringify({ stage_id: stageId, client_request_id: clientRequestId })
+    });
+  }
+
+  function answerKnowledgeQuiz(questionId, actionId, answerIndex) {
+    if (offline) return Promise.reject(new Error("knowledge_quiz_requires_online"));
+    return request(`/knowledge/quiz/${encodeURIComponent(questionId)}/answer`, {
+      method: "POST",
+      body: JSON.stringify({ action_id: actionId, answer_index: answerIndex })
+    });
+  }
+
+  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, syncNpcs, setNpcInteractionPreference, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationInventory, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
 });

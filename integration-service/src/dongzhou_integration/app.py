@@ -19,7 +19,7 @@ from nexus_kernel.kernel import Kernel, LoadedModule, Module, ModuleContext
 
 from .config import Settings
 from .assignments import AssignmentUnavailable, select_assignment
-from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
+from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
@@ -287,6 +287,71 @@ class MandateWorkflowModule(Module):
                 **trace,
                 "digest": digest,
                 "kernel": {**dict(review.get("kernel") or {}), "state": state},
+            },
+        }
+
+
+class KnowledgeTournamentModule(Module):
+    name = "dongzhou_knowledge_tournament"
+    version = "1.0.0"
+    dependencies = (RuntimeModule.name,)
+
+    @staticmethod
+    def seal_question(trace: dict[str, Any]) -> dict[str, Any]:
+        digest = hashlib.sha256(
+            json.dumps(trace, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
+        ).hexdigest()
+        action_id = uuid5(NAMESPACE_URL, f"dongzhou-knowledge-quiz:{digest}")
+        public_question = {
+            key: trace[key]
+            for key in ("id", "stageId", "knowledgeId", "title", "prompt", "options", "deadlineAt")
+        }
+        return {
+            "state": "READY",
+            "question": {
+                **public_question,
+                "receipt": {
+                    "digest": digest,
+                    "kernel": {
+                        "module": KnowledgeTournamentModule.name,
+                        "moduleVersion": KnowledgeTournamentModule.version,
+                        "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                        "state": "READY",
+                    },
+                },
+            },
+            "action": {
+                "actionId": str(action_id),
+                "code": "answer_knowledge_quiz",
+                "type": "selection",
+            },
+        }
+
+    @staticmethod
+    def seal_result(question_digest: str, selected_index: int, correct_index: int, state: str) -> dict[str, Any]:
+        correct = state == "COMPLETED" and selected_index == correct_index
+        score = 10 if correct else 0
+        trace = {
+            "questionDigest": question_digest,
+            "selectedIndex": selected_index,
+            "correctIndex": correct_index,
+            "state": state,
+            "correct": correct,
+            "score": score,
+        }
+        digest = hashlib.sha256(
+            json.dumps(trace, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
+        ).hexdigest()
+        return {
+            **trace,
+            "receipt": {
+                "digest": digest,
+                "kernel": {
+                    "module": KnowledgeTournamentModule.name,
+                    "moduleVersion": KnowledgeTournamentModule.version,
+                    "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                    "state": "SEALED",
+                },
             },
         }
 
@@ -1126,6 +1191,68 @@ def _digest_json(value: dict[str, Any]) -> str:
     ).hexdigest()
 
 
+def _knowledge_quiz_trace(
+    request_id: UUID,
+    stage_id: str,
+    entries: list[dict[str, Any]],
+    catalog_path: Any,
+    deadline_at: datetime,
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    published = next((entry for entry in entries if isinstance(entry, dict)), None)
+    if published is None:
+        raise ValueError("published_stage_knowledge_missing")
+    entities = published.get("entities")
+    raw_npcs = entities.get("npcs", []) if isinstance(entities, dict) else []
+    current_people = []
+    for item in raw_npcs:
+        name = item.get("name") if isinstance(item, dict) else item
+        name = str(name or "").strip()
+        if name and name not in current_people:
+            current_people.append(name)
+    if not current_people:
+        raise ValueError("published_stage_people_missing")
+
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    distractors: list[str] = []
+    for entry in catalog.get("entries", []):
+        if not isinstance(entry, dict) or str(entry.get("stageId") or "") == stage_id:
+            continue
+        for person in entry.get("people", []):
+            person = str(person or "").strip()
+            if person and person not in current_people and person not in distractors:
+                distractors.append(person)
+    if len(distractors) < 3:
+        raise ValueError("knowledge_quiz_distractors_missing")
+
+    seed = hashlib.sha256(f"{request_id}:{stage_id}".encode("utf-8")).hexdigest()
+    correct_name = current_people[int(seed[:8], 16) % len(current_people)]
+    distractors.sort(
+        key=lambda name: hashlib.sha256(f"{seed}:distractor:{name}".encode("utf-8")).hexdigest()
+    )
+    options = [correct_name, *distractors[:3]]
+    options.sort(
+        key=lambda name: hashlib.sha256(f"{seed}:option:{name}".encode("utf-8")).hexdigest()
+    )
+    source_details = published.get("sourceDetails")
+    source = next(
+        (item for item in source_details or [] if isinstance(item, dict)),
+        None,
+    )
+    knowledge_id = str(published.get("id") or published.get("aku_id") or "")
+    title = str(published.get("name") or "本回史录")
+    trace = {
+        "id": str(request_id),
+        "stageId": stage_id,
+        "knowledgeId": knowledge_id,
+        "title": title,
+        "prompt": f"下列哪位人物见于《{title}》的已发布人物录？",
+        "options": options,
+        "correctIndex": options.index(correct_name),
+        "deadlineAt": deadline_at.isoformat().replace("+00:00", "Z"),
+    }
+    return trace, source
+
+
 async def _battle_support_attestations(
     store: Store,
     player_id: UUID,
@@ -1844,10 +1971,12 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     upstreams = upstreams or Upstreams(settings)
     module = RuntimeModule(store, upstreams, settings)
     mandate_workflow = MandateWorkflowModule()
+    knowledge_tournament = KnowledgeTournamentModule()
     kernel = Kernel(
         [
             LoadedModule(module=module, required=True, original_index=0),
             LoadedModule(module=mandate_workflow, required=True, original_index=1),
+            LoadedModule(module=knowledge_tournament, required=True, original_index=2),
         ]
     )
     router = APIRouter(prefix="/api/dongzhou/v1")
@@ -1886,16 +2015,28 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             {},
         )
         workflow_state = str(workflow.get("state") or "unknown").lower()
+        tournament = next(
+            (
+                item
+                for item in kernel_snapshot.get("modules", [])
+                if item.get("name") == KnowledgeTournamentModule.name
+            ),
+            {},
+        )
+        tournament_state = str(tournament.get("state") or "unknown").lower()
         return {
             **external,
             "nexusKernel": {
                 "online": runtime_state in {"ready", "degraded"}
-                and workflow_state in {"ready", "degraded"},
+                and workflow_state in {"ready", "degraded"}
+                and tournament_state in {"ready", "degraded"},
                 "mode": "embedded",
                 "version": _NEXUS_KERNEL_VERSION,
                 "runtimeState": runtime_state,
                 "workflowModule": MandateWorkflowModule.name,
                 "workflowState": workflow_state,
+                "knowledgeTournamentModule": KnowledgeTournamentModule.name,
+                "knowledgeTournamentState": tournament_state,
             },
         }
 
@@ -2333,6 +2474,129 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             raise ApiError("knowledge_unavailable", "Published stage knowledge is temporarily unavailable.", status_code=503) from error
         await store.add_codex(player_id, entries)
         return {"mode": "connected", "stageId": stage_id, "results": entries}
+
+    @router.post("/knowledge/quiz")
+    async def start_knowledge_quiz(
+        request: KnowledgeQuizStartRequest,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        existing = await store.read_request(
+            player_id, request.client_request_id, "knowledge_quiz"
+        )
+        if existing is not None:
+            if existing.get("request", {}).get("stageId") != request.stage_id:
+                raise ApiError(
+                    "idempotency_conflict",
+                    "The quiz request identifier was used for another stage.",
+                    status_code=409,
+                )
+            if existing.get("state") == "PENDING" or not existing.get("response"):
+                raise ApiError(
+                    "request_in_progress",
+                    "The same quiz is still being prepared.",
+                    status_code=409,
+                )
+            return {"replayed": True, **existing["response"]}
+        try:
+            entries = await upstreams.stage_knowledge(request.stage_id)
+            trace, source = _knowledge_quiz_trace(
+                request.client_request_id,
+                request.stage_id,
+                entries,
+                settings.knowledge_file,
+                datetime.now(UTC) + timedelta(seconds=30),
+            )
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "knowledge_unavailable",
+                "Published stage knowledge is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        except (OSError, ValueError, json.JSONDecodeError) as error:
+            raise ApiError(
+                "knowledge_quiz_unavailable",
+                "This stage cannot produce a verified history question.",
+                status_code=409,
+            ) from error
+        internal = {**trace, "source": source}
+        try:
+            created, previous = await store.begin_request(
+                player_id,
+                request.client_request_id,
+                "knowledge_quiz",
+                internal,
+            )
+        except VersionConflict as error:
+            raise ApiError(
+                "idempotency_conflict",
+                "The quiz request identifier was already used.",
+                status_code=409,
+            ) from error
+        if not created:
+            return {"replayed": True, **(previous or {})}
+        response = KnowledgeTournamentModule.seal_question(trace)
+        await store.finish_request(
+            player_id,
+            request.client_request_id,
+            "READY",
+            response,
+        )
+        return response
+
+    @router.post("/knowledge/quiz/{question_id}/answer")
+    async def answer_knowledge_quiz(
+        question_id: UUID,
+        request: KnowledgeQuizAnswerRequest,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        record = await store.read_request(player_id, question_id, "knowledge_quiz")
+        if record is None:
+            raise ApiError("knowledge_quiz_not_found", "History question not found.", status_code=404)
+        internal = record.get("request") or {}
+        ready = KnowledgeTournamentModule.seal_question(
+            {key: internal[key] for key in ("id", "stageId", "knowledgeId", "title", "prompt", "options", "correctIndex", "deadlineAt")}
+        )
+        expected_action_id = ready["action"]["actionId"]
+        if str(request.action_id) != expected_action_id:
+            raise ApiError("knowledge_quiz_action_invalid", "History answer action is invalid.", status_code=409)
+        if record.get("state") == "ANSWERED":
+            previous = record.get("response") or {}
+            if int(previous.get("selectedIndex", -1)) != request.answer_index:
+                raise ApiError("knowledge_quiz_already_answered", "History question was already answered.", status_code=409)
+            return {"replayed": True, **previous}
+        if record.get("state") != "READY":
+            raise ApiError("knowledge_quiz_not_ready", "History question is not ready.", status_code=409)
+        deadline = datetime.fromisoformat(str(internal["deadlineAt"]).replace("Z", "+00:00"))
+        state = "EXPIRED" if datetime.now(UTC) > deadline else "COMPLETED"
+        result = KnowledgeTournamentModule.seal_result(
+            str(ready["question"]["receipt"]["digest"]),
+            request.answer_index,
+            int(internal["correctIndex"]),
+            state,
+        )
+        response = {
+            **result,
+            "questionId": str(question_id),
+            "stageId": str(internal["stageId"]),
+            "knowledgeId": str(internal["knowledgeId"]),
+            "correctAnswer": internal["options"][int(internal["correctIndex"])],
+            "source": internal.get("source"),
+        }
+        transitioned = await store.transition_request(
+            player_id,
+            question_id,
+            "knowledge_quiz",
+            "READY",
+            "ANSWERED",
+            response,
+        )
+        if not transitioned:
+            latest = await store.read_request(player_id, question_id, "knowledge_quiz")
+            previous = latest.get("response") if latest else None
+            if previous and int(previous.get("selectedIndex", -1)) == request.answer_index:
+                return {"replayed": True, **previous}
+            raise ApiError("knowledge_quiz_already_answered", "History question was already answered.", status_code=409)
+        return response
 
     @router.post("/knowledge/routes")
     async def campaign_route(

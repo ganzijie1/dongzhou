@@ -5,10 +5,39 @@ const systems = require("../web-game/game-systems.js");
 
 const stages = Array.from({ length: 12 }, (_, index) => ({ id: `stage-${index + 1}`, index: index + 1 }));
 const migrated = systems.normalizeProfile({ completed: ["stage-1", "stage-2", "stage-3", "stage-4", "stage-5", "stage-6"] }, stages);
-assert.equal(migrated.schemaVersion, 9);
+assert.equal(migrated.schemaVersion, 10);
 assert.equal(migrated.armyRank, 3);
 assert.equal(systems.isStageUnlocked(stages[6], migrated, stages), true);
 assert.equal(systems.isStageUnlocked(stages[7], migrated, stages), false);
+
+const quizProfile = systems.normalizeProfile({ knowledgeQuiz: { pending: {
+  state: "READY",
+  question: { id: "quiz-1", options: ["甲", "乙", "丙", "丁"] },
+  action: { actionId: "action-1" }
+} } }, stages);
+const quizResult = {
+  state: "COMPLETED",
+  questionId: "quiz-1",
+  selectedIndex: 1,
+  correctIndex: 1,
+  correct: true,
+  score: 10,
+  receipt: {
+    digest: "a".repeat(64),
+    kernel: { module: "dongzhou_knowledge_tournament", state: "SEALED" }
+  }
+};
+const firstQuiz = systems.recordKnowledgeQuizResult(quizProfile, quizResult);
+assert.equal(firstQuiz.ok, true);
+assert.equal(firstQuiz.profile.knowledgeQuiz.score, 10);
+assert.equal(firstQuiz.profile.knowledgeQuiz.pending, null);
+const replayedQuiz = systems.recordKnowledgeQuizResult(firstQuiz.profile, quizResult);
+assert.equal(replayedQuiz.replayed, true);
+assert.equal(replayedQuiz.profile.knowledgeQuiz.score, 10);
+assert.equal(systems.recordKnowledgeQuizResult(replayedQuiz.profile, {
+  ...quizResult,
+  receipt: { ...quizResult.receipt, digest: "not-a-digest" }
+}).ok, false);
 
 let profile = systems.normalizeProfile({}, stages);
 for (let index = 0; index < 6; index++) {

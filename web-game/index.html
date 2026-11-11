@@ -308,6 +308,15 @@
           <section class="office-knowledge" aria-labelledby="officeKnowledgeTitle">
             <div class="office-section-heading"><div><span>史官参议</span><h3 id="officeKnowledgeTitle">查阅本战旧闻</h3></div><button id="officeCodexToggle" class="large-button" type="button" aria-expanded="false" aria-controls="officeCodexPanel">已得简册</button></div>
             <form id="officeKnowledgeForm" class="office-knowledge-form"><input id="officeKnowledgeQuery" type="search" autocomplete="off" placeholder="输入人物、战役或军令"><button class="large-button" type="submit">查阅</button></form>
+            <div class="office-quiz" aria-labelledby="officeQuizTitle">
+              <div class="office-quiz-heading"><div><span>知识大赛</span><strong id="officeQuizTitle">史官问对</strong><small id="officeQuizScore">累计 0 分</small></div><button id="officeQuizStart" class="large-button" type="button">开题</button></div>
+              <p id="officeQuizStatus" aria-live="polite">本回史录可出一题，限时三十息。</p>
+              <div id="officeQuizQuestion" hidden>
+                <p id="officeQuizPrompt"></p>
+                <div id="officeQuizOptions" role="group" aria-label="史官问对选项"></div>
+                <small id="officeQuizSource"></small>
+              </div>
+            </div>
             <button id="officeStageKnowledgeButton" class="large-button" type="button">本回史料</button>
             <div id="officeKnowledgeResults" class="office-knowledge-results"></div>
             <div id="officeCodexPanel" class="office-codex" hidden>

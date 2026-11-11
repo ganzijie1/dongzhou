@@ -3782,6 +3782,18 @@ button:focus-visible {
 .office-task-ledger .censured small { color: #d29a72; }
 .office-knowledge { grid-column: 1 / -1; }
 .office-knowledge-form { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 18px; }
+.office-quiz { margin: 18px 0; padding: 16px 0; border-top: 1px solid rgba(196, 172, 111, .2); border-bottom: 1px solid rgba(196, 172, 111, .2); }
+.office-quiz-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.office-quiz-heading > div { display: grid; gap: 4px; }
+.office-quiz-heading span, #officeQuizSource { color: #b99344; font-size: 9px; }
+.office-quiz-heading strong { color: #ded2b3; font: 500 17px/1.2 var(--font-display); }
+#officeQuizStatus { margin: 10px 0 0; color: #8f9289; font-size: 11px; }
+#officeQuizPrompt { margin: 16px 0 10px; color: #e4dcc5; font-size: 13px; line-height: 1.65; }
+#officeQuizOptions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+#officeQuizOptions button { min-height: 42px; padding: 8px 12px; color: #d8cfb7; border: 1px solid rgba(191, 161, 91, .28); border-radius: 0; background: rgba(9, 13, 10, .72); text-align: left; cursor: pointer; }
+#officeQuizOptions button:hover, #officeQuizOptions button:focus-visible { border-color: #b99344; background: rgba(185, 147, 68, .1); }
+#officeQuizOptions button:disabled { opacity: .5; cursor: wait; }
+#officeQuizSource { display: block; margin-top: 10px; }
 .office-knowledge-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 26px; margin-top: 14px; }
 .office-knowledge-results article { padding: 12px 0; border-bottom: 1px dotted rgba(196, 172, 111, .18); }
 .office-knowledge-results article.selected { border-left: 2px solid #9eb27a; padding-left: 10px; }
@@ -3858,6 +3870,7 @@ button:focus-visible {
   .office-mandate-actions { display: flex; justify-content: flex-end; gap: 8px; }
   .office-mandate-approval { grid-template-columns: 1fr; align-items: start; }
   .office-members, .office-knowledge-results { grid-template-columns: 1fr; }
+  #officeQuizOptions { grid-template-columns: 1fr; }
   .office-codex-toolbar { grid-template-columns: 1fr 40px; }
   .office-codex-toolbar label:first-child { grid-column: 1 / -1; }
   .office-codex-layout { grid-template-columns: 1fr; }

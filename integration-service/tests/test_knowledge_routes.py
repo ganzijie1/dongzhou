@@ -1,3 +1,4 @@
+import json
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -28,6 +29,14 @@ class PublishedKnowledge:
     async def stage_knowledge(self, stage_id):
         if self.unavailable:
             raise UpstreamUnavailable("not ready")
+        if stage_id == "01":
+            return [{
+                "id": "dongzhou_stage_001",
+                "stageId": "01",
+                "name": "第一回·东郊索命",
+                "entities": {"npcs": [{"name": "杜伯"}]},
+                "sourceDetails": [{"work": "《史记·周本纪》", "tier": "史官骨架", "scope": "杜伯之死"}],
+            }]
         return [{"id": "dongzhou_stage_004", "stageId": stage_id, "name": "本回史料"}] if stage_id == "03b" else []
 
     async def campaign_route(self, from_map_id, to_map_id):
@@ -106,3 +115,64 @@ def test_campaign_route_requires_completed_predecessor_and_validates_published_d
         unavailable = client.post(path, json=request)
         assert unavailable.status_code == 503
         assert unavailable.json()["error"]["code"] == "knowledge_route_unavailable"
+
+
+def test_knowledge_quiz_hides_answer_and_is_idempotent_and_player_scoped(tmp_path):
+    scenario = tmp_path / "scenario"
+    scenario.mkdir()
+    (scenario / "dongzhou-knowledge.json").write_text(json.dumps({
+        "entries": [
+            {"stageId": "01", "people": ["杜伯"]},
+            {"stageId": "02", "people": ["周幽王", "褒姒", "申侯", "郑桓公"]},
+        ]
+    }, ensure_ascii=False), encoding="utf-8")
+    with patch.dict("os.environ", {
+        "DONGZHOU_ENV": "test",
+        "DONGZHOU_WEB_ROOT": str(tmp_path),
+        "DONGZHOU_DATABASE_PATH": str(tmp_path / "save.db"),
+    }, clear=True):
+        settings = Settings.from_env()
+    upstreams = PublishedKnowledge()
+    request_id = uuid4()
+    with TestClient(build_application(settings, upstreams=upstreams)) as client:
+        path = "/api/dongzhou/v1/knowledge/quiz"
+        body = {"client_request_id": str(request_id), "stage_id": "01"}
+        assert client.post(path, json=body).status_code == 401
+        assert client.post("/api/dongzhou/v1/sessions/guest", json={"installation_id": str(uuid4())}).status_code == 200
+        started = client.post(path, json=body)
+        assert started.status_code == 200
+        question = started.json()["question"]
+        assert len(question["options"]) == 4
+        assert "correctIndex" not in json.dumps(started.json())
+        assert question["receipt"]["kernel"]["module"] == "dongzhou_knowledge_tournament"
+        correct_index = question["options"].index("杜伯")
+        answer_path = f"{path}/{request_id}/answer"
+        answer = client.post(answer_path, json={
+            "action_id": started.json()["action"]["actionId"],
+            "answer_index": correct_index,
+        })
+        assert answer.status_code == 200
+        assert answer.json()["score"] == 10
+        assert answer.json()["correctAnswer"] == "杜伯"
+        assert answer.json()["receipt"]["kernel"]["state"] == "SEALED"
+        replay = client.post(answer_path, json={
+            "action_id": started.json()["action"]["actionId"],
+            "answer_index": correct_index,
+        })
+        assert replay.status_code == 200
+        assert replay.json()["replayed"] is True
+        changed = client.post(answer_path, json={
+            "action_id": started.json()["action"]["actionId"],
+            "answer_index": (correct_index + 1) % 4,
+        })
+        assert changed.status_code == 409
+        replay_start = client.post(path, json=body)
+        assert replay_start.status_code == 200
+        assert replay_start.json()["state"] == "COMPLETED"
+
+        client.cookies.clear()
+        assert client.post("/api/dongzhou/v1/sessions/guest", json={"installation_id": str(uuid4())}).status_code == 200
+        assert client.post(answer_path, json={
+            "action_id": started.json()["action"]["actionId"],
+            "answer_index": correct_index,
+        }).status_code == 404

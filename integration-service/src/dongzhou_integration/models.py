@@ -147,6 +147,20 @@ class KnowledgeSearchRequest(StrictModel):
     limit: int = Field(default=6, ge=1, le=20)
 
 
+class KnowledgeQuizStartRequest(StrictModel):
+    client_request_id: UUID = Field(strict=False)
+    stage_id: str = Field(
+        min_length=1,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9_.:-]+$",
+    )
+
+
+class KnowledgeQuizAnswerRequest(StrictModel):
+    action_id: UUID = Field(strict=False)
+    answer_index: int = Field(ge=0, le=3)
+
+
 class CampaignRouteRequest(StrictModel):
     from_stage_id: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_.:-]+$")
     from_stage_index: int = Field(ge=1, le=172)

@@ -100,6 +100,8 @@
   let officeMembershipLeavePending = false;
   let officeMembershipBusy = false;
   let officeCareerBusy = false;
+  let officeQuizInFlight = false;
+  let officeQuizTimer = null;
 
   const canvas = $("#battleCanvas");
   const ctx = canvas.getContext("2d");
@@ -950,11 +952,86 @@
       officeNpcRefreshSerial += 1;
       clearTimeout(officeNpcRefreshTimer);
       officeNpcRefreshTimer = null;
+      clearTimeout(officeQuizTimer);
+      officeQuizTimer = null;
     }
   }
 
   function officeStage() {
     return findStageRecord($("#focusStageButton").dataset.stageId) || campaign?.stages?.[0];
+  }
+
+  function renderOfficeQuiz() {
+    const panel = $("#officeQuizQuestion");
+    if (!panel) return;
+    clearTimeout(officeQuizTimer);
+    officeQuizTimer = null;
+    profile.knowledgeQuiz = systems.normalizeKnowledgeQuiz(profile.knowledgeQuiz);
+    const quiz = profile.knowledgeQuiz;
+    const pending = quiz.pending;
+    const latest = quiz.history.at(-1);
+    $("#officeQuizScore").textContent = `累计 ${quiz.score} 分`;
+    $("#officeQuizStart").disabled = officeQuizInFlight || Boolean(pending);
+    if (!pending) {
+      panel.hidden = !latest;
+      $("#officeQuizStatus").textContent = latest
+        ? `${latest.correct ? "答中" : latest.state === "EXPIRED" ? "逾时" : "未中"} · 本题 ${latest.score} 分 · 累计 ${quiz.score} 分`
+        : "本回可开一题，答中记 10 分。";
+      $("#officeQuizSource").textContent = latest?.source?.work
+        ? `据 ${latest.source.work}${latest.source.scope ? ` · ${latest.source.scope}` : ""}`
+        : "";
+      $("#officeQuizPrompt").textContent = latest ? `正解：${latest.correctAnswer}` : "";
+      $("#officeQuizOptions").innerHTML = "";
+      return;
+    }
+    const question = pending.question;
+    const remaining = Math.max(0, Math.ceil((Date.parse(question.deadlineAt) - Date.now()) / 1000));
+    panel.hidden = false;
+    $("#officeQuizPrompt").textContent = question.prompt;
+    $("#officeQuizOptions").innerHTML = question.options.map((option, index) =>
+      `<button type="button" data-quiz-answer="${index}" ${officeQuizInFlight ? "disabled" : ""}><span>${String.fromCharCode(65 + index)}</span> ${escapeHtml(option)}</button>`
+    ).join("");
+    $("#officeQuizStatus").textContent = remaining > 0 ? `余 ${remaining} 秒 · 答中 10 分` : "已到时 · 交卷记 0 分";
+    $("#officeQuizSource").textContent = `内核题印 ${String(question.receipt?.digest || "").slice(0, 12)}`;
+    if (!$("#campaignOfficeBackdrop").hidden) officeQuizTimer = setTimeout(renderOfficeQuiz, 1000);
+  }
+
+  async function startOfficeQuiz() {
+    if (officeQuizInFlight || profile.knowledgeQuiz?.pending) return;
+    officeQuizInFlight = true;
+    renderOfficeQuiz();
+    try {
+      const response = await integration.startKnowledgeQuiz(officeStage().id, crypto.randomUUID());
+      profile.knowledgeQuiz = systems.normalizeKnowledgeQuiz({ ...profile.knowledgeQuiz, pending: response });
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+      await integration.persist(profile);
+    } catch (error) {
+      showNotice(error.message === "knowledge_quiz_requires_online" ? "史官问对需连接史库" : error.message);
+    } finally {
+      officeQuizInFlight = false;
+      renderOfficeQuiz();
+    }
+  }
+
+  async function answerOfficeQuiz(answerIndex) {
+    const pending = profile.knowledgeQuiz?.pending;
+    if (officeQuizInFlight || !pending) return;
+    officeQuizInFlight = true;
+    renderOfficeQuiz();
+    try {
+      const result = await integration.answerKnowledgeQuiz(pending.question.id, pending.action.actionId, answerIndex);
+      const recorded = systems.recordKnowledgeQuizResult(profile, result);
+      if (!recorded.ok) throw new Error("问对印记未通过内核校验");
+      profile = recorded.profile;
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+      await integration.persist(profile);
+      showNotice(result.state === "EXPIRED" ? "本题逾时，记 0 分" : result.correct ? "答中，记 10 分" : "未中，记 0 分");
+    } catch (error) {
+      showNotice(error.message);
+    } finally {
+      officeQuizInFlight = false;
+      renderOfficeQuiz();
+    }
   }
 
   function saveOrganization(next) {
@@ -1246,6 +1323,7 @@
     const decisionDefaults = ["先固军粮，稳步推进", `整军强攻，争取${record?.objective || "先机"}`, "遣使探察，再定进退"];
     document.querySelectorAll(".office-decision-option").forEach((input, index) => { if (!input.value) input.value = decisionDefaults[index]; });
     renderOfficeDiplomacyStatus();
+    renderOfficeQuiz();
     renderOfficeMandateApproval();
     renderOfficeSettlementReview();
   }
@@ -4181,6 +4259,11 @@
     $("#officeAdvanceButton").addEventListener("click", advanceOfficeMonth);
     $("#officeKnowledgeForm").addEventListener("submit", searchOfficeKnowledge);
     $("#officeStageKnowledgeButton").addEventListener("click", loadOfficeStageKnowledge);
+    $("#officeQuizStart").addEventListener("click", startOfficeQuiz);
+    $("#officeQuizOptions").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-quiz-answer]");
+      if (button) answerOfficeQuiz(Number(button.dataset.quizAnswer));
+    });
     $("#officeKnowledgeResults").addEventListener("click", selectOfficeEvidence);
     $("#officeCodexToggle").addEventListener("click", () => setOfficeCodex($("#officeCodexPanel").hidden));
     $("#officeCodexRefresh").addEventListener("click", refreshOfficeCodex);
