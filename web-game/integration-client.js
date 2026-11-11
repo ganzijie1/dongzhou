@@ -12,6 +12,7 @@
   const MANDATE_PENDING_PREFIX = "dongzhou-pending-mandate-v1:";
   const NPC_MESSAGE_PENDING_PREFIX = "dongzhou-pending-npc-message-v1:";
   const NPC_THOUGHT_PENDING_PREFIX = "dongzhou-pending-npc-thought-v1:";
+  const MANDATE_SCHEDULE_PENDING_PREFIX = "dongzhou-pending-mandate-schedule-v1:";
   const INVENTORY_REQUISITION_PENDING_KEY = "dongzhou-pending-inventory-requisition-v1";
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
   let session = read(SESSION_KEY, null);
@@ -310,6 +311,26 @@
     else write(pendingKey, { ...saved, result });
     return result;
   }
+  async function scheduleCourtMandate(mandateId, mandateDigest) {
+    const pendingKey = MANDATE_SCHEDULE_PENDING_PREFIX + mandateId;
+    const saved = read(pendingKey, null);
+    const pending = saved?.mandate_digest === mandateDigest
+      ? saved
+      : { client_request_id: root.crypto.randomUUID(), mandate_digest: mandateDigest };
+    write(pendingKey, pending);
+    try {
+      const result = await request(`/court/mandates/${encodeURIComponent(mandateId)}/schedule`, {
+        method: "POST",
+        body: JSON.stringify(pending)
+      });
+      if (result.state !== "COMPLETED" || !result.scheduleReceipt?.digest) throw new Error("属官日程回执无效");
+      root.localStorage.removeItem(pendingKey);
+      return result;
+    } catch (error) {
+      if ([400, 404, 409, 422].includes(error.status)) root.localStorage.removeItem(pendingKey);
+      throw error;
+    }
+  }
   function acknowledgeCourtMandate(input) {
     if (input && typeof input === "object") {
       root.localStorage.removeItem(mandatePendingKey(input));
@@ -496,5 +517,5 @@
     return { mode: "offline", stageId, results };
   }
 
-  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, syncNpcs, setNpcInteractionPreference, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationInventory, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, syncNpcs, setNpcInteractionPreference, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationInventory, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
 });

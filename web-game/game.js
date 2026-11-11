@@ -1211,7 +1211,11 @@
       const evidenceLabel = Number.isFinite(evidenceFit) ? ` · 史证${evidenceFit}/9` : "";
       const emergency = mandate.emergency;
       const emergencyLabel = emergency ? ` · ${emergency.urgent ? "急报" : "常报"}${Number(emergency.score).toFixed(3)}` : "";
-      return `<li class="${escapeHtml(String(mandate.state || "issued").toLowerCase())}"><span>${escapeHtml(mandate.evidence?.name || "内核军令")}</span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(mandate.evidence?.source?.work || "未列出处")}${evidenceLabel} · ${escapeHtml(mandate.assignment?.date || "未定日")} ${escapeHtml(mandate.assignment?.name || "旧军令未封当值")}${Number.isFinite(readiness) ? ` · 胜任${readiness}` : ""}${personalityLabel}${motivationLabel}${supportLabel}${emergencyLabel} · 印记 ${escapeHtml(String(mandate.digest || "").slice(0, 10))}</small></li>`;
+      const interruption = mandate.scheduleInterruption;
+      const interruptionLabel = interruption
+        ? ` · ${interruption.action === "insert_today" ? "今日插程" : interruption.action === "future" ? "后续排程" : "日程裁定 " + interruption.action}${interruption.scheduleName ? `“${escapeHtml(interruption.scheduleName)}”` : ""}`
+        : "";
+      return `<li class="${escapeHtml(String(mandate.state || "issued").toLowerCase())}"><span>${escapeHtml(mandate.evidence?.name || "内核军令")}</span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(mandate.evidence?.source?.work || "未列出处")}${evidenceLabel} · ${escapeHtml(mandate.assignment?.date || "未定日")} ${escapeHtml(mandate.assignment?.name || "旧军令未封当值")}${Number.isFinite(readiness) ? ` · 胜任${readiness}` : ""}${personalityLabel}${motivationLabel}${supportLabel}${emergencyLabel}${interruptionLabel} · 印记 ${escapeHtml(String(mandate.digest || "").slice(0, 10))}</small></li>`;
     }).join("") || '<li class="empty">完成史料查阅与属官裁断后，可签发内核军令。</li>';
     $("#officeAllianceLedger").innerHTML = [...org.diplomacy.alliances].reverse().map((pact) => `<li class="${pact.status}"><span>${escapeHtml(pact.targetName)}盟约</span><strong>${pact.status === "active" ? "生效" : pact.status === "broken" ? "背盟待战" : "战后结案"}</strong><small>关系 ${Number(org.diplomacy.relations[pact.targetId] || 0)} · ${escapeHtml(pact.terms.join("、"))}</small></li>`).join("") || '<li class="empty">尚无盟约</li>';
     $("#officeBattleArchive").innerHTML = [...org.archives].reverse().slice(0, 12).map((entry) => `<li><strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml(entry.text)} · ${escapeHtml(String(entry.stageId || "无关卡"))}</span></li>`).join("") || "<li><strong>尚无档案</strong><span>完成盟约、背盟或战役后将在此存照。</span></li>";
@@ -2016,6 +2020,8 @@
     if (String(record?.id || "") !== mandateInput.stage_id || $("#officeMemberSelect").value !== assigneeId || (!operation && $("#officeTaskType").value !== taskType) || knowledge?.id !== mandateInput.knowledge_id || Number(evidence?.source?.index) !== Number(mandateInput.evidence_source_index) || council?.id !== mandateInput.council_request_id) {
       throw new Error("当前关卡、属官、史料或军议已改变，请恢复原选择后再下达");
     }
+    const scheduleResult = await integration.scheduleCourtMandate(issuedMandate.id, issuedMandate.digest);
+    issuedMandate = { ...issuedMandate, scheduleInterruption: scheduleResult.scheduleReceipt };
     const taskBaseState = organization.recordMandate(profile.organization, issuedMandate).state;
     const created = organization.createTask(taskBaseState, {
       type: taskType, assigneeId, stageId: record?.id, stageTitle: record?.battleTitle,
@@ -2041,7 +2047,13 @@
     await integration.persist(profile);
     integration.acknowledgeCourtMandate(mandateInput);
     renderOfficeMandateApproval();
-    showNotice(`${created.task.assigneeName}已领受${created.task.name}`);
+    const scheduleReceipt = issuedMandate.scheduleInterruption;
+    const scheduleLabel = scheduleReceipt.action === "insert_today"
+      ? `，已插入今日日程“${scheduleReceipt.scheduleName}”`
+      : scheduleReceipt.action === "future"
+        ? `，已排入后续日程“${scheduleReceipt.scheduleName}”`
+        : `，日程裁定为${scheduleReceipt.action}`;
+    showNotice(`${created.task.assigneeName}已领受${created.task.name}${scheduleLabel}`);
     return created.task;
   }
 

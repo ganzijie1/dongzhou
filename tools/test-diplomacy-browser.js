@@ -48,6 +48,7 @@ const BASE_ORIGIN = new URL(BASE_URL).origin;
     else if (pathname.includes("/assignments/")) { const taskType = pathname.split("/").at(-1); const heroId = decodeURIComponent(pathname.split("/").at(-3)); body = { assignment: { heroId, npcId: "42", runtimeState: "READY", planId: "plan-browser", generationId: "generation-browser", eventId: `event-${taskType}`, transactionId: taskType === "diplomacy" ? 9100106 : 9100103, name: taskType === "diplomacy" ? "折冲诸侯" : "转运军粮", type: taskType === "diplomacy" ? "外交" : "军需", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "resolute", intensity: 70, affectionCount: 1, relationshipCount: 2 } } }; }
     else if (/\/npcs\/[^/]+\/schedule$/.test(pathname) && request.method() === "POST") { scheduleGenerations.push(decodeURIComponent(pathname.split("/").at(-2))); body = { schedule: { data: { schedules: [] } } }; }
     else if (/\/npcs\/[^/]+\/schedule$/.test(pathname)) body = { schedule: { data: { schedules: [] } } };
+    else if (pathname.includes("/court/mandates/") && pathname.endsWith("/schedule")) { const input = request.postDataJSON(); const mandateId = decodeURIComponent(pathname.split("/").at(-2)); body = { state: "COMPLETED", scheduleReceipt: { requestId: input.client_request_id, mandateId, mandateDigest: input.mandate_digest, heroId: "ZuoRu", npcId: "42", eventId: `dongzhou-mandate-${input.mandate_digest.slice(0, 32)}`, action: "insert_today", scheduleId: `dongzhou-mandate-${input.mandate_digest.slice(0, 32)}`, scheduleName: "临时外交军令", duplicate: false, reason: null, appliedAt: "0771-01-01 14:00:00", digest: "d".repeat(64) } }; }
     else if (/\/npcs\/[^/]+\/decisions$/.test(pathname)) {
       decisionCount += 1;
       const requestBody = request.postDataJSON();
@@ -88,7 +89,7 @@ const BASE_ORIGIN = new URL(BASE_URL).origin;
     await page.click("#officeBetrayButton");
     await page.waitForSelector("#officeAllianceLedger >> text=背盟待战");
     const state = await page.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization);
-    assert.equal(state.schemaVersion, 13);
+    assert.equal(state.schemaVersion, 14);
     assert.equal(state.selectedSources["01"].tier, "史实骨架");
     assert.equal(state.diplomacy.lobbying.length, 1);
     assert.equal(state.diplomacy.alliances[0].status, "broken");

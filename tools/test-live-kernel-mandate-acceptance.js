@@ -43,7 +43,7 @@ saveJournal();
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     await context.addInitScript((installation) => localStorage.setItem("dongzhou-installation-id-v1", installation), journal.installation);
     const page = await context.newPage();
-    const requests = { knowledge: 0, decision: 0, assignment: 0, mandate: 0, order: 0, taskRead: 0, save: 0 };
+    const requests = { knowledge: 0, decision: 0, assignment: 0, mandate: 0, scheduleInterruption: 0, order: 0, taskRead: 0, save: 0 };
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
     page.on("response", (response) => {
@@ -53,6 +53,7 @@ saveJournal();
       if (url.includes("/decisions")) requests.decision += 1;
       if (url.includes("/assignments/")) requests.assignment += 1;
       if (url.endsWith("/court/mandates")) requests.mandate += 1;
+      if (/\/court\/mandates\/[^/]+\/schedule$/.test(url)) requests.scheduleInterruption += 1;
       if (url.endsWith("/organization/tasks") && method === "POST") requests.order += 1;
       if (url.includes("/organization/tasks/") && method === "GET") requests.taskRead += 1;
       if (url.endsWith("/save") && method === "PUT") requests.save += 1;
@@ -168,6 +169,15 @@ saveJournal();
     assert(issued.mandate.emergency?.assessedAt);
     assert(issued.mandate.emergency?.event);
     if (issued.mandate.emergency.urgent) assert(issued.mandate.emergency.interruptTraceId);
+    assert.equal(requests.scheduleInterruption, 1, "Issued mandate must be submitted to the AINPC schedule owner exactly once");
+    assert.equal(issued.mandate.scheduleInterruption.mandateId, issued.mandate.id);
+    assert.equal(issued.mandate.scheduleInterruption.mandateDigest, issued.mandate.digest);
+    assert.match(issued.mandate.scheduleInterruption.digest, /^[0-9a-f]{64}$/);
+    assert(["insert_today", "future", "discard", "expired", "worthless"].includes(issued.mandate.scheduleInterruption.action));
+    if (["insert_today", "future"].includes(issued.mandate.scheduleInterruption.action)) {
+      assert(issued.mandate.scheduleInterruption.scheduleId);
+      assert(issued.mandate.scheduleInterruption.scheduleName);
+    }
     assert.equal(issued.task.mandate.id, issued.mandate.id);
     journal.remoteTask = issued.task.remoteResult;
     journal.mandateId = issued.mandate.id;
@@ -179,6 +189,7 @@ saveJournal();
     assert(imageSize > 10000, "mandate screenshot is unexpectedly blank");
     assert.match(await page.locator("#officeMandateLedger").innerText(), /属官执行中/);
     assert.match(await page.locator("#officeMandateLedger").innerText(), /印记/);
+    assert.match(await page.locator("#officeMandateLedger").innerText(), /今日插程|后续排程|日程裁定/);
     assert.match(await page.locator("#officeMandateLedger").innerText(), new RegExp(`史证${issued.mandate.evidenceFit.factor}/9`));
 
     } else {

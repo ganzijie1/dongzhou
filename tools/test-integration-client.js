@@ -20,6 +20,8 @@ let decisionAttempts = 0;
 const decisionIds = [];
 let mandateAttempts = 0;
 let mandateResumeAttempts = 0;
+let mandateScheduleAttempts = 0;
+const mandateScheduleIds = [];
 const mandateIds = [];
 let saveConflictEvents = 0;
 let sessionRequests = 0;
@@ -128,6 +130,17 @@ global.fetch = async (url, options = {}) => {
   else if (/\/court\/mandates\/[^/]+\/resume$/.test(url)) {
     mandateResumeAttempts += 1;
     response = { state: body.decision === "APPROVE" ? "ISSUED" : "REJECTED", mandate: { id: decodeURIComponent(url.split("/").at(-2)), digest: "a".repeat(64), state: body.decision === "APPROVE" ? "ISSUED" : "REJECTED" } };
+  }
+  else if (/\/court\/mandates\/[^/]+\/schedule$/.test(url)) {
+    mandateScheduleAttempts += 1;
+    mandateScheduleIds.push(body.client_request_id);
+    if (mandateScheduleAttempts === 1) {
+      status = 503;
+      response = { error: { code: "ainpc_schedule_interruption_unavailable", message: "retry schedule interruption" } };
+    } else {
+      const mandateId = decodeURIComponent(url.split("/").at(-2));
+      response = { state: "COMPLETED", scheduleReceipt: { requestId: body.client_request_id, mandateId, mandateDigest: body.mandate_digest, heroId: "DuBo", npcId: "42", eventId: `dongzhou-mandate-${body.mandate_digest.slice(0, 32)}`, action: "insert_today", scheduleId: `dongzhou-mandate-${body.mandate_digest.slice(0, 32)}`, scheduleName: "临时军令", duplicate: false, reason: null, appliedAt: "0771-01-01 14:00:00", digest: "d".repeat(64) } };
+    }
   }
   else if (url.endsWith("/organization/tasks")) {
     organizationAttempts += 1;
@@ -254,6 +267,10 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(approvedMandate.state, "ISSUED");
   assert.strictEqual(client.pendingCourtMandate().result.state, "ISSUED");
   assert.strictEqual(mandateResumeAttempts, 1);
+  await assert.rejects(() => client.scheduleCourtMandate(approvedMandate.mandate.id, approvedMandate.mandate.digest), /retry schedule interruption/);
+  const scheduledMandate = await client.scheduleCourtMandate(approvedMandate.mandate.id, approvedMandate.mandate.digest);
+  assert.strictEqual(scheduledMandate.scheduleReceipt.scheduleName, "临时军令");
+  assert.strictEqual(mandateScheduleIds[0], mandateScheduleIds[1]);
   client.acknowledgeCourtMandate(mandateInput);
   assert.ok(![...values.keys()].some((key) => key.startsWith("dongzhou-pending-mandate-v1:")));
   const input = { task_type: "supply", assignee_hero_id: "DuBo", stage_id: "01", stage_title: "东郊索命", brief: "test", parameters: {} };
@@ -310,7 +327,7 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(saveAttempts - attemptsBeforeConflict, 1, "Queued snapshots must not write after a conflict");
   await assert.rejects(() => client.persist({ completed: ["blocked"] }), /save_conflict_reload_required/);
   assert.strictEqual(saveConflictEvents, 1);
-  console.log(JSON.stringify({ result: "PASS", saveVersion, organizationAttempts, organizationReadAttempts, campaignRouteAttempts, decisionAttempts, mandateAttempts, mandateResumeAttempts, npcStateAttempts, npcScheduleAttempts, npcAssignmentAttempts, saveConflictEvents }));
+  console.log(JSON.stringify({ result: "PASS", saveVersion, organizationAttempts, organizationReadAttempts, campaignRouteAttempts, decisionAttempts, mandateAttempts, mandateResumeAttempts, mandateScheduleAttempts, npcStateAttempts, npcScheduleAttempts, npcAssignmentAttempts, saveConflictEvents }));
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;

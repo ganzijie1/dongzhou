@@ -26,6 +26,7 @@ class MandateUpstreams:
         self.assignment_available = True
         self.task_snapshot: dict[str, object] | None = None
         self.thoughts: list[tuple[int, dict[str, object]]] = []
+        self.interruptions: list[tuple[int, dict[str, object]]] = []
 
     async def health(self):
         return {
@@ -129,6 +130,17 @@ class MandateUpstreams:
             "urgent": True,
             "score": 81.25,
             "interruptTraceId": "emergency_evaluate:test-trace",
+        }
+
+    async def interrupt_npc_schedule(self, npc_id, payload):
+        self.interruptions.append((npc_id, payload))
+        return {
+            "action": "insert_today",
+            "eventId": payload["event_id"],
+            "scheduleId": payload["event_id"],
+            "scheduleName": "临时军令",
+            "duplicate": len(self.interruptions) > 1,
+            "reason": None,
         }
 
     async def stage_knowledge(self, stage_id):
@@ -635,6 +647,52 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
 
             mandate = approve_mandate(client, issued)
             assert mandate["state"] == "ISSUED"
+            schedule_request_id = str(uuid4())
+            scheduled = client.post(
+                f"/api/dongzhou/v1/court/mandates/{mandate['id']}/schedule",
+                json={
+                    "client_request_id": schedule_request_id,
+                    "mandate_digest": mandate["digest"],
+                },
+            )
+            assert scheduled.status_code == 200, scheduled.text
+            schedule_receipt = scheduled.json()["scheduleReceipt"]
+            assert schedule_receipt["action"] == "insert_today"
+            assert schedule_receipt["mandateId"] == mandate["id"]
+            assert schedule_receipt["mandateDigest"] == mandate["digest"]
+            assert schedule_receipt["scheduleName"] == "临时军令"
+            assert len(schedule_receipt["digest"]) == 64
+            assert upstreams.interruptions == [(
+                stable_npc_id(91001, "ZuoRu"),
+                upstreams.interruptions[0][1],
+            )]
+            interruption_payload = upstreams.interruptions[0][1]
+            assert interruption_payload["event_source"] == "event_report"
+            assert interruption_payload["event_importance"] == 81.25
+            assert interruption_payload["current_schedule_description"] == mandate["assignment"]["name"]
+            assert interruption_payload["raw_data"]["mandate_digest"] == mandate["digest"]
+
+            replayed_schedule = client.post(
+                f"/api/dongzhou/v1/court/mandates/{mandate['id']}/schedule",
+                json={
+                    "client_request_id": schedule_request_id,
+                    "mandate_digest": mandate["digest"],
+                },
+            )
+            assert replayed_schedule.status_code == 200
+            assert replayed_schedule.json()["replayed"] is True
+            assert replayed_schedule.json()["scheduleReceipt"] == schedule_receipt
+            assert len(upstreams.interruptions) == 1
+
+            wrong_schedule_seal = client.post(
+                f"/api/dongzhou/v1/court/mandates/{mandate['id']}/schedule",
+                json={
+                    "client_request_id": str(uuid4()),
+                    "mandate_digest": "0" * 64,
+                },
+            )
+            assert wrong_schedule_seal.status_code == 422
+            assert wrong_schedule_seal.json()["error"]["code"] == "court_mandate_mismatch"
             accepted = client.post("/api/dongzhou/v1/organization/tasks", json=order)
             assert accepted.status_code == 200
             assert accepted.json()["state"] == "ACCEPTED"

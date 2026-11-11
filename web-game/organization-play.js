@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 13;
+  const SCHEMA_VERSION = 14;
   const TASK_TYPES = {
     supply: { name: "转运军粮", office: "司徒", duration: 1, cost: 8, base: 72, reward: { provisions: 24 } },
     drill: { name: "整训军阵", office: "司马", duration: 1, cost: 6, base: 68, reward: { attack: 0.08 } },
@@ -203,6 +203,16 @@
     if (mandate.assignment.personality?.available === true && (!mandate.assignment.personality.profileId || !Array.isArray(mandate.assignment.personality.dominantTraits) || mandate.assignment.personality.fit?.available !== true || !Number.isFinite(Number(mandate.assignment.personality.fit.score)) || Number(mandate.assignment.personality.fit.score) < 0 || Number(mandate.assignment.personality.fit.score) > 100)) throw new Error("内核军令人格适岗证据无效");
     if (mandate.assignment.motivation?.available === true && (!Array.isArray(mandate.assignment.motivation.motives) || mandate.assignment.motivation.fit?.available !== true || !Number.isFinite(Number(mandate.assignment.motivation.fit.score)) || Number(mandate.assignment.motivation.fit.score) < 0 || Number(mandate.assignment.motivation.fit.score) > 100)) throw new Error("内核军令任务意愿证据无效");
     if (mandate.emergency && (typeof mandate.emergency.urgent !== "boolean" || !Number.isFinite(Number(mandate.emergency.score)) || Number(mandate.emergency.score) < 0 || !mandate.emergency.assessedAt || !mandate.emergency.event || (mandate.emergency.urgent && !mandate.emergency.interruptTraceId))) throw new Error("内核军令紧急评估无效");
+    const interruption = mandate.scheduleInterruption;
+    if (interruption && (
+      interruption.mandateId !== mandate.id
+      || interruption.mandateDigest !== mandate.digest
+      || interruption.heroId !== mandate.heroId
+      || !/^[0-9a-f]{64}$/.test(String(interruption.digest || ""))
+      || !String(interruption.eventId || "").startsWith("dongzhou-mandate-")
+      || !["insert_today", "future", "discard", "expired", "worthless"].includes(interruption.action)
+      || (["insert_today", "future"].includes(interruption.action) && (!interruption.scheduleId || !interruption.scheduleName))
+    )) throw new Error("属官日程中断回执无效");
     if (mandate.state !== "ISSUED" || !/^[0-9a-f]{64}$/.test(String(mandate.digest || "")) || !["READY", "DEGRADED"].includes(mandate.kernel?.state)) throw new Error("内核军令尚未签发或印记无效");
     if (mandate.operation && (mandate.taskType !== "diplomacy" || mandate.operation.kind !== "diplomacy" || !mandate.operation.target_id || !mandate.operation.target_name || !mandate.operation.proposal)) throw new Error("外交军令缺少目标或主张");
     const previous = state.mandates.find((entry) => entry.id === mandate.id);

@@ -251,6 +251,11 @@ class CourtMandateResumeRequest(StrictModel):
     decision: Literal["APPROVE", "REJECT"]
 
 
+class CourtMandateScheduleRequest(StrictModel):
+    client_request_id: UUID = Field(strict=False)
+    mandate_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
 class OrganizationTaskReviewRequest(StrictModel):
     action_id: UUID = Field(strict=False)
     decision: Literal["ACCEPT", "CENSURE"]

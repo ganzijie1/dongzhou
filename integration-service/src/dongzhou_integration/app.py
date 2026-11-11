@@ -18,7 +18,7 @@ from nexus_kernel.kernel import Kernel, LoadedModule, Module, ModuleContext
 
 from .config import Settings
 from .assignments import AssignmentUnavailable, select_assignment
-from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
+from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
@@ -2662,6 +2662,194 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=409,
             )
         return result
+
+    @router.post("/court/mandates/{mandate_id}/schedule")
+    async def schedule_court_mandate(
+        mandate_id: str,
+        request: CourtMandateScheduleRequest,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        try:
+            mandate_request_id = UUID(mandate_id.rsplit(":", 1)[-1])
+        except ValueError as error:
+            raise ApiError(
+                "court_mandate_not_found",
+                "The court mandate was not found.",
+                status_code=404,
+            ) from error
+        mandate_record = await store.read_request(
+            player_id, mandate_request_id, "court_mandate"
+        )
+        mandate_response = mandate_record.get("response") if mandate_record else None
+        mandate = (
+            mandate_response.get("mandate")
+            if isinstance(mandate_response, dict)
+            else None
+        )
+        if (
+            not mandate_record
+            or mandate_record.get("externalId") != mandate_id
+            or mandate_record.get("state") != "ISSUED"
+            or not isinstance(mandate, dict)
+            or mandate.get("state") != "ISSUED"
+        ):
+            raise ApiError(
+                "court_mandate_not_issued",
+                "Only an issued court mandate can interrupt an NPC schedule.",
+                status_code=409,
+            )
+        if mandate.get("digest") != request.mandate_digest:
+            raise ApiError(
+                "court_mandate_mismatch",
+                "The court mandate seal does not match this schedule request.",
+                status_code=422,
+            )
+
+        request_body = request.model_dump(mode="json")
+        try:
+            created, existing = await store.begin_request(
+                player_id,
+                request.client_request_id,
+                "court_mandate_schedule",
+                {"mandateId": mandate_id, **request_body},
+            )
+        except VersionConflict as error:
+            raise ApiError(
+                "idempotency_conflict",
+                "The request identifier was already used with different input.",
+                status_code=409,
+            ) from error
+        if not created:
+            if existing and existing.get("state") == "COMPLETED":
+                return {"replayed": True, **existing}
+            raise ApiError(
+                "court_schedule_in_progress",
+                "The same schedule interruption is still being applied.",
+                status_code=409,
+            )
+
+        assignment = mandate.get("assignment")
+        emergency = mandate.get("emergency")
+        thought_receipt = mandate.get("thought")
+        thought = (
+            thought_receipt.get("thought")
+            if isinstance(thought_receipt, dict)
+            else None
+        )
+        if not isinstance(assignment, dict) or not isinstance(emergency, dict):
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "REJECTED",
+                {"state": "REJECTED"},
+                "court_mandate_trace_invalid",
+            )
+            raise ApiError(
+                "court_mandate_trace_invalid",
+                "The issued mandate lacks a verified duty or emergency trace.",
+                status_code=422,
+            )
+
+        event_id = f"dongzhou-mandate-{request.mandate_digest[:32]}"
+        clock = await store.read_game_clock()
+        event_description = str(emergency.get("event") or mandate.get("stageTitle") or "")
+        event_importance = float(emergency.get("score") or assignment.get("importance") or 0)
+        current_importance = float(assignment.get("importance") or 0)
+        target_motives = (
+            thought.get("targetMotives")
+            if isinstance(thought, dict) and isinstance(thought.get("targetMotives"), list)
+            else []
+        )
+        try:
+            interruption = await upstreams.interrupt_npc_schedule(
+                stable_npc_id(
+                    settings.ainpc_game_server_id, str(mandate.get("heroId") or "")
+                ),
+                {
+                    "event_id": event_id,
+                    "event_source": "event_report",
+                    "event_description": event_description[:2000],
+                    "event_importance": max(0.0, min(100.0, event_importance)),
+                    "urgency_level": "urgent" if emergency.get("urgent") is True else "normal",
+                    "target_motives": target_motives,
+                    "current_schedule_description": str(assignment.get("name") or "")[:1000],
+                    "current_schedule_importance": max(0.0, min(100.0, current_importance)),
+                    "current_time": str(clock.get("virtualTime") or ""),
+                    "raw_data": {
+                        "mandate_id": mandate_id,
+                        "mandate_digest": request.mandate_digest,
+                        "stage_id": str(mandate.get("stageId") or ""),
+                        "task_type": str(mandate.get("taskType") or ""),
+                    },
+                },
+            )
+        except UpstreamUnavailable as error:
+            retryable = {
+                "state": "RETRYABLE",
+                "requestId": str(request.client_request_id),
+                "mandateId": mandate_id,
+            }
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "RETRYABLE",
+                retryable,
+                str(error),
+            )
+            raise ApiError(
+                "ainpc_schedule_interruption_unavailable",
+                "AINPC could not apply the issued mandate to the NPC schedule; it can be retried.",
+                status_code=503,
+            ) from error
+        if interruption["eventId"] != event_id:
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "REJECTED",
+                {"state": "REJECTED"},
+                "ainpc_schedule_interruption_mismatch",
+            )
+            raise ApiError(
+                "ainpc_schedule_interruption_mismatch",
+                "AINPC returned a schedule result for a different mandate event.",
+                status_code=502,
+            )
+
+        receipt = {
+            "requestId": str(request.client_request_id),
+            "mandateId": mandate_id,
+            "mandateDigest": request.mandate_digest,
+            "heroId": str(mandate.get("heroId") or ""),
+            "npcId": str(
+                stable_npc_id(
+                    settings.ainpc_game_server_id, str(mandate.get("heroId") or "")
+                )
+            ),
+            "eventId": event_id,
+            "action": interruption["action"],
+            "scheduleId": interruption["scheduleId"],
+            "scheduleName": interruption["scheduleName"],
+            "duplicate": interruption["duplicate"],
+            "reason": interruption["reason"],
+            "appliedAt": str(clock.get("virtualTime") or ""),
+        }
+        receipt["digest"] = hashlib.sha256(
+            json.dumps(
+                receipt,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                sort_keys=True,
+            ).encode("utf-8")
+        ).hexdigest()
+        response = {"state": "COMPLETED", "scheduleReceipt": receipt}
+        await store.finish_request(
+            player_id,
+            request.client_request_id,
+            "COMPLETED",
+            response,
+            external_id=event_id,
+        )
+        return response
 
     @router.get("/organization/roster")
     async def read_organization_roster(

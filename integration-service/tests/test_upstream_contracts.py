@@ -176,6 +176,40 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
             "methods": ["campaign_progression"],
         })
 
+    async def test_schedule_interruption_uses_formal_ainpc_contract(self) -> None:
+        seen: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen.append(request)
+            return httpx.Response(200, json={
+                "code": 200,
+                "message": "accepted",
+                "data": {
+                    "action": "insert_today",
+                    "event_id": "dongzhou-mandate-abc",
+                    "schedule_id": "dongzhou-mandate-abc",
+                    "schedule_name": "临时军令",
+                },
+            })
+
+        payload = {
+            "event_id": "dongzhou-mandate-abc",
+            "event_source": "event_report",
+            "event_description": "Urgent court mandate",
+            "event_importance": 91.0,
+        }
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            result = await Upstreams(settings(Path("unused")), client).interrupt_npc_schedule(42, payload)
+
+        self.assertEqual(result["action"], "insert_today")
+        self.assertEqual(result["scheduleName"], "临时军令")
+        self.assertEqual(seen[0].url.path, "/api/v1/schedule-interrupts/temp/generate")
+        self.assertEqual(seen[0].headers["Authorization"], "Bearer ainpc-token")
+        body = json.loads(seen[0].content)
+        self.assertEqual(body["game_server_id"], "91001")
+        self.assertEqual(body["npc_id"], "42")
+        self.assertEqual(body["event_id"], payload["event_id"])
+
     async def test_health_uses_formal_readiness_endpoints(self) -> None:
         paths: list[str] = []
 

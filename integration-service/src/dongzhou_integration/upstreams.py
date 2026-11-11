@@ -642,6 +642,62 @@ class Upstreams:
             payload={"game_server_id": str(self.settings.ainpc_game_server_id), "npc_id": str(npc_id), "force_regenerate": force_regenerate},
         )
 
+    async def interrupt_npc_schedule(
+        self, npc_id: int, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        response = await self._json(
+            "POST",
+            f"{self.settings.ainpc_url}/api/v1/schedule-interrupts/temp/generate",
+            token=self.settings.ainpc_token,
+            payload={
+                "game_server_id": str(self.settings.ainpc_game_server_id),
+                "npc_id": str(npc_id),
+                **payload,
+            },
+        )
+        data = response.get("data")
+        if response.get("code") not in (0, 200, "0", "200") or not isinstance(data, dict):
+            raise UpstreamUnavailable(
+                "AINPC returned an invalid schedule interruption.",
+                error_code="ainpc_schedule_interruption_invalid",
+                response_payload=response,
+            )
+        action = data.get("action")
+        if action not in {"insert_today", "future", "discard", "expired", "worthless"}:
+            raise UpstreamUnavailable(
+                "AINPC returned an unknown schedule interruption action.",
+                error_code="ainpc_schedule_interruption_invalid",
+                response_payload=response,
+            )
+        event_id = data.get("event_id")
+        if not isinstance(event_id, str) or not event_id:
+            raise UpstreamUnavailable(
+                "AINPC omitted the schedule interruption event ID.",
+                error_code="ainpc_schedule_interruption_invalid",
+                response_payload=response,
+            )
+        schedule_id = data.get("schedule_id")
+        schedule_name = data.get("schedule_name")
+        if action in {"insert_today", "future"} and (
+            not isinstance(schedule_id, str)
+            or not schedule_id
+            or not isinstance(schedule_name, str)
+            or not schedule_name.strip()
+        ):
+            raise UpstreamUnavailable(
+                "AINPC omitted the applied temporary schedule.",
+                error_code="ainpc_schedule_interruption_invalid",
+                response_payload=response,
+            )
+        return {
+            "action": action,
+            "eventId": event_id,
+            "scheduleId": schedule_id if isinstance(schedule_id, str) and schedule_id else None,
+            "scheduleName": schedule_name.strip() if isinstance(schedule_name, str) else None,
+            "duplicate": data.get("duplicate_event") is True,
+            "reason": str(data.get("reason") or "") or None,
+        }
+
     async def evaluate_emergency(
         self, npc_id: int, timestamp: str, description: str
     ) -> dict[str, Any]:

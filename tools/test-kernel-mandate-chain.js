@@ -46,12 +46,28 @@ const mandate = {
   digest: "a".repeat(64),
   state: "ISSUED"
 };
+mandate.scheduleInterruption = {
+  requestId: "00000000-0000-4000-8000-000000000004",
+  mandateId: mandate.id,
+  mandateDigest: mandate.digest,
+  heroId: mandate.heroId,
+  npcId: "42",
+  eventId: `dongzhou-mandate-${mandate.digest.slice(0, 32)}`,
+  action: "insert_today",
+  scheduleId: `dongzhou-mandate-${mandate.digest.slice(0, 32)}`,
+  scheduleName: "临时军令",
+  duplicate: false,
+  reason: null,
+  appliedAt: "0771-01-01 14:00:00",
+  digest: "d".repeat(64)
+};
 
 const recorded = play.recordMandate(state, mandate);
 state = recorded.state;
 assert.strictEqual(state.mandates.length, 1);
-assert.throws(() => play.recordMandate(state, { ...mandate, id: mandate.id + "-draft", state: "DRAFT" }), /尚未签发/);
-assert.throws(() => play.recordMandate(state, { ...mandate, digest: "b".repeat(64) }), /冲突/);
+assert.throws(() => play.recordMandate(state, { ...mandate, id: mandate.id + "-draft", state: "DRAFT", scheduleInterruption: undefined }), /尚未签发/);
+assert.throws(() => play.recordMandate(state, { ...mandate, digest: "b".repeat(64), scheduleInterruption: undefined }), /冲突/);
+assert.throws(() => play.recordMandate(play.defaultState(), { ...mandate, scheduleInterruption: { ...mandate.scheduleInterruption, mandateDigest: "b".repeat(64) } }), /日程中断回执无效/);
 
 const created = play.createTask(state, {
   type: "drill",
@@ -64,6 +80,7 @@ const created = play.createTask(state, {
 });
 created.task.remoteResult = "remote-mandate-task";
 assert.strictEqual(created.task.mandate.digest, mandate.digest);
+assert.strictEqual(created.task.mandate.scheduleInterruption.scheduleName, "临时军令");
 assert.equal(created.task.council.evidenceSource.retrieval.graphRelated, true);
 assert.equal(created.task.mandate.evidence.searchReceipt.digest, "c".repeat(64));
 assert.throws(() => play.createTask(state, {

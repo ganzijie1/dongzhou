@@ -184,6 +184,7 @@ async function openReady(page) {
       }
       else if (/\/npcs\/[^/]+\/schedule$/.test(pathName) && request.method() === "GET") body = { schedule: { data: { schedules: [{ date: "共和元年", events: [{ name: "整饬军粮" }, { name: "巡视营垒" }] }] } } };
       else if (/\/npcs\/[^/]+\/schedule$/.test(pathName)) body = { schedule: { data: { plan_id: "plan-e2e" } } };
+      else if (pathName.includes("/court/mandates/") && pathName.endsWith("/schedule")) { const input = request.postDataJSON(); const mandateId = decodeURIComponent(pathName.split("/").at(-2)); body = { state: "COMPLETED", scheduleReceipt: { requestId: input.client_request_id, mandateId, mandateDigest: input.mandate_digest, heroId: "ZuoRu", npcId: "42", eventId: `dongzhou-mandate-${input.mandate_digest.slice(0, 32)}`, action: "insert_today", scheduleId: `dongzhou-mandate-${input.mandate_digest.slice(0, 32)}`, scheduleName: "临时军令", duplicate: false, reason: null, appliedAt: "0771-01-01 14:00:00", digest: "d".repeat(64) } }; }
       else if (/\/npcs\/[^/]+\/decisions$/.test(pathName)) body = { state: "COMPLETED", decision: { data: { index: 1, type: "OPTION", text: "整军强攻，争取先机" } } };
       else if (pathName.endsWith("/court/mandates")) {
         mandateAttempts += 1;
