@@ -532,6 +532,47 @@ def _organization_roster_view(snapshot: Any, settings: Settings) -> dict[str, An
     }
 
 
+def _organization_inventory_view(snapshot: Any, settings: Settings) -> dict[str, Any]:
+    if not isinstance(snapshot, dict):
+        raise ValueError("inventory snapshot must be an object")
+    organization_id = str(snapshot.get("organization_id") or "")
+    game_server_id = str(snapshot.get("game_server_id") or "")
+    revision = snapshot.get("revision")
+    accounts = snapshot.get("accounts")
+    if organization_id != settings.orgflow_org_id or game_server_id != str(settings.game_server_id):
+        raise ValueError("inventory identity does not match configuration")
+    if isinstance(revision, bool) or not isinstance(revision, int) or revision < 0 or not isinstance(accounts, list):
+        raise ValueError("inventory snapshot is incomplete")
+    sanitized: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for account in accounts:
+        if not isinstance(account, dict):
+            raise ValueError("inventory account must be an object")
+        resource_key = str(account.get("resource_key") or "").strip()
+        balance = account.get("balance")
+        version = account.get("version")
+        if (
+            not resource_key
+            or resource_key in seen
+            or isinstance(balance, bool)
+            or not isinstance(balance, int)
+            or balance < 0
+            or isinstance(version, bool)
+            or not isinstance(version, int)
+            or version < 1
+        ):
+            raise ValueError("inventory account is invalid")
+        seen.add(resource_key)
+        sanitized.append({"resourceKey": resource_key, "balance": balance, "version": version})
+    sanitized.sort(key=lambda item: item["resourceKey"])
+    return {
+        "organizationId": organization_id,
+        "gameServerId": game_server_id,
+        "revision": revision,
+        "accounts": sanitized,
+    }
+
+
 def _organization_supervision_links(
     roster: dict[str, Any], mapped_npcs: list[dict[str, str]], organization_id: str,
 ) -> list[dict[str, Any]]:
@@ -2291,6 +2332,35 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             raise ApiError(
                 "organization_roster_contract_invalid",
                 "Organization roster response is invalid.",
+                status_code=502,
+            ) from error
+
+    @router.get("/organization/inventory")
+    async def read_organization_inventory(
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        del player_id
+        if not settings.orgflow_org_id:
+            raise ApiError(
+                "organization_not_configured",
+                "Organization integration is not configured.",
+                status_code=503,
+            )
+        try:
+            response = await upstreams.organization_inventory(settings.orgflow_org_id)
+            if not isinstance(response, dict):
+                raise ValueError("inventory response must be an object")
+            return _organization_inventory_view(response.get("data"), settings)
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "organization_inventory_unavailable",
+                "Organization inventory is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        except (AttributeError, ValueError) as error:
+            raise ApiError(
+                "organization_inventory_contract_invalid",
+                "Organization inventory response is invalid.",
                 status_code=502,
             ) from error
 

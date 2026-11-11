@@ -84,6 +84,9 @@ global.fetch = async (url, options = {}) => {
   else if (url.endsWith("/organization/roster")) {
     response = { organization: { name: "东周军府", growthContribution: 245 }, members: [{ heroId: "DuBo", lifetimeEarned: 80 }] };
   }
+  else if (url.endsWith("/organization/inventory")) {
+    response = { organizationId: "court", gameServerId: "91001", revision: 7, accounts: [{ resourceKey: "task.execution", balance: 128, version: 3 }] };
+  }
   else if (url.endsWith("/npcs/interaction-preference")) {
     npcInteractionPreferenceInput = body;
     response = { enabled: body.enabled, source: "dongzhou-player-settings", updatedAt: "2026-11-11T12:00:00Z" };
@@ -180,6 +183,9 @@ const client = require("../web-game/integration-client.js");
   const roster = await client.organizationRoster();
   assert.strictEqual(roster.organization.growthContribution, 245);
   assert.strictEqual(roster.members[0].heroId, "DuBo");
+  const inventory = await client.organizationInventory();
+  assert.strictEqual(inventory.accounts[0].balance, 128);
+  assert.strictEqual(inventory.revision, 7);
   const interactionPreference = await client.setNpcInteractionPreference(false);
   assert.strictEqual(interactionPreference.enabled, false);
   assert.deepStrictEqual(npcInteractionPreferenceInput, { enabled: false });

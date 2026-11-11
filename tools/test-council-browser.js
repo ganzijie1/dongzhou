@@ -37,6 +37,7 @@ async function setup(browser) {
     } else if(p.endsWith('/integration/status')) body={mode:'connected',organizationId:'test',services:{nexusKernel:{online:true},orgFlow:{online:true},aiNpc:{online:true},knowledge:{online:true}}};
     else if(p.endsWith('/npcs/interaction-preference')) body={enabled:req.postDataJSON().enabled,source:'dongzhou-player-settings',updatedAt:'2026-11-11T12:00:00Z'};
     else if(p.endsWith('/organization/roster')) body={organization:{id:'test',name:'东周军府',state:'ACTIVE',growthContribution:0},members:[]};
+    else if(p.endsWith('/organization/inventory')) body={organizationId:'test',gameServerId:'91001',revision:7,accounts:[{resourceKey:'task.execution',balance:128,version:3}]};
     else if(p.endsWith('/knowledge/codex')) body={results:[clone(CODEX_ENTRY)]};
     else if(p.endsWith('/knowledge/stages/01')) body={mode:'connected',results:[{id:'dongzhou_stage_001',name:'Stage One Source',summary:'Published source for this stage.',stageId:'01',sourceDetails:[{work:'《史记·周本纪》',tier:'史实骨架',scope:'千亩之败',url:'https://ctext.org/shiji/zhou-ben-ji'}]}]};
     else if(p.endsWith('/knowledge/search')) body={mode:'connected',results:[{id:'dongzhou_stage_001',name:'Stage One Source',summary:'Published source for this stage.',stageId:'01',retrieval:{aggregateScore:.47,strongestChannel:'graph',graphRelated:true,channels:[{channel:'graph',score:1,normalizedScore:1,rank:1},{channel:'bm25',score:7,normalizedScore:.8,rank:2}]},searchReceipt:{id:'dongzhou:council-test-player:00000000-0000-4000-8000-000000000088',digest:'c'.repeat(64)},sourceDetails:[{work:'《史记·周本纪》',tier:'史实骨架',scope:'千亩之败',url:'https://ctext.org/shiji/zhou-ben-ji'}]}]};
@@ -76,6 +77,9 @@ async function decide(page) {await page.locator('#officeDecisionForm button[type
   const browser=await chromium.launch({headless:true,...(executablePath?{executablePath}:{})});
   try {
     const happy=await setup(browser), {page,model}=happy;
+    await page.waitForSelector('#officeInventoryAccounts >> text=差事额度');
+    assert.match(await page.locator('.office-inventory').innerText(),/差事额度\s+128/);
+    assert.match(await page.locator('.office-inventory').innerText(),/账本第 7 版/);
     await page.waitForSelector('#officeNpcState >> text=人情簿');
     assert.match(await page.locator('#officeNpcState').innerText(),/左儒[\s\S]*敬重 68/);
     assert.match(await page.locator('#officeNpcState').innerText(),/左儒[\s\S]*司徒 · 相互/);

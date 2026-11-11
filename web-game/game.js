@@ -88,6 +88,7 @@
   let officeNpcSyncQueue = Promise.resolve();
   let officeNpcRefreshTimer = null;
   let officeNpcRefreshSerial = 0;
+  let officeInventoryView = null;
 
   const canvas = $("#battleCanvas");
   const ctx = canvas.getContext("2d");
@@ -946,6 +947,44 @@
     renderOrganizationPanel();
   }
 
+  function officeInventoryLabel(resourceKey) {
+    return ({ "task.execution": "差事额度", "guild.capacity": "组织容量" })[resourceKey] || resourceKey.replace(/[._-]+/g, " ");
+  }
+
+  function renderOfficeInventory() {
+    const accounts = Array.isArray(officeInventoryView?.accounts) ? officeInventoryView.accounts : [];
+    $("#officeInventoryRevision").textContent = officeInventoryView?.error
+      ? "实账暂不可达"
+      : officeInventoryView
+        ? `账本第 ${Number(officeInventoryView.revision || 0)} 版`
+        : "等待朝议实账";
+    $("#officeInventoryAccounts").innerHTML = officeInventoryView?.loading
+      ? "<li>正在清点…</li>"
+      : accounts.length
+        ? accounts.map((account) => `<li><span>${escapeHtml(officeInventoryLabel(account.resourceKey))}</span><strong>${Number(account.balance || 0)}</strong></li>`).join("")
+        : `<li>${officeInventoryView?.error ? "稍后可重新调阅" : "当前无公共库存科目"}</li>`;
+  }
+
+  async function refreshOfficeInventory() {
+    if (integration.isOffline()) {
+      officeInventoryView = { error: true, accounts: [] };
+      renderOfficeInventory();
+      return;
+    }
+    officeInventoryView = { ...(officeInventoryView || {}), loading: true };
+    renderOfficeInventory();
+    const button = $("#officeInventoryRefresh");
+    button.disabled = true;
+    try {
+      officeInventoryView = await integration.organizationInventory();
+    } catch (_) {
+      officeInventoryView = { error: true, accounts: [] };
+    } finally {
+      button.disabled = false;
+      renderOfficeInventory();
+    }
+  }
+
   function renderOrganizationPanel() {
     if (!organization || !campaign) return;
     const record = officeStage();
@@ -956,6 +995,7 @@
     $("#officeContribution").textContent = org.contribution;
     $("#officeActiveTasks").textContent = org.tasks.filter((task) => task.status === "active").length;
     $("#officeSupportCount").textContent = org.pendingSupport.length;
+    renderOfficeInventory();
     const serviceLabels = [["nexusKernel", "内核"], ["orgFlow", "朝议"], ["aiNpc", "属官"], ["knowledge", "史官"]];
     $("#officeServiceStatus").innerHTML = serviceLabels.map(([key, label]) => `<span class="${org.backend[key] ? "online" : "local"}"><i></i>${label}${org.backend[key] ? "通达" : "本地推演"}</span>`).join("");
     $("#officeModeText").textContent = integration.isOffline() ? "当前为显式离线演算，属官与官署结果仅保存在本机。" : org.backend.mode === "connected" ? "朝议、属官与史官已互通；远端未确认的结果不会在本地结算。" : "官署服务暂不可达，联网玩法已暂停。";
@@ -1020,6 +1060,7 @@
       if (services.orgFlow?.online) {
         const roster = await integration.organizationRoster();
         profile.organization = organization.recordRemoteRoster(profile.organization, roster);
+        await refreshOfficeInventory();
       }
     } catch (_) {
       profile.organization = organization.updateBackend(profile.organization, { nexusKernel: false, orgFlow: false, aiNpc: false, knowledge: false });
@@ -1724,6 +1765,7 @@
         saveOrganization(created.state);
       }
       showNotice(`${created.task.assigneeName}已领命：${created.task.name}`);
+      refreshOfficeInventory().catch(() => {});
       return created.task;
     } catch (error) {
       showNotice(error.message);
@@ -3637,6 +3679,7 @@
     $("#officeTaskType").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOrganizationPanel(); refreshOfficeNpcAssignment(); });
     $("#officeMemberSelect").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOfficeCouncil(); refreshOfficeNpcState(); });
     $("#officeCorrespondenceRefresh").addEventListener("click", () => refreshOfficeCorrespondence());
+    $("#officeInventoryRefresh").addEventListener("click", refreshOfficeInventory);
     $("#officeMessageForm").addEventListener("submit", sendOfficeNpcMessage);
     $("#officeCorrespondence").addEventListener("click", (event) => { const button = event.target.closest("[data-correspondence-id]"); if (button) selectOfficeCorrespondence(button.dataset.correspondenceId); });
     $("#officeScheduleButton").addEventListener("click", generateOfficeNpcSchedule);

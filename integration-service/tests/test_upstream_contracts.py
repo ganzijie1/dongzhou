@@ -449,6 +449,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
             await upstreams.trigger_virtual_task("org-id", {"source_event_id": "stable"})
             await upstreams.get_virtual_task("org-id", "task-id")
             await upstreams.organization_roster("org-id")
+            await upstreams.organization_inventory("org-id")
             relationship = await upstreams.ensure_organization_supervision(
                 subordinate_npc_id="42",
                 manager_npc_id="43",
@@ -505,6 +506,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("/internal/v1/organization-administration/organizations/org-id/virtual-task-triggers", paths)
         self.assertIn("/internal/v1/organization-administration/organizations/org-id/virtual-tasks/task-id", paths)
         self.assertIn("/internal/v1/organization-administration/organizations/org-id/roster", paths)
+        self.assertIn("/internal/v1/organization-administration/organizations/org-id/inventory", paths)
         self.assertIn("/ai/npc/register/batch", paths)
         self.assertIn("/callback/npc-lifecycle/online_state", paths)
         self.assertIn("/api/v1/npc-lifecycle/relogin", paths)

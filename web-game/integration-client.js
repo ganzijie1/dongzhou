@@ -397,6 +397,7 @@
   }
   function organizationTask(taskId) { return requestWithTransientRetry(`/organization/tasks/${encodeURIComponent(taskId)}`); }
   function organizationRoster() { return requestWithTransientRetry("/organization/roster"); }
+  function organizationInventory() { return requestWithTransientRetry("/organization/inventory"); }
   function reviewOrganizationTask(taskId, input) {
     return request(`/organization/tasks/${encodeURIComponent(taskId)}/review`, { method: "POST", body: JSON.stringify(input) });
   }
@@ -413,5 +414,5 @@
     return { mode: "offline", stageId, results };
   }
 
-  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, syncNpcs, setNpcInteractionPreference, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, reviewOrganizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, syncNpcs, setNpcInteractionPreference, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationInventory, reviewOrganizationTask, isOffline: () => offline };
 });
