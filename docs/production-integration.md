@@ -4,7 +4,7 @@
 
 浏览器只访问 `dongzhou-integration-service`。该服务基于 NexusKernel，持有服务端存档、玩家会话、幂等记录和上游凭据；H5 不直接访问 AINPC、orgFlowEngine 或 knowledge-jizhan。
 
-本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。当前网关镜像为 `dongzhou-integration:20261112-local-complete87`，AINPC 八角色镜像为 `ainpc-app:v20261112-dongzhou-local-complete61`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete86`。当前版本覆盖双向府中书问、玩家来信偏好、90 天当值计划、自主进言、已签军令临时插程、组织谱系与贡献实账、12 席权威名册、玩家仕途、人工复命裁决、军需调拨、史料军议结算、NexusKernel 封存的史官问对，以及实际参战属官的战后重要事件、长期经历和权威战果情绪；真实浏览器已完成四服务签令到战斗承接、战报回写、问对刷新恢复及 320px 进言验收。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
+本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。当前网关镜像为 `dongzhou-integration:20261112-local-complete88`，AINPC 八角色镜像为 `ainpc-app:v20261112-dongzhou-local-complete61`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete86`。当前版本覆盖双向府中书问、玩家来信偏好、90 天当值计划、自主进言、已签军令临时插程、组织谱系与贡献实账、12 席权威名册、玩家仕途、人工复命裁决、军需调拨、史料军议结算、三种知识图谱行军路线、NexusKernel 封存的史官问对，以及实际参战属官的战后重要事件、长期经历和权威战果情绪；真实浏览器已完成四服务签令到战斗承接、战报回写、问对刷新恢复、桌面与移动端择路及 320px 进言验收。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
 
 ## 发布顺序
 
@@ -49,11 +49,12 @@
 - knowledge-jizhan 不可用时返回 `503`；只有显式 `?offline=1` 才使用本地演算。
 - 在线知识结果只接受 `dongzhou_stage_*` AKU。网关扩大候选召回后再做领域过滤，共享知识库中的其他游戏记录不会进入东周 H5。
 - 官署“本回史料”通过 `/api/dongzhou/v1/knowledge/stages/{stage_id}` 按当前战役精确读取已发布 AKU，并加入玩家简册用于筹备。此入口不依赖 LLM 查询解析；本地目录仅映射关卡和 AKU 编号，在线正文仍来自 knowledge-jizhan。全文搜索故障时继续明确报错，不自动切换本地资料。
+- 相邻关卡通过 knowledge-jizhan 的正式地图跳转接口分别查询 `campaign_progression`、`fixed_point` 和 `npc_dialog`。网关逐项校验起止地图、定点坐标及向导对话后才下发三种行军方案；前端选择只引用这组已核验结果，并在开战时一次扣除对应军粮、调整士气。知识服务不可用或任一路线结构不合法时不允许用本地伪路线开战。
 - 关卡编号使用目录映射，不能从 AKU 编号推算；例如 `dongzhou_stage_004` 对应 `03b`，并非关卡 `04`。
 
 ## 发布门禁
 
-当前验收记录（2026-11-12）：真实网关、AINPC、orgFlowEngine、knowledge-jizhan 和嵌入式 NexusKernel 均在线。无 API 拦截浏览器在任务 `cd9d873a-9264-53d1-bfc0-90048f909f11` 上验证了史料、军议、签令、领命、复命、NPC 审核、玩家收纳复命、云存档重载和战斗承接，且恢复没有重复建单；证据见 `output/integration-validation/live-kernel-mandate-complete38-race-fixed.json` 与 `live-kernel-mandate-complete40-final.png`。该任务及任务 `b2b66b37-732c-507b-970d-fb0ff7511698` 的长期经历已从 AINPC 自有持久库回读确认。公共库藏军需调拨已用真实浏览器证明草案零扣款、NexusKernel 签发后 `task.execution` 余额 `60 -> 40`、军粮 `100 -> 112`、驳回零扣款、云档重载和幂等回放；320px 确认面板无溢出。已签军令入程通过真实浏览器证明仅调用一次 AINPC 日程中断并继续完成 orgFlow 任务、复命裁决、库存奖励、云档与战斗承接；证据为 `live-mandate-schedule-complete77.png`。东周网关测试为 `89 passed, 21 subtests passed`，12 席真实浏览器名册验收通过。实际公网 TLS、后端端口隔离、可信回调网络及宿主重启恢复仍需独立验收。
+当前验收记录（2026-11-12）：真实网关、AINPC、orgFlowEngine、knowledge-jizhan 和嵌入式 NexusKernel 均在线。无 API 拦截浏览器在任务 `cd9d873a-9264-53d1-bfc0-90048f909f11` 上验证了史料、军议、签令、领命、复命、NPC 审核、玩家收纳复命、云档重载和战斗承接，且恢复没有重复建单；证据见 `output/integration-validation/live-kernel-mandate-complete38-race-fixed.json` 与 `live-kernel-mandate-complete40-final.png`。该任务及任务 `b2b66b37-732c-507b-970d-fb0ff7511698` 的长期经历已从 AINPC 自有持久库回读确认。公共库藏军需调拨已用真实浏览器证明草案零扣款、NexusKernel 签发后 `task.execution` 余额 `60 -> 40`、军粮 `100 -> 112`、驳回零扣款、云档重载和幂等回放；320px 确认面板无溢出。已签军令入程通过真实浏览器证明仅调用一次 AINPC 日程中断并继续完成 orgFlow 任务、复命裁决、库存奖励、云档与战斗承接；证据为 `live-mandate-schedule-complete77.png`。三种知识图谱行军路线已在桌面与 390px 移动端真实开战验证，证据为 `campaign-routes-desktop-live.png` 和 `campaign-routes-mobile-live.png`。东周网关测试为 `98 passed, 21 subtests passed`，12 席真实浏览器名册验收通过。实际公网 TLS、后端端口隔离、可信回调网络及宿主重启恢复仍需独立验收。
 
 运行 `integration-service/.venv/Scripts/python.exe tools/verify-live-integration.py --url <网关地址> --output output/integration-validation/live-smoke.json` 验证真实健康、独立访客存档及冲突隔离、首中末关卡已发布史料、AI 检索、NPC 状态和 90 天日程。任一项失败则退出码非零；此检查不会派差或推进共享游戏时钟，不能代替任务复命与发布验收。
 
