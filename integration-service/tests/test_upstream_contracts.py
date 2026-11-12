@@ -707,6 +707,15 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                 },
                 idempotency_key="dongzhou-settlement-reward:settlement-1",
             )
+            await upstreams.credit_organization_growth(
+                "org-id",
+                {
+                    "source_type": "task.settlement",
+                    "source_id": "settlement-1",
+                    "amount": 100,
+                },
+                idempotency_key="dongzhou-settlement-growth:settlement-1",
+            )
             relationship = await upstreams.ensure_organization_supervision(
                 subordinate_npc_id="42",
                 manager_npc_id="43",
@@ -847,6 +856,19 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
             "resource_key": "task.execution",
             "delta_units": 100,
             "reason_code": "TASK_SETTLEMENT_ACCEPTED",
+        })
+        growth_request = next(
+            request for request in seen
+            if request.url.path.endswith("/growth-credits")
+        )
+        self.assertEqual(
+            growth_request.headers.get("idempotency-key"),
+            "dongzhou-settlement-growth:settlement-1",
+        )
+        self.assertEqual(json.loads(growth_request.content), {
+            "source_type": "task.settlement",
+            "source_id": "settlement-1",
+            "amount": 100,
         })
         self.assertIn("/ai/npc/register/batch", paths)
         self.assertIn("/callback/npc-lifecycle/online_state", paths)

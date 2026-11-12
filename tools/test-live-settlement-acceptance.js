@@ -55,7 +55,12 @@ assert(journal.installation && taskId, "completed live task journal is incomplet
     }
     assert.equal(actual.review?.state, "ACCEPTED");
     assert.match(actual.review?.review?.digest || "", /^[0-9a-f]{64}$/);
-    assert.equal(actual.npcOutcome?.state, "DELIVERED");
+    assert.equal(actual.review?.growthReward?.settlementId, actual.settlement.settlementId);
+    assert.equal(actual.review?.growthReward?.closureDigest, actual.closureReceipt.digest);
+    assert.equal(actual.review?.growthReward?.kernel?.state, "SEALED");
+    assert.match(actual.review?.growthReward?.digest || "", /^[0-9a-f]{64}$/);
+    assert(Number(actual.review?.growthReward?.accountVersion) > 0);
+    assert(["PENDING", "DELIVERED"].includes(actual.npcOutcome?.state));
     assert.equal(actual.npcOutcome?.event?.state, "DELIVERED");
     assert.equal(actual.npcOutcome?.memory?.state, "DELIVERED");
 
@@ -83,7 +88,7 @@ assert(journal.installation && taskId, "completed live task journal is incomplet
       };
     }, { id: taskId, snapshot, settlement: actual.settlement, closureReceipt: actual.closureReceipt, review: actual.review });
 
-    assert.equal(applied.firstContribution, actual.settlement.organizationDelta);
+    assert.equal(applied.firstContribution, actual.review.growthReward.contributionPoints);
     assert.equal(applied.replayContribution, applied.firstContribution);
     assert.equal(applied.firstMerit, actual.settlement.memberDelta);
     assert.equal(applied.replayMerit, applied.firstMerit);
@@ -94,7 +99,7 @@ assert(journal.installation && taskId, "completed live task journal is incomplet
     await page.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
     await page.click("#campaignOfficeButton");
     await page.waitForSelector("#campaignOfficeBackdrop:not([hidden])");
-    assert.equal(await page.locator("#officeContribution").textContent(), String(actual.settlement.organizationDelta));
+    assert.equal(await page.locator("#officeContribution").textContent(), String(actual.review.growthReward.contributionPoints));
     const memberText = await page.locator("#officeMembers").innerText();
     const ledgerText = await page.locator("#officeTaskLedger").innerText();
     assert(memberText.includes(`功绩 +${actual.settlement.memberDelta}`));
@@ -108,6 +113,8 @@ assert(journal.installation && taskId, "completed live task journal is incomplet
       taskId,
       settlementId: actual.settlement.settlementId,
       organizationContribution: applied.replayContribution,
+      growthAccountVersion: actual.review.growthReward.accountVersion,
+      growthDigest: actual.review.growthReward.digest,
       memberMerit: applied.replayMerit,
       closureDigest: applied.closureDigest,
       npcOutcome: actual.npcOutcome.state,

@@ -252,16 +252,21 @@ saveJournal();
       const reviewContext = await page.evaluate(async (key) => {
         const organization = JSON.parse(localStorage.getItem(key)).organization;
         const task = organization.tasks.find((entry) => entry.status === "active" && entry.pendingReview?.state === "REQUIRES_ACTION");
-        const response = await fetch("/api/dongzhou/v1/organization/inventory", { cache: "no-store" });
+        const [response, roster] = await Promise.all([
+          fetch("/api/dongzhou/v1/organization/inventory", { cache: "no-store" }),
+          window.DongzhouIntegration.organizationRoster()
+        ]);
         if (!response.ok) throw new Error("Unable to read authoritative inventory before settlement review");
         const inventory = await response.json();
         const account = inventory.accounts.find((entry) => entry.resourceKey === "task.execution");
         return {
           taskId: task.remoteResult,
           actionId: task.pendingReview.action.actionId,
+          closureDigest: task.pendingReview.review.closureDigest,
           rewardUnits: Number(task.pendingSettlement.organizationDelta),
           balance: Number(account?.balance || 0),
-          revision: Number(inventory.revision || 0)
+          revision: Number(inventory.revision || 0),
+          growthContribution: Number(roster.organization.growthContribution || 0)
         };
       }, PROFILE);
       assert(reviewContext.rewardUnits > 0, "accepted settlement must carry a positive organization reward");
@@ -352,6 +357,22 @@ saveJournal();
       );
       assert.equal(replay.replayed, true, "settlement review replay was not recognized");
       assert.equal(replay.inventoryReward?.delta, reviewContext.rewardUnits, "settlement reward receipt has the wrong delta");
+      assert.equal(replay.growthReward?.amount, reviewContext.rewardUnits, "settlement growth receipt has the wrong amount");
+      assert.equal(replay.growthReward?.closureDigest, reviewContext.closureDigest, "settlement growth receipt is not bound to the closure seal");
+      assert.equal(replay.growthReward?.kernel?.state, "SEALED", "settlement growth receipt is not Nexus-sealed");
+      assert.match(replay.growthReward?.digest || "", /^[0-9a-f]{64}$/);
+      assert(Number(replay.growthReward?.accountVersion) > 0, "settlement growth receipt has no account version");
+      assert(
+        replay.growthReward.contributionPoints === reviewContext.growthContribution + reviewContext.rewardUnits
+          || replay.growthReward.contributionPoints === reviewContext.growthContribution,
+        "settlement growth receipt does not match a fresh or recovered idempotent credit"
+      );
+      const rosterAfter = await page.evaluate(() => window.DongzhouIntegration.organizationRoster());
+      assert.equal(
+        Number(rosterAfter.organization.growthContribution),
+        replay.growthReward.contributionPoints,
+        "authoritative organization growth did not receive the settlement credit"
+      );
       const credited = await page.evaluate(async (balanceAfter) => {
         const deadline = Date.now() + 45000;
         while (Date.now() < deadline) {
@@ -384,6 +405,13 @@ saveJournal();
         delta: reviewContext.rewardUnits,
         revisionBefore: replay.inventoryReward.inventoryRevision - 1,
         revisionAfter: Number(replayInventory.revision)
+      };
+      inventoryReward.growth = {
+        contributionBefore: reviewContext.growthContribution,
+        contributionAfter: replay.growthReward.contributionPoints,
+        amount: replay.growthReward.amount,
+        accountVersion: replay.growthReward.accountVersion,
+        digest: replay.growthReward.digest
       };
       settlementReviewed = true;
       journal.stage = "support-reconcile";

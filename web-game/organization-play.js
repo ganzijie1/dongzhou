@@ -559,7 +559,10 @@
           throw new Error("内核结案印记无效");
         }
         if (state.settlementIds.includes(settlementId)) continue;
-        state.contribution = Math.trunc(clamp(state.contribution + organizationDelta, -999999, 999999));
+        const sealedGrowth = snapshot.review?.growthReward;
+        state.contribution = sealedGrowth && Number.isSafeInteger(sealedGrowth.contributionPoints)
+          ? Math.trunc(clamp(sealedGrowth.contributionPoints, -999999, 999999))
+          : Math.trunc(clamp(state.contribution + organizationDelta, -999999, 999999));
         member.merit = Math.trunc(clamp(member.merit + memberDelta, -999999, 999999));
         const influenceDelta = organizationDelta === 0 ? 0 : Math.sign(organizationDelta) * Math.max(1, Math.ceil(Math.abs(organizationDelta) / 50));
         state.influence = clamp(state.influence + influenceDelta, 0, 999);
@@ -625,6 +628,24 @@
     if (!pending || pending.review?.settlementId !== review.review?.settlementId || pending.review?.closureDigest !== review.review?.closureDigest) {
       throw new Error("复命裁决印记与待裁簿书不匹配");
     }
+    const growth = review.growthReward;
+    const expectsGrowth = review.state === "ACCEPTED" && Number(task.pendingSettlement?.organizationDelta || 0) > 0;
+    const validGrowth = growth
+      && growth.settlementId === review.review.settlementId
+      && growth.taskId === String(task.remoteResult)
+      && growth.closureDigest === review.review.closureDigest
+      && Number.isSafeInteger(growth.amount)
+      && growth.amount > 0
+      && Number.isSafeInteger(growth.contributionPoints)
+      && growth.contributionPoints >= growth.amount
+      && Number.isSafeInteger(growth.accountVersion)
+      && growth.accountVersion > 0
+      && typeof growth.digest === "string"
+      && /^[0-9a-f]{64}$/.test(growth.digest)
+      && growth.kernel?.state === "SEALED";
+    if (expectsGrowth && !validGrowth) throw new Error("复命记功印记无效");
+    if (growth && !validGrowth) throw new Error("复命记功与待裁簿书不匹配");
+    if (validGrowth) state.contribution = growth.contributionPoints;
     task.pendingReview = copy(review);
     return { state, task: copy(task) };
   }

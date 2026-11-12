@@ -129,7 +129,27 @@ state = play.reconcileRemoteTasks(remote.state, [{
 }], { advanceMonth: false });
 assert.strictEqual(state.tasks.at(-1).status, "active");
 assert.strictEqual(state.pendingSupport.some((entry) => entry.id === remote.task.id), false);
-const acceptedReview = { state: "ACCEPTED", review: { ...pendingReview.review, state: "ACCEPTED", decision: "ACCEPT" } };
+const acceptedReview = {
+  state: "ACCEPTED",
+  review: { ...pendingReview.review, state: "ACCEPTED", decision: "ACCEPT" },
+  growthReward: {
+    settlementId: authoritativeSettlement.settlementId,
+    taskId: remote.task.remoteResult,
+    closureDigest: closureReceipt.digest,
+    amount: 100,
+    contributionPoints: contributionBefore + 100,
+    accountVersion: 2,
+    digest: "d".repeat(64),
+    kernel: { state: "SEALED" }
+  }
+};
+assert.throws(
+  () => play.recordTaskReview(state, {
+    taskId: remote.task.remoteResult,
+    review: { state: "ACCEPTED", review: acceptedReview.review }
+  }),
+  /记功印记无效/
+);
 state = play.recordTaskReview(state, { taskId: remote.task.remoteResult, review: acceptedReview }).state;
 assert.strictEqual(play.remoteTaskReadyForAdvance({ final_result: "SUCCESS", settlement: authoritativeSettlement, review: acceptedReview }), true);
 state = play.reconcileRemoteTasks(state, [{

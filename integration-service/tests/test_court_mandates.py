@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import sqlite3
 import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -23,6 +24,7 @@ class MandateUpstreams:
         self.triggers: list[dict[str, object]] = []
         self.events: list[tuple[str, dict[str, object]]] = []
         self.inventory_adjustments: list[tuple[str, dict[str, object], str]] = []
+        self.growth_credits: list[tuple[str, dict[str, object], str]] = []
         self.knowledge_available = True
         self.assignment_available = True
         self.task_snapshot: dict[str, object] | None = None
@@ -296,6 +298,21 @@ class MandateUpstreams:
             }
         }
 
+    async def credit_organization_growth(
+        self, organization_id, payload, *, idempotency_key
+    ):
+        self.growth_credits.append(
+            (organization_id, dict(payload), idempotency_key)
+        )
+        return {
+            "data": {
+                "organization_id": organization_id,
+                "game_server_id": "91001",
+                "contribution_points": 100,
+                "version": 1,
+            }
+        }
+
 
 def configured(path: Path) -> Settings:
     return Settings(
@@ -459,7 +476,7 @@ def test_council_memory_is_recalled_verified_and_sealed_into_mandate() -> None:
             mandate = draft.json()["mandate"]
             assert mandate["memory"]["digest"] == memory["digest"]
             assert mandate["council"]["memory"]["idempotencyKey"] == memory["idempotencyKey"]
-            assert mandate["kernel"]["moduleVersion"] == "1.7.0"
+            assert mandate["kernel"]["moduleVersion"] == "1.8.0"
 
 
 def test_ainpc_correspondence_is_recomputed_and_sealed() -> None:
@@ -923,8 +940,9 @@ def test_graph_search_receipt_is_sealed_into_council_and_mandate() -> None:
 def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> None:
     with TemporaryDirectory() as directory:
         upstreams = MandateUpstreams()
+        database = Path(directory) / "gateway.sqlite3"
         app = build_application(
-            configured(Path(directory) / "gateway.sqlite3"), upstreams=upstreams
+            configured(database), upstreams=upstreams
         )
         with TestClient(app) as client:
             start_session(client)
@@ -1003,7 +1021,7 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert review["state"] == "REQUIRES_ACTION"
             assert review["review"]["settlementId"] == settlement_id
             assert review["review"]["closureDigest"] == closure["digest"]
-            assert review["review"]["kernel"]["moduleVersion"] == "1.7.0"
+            assert review["review"]["kernel"]["moduleVersion"] == "1.8.0"
             wrong_action = client.post(
                 f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
                 json={"action_id": str(uuid4()), "decision": "ACCEPT"},
@@ -1034,6 +1052,56 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
                 },
                 f"dongzhou-settlement-reward:{settlement_id}",
             )]
+            growth_reward = accepted.json()["growthReward"]
+            assert growth_reward["settlementId"] == settlement_id
+            assert growth_reward["taskId"] == task_id
+            assert growth_reward["amount"] == 100
+            assert growth_reward["contributionPoints"] == 100
+            assert growth_reward["accountVersion"] == 1
+            assert growth_reward["closureDigest"] == closure["digest"]
+            assert growth_reward["kernel"]["moduleVersion"] == "1.8.0"
+            assert len(growth_reward["digest"]) == 64
+            assert upstreams.growth_credits == [(
+                "00000000-0000-0000-0000-000000000001",
+                {
+                    "source_type": "task.settlement",
+                    "source_id": settlement_id,
+                    "amount": 100,
+                },
+                f"dongzhou-settlement-growth:{settlement_id}",
+            )]
+            connection = sqlite3.connect(database)
+            try:
+                row = connection.execute(
+                    "SELECT player_id,request_id,response_payload FROM requests "
+                    "WHERE kind='organization_settlement_review' AND external_id=?",
+                    (task_id,),
+                ).fetchone()
+                assert row is not None
+                historical = json.loads(row[2])
+                historical.pop("growthReward")
+                connection.execute(
+                    "UPDATE requests SET response_payload=? WHERE player_id=? AND request_id=?",
+                    (json.dumps(historical), row[0], row[1]),
+                )
+                connection.commit()
+            finally:
+                connection.close()
+            upstreams.growth_credits.clear()
+            migrated = client.get(
+                f"/api/dongzhou/v1/organization/tasks/{task_id}"
+            )
+            assert migrated.status_code == 200
+            assert migrated.json()["review"]["growthReward"]["settlementId"] == settlement_id
+            assert upstreams.growth_credits == [(
+                "00000000-0000-0000-0000-000000000001",
+                {
+                    "source_type": "task.settlement",
+                    "source_id": settlement_id,
+                    "amount": 100,
+                },
+                f"dongzhou-settlement-growth:{settlement_id}",
+            )]
             replay = client.post(
                 f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
                 json={"action_id": review["action"]["actionId"], "decision": "ACCEPT"},
@@ -1041,6 +1109,7 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert replay.status_code == 200
             assert replay.json()["replayed"] is True
             assert len(upstreams.inventory_adjustments) == 1
+            assert len(upstreams.growth_credits) == 1
             conflict = client.post(
                 f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
                 json={"action_id": review["action"]["actionId"], "decision": "CENSURE"},

@@ -212,7 +212,7 @@ class RuntimeModule(Module):
 
 class MandateWorkflowModule(Module):
     name = "dongzhou_mandate_workflow"
-    version = "1.7.0"
+    version = "1.8.0"
     dependencies = (RuntimeModule.name,)
 
     @staticmethod
@@ -315,6 +315,18 @@ class MandateWorkflowModule(Module):
                 "kernel": {**dict(review.get("kernel") or {}), "state": state},
             },
         }
+
+    @staticmethod
+    def seal_growth_reward(trace: dict[str, Any]) -> dict[str, Any]:
+        digest = hashlib.sha256(
+            json.dumps(
+                trace,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                sort_keys=True,
+            ).encode("utf-8")
+        ).hexdigest()
+        return {**trace, "digest": digest}
 
 
 class KnowledgeTournamentModule(Module):
@@ -862,6 +874,52 @@ def _organization_inventory_view(snapshot: Any, settings: Settings) -> dict[str,
         "revision": revision,
         "accounts": sanitized,
     }
+
+
+def _organization_growth_reward_view(
+    snapshot: Any,
+    settings: Settings,
+    *,
+    settlement: dict[str, Any],
+    closure_digest: str,
+    amount: int,
+) -> dict[str, Any]:
+    if not isinstance(snapshot, dict):
+        raise ValueError("growth account snapshot must be an object")
+    organization_id = str(snapshot.get("organization_id") or "")
+    game_server_id = str(snapshot.get("game_server_id") or "")
+    contribution_points = snapshot.get("contribution_points")
+    version = snapshot.get("version")
+    if organization_id != settings.orgflow_org_id or game_server_id != str(settings.game_server_id):
+        raise ValueError("growth account identity does not match configuration")
+    if (
+        isinstance(contribution_points, bool)
+        or not isinstance(contribution_points, int)
+        or contribution_points < amount
+        or isinstance(version, bool)
+        or not isinstance(version, int)
+        or version < 1
+    ):
+        raise ValueError("growth account snapshot is invalid")
+    trace = {
+        "organizationId": organization_id,
+        "gameServerId": game_server_id,
+        "settlementId": str(settlement["settlementId"]),
+        "taskId": str(settlement["taskId"]),
+        "sourceType": "task.settlement",
+        "sourceId": str(settlement["settlementId"]),
+        "amount": amount,
+        "contributionPoints": contribution_points,
+        "accountVersion": version,
+        "closureDigest": closure_digest,
+        "kernel": {
+            "module": MandateWorkflowModule.name,
+            "moduleVersion": MandateWorkflowModule.version,
+            "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+            "state": "SEALED",
+        },
+    }
+    return MandateWorkflowModule.seal_growth_reward(trace)
 
 
 def _organization_inventory_reward_view(
@@ -5361,6 +5419,54 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 and isinstance(recorded_response, dict)
                 else pending_review
             )
+            if (
+                record
+                and record.get("state") == "ACCEPTED"
+                and isinstance(review, dict)
+                and not isinstance(review.get("growthReward"), dict)
+                and settlement["organizationDelta"] > 0
+            ):
+                try:
+                    growth_response = await upstreams.credit_organization_growth(
+                        settings.orgflow_org_id,
+                        {
+                            "source_type": "task.settlement",
+                            "source_id": settlement["settlementId"],
+                            "amount": settlement["organizationDelta"],
+                        },
+                        idempotency_key=(
+                            "dongzhou-settlement-growth:"
+                            + settlement["settlementId"]
+                        ),
+                    )
+                    growth_reward = _organization_growth_reward_view(
+                        growth_response.get("data")
+                        if isinstance(growth_response, dict)
+                        else None,
+                        settings,
+                        settlement=settlement,
+                        closure_digest=str(closure["digest"]),
+                        amount=settlement["organizationDelta"],
+                    )
+                except UpstreamUnavailable:
+                    # Historical reads stay available while the idempotent ledger
+                    # backfill waits for orgFlow to recover.
+                    pass
+                except (AttributeError, TypeError, ValueError) as error:
+                    raise ApiError(
+                        "organization_growth_contract_invalid",
+                        "The organization growth ledger returned an invalid receipt.",
+                        status_code=502,
+                    ) from error
+                else:
+                    review = {**review, "growthReward": growth_reward}
+                    await store.finish_request(
+                        player_id,
+                        review_id,
+                        "ACCEPTED",
+                        review,
+                        external_id=task_key,
+                    )
         outcome = _npc_outcome_status(
             await store.game_event_status("npc-outcome:" + task_key),
             await store.game_event_status("npc-memory:" + task_key),
@@ -5543,6 +5649,57 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     status_code=502,
                 ) from error
             result["inventoryReward"] = reward
+            growth_idempotency_key = (
+                f"dongzhou-settlement-growth:{settlement['settlementId']}"
+            )
+            try:
+                growth_response = await upstreams.credit_organization_growth(
+                    settings.orgflow_org_id,
+                    {
+                        "source_type": "task.settlement",
+                        "source_id": settlement["settlementId"],
+                        "amount": reward_units,
+                    },
+                    idempotency_key=growth_idempotency_key,
+                )
+                growth_reward = _organization_growth_reward_view(
+                    growth_response.get("data")
+                    if isinstance(growth_response, dict)
+                    else None,
+                    settings,
+                    settlement=settlement,
+                    closure_digest=str(closure["digest"]),
+                    amount=reward_units,
+                )
+            except UpstreamUnavailable as error:
+                await store.finish_request(
+                    player_id,
+                    review_id,
+                    "RETRYABLE",
+                    {"state": "RETRYABLE"},
+                    error="organization_growth_unavailable",
+                    external_id=task_key,
+                )
+                raise ApiError(
+                    "organization_growth_unavailable",
+                    "The organization growth ledger is temporarily unavailable.",
+                    status_code=503,
+                ) from error
+            except (AttributeError, KeyError, TypeError, ValueError) as error:
+                await store.finish_request(
+                    player_id,
+                    review_id,
+                    "RETRYABLE",
+                    {"state": "RETRYABLE"},
+                    error="organization_growth_contract_invalid",
+                    external_id=task_key,
+                )
+                raise ApiError(
+                    "organization_growth_contract_invalid",
+                    "The organization growth ledger returned an invalid receipt.",
+                    status_code=502,
+                ) from error
+            result["growthReward"] = growth_reward
         if request.decision == "CENSURE":
             original = await store.read_external_request(player_id, task_key, "organization_task")
             parameters = original.get("parameters") if isinstance(original, dict) else None

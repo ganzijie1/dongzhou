@@ -1199,3 +1199,33 @@ class Upstreams:
             headers=headers,
             content=body,
         )
+
+    async def credit_organization_growth(
+        self,
+        organization_id: str,
+        payload: dict[str, Any],
+        *,
+        idempotency_key: str,
+    ) -> dict[str, Any]:
+        path = f"/internal/v1/organization-administration/organizations/{organization_id}/growth-credits"
+        body = json.dumps(
+            payload,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode()
+        headers = sign_orgflow_request(
+            method="POST",
+            path_and_query=path,
+            audience=self.settings.orgflow_audience,
+            key_id=self.settings.orgflow_hmac_key_id,
+            secret=self.settings.orgflow_hmac_secret,
+            body=body,
+        )
+        headers["Idempotency-Key"] = idempotency_key
+        return await self._json(
+            "POST",
+            f"{self.settings.orgflow_url}{path}",
+            headers=headers,
+            content=body,
+        )
