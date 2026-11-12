@@ -1,6 +1,6 @@
 # 东周四服务玩法覆盖矩阵
 
-本矩阵记录 2026-11-12 本机完整联网版的当前边界。范围是四个仓库中与东周玩家流程直接相关的能力，不把通用管理后台、监控和其他游戏协议误列为东周玩法。
+本矩阵记录 2026-11-13 本机完整联网版的当前边界。范围是四个仓库中与东周玩家流程直接相关的能力，不把通用管理后台、监控和其他游戏协议误列为东周玩法。
 
 ## 覆盖结果
 
@@ -53,6 +53,7 @@
 - `live-motivation-authority-complete94-motivation.json`：真实 orgFlow 成功终态把军粮转运意愿从 `0 -> 8`；异步事件认知和 AINPC 八角色重启后仍保持 8；下一次军需派任读到该信号，动机适配分 `53`、胜任度因子 `+0.4`；四项归档由 `dongzhou_npc_settlement` 生成 64 位稳定封印。
 - `live-collaboration-complete101.json`：真实双人军令中左儒主办、秦襄公协办；副将事件、长期记忆、品行、履职意愿四项均送达并独立封印。筹备奖励已进入战场并从待用列表消耗后，战报仍通过服务端军议、军令和 orgFlow 结案认证，权威参战者为两人。
 - `live-knowledge-mastery-v5-complete105.json`：真实问对答中后进入 AINPC 军议，NexusKernel 军令封存 `10/10` 与成功率 `+3`；orgFlow 模板 5 实账保存同一题号、分数和加成。
+- `live-terminal-gate-complete89.json`：真实 orgFlow 执行尚未终态时不会提前生成 AINPC 复命提示；执行进入 `SUCCESS` 后才允许主管审核，公共库藏 `task.execution` 从 `940 -> 1040`，云档恢复与战报回读均通过。
 
 ## 当前验证基线
 
@@ -69,6 +70,7 @@
 - 史官问对：真实 Chromium 从第一回已发布 AKU 开题，公开题面不含正确索引；刷新后恢复同一题并答中伯阳父，NexusKernel 返回 `SEALED` 结果，云档累计 10 分，证据为 `knowledge-quiz-live.png`。
 - 行军择路：真实 Chromium 在桌面端选择向导引路，军粮 `100 -> 99`、士气 `70 -> 66`，内核摘要为 `5c95d290...40658`；390px 移动端选择官道驿行，军粮 `100 -> 97`、士气 `70 -> 76`，摘要为 `866ade76...822b`。两次开战均重新读取真实 knowledge-jizhan 图谱并得到 `dongzhou_campaign_route / SEALED` 回执，证据为 `campaign-routes-desktop-live.png` 与 `campaign-routes-mobile-live.png`。
 - 本地交付：网关、AINPC、orgFlow 和九个依赖容器均符合镜像、健康与 `unless-stopped` 约束；完整 H5 包哈希通过；检查过程业务写入为 0。
+- 版本交付：东周父仓库只固定 `ganzijie1` GitHub 上四个 `dev-gzj` 的精确提交；`python tools/verify-service-submodules.py` 验证四个公开远端、分支声明、gitlink 与检出提交一致，内网 GitLab 不作为推送目标。
 
 ## orgFlow 追办与补救
 
