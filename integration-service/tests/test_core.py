@@ -2049,6 +2049,53 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(json.loads(row["payload"]), frozen_payload)
         self.assertEqual(row["attempts"], 1)
 
+        terminal_task_id = uuid4()
+        terminal_request_id = uuid4()
+        created, _ = await self.store.begin_request(
+            player_id,
+            terminal_request_id,
+            "organization_task",
+            {
+                "task_type": "supply",
+                "assignee_hero_id": "ZuoRu",
+                "stage_title": "Eastern Outskirts",
+            },
+        )
+        self.assertTrue(created)
+        await self.store.finish_request(
+            player_id,
+            terminal_request_id,
+            "ACCEPTED",
+            {"taskId": str(terminal_task_id)},
+            external_id=str(terminal_task_id),
+        )
+        terminal_profile = {
+            "organization": {
+                "month": 2,
+                "members": [{"id": "DuBo", "name": "Du Bo"}],
+                "tasks": [
+                    {
+                        "status": "success",
+                        "remoteResult": str(terminal_task_id),
+                        "dueMonth": 9,
+                        "name": "Supply transport",
+                        "review": {
+                            "state": "ACCEPTED",
+                            "finalResult": "PARTIAL",
+                        },
+                    }
+                ],
+            }
+        }
+        terminal_reports = await _prepare_due_organization_reports(
+            self.store, settings, player_id, terminal_profile
+        )
+        self.assertEqual(len(terminal_reports), 1)
+        self.assertEqual(
+            terminal_reports[0]["npc_outcome"]["planned_result"], "PARTIAL"
+        )
+        self.assertIn("partly completed", terminal_reports[0]["content"])
+
     async def test_terminal_report_chains_one_authoritative_npc_outcome(self) -> None:
         class OutcomeUpstreams(_HealthyUpstreams):
             def __init__(self) -> None:
@@ -2091,14 +2138,17 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         )
         try:
             deadline = asyncio.get_running_loop().time() + 2
-            while len(upstreams.events) < 4 and asyncio.get_running_loop().time() < deadline:
+            while len(upstreams.events) < 5 and asyncio.get_running_loop().time() < deadline:
                 await asyncio.sleep(0.01)
         finally:
             dispatch.cancel()
             await asyncio.gather(dispatch, return_exceptions=True)
         self.assertEqual(
             {kind for kind, _ in upstreams.events},
-            {"ORG_REPORT_START", "NPC_TASK_OUTCOME", "NPC_TASK_MEMORY", "NPC_QUALITY_SETTLEMENT"},
+            {
+                "ORG_REPORT_START", "NPC_TASK_OUTCOME", "NPC_TASK_MEMORY",
+                "NPC_QUALITY_SETTLEMENT", "NPC_MOTIVATION_SETTLEMENT",
+            },
         )
         payloads = {kind: payload for kind, payload in upstreams.events}
         event = payloads["NPC_TASK_OUTCOME"]
@@ -2128,6 +2178,21 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         quality_status = await self.store.game_event_status("npc-quality:" + task_id)
         self.assertEqual(quality_status["state"], "DELIVERED")
         self.assertEqual(quality_status["attempts"], 1)
+        motivation = payloads["NPC_MOTIVATION_SETTLEMENT"]
+        self.assertEqual(
+            motivation["operation_id"],
+            "dongzhou-org-motivation:" + task_id + ":v1",
+        )
+        self.assertEqual(motivation["motive_updates"], [{
+            "motive_name": "再办军粮转运",
+            "score": 18.0,
+            "reason": "authoritative organization duty result: partial",
+        }])
+        self.assertEqual(motivation["urgency_level"], "medium")
+        self.assertEqual(motivation["extra_data"]["event_id"], str(event["events"][0]["event_id"]))
+        motivation_status = await self.store.game_event_status("npc-motivation:" + task_id)
+        self.assertEqual(motivation_status["state"], "DELIVERED")
+        self.assertEqual(motivation_status["attempts"], 1)
         self.assertEqual(await self.store.pending_game_events(), [])
 
     async def test_startup_backfills_missing_npc_memory_once(self) -> None:

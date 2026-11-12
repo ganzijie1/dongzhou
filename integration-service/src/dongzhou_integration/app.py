@@ -149,6 +149,11 @@ class RuntimeModule(Module):
                                     "NPC_QUALITY_SETTLEMENT",
                                     _npc_outcome_quality(outcome, final_result),
                                 )
+                                await self.store.enqueue_game_event(
+                                    "npc-motivation:" + task_id,
+                                    "NPC_MOTIVATION_SETTLEMENT",
+                                    _npc_outcome_motivation(outcome, final_result),
+                                )
                 except Exception as error:
                     await self.store.retry_game_event(event["eventId"], type(error).__name__)
                 else:
@@ -1141,6 +1146,7 @@ def _npc_outcome_event(outcome: dict[str, Any], final_result: str) -> dict[str, 
             "source_module": "dongzhou_integration",
             "final_result": normalized,
             "description": description,
+            "motivation_policy": "external_authoritative",
         }
     )
     return {
@@ -1192,6 +1198,51 @@ def _npc_quality_from_event(event: dict[str, Any]) -> dict[str, Any]:
 
 def _npc_outcome_quality(outcome: dict[str, Any], final_result: str) -> dict[str, Any]:
     return _npc_quality_from_event(_npc_outcome_event(outcome, final_result))
+
+
+def _npc_motivation_from_event(event: dict[str, Any]) -> dict[str, Any]:
+    detail = event["events"][0]
+    metadata = detail.get("metadata") if isinstance(detail.get("metadata"), dict) else {}
+    final_result = str(metadata.get("final_result") or "FAILURE").upper()
+    task_type = str(metadata.get("task_type") or "").casefold()
+    motive_name = {
+        "supply": "再办军粮转运",
+        "drill": "再整训军阵",
+        "patrol": "再巡察营垒",
+        "intelligence": "再核验情报",
+        "diplomacy": "再周旋诸侯",
+    }.get(task_type, "再尽官署职责")
+    score, urgency, importance = {
+        "SUCCESS": (8.0, "low", 35.0),
+        "PARTIAL": (18.0, "medium", 55.0),
+        "FAILURE": (30.0, "high", 75.0),
+    }.get(final_result, (30.0, "high", 75.0))
+    task_id = str(detail["source_record_id"])
+    return {
+        "npc_id": str(event["npc_id"]),
+        "operation_id": "dongzhou-org-motivation:" + task_id + ":v1",
+        "game_server_id": str(event["game_server_id"]),
+        "source": "dongzhou_org_task",
+        "urgency_level": urgency,
+        "event_description": str(detail.get("params") or "authoritative organization duty result"),
+        "event_importance": importance,
+        "motive_updates": [{
+            "motive_name": motive_name,
+            "score": score,
+            "reason": f"authoritative organization duty result: {final_result.casefold()}",
+        }],
+        "current_time": str(event.get("game_time") or detail.get("timestamp") or ""),
+        "extra_data": {
+            "task_id": task_id,
+            "task_type": task_type,
+            "final_result": final_result,
+            "event_id": str(detail["event_id"]),
+        },
+    }
+
+
+def _npc_outcome_motivation(outcome: dict[str, Any], final_result: str) -> dict[str, Any]:
+    return _npc_motivation_from_event(_npc_outcome_event(outcome, final_result))
 
 
 def _npc_censure_events(
@@ -2027,7 +2078,28 @@ async def _prepare_due_organization_reports(
     } if isinstance(members, list) else {}
     clock = await store.read_game_clock()
     for task in tasks:
-        if not isinstance(task, dict) or task.get("status") != "active":
+        if not isinstance(task, dict):
+            continue
+        settlement = task.get("pendingSettlement")
+        terminal_result = (
+            str(settlement.get("result") or "")
+            if isinstance(settlement, dict)
+            else ""
+        )
+        review = task.get("review")
+        if not terminal_result and isinstance(review, dict):
+            terminal_result = str(review.get("finalResult") or "")
+        pending_review = task.get("pendingReview")
+        pending_review_record = (
+            pending_review.get("review")
+            if isinstance(pending_review, dict)
+            else None
+        )
+        if not terminal_result and isinstance(pending_review_record, dict):
+            terminal_result = str(pending_review_record.get("finalResult") or "")
+        if terminal_result not in {"SUCCESS", "PARTIAL", "FAILURE"}:
+            terminal_result = ""
+        if task.get("status") != "active" and not terminal_result:
             continue
         task_id = str(task.get("remoteResult") or "")
         due_month = task.get("dueMonth")
@@ -2035,7 +2107,11 @@ async def _prepare_due_organization_reports(
             UUID(task_id)
         except ValueError:
             continue
-        if isinstance(due_month, bool) or not isinstance(due_month, int) or due_month > month:
+        if (
+            isinstance(due_month, bool)
+            or not isinstance(due_month, int)
+            or (due_month > month and not terminal_result)
+        ):
             continue
         original = await store.read_external_request(
             player_id, task_id, "organization_task"
@@ -2066,18 +2142,30 @@ async def _prepare_due_organization_reports(
                 )
                 if isinstance(candidate, dict) and candidate.get("digest") == mandate_digest:
                     mandate = candidate
-        success = _organization_task_succeeds(
-            task, task_type, members_by_id.get(assignee, {}), mandate
+        planned_result = terminal_result or (
+            "SUCCESS"
+            if _organization_task_succeeds(
+                task, task_type, members_by_id.get(assignee, {}), mandate
+            )
+            else "FAILURE"
         )
         task_name = str(task.get("name") or task_type or "organization assignment")
         stage_title = str(original.get("stage_title") or "the assigned stage")
-        content = (
-            f"The {task_name} assignment for {stage_title} was completed successfully. "
-            "Report completion truthfully to the direct manager."
-            if success
-            else f"The {task_name} assignment for {stage_title} could not be completed. "
-            "Report the failure truthfully to the direct manager."
-        )
+        if planned_result == "SUCCESS":
+            content = (
+                f"The {task_name} assignment for {stage_title} was completed successfully. "
+                "Report completion truthfully to the direct manager."
+            )
+        elif planned_result == "PARTIAL":
+            content = (
+                f"The {task_name} assignment for {stage_title} was only partly completed. "
+                "Report the completed work and remaining obstacles truthfully to the direct manager."
+            )
+        else:
+            content = (
+                f"The {task_name} assignment for {stage_title} could not be completed. "
+                "Report the failure truthfully to the direct manager."
+            )
         assignment = mandate.get("assignment") if isinstance(mandate, dict) else None
         readiness = assignment.get("readiness") if isinstance(assignment, dict) else None
         if isinstance(readiness, dict) and isinstance(readiness.get("score"), int):
@@ -2123,7 +2211,7 @@ async def _prepare_due_organization_reports(
                     else None
                 ),
                 "readiness": readiness if isinstance(readiness, dict) else None,
-                "planned_result": "SUCCESS" if success else "FAILURE",
+                "planned_result": planned_result,
             },
         }
         reports.append(report)

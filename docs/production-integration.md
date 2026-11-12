@@ -4,7 +4,7 @@
 
 浏览器只访问 `dongzhou-integration-service`。该服务基于 NexusKernel，持有服务端存档、玩家会话、幂等记录和上游凭据；H5 不直接访问 AINPC、orgFlowEngine 或 knowledge-jizhan。
 
-本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。当前网关镜像为 `dongzhou-integration:20261112-local-complete92`，AINPC 八角色镜像为 `ainpc-app:v20261112-dongzhou-local-complete63`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete86`。当前版本覆盖双向府中书问、玩家来信偏好、90 天当值计划、自主进言、已签军令临时插程、组织谱系与贡献实账、12 席权威名册、玩家仕途、人工复命裁决、任务结果驱动的稳定品质与后续胜任度、军需调拨、史料军议结算、三种知识图谱行军路线及 NexusKernel 路线封印、NexusKernel 封存的史官问对，以及实际参战属官的战后重要事件、长期经历和权威战果情绪；真实浏览器已完成四服务签令到战斗承接、战报回写、处罚后果与品质成长写入、问对刷新恢复、桌面与移动端择路及 320px 进言验收。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
+本次交付范围已由用户确认为这台电脑长期运行的完整联网版本，入口为 `http://127.0.0.1:8780/`。当前网关镜像为 `dongzhou-integration:20261112-local-complete94`，AINPC 八角色镜像为 `ainpc-app:v20261112-dongzhou-local-complete64`，orgFlow API/Worker 为 `org-flow-engine:dongzhou-local-complete86`。当前版本覆盖双向府中书问、玩家来信偏好、90 天当值计划、自主进言、已签军令临时插程、组织谱系与贡献实账、12 席权威名册、玩家仕途、人工复命裁决、任务结果驱动的稳定品质、履职意愿与后续胜任度、军需调拨、史料军议结算、三种知识图谱行军路线及 NexusKernel 路线封印、NexusKernel 封存的史官问对，以及实际参战属官的战后重要事件、长期经历和权威战果情绪；真实浏览器已完成四服务签令到战斗承接、战报回写、处罚后果、品质成长与动机结算写入、问对刷新恢复、桌面与移动端择路及 320px 进言验收。运行与恢复边界见 `docs/2026-11-09-local-complete-runbook.md`。下述公网发布条件供未来公开部署使用，不阻塞当前本机交付。宿主冷启动尚未实际演练，运行依赖 Docker 引擎就绪，上游模型故障仍须按真实失败处理。
 
 ## 发布顺序
 
@@ -12,7 +12,7 @@
 2. 在 knowledge-jizhan 工作台登记新来源，执行 schema/内容一致性校验，发布并同步检索索引。管理模式不会自动导入。
 3. 在 orgFlowEngine 运行 `python scripts/publish_dongzhou_catalog.py --publish`，发布 `config/organizations/dongzhou_court_v2.json`，用 `dongzhou_court` 模板建立官署并导入武将；把每个稳定武将 ID 与其实际占用的岗位 UUID 写入 `DONGZHOU_ORGFLOW_HERO_SLOTS`。未映射武将会拒绝派单，不会错派给其他成员。
 4. 将 AINPC 的 `ORGANIZATION_TASK_SERVICE_BEARER_TOKEN` 以同值注入 `DONGZHOU_AINPC_TASK_TOKEN`。该令牌只用于服务端到期复命出站队列，禁止进入 H5、日志或存档。
-5. 用 AINPC 仓库的 `docker/v2/docker-compose-dongzhou.yml` 叠加环境。日程事务目录唯一 owner 是 Gateway；Business 通过 typed proxy 读取 Gateway，必须给 Gateway 配置 `AINPC_CONST_CSV_SCHEDULE_TRANSACTIONS`，指向东周专用 12 类官署事务，不替换通用 CSV。当前本机 Gateway、Global、Business 固定为 `ainpc-app:v20261112-dongzhou-local-complete63`，由 `docker/v2/docker-compose-dongzhou-local-complete.yml` 统一覆盖。保留基础配置的 entrypoint、网络、挂载、端口和托管凭据；更新现有实例前按 Docker 标签保留每个服务原 Compose 项目归属，不能把不同项目的现有容器统一当作新项目创建。目录升级不会自动迁移已提交日程，必须通过正式重拟接口并回读验收。
+5. 用 AINPC 仓库的 `docker/v2/docker-compose-dongzhou.yml` 叠加环境。日程事务目录唯一 owner 是 Gateway；Business 通过 typed proxy 读取 Gateway，必须给 Gateway 配置 `AINPC_CONST_CSV_SCHEDULE_TRANSACTIONS`，指向东周专用 12 类官署事务，不替换通用 CSV。当前本机 Gateway、Global、Business 固定为 `ainpc-app:v20261112-dongzhou-local-complete64`，由 `docker/v2/docker-compose-dongzhou-local-complete.yml` 统一覆盖。保留基础配置的 entrypoint、网络、挂载、端口和托管凭据；更新现有实例前按 Docker 标签保留每个服务原 Compose 项目归属，不能把不同项目的现有容器统一当作新项目创建。目录升级不会自动迁移已提交日程，必须通过正式重拟接口并回读验收。
 6. 启动 AINPC V2 的 gateway、global、business 实例及其 NATS/Mongo/Redis 依赖，确认目标 NPC 已注册且 Actor 可用。Windows 宿主执行 Compose 时必须把 `AINPC_DATA_ROOT` 设为实际宿主目录（当前环境为 `E:/game/.runtime/ainpc/v2`）；容器内路径沿基础配置挂载，不因宿主路径不同而直接改容器目录。
 7. 部署 integration gateway，执行 `/health/live`、`/health/ready` 和 `/api/dongzhou/v1/integration/status` 探测，再开放入口流量。
 
@@ -32,6 +32,7 @@
 - 玩家确认签令后，网关以稳定军令事件号调用 AINPC V2 正式 `POST /api/v1/schedule-interrupts/temp/generate`。该接口由日程模块 owner 判断事件有效性、休息保护及 `insert_today / future / discard` 等策略，并通过 Actor 或长期计划 owner 实际落程。东周复核事件号、动作和日程标识后封存独立 SHA-256 回执；同一浏览器请求可重放，AINPC 事件号同时阻止跨请求重复插程。日程接口失败时保留已签军令并停止派发 orgFlow 差事，允许玩家以原请求重试。组织派差端点还会独立反查同一玩家、军令号和摘要的完成记录，直接调用 API 也不能跳过 AINPC 入程。
 - 属官状态使用 AINPC 正式人格档案接口并强制 `auto_initialize=false`。军粮、整训、巡防、情报、外交分别按性格特征计算适岗分，分数会影响胜任度和最终成功概率；人格档案、主性格、任务适岗分及影响因子由 NexusKernel 封入军令，并写入 orgFlowEngine 任务简报。档案缺失时按中性因子继续游戏，东周不会代替 AINPC 生成人格或写回档案。
 - orgFlow 权威任务终态会通过独立 outbox 写入 AINPC 稳定品质档案。军需、整训和巡防主要沉淀担当，情报沉淀信义，外交沉淀公正；成功、部分完成、失败的增量分别为 `+2 / +0.5 / -1`。效果号绑定任务并由 AINPC 持久去重，历史终态只补投一次。下一次任职按任务类型计算品行适配，档案、适配分和因子由 NexusKernel 军令封存并进入 orgFlow 简报，H5 同时显示品质与品行。
+- 权威终态还会以稳定操作号写入 AINPC 对应差事意愿，成功、部分完成、失败分别增加 `8 / 18 / 30`。新事件携带 `motivation_policy=external_authoritative`，因此 AINPC 事件认知仍会处理情绪、关系和记忆，但不会覆盖已经结算的动机；刷新、异步认知完成与重启均保持幂等。历史任务不自动回填动机。
 - 玩家传话使用 AINPC 正式 `CHAT_TURN` 入站契约，不在 H5 内生成或伪造回复。网关以玩家 UUID 派生不与 NPC 冲突的稳定 ID，先登记双人会话，再以客户端请求 UUID 派生幂等任务和消息 ID。NPC 回复必须经过 `NDLLMSendPrivateMessage` 回调持久化后才可展示；回调省略 `playerInfo` 时，以同任务封存的唯一非说话者参与者恢复目标，并继续按当前玩家稳定 ID 隔离读取。
 - 直属审核选择“处罚”时，网关在同一 SQLite 事务内登记审核结果、AINPC 重要事件、长期记忆与权威好感结算。好感结算使用稳定 `settlement_effect_id`，离线 NPC 由 actor-optional owner 持久写入当前玩家目标的 `annoyance +5.8`；重试和重复审核不会重复累加。人物状态聚合仅对离线角色的即时情绪降级为 `available: false`，不会因此遮蔽已持久化的好感与关系。
 - AINPC Business 组织模块通过 typed contract 暴露已有的只读组织知识 owner。书问涉及组织、任务或贡献时，AINPC 以当前 NPC、玩家、会话和源消息绑定的范围查询 orgFlowEngine，并在表达前校验响应身份和披露证明；知识可读与贡献无权访问是两种正式结果，均不得被模型扩权或改写。

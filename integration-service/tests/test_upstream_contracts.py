@@ -539,6 +539,18 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                 })
             if request.url.path == "/api/v1/quality/event-settlement":
                 return httpx.Response(200, json={"data": True})
+            if request.url.path == "/api/v1/motivation/desire/update":
+                body = json.loads(request.content)
+                return httpx.Response(200, json={
+                    "code": 200,
+                    "message": "accepted",
+                    "data": {
+                        "operation_id": body["operation_id"],
+                        "application_status": "applied",
+                        "routing_status": "completed",
+                        "routed_to": "none",
+                    },
+                })
             if request.url.path == "/callback/npc-dialogue/choice":
                 return httpx.Response(200, json={"code": 200, "data": {"index": 0, "type": "OPTION"}})
             if request.url.path == "/callback/spontaneous-thought/generate":
@@ -693,6 +705,25 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                     "confidence": 1.0,
                 },
             )
+            await upstreams.send_game_event(
+                "NPC_MOTIVATION_SETTLEMENT",
+                {
+                    "npc_id": "42",
+                    "operation_id": "dongzhou-org-motivation:task-id:v1",
+                    "game_server_id": "91001",
+                    "source": "dongzhou_org_task",
+                    "urgency_level": "low",
+                    "event_description": "Task completed",
+                    "event_importance": 35.0,
+                    "motive_updates": [{
+                        "motive_name": "再办军粮转运",
+                        "score": 8.0,
+                        "reason": "authoritative organization duty result: success",
+                    }],
+                    "current_time": "0771-01-01 14:00:00",
+                    "extra_data": {"task_id": "task-id"},
+                },
+            )
             await client.aclose()
 
         paths = [request.url.path for request in seen]
@@ -717,6 +748,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("/callback/npc-lifecycle/online_state", paths)
         self.assertIn("/api/v1/npc-lifecycle/relogin", paths)
         self.assertIn("/ai/npc/player-ai-interaction/sync", paths)
+        self.assertIn("/api/v1/motivation/desire/update", paths)
         self.assertIn("/api/v1/emotion/current/91001/42", paths)
         self.assertIn("/api/v1/affection/targets/91001/42", paths)
         self.assertIn("/api/v1/relationship/all/91001/42", paths)

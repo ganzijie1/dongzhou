@@ -203,6 +203,26 @@ class Upstreams:
                     response_payload=response,
                 )
             return response
+        if kind == "NPC_MOTIVATION_SETTLEMENT":
+            response = await self._json(
+                "POST",
+                self.settings.ainpc_url + "/api/v1/motivation/desire/update",
+                token=self.settings.ainpc_token,
+                payload=payload,
+            )
+            data = response.get("data")
+            if (
+                response.get("code") not in (0, 200, "0", "200")
+                or not isinstance(data, dict)
+                or data.get("operation_id") != payload.get("operation_id")
+                or data.get("application_status") != "applied"
+            ):
+                raise UpstreamUnavailable(
+                    "AINPC rejected the authoritative motivation settlement.",
+                    error_code="ainpc_motivation_settlement_rejected",
+                    response_payload=response,
+                )
+            return response
         paths = {
             "CHAT_START": "/api/v1/social-interaction/chat",
             "CHAT_TURN": "/api/v1/social-interaction/chat",
