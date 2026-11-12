@@ -462,7 +462,7 @@ def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -
             assert collaboration["supportAssignment"]["heroId"] == "QinXiangGong"
             assert collaboration["factor"] > 0
             assert collaboration["score"] == round(50 + collaboration["factor"] * 5)
-            assert drafted.json()["mandate"]["kernel"]["moduleVersion"] == "1.9.0"
+            assert drafted.json()["mandate"]["kernel"]["moduleVersion"] == "1.10.0"
 
             mandate = approve_mandate(client, drafted)
             scheduled = client.post(
@@ -484,6 +484,30 @@ def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -
             assert len(upstreams.interruptions) == 2
             assert upstreams.interruptions[0][1]["raw_data"]["collaboration_role"] == "primary"
             assert upstreams.interruptions[1][1]["raw_data"]["collaboration_role"] == "support"
+
+            order = client.post(
+                "/api/dongzhou/v1/organization/tasks",
+                json={
+                    "client_request_id": str(uuid4()),
+                    "task_type": "drill",
+                    "assignee_hero_id": "ZuoRu",
+                    "stage_id": "01",
+                    "stage_title": "Dongzhou stage 01",
+                    "brief": "Execute the collaborative sealed mandate.",
+                    "parameters": {
+                        "resource_units": 6,
+                        "assignee_name": "左儒",
+                        "mandate_id": mandate["id"],
+                        "mandate_digest": mandate["digest"],
+                    },
+                },
+            )
+            assert order.status_code == 200, order.text
+            trigger = upstreams.triggers[-1]
+            assert trigger["parameters"]["support_hero_id"] == "QinXiangGong"
+            assert trigger["parameters"]["collaboration_score"] == collaboration["score"]
+            assert trigger["parameters"]["collaboration_factor"] == collaboration["factor"]
+            assert "Sealed support officer QinXiangGong" in trigger["brief"]
 
             invalid = client.post(
                 "/api/dongzhou/v1/court/mandates",
@@ -555,7 +579,7 @@ def test_council_memory_is_recalled_verified_and_sealed_into_mandate() -> None:
             mandate = draft.json()["mandate"]
             assert mandate["memory"]["digest"] == memory["digest"]
             assert mandate["council"]["memory"]["idempotencyKey"] == memory["idempotencyKey"]
-            assert mandate["kernel"]["moduleVersion"] == "1.9.0"
+            assert mandate["kernel"]["moduleVersion"] == "1.10.0"
 
 
 def test_ainpc_correspondence_is_recomputed_and_sealed() -> None:
@@ -1100,7 +1124,7 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert review["state"] == "REQUIRES_ACTION"
             assert review["review"]["settlementId"] == settlement_id
             assert review["review"]["closureDigest"] == closure["digest"]
-            assert review["review"]["kernel"]["moduleVersion"] == "1.9.0"
+            assert review["review"]["kernel"]["moduleVersion"] == "1.10.0"
             wrong_action = client.post(
                 f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
                 json={"action_id": str(uuid4()), "decision": "ACCEPT"},
@@ -1138,7 +1162,7 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert growth_reward["contributionPoints"] == 100
             assert growth_reward["accountVersion"] == 1
             assert growth_reward["closureDigest"] == closure["digest"]
-            assert growth_reward["kernel"]["moduleVersion"] == "1.9.0"
+            assert growth_reward["kernel"]["moduleVersion"] == "1.10.0"
             assert len(growth_reward["digest"]) == 64
             assert upstreams.growth_credits == [(
                 "00000000-0000-0000-0000-000000000001",

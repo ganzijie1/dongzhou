@@ -155,6 +155,50 @@ class RuntimeModule(Module):
                                     "NPC_MOTIVATION_SETTLEMENT",
                                     _npc_outcome_motivation(outcome, final_result),
                                 )
+                                support_outcomes = event["payload"].get(
+                                    "support_npc_outcomes"
+                                )
+                                for support_outcome in (
+                                    support_outcomes
+                                    if isinstance(support_outcomes, list)
+                                    else []
+                                ):
+                                    if not isinstance(support_outcome, dict):
+                                        continue
+                                    support_hero_id = str(
+                                        support_outcome.get("hero_id") or ""
+                                    )
+                                    if not support_hero_id:
+                                        continue
+                                    support_key = f"{task_id}:{support_hero_id}"
+                                    await self.store.enqueue_game_event(
+                                        "npc-outcome-support:" + support_key,
+                                        "NPC_TASK_OUTCOME",
+                                        _npc_outcome_event(
+                                            support_outcome, final_result
+                                        ),
+                                    )
+                                    await self.store.enqueue_game_event(
+                                        "npc-memory-support:" + support_key,
+                                        "NPC_TASK_MEMORY",
+                                        _npc_outcome_memory(
+                                            support_outcome, final_result
+                                        ),
+                                    )
+                                    await self.store.enqueue_game_event(
+                                        "npc-quality-support:" + support_key,
+                                        "NPC_QUALITY_SETTLEMENT",
+                                        _npc_outcome_quality(
+                                            support_outcome, final_result
+                                        ),
+                                    )
+                                    await self.store.enqueue_game_event(
+                                        "npc-motivation-support:" + support_key,
+                                        "NPC_MOTIVATION_SETTLEMENT",
+                                        _npc_outcome_motivation(
+                                            support_outcome, final_result
+                                        ),
+                                    )
                 except Exception as error:
                     await self.store.retry_game_event(event["eventId"], type(error).__name__)
                 else:
@@ -212,7 +256,7 @@ class RuntimeModule(Module):
 
 class MandateWorkflowModule(Module):
     name = "dongzhou_mandate_workflow"
-    version = "1.9.0"
+    version = "1.10.0"
     dependencies = (RuntimeModule.name,)
 
     @staticmethod
@@ -417,7 +461,7 @@ class CampaignRouteModule(Module):
 
 class NpcSettlementModule(Module):
     name = "dongzhou_npc_settlement"
-    version = "1.0.0"
+    version = "1.1.0"
     dependencies = (RuntimeModule.name,)
 
     @staticmethod
@@ -425,17 +469,24 @@ class NpcSettlementModule(Module):
         task_id: str,
         final_result: str,
         outcome: dict[str, Any],
+        *,
+        event_ids: dict[str, str] | None = None,
+        participant_hero_id: str | None = None,
     ) -> dict[str, Any]:
         normalized_result = str(final_result).upper()
         if normalized_result not in {"SUCCESS", "PARTIAL", "FAILURE"}:
             raise ValueError("invalid organization task result")
         UUID(task_id)
-        event_ids = {
+        event_ids = event_ids or {
             "event": "npc-outcome:" + task_id,
             "memory": "npc-memory:" + task_id,
             "quality": "npc-quality:" + task_id,
             "motivation": "npc-motivation:" + task_id,
         }
+        if set(event_ids) != {"event", "memory", "quality", "motivation"} or not all(
+            isinstance(event_id, str) and event_id for event_id in event_ids.values()
+        ):
+            raise ValueError("invalid NPC settlement event identities")
         deliveries: dict[str, dict[str, Any]] = {}
         for name, event_id in event_ids.items():
             status = outcome.get(name)
@@ -449,6 +500,11 @@ class NpcSettlementModule(Module):
             "taskId": task_id,
             "finalResult": normalized_result,
             "deliveries": deliveries,
+            **(
+                {"participantHeroId": participant_hero_id}
+                if participant_hero_id
+                else {}
+            ),
         }
         digest = hashlib.sha256(
             json.dumps(
@@ -1307,8 +1363,9 @@ def _npc_outcome_event(outcome: dict[str, Any], final_result: str) -> dict[str, 
         normalized = "FAILURE"
         result_text = "未能办成"
     task_id = str(outcome["task_id"])
+    effect_id = str(outcome.get("effect_id") or task_id)
     event_digest = hashlib.sha256(
-        f"dongzhou-org-outcome:{task_id}".encode("utf-8")
+        f"dongzhou-org-outcome:{effect_id}".encode("utf-8")
     ).digest()
     event_id = int.from_bytes(event_digest[:4], "big") & 0x7FFFFFFF or 1
     npc_name = str(outcome.get("npc_name") or outcome.get("hero_id") or "属官")
@@ -1330,6 +1387,8 @@ def _npc_outcome_event(outcome: dict[str, Any], final_result: str) -> dict[str, 
             "evidence_source",
             "readiness",
             "planned_result",
+            "collaboration_role",
+            "primary_hero_id",
         )
         if outcome.get(key) is not None
     }
@@ -1348,14 +1407,14 @@ def _npc_outcome_event(outcome: dict[str, Any], final_result: str) -> dict[str, 
         "game_time": str(outcome["game_time"]),
         "events": [
             {
-                "source_record_id": task_id,
+                "source_record_id": effect_id,
                 "timestamp": str(outcome["game_time"]),
                 "event_id": event_id,
                 "event_name": "官署差事复命",
                 "event_type": "organization_task_result",
                 "params": description,
                 "metadata": metadata,
-                "interrupt_trace_id": "dongzhou-org-outcome:" + task_id,
+                "interrupt_trace_id": "dongzhou-org-outcome:" + effect_id,
             }
         ],
     }
@@ -1651,15 +1710,15 @@ async def _battle_support_attestations(
     player_id: UUID,
     previous_payload: dict[str, Any],
     submitted_payload: dict[str, Any],
-) -> dict[str, set[str]]:
+) -> dict[str, Any]:
     organization = submitted_payload.get("organization")
     previous_organization = previous_payload.get("organization")
     if not isinstance(organization, dict) or not isinstance(previous_organization, dict):
-        return {"councils": set(), "mandates": set(), "orders": set()}
+        return {"councils": set(), "mandates": set(), "orders": set(), "mandateCollaborators": {}}
 
     reports = organization.get("battleReports")
     if not isinstance(reports, list):
-        return {"councils": set(), "mandates": set(), "orders": set()}
+        return {"councils": set(), "mandates": set(), "orders": set(), "mandateCollaborators": {}}
     councils: dict[str, tuple[str, str]] = {}
     mandates: dict[str, tuple[str, str]] = {}
     orders: dict[str, str] = {}
@@ -1688,7 +1747,12 @@ async def _battle_support_attestations(
             if isinstance(order, dict) and order.get("id") and order.get("memberId"):
                 orders[str(order["id"])] = str(order["memberId"])
 
-    attested = {"councils": set(), "mandates": set(), "orders": set()}
+    attested: dict[str, Any] = {
+        "councils": set(),
+        "mandates": set(),
+        "orders": set(),
+        "mandateCollaborators": {},
+    }
     previous_councils = {
         str(council.get("id")): council
         for council in previous_organization.get("councils", [])
@@ -1754,6 +1818,15 @@ async def _battle_support_attestations(
             and str(mandate.get("digest") or "") == digest
         ):
             attested["mandates"].add(mandate_id)
+            collaboration = mandate.get("collaboration")
+            if isinstance(collaboration, dict):
+                support_hero_id = str(collaboration.get("supportHeroId") or "")
+                if (
+                    str(collaboration.get("primaryHeroId") or "") == hero_id
+                    and support_hero_id
+                    and support_hero_id != hero_id
+                ):
+                    attested["mandateCollaborators"][mandate_id] = support_hero_id
 
     previous_tasks = {
         str(task.get("id")): task
@@ -1890,9 +1963,13 @@ def _seal_battle_reports(
                 and str(entry["council"].get("id") or "") == council_id
                 for entry in eligible_support.values()
             )
+            server_attested = (
+                attestations is not None
+                and council_id in attestations.get("councils", set())
+            )
             if (
                 not source
-                or not support_match
+                or (not support_match and not server_attested)
                 or str(source.get("stageId") or "") != stage_id
                 or str(source.get("memberId") or "") != hero_id
                 or hero_id not in previous_members
@@ -1920,9 +1997,13 @@ def _seal_battle_reports(
                 and str(entry["mandate"].get("id") or "") == mandate_id
                 for entry in eligible_support.values()
             )
+            server_attested = (
+                attestations is not None
+                and mandate_id in attestations.get("mandates", set())
+            )
             if (
                 not source
-                or not support_match
+                or (not support_match and not server_attested)
                 or str(source.get("stageId") or "") != stage_id
                 or str(source.get("heroId") or "") != hero_id
                 or str(source.get("digest") or "") != str(mandate.get("digest") or "")
@@ -1936,10 +2017,37 @@ def _seal_battle_reports(
                     "reason": "server_attestation_missing",
                 })
                 continue
+            support_hero_id = ""
+            if attestations is not None:
+                collaborators = attestations.get("mandateCollaborators")
+                if isinstance(collaborators, dict):
+                    support_hero_id = str(collaborators.get(mandate_id) or "")
+            else:
+                collaboration = source.get("collaboration")
+                if isinstance(collaboration, dict):
+                    candidate = str(collaboration.get("supportHeroId") or "")
+                    if (
+                        str(collaboration.get("primaryHeroId") or hero_id) == hero_id
+                        and candidate != hero_id
+                    ):
+                        support_hero_id = candidate
             verified_mandates.append(
-                {"id": mandate_id, "heroId": hero_id, "digest": str(source.get("digest"))}
+                {
+                    "id": mandate_id,
+                    "heroId": hero_id,
+                    "digest": str(source.get("digest")),
+                    **(
+                        {"supportHeroId": support_hero_id}
+                        if support_hero_id
+                        else {}
+                    ),
+                }
             )
             participants.add(hero_id)
+            if support_hero_id:
+                if support_hero_id not in previous_members:
+                    raise BattleReceiptConflict("battle_mandate_collaborator_invalid")
+                participants.add(support_hero_id)
 
         support = report.get("support") if isinstance(report.get("support"), dict) else {}
         support_orders = support.get("orders")
@@ -1950,9 +2058,17 @@ def _seal_battle_reports(
             hero_id = str(order.get("memberId") or "")
             support_entry = eligible_support.get(order_id)
             task = previous_tasks.get(order_id)
-            if not support_entry:
+            server_attested = (
+                attestations is not None
+                and order_id in attestations.get("orders", set())
+            )
+            if not support_entry and not server_attested:
                 raise BattleReceiptConflict("battle_order_reference_invalid")
-            expected_hero = str(support_entry.get("memberId") or "")
+            expected_hero = str(
+                (support_entry or {}).get("memberId")
+                or (task or {}).get("assigneeId")
+                or ""
+            )
             if hero_id != expected_hero:
                 raise BattleReceiptConflict("battle_order_reference_invalid")
             if hero_id and (
@@ -2418,6 +2534,32 @@ async def _prepare_due_organization_reports(
                 "planned_result": planned_result,
             },
         }
+        collaboration = mandate.get("collaboration") if isinstance(mandate, dict) else None
+        support_hero_id = (
+            str(collaboration.get("supportHeroId") or "")
+            if isinstance(collaboration, dict)
+            and str(collaboration.get("primaryHeroId") or "") == assignee
+            else ""
+        )
+        if (
+            support_hero_id
+            and support_hero_id != assignee
+            and support_hero_id in settings.orgflow_hero_members
+        ):
+            support_outcome = {
+                **report["npc_outcome"],
+                "effect_id": f"{task_id}:support:{support_hero_id}",
+                "hero_id": support_hero_id,
+                "npc_id": str(
+                    stable_npc_id(
+                        settings.ainpc_game_server_id, support_hero_id
+                    )
+                ),
+                "npc_name": member_names.get(support_hero_id, support_hero_id),
+                "collaboration_role": "support",
+                "primary_hero_id": assignee,
+            }
+            report["support_npc_outcomes"] = [support_outcome]
         reports.append(report)
     return reports
 
@@ -5287,6 +5429,17 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             exclude={"mandate_id", "mandate_digest"}
         )
         brief = request.brief
+        collaboration = mandate.get("collaboration") if isinstance(mandate, dict) else None
+        if isinstance(collaboration, dict):
+            support_hero_id = str(collaboration.get("supportHeroId") or "")
+            if support_hero_id:
+                effective_parameters.update(
+                    {
+                        "support_hero_id": support_hero_id,
+                        "collaboration_score": collaboration.get("score"),
+                        "collaboration_factor": collaboration.get("factor"),
+                    }
+                )
         operation = mandate.get("operation") if isinstance(mandate, dict) else None
         if isinstance(operation, dict) and operation.get("kind") == "diplomacy":
             operation_reference = hashlib.sha256(
@@ -5348,6 +5501,16 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 f"{emergency.get('interruptTraceId') or 'none'}."
             )
             brief = brief.rstrip()[: max(0, 1000 - len(emergency_note))] + emergency_note
+        if isinstance(collaboration, dict) and collaboration.get("supportHeroId"):
+            collaboration_note = (
+                f" Sealed support officer {collaboration.get('supportHeroId')}; "
+                f"collaboration {collaboration.get('score')}/100 "
+                f"(factor {collaboration.get('factor')})."
+            )
+            brief = (
+                brief.rstrip()[: max(0, 1000 - len(collaboration_note))]
+                + collaboration_note
+            )
         try:
             roster_response = await upstreams.organization_roster(
                 settings.orgflow_org_id
@@ -5608,6 +5771,77 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 str(settlement.get("result") or ""),
                 outcome,
             )
+        support_npc_outcomes: list[dict[str, Any]] = []
+        parameters = original.get("parameters")
+        parameters = parameters if isinstance(parameters, dict) else {}
+        mandate_id = str(parameters.get("mandate_id") or "")
+        mandate_digest = str(parameters.get("mandate_digest") or "")
+        if mandate_id and mandate_digest:
+            try:
+                mandate_request_id = UUID(mandate_id.rsplit(":", 1)[-1])
+            except ValueError:
+                mandate_request_id = None
+            mandate_record = (
+                await store.read_request(
+                    player_id, mandate_request_id, "court_mandate"
+                )
+                if mandate_request_id is not None
+                else None
+            )
+            sealed_mandate = (
+                mandate_record.get("response", {}).get("mandate")
+                if mandate_record
+                else None
+            )
+            collaboration = (
+                sealed_mandate.get("collaboration")
+                if isinstance(sealed_mandate, dict)
+                and sealed_mandate.get("digest") == mandate_digest
+                else None
+            )
+            support_hero_id = (
+                str(collaboration.get("supportHeroId") or "")
+                if isinstance(collaboration, dict)
+                and str(collaboration.get("primaryHeroId") or "") == assignee
+                else ""
+            )
+            if support_hero_id:
+                support_key = f"{task_key}:{support_hero_id}"
+                support_event_ids = {
+                    "event": "npc-outcome-support:" + support_key,
+                    "memory": "npc-memory-support:" + support_key,
+                    "quality": "npc-quality-support:" + support_key,
+                    "motivation": "npc-motivation-support:" + support_key,
+                }
+                support_outcome = _npc_outcome_status(
+                    await store.game_event_status(support_event_ids["event"]),
+                    await store.game_event_status(support_event_ids["memory"]),
+                    quality=await store.game_event_status(
+                        support_event_ids["quality"]
+                    ),
+                    motivation=await store.game_event_status(
+                        support_event_ids["motivation"]
+                    ),
+                    require_quality=True,
+                    require_motivation=True,
+                ) or {
+                    "state": "PENDING",
+                    "attempts": 0,
+                    "lastError": None,
+                }
+                support_outcome["heroId"] = support_hero_id
+                if (
+                    support_outcome.get("state") == "DELIVERED"
+                    and isinstance(settlement, dict)
+                ):
+                    support_outcome["receipt"] = npc_settlement.seal_delivery(
+                        task_key,
+                        str(settlement.get("result") or ""),
+                        support_outcome,
+                        event_ids=support_event_ids,
+                        participant_hero_id=support_hero_id,
+                    )
+                support_npc_outcomes.append(support_outcome)
         task_state = {
             "taskId": task_key,
             "assigneeHeroId": assignee,
@@ -5615,6 +5849,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "settlement": settlement,
             "closureReceipt": closure,
             "npcOutcome": outcome,
+            "supportNpcOutcomes": support_npc_outcomes,
             "review": review,
             "followUps": follow_ups,
         }

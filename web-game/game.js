@@ -1315,6 +1315,10 @@
       const outcomeLabel = outcomeState === "DELIVERED"
         ? (outcomeSealed ? ` · 人物四项归档 · 内核封印 ${escapeHtml(String(task.npcOutcome.receipt.digest || "").slice(0, 10))}` : " · 经历已形成")
         : outcomeState === "PENDING" ? (task.npcOutcome?.lastError ? " · 经历待重试" : " · 经历回写中") : "";
+      const supportOutcome = task.supportNpcOutcomes?.[0];
+      const supportOutcomeLabel = supportOutcome?.state === "DELIVERED"
+        ? ` · 副手四项归档 · 内核封印 ${escapeHtml(String(supportOutcome.receipt?.digest || "").slice(0, 10))}`
+        : supportOutcome?.state === "PENDING" ? " · 副手经历回写中" : "";
       const settlementLabel = task.settlement ? ` · 军府${Number(task.settlement.organizationDelta) >= 0 ? "+" : ""}${task.settlement.organizationDelta} · 功绩${Number(task.settlement.memberDelta) >= 0 ? "+" : ""}${task.settlement.memberDelta} · 印记 ${escapeHtml(String(task.closureReceipt?.digest || "").slice(0, 10))}` : "";
       const statusLabel = task.status === "active" ? (task.pendingReview?.state === "REQUIRES_ACTION" ? "复命待裁" : `${task.dueMonth}月复命`) : task.status === "success" ? "办成" : task.status === "partial" ? "部分办成" : task.status === "censured" ? "复命被申斥" : "未成";
       const emergencyLabel = task.mandate?.emergency ? ` · ${task.mandate.emergency.urgent ? "急报" : "常报"}${Number(task.mandate.emergency.score).toFixed(3)}` : "";
@@ -1323,9 +1327,11 @@
       const qualityLabel = task.mandate?.assignment?.quality?.fit?.available === true ? ` · 品行${Number(task.mandate.assignment.quality.fit.score)}` : "";
       const support = Number(task.mandate?.assignment?.managerSupport?.factor);
       const supportLabel = Number.isFinite(support) ? ` · 协同${support >= 0 ? "+" : ""}${support}` : "";
+      const collaboration = task.mandate?.collaboration;
+      const collaborationLabel = collaboration ? ` · 副手${escapeHtml(displayName(collaboration.supportHeroId))} · 配合${Number(collaboration.score)}/100 (${Number(collaboration.factor) >= 0 ? "+" : ""}${Number(collaboration.factor)})${task.mandate?.supportScheduleInterruption ? " · 双人已入程" : ""}` : "";
       const evidenceFit = Number(task.mandate?.evidenceFit?.factor);
       const evidenceLabel = Number.isFinite(evidenceFit) ? ` · 史证${evidenceFit}/9` : "";
-      return `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}</strong><small>${statusLabel}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}${evidenceLabel}${task.mandate?.assignment?.name ? ` · 当值${escapeHtml(task.mandate.assignment.name)}` : ""}${Number.isFinite(Number(task.mandate?.assignment?.readiness?.score)) ? ` · 胜任${Number(task.mandate.assignment.readiness.score)}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${emergencyLabel}${settlementLabel}${outcomeLabel}</small></li>`;
+      return `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}${collaboration ? ` + ${escapeHtml(displayName(collaboration.supportHeroId))}` : ""}</strong><small>${statusLabel}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}${evidenceLabel}${task.mandate?.assignment?.name ? ` · 当值${escapeHtml(task.mandate.assignment.name)}` : ""}${Number.isFinite(Number(task.mandate?.assignment?.readiness?.score)) ? ` · 胜任${Number(task.mandate.assignment.readiness.score)}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${collaborationLabel}${emergencyLabel}${settlementLabel}${outcomeLabel}${supportOutcomeLabel}</small></li>`;
     }).join("") || '<li class="empty">尚无差事</li>';
     $("#officeMandateLedger").innerHTML = [...org.mandates].reverse().slice(0, 6).map((mandate) => {
       const label = mandate.state === "RESOLVED" ? (mandate.outcome?.won ? "战后告捷" : "战后失利") : mandate.state === "FULFILLED" ? "复命待战" : mandate.state === "PARTIAL" ? "部分复命" : mandate.state === "FAILED" ? "执行未成" : mandate.state === "ORDERED" ? "属官执行中" : "已签发";
@@ -1335,6 +1341,8 @@
       const qualityLabel = mandate.assignment?.quality?.fit?.available === true ? ` · 品行${Number(mandate.assignment.quality.fit.score)}` : "";
       const support = Number(mandate.assignment?.managerSupport?.factor);
       const supportLabel = Number.isFinite(support) ? ` · 协同${support >= 0 ? "+" : ""}${support}` : "";
+      const collaboration = mandate.collaboration;
+      const collaborationLabel = collaboration ? ` · 副手${escapeHtml(displayName(collaboration.supportHeroId))} · 配合${Number(collaboration.score)}/100 (${Number(collaboration.factor) >= 0 ? "+" : ""}${Number(collaboration.factor)})${mandate.supportScheduleInterruption ? " · 双人已入程" : ""}` : "";
       const evidenceFit = Number(mandate.evidenceFit?.factor);
       const evidenceLabel = Number.isFinite(evidenceFit) ? ` · 史证${evidenceFit}/9` : "";
       const emergency = mandate.emergency;
@@ -1343,17 +1351,18 @@
       const interruptionLabel = interruption
         ? ` · ${interruption.action === "insert_today" ? "今日插程" : interruption.action === "future" ? "后续排程" : "日程裁定 " + interruption.action}${interruption.scheduleName ? `“${escapeHtml(interruption.scheduleName)}”` : ""}`
         : "";
-      return `<li class="${escapeHtml(String(mandate.state || "issued").toLowerCase())}"><span>${escapeHtml(mandate.evidence?.name || "内核军令")}</span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(mandate.evidence?.source?.work || "未列出处")}${evidenceLabel} · ${escapeHtml(mandate.assignment?.date || "未定日")} ${escapeHtml(mandate.assignment?.name || "旧军令未封当值")}${Number.isFinite(readiness) ? ` · 胜任${readiness}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${emergencyLabel}${interruptionLabel} · 印记 ${escapeHtml(String(mandate.digest || "").slice(0, 10))}</small></li>`;
+      return `<li class="${escapeHtml(String(mandate.state || "issued").toLowerCase())}"><span>${escapeHtml(mandate.evidence?.name || "内核军令")}</span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(mandate.evidence?.source?.work || "未列出处")}${evidenceLabel} · ${escapeHtml(mandate.assignment?.date || "未定日")} ${escapeHtml(mandate.assignment?.name || "旧军令未封当值")}${Number.isFinite(readiness) ? ` · 胜任${readiness}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${collaborationLabel}${emergencyLabel}${interruptionLabel} · 印记 ${escapeHtml(String(mandate.digest || "").slice(0, 10))}</small></li>`;
     }).join("") || '<li class="empty">完成史料查阅与属官裁断后，可签发内核军令。</li>';
     $("#officeAllianceLedger").innerHTML = [...org.diplomacy.alliances].reverse().map((pact) => `<li class="${pact.status}"><span>${escapeHtml(pact.targetName)}盟约</span><strong>${pact.status === "active" ? "生效" : pact.status === "broken" ? "背盟待战" : "战后结案"}</strong><small>关系 ${Number(org.diplomacy.relations[pact.targetId] || 0)} · ${escapeHtml(pact.terms.join("、"))}</small></li>`).join("") || '<li class="empty">尚无盟约</li>';
     $("#officeBattleArchive").innerHTML = [...org.archives].reverse().slice(0, 12).map((entry) => `<li><strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml(entry.text)} · ${escapeHtml(String(entry.stageId || "无关卡"))}</span></li>`).join("") || "<li><strong>尚无档案</strong><span>完成盟约、背盟或战役后将在此存照。</span></li>";
     const sealedBattleReport = [...org.battleReports].reverse().find((report) => report?.kernelReceipt?.kernel?.state === "SEALED");
     if (sealedBattleReport) {
       const verifiedCount = Number(sealedBattleReport.kernelReceipt.verifiedParticipants?.length || 0);
+      const verifiedNames = (sealedBattleReport.kernelReceipt.verifiedParticipants || []).map(displayName).join("、");
       const rejectedCount = Number(sealedBattleReport.kernelReceipt.rejectedSupport?.length || 0);
       $("#officeBattleArchive").insertAdjacentHTML(
         "afterbegin",
-        `<li><strong>\u5185\u6838\u6218\u679c\u5370\u8bb0</strong><span>${escapeHtml(sealedBattleReport.stageTitle || sealedBattleReport.stageId)} \u00b7 ${escapeHtml(String(sealedBattleReport.kernelReceipt.digest || "").slice(0, 12))} \u00b7 ${escapeHtml(String(sealedBattleReport.kernelReceipt.kernel.moduleVersion || ""))} \u00b7 ${verifiedCount}\u4eba\u8ba4\u8bc1${rejectedCount ? ` \u00b7 ${rejectedCount}\u9879\u672a\u8ba4\u8bc1` : ""}</span></li>`
+        `<li><strong>\u5185\u6838\u6218\u679c\u5370\u8bb0</strong><span>${escapeHtml(sealedBattleReport.stageTitle || sealedBattleReport.stageId)} \u00b7 ${escapeHtml(String(sealedBattleReport.kernelReceipt.digest || "").slice(0, 12))} \u00b7 ${escapeHtml(String(sealedBattleReport.kernelReceipt.kernel.moduleVersion || ""))} \u00b7 ${verifiedCount}\u4eba\u8ba4\u8bc1${verifiedNames ? `（${escapeHtml(verifiedNames)}）` : ""}${rejectedCount ? ` \u00b7 ${rejectedCount}\u9879\u672a\u8ba4\u8bc1` : ""}</span></li>`
       );
     }
     const selectedTask = organization.TASK_TYPES[$("#officeTaskType").value] || organization.TASK_TYPES.supply;
@@ -2408,7 +2417,7 @@
   function organizationTaskSnapshot(response) {
     const snapshot = response.result?.data || response.result || null;
     return snapshot && typeof snapshot === "object"
-      ? { ...snapshot, assigneeHeroId: response.assigneeHeroId || null, settlement: response.settlement || null, closureReceipt: response.closureReceipt || null, npcOutcome: response.npcOutcome || null, review: response.review || null, followUps: Array.isArray(response.followUps) ? response.followUps : [] }
+      ? { ...snapshot, assigneeHeroId: response.assigneeHeroId || null, settlement: response.settlement || null, closureReceipt: response.closureReceipt || null, npcOutcome: response.npcOutcome || null, supportNpcOutcomes: Array.isArray(response.supportNpcOutcomes) ? response.supportNpcOutcomes : [], review: response.review || null, followUps: Array.isArray(response.followUps) ? response.followUps : [] }
       : snapshot;
   }
 
@@ -2421,7 +2430,11 @@
 
   async function refreshOfficeTaskSnapshots() {
     const serial = ++officeTaskRefreshSerial;
-    const tasks = profile.organization.tasks.filter((task) => task.status === "active" && task.remoteResult);
+    const tasks = profile.organization.tasks.filter((task) => task.remoteResult && (
+      task.status === "active"
+      || task.npcOutcome?.state === "PENDING"
+      || task.supportNpcOutcomes?.some((outcome) => outcome?.state === "PENDING")
+    ));
     if (!tasks.length || integration.isOffline() || !profile.organization.backend.orgFlow) return;
     const snapshots = await readOrganizationTaskSnapshots(tasks);
     if (serial !== officeTaskRefreshSerial) return;

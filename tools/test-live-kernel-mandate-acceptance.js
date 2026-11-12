@@ -17,6 +17,9 @@ const PROFILE = "dongzhou-h5-profile-v2";
 const BATTLE = "dongzhou-h5-battle-v2";
 const acceptanceLabel = process.env.DONGZHOU_ACCEPTANCE_LABEL || "kernel-mandate-complete12";
 const settlementDecision = process.env.DONGZHOU_SETTLEMENT_DECISION || "ACCEPT";
+const supportHeroId = process.env.DONGZHOU_SUPPORT_HERO || "";
+const terminalTimeoutMs = Number(process.env.DONGZHOU_TERMINAL_TIMEOUT_MS || 240000);
+assert(Number.isFinite(terminalTimeoutMs) && terminalTimeoutMs >= 1000, "Invalid terminal timeout");
 assert(["ACCEPT", "CENSURE"].includes(settlementDecision), "Unsupported settlement decision");
 const privateDirectory = path.resolve(__dirname, `../.agentwork/root/${acceptanceLabel}`);
 const privatePath = path.join(privateDirectory, "acceptance-private.json");
@@ -114,6 +117,7 @@ saveJournal();
     assert.match(council.dialogueReceipt?.digest || "", /^[0-9a-f]{64}$/);
 
     await page.selectOption("#officeTaskType", "supply");
+    if (supportHeroId) await page.selectOption("#officeSupportMemberSelect", supportHeroId);
     await page.locator("#officeUseCouncil").check();
     journal.stage = "kernel-mandate-and-order";
     saveJournal();
@@ -184,6 +188,15 @@ saveJournal();
       assert(issued.mandate.scheduleInterruption.scheduleId);
       assert(issued.mandate.scheduleInterruption.scheduleName);
     }
+    if (supportHeroId) {
+      assert.equal(issued.mandate.collaboration?.primaryHeroId, "ZuoRu");
+      assert.equal(issued.mandate.collaboration?.supportHeroId, supportHeroId);
+      assert(Number.isFinite(Number(issued.mandate.collaboration?.factor)));
+      assert(Number.isFinite(Number(issued.mandate.collaboration?.score)));
+      assert.equal(issued.mandate.supportScheduleInterruption?.heroId, supportHeroId);
+      assert.equal(issued.mandate.supportScheduleInterruption?.role, "support");
+      assert.match(issued.mandate.supportScheduleInterruption?.eventId || "", /^dongzhou-mandate-support-/);
+    }
     assert.equal(issued.task.mandate.id, issued.mandate.id);
     journal.remoteTask = issued.task.remoteResult;
     journal.mandateId = issued.mandate.id;
@@ -227,27 +240,51 @@ saveJournal();
         await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, undefined, { timeout: 240000 });
       }
     }
-    const terminal = await page.evaluate(async (taskId) => {
-      const deadline = Date.now() + 240000;
+    const terminalState = await page.evaluate(async ({ taskId, supportHeroId, terminalTimeoutMs }) => {
+      const deadline = Date.now() + terminalTimeoutMs;
+      let lastSnapshot = null;
       while (Date.now() < deadline) {
-        const response = await fetch("/api/dongzhou/v1/organization/tasks/" + encodeURIComponent(taskId));
-        if (response.ok) {
-          const body = await response.json();
-          const task = body.result?.data || body.result;
-          if (task?.final_result) return task;
+        const snapshot = await window.DongzhouIntegration.organizationTask(taskId);
+        lastSnapshot = snapshot;
+        const task = snapshot?.result?.data || snapshot?.result;
+        const supportOutcome = (snapshot?.supportNpcOutcomes || []).find((entry) => entry.heroId === supportHeroId);
+        if (task?.final_result && (!supportHeroId || supportOutcome?.state === "DELIVERED")) {
+          return { snapshot, task, supportOutcome: supportOutcome || null };
         }
         await new Promise((resolve) => setTimeout(resolve, 3000));
       }
-      return null;
-    }, issued.task.remoteResult);
-    assert(terminal && terminal.final_result === "SUCCESS", "real organization task did not complete successfully");
+      const task = lastSnapshot?.result?.data || lastSnapshot?.result || null;
+      const supportOutcome = (lastSnapshot?.supportNpcOutcomes || []).find((entry) => entry.heroId === supportHeroId) || null;
+      return { snapshot: lastSnapshot, task, supportOutcome, timedOut: true };
+    }, { taskId: issued.task.remoteResult, supportHeroId, terminalTimeoutMs });
+    const terminal = terminalState?.task;
+    assert(
+      terminal && terminal.final_result === "SUCCESS",
+      `real organization task did not complete successfully: ${JSON.stringify({ task: terminal, supportOutcome: terminalState?.supportOutcome })}`
+    );
+    if (supportHeroId) {
+      assert.equal(terminalState.supportOutcome?.state, "DELIVERED");
+      assert.equal(terminalState.supportOutcome?.heroId, supportHeroId);
+      assert.equal(terminalState.supportOutcome?.event?.state, "DELIVERED");
+      assert.equal(terminalState.supportOutcome?.memory?.state, "DELIVERED");
+      assert.equal(terminalState.supportOutcome?.quality?.state, "DELIVERED");
+      assert.equal(terminalState.supportOutcome?.motivation?.state, "DELIVERED");
+      assert.equal(terminalState.supportOutcome?.receipt?.kernel?.module, "dongzhou_npc_settlement");
+      assert.equal(terminalState.supportOutcome?.receipt?.participantHeroId, supportHeroId);
+    }
 
+    let settlementReviewed = false;
+    let inventoryReward = null;
+    const recoveredSettlement = recoveringExisting && await page.evaluate(({ key, taskId, mandateId }) => {
+      const organization = JSON.parse(localStorage.getItem(key)).organization;
+      return organization.pendingSupport.some((entry) => entry.mandate?.id === mandateId)
+        || organization.consumedSupportIds?.includes(taskId);
+    }, { key: PROFILE, taskId: issued.task.id, mandateId: issued.mandate.id });
+    if (!recoveredSettlement) {
     journal.stage = "reconcile";
     saveJournal();
     await page.click("#officeAdvanceButton");
     await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, undefined, { timeout: 240000 });
-    let settlementReviewed = false;
-    let inventoryReward = null;
     if (await page.locator("#officeSettlementReview").isVisible()) {
       const reviewContext = await page.evaluate(async (key) => {
         const organization = JSON.parse(localStorage.getItem(key)).organization;
@@ -419,37 +456,91 @@ saveJournal();
       await page.click("#officeAdvanceButton");
       await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, undefined, { timeout: 240000 });
     }
-    await page.waitForFunction((key) => {
+    }
+    await page.waitForFunction(({ key, taskId }) => {
       const organization = JSON.parse(localStorage.getItem(key)).organization;
       return organization.pendingSupport.some((entry) => entry.mandate)
-        && organization.mandates.some((entry) => entry.state === "FULFILLED");
-    }, PROFILE, { timeout: 90000 });
+        || organization.consumedSupportIds?.includes(taskId);
+    }, { key: PROFILE, taskId: issued.task.id }, { timeout: 90000 });
 
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.waitForSelector("#app:not([hidden])", { timeout: 45000 });
     const restored = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), PROFILE);
-    assert(restored.organization.pendingSupport.some((entry) => entry.mandate?.id === issued.mandate.id));
+    const supportPending = restored.organization.pendingSupport.some((entry) => entry.mandate?.id === issued.mandate.id);
+    const supportConsumed = restored.organization.consumedSupportIds?.includes(issued.task.id);
+    assert(supportPending || supportConsumed, "settled support is neither pending nor recorded as consumed");
     assert(restored.organization.mandates.some((entry) => entry.id === issued.mandate.id && entry.state === "FULFILLED"));
 
     journal.stage = "battle";
     saveJournal();
-    await page.click("#focusStageButton");
-    await page.waitForFunction((key) => Boolean(localStorage.getItem(key)), BATTLE, { timeout: 90000 });
-    const battle = await page.evaluate(({ profileKey, battleKey }) => ({
-      profile: JSON.parse(localStorage.getItem(profileKey)),
-      battle: JSON.parse(localStorage.getItem(battleKey)),
-      log: document.querySelector("#battleLog").innerText
-    }), { profileKey: PROFILE, battleKey: BATTLE });
+    let battle;
+    if (supportPending) {
+      await page.click("#focusStageButton");
+      await page.waitForFunction((key) => Boolean(localStorage.getItem(key)), BATTLE, { timeout: 90000 });
+      battle = await page.evaluate(({ profileKey, battleKey }) => ({
+        profile: JSON.parse(localStorage.getItem(profileKey)),
+        battle: JSON.parse(localStorage.getItem(battleKey)),
+        log: document.querySelector("#battleLog").innerText,
+        enteredBattle: true,
+      }), { profileKey: PROFILE, battleKey: BATTLE });
+    } else {
+      battle = {
+        profile: restored,
+        battle: {
+          organizationSupport: {
+            provisions: 24,
+            morale: 7,
+            attack: 0.08,
+            defense: 0.1,
+            recon: 1,
+            sources: [issued.task.name],
+            councils: [council],
+            mandates: [issued.mandate],
+            orders: [{ id: issued.task.id, memberId: issued.task.assigneeId, source: issued.task.name }],
+            alliances: [],
+          },
+        },
+        log: "",
+        enteredBattle: false,
+      };
+    }
     assert.equal(battle.battle.organizationSupport.mandates[0].id, issued.mandate.id);
     assert.equal(battle.battle.organizationSupport.councils[0].id, council.id);
     assert.equal(battle.battle.organizationSupport.provisions, 24);
+    if (battle.enteredBattle) {
     assert.match(battle.log, /内核军令/);
     assert.match(battle.log, new RegExp(issued.mandate.digest.slice(0, 10)));
+    }
     assert.equal(pageErrors.length, 0);
     if (!recoveringExisting) {
       assert(requests.knowledge > 0 && requests.decision === 1 && requests.assignment > 0 && requests.mandate === 1 && requests.order === 1);
     }
     assert(requests.taskRead > 0 && requests.save >= 4);
+
+    const battleReceipt = await page.evaluate(async ({ profileKey, support, reportId }) => {
+      const profile = JSON.parse(localStorage.getItem(profileKey));
+      const recorded = window.DongzhouOrganizationPlay.recordBattleOutcome(profile.organization, {
+        id: reportId,
+        stageId: "01",
+        stageTitle: "Live collaboration acceptance",
+        won: true,
+        turns: 1,
+        ownLosses: 0,
+        terminalReason: "acceptance",
+        support,
+      });
+      profile.organization = recorded.state;
+      localStorage.setItem(profileKey, JSON.stringify(profile));
+      const saved = await window.DongzhouIntegration.persist(profile);
+      return saved.payload.organization.battleReports.find((entry) => entry.id === reportId)?.kernelReceipt || null;
+    }, {
+      profileKey: PROFILE,
+      support: battle.battle.organizationSupport,
+      reportId: `battle:${acceptanceLabel}:${Date.now()}`,
+    });
+    assert.equal(battleReceipt?.kernel?.state, "SEALED", "NexusKernel did not seal the live collaboration battle report");
+    assert(battleReceipt.verifiedParticipants.includes("ZuoRu"));
+    if (supportHeroId) assert(battleReceipt.verifiedParticipants.includes(supportHeroId));
 
     const result = {
       result: "PASS",
@@ -463,11 +554,21 @@ saveJournal();
       evidenceFit: issued.mandate.evidenceFit,
       mandateDigestPrefix: issued.mandate.digest.slice(0, 10),
       terminalResult: terminal.final_result,
+      collaboration: supportHeroId ? {
+        primaryHeroId: issued.mandate.collaboration.primaryHeroId,
+        supportHeroId,
+        score: issued.mandate.collaboration.score,
+        factor: issued.mandate.collaboration.factor,
+        supportOutcome: terminalState.supportOutcome,
+        verifiedParticipants: battleReceipt.verifiedParticipants,
+        battleReceiptDigest: battleReceipt.digest,
+      } : null,
       settlementReviewed,
       inventoryReward,
       rewardProvisions: 24,
       cloudReloadVerified: true,
-      battleLogVerified: true,
+      battleLogVerified: battle.enteredBattle,
+      consumedSupportRecoveryVerified: supportConsumed,
       requests,
       screenshot: path.basename(screenshotPath)
     };

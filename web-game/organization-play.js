@@ -269,8 +269,15 @@
     if ((mandate?.thought?.requestId || null) !== (council?.thought?.requestId || null) || (mandate?.thought?.digest || null) !== (council?.thought?.digest || null)) throw new Error("内核军令与军议进言不匹配");
     const operation = input.operation && typeof input.operation === "object" ? copy(input.operation) : mandate?.operation ? copy(mandate.operation) : null;
     if (operation && (input.type !== "diplomacy" || operation.kind !== "diplomacy" || !operation.target_id || !operation.target_name || !operation.proposal || !mandate?.operation || JSON.stringify(operation) !== JSON.stringify(mandate.operation))) throw new Error("外交差事与内核军令不匹配");
-    const active = state.tasks.some((task) => task.status === "active" && task.assigneeId === member.id);
-    if (active) throw new Error(`${member.name}已有差事在身`);
+    const supportHeroId = mandate?.collaboration?.supportHeroId || null;
+    const supportMember = supportHeroId ? state.members.find((entry) => entry.id === supportHeroId) : null;
+    if (supportHeroId && (!supportMember || supportHeroId === member.id)) throw new Error("协办副手不在当前官署名册中");
+    const participants = new Set([member.id, ...(supportHeroId ? [supportHeroId] : [])]);
+    const active = state.tasks.find((task) => task.status === "active" && (
+      participants.has(task.assigneeId)
+      || participants.has(task.mandate?.collaboration?.supportHeroId)
+    ));
+    if (active) throw new Error(`${active.assigneeName}及其协办已有差事在身`);
     // 序号独立于可裁剪的台账，旧存档从已有任务 ID 恢复，读档后不会重复领单。
     const serial = state.taskSequence + 1;
     if (!Number.isSafeInteger(serial)) throw new Error("差事编号已达上限");
@@ -291,11 +298,13 @@
       startedMonth: state.month,
       dueMonth: state.month + definition.duration,
       status: "active",
+      supportNpcOutcomes: [],
       cost: definition.cost
     };
     state.tasks.push(task);
     member.fatigue = clamp(member.fatigue + 12, 0, 100);
-    state.history.push({ month: state.month, tone: "order", text: `${member.name}领命：${definition.name}` });
+    if (supportMember) supportMember.fatigue = clamp(supportMember.fatigue + 8, 0, 100);
+    state.history.push({ month: state.month, tone: "order", text: `${member.name}${supportMember ? `与${supportMember.name}` : ""}领命：${definition.name}` });
     return { state, task };
   }
 
@@ -507,6 +516,7 @@
           pendingSettlement: null,
           pendingReview: null,
           npcOutcome: null,
+          supportNpcOutcomes: [],
           derivation: {
             intentId: String(followUp.intentId || ''),
             source: followUp.source,
@@ -530,9 +540,16 @@
     }
     const byId = new Map((snapshots || []).filter(Boolean).map((snapshot) => [String(snapshot.task_id || ""), snapshot]));
     for (const task of state.tasks) {
-      if (task.status !== "active" || !task.remoteResult) continue;
+      if (!task.remoteResult) continue;
       const snapshot = byId.get(String(task.remoteResult));
       if (!snapshot) continue;
+      if (snapshot.npcOutcome && typeof snapshot.npcOutcome === "object") {
+        task.npcOutcome = copy(snapshot.npcOutcome);
+      }
+      if (Array.isArray(snapshot.supportNpcOutcomes)) {
+        task.supportNpcOutcomes = snapshot.supportNpcOutcomes.map(copy);
+      }
+      if (task.status !== "active") continue;
       if (task.derivation && snapshot.assigneeHeroId && String(snapshot.assigneeHeroId) !== String(task.assigneeId)) {
         const authoritativeMember = state.members.find((entry) => String(entry.id) === String(snapshot.assigneeHeroId));
         if (!authoritativeMember) throw new Error("组织追办责任人无效");
@@ -541,9 +558,6 @@
       }
       task.remoteState = snapshot.state;
       task.remoteVersion = snapshot.version;
-      if (snapshot.npcOutcome && typeof snapshot.npcOutcome === "object") {
-        task.npcOutcome = copy(snapshot.npcOutcome);
-      }
       const finalResult = snapshot.final_result;
       if (!finalResult) continue;
       if (snapshot.review && typeof snapshot.review === "object") {
@@ -633,6 +647,10 @@
         });
       }
       member.fatigue = clamp(member.fatigue - 8, 0, 100);
+      const supportMember = task.mandate?.collaboration?.supportHeroId
+        ? state.members.find((entry) => entry.id === task.mandate.collaboration.supportHeroId)
+        : null;
+      if (supportMember) supportMember.fatigue = clamp(supportMember.fatigue - 6, 0, 100);
     }
     state.history = state.history.slice(-40);
     return state;

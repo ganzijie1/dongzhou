@@ -237,6 +237,10 @@ class OrganizationOutcomeTests(unittest.TestCase):
                     "stageId": "01",
                     "heroId": "ZuoRu",
                     "digest": "a" * 64,
+                    "collaboration": {
+                        "primaryHeroId": "ZuoRu",
+                        "supportHeroId": "SiTu",
+                    },
                 }],
                 "tasks": [{
                     "id": "order-1",
@@ -269,12 +273,17 @@ class OrganizationOutcomeTests(unittest.TestCase):
                 "NPC_BATTLE_MEMORY",
                 "NPC_BATTLE_OUTCOME",
                 "NPC_BATTLE_MEMORY",
+                "NPC_BATTLE_OUTCOME",
+                "NPC_BATTLE_MEMORY",
             ],
         )
         self.assertEqual(
             {event["payload"]["npc_name"] for event in first},
-            {"杜伯", "左儒"},
+            {"杜伯", "左儒", "司徒"},
         )
+        receipt = payload["organization"]["battleReports"][0]["kernelReceipt"]
+        self.assertEqual(receipt["verifiedParticipants"], ["DuBo", "SiTu", "ZuoRu"])
+        self.assertEqual(receipt["verifiedSupport"]["mandates"][0]["supportHeroId"], "SiTu")
         outcome = next(
             event["payload"]
             for event in first
@@ -393,6 +402,71 @@ class OrganizationOutcomeTests(unittest.TestCase):
             "id": council_id,
             "reason": "server_attestation_missing",
         }])
+
+    def test_battle_receipt_accepts_consumed_support_with_server_attestation(self) -> None:
+        player_id = UUID("00000000-0000-4000-8000-000000000123")
+        previous = {
+            "organization": {
+                "members": [
+                    {"id": "ZuoRu", "name": "Zuo Ru"},
+                    {"id": "SiTu", "name": "Si Tu"},
+                    {"id": "DuBo", "name": "Du Bo"},
+                ],
+                "councils": [{
+                    "id": "council-consumed",
+                    "stageId": "01",
+                    "memberId": "ZuoRu",
+                }],
+                "mandates": [{
+                    "id": "mandate-consumed",
+                    "stageId": "01",
+                    "heroId": "ZuoRu",
+                    "digest": "b" * 64,
+                    "collaboration": {
+                        "primaryHeroId": "ZuoRu",
+                        "supportHeroId": "SiTu",
+                    },
+                }],
+                "tasks": [{
+                    "id": "order-consumed",
+                    "stageId": "01",
+                    "assigneeId": "DuBo",
+                }],
+                "pendingSupport": [],
+                "battleReports": [],
+            }
+        }
+        submitted = json.loads(json.dumps(previous))
+        submitted["organization"]["battleReports"] = [{
+            "id": "battle:consumed",
+            "stageId": "01",
+            "won": True,
+            "turns": 2,
+            "ownLosses": 0,
+            "councils": [{"id": "council-consumed", "memberId": "ZuoRu"}],
+            "mandates": [{
+                "id": "mandate-consumed",
+                "heroId": "ZuoRu",
+                "digest": "b" * 64,
+            }],
+            "support": {
+                "orders": [{"id": "order-consumed", "memberId": "DuBo"}],
+            },
+        }]
+        sealed = _seal_battle_reports(
+            player_id,
+            previous,
+            submitted,
+            {
+                "councils": {"council-consumed"},
+                "mandates": {"mandate-consumed"},
+                "orders": {"order-consumed"},
+                "mandateCollaborators": {"mandate-consumed": "SiTu"},
+            },
+        )
+        receipt = sealed["organization"]["battleReports"][0]["kernelReceipt"]
+        self.assertEqual(receipt["verifiedParticipants"], ["DuBo", "SiTu", "ZuoRu"])
+        self.assertEqual(receipt["rejectedSupport"], [])
 
     def test_organization_supervision_links_use_only_synced_direct_reports(self) -> None:
         links = _organization_supervision_links(
@@ -590,6 +664,24 @@ class OrganizationOutcomeTests(unittest.TestCase):
         self.assertEqual(
             set(first["deliveries"]),
             {"event", "memory", "quality", "motivation"},
+        )
+        support_ids = {
+            "event": "npc-outcome-support:" + task_id + ":SiTu",
+            "memory": "npc-memory-support:" + task_id + ":SiTu",
+            "quality": "npc-quality-support:" + task_id + ":SiTu",
+            "motivation": "npc-motivation-support:" + task_id + ":SiTu",
+        }
+        support = NpcSettlementModule.seal_delivery(
+            task_id,
+            "SUCCESS",
+            outcome,
+            event_ids=support_ids,
+            participant_hero_id="SiTu",
+        )
+        self.assertEqual(support["participantHeroId"], "SiTu")
+        self.assertEqual(
+            {entry["eventId"] for entry in support["deliveries"].values()},
+            set(support_ids.values()),
         )
         pending = {**outcome, "motivation": {"state": "PENDING", "attempts": 1}}
         with self.assertRaisesRegex(ValueError, "motivation"):
@@ -1714,6 +1806,10 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
                     "state": "ISSUED",
                     "heroId": "ZuoRu",
                     "digest": mandate_digest,
+                    "collaboration": {
+                        "primaryHeroId": "ZuoRu",
+                        "supportHeroId": "SiTu",
+                    },
                 },
             },
             external_id=mandate_id,
@@ -1792,6 +1888,7 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(attested["councils"], {str(council_id)})
         self.assertEqual(attested["mandates"], {mandate_id})
+        self.assertEqual(attested["mandateCollaborators"], {mandate_id: "SiTu"})
         self.assertEqual(attested["orders"], {"local-order-1"})
 
     async def test_explicit_redelivery_requeues_same_completed_game_event(self) -> None:
@@ -2264,6 +2361,82 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         motivation_status = await self.store.game_event_status("npc-motivation:" + task_id)
         self.assertEqual(motivation_status["state"], "DELIVERED")
         self.assertEqual(motivation_status["attempts"], 1)
+        self.assertEqual(await self.store.pending_game_events(), [])
+
+    async def test_terminal_report_chains_support_officer_four_part_outcome(self) -> None:
+        class OutcomeUpstreams(_HealthyUpstreams):
+            def __init__(self) -> None:
+                self.events = []
+
+            async def send_game_event(self, kind, payload):
+                self.events.append((kind, payload))
+                return {"record": {"task": {"final_result": "SUCCESS"}}}
+
+        task_id = str(uuid4())
+        primary = {
+            "task_id": task_id,
+            "task_type": "drill",
+            "task_name": "Drill formation",
+            "stage_id": "01",
+            "stage_title": "Eastern Outskirts",
+            "hero_id": "ZuoRu",
+            "npc_id": "42",
+            "npc_name": "Zuo Ru",
+            "manager_npc_id": "41",
+            "game_server_id": "91001",
+            "game_time": "0771-01-01 14:00:00",
+            "planned_result": "SUCCESS",
+        }
+        support = {
+            **primary,
+            "effect_id": task_id + ":support:SiTu",
+            "hero_id": "SiTu",
+            "npc_id": "43",
+            "npc_name": "Si Tu",
+            "collaboration_role": "support",
+            "primary_hero_id": "ZuoRu",
+        }
+        await self.store.enqueue_game_event(
+            "org-report:" + task_id,
+            "ORG_REPORT_START",
+            {
+                "task_id": task_id,
+                "content": "report",
+                "npc_outcome": primary,
+                "support_npc_outcomes": [support],
+            },
+        )
+        upstreams = OutcomeUpstreams()
+        dispatch = asyncio.create_task(
+            RuntimeModule(self.store, upstreams, None)._dispatch_game_events()
+        )
+        try:
+            deadline = asyncio.get_running_loop().time() + 2
+            while len(upstreams.events) < 9 and asyncio.get_running_loop().time() < deadline:
+                await asyncio.sleep(0.01)
+        finally:
+            dispatch.cancel()
+            await asyncio.gather(dispatch, return_exceptions=True)
+
+        self.assertEqual(len(upstreams.events), 9)
+        support_events = [
+            payload
+            for kind, payload in upstreams.events
+            if kind == "NPC_TASK_OUTCOME" and payload.get("npc_id") == "43"
+        ]
+        self.assertEqual(len(support_events), 1)
+        metadata = support_events[0]["events"][0]["metadata"]
+        self.assertEqual(metadata["collaboration_role"], "support")
+        self.assertEqual(metadata["primary_hero_id"], "ZuoRu")
+        support_key = task_id + ":SiTu"
+        for prefix in (
+            "npc-outcome-support:",
+            "npc-memory-support:",
+            "npc-quality-support:",
+            "npc-motivation-support:",
+        ):
+            status = await self.store.game_event_status(prefix + support_key)
+            self.assertEqual(status["state"], "DELIVERED")
         self.assertEqual(await self.store.pending_game_events(), [])
 
     async def test_startup_backfills_missing_npc_memory_once(self) -> None:
