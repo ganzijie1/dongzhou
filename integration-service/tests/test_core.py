@@ -524,6 +524,31 @@ class OrganizationOutcomeTests(unittest.TestCase):
         self.assertEqual(combined["lastError"], "temporary")
         self.assertEqual(_npc_outcome_status(delivered, delivered)["state"], "DELIVERED")
 
+    def test_npc_outcome_status_waits_for_authoritative_motivation(self) -> None:
+        delivered = {"state": "DELIVERED", "attempts": 1, "lastError": None}
+        pending = {"state": "PENDING", "attempts": 2, "lastError": "motivation busy"}
+        incomplete = _npc_outcome_status(
+            delivered,
+            delivered,
+            quality=delivered,
+            motivation=pending,
+            require_quality=True,
+            require_motivation=True,
+        )
+        self.assertEqual(incomplete["state"], "PENDING")
+        self.assertEqual(incomplete["lastError"], "motivation busy")
+        self.assertEqual(incomplete["motivation"], pending)
+        complete = _npc_outcome_status(
+            delivered,
+            delivered,
+            quality=delivered,
+            motivation=delivered,
+            require_quality=True,
+            require_motivation=True,
+        )
+        self.assertEqual(complete["state"], "DELIVERED")
+        self.assertEqual(complete["attempts"], 4)
+
 
 class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
     async def test_restart_reconciles_persisted_npc_directory(self) -> None:

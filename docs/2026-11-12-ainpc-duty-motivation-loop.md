@@ -17,11 +17,11 @@ orgFlowEngine 的权威任务终态不再只形成经历和品质，也会形成
 - 第一笔任务 `7f37db10-d85b-5aea-8cb3-5c9e049750ad` 暴露了异步认知覆盖问题：显式 `+8` 后，旧认知操作将同名动机调回 `0`，据此补上所有权契约。
 - 修复后任务 `78bd9bb3-5cfd-571a-8359-30c20cc8a33f` 权威结果为 `SUCCESS`。五条 outbox 均一次送达；显式操作把“再办军粮转运”从 `0` 写为 `8`。
 - 12 秒后，AINPC 的 `event_report:dongzhou-org-outcome:<task_id>` 认知操作正常完成，整张动机表保持不变。
-- 重建全部 8 个 AINPC 容器后，同一任务重放前后仍为 `8`，动机修订号保持 `46`。
+- 重建全部 8 个 AINPC 容器后，同一任务重放前后仍为 `8`。全局动机修订号可被其他合法操作推进，不作为本结算的幂等判据。
 - 浏览器证据：`output/integration-validation/live-motivation-authority-complete94-motivation.json` 和同名 PNG。
 
 ## 验证
 
-- 东周集成服务：`103 passed, 21 subtests passed`。
+- 东周集成服务：`104 passed, 21 subtests passed`。
 - 网页玩法：`test-game-systems.js`、`test-organization-play.js`、`test-integration-client.js` 全部通过。
 - AINPC 新增权威动机测试通过；完整动机目录为 `184 passed, 18 skipped, 3 failed`。三个失败均为现有测试桩未跟随 cognition repository 和 recovery handler 参数变化，与本次策略无关。

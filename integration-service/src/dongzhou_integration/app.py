@@ -2001,17 +2001,27 @@ def _npc_outcome_status(
     memory: dict[str, Any] | None,
     affection: dict[str, Any] | None = None,
     quality: dict[str, Any] | None = None,
+    motivation: dict[str, Any] | None = None,
     *,
     require_affection: bool = False,
     require_quality: bool = False,
+    require_motivation: bool = False,
 ) -> dict[str, Any] | None:
-    if event is None and memory is None and affection is None and quality is None:
+    if (
+        event is None
+        and memory is None
+        and affection is None
+        and quality is None
+        and motivation is None
+    ):
         return None
     parts = {"event": event, "memory": memory}
     if affection is not None or require_affection:
         parts["affection"] = affection
     if quality is not None or require_quality:
         parts["quality"] = quality
+    if motivation is not None or require_motivation:
+        parts["motivation"] = motivation
     states = [part.get("state") for part in parts.values() if isinstance(part, dict)]
     delivered = len(states) == len(parts) and all(state == "DELIVERED" for state in states)
     last_error = next(
@@ -2037,6 +2047,8 @@ def _npc_outcome_status(
         result["affection"] = affection
     if quality is not None or require_quality:
         result["quality"] = quality
+    if motivation is not None or require_motivation:
+        result["motivation"] = motivation
     return result
 
 
@@ -4886,7 +4898,9 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             await store.game_event_status("npc-outcome:" + task_key),
             await store.game_event_status("npc-memory:" + task_key),
             quality=await store.game_event_status("npc-quality:" + task_key),
+            motivation=await store.game_event_status("npc-motivation:" + task_key),
             require_quality=True,
+            require_motivation=True,
         )
         task_state = {
             "taskId": task_key,

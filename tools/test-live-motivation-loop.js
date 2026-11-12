@@ -93,6 +93,8 @@ function motive(snapshot, name) {
 
     const task = await page.evaluate((taskId) => window.DongzhouIntegration.organizationTask(taskId), journal.remoteTask);
     assert.equal(task.result?.data?.final_result || task.result?.final_result, finalResult);
+    assert.equal(task.npcOutcome?.motivation?.state, "DELIVERED", "The task status omitted the motivation settlement");
+    assert.equal(task.npcOutcome?.state, "DELIVERED", "The complete NPC outcome was not delivered");
 
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.waitForSelector("#app:not([hidden])", { timeout: 45000 });
@@ -112,6 +114,7 @@ function motive(snapshot, name) {
       installation: journal.installation,
       finalResult,
       review: task.review?.state || null,
+      npcOutcome: task.npcOutcome,
       baselineScore,
       expectedDelta,
       expectedScore,

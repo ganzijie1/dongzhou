@@ -3,7 +3,7 @@
 ## 入口与交付包
 
 - 游戏入口：`http://127.0.0.1:8780/`
-- 东周网关镜像：`dongzhou-integration:20261112-local-complete94`
+- 东周网关镜像：`dongzhou-integration:20261112-local-complete95`
 - AINPC 八角色镜像：`ainpc-app:v20261112-dongzhou-local-complete64`
 - orgFlow API/Worker 镜像：`org-flow-engine:dongzhou-local-complete86`
 - H5 完整包：`output/2026-11-12-dongzhou-integrated-h5-complete74.zip`
@@ -78,7 +78,8 @@ AINPC 容器通过宿主回环代理访问 LoongEQ、LoongMemory、输入预检�
 - `complete82` 为战后重要事件补齐服务器权威标准语义。胜利以 `protect/support/success`、失败以 `system/battle_loss/failure` 进入 AINPC，服务端强度与确认状态优先于模型候选；旧 `complete81` 战报通过 v2 稳定事件号补投递，不重复长期消息。真实无拦截 Chromium 以独立玩家写入繻葛之战胜报，AINPC 最终状态精确为 `joy 78 / strong`，关联事件号 `1635409062`、理由 `standard event protect/support: success`，云档重载后官署页面可见。证据为 `live-battle-emotion-complete82.json` 与同名 PNG。
 - `complete91` 将直属审核中的“处罚”补成权威 NPC 后果：审核、重要事件、长期记忆和好感结算在同一事务登记，AINPC 以稳定效果号幂等写入玩家目标的 `annoyance +5.8`；离线 NPC 也可持久结算，当前情绪暂不可用时人物页仍展示已持久化好感与关系。真实无拦截 Chromium 已验证处罚三项出站均为 `DELIVERED`、重复审核只重放、组织库存不变，证据为 `live-censure-affection-complete91.json` 与同名 PNG。
 - `complete92` 将 orgFlow 权威任务终态沉淀为 AINPC 稳定品质：成功、部分完成、失败分别按 `+2 / +0.5 / -1` 写入与差事相符的品质，稳定效果号保证重试与重启不重复。品质档案和任务适配分进入下一次胜任度、NexusKernel 军令摘要、orgFlow 简报及 H5 官署。升级时 9 条历史结果把左儒担当从 `85 -> 94`，重启后保持 94；真实无拦截 Chromium 验证军需品行 `59/100`、胜任度品质因子 `+1.8`，证据为 `live-quality-loop-complete92.png`。
-- `complete94` 将 orgFlow 权威任务终态同步为属官下一次履职意愿：成功、部分完成、失败分别增加 `8 / 18 / 30`，稳定操作号保证重放和重启不重复。任务 `78bd9bb3-5cfd-571a-8359-30c20cc8a33f` 的军粮转运意愿从 `0 -> 8`；AINPC 后续事件认知仍照常处理情绪、关系和记忆，但不会覆盖外部权威动机，容器重启后分值仍为 8、修订号保持 46。证据为 `live-motivation-authority-complete94-motivation.json` 与同名 PNG。
+- `complete94` 将 orgFlow 权威任务终态同步为属官下一次履职意愿：成功、部分完成、失败分别增加 `8 / 18 / 30`，稳定操作号保证重放和重启不重复。任务 `78bd9bb3-5cfd-571a-8359-30c20cc8a33f` 的军粮转运意愿从 `0 -> 8`；AINPC 后续事件认知仍照常处理情绪、关系和记忆，但不会覆盖外部权威动机，容器重启和再次重放后该意愿仍为 8。证据为 `live-motivation-authority-complete94-motivation.json` 与同名 PNG。
+- `complete95` 将动机结算纳入任务的综合 NPC 后果状态；事件、长期记忆、品质或动机任一项未送达时均保持 `PENDING`，四项全部完成后才返回 `DELIVERED`，避免页面在动机失败时误报闭环完成。
 - `complete62` 已将当前四服务结果补成玩家可读界面：府中书问以稳定访客隔离并显示正式人物名，orgFlow 名册显示 12 席谱系、贡献余额、累计收支与直属主管，AINPC 主动来信偏好显示真实同步状态，90 天当值计划显示起止日期、首日事项和计划印记。对应无拦截验收为 `live-correspondence-acceptance.png`、`live-roster-ledger.png`、`live-interaction-preference.png` 与 `live-schedule-browser.png`。
 - `complete64` 将 orgFlow 权威名册的 12 席全部合并进可操作官员集合，不再只显示当前关卡的两名角色。新增成员使用游戏正式中文名并将内部岗位编号映射为可派差官职；既有忠诚、疲劳与关系状态保留。真实无拦截浏览器已逐席确认 12/12 AINPC 均为 `READY`，可调阅性情、动机和 90 日当值，证据为 `live-office-roster-browser.json` 与同名 PNG。
 - `complete67` 开放玩家申请 `officer_12` 军府属官席位，并显示直属杜伯与 orgFlow 权威贡献账户。入仕只以权威名册回写为成功，最长等待 180 秒；辞仕需要界面二次确认后才发送明确退出请求。真实无拦截浏览器已完成入仕、名册回读、辞仕和席位释放，证据为 `live-membership-browser.json`、`live-membership-joined.png` 与 `live-membership-released.png`。
