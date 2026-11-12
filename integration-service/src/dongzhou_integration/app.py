@@ -19,7 +19,7 @@ from nexus_kernel.gateway import ApiError, create_app
 from nexus_kernel.kernel import Kernel, LoadedModule, Module, ModuleContext
 
 from .config import Settings
-from .assignments import AssignmentUnavailable, select_assignment
+from .assignments import AssignmentUnavailable, collaboration_support, select_assignment
 from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
@@ -212,7 +212,7 @@ class RuntimeModule(Module):
 
 class MandateWorkflowModule(Module):
     name = "dongzhou_mandate_workflow"
-    version = "1.8.0"
+    version = "1.9.0"
     dependencies = (RuntimeModule.name,)
 
     @staticmethod
@@ -689,6 +689,14 @@ def _organization_task_chance(
         if isinstance(emergency, dict) and emergency.get("urgent") is True
         else 0
     )
+    collaboration = mandate.get("collaboration") if isinstance(mandate, dict) else None
+    collaboration_fit = (
+        max(-8.0, min(10.0, float(collaboration.get("factor"))))
+        if isinstance(collaboration, dict)
+        and isinstance(collaboration.get("factor"), (int, float))
+        and not isinstance(collaboration.get("factor"), bool)
+        else 0.0
+    )
     return max(
         25.0,
         min(
@@ -698,6 +706,7 @@ def _organization_task_chance(
             + knowledge_fit
             + correspondence_fit
             + emergency_fit
+            + collaboration_fit
             + (loyalty - 60) * 0.2
             - fatigue * 0.22
             + (readiness_score - 65) * 0.5,
@@ -3434,6 +3443,82 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=503,
             ) from error
 
+    async def verify_mandate_collaborators(
+        primary_hero_id: str, support_hero_id: str
+    ) -> None:
+        configured = settings.orgflow_hero_members
+        expected_member_ids = {
+            configured.get(primary_hero_id),
+            configured.get(support_hero_id),
+        }
+        if None in expected_member_ids or "" in expected_member_ids:
+            raise ApiError(
+                "court_collaboration_roster_unverified",
+                "Both collaborating officers must be configured organization members.",
+                status_code=422,
+            )
+        try:
+            response = await upstreams.organization_roster(settings.orgflow_org_id)
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "organization_roster_unavailable",
+                "The organization roster is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        snapshot = response.get("data", response) if isinstance(response, dict) else None
+        members = snapshot.get("members") if isinstance(snapshot, dict) else None
+        if not isinstance(members, list):
+            raise ApiError(
+                "organization_roster_unavailable",
+                "The organization roster is temporarily unavailable.",
+                status_code=503,
+            )
+        active_member_ids = {
+            str(member.get("member_id") or "")
+            for member in members
+            if isinstance(member, dict)
+            and str(member.get("state") or member.get("membership_state") or "ACTIVE").upper()
+            == "ACTIVE"
+        }
+        if not expected_member_ids.issubset(active_member_ids):
+            raise ApiError(
+                "court_collaboration_roster_unverified",
+                "Both collaborating officers must be active in the organization roster.",
+                status_code=422,
+            )
+
+    async def resolve_npc_collaboration(
+        primary_hero_id: str,
+        support_hero_id: str,
+        task_type: str,
+        stage_id: str,
+    ) -> dict[str, Any]:
+        primary_npc_id = stable_npc_id(settings.ainpc_game_server_id, primary_hero_id)
+        support_npc_id = stable_npc_id(settings.ainpc_game_server_id, support_hero_id)
+        try:
+            support_assignment, primary_state, support_state = await asyncio.gather(
+                resolve_npc_assignment(support_hero_id, task_type, stage_id),
+                upstreams.npc_state(primary_npc_id),
+                upstreams.npc_state(support_npc_id),
+            )
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "ainpc_collaboration_unavailable",
+                "The officers' collaboration state is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        return {
+            "primaryHeroId": primary_hero_id,
+            "supportHeroId": support_hero_id,
+            "supportAssignment": support_assignment,
+            **collaboration_support(
+                primary_state,
+                support_state,
+                str(primary_npc_id),
+                str(support_npc_id),
+            ),
+        }
+
     @router.get("/npcs/{hero_id}/assignments/{task_type}")
     async def read_npc_assignment(
         hero_id: str,
@@ -4330,6 +4415,33 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=422,
             )
 
+        collaboration: dict[str, Any] | None = None
+        if request.support_hero_id is not None:
+            try:
+                await verify_mandate_collaborators(
+                    request.hero_id, request.support_hero_id
+                )
+                collaboration = await resolve_npc_collaboration(
+                    request.hero_id,
+                    request.support_hero_id,
+                    request.task_type,
+                    request.stage_id,
+                )
+            except ApiError as error:
+                state = "RETRYABLE" if error.status_code == 503 else "REJECTED"
+                response = {
+                    "state": state,
+                    "requestId": str(request.client_request_id),
+                }
+                await store.finish_request(
+                    player_id,
+                    request.client_request_id,
+                    state,
+                    response,
+                    str(error),
+                )
+                raise
+
         emergency_description = " ".join(
             part.strip()
             for part in (
@@ -4405,6 +4517,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 **({"memory": selected_memory} if selected_memory else {}),
             },
             "assignment": assignment,
+            **({"collaboration": collaboration} if collaboration is not None else {}),
             "emergency": emergency,
             "kernel": {
                 "module": MandateWorkflowModule.name,
@@ -4589,21 +4702,21 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=422,
             )
 
-        event_id = f"dongzhou-mandate-{request.mandate_digest[:32]}"
         clock = await store.read_game_clock()
         event_description = str(emergency.get("event") or mandate.get("stageTitle") or "")
         event_importance = float(emergency.get("score") or assignment.get("importance") or 0)
-        current_importance = float(assignment.get("importance") or 0)
         target_motives = (
             thought.get("targetMotives")
             if isinstance(thought, dict) and isinstance(thought.get("targetMotives"), list)
             else []
         )
-        try:
+
+        async def apply_schedule_interruption(
+            *, hero_id: str, duty: dict[str, Any], event_id: str, role: str
+        ) -> dict[str, Any]:
+            current_importance = float(duty.get("importance") or 0)
             interruption = await upstreams.interrupt_npc_schedule(
-                stable_npc_id(
-                    settings.ainpc_game_server_id, str(mandate.get("heroId") or "")
-                ),
+                stable_npc_id(settings.ainpc_game_server_id, hero_id),
                 {
                     "event_id": event_id,
                     "event_source": "event_report",
@@ -4611,7 +4724,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     "event_importance": max(0.0, min(100.0, event_importance)),
                     "urgency_level": "urgent" if emergency.get("urgent") is True else "normal",
                     "target_motives": target_motives,
-                    "current_schedule_description": str(assignment.get("name") or "")[:1000],
+                    "current_schedule_description": str(duty.get("name") or "")[:1000],
                     "current_schedule_importance": max(0.0, min(100.0, current_importance)),
                     "current_time": str(clock.get("virtualTime") or ""),
                     "raw_data": {
@@ -4619,10 +4732,52 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                         "mandate_digest": request.mandate_digest,
                         "stage_id": str(mandate.get("stageId") or ""),
                         "task_type": str(mandate.get("taskType") or ""),
+                        "collaboration_role": role,
                     },
                 },
             )
-        except UpstreamUnavailable as error:
+            if interruption["eventId"] != event_id:
+                raise ValueError("AINPC returned a schedule result for a different mandate event.")
+            receipt = {
+                "requestId": str(request.client_request_id),
+                "mandateId": mandate_id,
+                "mandateDigest": request.mandate_digest,
+                "heroId": hero_id,
+                "npcId": str(stable_npc_id(settings.ainpc_game_server_id, hero_id)),
+                "role": role,
+                "eventId": event_id,
+                "action": interruption["action"],
+                "scheduleId": interruption["scheduleId"],
+                "scheduleName": interruption["scheduleName"],
+                "duplicate": interruption["duplicate"],
+                "reason": interruption["reason"],
+                "appliedAt": str(clock.get("virtualTime") or ""),
+            }
+            receipt["digest"] = _canonical_digest(receipt)
+            return receipt
+
+        event_id = f"dongzhou-mandate-{request.mandate_digest[:32]}"
+        try:
+            receipt = await apply_schedule_interruption(
+                hero_id=str(mandate.get("heroId") or ""),
+                duty=assignment,
+                event_id=event_id,
+                role="primary",
+            )
+            collaboration = mandate.get("collaboration")
+            support_receipt = None
+            if isinstance(collaboration, dict):
+                support_assignment = collaboration.get("supportAssignment")
+                support_hero_id = str(collaboration.get("supportHeroId") or "")
+                if not support_hero_id or not isinstance(support_assignment, dict):
+                    raise ValueError("The collaboration trace lacks a support duty.")
+                support_receipt = await apply_schedule_interruption(
+                    hero_id=support_hero_id,
+                    duty=support_assignment,
+                    event_id=f"dongzhou-mandate-support-{request.mandate_digest[:24]}",
+                    role="support",
+                )
+        except (UpstreamUnavailable, ValueError) as error:
             retryable = {
                 "state": "RETRYABLE",
                 "requestId": str(request.client_request_id),
@@ -4640,47 +4795,15 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "AINPC could not apply the issued mandate to the NPC schedule; it can be retried.",
                 status_code=503,
             ) from error
-        if interruption["eventId"] != event_id:
-            await store.finish_request(
-                player_id,
-                request.client_request_id,
-                "REJECTED",
-                {"state": "REJECTED"},
-                "ainpc_schedule_interruption_mismatch",
-            )
-            raise ApiError(
-                "ainpc_schedule_interruption_mismatch",
-                "AINPC returned a schedule result for a different mandate event.",
-                status_code=502,
-            )
-
-        receipt = {
-            "requestId": str(request.client_request_id),
-            "mandateId": mandate_id,
-            "mandateDigest": request.mandate_digest,
-            "heroId": str(mandate.get("heroId") or ""),
-            "npcId": str(
-                stable_npc_id(
-                    settings.ainpc_game_server_id, str(mandate.get("heroId") or "")
-                )
+        response = {
+            "state": "COMPLETED",
+            "scheduleReceipt": receipt,
+            **(
+                {"supportScheduleReceipt": support_receipt}
+                if support_receipt is not None
+                else {}
             ),
-            "eventId": event_id,
-            "action": interruption["action"],
-            "scheduleId": interruption["scheduleId"],
-            "scheduleName": interruption["scheduleName"],
-            "duplicate": interruption["duplicate"],
-            "reason": interruption["reason"],
-            "appliedAt": str(clock.get("virtualTime") or ""),
         }
-        receipt["digest"] = hashlib.sha256(
-            json.dumps(
-                receipt,
-                ensure_ascii=False,
-                separators=(",", ":"),
-                sort_keys=True,
-            ).encode("utf-8")
-        ).hexdigest()
-        response = {"state": "COMPLETED", "scheduleReceipt": receipt}
         await store.finish_request(
             player_id,
             request.client_request_id,

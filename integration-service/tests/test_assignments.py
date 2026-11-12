@@ -1,6 +1,7 @@
 from dongzhou_integration.assignments import (
     AssignmentUnavailable,
     assignment_readiness,
+    collaboration_support,
     manager_support,
     motivation_task_fit,
     personality_task_fit,
@@ -101,6 +102,28 @@ def test_manager_support_uses_only_the_named_manager_and_can_be_negative() -> No
         }],
         "factor": -4.0,
     }
+
+
+def test_collaboration_support_uses_both_officers_relationships() -> None:
+    result = collaboration_support(
+        {
+            "affection": {"items": [{"target_id": "support", "dominant_affection_type": "respect", "max_value": 80, "affection_count": 2}]},
+            "relationships": {"items": [{"target_id": "support", "relation_type": "friend", "is_bilateral": True}]},
+        },
+        {
+            "affection": {"items": [{"target_id": "primary", "dominant_affection_type": "trust", "max_value": 60, "affection_count": 1}]},
+            "relationships": {"items": [{"target_id": "primary", "relation_type": "organization", "relation_sub": "colleague", "is_bilateral": True}]},
+        },
+        "primary",
+        "support",
+    )
+    assert result["primaryNpcId"] == "primary"
+    assert result["supportNpcId"] == "support"
+    assert result["primaryToSupport"]["managerNpcId"] == "support"
+    assert result["supportToPrimary"]["managerNpcId"] == "primary"
+    assert result["factor"] == 3.9
+    assert result["score"] == 70
+    assert result["band"] == "aligned"
 
 
 def test_readiness_uses_live_emotion_relationships_and_runtime() -> None:

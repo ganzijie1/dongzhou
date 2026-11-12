@@ -204,6 +204,50 @@ def manager_support(npc_state: dict[str, Any], manager_npc_id: str) -> dict[str,
     }
 
 
+def collaboration_support(
+    primary_state: dict[str, Any],
+    support_state: dict[str, Any],
+    primary_npc_id: str,
+    support_npc_id: str,
+) -> dict[str, Any]:
+    """Build a bounded, symmetric collaboration score from AINPC relationships."""
+    primary_to_support = manager_support(primary_state, support_npc_id)
+    support_to_primary = manager_support(support_state, primary_npc_id)
+    factor = round(
+        max(
+            -8.0,
+            min(
+                10.0,
+                (
+                    float(primary_to_support["factor"])
+                    + float(support_to_primary["factor"])
+                )
+                / 2.0,
+            ),
+        ),
+        1,
+    )
+    score = round(max(10.0, min(100.0, 50.0 + factor * 5.0)))
+    band = (
+        "exceptional"
+        if factor >= 7
+        else "aligned"
+        if factor >= 3
+        else "neutral"
+        if factor > -2
+        else "strained"
+    )
+    return {
+        "primaryNpcId": str(primary_npc_id),
+        "supportNpcId": str(support_npc_id),
+        "score": score,
+        "band": band,
+        "factor": factor,
+        "primaryToSupport": primary_to_support,
+        "supportToPrimary": support_to_primary,
+    }
+
+
 def _integer(value: Any, fallback: int = 0) -> int:
     if isinstance(value, bool):
         return fallback

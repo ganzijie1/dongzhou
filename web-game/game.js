@@ -1278,12 +1278,17 @@
     $("#officeServiceStatus").innerHTML = serviceLabels.map(([key, label]) => `<span class="${org.backend[key] ? "online" : "local"}"><i></i>${label}${org.backend[key] ? "通达" : "本地推演"}</span>`).join("");
     $("#officeModeText").textContent = integration.isOffline() ? "当前为显式离线演算，属官与官署结果仅保存在本机。" : org.backend.mode === "connected" ? "朝议、属官与史官已互通；远端未确认的结果不会在本地结算。" : "官署服务暂不可达，联网玩法已暂停。";
     const currentMember = $("#officeMemberSelect").value;
+    const currentSupportMember = $("#officeSupportMemberSelect").value;
     const visibleMembers = [
       ...org.members.filter((member) => member.id !== "DuBo"),
       ...org.members.filter((member) => member.id === "DuBo")
     ];
     $("#officeMemberSelect").innerHTML = visibleMembers.map((member) => `<option value="${escapeHtml(member.id)}">${escapeHtml(member.name)} · ${escapeHtml(member.office)}</option>`).join("");
     if (visibleMembers.some((member) => member.id === currentMember)) $("#officeMemberSelect").value = currentMember;
+    const selectedMember = $("#officeMemberSelect").value;
+    const supportMembers = visibleMembers.filter((member) => member.id !== "DuBo" && member.id !== selectedMember);
+    $("#officeSupportMemberSelect").innerHTML = `<option value="">不设副手</option>${supportMembers.map((member) => `<option value="${escapeHtml(member.id)}">${escapeHtml(member.name)} · ${escapeHtml(member.office)}</option>`).join("")}`;
+    if (supportMembers.some((member) => member.id === currentSupportMember)) $("#officeSupportMemberSelect").value = currentSupportMember;
     renderOfficeCouncil();
     const currentType = $("#officeTaskType").value;
     $("#officeTaskType").innerHTML = Object.entries(organization.TASK_TYPES).map(([id, task]) => `<option value="${id}" ${id === currentType ? "selected" : ""}>${task.name} · ${task.duration}月</option>`).join("");
@@ -2147,7 +2152,9 @@
     $("#officeMandateApprovalTitle").textContent = issued ? "军令已签，待下达" : "军令草案待签发";
     const emergency = mandate.emergency;
     const emergencyLabel = emergency ? ` · ${emergency.urgent ? "急报优先" : "常报"} ${Number(emergency.score).toFixed(3)}` : "";
-    $("#officeMandateApprovalDetail").textContent = `${mandate.evidence?.name || "史料军令"} · ${mandate.assignment?.name || "属官当值"}${emergencyLabel} · 印记 ${String(mandate.digest || "").slice(0, 10)}`;
+    const collaboration = mandate.collaboration;
+    const collaborationLabel = collaboration ? ` · ${displayName(collaboration.supportHeroId)}协办 · 协同 ${Number(collaboration.score)}/100 (${Number(collaboration.factor) >= 0 ? "+" : ""}${Number(collaboration.factor)})` : "";
+    $("#officeMandateApprovalDetail").textContent = `${mandate.evidence?.name || "史料军令"} · ${mandate.assignment?.name || "属官当值"}${collaborationLabel}${emergencyLabel} · 印记 ${String(mandate.digest || "").slice(0, 10)}`;
     $("#officeMandateApproveButton").textContent = issued ? "下达" : "签发";
     $("#officeMandateRejectButton").hidden = issued;
   }
@@ -2202,11 +2209,11 @@
     const assigneeId = mandateInput.hero_id;
     const taskDefinition = organization.TASK_TYPES[taskType];
     if (!taskDefinition || profile.campaignResources.provisions < taskDefinition.cost) throw new Error("军粮不足，无法下达这项军令");
-    if (String(record?.id || "") !== mandateInput.stage_id || $("#officeMemberSelect").value !== assigneeId || (!operation && $("#officeTaskType").value !== taskType) || knowledge?.id !== mandateInput.knowledge_id || Number(evidence?.source?.index) !== Number(mandateInput.evidence_source_index) || council?.id !== mandateInput.council_request_id) {
+    if (String(record?.id || "") !== mandateInput.stage_id || $("#officeMemberSelect").value !== assigneeId || $("#officeSupportMemberSelect").value !== (mandateInput.support_hero_id || "") || (!operation && $("#officeTaskType").value !== taskType) || knowledge?.id !== mandateInput.knowledge_id || Number(evidence?.source?.index) !== Number(mandateInput.evidence_source_index) || council?.id !== mandateInput.council_request_id) {
       throw new Error("当前关卡、属官、史料或军议已改变，请恢复原选择后再下达");
     }
     const scheduleResult = await integration.scheduleCourtMandate(issuedMandate.id, issuedMandate.digest);
-    issuedMandate = { ...issuedMandate, scheduleInterruption: scheduleResult.scheduleReceipt };
+    issuedMandate = { ...issuedMandate, scheduleInterruption: scheduleResult.scheduleReceipt, ...(scheduleResult.supportScheduleReceipt ? { supportScheduleInterruption: scheduleResult.supportScheduleReceipt } : {}) };
     const taskBaseState = organization.recordMandate(profile.organization, issuedMandate).state;
     const created = organization.createTask(taskBaseState, {
       type: taskType, assigneeId, stageId: record?.id, stageTitle: record?.battleTitle,
@@ -2238,7 +2245,8 @@
       : scheduleReceipt.action === "future"
         ? `，已排入后续日程“${scheduleReceipt.scheduleName}”`
         : `，日程裁定为${scheduleReceipt.action}`;
-    showNotice(`${created.task.assigneeName}已领受${created.task.name}${scheduleLabel}`);
+    const supportLabel = issuedMandate.collaboration ? `，${displayName(issuedMandate.collaboration.supportHeroId)}已领副手日程` : "";
+    showNotice(`${created.task.assigneeName}已领受${created.task.name}${scheduleLabel}${supportLabel}`);
     return created.task;
   }
 
@@ -2298,11 +2306,14 @@
       if (!integration.isOffline() && (!knowledge || !council)) throw new Error("联网授命必须引用本回史料与已保存军议");
       const assigneeId = $("#officeMemberSelect").value;
       const assignee = profile.organization.members.find((member) => member.id === assigneeId);
+      const supportId = $("#officeSupportMemberSelect").value;
+      const support = supportId ? profile.organization.members.find((member) => member.id === supportId) : null;
       const manager = profile.organization.members.find((member) => member.id === "DuBo") || { id: "DuBo", name: displayName("DuBo") };
       if (!integration.isOffline()) {
         if (!assignee) throw new Error("所选属官不在当前组织名册中");
-        await syncOfficeNpcs([manager, assignee], true);
-        warmOfficeNpcSchedules([manager, assignee]);
+        if (supportId && !support) throw new Error("所选协办副手不在当前组织名册中");
+        await syncOfficeNpcs([manager, assignee, support].filter(Boolean), true);
+        warmOfficeNpcSchedules([manager, assignee, support].filter(Boolean));
       }
       let mandateInput = null;
       let issuedMandate = null;
@@ -2314,6 +2325,7 @@
           stage_id: String(record?.id || "unknown"),
           stage_title: String(record?.battleTitle || record?.title || "未名战事"),
           hero_id: assigneeId,
+          ...(supportId ? { support_hero_id: supportId } : {}),
           knowledge_id: knowledge.id,
           evidence_source_index: Number(evidence.source.index),
           schedule_plan_id: assignment.planId,
@@ -2337,7 +2349,7 @@
         }
         issuedMandate = issued.mandate;
         const operationChanged = operation && ($("#officeDiplomacyTarget").value !== operation.target_id || $("#officeDiplomacyProposal").value.trim() !== operation.proposal);
-        if (String(officeStage()?.id || "") !== String(record?.id || "") || $("#officeMemberSelect").value !== assigneeId || (!operation && $("#officeTaskType").value !== taskType) || currentOfficeCouncil()?.id !== council.id || operationChanged) {
+        if (String(officeStage()?.id || "") !== String(record?.id || "") || $("#officeMemberSelect").value !== assigneeId || $("#officeSupportMemberSelect").value !== supportId || (!operation && $("#officeTaskType").value !== taskType) || currentOfficeCouncil()?.id !== council.id || operationChanged) {
           throw new Error("授命条件已变化，请重新确认军议与差事");
         }
         return await completeIssuedOfficeTask(mandateInput, issuedMandate);
@@ -4330,6 +4342,8 @@
     $("#campaignOfficeBackdrop").addEventListener("click", (event) => { if (event.target === event.currentTarget) setCampaignOffice(false); });
     $("#officeTaskType").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOrganizationPanel(); refreshOfficeNpcAssignment(); });
     $("#officeMemberSelect").addEventListener("change", () => { $("#officeUseCouncil").checked = false; officeMemoryView = []; officeSelectedMemory = null; renderOrganizationPanel(); refreshOfficeNpcState(); });
+    $("#officeSupportMemberSelect").addEventListener("change", renderOfficeMandateApproval);
+    $("#officeSupportMemberSelect").addEventListener("change", renderOfficeMandateApproval);
     $("#officeCorrespondenceRefresh").addEventListener("click", () => refreshOfficeCorrespondence());
     $("#officeInventoryRefresh").addEventListener("click", refreshOfficeInventory);
     $("#officeInventoryRequisition").addEventListener("click", requisitionOfficeInventory);

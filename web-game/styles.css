@@ -3727,7 +3727,7 @@ button:focus-visible {
 .office-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .office-section-heading span { color: #b99344; font-size: 10px; }
 .office-section-heading h3 { margin: 4px 0 0; color: #e9dec0; font: 600 21px/1.2 var(--font-display); }
-.office-order-fields { display: grid; grid-template-columns: 1fr 1fr auto; align-items: end; gap: 12px; margin-top: 18px; }
+.office-order-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto; align-items: end; gap: 12px; margin-top: 18px; }
 .office-order-fields label { display: grid; gap: 7px; color: #96988f; font-size: 10px; }
 .office-order-fields select, .office-knowledge-form input {
   min-width: 0;

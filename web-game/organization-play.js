@@ -207,6 +207,15 @@
     if (mandate.thought && (!/^[0-9a-f]{64}$/.test(String(mandate.thought.digest || "")) || mandate.thought.requestId !== mandate.council?.thought?.requestId || mandate.thought.digest !== mandate.council?.thought?.digest)) throw new Error("内核军令进言来源无效");
     if (mandate.memory && (!mandate.memory.idempotencyKey || !/^[0-9a-f]{64}$/.test(String(mandate.memory.digest || "")) || mandate.memory.digest !== mandate.council?.memory?.digest)) throw new Error("内核军令旧事来源无效");
     if (!mandate.assignment?.planId || !mandate.assignment?.eventId || mandate.assignment?.heroId !== mandate.heroId) throw new Error("内核军令未绑定属官当值日程");
+    if (mandate.collaboration) {
+      const collaboration = mandate.collaboration;
+      const memberIds = new Set(state.members.map((member) => member.id));
+      if (collaboration.primaryHeroId !== mandate.heroId || !collaboration.supportHeroId || collaboration.supportHeroId === mandate.heroId || !memberIds.has(collaboration.supportHeroId)) throw new Error("内核军令协办属官无效");
+      if (!collaboration.primaryNpcId || !collaboration.supportNpcId || collaboration.primaryNpcId === collaboration.supportNpcId) throw new Error("内核军令协办身份无效");
+      if (!Number.isFinite(Number(collaboration.factor)) || Number(collaboration.factor) < -8 || Number(collaboration.factor) > 10 || !Number.isFinite(Number(collaboration.score)) || Number(collaboration.score) < 10 || Number(collaboration.score) > 100 || !["exceptional", "aligned", "neutral", "strained"].includes(collaboration.band)) throw new Error("内核军令协同评分无效");
+      if (!collaboration.supportAssignment?.planId || !collaboration.supportAssignment?.eventId || collaboration.supportAssignment.heroId !== collaboration.supportHeroId) throw new Error("内核军令未绑定副手当值日程");
+      if (collaboration.primaryToSupport?.managerNpcId !== collaboration.supportNpcId || collaboration.supportToPrimary?.managerNpcId !== collaboration.primaryNpcId) throw new Error("内核军令双向关系证据无效");
+    }
     if (mandate.assignment.personality?.available === true && (!mandate.assignment.personality.profileId || !Array.isArray(mandate.assignment.personality.dominantTraits) || mandate.assignment.personality.fit?.available !== true || !Number.isFinite(Number(mandate.assignment.personality.fit.score)) || Number(mandate.assignment.personality.fit.score) < 0 || Number(mandate.assignment.personality.fit.score) > 100)) throw new Error("内核军令人格适岗证据无效");
     if (mandate.assignment.motivation?.available === true && (!Array.isArray(mandate.assignment.motivation.motives) || mandate.assignment.motivation.fit?.available !== true || !Number.isFinite(Number(mandate.assignment.motivation.fit.score)) || Number(mandate.assignment.motivation.fit.score) < 0 || Number(mandate.assignment.motivation.fit.score) > 100)) throw new Error("内核军令任务意愿证据无效");
     if (mandate.emergency && (typeof mandate.emergency.urgent !== "boolean" || !Number.isFinite(Number(mandate.emergency.score)) || Number(mandate.emergency.score) < 0 || !mandate.emergency.assessedAt || !mandate.emergency.event || (mandate.emergency.urgent && !mandate.emergency.interruptTraceId))) throw new Error("内核军令紧急评估无效");
@@ -220,6 +229,16 @@
       || !["insert_today", "future", "discard", "expired", "worthless"].includes(interruption.action)
       || (["insert_today", "future"].includes(interruption.action) && (!interruption.scheduleId || !interruption.scheduleName))
     )) throw new Error("属官日程中断回执无效");
+    const supportInterruption = mandate.supportScheduleInterruption;
+    if (mandate.collaboration && (!supportInterruption
+      || supportInterruption.mandateId !== mandate.id
+      || supportInterruption.mandateDigest !== mandate.digest
+      || supportInterruption.heroId !== mandate.collaboration.supportHeroId
+      || supportInterruption.role !== "support"
+      || !/^[0-9a-f]{64}$/.test(String(supportInterruption.digest || ""))
+      || !String(supportInterruption.eventId || "").startsWith("dongzhou-mandate-support-")
+      || !["insert_today", "future", "discard", "expired", "worthless"].includes(supportInterruption.action)
+      || (["insert_today", "future"].includes(supportInterruption.action) && (!supportInterruption.scheduleId || !supportInterruption.scheduleName)))) throw new Error("副手日程中断回执无效");
     if (mandate.state !== "ISSUED" || !/^[0-9a-f]{64}$/.test(String(mandate.digest || "")) || !["READY", "DEGRADED"].includes(mandate.kernel?.state)) throw new Error("内核军令尚未签发或印记无效");
     if (mandate.operation && (mandate.taskType !== "diplomacy" || mandate.operation.kind !== "diplomacy" || !mandate.operation.target_id || !mandate.operation.target_name || !mandate.operation.proposal)) throw new Error("外交军令缺少目标或主张");
     const previous = state.mandates.find((entry) => entry.id === mandate.id);

@@ -17,6 +17,8 @@ from dongzhou_integration.security import stable_npc_id, stable_player_id
 from dongzhou_integration.store import Store
 
 MANAGER_NPC_ID = str(stable_npc_id(91001, "DuBo"))
+ZUORU_NPC_ID = str(stable_npc_id(91001, "ZuoRu"))
+QIN_NPC_ID = str(stable_npc_id(91001, "QinXiangGong"))
 
 
 class MandateUpstreams:
@@ -32,6 +34,8 @@ class MandateUpstreams:
         self.interruptions: list[tuple[int, dict[str, object]]] = []
         self.dialogue_reports: list[tuple[int, dict[str, object]]] = []
         self.memories: dict[int, list[dict[str, object]]] = {}
+        self.collaboration_available = False
+        self.roster_members: list[dict[str, object]] = []
 
     async def health(self):
         return {
@@ -100,6 +104,19 @@ class MandateUpstreams:
         }
 
     async def npc_state(self, npc_id):
+        peer_id = QIN_NPC_ID if str(npc_id) == ZUORU_NPC_ID else ZUORU_NPC_ID
+        peer_affection = [{
+            "target_id": peer_id,
+            "dominant_affection_type": "respect",
+            "max_value": 80,
+            "affection_count": 2,
+        }] if self.collaboration_available else []
+        peer_relationships = [{
+            "target_id": peer_id,
+            "relation_type": "organization",
+            "relation_sub": "colleague",
+            "is_bilateral": True,
+        }] if self.collaboration_available else []
         return {
             "emotion": {"code": 200, "dominant": {"emotion_type": "calm", "intensity": 0.25}},
             "affection": {"code": 200, "items": [{
@@ -107,8 +124,8 @@ class MandateUpstreams:
                 "dominant_affection_type": "respect",
                 "max_value": 33.3,
                 "affection_count": 1,
-            }], "total": 1},
-            "relationships": {"code": 200, "items": [], "total": 0},
+            }, *peer_affection], "total": 1 + len(peer_affection)},
+            "relationships": {"code": 200, "items": peer_relationships, "total": len(peer_relationships)},
             "personality": {
                 "available": True,
                 "profileId": "profile-zuoru",
@@ -258,7 +275,7 @@ class MandateUpstreams:
                 "hierarchy_version": 8,
                 "growth_contribution_points": 0,
                 "positions": [],
-                "members": [],
+                "members": self.roster_members,
             }
         }
 
@@ -417,6 +434,68 @@ def schedule_mandate(client: TestClient, mandate: dict[str, object]) -> dict[str
     return scheduled.json()["scheduleReceipt"]
 
 
+def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -> None:
+    with TemporaryDirectory() as directory:
+        upstreams = MandateUpstreams()
+        upstreams.collaboration_available = True
+        upstreams.roster_members = [
+            {"member_id": "00000000-0000-0000-0000-000000000004", "state": "ACTIVE"},
+            {"member_id": "00000000-0000-0000-0000-000000000006", "state": "ACTIVE"},
+        ]
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=upstreams
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            council_id, _ = complete_council(client)
+            body = {
+                **mandate_body(council_id),
+                "support_hero_id": "QinXiangGong",
+            }
+            drafted = client.post("/api/dongzhou/v1/court/mandates", json=body)
+            assert drafted.status_code == 200, drafted.text
+            collaboration = drafted.json()["mandate"]["collaboration"]
+            assert collaboration["primaryHeroId"] == "ZuoRu"
+            assert collaboration["supportHeroId"] == "QinXiangGong"
+            assert collaboration["primaryNpcId"] == ZUORU_NPC_ID
+            assert collaboration["supportNpcId"] == QIN_NPC_ID
+            assert collaboration["supportAssignment"]["heroId"] == "QinXiangGong"
+            assert collaboration["factor"] > 0
+            assert collaboration["score"] == round(50 + collaboration["factor"] * 5)
+            assert drafted.json()["mandate"]["kernel"]["moduleVersion"] == "1.9.0"
+
+            mandate = approve_mandate(client, drafted)
+            scheduled = client.post(
+                f"/api/dongzhou/v1/court/mandates/{mandate['id']}/schedule",
+                json={
+                    "client_request_id": str(uuid4()),
+                    "mandate_digest": mandate["digest"],
+                },
+            )
+            assert scheduled.status_code == 200, scheduled.text
+            result = scheduled.json()
+            assert result["scheduleReceipt"]["heroId"] == "ZuoRu"
+            assert result["scheduleReceipt"]["role"] == "primary"
+            assert result["supportScheduleReceipt"]["heroId"] == "QinXiangGong"
+            assert result["supportScheduleReceipt"]["role"] == "support"
+            assert result["supportScheduleReceipt"]["eventId"].startswith(
+                "dongzhou-mandate-support-"
+            )
+            assert len(upstreams.interruptions) == 2
+            assert upstreams.interruptions[0][1]["raw_data"]["collaboration_role"] == "primary"
+            assert upstreams.interruptions[1][1]["raw_data"]["collaboration_role"] == "support"
+
+            invalid = client.post(
+                "/api/dongzhou/v1/court/mandates",
+                json={
+                    **body,
+                    "client_request_id": str(uuid4()),
+                    "support_hero_id": "ZuoRu",
+                },
+            )
+            assert invalid.status_code == 422
+
+
 def test_council_memory_is_recalled_verified_and_sealed_into_mandate() -> None:
     with TemporaryDirectory() as directory:
         upstreams = MandateUpstreams()
@@ -476,7 +555,7 @@ def test_council_memory_is_recalled_verified_and_sealed_into_mandate() -> None:
             mandate = draft.json()["mandate"]
             assert mandate["memory"]["digest"] == memory["digest"]
             assert mandate["council"]["memory"]["idempotencyKey"] == memory["idempotencyKey"]
-            assert mandate["kernel"]["moduleVersion"] == "1.8.0"
+            assert mandate["kernel"]["moduleVersion"] == "1.9.0"
 
 
 def test_ainpc_correspondence_is_recomputed_and_sealed() -> None:
@@ -1021,7 +1100,7 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert review["state"] == "REQUIRES_ACTION"
             assert review["review"]["settlementId"] == settlement_id
             assert review["review"]["closureDigest"] == closure["digest"]
-            assert review["review"]["kernel"]["moduleVersion"] == "1.8.0"
+            assert review["review"]["kernel"]["moduleVersion"] == "1.9.0"
             wrong_action = client.post(
                 f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
                 json={"action_id": str(uuid4()), "decision": "ACCEPT"},
@@ -1059,7 +1138,7 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert growth_reward["contributionPoints"] == 100
             assert growth_reward["accountVersion"] == 1
             assert growth_reward["closureDigest"] == closure["digest"]
-            assert growth_reward["kernel"]["moduleVersion"] == "1.8.0"
+            assert growth_reward["kernel"]["moduleVersion"] == "1.9.0"
             assert len(growth_reward["digest"]) == 64
             assert upstreams.growth_credits == [(
                 "00000000-0000-0000-0000-000000000001",

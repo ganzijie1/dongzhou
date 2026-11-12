@@ -275,7 +275,7 @@
   }
   function mandatePendingKey(input) {
     const operation = input.operation ? JSON.stringify(input.operation) : "";
-    const context = [input.stage_id, input.hero_id, input.knowledge_id, input.evidence_source_index, input.council_request_id, input.task_type, input.schedule_plan_id, input.schedule_event_id, input.correspondence_message_id || "", input.correspondence_digest || "", input.thought_request_id || "", input.thought_digest || "", operation].join(":");
+    const context = [input.stage_id, input.hero_id, input.support_hero_id || "", input.knowledge_id, input.evidence_source_index, input.council_request_id, input.task_type, input.schedule_plan_id, input.schedule_event_id, input.correspondence_message_id || "", input.correspondence_digest || "", input.thought_request_id || "", input.thought_digest || "", operation].join(":");
     return MANDATE_PENDING_PREFIX + context;
   }
   async function createCourtMandate(input) {

@@ -244,6 +244,9 @@ class CourtMandateRequest(StrictModel):
     stage_id: str = Field(min_length=1, max_length=64)
     stage_title: str = Field(min_length=1, max_length=200)
     hero_id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$")
+    support_hero_id: str | None = Field(
+        default=None, min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$"
+    )
     knowledge_id: str = Field(min_length=1, max_length=200)
     evidence_source_index: int = Field(default=0, ge=0, le=20)
     schedule_plan_id: str = Field(min_length=1, max_length=128)
@@ -261,6 +264,8 @@ class CourtMandateRequest(StrictModel):
 
     @model_validator(mode="after")
     def operation_matches_task(self) -> "CourtMandateRequest":
+        if self.support_hero_id == self.hero_id:
+            raise ValueError("court mandate support officer must differ from assignee")
         if self.operation is not None and self.task_type != "diplomacy":
             raise ValueError("court mandate operation does not match task type")
         if bool(self.correspondence_message_id) != bool(self.correspondence_digest):
