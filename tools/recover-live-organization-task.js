@@ -16,6 +16,7 @@ const installation = process.env.DONGZHOU_INSTALLATION_ID;
 const taskId = process.env.DONGZHOU_TASK_ID;
 const output = process.env.DONGZHOU_RECOVERY_OUTPUT
   || path.resolve(__dirname, "../output/integration-validation/live-task-recovery.json");
+const terminalOnly = process.env.DONGZHOU_RECOVERY_TERMINAL_ONLY === "1";
 const executablePath = [
   "C:/Program Files/Google/Chrome/Application/chrome.exe",
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
@@ -82,6 +83,20 @@ async function readRemote(page) {
       }, taskId);
     }
     assert(remote?.final_result, "task did not reach a terminal result after the recovery clock advance");
+
+    if (terminalOnly) {
+      const result = {
+        result: "PASS",
+        mode: "same-player-same-task-terminal-recovery",
+        taskId,
+        remoteState: remote.state,
+        remoteFinalResult: remote.final_result
+      };
+      fs.mkdirSync(path.dirname(output), { recursive: true });
+      fs.writeFileSync(output, JSON.stringify(result, null, 2));
+      console.log(JSON.stringify(result));
+      return;
+    }
 
     await page.click("#officeAdvanceButton");
     await page.waitForFunction((id) => {

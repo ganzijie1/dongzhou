@@ -2123,7 +2123,9 @@
         ? response.inventoryReward
           ? `复命已收纳，公共库藏差事额度 +${Number(response.inventoryReward.delta || 0)}，推进月令后发放战前助益。`
           : "复命已收纳，推进月令后发放战前助益。"
-        : "复命已申斥，簿书功过照录但不发放战前助益。");
+        : response.npcConsequence
+          ? "复命已申斥，簿书功过照录且申斥已进入属官经历与好感结算，本次不发放战前助益。"
+          : "复命已申斥，簿书功过照录但不发放战前助益。");
     } catch (error) {
       showNotice(error.message);
     } finally {

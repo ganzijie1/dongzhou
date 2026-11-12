@@ -240,6 +240,23 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result["orgFlow"]["online"])
         self.assertTrue(result["knowledge"]["online"])
 
+    async def test_npc_state_keeps_persistent_state_when_emotion_actor_is_offline(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.url.path.startswith("/api/v1/emotion/current/"):
+                return httpx.Response(409, json={"error": {"code": "AINPC_ACTOR_NOT_READY"}})
+            if request.url.path.startswith("/api/v1/affection/targets/"):
+                return httpx.Response(200, json={"items": [{"target_id": "player-1"}]})
+            if request.url.path.startswith("/api/v1/relationship/all/"):
+                return httpx.Response(200, json={"items": []})
+            return httpx.Response(404, json={"error": {"code": "not_found"}})
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            state = await Upstreams(settings(Path("unused")), client).npc_state(42)
+
+        self.assertEqual(state["emotion"], {"available": False})
+        self.assertEqual(state["affection"]["items"][0]["target_id"], "player-1")
+        self.assertEqual(state["relationships"], {"items": []})
+
     async def test_online_npc_ids_uses_complete_runtime_snapshot(self) -> None:
         seen: list[httpx.Request] = []
 

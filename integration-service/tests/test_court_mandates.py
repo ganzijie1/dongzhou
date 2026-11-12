@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from uuid import UUID, uuid4
@@ -40,7 +41,7 @@ class MandateUpstreams:
 
     async def send_game_event(self, kind, payload):
         self.events.append((kind, payload))
-        return {"code": 200, "data": {"accepted": True, "taskId": payload["taskId"]}}
+        return {"code": 200, "data": {"accepted": True, "taskId": payload.get("taskId")}}
 
     async def online_npc_ids(self):
         return set()
@@ -938,6 +939,140 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             )
             assert invalid.status_code == 502
             assert invalid.json()["error"]["code"] == "organization_settlement_invalid"
+
+
+def test_censured_settlement_records_ainpc_affection_and_memory_once() -> None:
+    with TemporaryDirectory() as directory:
+        upstreams = MandateUpstreams()
+        database = Path(directory) / "gateway.sqlite3"
+        store = Store(database)
+        app = build_application(configured(database), store=store, upstreams=upstreams)
+        with TestClient(app) as client:
+            session = client.post(
+                "/api/dongzhou/v1/sessions/guest",
+                json={"installation_id": str(uuid4())},
+            )
+            assert session.status_code == 200
+            player_id = UUID(session.json()["playerId"])
+            council_id, _ = complete_council(client)
+            draft = client.post(
+                "/api/dongzhou/v1/court/mandates",
+                json=mandate_body(council_id),
+            )
+            issued = approve_mandate(client, draft)
+            schedule_mandate(client, issued)
+            task_id = client.post(
+                "/api/dongzhou/v1/organization/tasks",
+                json={
+                    "client_request_id": str(uuid4()),
+                    "task_type": "drill",
+                    "assignee_hero_id": "ZuoRu",
+                    "stage_id": "01",
+                    "stage_title": "Dongzhou stage 01",
+                    "brief": "Execute the sealed court mandate.",
+                    "parameters": {
+                        "resource_units": 6,
+                        "assignee_name": "左儒",
+                        "mandate_id": issued["id"],
+                        "mandate_digest": issued["digest"],
+                    },
+                },
+            ).json()["taskId"]
+            settlement_id = str(uuid4())
+            upstreams.task_snapshot = {
+                "task_id": task_id,
+                "organization_id": "00000000-0000-0000-0000-000000000001",
+                "state": "FAILED",
+                "final_result": "FAILURE",
+                "contribution_eligible": True,
+                "responsible_member_id": "00000000-0000-0000-0000-000000000004",
+                "version": "3",
+                "settlement": {
+                    "settlement_id": settlement_id,
+                    "task_id": task_id,
+                    "organization_id": "00000000-0000-0000-0000-000000000001",
+                    "member_id": "00000000-0000-0000-0000-000000000004",
+                    "result": "FAILURE",
+                    "organization_delta": "0",
+                    "member_delta": "0",
+                    "source": "NPC_CONFIRMATION",
+                    "source_event_id": "dongzhou-censure-result-1",
+                    "settled_game_time": "0772-10-22 14:00:00",
+                    "settled_clock_epoch": "dongzhou-v1",
+                    "settled_at": "2026-11-12T00:00:00Z",
+                },
+                "derivations": [],
+            }
+            terminal_response = client.get(
+                f"/api/dongzhou/v1/organization/tasks/{task_id}"
+            )
+            assert terminal_response.status_code == 200, terminal_response.text
+            terminal = terminal_response.json()
+            action_id = terminal["review"]["action"]["actionId"]
+            censured = client.post(
+                f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
+                json={"action_id": action_id, "decision": "CENSURE"},
+            )
+            assert censured.status_code == 200, censured.text
+            body = censured.json()
+            assert body["state"] == "CENSURED"
+            assert "inventoryReward" not in body
+            assert body["npcConsequence"]["affectionType"] == "annoyance"
+            assert body["npcConsequence"]["affectionDelta"] == 5.8
+            assert body["npcConsequence"]["severity"] == 58
+            assert body["npcConsequence"]["npcId"] == str(
+                stable_npc_id(91001, "ZuoRu")
+            )
+            assert body["npcConsequence"]["targetId"] == str(
+                stable_player_id(91001, player_id)
+            )
+
+            replay = client.post(
+                f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
+                json={"action_id": action_id, "decision": "CENSURE"},
+            )
+            assert replay.status_code == 200
+            assert replay.json()["replayed"] is True
+
+            deadline = time.monotonic() + 3
+            current = None
+            while time.monotonic() < deadline:
+                current = client.get(
+                    f"/api/dongzhou/v1/organization/tasks/{task_id}"
+                ).json()
+                if current.get("npcConsequence", {}).get("state") == "DELIVERED":
+                    break
+                time.sleep(0.05)
+            assert current["npcConsequence"]["state"] == "DELIVERED"
+            assert current["npcConsequence"]["event"]["state"] == "DELIVERED"
+            assert current["npcConsequence"]["memory"]["state"] == "DELIVERED"
+            assert current["npcConsequence"]["affection"]["state"] == "DELIVERED"
+            consequence_events = [
+                (kind, payload)
+                for kind, payload in upstreams.events
+                if kind in {"NPC_TASK_OUTCOME", "NPC_TASK_MEMORY", "NPC_AFFECTION_SETTLEMENT"}
+            ]
+            assert {kind for kind, _ in consequence_events} == {
+                "NPC_TASK_OUTCOME", "NPC_TASK_MEMORY", "NPC_AFFECTION_SETTLEMENT"
+            }
+            affection_payload = next(
+                payload for kind, payload in consequence_events
+                if kind == "NPC_AFFECTION_SETTLEMENT"
+            )
+            assert affection_payload["target_id"] == str(stable_player_id(91001, player_id))
+            assert affection_payload["changes"][0]["affection_type"] == "annoyance"
+            assert affection_payload["changes"][0]["delta"] == 5.8
+            outcome_payload = next(
+                payload for kind, payload in consequence_events
+                if kind == "NPC_TASK_OUTCOME"
+            )
+            metadata = outcome_payload["events"][0]["metadata"]
+            assert metadata["actor_id"] == str(stable_player_id(91001, player_id))
+            assert metadata["target_id"] == str(stable_npc_id(91001, "ZuoRu"))
+            assert metadata["behavior_parent"] == "insult"
+            assert metadata["behavior_sub"] == "official_censure"
+            assert metadata["result_confirmed"] is True
+            assert len(upstreams.inventory_adjustments) == 0
 
 
 def test_failure_task_registers_authoritative_remediation() -> None:

@@ -16,6 +16,8 @@ const BASE = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
 const PROFILE = "dongzhou-h5-profile-v2";
 const BATTLE = "dongzhou-h5-battle-v2";
 const acceptanceLabel = process.env.DONGZHOU_ACCEPTANCE_LABEL || "kernel-mandate-complete12";
+const settlementDecision = process.env.DONGZHOU_SETTLEMENT_DECISION || "ACCEPT";
+assert(["ACCEPT", "CENSURE"].includes(settlementDecision), "Unsupported settlement decision");
 const privateDirectory = path.resolve(__dirname, `../.agentwork/root/${acceptanceLabel}`);
 const privatePath = path.join(privateDirectory, "acceptance-private.json");
 const outputDirectory = path.resolve(__dirname, "../output/integration-validation");
@@ -261,6 +263,79 @@ saveJournal();
       assert(reviewContext.rewardUnits > 0, "accepted settlement must carry a positive organization reward");
       journal.stage = "settlement-review";
       saveJournal();
+      if (settlementDecision === "CENSURE") {
+        await page.click("#officeSettlementCensureButton");
+        await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).organization.tasks.some((task) => task.pendingReview?.state === "CENSURED"), PROFILE, { timeout: 90000 });
+        const replay = await page.evaluate(
+          ({ taskId, actionId }) => window.DongzhouIntegration.reviewOrganizationTask(taskId, {
+            action_id: actionId,
+            decision: "CENSURE"
+          }),
+          reviewContext
+        );
+        assert.equal(replay.replayed, true, "censure review replay was not recognized");
+        assert.equal(replay.state, "CENSURED");
+        assert.equal(replay.inventoryReward, undefined, "censure must not credit organization inventory");
+        assert.equal(replay.npcConsequence?.affectionType, "annoyance");
+        assert.equal(replay.npcConsequence?.severity, 58);
+        assert(replay.npcConsequence?.targetId, "censure consequence target is missing");
+
+        const delivered = await page.evaluate(async ({ taskId, heroId, targetId }) => {
+          const deadline = Date.now() + 180000;
+          let task;
+          let state;
+          while (Date.now() < deadline) {
+            const taskResponse = await fetch(`/api/dongzhou/v1/organization/tasks/${encodeURIComponent(taskId)}`, { cache: "no-store" });
+            task = taskResponse.ok ? await taskResponse.json() : null;
+            const stateResponse = await fetch(`/api/dongzhou/v1/npcs/${encodeURIComponent(heroId)}/state`, { cache: "no-store" });
+            state = stateResponse.ok ? await stateResponse.json() : null;
+            const affection = state?.affection?.data ?? state?.affection ?? {};
+            const items = [
+              ...(Array.isArray(affection) ? affection : []),
+              ...(Array.isArray(affection.items) ? affection.items : []),
+            ];
+            const matched = items.find((item) =>
+              String(item?.target_id ?? item?.targetId ?? "") === String(targetId)
+              && String(item?.dominant_affection_type ?? item?.dominantAffectionType ?? "") === "annoyance"
+            );
+            if (task?.npcConsequence?.state === "DELIVERED" && matched) return { task, state, matched };
+            await new Promise((resolve) => setTimeout(resolve, 3000));
+          }
+          return { task, state, matched: null };
+        }, {
+          taskId: reviewContext.taskId,
+          heroId: replay.npcConsequence.heroId,
+          targetId: replay.npcConsequence.targetId
+        });
+        assert.equal(delivered.task?.npcConsequence?.state, "DELIVERED");
+        assert.equal(delivered.task?.npcConsequence?.event?.state, "DELIVERED");
+        assert.equal(delivered.task?.npcConsequence?.memory?.state, "DELIVERED");
+        assert.equal(delivered.task?.npcConsequence?.affection?.state, "DELIVERED");
+        assert(delivered.matched, "authoritative AINPC annoyance was not persisted before timeout");
+        assert.equal(Number(delivered.matched.max_value ?? delivered.matched.maxValue), 5.8);
+        await page.locator("#officeSettlementNotice").scrollIntoViewIfNeeded();
+        await page.screenshot({ path: screenshotPath, fullPage: true });
+        const evidence = {
+          result: "PASS",
+          mode: "real-services-browser-no-interception",
+          decision: "CENSURE",
+          taskId: reviewContext.taskId,
+          heroId: replay.npcConsequence.heroId,
+          npcId: replay.npcConsequence.npcId,
+          targetId: replay.npcConsequence.targetId,
+          affectionType: replay.npcConsequence.affectionType,
+          severity: replay.npcConsequence.severity,
+          eventState: delivered.task.npcConsequence.event.state,
+          memoryState: delivered.task.npcConsequence.memory.state,
+          screenshot: screenshotPath,
+        };
+        fs.writeFileSync(resultPath, JSON.stringify(evidence, null, 2));
+        journal.stage = "complete";
+        journal.result = evidence;
+        saveJournal();
+        console.log(JSON.stringify(evidence));
+        return;
+      }
       await page.click("#officeSettlementAcceptButton");
       await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).organization.tasks.some((task) => task.pendingReview?.state === "ACCEPTED"), PROFILE, { timeout: 90000 });
       await page.waitForFunction(() => !document.querySelector("#officeSettlementAcceptButton").disabled, undefined, { timeout: 90000 });

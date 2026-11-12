@@ -1147,6 +1147,88 @@ def _npc_outcome_memory(outcome: dict[str, Any], final_result: str) -> dict[str,
     return _npc_memory_from_event(_npc_outcome_event(outcome, final_result))
 
 
+def _npc_censure_events(
+    settings: Settings,
+    player_id: UUID,
+    *,
+    task_id: str,
+    hero_id: str,
+    npc_name: str,
+    game_time: str,
+    review_digest: str,
+) -> list[dict[str, Any]]:
+    npc_id = str(stable_npc_id(settings.ainpc_game_server_id, hero_id))
+    player_target_id = str(stable_player_id(settings.ainpc_game_server_id, player_id))
+    identity_digest = hashlib.sha256(
+        f"{player_id}\n{task_id}\n{hero_id}\n{review_digest}\ncensure-v1".encode("utf-8")
+    ).hexdigest()
+    source_record_id = "dongzhou-censure:" + identity_digest[:48]
+    event_id = int.from_bytes(bytes.fromhex(identity_digest[:8]), "big") & 0x7FFFFFFF or 1
+    description = f"{npc_name}因官署差事复命遭主君申斥，功过照录但本次战前助益不予采纳。"
+    outcome = {
+        "game_server_id": str(settings.ainpc_game_server_id),
+        "npc_id": npc_id,
+        "npc_name": npc_name,
+        "game_time": game_time,
+        "events": [{
+            "source_record_id": source_record_id,
+            "timestamp": game_time,
+            "event_id": event_id,
+            "event_name": "官署复命遭申斥",
+            "event_type": "organization_review_censure",
+            "params": description,
+            "metadata": {
+                "standard_event_authority": "game_server",
+                "event_instance_id": source_record_id,
+                "actor_id": player_target_id,
+                "target_id": npc_id,
+                "behavior_parent": "insult",
+                "behavior_sub": "official_censure",
+                "motivation": "organization_accountability",
+                "result": "censured",
+                "result_confirmed": True,
+                "severity": 58,
+                "confidence": 1.0,
+                "source_module": "dongzhou_settlement_review",
+                "task_id": task_id,
+                "hero_id": hero_id,
+                "review_digest": review_digest,
+                "description": description,
+            },
+            "interrupt_trace_id": source_record_id,
+        }],
+    }
+    memory = {
+        "game_server_id": str(settings.ainpc_game_server_id),
+        "npc_id": npc_id,
+        "npc_name": npc_name,
+        "game_time": game_time,
+        "messages": [{
+            "timestamp": game_time,
+            "content": description,
+            "message_id": "dongzhou-censure-memory:" + identity_digest[:48],
+        }],
+    }
+    affection = {
+        "settlement_effect_id": "dongzhou-censure-affection:" + identity_digest,
+        "game_server_id": str(settings.ainpc_game_server_id),
+        "npc_id": npc_id,
+        "target_id": player_target_id,
+        "changes": [{
+            "affection_type": "annoyance",
+            "delta": 5.8,
+            "reason": "confirmed official censure for organization accountability",
+            "confidence": 1.0,
+        }],
+        "related_event_id": str(event_id),
+    }
+    return [
+        {"eventId": "settlement-censure:" + identity_digest, "kind": "NPC_TASK_OUTCOME", "payload": outcome},
+        {"eventId": "settlement-censure-memory:" + identity_digest, "kind": "NPC_TASK_MEMORY", "payload": memory},
+        {"eventId": "settlement-censure-affection:" + identity_digest, "kind": "NPC_AFFECTION_SETTLEMENT", "payload": affection},
+    ]
+
+
 def _npc_memory_from_event(event: dict[str, Any]) -> dict[str, Any]:
     detail = event["events"][0]
     task_id = str(detail["source_record_id"])
@@ -1817,13 +1899,17 @@ def _battle_game_events(
 
 
 def _npc_outcome_status(
-    event: dict[str, Any] | None, memory: dict[str, Any] | None
+    event: dict[str, Any] | None,
+    memory: dict[str, Any] | None,
+    affection: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
-    if event is None and memory is None:
+    if event is None and memory is None and affection is None:
         return None
     parts = {"event": event, "memory": memory}
+    if affection is not None:
+        parts["affection"] = affection
     states = [part.get("state") for part in parts.values() if isinstance(part, dict)]
-    delivered = len(states) == 2 and all(state == "DELIVERED" for state in states)
+    delivered = len(states) == len(parts) and all(state == "DELIVERED" for state in states)
     last_error = next(
         (
             part.get("lastError")
@@ -4655,6 +4741,23 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "review": review,
             "followUps": follow_ups,
         }
+        consequence = review.get("npcConsequence") if isinstance(review, dict) else None
+        if isinstance(consequence, dict):
+            consequence_event = await store.game_event_status(str(consequence.get("eventId") or ""))
+            consequence_memory = await store.game_event_status(str(consequence.get("memoryEventId") or ""))
+            consequence_affection = await store.game_event_status(str(consequence.get("affectionEventId") or ""))
+            consequence_status = _npc_outcome_status(
+                consequence_event,
+                consequence_memory,
+                consequence_affection,
+            )
+            task_state["npcConsequence"] = {
+                **consequence,
+                "state": consequence_status["state"] if consequence_status else "MISSING",
+                "event": consequence_event,
+                "memory": consequence_memory,
+                "affection": consequence_affection,
+            }
         if settlement is not None and closure is not None:
             await store.cache_external_request_result(
                 player_id,
@@ -4741,6 +4844,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=409,
             )
         result = mandate_workflow.resume_settlement_review(review, request.decision)
+        consequence_events: list[dict[str, Any]] = []
         reward_units = settlement["organizationDelta"] if request.decision == "ACCEPT" else 0
         if reward_units > 0:
             resource_key = "task.execution"
@@ -4790,12 +4894,55 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     status_code=502,
                 ) from error
             result["inventoryReward"] = reward
+        if request.decision == "CENSURE":
+            original = await store.read_external_request(player_id, task_key, "organization_task")
+            parameters = original.get("parameters") if isinstance(original, dict) else None
+            parameters = parameters if isinstance(parameters, dict) else {}
+            hero_id = str(task_state.get("assigneeHeroId") or "")
+            npc_name = str(parameters.get("assignee_name") or hero_id or "属官")[:100]
+            game_time = str((await store.read_game_clock())["virtualTime"])
+            if not hero_id:
+                await store.finish_request(
+                    player_id,
+                    review_id,
+                    "RETRYABLE",
+                    {"state": "RETRYABLE"},
+                    error="organization_censure_contract_invalid",
+                    external_id=task_key,
+                )
+                raise ApiError(
+                    "organization_censure_contract_invalid",
+                    "The organization report cannot identify its censured officer.",
+                    status_code=502,
+                )
+            consequence_events = _npc_censure_events(
+                settings,
+                player_id,
+                task_id=task_key,
+                hero_id=hero_id,
+                npc_name=npc_name,
+                game_time=game_time,
+                review_digest=str(result["review"]["digest"]),
+            )
+            result["npcConsequence"] = {
+                "state": "QUEUED",
+                "heroId": hero_id,
+                "npcId": str(stable_npc_id(settings.ainpc_game_server_id, hero_id)),
+                "targetId": str(stable_player_id(settings.ainpc_game_server_id, player_id)),
+                "eventId": consequence_events[0]["eventId"],
+                "memoryEventId": consequence_events[1]["eventId"],
+                "affectionEventId": consequence_events[2]["eventId"],
+                "affectionType": "annoyance",
+                "affectionDelta": 5.8,
+                "severity": 58,
+            }
         await store.finish_request(
             player_id,
             review_id,
             result["state"],
             result,
             external_id=task_key,
+            game_events=consequence_events,
         )
         return result
 

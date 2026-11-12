@@ -167,6 +167,20 @@ class Upstreams:
                     response_payload=response,
                 )
             return response
+        if kind == "NPC_AFFECTION_SETTLEMENT":
+            response = await self._json(
+                "POST",
+                self.settings.ainpc_url + "/api/v1/affection/event-settlement",
+                token=self.settings.ainpc_token,
+                payload=payload,
+            )
+            if response.get("data") is not True:
+                raise UpstreamUnavailable(
+                    "AINPC rejected the authoritative affection settlement.",
+                    error_code="ainpc_affection_settlement_rejected",
+                    response_payload=response,
+                )
+            return response
         paths = {
             "CHAT_START": "/api/v1/social-interaction/chat",
             "CHAT_TURN": "/api/v1/social-interaction/chat",
@@ -478,7 +492,7 @@ class Upstreams:
         base = self.settings.ainpc_url
         server = self.settings.ainpc_game_server_id
         emotion, affection, relationships, personality, motivation = await asyncio.gather(
-            self._json("GET", f"{base}/api/v1/emotion/current/{server}/{npc_id}", token=self.settings.ainpc_token),
+            self.optional_npc_emotion(npc_id),
             self._json("GET", f"{base}/api/v1/affection/targets/{server}/{npc_id}", token=self.settings.ainpc_token),
             self._json("GET", f"{base}/api/v1/relationship/all/{server}/{npc_id}", token=self.settings.ainpc_token),
             self.optional_npc_personality(npc_id),
@@ -491,6 +505,16 @@ class Upstreams:
             "personality": personality,
             "motivation": motivation,
         }
+
+    async def optional_npc_emotion(self, npc_id: int) -> dict[str, Any]:
+        try:
+            return await self._json(
+                "GET",
+                f"{self.settings.ainpc_url}/api/v1/emotion/current/{self.settings.ainpc_game_server_id}/{npc_id}",
+                token=self.settings.ainpc_token,
+            )
+        except UpstreamUnavailable:
+            return {"available": False}
 
     async def optional_npc_motivation(self, npc_id: int) -> dict[str, Any]:
         try:

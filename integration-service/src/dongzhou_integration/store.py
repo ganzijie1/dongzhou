@@ -923,10 +923,41 @@ class Store:
                 db.execute("INSERT INTO requests(player_id,request_id,kind,state,request_payload) VALUES (?,?,?,?,?)", (str(player_id), str(request_id), kind, "PENDING", encoded))
         return True, None
 
-    async def finish_request(self, player_id: UUID, request_id: UUID, state: str, response: dict[str, Any], error: str | None = None, external_id: str | None = None) -> None:
+    async def finish_request(
+        self,
+        player_id: UUID,
+        request_id: UUID,
+        state: str,
+        response: dict[str, Any],
+        error: str | None = None,
+        external_id: str | None = None,
+        *,
+        game_events: list[dict[str, Any]] | None = None,
+    ) -> None:
         async with self._lock:
             with self._connection() as db:
                 db.execute("UPDATE requests SET state=?,response_payload=?,external_id=COALESCE(?,external_id),attempts=attempts+1,last_error=?,updated_at=CURRENT_TIMESTAMP WHERE player_id=? AND request_id=?", (state, json.dumps(response, ensure_ascii=False, separators=(",", ":")), external_id, error, str(player_id), str(request_id)))
+                for event in game_events or []:
+                    event_id = str(event["eventId"])
+                    event_kind = str(event["kind"])
+                    event_payload = json.dumps(
+                        event["payload"],
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                        sort_keys=True,
+                    )
+                    existing = db.execute(
+                        "SELECT event_kind,payload FROM game_server_outbox WHERE event_id=?",
+                        (event_id,),
+                    ).fetchone()
+                    if existing is not None:
+                        if existing["event_kind"] != event_kind or existing["payload"] != event_payload:
+                            raise VersionConflict("game_event_idempotency_conflict")
+                        continue
+                    db.execute(
+                        "INSERT INTO game_server_outbox(event_id,event_kind,payload) VALUES (?,?,?)",
+                        (event_id, event_kind, event_payload),
+                    )
 
     async def transition_request(
         self,
