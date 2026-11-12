@@ -14,6 +14,7 @@
   const NPC_THOUGHT_PENDING_PREFIX = "dongzhou-pending-npc-thought-v1:";
   const MANDATE_SCHEDULE_PENDING_PREFIX = "dongzhou-pending-mandate-schedule-v1:";
   const INVENTORY_REQUISITION_PENDING_KEY = "dongzhou-pending-inventory-requisition-v1";
+  const LOGISTICS_BRIEFING_PENDING_PREFIX = "dongzhou-pending-logistics-briefing-v1:";
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
   let session = read(SESSION_KEY, null);
   let sessionPromise = null;
@@ -257,7 +258,7 @@
     return { ...result, clientRequestId: pending.client_request_id };
   }
   async function npcThought(heroId, input) {
-    const context = [heroId, input.stage_id, input.knowledge_id, input.evidence_source_index, input.task_type].join(":");
+    const context = [heroId, input.stage_id, input.knowledge_id, input.evidence_source_index, input.task_type, input.logistics_briefing_request_id || "", input.logistics_briefing_digest || ""].join(":");
     const pendingKey = NPC_THOUGHT_PENDING_PREFIX + context;
     const pending = read(pendingKey, null) || { ...input, client_request_id: root.crypto.randomUUID() };
     write(pendingKey, pending);
@@ -463,6 +464,25 @@
   function organizationTask(taskId) { return requestWithTransientRetry(`/organization/tasks/${encodeURIComponent(taskId)}`); }
   function organizationRoster() { return requestWithTransientRetry("/organization/roster"); }
   function organizationInventory() { return requestWithTransientRetry("/organization/inventory"); }
+  async function organizationLogisticsBriefing(heroId, input) {
+    const pendingKey = LOGISTICS_BRIEFING_PENDING_PREFIX + [heroId, input.stage_id].join(":");
+    const saved = read(pendingKey, null);
+    const pending = saved?.stage_id === input.stage_id && saved?.stage_title === input.stage_title
+      ? saved
+      : { ...input, client_request_id: root.crypto.randomUUID() };
+    write(pendingKey, pending);
+    try {
+      const result = await request(`/organization/logistics-briefings/${encodeURIComponent(heroId)}`, {
+        method: "POST",
+        body: JSON.stringify(pending)
+      });
+      root.localStorage.removeItem(pendingKey);
+      return result;
+    } catch (error) {
+      if ([400, 409, 422].includes(error.status)) root.localStorage.removeItem(pendingKey);
+      throw error;
+    }
+  }
   function pendingOrganizationInventoryRequisition() {
     const stored = read(INVENTORY_REQUISITION_PENDING_KEY, null);
     if (!stored) return null;
@@ -558,5 +578,5 @@
     });
   }
 
-  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, syncNpcs, setNpcInteractionPreference, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationInventory, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, syncNpcs, setNpcInteractionPreference, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationInventory, organizationLogisticsBriefing, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
 });

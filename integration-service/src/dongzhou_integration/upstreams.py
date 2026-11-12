@@ -238,6 +238,36 @@ class Upstreams:
             payload=payload,
         )
 
+    async def report_market_snapshot(self, payload: dict[str, Any]) -> dict[str, Any]:
+        response = await self._json(
+            "POST",
+            self.settings.ainpc_url + "/callback/game-reports/market",
+            token=self.settings.ainpc_token,
+            payload=payload,
+        )
+        if response.get("code") not in (0, 200, "0", "200"):
+            raise UpstreamUnavailable(
+                "AINPC rejected the market snapshot.",
+                error_code="ainpc_market_snapshot_rejected",
+                response_payload=response,
+            )
+        return response
+
+    async def report_warehouse_snapshot(self, payload: dict[str, Any]) -> dict[str, Any]:
+        response = await self._json(
+            "POST",
+            self.settings.ainpc_url + "/callback/game-reports/warehouse-stocks",
+            token=self.settings.ainpc_token,
+            payload=payload,
+        )
+        if response.get("code") not in (0, 200, "0", "200"):
+            raise UpstreamUnavailable(
+                "AINPC rejected the warehouse snapshot.",
+                error_code="ainpc_warehouse_snapshot_rejected",
+                response_payload=response,
+            )
+        return response
+
     async def search_knowledge(self, query: str, limit: int) -> tuple[str, list[dict[str, Any]]]:
         recall_limit = max(20, min(limit * 8, 100))
         payload = {

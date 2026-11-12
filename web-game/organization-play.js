@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 14;
+  const SCHEMA_VERSION = 15;
   const TASK_TYPES = {
     supply: { name: "转运军粮", office: "司徒", duration: 1, cost: 8, base: 72, reward: { provisions: 24 } },
     drill: { name: "整训军阵", office: "司马", duration: 1, cost: 6, base: 68, reward: { attack: 0.08 } },
@@ -54,6 +54,7 @@
       settlementIds: [],
       inventoryRequisitions: [],
       inventoryRequisitionIds: [],
+      logisticsBriefings: [],
       history: []
     };
   }
@@ -126,6 +127,9 @@
         ...(Array.isArray(source.inventoryRequisitionIds) ? source.inventoryRequisitionIds : []),
         ...(Array.isArray(source.inventoryRequisitions) ? source.inventoryRequisitions.map((entry) => entry?.requestId) : [])
       ].filter((value) => typeof value === "string" && value))],
+      logisticsBriefings: Array.isArray(source.logisticsBriefings)
+        ? source.logisticsBriefings.filter((entry) => entry && typeof entry.requestId === "string").slice(-30).map(copy)
+        : [],
       history: Array.isArray(source.history) ? source.history.slice(-40).map((entry) => ({ ...entry })) : []
     };
   }
@@ -194,6 +198,42 @@
     if (previous && JSON.stringify(previous) !== JSON.stringify(receipt)) throw new Error("属官进言来源记录冲突");
     if (!previous) state.thoughts = [...state.thoughts, receipt].slice(-30);
     return { state, thought: copy(previous || receipt) };
+  }
+
+  function recordLogisticsBriefing(rawState, input) {
+    const state = normalizeState(rawState);
+    const receipt = input && typeof input === "object" ? copy(input) : null;
+    if (
+      receipt?.state !== "SEALED"
+      || !receipt.requestId
+      || !receipt.heroId
+      || !receipt.stageId
+      || !Number.isSafeInteger(receipt.inventoryRevision)
+      || !/^[0-9a-f]{64}$/.test(String(receipt.digest || ""))
+      || receipt.kernel?.module !== "dongzhou_logistics_briefing"
+      || receipt.kernel?.state !== "SEALED"
+      || receipt.ainpcDelivery?.market !== "DELIVERED"
+      || receipt.ainpcDelivery?.warehouse !== "DELIVERED"
+      || !Number.isSafeInteger(receipt.exchange?.availableUnits)
+      || !Number.isSafeInteger(receipt.exchange?.availableLots)
+      || receipt.exchange?.priceUnits !== 20
+      || receipt.exchange?.provisionsPerLot !== 12
+      || !state.members.some((member) => member.id === receipt.heroId)
+    ) throw new Error("仓情简报回执无效");
+    const previous = state.logisticsBriefings.find((entry) => entry.requestId === receipt.requestId);
+    if (previous && JSON.stringify(previous) !== JSON.stringify(receipt)) throw new Error("仓情简报来源记录冲突");
+    if (!previous) {
+      state.logisticsBriefings = [
+        ...state.logisticsBriefings.filter((entry) => entry.heroId !== receipt.heroId || entry.stageId !== receipt.stageId),
+        receipt
+      ].slice(-30);
+      state.history = [...state.history, {
+        month: state.month,
+        tone: "knowledge",
+        text: `${receipt.heroId}查验仓情：军粮 ${Number(receipt.campaignResources?.provisions || 0)}，可调拨 ${receipt.exchange.availableLots} 批`
+      }].slice(-40);
+    }
+    return { state, briefing: copy(previous || receipt) };
   }
 
   function recordMandate(rawState, input) {
@@ -887,5 +927,5 @@
     return state;
   }
 
-  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordThought, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, recordInventoryRequisition, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, recordRemoteRoster, hash };
+  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordThought, recordLogisticsBriefing, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, recordInventoryRequisition, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, recordRemoteRoster, hash };
 });

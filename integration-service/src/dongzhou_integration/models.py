@@ -230,6 +230,22 @@ class NpcThoughtRequest(StrictModel):
     knowledge_id: str = Field(min_length=1, max_length=200)
     evidence_source_index: int = Field(default=0, ge=0, le=20)
     task_type: OrganizationTaskType
+    logistics_briefing_request_id: UUID | None = Field(default=None, strict=False)
+    logistics_briefing_digest: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+
+    @model_validator(mode="after")
+    def logistics_reference_is_complete(self) -> "NpcThoughtRequest":
+        if bool(self.logistics_briefing_request_id) != bool(
+            self.logistics_briefing_digest
+        ):
+            raise ValueError("NPC thought logistics reference is incomplete")
+        return self
+
+
+class LogisticsBriefingRequest(StrictModel):
+    client_request_id: UUID = Field(strict=False)
+    stage_id: str = Field(min_length=1, max_length=64)
+    stage_title: str = Field(min_length=1, max_length=200)
 
 
 class CourtMandateOperation(StrictModel):

@@ -20,7 +20,7 @@ from nexus_kernel.kernel import Kernel, LoadedModule, Module, ModuleContext
 
 from .config import Settings
 from .assignments import AssignmentUnavailable, collaboration_support, select_assignment
-from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
+from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
@@ -521,6 +521,26 @@ class NpcSettlementModule(Module):
             "kernel": {
                 "module": NpcSettlementModule.name,
                 "moduleVersion": NpcSettlementModule.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "SEALED",
+            },
+        }
+
+
+class LogisticsBriefingModule(Module):
+    name = "dongzhou_logistics_briefing"
+    version = "1.0.0"
+    dependencies = (RuntimeModule.name,)
+
+    @staticmethod
+    def seal(trace: dict[str, Any]) -> dict[str, Any]:
+        digest = _canonical_digest(trace)
+        return {
+            **trace,
+            "digest": digest,
+            "kernel": {
+                "module": LogisticsBriefingModule.name,
+                "moduleVersion": LogisticsBriefingModule.version,
                 "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
                 "state": "SEALED",
             },
@@ -2573,6 +2593,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     knowledge_tournament = KnowledgeTournamentModule()
     campaign_routes = CampaignRouteModule()
     npc_settlement = NpcSettlementModule()
+    logistics_briefing = LogisticsBriefingModule()
     kernel = Kernel(
         [
             LoadedModule(module=module, required=True, original_index=0),
@@ -2580,6 +2601,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             LoadedModule(module=knowledge_tournament, required=True, original_index=2),
             LoadedModule(module=campaign_routes, required=True, original_index=3),
             LoadedModule(module=npc_settlement, required=True, original_index=4),
+            LoadedModule(module=logistics_briefing, required=True, original_index=5),
         ]
     )
     router = APIRouter(prefix="/api/dongzhou/v1")
@@ -2636,13 +2658,23 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             {},
         )
         route_state = str(route_module.get("state") or "unknown").lower()
+        logistics_module = next(
+            (
+                item
+                for item in kernel_snapshot.get("modules", [])
+                if item.get("name") == LogisticsBriefingModule.name
+            ),
+            {},
+        )
+        logistics_state = str(logistics_module.get("state") or "unknown").lower()
         return {
             **external,
             "nexusKernel": {
                 "online": runtime_state in {"ready", "degraded"}
                 and workflow_state in {"ready", "degraded"}
                 and tournament_state in {"ready", "degraded"}
-                and route_state in {"ready", "degraded"},
+                and route_state in {"ready", "degraded"}
+                and logistics_state in {"ready", "degraded"},
                 "mode": "embedded",
                 "version": _NEXUS_KERNEL_VERSION,
                 "runtimeState": runtime_state,
@@ -2652,6 +2684,8 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "knowledgeTournamentState": tournament_state,
                 "campaignRouteModule": CampaignRouteModule.name,
                 "campaignRouteState": route_state,
+                "logisticsBriefingModule": LogisticsBriefingModule.name,
+                "logisticsBriefingState": logistics_state,
             },
         }
 
@@ -3759,6 +3793,51 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=422,
             )
 
+        logistics_receipt: dict[str, Any] | None = None
+        if (
+            request.logistics_briefing_request_id
+            and request.logistics_briefing_digest
+        ):
+            briefing_record = await store.read_request(
+                player_id,
+                request.logistics_briefing_request_id,
+                "organization_logistics_briefing",
+            )
+            briefing_response = (
+                briefing_record.get("response")
+                if isinstance(briefing_record, dict)
+                else None
+            )
+            candidate = (
+                briefing_response.get("briefingReceipt")
+                if isinstance(briefing_response, dict)
+                else None
+            )
+            if (
+                briefing_record is None
+                or briefing_record.get("state") != "COMPLETED"
+                or not isinstance(candidate, dict)
+                or candidate.get("digest") != request.logistics_briefing_digest
+                or candidate.get("heroId") != hero_id
+                or candidate.get("stageId") != request.stage_id
+                or candidate.get("kernel", {}).get("module")
+                != LogisticsBriefingModule.name
+                or candidate.get("kernel", {}).get("state") != "SEALED"
+            ):
+                await store.finish_request(
+                    player_id,
+                    request.client_request_id,
+                    "REJECTED",
+                    {"state": "REJECTED"},
+                    "npc_thought_logistics_unverified",
+                )
+                raise ApiError(
+                    "npc_thought_logistics_unverified",
+                    "The NPC thought logistics briefing is no longer verifiable.",
+                    status_code=422,
+                )
+            logistics_receipt = candidate
+
         npc_id = stable_npc_id(settings.ainpc_game_server_id, hero_id)
         directory = await store.list_npcs(settings.game_server_id, include_offline=True)
         npc_row = next((item for item in directory if str(item.get("id")) == str(npc_id)), None)
@@ -3787,10 +3866,29 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "recent_events": [
                     f"本回任务：{assignment['name']}",
                     f"所据史料：{canonical_source['work']}｜{canonical_source['scope']}",
+                    *(
+                        [
+                            "仓情实账："
+                            f"军粮{logistics_receipt['campaignResources']['provisions']}，"
+                            f"差事额度{logistics_receipt['exchange']['availableUnits']}"
+                        ]
+                        if logistics_receipt
+                        else []
+                    ),
                 ],
                 "knowledge_context": [
                     str(evidence.get("name") or evidence.get("title") or request.knowledge_id),
                     str(evidence.get("summary") or evidence.get("content") or "")[:1800],
+                    *(
+                        [
+                            "已核验仓情："
+                            f"账本第{logistics_receipt['inventoryRevision']}版；"
+                            f"每20点差事额度可调拨12军粮；"
+                            f"当前可调拨{logistics_receipt['exchange']['availableLots']}批。"
+                        ]
+                        if logistics_receipt
+                        else []
+                    ),
                 ],
                 "motivation_state": motivation,
                 "properties_summary": (
@@ -3835,6 +3933,17 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "eventId": assignment["eventId"],
                 "name": assignment["name"],
             },
+            **(
+                {
+                    "logisticsBriefing": {
+                        "requestId": logistics_receipt["requestId"],
+                        "digest": logistics_receipt["digest"],
+                        "inventoryRevision": logistics_receipt["inventoryRevision"],
+                    }
+                }
+                if logistics_receipt
+                else {}
+            ),
             **generated,
         }
         receipt["councilProposal"] = (
@@ -5023,6 +5132,242 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "Organization inventory response is invalid.",
                 status_code=502,
             ) from error
+
+    @router.post("/organization/logistics-briefings/{hero_id}")
+    async def create_logistics_briefing(
+        hero_id: str,
+        request: LogisticsBriefingRequest,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        if not settings.orgflow_org_id or not settings.orgflow_hero_members:
+            raise ApiError(
+                "organization_not_configured",
+                "Organization integration is not configured.",
+                status_code=503,
+            )
+        payload = {"hero_id": hero_id, **request.model_dump(mode="json")}
+        try:
+            should_process, previous = await store.begin_request(
+                player_id,
+                request.client_request_id,
+                "organization_logistics_briefing",
+                payload,
+            )
+        except VersionConflict as error:
+            raise ApiError(
+                "organization_logistics_briefing_conflict",
+                "This logistics briefing ID was already used with different input.",
+                status_code=409,
+            ) from error
+        if not should_process:
+            if previous and previous.get("state") == "PENDING":
+                raise ApiError(
+                    "organization_logistics_briefing_in_progress",
+                    "This logistics briefing is still being prepared.",
+                    status_code=409,
+                )
+            return {"replayed": True, **(previous or {})}
+
+        try:
+            roster_response, inventory_response, entries, save, clock = await asyncio.gather(
+                upstreams.organization_roster(settings.orgflow_org_id),
+                upstreams.organization_inventory(settings.orgflow_org_id),
+                upstreams.stage_knowledge(request.stage_id),
+                store.read_save(player_id),
+                store.read_game_clock(),
+            )
+            roster = _organization_roster_view(
+                roster_response.get("data") if isinstance(roster_response, dict) else None,
+                settings,
+            )
+            inventory = _organization_inventory_view(
+                inventory_response.get("data") if isinstance(inventory_response, dict) else None,
+                settings,
+            )
+            member = next(
+                (item for item in roster["members"] if item["heroId"] == hero_id),
+                None,
+            )
+            if roster["organization"]["state"] != "ACTIVE" or member is None:
+                raise ApiError(
+                    "organization_logistics_officer_unavailable",
+                    "The selected officer is not active in the organization roster.",
+                    status_code=422,
+                )
+            knowledge = next(
+                (
+                    entry
+                    for entry in entries
+                    if isinstance(entry, dict)
+                    and str(entry.get("stageId") or request.stage_id)
+                    == request.stage_id
+                    and str(entry.get("id") or entry.get("aku_id") or "")
+                ),
+                None,
+            )
+            if knowledge is None:
+                raise ApiError(
+                    "organization_logistics_knowledge_unavailable",
+                    "No published knowledge is available for this stage.",
+                    status_code=422,
+                )
+            saved_payload = save.get("payload") if isinstance(save, dict) else {}
+            campaign = (
+                saved_payload.get("campaignResources")
+                if isinstance(saved_payload, dict)
+                and isinstance(saved_payload.get("campaignResources"), dict)
+                else {}
+            )
+
+            def resource_value(name: str) -> int:
+                value = campaign.get(name, 0)
+                if isinstance(value, bool) or not isinstance(value, (int, float)):
+                    raise ValueError(f"campaign resource is invalid: {name}")
+                return max(0, min(999999, int(value)))
+
+            provisions = resource_value("provisions")
+            morale = resource_value("morale")
+            account_labels = {
+                "task.execution": "差事额度",
+                "guild.capacity": "组织容量",
+                "war.supply": "军府储备",
+            }
+            warehouse_items = [
+                {
+                    "itemId": "public:" + account["resourceKey"],
+                    "itemName": account_labels.get(
+                        account["resourceKey"], account["resourceKey"]
+                    ),
+                    "quantity": account["balance"],
+                }
+                for account in inventory["accounts"]
+            ] + [
+                {
+                    "itemId": "campaign:provisions",
+                    "itemName": "军粮",
+                    "quantity": provisions,
+                },
+                {
+                    "itemId": "campaign:morale",
+                    "itemName": "士气",
+                    "quantity": morale,
+                },
+            ]
+            task_units = next(
+                (
+                    account["balance"]
+                    for account in inventory["accounts"]
+                    if account["resourceKey"] == "task.execution"
+                ),
+                0,
+            )
+            npc_id = str(stable_npc_id(settings.ainpc_game_server_id, hero_id))
+            directory = await store.list_npcs(
+                settings.game_server_id, include_offline=True
+            )
+            npc_name = str(
+                next(
+                    (
+                        row.get("name")
+                        for row in directory
+                        if str(row.get("id")) == npc_id
+                    ),
+                    hero_id,
+                )
+                or hero_id
+            )
+            common = {
+                "gameServerId": str(settings.ainpc_game_server_id),
+                "npcId": npc_id,
+                "npcName": npc_name,
+                "gameTime": str(clock.get("virtualTime") or ""),
+            }
+            market_payload = {
+                **common,
+                "marketItems": [
+                    {
+                        "itemId": "campaign:provisions-bundle",
+                        "itemName": "军粮十二石调拨批次",
+                        "price": 20,
+                        "quantity": task_units // 20,
+                    }
+                ],
+            }
+            warehouse_payload = {
+                **common,
+                "warehouseStocks": {"items": warehouse_items},
+            }
+            await asyncio.gather(
+                upstreams.report_market_snapshot(market_payload),
+                upstreams.report_warehouse_snapshot(warehouse_payload),
+            )
+        except ApiError as error:
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "REJECTED",
+                {"state": "REJECTED", "requestId": str(request.client_request_id)},
+                error.code,
+            )
+            raise
+        except (UpstreamUnavailable, OSError, ValueError) as error:
+            response = {
+                "state": "RETRYABLE",
+                "requestId": str(request.client_request_id),
+            }
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "RETRYABLE",
+                response,
+                str(error),
+            )
+            raise ApiError(
+                "organization_logistics_briefing_unavailable",
+                "The authoritative logistics briefing is temporarily unavailable.",
+                status_code=503,
+            ) from error
+
+        knowledge_id = str(knowledge.get("id") or knowledge.get("aku_id"))
+        trace = {
+            "state": "SEALED",
+            "requestId": str(request.client_request_id),
+            "heroId": hero_id,
+            "npcId": npc_id,
+            "stageId": request.stage_id,
+            "stageTitle": request.stage_title,
+            "knowledge": {
+                "id": knowledge_id,
+                "title": str(knowledge.get("name") or knowledge.get("title") or knowledge_id),
+            },
+            "inventoryRevision": inventory["revision"],
+            "accounts": inventory["accounts"],
+            "campaignResources": {"provisions": provisions, "morale": morale},
+            "exchange": {
+                "resourceKey": "task.execution",
+                "priceUnits": 20,
+                "provisionsPerLot": 12,
+                "availableUnits": task_units,
+                "availableLots": task_units // 20,
+            },
+            "ainpcDelivery": {
+                "market": "DELIVERED",
+                "warehouse": "DELIVERED",
+            },
+        }
+        receipt = logistics_briefing.seal(trace)
+        response = {
+            "state": "COMPLETED",
+            "requestId": str(request.client_request_id),
+            "briefingReceipt": receipt,
+        }
+        await store.finish_request(
+            player_id,
+            request.client_request_id,
+            "COMPLETED",
+            response,
+        )
+        return response
 
     @router.post("/organization/inventory/requisitions")
     async def requisition_organization_inventory(

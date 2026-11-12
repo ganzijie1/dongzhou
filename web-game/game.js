@@ -99,6 +99,7 @@
   let officeSelectedMemory = null;
   let officeInventoryView = null;
   let officeInventoryRequisitionBusy = false;
+  let officeLogisticsBriefingBusy = false;
   let officeMembershipLeavePending = false;
   let officeMembershipBusy = false;
   let officeCareerBusy = false;
@@ -1125,6 +1126,17 @@
         : taskCredit < 20 && officeInventoryView
           ? "差事额度不足 20"
           : "可补入 12 军粮";
+    const briefing = currentOfficeLogisticsBriefing();
+    const briefingButton = $("#officeLogisticsBriefing");
+    briefingButton.disabled = integration.isOffline() || officeLogisticsBriefingBusy || !$("#officeMemberSelect").value;
+    briefingButton.textContent = officeLogisticsBriefingBusy
+      ? "正在核验仓情"
+      : briefing
+        ? `仓情 · ${String(briefing.digest).slice(0, 8)}`
+        : "查仓问价";
+    briefingButton.title = briefing
+      ? `账本第 ${briefing.inventoryRevision} 版，可调拨 ${briefing.exchange.availableLots} 批`
+      : "让当前属官查验公共库藏、军粮与调拨市价";
   }
 
   async function applyOfficeInventoryRequisition(response, { render = true } = {}) {
@@ -1260,6 +1272,33 @@
     } finally {
       button.disabled = false;
       renderOfficeInventory();
+    }
+  }
+
+  async function requestOfficeLogisticsBriefing() {
+    if (officeLogisticsBriefingBusy || integration.isOffline()) return;
+    const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
+    const stage = officeStage();
+    if (!member || !stage) return;
+    officeLogisticsBriefingBusy = true;
+    renderOfficeInventory();
+    try {
+      const response = await integration.organizationLogisticsBriefing(member.id, {
+        stage_id: String(stage.id),
+        stage_title: String(stage.battleTitle || stage.title || "未名军情")
+      });
+      if (response.state !== "COMPLETED" || !response.briefingReceipt) throw new Error("仓情简报未能封存");
+      const recorded = organization.recordLogisticsBriefing(profile.organization, response.briefingReceipt);
+      await integration.persist({ ...profile, organization: recorded.state });
+      profile.organization = recorded.state;
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+      const receipt = recorded.briefing;
+      showNotice(`${member.name}已核验仓情：军粮 ${receipt.campaignResources.provisions}，可调拨 ${receipt.exchange.availableLots} 批`);
+    } catch (error) {
+      showNotice(error.message || "仓情简报暂不可用");
+    } finally {
+      officeLogisticsBriefingBusy = false;
+      renderOrganizationPanel();
     }
   }
 
@@ -1867,7 +1906,14 @@
     const evidence = currentOfficeEvidence();
     const heroId = $("#officeMemberSelect").value;
     const taskType = $("#officeTaskType").value;
-    return [...(profile.organization.thoughts || [])].reverse().find((entry) => entry.stageId === stageId && entry.heroId === heroId && entry.taskType === taskType && entry.knowledgeId === evidence?.knowledge.id && Number(entry.source?.index) === Number(evidence?.source.index));
+    const briefing = currentOfficeLogisticsBriefing();
+    return [...(profile.organization.thoughts || [])].reverse().find((entry) => entry.stageId === stageId && entry.heroId === heroId && entry.taskType === taskType && entry.knowledgeId === evidence?.knowledge.id && Number(entry.source?.index) === Number(evidence?.source.index) && (entry.logisticsBriefing?.digest || null) === (briefing?.digest || null));
+  }
+
+  function currentOfficeLogisticsBriefing() {
+    const stageId = String(officeStage()?.id || "");
+    const heroId = $("#officeMemberSelect")?.value || "";
+    return [...(profile.organization?.logisticsBriefings || [])].reverse().find((entry) => entry.stageId === stageId && entry.heroId === heroId) || null;
   }
 
   function currentOfficeCouncil() {
@@ -1904,11 +1950,12 @@
     const stage = officeStage();
     const evidence = currentOfficeEvidence();
     const taskType = $("#officeTaskType").value;
+    const briefing = currentOfficeLogisticsBriefing();
     if (!member || !stage || !evidence) {
       $("#officeThoughtResult").textContent = "请先选择属官、本回史料和出处。";
       return;
     }
-    const context = [String(stage.id), member.id, taskType, evidence.knowledge.id, Number(evidence.source.index)].join(":");
+    const context = [String(stage.id), member.id, taskType, evidence.knowledge.id, Number(evidence.source.index), briefing?.digest || ""].join(":");
     officeThoughtInFlight = true;
     $("#officeThoughtButton").disabled = true;
     $("#officeThoughtResult").textContent = `${member.name}正在据当值与史料斟酌进言…`;
@@ -1918,10 +1965,15 @@
         stage_title: String(stage.battleTitle || stage.title || "未名战事"),
         knowledge_id: evidence.knowledge.id,
         evidence_source_index: Number(evidence.source.index),
-        task_type: taskType
+        task_type: taskType,
+        ...(briefing ? {
+          logistics_briefing_request_id: briefing.requestId,
+          logistics_briefing_digest: briefing.digest
+        } : {})
       });
       const currentEvidence = currentOfficeEvidence();
-      const currentContext = [String(officeStage()?.id || ""), $("#officeMemberSelect").value, $("#officeTaskType").value, currentEvidence?.knowledge.id, Number(currentEvidence?.source.index)].join(":");
+      const currentBriefing = currentOfficeLogisticsBriefing();
+      const currentContext = [String(officeStage()?.id || ""), $("#officeMemberSelect").value, $("#officeTaskType").value, currentEvidence?.knowledge.id, Number(currentEvidence?.source.index), currentBriefing?.digest || ""].join(":");
       if (context !== currentContext) throw new Error("进言期间选择已改变，请恢复原选择后重试");
       if (response.state !== "COMPLETED" || !response.thoughtReceipt) throw new Error("属官尚未形成可核验进言");
       const noted = organization.recordThought(profile.organization, response.thoughtReceipt);
@@ -4359,6 +4411,7 @@
     $("#officeSupportMemberSelect").addEventListener("change", renderOfficeMandateApproval);
     $("#officeCorrespondenceRefresh").addEventListener("click", () => refreshOfficeCorrespondence());
     $("#officeInventoryRefresh").addEventListener("click", refreshOfficeInventory);
+    $("#officeLogisticsBriefing").addEventListener("click", requestOfficeLogisticsBriefing);
     $("#officeInventoryRequisition").addEventListener("click", requisitionOfficeInventory);
     $("#officeInventoryApprove").addEventListener("click", () => decideOfficeInventoryRequisition("APPROVE"));
     $("#officeInventoryReject").addEventListener("click", () => decideOfficeInventoryRequisition("REJECT"));

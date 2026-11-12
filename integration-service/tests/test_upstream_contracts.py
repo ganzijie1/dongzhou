@@ -1072,6 +1072,46 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                 )
         self.assertEqual(caught.exception.error_code, "ainpc_outcome_rejected")
 
+    async def test_logistics_reports_use_canonical_ainpc_callbacks(self) -> None:
+        requests: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            requests.append(request)
+            return httpx.Response(200, json={"code": 200, "data": {"accepted": True}})
+
+        market = {"gameServerId": "91001", "npcId": "42", "marketItems": []}
+        warehouse = {
+            "gameServerId": "91001",
+            "npcId": "42",
+            "warehouseStocks": {"items": []},
+        }
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            upstreams = Upstreams(settings(Path("unused")), client)
+            await upstreams.report_market_snapshot(market)
+            await upstreams.report_warehouse_snapshot(warehouse)
+
+        self.assertEqual(
+            [request.url.path for request in requests],
+            [
+                "/callback/game-reports/market",
+                "/callback/game-reports/warehouse-stocks",
+            ],
+        )
+        self.assertTrue(all(request.headers["authorization"] == "Bearer ainpc-token" for request in requests))
+        self.assertEqual(json.loads(requests[0].content), market)
+        self.assertEqual(json.loads(requests[1].content), warehouse)
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(
+            lambda request: httpx.Response(200, json={"code": 500})
+        )) as client:
+            upstreams = Upstreams(settings(Path("unused")), client)
+            with self.assertRaises(UpstreamUnavailable) as market_error:
+                await upstreams.report_market_snapshot(market)
+            with self.assertRaises(UpstreamUnavailable) as warehouse_error:
+                await upstreams.report_warehouse_snapshot(warehouse)
+        self.assertEqual(market_error.exception.error_code, "ainpc_market_snapshot_rejected")
+        self.assertEqual(warehouse_error.exception.error_code, "ainpc_warehouse_snapshot_rejected")
+
     async def test_report_waits_for_member_acceptance_before_creating_dialogue(self) -> None:
         states = iter(["MEMBER_RESPONSE_PENDING", "IN_PROGRESS"])
         posts = []

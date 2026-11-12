@@ -36,6 +36,18 @@ class MandateUpstreams:
         self.memories: dict[int, list[dict[str, object]]] = {}
         self.collaboration_available = False
         self.roster_members: list[dict[str, object]] = []
+        self.roster_positions: list[dict[str, object]] = []
+        self.market_reports: list[dict[str, object]] = []
+        self.warehouse_reports: list[dict[str, object]] = []
+        self.inventory_snapshot = {
+            "organization_id": "00000000-0000-0000-0000-000000000001",
+            "game_server_id": "91001",
+            "revision": 7,
+            "accounts": [
+                {"resource_key": "task.execution", "balance": 128, "version": 3},
+                {"resource_key": "war.supply", "balance": 44, "version": 1},
+            ],
+        }
 
     async def health(self):
         return {
@@ -274,10 +286,22 @@ class MandateUpstreams:
                 "state": "ACTIVE",
                 "hierarchy_version": 8,
                 "growth_contribution_points": 0,
-                "positions": [],
+                "positions": self.roster_positions,
                 "members": self.roster_members,
             }
         }
+
+    async def organization_inventory(self, organization_id):
+        assert organization_id == self.inventory_snapshot["organization_id"]
+        return {"data": self.inventory_snapshot}
+
+    async def report_market_snapshot(self, payload):
+        self.market_reports.append(payload)
+        return {"code": 200, "data": {"accepted": True}}
+
+    async def report_warehouse_snapshot(self, payload):
+        self.warehouse_reports.append(payload)
+        return {"code": 200, "data": {"accepted": True}}
 
     async def get_virtual_task(self, organization_id, task_id):
         if self.task_snapshot is not None:
@@ -787,6 +811,127 @@ def test_spontaneous_thought_is_idempotent_and_sealed_into_selected_council() ->
             )
             assert tampered.status_code == 422
             assert tampered.json()["error"]["code"] == "court_thought_unverified"
+
+
+def test_logistics_briefing_reports_authoritative_facts_and_binds_thought() -> None:
+    with TemporaryDirectory() as directory:
+        upstreams = MandateUpstreams()
+        upstreams.roster_positions = [{
+            "position_slot_id": "00000000-0000-0000-0000-000000000003",
+            "position_display_name": "司马",
+            "role_display_name": "属官",
+            "level_key": "staff",
+            "state": "OCCUPIED",
+        }]
+        upstreams.roster_members = [{
+            "member_id": "00000000-0000-0000-0000-000000000004",
+            "position_slot_id": "00000000-0000-0000-0000-000000000003",
+            "direct_manager_member_id": "00000000-0000-0000-0000-000000000002",
+            "contribution_balance": 54,
+            "contribution_lifetime_earned": 80,
+            "contribution_lifetime_spent": 26,
+        }]
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=upstreams
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            saved = client.put(
+                "/api/dongzhou/v1/save",
+                json={
+                    "expected_version": 1,
+                    "payload": {
+                        "campaignResources": {"provisions": 73, "morale": 61}
+                    },
+                },
+            )
+            assert saved.status_code == 200, saved.text
+            briefing_id = str(uuid4())
+            briefing_body = {
+                "client_request_id": briefing_id,
+                "stage_id": "01",
+                "stage_title": "东郊索命",
+            }
+            created = client.post(
+                "/api/dongzhou/v1/organization/logistics-briefings/ZuoRu",
+                json=briefing_body,
+            )
+            assert created.status_code == 200, created.text
+            receipt = created.json()["briefingReceipt"]
+            assert receipt["state"] == "SEALED"
+            assert receipt["kernel"]["module"] == "dongzhou_logistics_briefing"
+            assert receipt["inventoryRevision"] == 7
+            assert receipt["campaignResources"] == {"provisions": 73, "morale": 61}
+            assert receipt["exchange"] == {
+                "resourceKey": "task.execution",
+                "priceUnits": 20,
+                "provisionsPerLot": 12,
+                "availableUnits": 128,
+                "availableLots": 6,
+            }
+            assert len(receipt["digest"]) == 64
+            assert upstreams.market_reports[0]["marketItems"] == [{
+                "itemId": "campaign:provisions-bundle",
+                "itemName": "军粮十二石调拨批次",
+                "price": 20,
+                "quantity": 6,
+            }]
+            assert upstreams.market_reports[0]["gameServerId"] == "91001"
+            assert upstreams.warehouse_reports[0]["gameServerId"] == "91001"
+            warehouse = upstreams.warehouse_reports[0]["warehouseStocks"]["items"]
+            assert {item["itemId"]: item["quantity"] for item in warehouse} == {
+                "public:task.execution": 128,
+                "public:war.supply": 44,
+                "campaign:provisions": 73,
+                "campaign:morale": 61,
+            }
+
+            replay = client.post(
+                "/api/dongzhou/v1/organization/logistics-briefings/ZuoRu",
+                json=briefing_body,
+            )
+            assert replay.status_code == 200
+            assert replay.json()["replayed"] is True
+            assert len(upstreams.market_reports) == 1
+            assert len(upstreams.warehouse_reports) == 1
+
+            thought = client.post(
+                "/api/dongzhou/v1/npcs/ZuoRu/thoughts",
+                json={
+                    "client_request_id": str(uuid4()),
+                    "stage_id": "01",
+                    "stage_title": "东郊索命",
+                    "knowledge_id": "dongzhou_stage_001",
+                    "evidence_source_index": 0,
+                    "task_type": "drill",
+                    "logistics_briefing_request_id": briefing_id,
+                    "logistics_briefing_digest": receipt["digest"],
+                },
+            )
+            assert thought.status_code == 200, thought.text
+            thought_receipt = thought.json()["thoughtReceipt"]
+            assert thought_receipt["logisticsBriefing"] == {
+                "requestId": briefing_id,
+                "digest": receipt["digest"],
+                "inventoryRevision": 7,
+            }
+            assert "仓情实账：军粮73，差事额度128" in upstreams.thoughts[-1][1]["npc_context"]["recent_events"]
+
+            tampered = client.post(
+                "/api/dongzhou/v1/npcs/ZuoRu/thoughts",
+                json={
+                    "client_request_id": str(uuid4()),
+                    "stage_id": "01",
+                    "stage_title": "东郊索命",
+                    "knowledge_id": "dongzhou_stage_001",
+                    "evidence_source_index": 0,
+                    "task_type": "drill",
+                    "logistics_briefing_request_id": briefing_id,
+                    "logistics_briefing_digest": "0" * 64,
+                },
+            )
+            assert tampered.status_code == 422
+            assert tampered.json()["error"]["code"] == "npc_thought_logistics_unverified"
 
 
 def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:

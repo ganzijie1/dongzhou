@@ -262,6 +262,27 @@ assert.throws(
   /回执无效/
 );
 
+const logisticsReceipt = {
+  state: "SEALED",
+  requestId: "00000000-0000-4000-8000-000000000042",
+  heroId: "ZuoRu",
+  stageId: "01",
+  inventoryRevision: 9,
+  campaignResources: { provisions: 73, morale: 61 },
+  exchange: { resourceKey: "task.execution", priceUnits: 20, provisionsPerLot: 12, availableUnits: 128, availableLots: 6 },
+  ainpcDelivery: { market: "DELIVERED", warehouse: "DELIVERED" },
+  digest: "e".repeat(64),
+  kernel: { module: "dongzhou_logistics_briefing", moduleVersion: "1.0.0", state: "SEALED" }
+};
+const briefed = play.recordLogisticsBriefing(state, logisticsReceipt);
+assert.strictEqual(briefed.briefing.exchange.availableLots, 6);
+assert.strictEqual(briefed.state.logisticsBriefings.length, 1);
+assert.strictEqual(play.recordLogisticsBriefing(briefed.state, logisticsReceipt).state.logisticsBriefings.length, 1);
+assert.throws(
+  () => play.recordLogisticsBriefing(state, { ...logisticsReceipt, digest: "bad" }),
+  /仓情简报回执无效/
+);
+
 const supportBeforeCensure = state.pendingSupport.length;
 const contributionBeforeCensure = state.contribution;
 const censuredOrder = play.createTask(state, { type: "patrol", assigneeId: "ZuoRu", stageId: "02", stageTitle: "申斥测试" });
