@@ -248,9 +248,9 @@
     return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/assignments/${encodeURIComponent(taskType)}?stage_id=${encodeURIComponent(stageId)}`);
   }
   function generateNpcSchedule(heroId) { return request(`/npcs/${encodeURIComponent(heroId)}/schedule`, { method: "POST", body: JSON.stringify({ force_regenerate: false }) }); }
-  async function npcDecision(heroId, question, options, stageId) {
-    const pendingKey = `dongzhou-pending-decision-v2:${JSON.stringify([heroId, stageId || "", question, options])}`;
-    const pending = read(pendingKey, null) || { client_request_id: root.crypto.randomUUID(), ...(stageId ? { stage_id: String(stageId) } : {}), question, options: options.map((text, index) => ({ index, text })), topic: "court_decision" };
+  async function npcDecision(heroId, question, options, stageId, memory) {
+    const pendingKey = `dongzhou-pending-decision-v3:${JSON.stringify([heroId, stageId || "", question, options, memory?.idempotencyKey || ""])}`;
+    const pending = read(pendingKey, null) || { client_request_id: root.crypto.randomUUID(), ...(stageId ? { stage_id: String(stageId) } : {}), question, options: options.map((text, index) => ({ index, text })), topic: "court_decision", ...(memory ? { memory_idempotency_key: memory.idempotencyKey, memory_digest: memory.digest } : {}) };
     write(pendingKey, pending);
     const result = await request(`/npcs/${encodeURIComponent(heroId)}/decisions`, { method: "POST", body: JSON.stringify(pending) });
     root.localStorage.removeItem(pendingKey);

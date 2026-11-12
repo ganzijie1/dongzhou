@@ -201,6 +201,14 @@ class NpcDecisionRequest(StrictModel):
     question: str = Field(min_length=1, max_length=2000)
     options: list[NpcDecisionOption] = Field(min_length=2, max_length=8)
     topic: str = Field(default="court_decision", min_length=1, max_length=100)
+    memory_idempotency_key: str | None = Field(default=None, min_length=1, max_length=256)
+    memory_digest: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+
+    @model_validator(mode="after")
+    def memory_reference_is_complete(self) -> "NpcDecisionRequest":
+        if bool(self.memory_idempotency_key) != bool(self.memory_digest):
+            raise ValueError("NPC memory reference is incomplete")
+        return self
 
 
 class NpcMessageRequest(StrictModel):

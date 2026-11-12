@@ -533,13 +533,14 @@ class Upstreams:
     async def npc_state(self, npc_id: int) -> dict[str, Any]:
         base = self.settings.ainpc_url
         server = self.settings.ainpc_game_server_id
-        emotion, affection, relationships, personality, motivation, quality = await asyncio.gather(
+        emotion, affection, relationships, personality, motivation, quality, memories = await asyncio.gather(
             self.optional_npc_emotion(npc_id),
             self._json("GET", f"{base}/api/v1/affection/targets/{server}/{npc_id}", token=self.settings.ainpc_token),
             self._json("GET", f"{base}/api/v1/relationship/all/{server}/{npc_id}", token=self.settings.ainpc_token),
             self.optional_npc_personality(npc_id),
             self.optional_npc_motivation(npc_id),
             self.optional_npc_quality(npc_id),
+            self.optional_npc_memories(npc_id),
         )
         return {
             "emotion": emotion,
@@ -548,7 +549,73 @@ class Upstreams:
             "personality": personality,
             "motivation": motivation,
             "quality": quality,
+            "memories": memories,
         }
+
+    async def optional_npc_memories(self, npc_id: int) -> dict[str, Any]:
+        try:
+            return await self.npc_memories(npc_id)
+        except UpstreamUnavailable:
+            return {"available": False, "items": []}
+
+    async def npc_memories(self, npc_id: int, limit: int = 20) -> dict[str, Any]:
+        response = await self._json(
+            "POST",
+            f"{self.settings.ainpc_url}/api/v1/short-term-memory/recent",
+            token=self.settings.ainpc_token,
+            payload={
+                "game_server_id": str(self.settings.ainpc_game_server_id),
+                "npc_id": str(npc_id),
+                "limit": limit,
+            },
+        )
+        data = response.get("data")
+        items = data.get("items") if isinstance(data, dict) else None
+        if (
+            response.get("code") != 200
+            or not isinstance(items, list)
+            or not all(isinstance(item, dict) for item in items)
+        ):
+            raise UpstreamUnavailable(
+                "AINPC returned an invalid memory snapshot.",
+                error_code="ainpc_memory_invalid",
+                response_payload=response,
+            )
+        return {"available": True, "items": items, "count": len(items)}
+
+    async def remember_dialogue(
+        self, npc_id: int, game_time: str, dialogues: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        response = await self._json(
+            "POST",
+            f"{self.settings.ainpc_url}/api/v1/short-term-memory/append",
+            token=self.settings.ainpc_token,
+            payload={
+                "source_type": "dialogue_choice",
+                "source_module": "dongzhou_integration",
+                "game_server_id": str(self.settings.ainpc_game_server_id),
+                "npc_id": str(npc_id),
+                "raw_items": dialogues,
+                "game_time": game_time,
+            },
+        )
+        data = response.get("data")
+        items = data.get("items") if isinstance(data, dict) else None
+        if (
+            response.get("code") != 200
+            or not isinstance(data, dict)
+            or data.get("count") != 1
+            or not isinstance(items, list)
+            or len(items) != 1
+            or not isinstance(items[0], dict)
+            or not str(items[0].get("idempotency_key") or "")
+        ):
+            raise UpstreamUnavailable(
+                "AINPC returned an invalid memory archive receipt.",
+                error_code="ainpc_memory_archive_invalid",
+                response_payload=response,
+            )
+        return items[0]
 
     async def optional_npc_emotion(self, npc_id: int) -> dict[str, Any]:
         try:

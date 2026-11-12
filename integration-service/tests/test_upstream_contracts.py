@@ -361,6 +361,14 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                         "skipped_count": 0,
                     },
                 })
+            if request.url.path == "/api/v1/short-term-memory/append":
+                body = json.loads(request.content)
+                dialogue = body["raw_items"][0]
+                return httpx.Response(200, json={"code": 200, "data": {"count": 1, "items": [{
+                    "idempotency_key": "memory-" + dialogue["source_record_id"],
+                    "source_type": "dialogue_choice", "fact_kind": "event",
+                    "timestamp": dialogue["timestamp"], "content": dialogue["question"],
+                }]}})
             return httpx.Response(200, json={"status": "ok"})
 
         with TemporaryDirectory() as directory:
@@ -404,6 +412,13 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                         "skipped_count": 1,
                     },
                 })
+            if request.url.path == "/api/v1/short-term-memory/append":
+                dialogue = body["raw_items"][0]
+                return httpx.Response(200, json={"code": 200, "data": {"count": 1, "items": [{
+                    "idempotency_key": "memory-" + dialogue["source_record_id"],
+                    "source_type": "dialogue_choice", "fact_kind": "event",
+                    "timestamp": dialogue["timestamp"], "content": dialogue["question"],
+                }]}})
             return httpx.Response(200, json={"status": "ok"})
 
         with TemporaryDirectory() as directory:

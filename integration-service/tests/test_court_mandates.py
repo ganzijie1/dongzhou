@@ -29,6 +29,7 @@ class MandateUpstreams:
         self.thoughts: list[tuple[int, dict[str, object]]] = []
         self.interruptions: list[tuple[int, dict[str, object]]] = []
         self.dialogue_reports: list[tuple[int, dict[str, object]]] = []
+        self.memories: dict[int, list[dict[str, object]]] = {}
 
     async def health(self):
         return {
@@ -54,6 +55,28 @@ class MandateUpstreams:
     async def report_dialogue_choice(self, npc_id, payload):
         self.dialogue_reports.append((npc_id, payload))
         return {"npcId": str(npc_id), "insertedCount": 1, "skippedCount": 0}
+
+    async def remember_dialogue(self, npc_id, game_time, dialogues):
+        dialogue = dialogues[0]
+        key = hashlib.sha256(
+            f"{npc_id}|{dialogue['dialogue_npc_id']}|{dialogue['question']}|{dialogue['timestamp']}".encode()
+        ).hexdigest()
+        item = {
+            "fact_id": key[:32],
+            "idempotency_key": key,
+            "source_type": "dialogue_choice",
+            "fact_kind": "event",
+            "timestamp": dialogue["timestamp"],
+            "content": f"与{dialogue['dialogue_npc_name']}对话：{dialogue['question']} -> {dialogue['select']['text']}",
+        }
+        values = self.memories.setdefault(npc_id, [])
+        if not any(value["idempotency_key"] == key for value in values):
+            values.insert(0, item)
+        return item
+
+    async def npc_memories(self, npc_id, limit=20):
+        items = self.memories.get(npc_id, [])[:limit]
+        return {"available": True, "items": items, "count": len(items)}
 
     async def generate_spontaneous_thought(self, npc_id, payload):
         self.thoughts.append((npc_id, payload))
@@ -100,6 +123,7 @@ class MandateUpstreams:
                 "updatedAt": "2026-11-10T08:01:52.476000",
                 "threshold": 80.0,
             },
+            "memories": await self.npc_memories(npc_id),
         }
 
     async def npc_schedule(self, npc_id):
@@ -374,6 +398,68 @@ def schedule_mandate(client: TestClient, mandate: dict[str, object]) -> dict[str
     )
     assert scheduled.status_code == 200, scheduled.text
     return scheduled.json()["scheduleReceipt"]
+
+
+def test_council_memory_is_recalled_verified_and_sealed_into_mandate() -> None:
+    with TemporaryDirectory() as directory:
+        upstreams = MandateUpstreams()
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=upstreams
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            first_council_id, _ = complete_council(client)
+            first_record = client.post(
+                "/api/dongzhou/v1/npcs/ZuoRu/decisions",
+                json={
+                    "client_request_id": first_council_id,
+                    "question": "东郊一战如何部署？\n选证：《史记·周本纪》｜史实骨架",
+                    "options": [
+                        {"index": 0, "text": "固守军粮"},
+                        {"index": 1, "text": "整军强攻"},
+                    ],
+                    "topic": "court_decision",
+                },
+            ).json()
+            assert first_record["replayed"] is True
+            assert first_record["dialogueReceipt"]["memoryArchive"]["sourceType"] == "dialogue_choice"
+
+            state = client.get("/api/dongzhou/v1/npcs/ZuoRu/state")
+            assert state.status_code == 200
+            memory = state.json()["memories"]["items"][0]
+            assert memory["idempotencyKey"] == first_record["dialogueReceipt"]["memoryArchive"]["idempotencyKey"]
+            assert len(memory["digest"]) == 64
+
+            second_council_id = str(uuid4())
+            recalled = client.post(
+                "/api/dongzhou/v1/npcs/ZuoRu/decisions",
+                json={
+                    "client_request_id": second_council_id,
+                    "question": (
+                        "再议东郊部署。\n选证：《史记·周本纪》｜史实骨架"
+                        f"\n记忆印记：{memory['digest'][:12]}\n旧事：{memory['content']}"
+                    ),
+                    "options": [
+                        {"index": 0, "text": "固守军粮"},
+                        {"index": 1, "text": "整军强攻"},
+                    ],
+                    "topic": "court_decision",
+                    "memory_idempotency_key": memory["idempotencyKey"],
+                    "memory_digest": memory["digest"],
+                },
+            )
+            assert recalled.status_code == 200, recalled.text
+            assert recalled.json()["memoryReceipt"]["digest"] == memory["digest"]
+
+            draft = client.post(
+                "/api/dongzhou/v1/court/mandates",
+                json=mandate_body(second_council_id),
+            )
+            assert draft.status_code == 200, draft.text
+            mandate = draft.json()["mandate"]
+            assert mandate["memory"]["digest"] == memory["digest"]
+            assert mandate["council"]["memory"]["idempotencyKey"] == memory["idempotencyKey"]
+            assert mandate["kernel"]["moduleVersion"] == "1.7.0"
 
 
 def test_ainpc_correspondence_is_recomputed_and_sealed() -> None:
@@ -917,7 +1003,7 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert review["state"] == "REQUIRES_ACTION"
             assert review["review"]["settlementId"] == settlement_id
             assert review["review"]["closureDigest"] == closure["digest"]
-            assert review["review"]["kernel"]["moduleVersion"] == "1.6.0"
+            assert review["review"]["kernel"]["moduleVersion"] == "1.7.0"
             wrong_action = client.post(
                 f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
                 json={"action_id": str(uuid4()), "decision": "ACCEPT"},

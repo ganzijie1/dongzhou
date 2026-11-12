@@ -6,6 +6,7 @@ from datetime import UTC, date, datetime, timedelta
 import hashlib
 from importlib.metadata import version
 import json
+import re
 from typing import Annotated, Any
 from uuid import NAMESPACE_URL, UUID, uuid5
 
@@ -211,7 +212,7 @@ class RuntimeModule(Module):
 
 class MandateWorkflowModule(Module):
     name = "dongzhou_mandate_workflow"
-    version = "1.6.0"
+    version = "1.7.0"
     dependencies = (RuntimeModule.name,)
 
     @staticmethod
@@ -489,6 +490,48 @@ def _canonical_digest(value: dict[str, Any]) -> str:
             value, ensure_ascii=False, separators=(",", ":"), sort_keys=True
         ).encode("utf-8")
     ).hexdigest()
+
+
+def _repair_utf8_mojibake(value: Any) -> str:
+    text = str(value or "")
+    for _ in range(5):
+        def repair_span(match: re.Match[str]) -> str:
+            try:
+                return match.group(0).encode("latin-1").decode("utf-8")
+            except UnicodeDecodeError:
+                return match.group(0)
+
+        repaired = re.sub(r"[\x00-\xff]+", repair_span, text)
+        if repaired == text:
+            break
+        text = repaired
+    return text
+
+
+def _npc_memory_receipt(item: dict[str, Any]) -> dict[str, Any]:
+    """Expose only stable, player-usable memory fields and seal their exact value."""
+
+    receipt = {
+        "idempotencyKey": str(item.get("idempotency_key") or ""),
+        "sourceType": str(item.get("source_type") or ""),
+        "factKind": str(item.get("fact_kind") or ""),
+        "timestamp": str(item.get("timestamp") or ""),
+        "content": _repair_utf8_mojibake(item.get("content"))[:1000],
+    }
+    receipt["digest"] = _canonical_digest(receipt)
+    return receipt
+
+
+def _npc_memory_items(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
+    items = snapshot.get("items") if isinstance(snapshot, dict) else None
+    receipts = [
+        _npc_memory_receipt(item)
+        for item in items or []
+        if isinstance(item, dict)
+        and str(item.get("idempotency_key") or "")
+        and str(item.get("content") or "")
+    ]
+    return [receipt for receipt in receipts if "???" not in receipt["content"]]
 
 
 def _council_source_record_id(
@@ -3166,7 +3209,19 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             known_hero_id: str(stable_npc_id(settings.ainpc_game_server_id, known_hero_id))
             for known_hero_id in settings.orgflow_hero_members
         }
-        return {"playerId": str(player_id), "heroId": hero_id, "npcId": str(npc_id), "knownNpcIds": known_npc_ids, "runtime": runtime or {"state": "INITIALIZING"}, **state}
+        memories = state.pop("memories", {"available": False, "items": []})
+        return {
+            "playerId": str(player_id),
+            "heroId": hero_id,
+            "npcId": str(npc_id),
+            "knownNpcIds": known_npc_ids,
+            "runtime": runtime or {"state": "INITIALIZING"},
+            **state,
+            "memories": {
+                "available": memories.get("available") is True,
+                "items": _npc_memory_items(memories),
+            },
+        }
 
     @router.get("/npcs/{hero_id}/correspondence")
     async def read_npc_correspondence(
@@ -3528,6 +3583,48 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             if previous and previous.get("state") == "PENDING":
                 raise ApiError("request_in_progress", "The same NPC decision is still being processed.", status_code=409)
             return {"replayed": True, **(previous or {})}
+        memory_receipt: dict[str, Any] | None = None
+        if request.memory_idempotency_key and request.memory_digest:
+            try:
+                memory_snapshot = await upstreams.npc_memories(npc_id, limit=100)
+            except UpstreamUnavailable as error:
+                await store.finish_request(
+                    player_id,
+                    request.client_request_id,
+                    "RETRYABLE",
+                    {"state": "RETRYABLE", "requestId": str(request.client_request_id)},
+                    str(error),
+                )
+                raise ApiError(
+                    "ainpc_memory_unavailable",
+                    "AINPC memory is temporarily unavailable; the council can be retried.",
+                    status_code=503,
+                ) from error
+            memory_receipt = next(
+                (
+                    item
+                    for item in _npc_memory_items(memory_snapshot)
+                    if item["idempotencyKey"] == request.memory_idempotency_key
+                    and item["digest"] == request.memory_digest
+                ),
+                None,
+            )
+            if (
+                memory_receipt is None
+                or request.memory_digest[:12] not in request.question
+            ):
+                await store.finish_request(
+                    player_id,
+                    request.client_request_id,
+                    "REJECTED",
+                    {"state": "REJECTED", "requestId": str(request.client_request_id)},
+                    "ainpc_memory_unverified",
+                )
+                raise ApiError(
+                    "ainpc_memory_unverified",
+                    "The council memory reference is no longer verifiable.",
+                    status_code=422,
+                )
         dialogue = {
             "dialogues": [{
                 "question": request.question,
@@ -3655,12 +3752,38 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "The selected council decision is retained until AINPC records it.",
                 status_code=503,
             ) from error
+        try:
+            archived_memory = _npc_memory_receipt(
+                await upstreams.remember_dialogue(
+                    npc_id, draft["gameTime"], report_payload["dialogues"]
+                )
+            )
+        except UpstreamUnavailable as error:
+            response = {
+                "state": "RETRYABLE",
+                "requestId": str(request.client_request_id),
+                "decision": result,
+                "dialogueReportDraft": draft,
+            }
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "RETRYABLE",
+                response,
+                str(error),
+            )
+            raise ApiError(
+                "ainpc_memory_archive_unavailable",
+                "The selected council decision is retained until AINPC remembers it.",
+                status_code=503,
+            ) from error
         dialogue_receipt = {
             "state": "RECORDED",
             "sourceRecordId": draft["sourceRecordId"],
             "npcId": str(npc_id),
             "gameTime": draft["gameTime"],
             "questionDigest": _council_question_digest(body, selected_option),
+            "memoryArchive": archived_memory,
             **report_result,
         }
         dialogue_receipt["digest"] = _canonical_digest(dialogue_receipt)
@@ -3669,6 +3792,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "requestId": str(request.client_request_id),
             "decision": result,
             "dialogueReceipt": dialogue_receipt,
+            **({"memoryReceipt": memory_receipt} if memory_receipt else {}),
         }
         await store.finish_request(player_id, request.client_request_id, "COMPLETED", response)
         return response
@@ -3807,6 +3931,72 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "The mandate requires a verified AINPC dialogue archive receipt.",
                 status_code=422,
             )
+
+        current_memories: list[dict[str, Any]] = []
+        archived_memory = dialogue_receipt.get("memoryArchive")
+        if archived_memory is not None:
+            try:
+                memory_snapshot = await upstreams.npc_memories(
+                    stable_npc_id(settings.ainpc_game_server_id, request.hero_id),
+                    limit=100,
+                )
+            except UpstreamUnavailable as error:
+                await store.finish_request(
+                    player_id,
+                    request.client_request_id,
+                    "RETRYABLE",
+                    {"state": "RETRYABLE"},
+                    str(error),
+                )
+                raise ApiError(
+                    "ainpc_memory_unavailable",
+                    "AINPC memory is temporarily unavailable; mandate issuance can be retried.",
+                    status_code=503,
+                ) from error
+            current_memories = _npc_memory_items(memory_snapshot)
+            if not isinstance(archived_memory, dict) or not any(
+                item["idempotencyKey"] == archived_memory.get("idempotencyKey")
+                and item["digest"] == archived_memory.get("digest")
+                for item in current_memories
+            ):
+                await store.finish_request(
+                    player_id,
+                    request.client_request_id,
+                    "REJECTED",
+                    {"state": "REJECTED"},
+                    "court_council_memory_archive_unverified",
+                )
+                raise ApiError(
+                    "court_council_memory_archive_unverified",
+                    "The council dialogue is not present in AINPC memory.",
+                    status_code=422,
+                )
+
+        selected_memory = (
+            council_response.get("memoryReceipt")
+            if isinstance(council_response, dict)
+            else None
+        )
+        if selected_memory is not None:
+            if not isinstance(selected_memory, dict) or not any(
+                item["idempotencyKey"] == selected_memory.get("idempotencyKey")
+                and item["digest"] == selected_memory.get("digest")
+                for item in current_memories
+            ) or str(selected_memory.get("digest") or "")[:12] not in str(
+                council_request.get("question") or ""
+            ):
+                await store.finish_request(
+                    player_id,
+                    request.client_request_id,
+                    "REJECTED",
+                    {"state": "REJECTED"},
+                    "court_council_memory_unverified",
+                )
+                raise ApiError(
+                    "court_council_memory_unverified",
+                    "The council did not retain a verified AINPC memory reference.",
+                    status_code=422,
+                )
 
         thought_receipt: dict[str, Any] | None = None
         if request.thought_request_id is not None and request.thought_digest is not None:
@@ -4154,6 +4344,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "index": request.decision_index,
                 "text": str(selected_option.get("text") or ""),
                 "dialogueReceipt": dialogue_receipt,
+                **({"memory": selected_memory} if selected_memory else {}),
             },
             "assignment": assignment,
             "emergency": emergency,
@@ -4173,6 +4364,9 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         if correspondence is not None:
             trace["correspondence"] = correspondence
             trace["council"]["correspondence"] = correspondence
+        if selected_memory is not None:
+            trace["memory"] = selected_memory
+            trace["council"]["memory"] = selected_memory
         if request.operation is not None:
             trace["operation"] = request.operation.model_dump(mode="json")
         # Canonical JSON keeps the seal stable across retries and process restarts.

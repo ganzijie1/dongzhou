@@ -163,6 +163,8 @@
     if (!String(input.question || '').trim() || !String(input.id || '').trim()) throw new Error('军议缺少来源记录');
     const dialogueReceipt = input.dialogueReceipt && typeof input.dialogueReceipt === 'object' ? copy(input.dialogueReceipt) : null;
     if (dialogueReceipt && (dialogueReceipt.state !== 'RECORDED' || !String(dialogueReceipt.sourceRecordId || '').startsWith('dongzhou-council:') || !/^[0-9a-f]{64}$/.test(String(dialogueReceipt.digest || '')))) throw new Error('军议对话归档回执无效');
+    const memory = input.memory && typeof input.memory === 'object' ? copy(input.memory) : null;
+    if (memory && (!memory.idempotencyKey || !memory.content || !/^[0-9a-f]{64}$/.test(String(memory.digest || '')) || !String(input.question || '').includes(`记忆印记：${memory.digest.slice(0, 12)}`))) throw new Error('军议旧事回执无效');
     if (correspondence && (correspondence.heroId !== member.id || !/^[0-9a-f]{64}$/.test(String(correspondence.digest || "")))) throw new Error('所选耳报不属于当前属官');
     const thought = input.thoughtRequestId ? state.thoughts.find((entry) => entry.requestId === input.thoughtRequestId) : null;
     if (input.thoughtRequestId && (!thought || thought.digest !== input.thoughtDigest || thought.heroId !== member.id || thought.stageId !== stageId || thought.knowledgeId !== knowledge.id || Number(thought.source?.index) !== Number(input.evidenceSourceIndex) || thought.thought?.hasThought !== true || thought.councilProposal !== options[input.index])) throw new Error('属官进言与本次军议结果不匹配');
@@ -171,6 +173,7 @@
       knowledgeSummary: String(input.knowledgeSummary ?? knowledge.summary ?? ''), evidenceSource: copy(evidenceSource), question: String(input.question),
       correspondence: correspondence ? copy(correspondence) : null,
       thought: thought ? copy(thought) : null,
+      memory,
       dialogueReceipt,
       options: options.slice(), index: input.index, text: options[input.index] };
     const previous = state.councils.find((entry) => entry.id === council.id);
@@ -202,6 +205,7 @@
     if (mandate.evidenceFit && (mandate.evidenceFit.taskType !== mandate.taskType || !Number.isFinite(Number(mandate.evidenceFit.factor)) || Number(mandate.evidenceFit.factor) < 0 || Number(mandate.evidenceFit.factor) > 9 || !["strong", "aligned", "weak"].includes(mandate.evidenceFit.band) || !Array.isArray(mandate.evidenceFit.signals))) throw new Error("内核军令史证适配无效");
     if (mandate.correspondence && (!/^[0-9a-f]{64}$/.test(String(mandate.correspondence.digest || "")) || mandate.correspondence.messageId !== mandate.council?.correspondence?.messageId || mandate.correspondence.digest !== mandate.council?.correspondence?.digest)) throw new Error("内核军令耳报来源无效");
     if (mandate.thought && (!/^[0-9a-f]{64}$/.test(String(mandate.thought.digest || "")) || mandate.thought.requestId !== mandate.council?.thought?.requestId || mandate.thought.digest !== mandate.council?.thought?.digest)) throw new Error("内核军令进言来源无效");
+    if (mandate.memory && (!mandate.memory.idempotencyKey || !/^[0-9a-f]{64}$/.test(String(mandate.memory.digest || "")) || mandate.memory.digest !== mandate.council?.memory?.digest)) throw new Error("内核军令旧事来源无效");
     if (!mandate.assignment?.planId || !mandate.assignment?.eventId || mandate.assignment?.heroId !== mandate.heroId) throw new Error("内核军令未绑定属官当值日程");
     if (mandate.assignment.personality?.available === true && (!mandate.assignment.personality.profileId || !Array.isArray(mandate.assignment.personality.dominantTraits) || mandate.assignment.personality.fit?.available !== true || !Number.isFinite(Number(mandate.assignment.personality.fit.score)) || Number(mandate.assignment.personality.fit.score) < 0 || Number(mandate.assignment.personality.fit.score) > 100)) throw new Error("内核军令人格适岗证据无效");
     if (mandate.assignment.motivation?.available === true && (!Array.isArray(mandate.assignment.motivation.motives) || mandate.assignment.motivation.fit?.available !== true || !Number.isFinite(Number(mandate.assignment.motivation.fit.score)) || Number(mandate.assignment.motivation.fit.score) < 0 || Number(mandate.assignment.motivation.fit.score) > 100)) throw new Error("内核军令任务意愿证据无效");

@@ -95,6 +95,8 @@
   let officeNpcSyncQueue = Promise.resolve();
   let officeNpcRefreshTimer = null;
   let officeNpcRefreshSerial = 0;
+  let officeMemoryView = [];
+  let officeSelectedMemory = null;
   let officeInventoryView = null;
   let officeInventoryRequisitionBusy = false;
   let officeMembershipLeavePending = false;
@@ -1686,13 +1688,38 @@
       panel.querySelector("dl")?.insertAdjacentHTML("beforeend", `<div><dt>动机</dt><dd>${escapeHtml(officeMotivationText(motivation))}</dd></div>`);
       const quality = state.quality || { available: false };
       panel.querySelector("dl")?.insertAdjacentHTML("beforeend", `<div><dt>品质</dt><dd>${escapeHtml(officeQualityText(quality))}</dd></div>`);
+      officeMemoryView = Array.isArray(state.memories?.items) ? state.memories.items : [];
+      if (!officeMemoryView.some((item) => item.idempotencyKey === officeSelectedMemory?.idempotencyKey)) officeSelectedMemory = null;
+      renderOfficeNpcMemories(member);
       await refreshOfficeCorrespondence(member, serial);
       await refreshOfficeNpcSchedule(member, serial);
     } catch (error) {
       if (!isCurrentOfficeNpcRequest(serial, member.id)) return;
       panel.innerHTML = `<p>${escapeHtml(member.name)} 的属官服务正在恢复，恢复后将自动刷新。</p>`;
+      officeMemoryView = [];
+      officeSelectedMemory = null;
+      renderOfficeNpcMemories(member);
       scheduleOfficeNpcRefresh(member.id);
     }
+  }
+
+  function renderOfficeNpcMemories(member) {
+    const panel = $("#officeNpcMemories");
+    if (!panel) return;
+    if (integration.isOffline()) { panel.innerHTML = "<p>离线演算不调阅属官旧事。</p>"; return; }
+    panel.innerHTML = `<div class="office-memory-heading"><strong>${escapeHtml(member?.name || "属官")}旧事</strong><small>可取一事作为本回军议依据</small></div>${officeMemoryView.slice(0, 6).map((memory) => {
+      const selected = memory.idempotencyKey === officeSelectedMemory?.idempotencyKey;
+      return `<div class="office-memory-item${selected ? " selected" : ""}"><span>${escapeHtml(memory.content)}</span><button class="large-button" type="button" data-memory-id="${escapeHtml(memory.idempotencyKey)}">${selected ? "已取用" : "取为旧事"}</button><small>${escapeHtml(memory.sourceType || "旧事")} · 印记 ${escapeHtml(String(memory.digest || "").slice(0, 10))}</small></div>`;
+    }).join("") || "<p>尚无可引用旧事；完成一次军议后将由属官记取。</p>"}`;
+  }
+
+  function selectOfficeMemory(memoryId) {
+    const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
+    const memory = officeMemoryView.find((entry) => entry.idempotencyKey === memoryId);
+    if (!member || !memory) return;
+    officeSelectedMemory = officeSelectedMemory?.idempotencyKey === memoryId ? null : memory;
+    renderOfficeNpcMemories(member);
+    renderOfficeCouncil();
   }
 
   async function refreshOfficeNpcSchedule(memberOverride, requestSerial) {
@@ -2077,30 +2104,32 @@
     const correspondence = profile.organization.selectedCorrespondence?.[stageId];
     const activeCorrespondence = correspondence?.heroId === member.id ? correspondence : null;
     const correspondenceMarker = activeCorrespondence ? `\n耳报印记：${activeCorrespondence.digest.slice(0, 12)}\n耳报：${activeCorrespondence.speakerName}“${activeCorrespondence.content.slice(0, 420)}”` : "";
-    const contextualQuestion = (question.slice(0, 750) + "\n史料：" + knowledge.name + "（" + knowledge.id + "）\n" + sourceMarker + retrievalMarker + correspondenceMarker + "\n适用范围：" + String(evidence.source.scope || "未注明") + "\n" + String(knowledge.summary || "").slice(0, 450)).slice(0, 2000);
+    const activeMemory = officeSelectedMemory;
+    const memoryMarker = activeMemory ? `\n记忆印记：${activeMemory.digest.slice(0, 12)}\n旧事：${activeMemory.content.slice(0, 420)}` : "";
+    const contextualQuestion = (question.slice(0, 750) + "\n史料：" + knowledge.name + "（" + knowledge.id + "）\n" + sourceMarker + retrievalMarker + correspondenceMarker + memoryMarker + "\n适用范围：" + String(evidence.source.scope || "未注明") + "\n" + String(knowledge.summary || "").slice(0, 450)).slice(0, 2000);
     officeCouncilInFlight = true;
     panel.textContent = `${member.name}正在权衡…`;
     try {
-      const response = await integration.npcDecision(member.id, contextualQuestion, options, stageId);
+      const response = await integration.npcDecision(member.id, contextualQuestion, options, stageId, activeMemory);
       if (String(officeStage()?.id || "") !== stageId || $("#officeMemberSelect").value !== member.id || $("#officeDecisionQuestion").value.trim() !== question || JSON.stringify([...document.querySelectorAll(".office-decision-option")].map((input) => input.value.trim()).filter(Boolean)) !== JSON.stringify(options)) { panel.textContent = "选择已改变，本轮结果不用于当前派差，请重新参议。"; return; }
       const selected = response.decision?.data || response.decision || {};
       if (response.state !== "COMPLETED" || selected.type !== "OPTION") throw new Error("军议尚未返回有效方案");
       const currentEvidence = currentOfficeEvidence();
       const currentKnowledge = currentEvidence?.knowledge;
       const currentCorrespondence = profile.organization.selectedCorrespondence?.[stageId];
-      if (!currentKnowledge || currentKnowledge.id !== knowledge.id || currentKnowledge.name !== knowledge.name || currentKnowledge.summary !== knowledge.summary || Number(currentEvidence?.source.index) !== Number(evidence.source.index) || (currentCorrespondence?.heroId === member.id ? currentCorrespondence.digest : null) !== (activeCorrespondence?.digest || null)) {
+      if (!currentKnowledge || currentKnowledge.id !== knowledge.id || currentKnowledge.name !== knowledge.name || currentKnowledge.summary !== knowledge.summary || Number(currentEvidence?.source.index) !== Number(evidence.source.index) || (currentCorrespondence?.heroId === member.id ? currentCorrespondence.digest : null) !== (activeCorrespondence?.digest || null) || (officeSelectedMemory?.digest || null) !== (activeMemory?.digest || null)) {
         panel.textContent = "史料或选证已更新，本轮议决不落档，请重新参议。";
         return;
       }
       const thought = currentOfficeThought();
       const selectedThought = thought?.thought?.hasThought === true && thought.councilProposal === options[selected.index] ? thought : null;
-      const noted = organization.recordCouncil(profile.organization, { id: response.clientRequestId, stageId, memberId: member.id, knowledgeId: knowledge.id, knowledgeName: knowledge.name, knowledgeSummary: knowledge.summary, evidenceSourceIndex: evidence.source.index, question: contextualQuestion, options, index: selected.index, dialogueReceipt: response.dialogueReceipt, ...(selectedThought ? { thoughtRequestId: selectedThought.requestId, thoughtDigest: selectedThought.digest } : {}) });
+      const noted = organization.recordCouncil(profile.organization, { id: response.clientRequestId, stageId, memberId: member.id, knowledgeId: knowledge.id, knowledgeName: knowledge.name, knowledgeSummary: knowledge.summary, evidenceSourceIndex: evidence.source.index, question: contextualQuestion, options, index: selected.index, dialogueReceipt: response.dialogueReceipt, ...(response.memoryReceipt ? { memory: response.memoryReceipt } : {}), ...(selectedThought ? { thoughtRequestId: selectedThought.requestId, thoughtDigest: selectedThought.digest } : {}) });
       await integration.persist({ ...profile, organization: noted.state });
       profile.organization = noted.state;
       writeJson(PROFILE_KEY, profile);
       renderOfficeCouncil();
       const text = selected.text || options[Number(selected.index)] || "未能形成裁断";
-      panel.innerHTML = `<strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(text)} · 对话已归档</span>`;
+      panel.innerHTML = `<strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(text)} · 对话已归档${response.memoryReceipt ? " · 旧事已核验" : ""}</span>`;
     } catch (error) {
       panel.textContent = `裁断暂不可用：${error.message}`;
     } finally {
@@ -4300,7 +4329,7 @@
     $("#campaignOfficeCloseButton").addEventListener("click", () => setCampaignOffice(false));
     $("#campaignOfficeBackdrop").addEventListener("click", (event) => { if (event.target === event.currentTarget) setCampaignOffice(false); });
     $("#officeTaskType").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOrganizationPanel(); refreshOfficeNpcAssignment(); });
-    $("#officeMemberSelect").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOrganizationPanel(); refreshOfficeNpcState(); });
+    $("#officeMemberSelect").addEventListener("change", () => { $("#officeUseCouncil").checked = false; officeMemoryView = []; officeSelectedMemory = null; renderOrganizationPanel(); refreshOfficeNpcState(); });
     $("#officeCorrespondenceRefresh").addEventListener("click", () => refreshOfficeCorrespondence());
     $("#officeInventoryRefresh").addEventListener("click", refreshOfficeInventory);
     $("#officeInventoryRequisition").addEventListener("click", requisitionOfficeInventory);
@@ -4316,6 +4345,7 @@
     $("#officeCareerResultForm").addEventListener("submit", submitOfficeCareerResult);
     $("#officeMessageForm").addEventListener("submit", sendOfficeNpcMessage);
     $("#officeCorrespondence").addEventListener("click", (event) => { const button = event.target.closest("[data-correspondence-id]"); if (button) selectOfficeCorrespondence(button.dataset.correspondenceId); });
+    $("#officeNpcMemories").addEventListener("click", (event) => { const button = event.target.closest("[data-memory-id]"); if (button) selectOfficeMemory(button.dataset.memoryId); });
     $("#officeScheduleButton").addEventListener("click", generateOfficeNpcSchedule);
     $("#officeThoughtButton").addEventListener("click", requestOfficeNpcThought);
     $("#officeDecisionForm").addEventListener("submit", requestOfficeNpcDecision);

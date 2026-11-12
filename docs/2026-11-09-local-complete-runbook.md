@@ -82,6 +82,7 @@ AINPC 容器通过宿主回环代理访问 LoongEQ、LoongMemory、输入预检�
 - `complete95` 将动机结算纳入任务的综合 NPC 后果状态；事件、长期记忆、品质或动机任一项未送达时均保持 `PENDING`，四项全部完成后才返回 `DELIVERED`，避免页面在动机失败时误报闭环完成。
 - `complete96` 只在事件、长期记忆、品质和动机四项全部送达后，由 NexusKernel `dongzhou_npc_settlement` 模块生成稳定 SHA-256 封印；真实浏览器同时证明结算后的动机会进入下一次派任信号和胜任度。
 - `complete97/complete65` 将 AINPC 议事选择通过正式 `game-reports/dialogue-choice` 接口归档。东周用稳定 `source_record_id` 保留重试身份，AINPC 用稀疏唯一索引跨请求幂等，NexusKernel 仅接受摘要、NPC、问题和计数均匹配的归档回执并将其纳入军令封印。真实验收的东周请求为 `COMPLETED`、军令为 `ISSUED`，同一事实号在 Mongo 中恰好一条；浏览器账册显示“对话已归档”。
+- `complete98/complete65` 将已归档裁断继续写入 AINPC 正式短期记忆。官署可选择属官旧事进入下一轮军议；网关在裁断前核验记忆印记，NexusKernel `dongzhou_mandate_workflow 1.7.0` 在签令前再次反查并封存，本轮新裁断也必须已经进入记忆库。
 - `complete62` 已将当前四服务结果补成玩家可读界面：府中书问以稳定访客隔离并显示正式人物名，orgFlow 名册显示 12 席谱系、贡献余额、累计收支与直属主管，AINPC 主动来信偏好显示真实同步状态，90 天当值计划显示起止日期、首日事项和计划印记。对应无拦截验收为 `live-correspondence-acceptance.png`、`live-roster-ledger.png`、`live-interaction-preference.png` 与 `live-schedule-browser.png`。
 - `complete64` 将 orgFlow 权威名册的 12 席全部合并进可操作官员集合，不再只显示当前关卡的两名角色。新增成员使用游戏正式中文名并将内部岗位编号映射为可派差官职；既有忠诚、疲劳与关系状态保留。真实无拦截浏览器已逐席确认 12/12 AINPC 均为 `READY`，可调阅性情、动机和 90 日当值，证据为 `live-office-roster-browser.json` 与同名 PNG。
 - `complete67` 开放玩家申请 `officer_12` 军府属官席位，并显示直属杜伯与 orgFlow 权威贡献账户。入仕只以权威名册回写为成功，最长等待 180 秒；辞仕需要界面二次确认后才发送明确退出请求。真实无拦截浏览器已完成入仕、名册回读、辞仕和席位释放，证据为 `live-membership-browser.json`、`live-membership-joined.png` 与 `live-membership-released.png`。

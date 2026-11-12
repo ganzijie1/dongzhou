@@ -12,7 +12,8 @@ try {
 }
 
 const root = path.resolve(__dirname, '..');
-const output = path.join(root, 'output', 'integration-validation', 'live-office-npc-state-complete80.png');
+const output = path.join(root, 'output', 'integration-validation', 'live-office-memory-complete98.png');
+const mobileOutput = path.join(root, 'output', 'integration-validation', 'live-office-memory-complete98-mobile.png');
 const executablePath = [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
@@ -48,6 +49,7 @@ const executablePath = [
     await page.waitForSelector('#campaignOfficeBackdrop:not([hidden])');
     await page.waitForSelector('#officeNpcState strong', { timeout: 45000 });
     await page.waitForSelector('#officeNpcSchedule strong', { timeout: 90000 });
+    await page.waitForSelector('#officeNpcMemories .office-memory-item', { timeout: 45000 });
 
     const stateText = await page.locator('#officeNpcState').innerText();
     const scheduleText = await page.locator('#officeNpcSchedule').innerText();
@@ -62,10 +64,20 @@ const executablePath = [
     }
     assert(requests.sync >= 1 && requests.state >= 1 && requests.schedule >= 1);
     assert.equal(errors.length, 0);
+    const memoryItems = await page.locator('#officeNpcMemories .office-memory-item').count();
+    await page.locator('#officeNpcMemories [data-memory-id]').first().click();
+    assert.equal(await page.locator('#officeNpcMemories .office-memory-item.selected').count(), 1);
+    assert(memoryItems > 0);
 
     fs.mkdirSync(path.dirname(output), { recursive: true });
     await page.screenshot({ path: output, fullPage: true });
-    console.log(JSON.stringify({ result: 'PASS', mode: 'real-services-browser-no-interception', requests, scheduleStatuses, knownHeroes: Object.keys(stateBody.knownNpcIds).length, relationshipDetails: relationshipItems.length, screenshot: output }));
+    await page.setViewportSize({ width: 390, height: 844 });
+    const memoryPanel = page.locator('#officeNpcMemories');
+    await memoryPanel.scrollIntoViewIfNeeded();
+    const memoryOverflow = await memoryPanel.evaluate((element) => element.scrollWidth > element.clientWidth + 1);
+    assert.equal(memoryOverflow, false);
+    await memoryPanel.screenshot({ path: mobileOutput });
+    console.log(JSON.stringify({ result: 'PASS', mode: 'real-services-browser-no-interception', requests, scheduleStatuses, knownHeroes: Object.keys(stateBody.knownNpcIds).length, relationshipDetails: relationshipItems.length, memoryItems, screenshot: output, mobileScreenshot: mobileOutput }));
   } finally {
     await browser.close();
   }

@@ -28,6 +28,7 @@ from dongzhou_integration.app import (
     _organization_supervision_links,
     _organization_task_chance,
     _prepare_due_organization_reports,
+    _repair_utf8_mojibake,
     _seal_battle_reports,
     _organization_task_succeeds,
     build_application,
@@ -64,6 +65,16 @@ class _CapturingUpstreams(_HealthyUpstreams):
 
     async def report_dialogue_choice(self, npc_id, payload):
         return {"npcId": str(npc_id), "insertedCount": 1, "skippedCount": 0}
+
+    async def remember_dialogue(self, npc_id, game_time, dialogues):
+        dialogue = dialogues[0]
+        return {
+            "idempotency_key": "memory-" + dialogue["source_record_id"],
+            "source_type": "dialogue_choice",
+            "fact_kind": "event",
+            "timestamp": dialogue["timestamp"],
+            "content": dialogue["question"],
+        }
 
 
 class _NpcPreferenceUpstreams(_HealthyUpstreams):
@@ -120,6 +131,13 @@ class _NpcRecoveryUpstreams(_HealthyUpstreams):
 
 
 class SecurityTests(unittest.TestCase):
+    def test_nested_utf8_mojibake_is_repaired_without_changing_chinese(self) -> None:
+        expected = "与左儒对话：先固军粮"
+        broken = expected.encode("utf-8").decode("latin-1")
+        nested = broken.encode("utf-8").decode("latin-1")
+        self.assertEqual(_repair_utf8_mojibake(expected), expected)
+        self.assertEqual(_repair_utf8_mojibake("旧事：" + nested), "旧事：" + expected)
+
     def test_http_uuid_fields_accept_json_strings(self) -> None:
         request_id = "00000000-0000-4000-8000-000000000001"
         self.assertEqual(str(GuestSessionRequest(installation_id=request_id).installation_id), request_id)

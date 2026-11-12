@@ -3885,6 +3885,13 @@ button:focus-visible {
 .office-npc-state dl div { min-width: 0; }
 .office-npc-state dt { color: #6d5a43; font-size: 12px; }
 .office-npc-state dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.office-npc-memories { display: grid; gap: 6px; margin: 0 0 14px; }
+.office-memory-heading, .office-memory-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 10px; align-items: center; }
+.office-memory-heading small { color: #74776f; }
+.office-memory-item { padding: 9px 10px; border: 1px solid rgba(174, 146, 69, .22); background: rgba(8, 14, 10, .94); }
+.office-memory-item span { min-width: 0; color: #b9b19d; font-size: 12px; overflow-wrap: anywhere; }
+.office-memory-item small { grid-column: 1 / -1; color: #74776f; }
+.office-memory-item.selected { box-shadow: inset 3px 0 #b99344; }
 .office-npc-relations { margin-top: 10px; padding-top: 9px; border-top: 1px dotted rgba(174, 146, 69, .24); }
 .office-npc-relations > span { color: #b99344; font-size: 10px; }
 .office-npc-relations ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 14px; margin: 7px 0 0; padding: 0; list-style: none; }
@@ -3902,8 +3909,10 @@ button:focus-visible {
 .office-correspondence-item small { grid-column: 1 / -1; color: #74776f; }
 .office-correspondence-item.selected { box-shadow: inset 3px 0 #b99344; }
 @media (max-width: 640px) { .office-npc-state dl, .office-npc-relations ul { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .office-memory-heading, .office-memory-item { grid-template-columns: 1fr; } .office-memory-item button { justify-self: end; } }
 @media (max-width: 640px) { .office-membership { grid-template-columns: 1fr; } .office-membership-actions { justify-content: flex-start; } .office-career-heading { align-items: start; flex-direction: column; } .office-career-result { grid-template-columns: 1fr; } .office-career-result button { justify-self: end; } }
 @media (max-width: 640px) { .office-message-form, .office-correspondence-item { grid-template-columns: 1fr; } .office-message-form button, .office-correspondence-item button { justify-self: end; } }
+@media (max-width: 640px) { .office-memory-heading, .office-memory-item { grid-template-columns: 1fr; } .office-memory-item button { justify-self: end; } }
 .office-npc-schedule { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 14px; }
 .office-npc-schedule > div { min-width: 0; color: #5e4b34; }
 #officeNpcSchedule { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 8px; }
