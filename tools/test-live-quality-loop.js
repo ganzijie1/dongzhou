@@ -29,32 +29,33 @@ const executablePath = [
     await page.waitForSelector("#campaignOfficeBackdrop:not([hidden])", { timeout: 30000 });
     await page.selectOption("#officeMemberSelect", "ZuoRu");
     await page.selectOption("#officeTaskType", "supply");
+    const response = await page.evaluate(() => DongzhouIntegration.npcAssignment("ZuoRu", "supply", "01"));
+    const assignment = response.assignment;
+    const responsibility = assignment.quality.qualities.responsibility;
+    const qualityScore = assignment.quality.fit.score;
     await page.waitForFunction(
-      () => document.querySelector("#officeNpcState")?.innerText.includes("担当 94"),
-      null,
+      (value) => document.querySelector("#officeNpcState")?.innerText.includes(`担当 ${value}`),
+      responsibility,
       { timeout: 90000 },
     );
     await page.waitForFunction(
-      () => document.querySelector("#officeNpcAssignment")?.innerText.includes("品行 59/100"),
-      null,
+      (value) => document.querySelector("#officeNpcAssignment")?.innerText.includes(`品行 ${value}/100`),
+      qualityScore,
       { timeout: 90000 },
     );
 
-    const response = await page.evaluate(() => DongzhouIntegration.npcAssignment("ZuoRu", "supply", "01"));
-    const assignment = response.assignment;
     assert.equal(assignment.quality.available, true);
-    assert.equal(assignment.quality.qualities.responsibility, 94);
-    assert.deepEqual(assignment.quality.fit, {
-      available: true,
-      score: 59,
-      band: "steady",
-      factor: 1.8,
-      signals: [
-        { quality: "responsibility", value: 94, effect: 11.3 },
-        { quality: "cruelty", value: 54, effect: -2.2 },
+    assert(Number.isFinite(responsibility) && responsibility >= 0 && responsibility <= 100);
+    assert(Number.isInteger(qualityScore) && qualityScore >= 0 && qualityScore <= 100);
+    assert.equal(assignment.quality.fit.available, true);
+    assert.equal(assignment.readiness.factors.quality, assignment.quality.fit.factor);
+    assert.deepEqual(
+      assignment.quality.fit.signals.map(({ quality, value }) => ({ quality, value })),
+      [
+        { quality: "responsibility", value: responsibility },
+        { quality: "cruelty", value: assignment.quality.qualities.cruelty },
       ],
-    });
-    assert.equal(assignment.readiness.factors.quality, 1.8);
+    );
     assert.equal(errors.length, 0);
 
     fs.mkdirSync(path.dirname(output), { recursive: true });

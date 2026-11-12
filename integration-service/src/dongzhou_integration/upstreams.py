@@ -166,6 +166,36 @@ class Upstreams:
                     error_code="ainpc_outcome_memory_rejected",
                     response_payload=response,
                 )
+            if kind == "NPC_BATTLE_MEMORY":
+                archive = await self._json(
+                    "POST",
+                    self.settings.ainpc_url + "/api/v1/short-term-memory/append",
+                    token=self.settings.ainpc_token,
+                    payload={
+                        "source_type": "system_message",
+                        "source_module": "dongzhou_integration",
+                        "game_server_id": str(payload["game_server_id"]),
+                        "npc_id": str(payload["npc_id"]),
+                        "raw_items": payload.get("messages", []),
+                        "game_time": payload["game_time"],
+                    },
+                )
+                archive_data = archive.get("data")
+                archive_items = (
+                    archive_data.get("items")
+                    if isinstance(archive_data, dict)
+                    else None
+                )
+                if (
+                    archive.get("code") != 200
+                    or not isinstance(archive_items, list)
+                    or len(archive_items) != len(payload.get("messages", []))
+                ):
+                    raise UpstreamUnavailable(
+                        "AINPC rejected the battle memory archive.",
+                        error_code="ainpc_battle_memory_archive_rejected",
+                        response_payload=archive,
+                    )
             return response
         if kind == "NPC_AFFECTION_SETTLEMENT":
             response = await self._json(

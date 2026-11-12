@@ -573,6 +573,24 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                 return httpx.Response(200, json={"code": 200, "data": {"accepted": True}})
             if request.url.path == "/callback/game-reports/system-message":
                 return httpx.Response(200, json={"code": 200, "data": {"accepted": True}})
+            if request.url.path == "/api/v1/short-term-memory/append":
+                body = json.loads(request.content)
+                return httpx.Response(200, json={
+                    "code": 200,
+                    "data": {
+                        "count": len(body["raw_items"]),
+                        "items": [
+                            {
+                                "idempotency_key": "memory-" + item["message_id"],
+                                "source_type": body["source_type"],
+                                "fact_kind": "event",
+                                "timestamp": item["timestamp"],
+                                "content": item["content"],
+                            }
+                            for item in body["raw_items"]
+                        ],
+                    },
+                })
             if request.url.path == "/callback/emergency-assessment/evaluate":
                 return httpx.Response(200, json={
                     "code": 200,
@@ -803,6 +821,27 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                         "content": "Battle completed",
                         "message_id": "battle-id",
                     }],
+                },
+            )
+            battle_archive_request = next(
+                request
+                for request in seen
+                if request.url.path == "/api/v1/short-term-memory/append"
+                and json.loads(request.content).get("source_type") == "system_message"
+            )
+            self.assertEqual(
+                json.loads(battle_archive_request.content),
+                {
+                    "source_type": "system_message",
+                    "source_module": "dongzhou_integration",
+                    "game_server_id": "91001",
+                    "npc_id": "42",
+                    "raw_items": [{
+                        "timestamp": "0771-01-01 14:00:00",
+                        "content": "Battle completed",
+                        "message_id": "battle-id",
+                    }],
+                    "game_time": "0771-01-01 14:00:00",
                 },
             )
             await upstreams.send_game_event(
