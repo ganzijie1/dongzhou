@@ -38,7 +38,10 @@ function motive(snapshot, name) {
 (async () => {
   const browser = await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}) });
   try {
-    const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+    const context = await browser.newContext({
+      viewport: { width: 1440, height: 1000 },
+      deviceScaleFactor: 2
+    });
     await context.addInitScript((installation) => localStorage.setItem("dongzhou-installation-id-v1", installation), journal.installation);
     const page = await context.newPage();
     const pageErrors = [];
@@ -95,6 +98,24 @@ function motive(snapshot, name) {
     assert.equal(task.result?.data?.final_result || task.result?.final_result, finalResult);
     assert.equal(task.npcOutcome?.motivation?.state, "DELIVERED", "The task status omitted the motivation settlement");
     assert.equal(task.npcOutcome?.state, "DELIVERED", "The complete NPC outcome was not delivered");
+    assert.equal(task.npcOutcome?.receipt?.state, "SEALED", "NexusKernel did not seal the four-part NPC settlement");
+    assert.equal(task.npcOutcome?.receipt?.kernel?.module, "dongzhou_npc_settlement");
+    assert.equal(task.npcOutcome?.receipt?.digest?.length, 64);
+    const nextAssignmentResponse = await page.evaluate(
+      () => window.DongzhouIntegration.npcAssignment("ZuoRu", "supply", "01")
+    );
+    const nextAssignment = nextAssignmentResponse.assignment;
+    const motivationFit = nextAssignment?.motivation?.fit;
+    assert.equal(motivationFit?.available, true, "The next assignment did not read AINPC motivation");
+    assert(
+      motivationFit.signals?.some((signal) => signal.name === expectedName && signal.score === expectedScore),
+      "The settled duty motive did not become a next-assignment signal"
+    );
+    assert.equal(
+      nextAssignment?.readiness?.factors?.motivation,
+      motivationFit.factor,
+      "The motivation fit was not included in next-assignment readiness"
+    );
 
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.waitForSelector("#app:not([hidden])", { timeout: 45000 });
@@ -103,8 +124,25 @@ function motive(snapshot, name) {
 
     await page.click("#campaignOfficeButton");
     await page.waitForSelector("#campaignOfficeBackdrop:not([hidden])", { timeout: 45000 });
-    await page.screenshot({ path: screenshotPath, fullPage: true });
-    assert(fs.statSync(screenshotPath).size > 10000, "Motivation acceptance screenshot is unexpectedly blank");
+    await page.waitForFunction(
+      () => document.querySelector("#officeTaskLedger")?.textContent?.includes("人物四项归档")
+        && document.querySelector("#officeTaskLedger")?.textContent?.includes("内核封印"),
+      undefined,
+      { timeout: 45000 }
+    );
+    const officeLedgerText = await page.locator("#officeTaskLedger").innerText();
+    await page.evaluate(() => {
+      const drawer = document.querySelector("#campaignOfficeDrawer");
+      const ledger = document.querySelector("#officeTaskLedger");
+      const drawerBox = drawer.getBoundingClientRect();
+      const ledgerBox = ledger.getBoundingClientRect();
+      drawer.scrollTop += ledgerBox.top - drawerBox.top - 180;
+    });
+    await page.waitForTimeout(250);
+    const ledgerBox = await page.locator("#officeTaskLedger").boundingBox();
+    assert(ledgerBox && ledgerBox.y >= 150 && ledgerBox.y + ledgerBox.height <= 1000, "The NPC settlement ledger is outside the acceptance viewport");
+    await page.screenshot({ path: screenshotPath });
+    assert(fs.statSync(screenshotPath).size > 50000, "Motivation acceptance screenshot is unexpectedly blank");
     assert.deepEqual(pageErrors, []);
 
     const profile = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), PROFILE);
@@ -115,6 +153,11 @@ function motive(snapshot, name) {
       finalResult,
       review: task.review?.state || null,
       npcOutcome: task.npcOutcome,
+      nextAssignment: {
+        eventId: nextAssignment.eventId,
+        motivationFit,
+        readiness: nextAssignment.readiness
+      },
       baselineScore,
       expectedDelta,
       expectedScore,
@@ -123,6 +166,7 @@ function motive(snapshot, name) {
       motivationRevisionBefore: before?.motivation?.revision,
       motivationRevisionAfter: after?.motivation?.revision,
       organizationMonth: profile?.organization?.month,
+      officeLedgerSealed: officeLedgerText.includes("人物四项归档") && officeLedgerText.includes("内核封印"),
       screenshot: screenshotPath,
       pageErrors
     };

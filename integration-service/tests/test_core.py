@@ -17,6 +17,7 @@ from pydantic import ValidationError
 
 from dongzhou_integration.app import (
     BattleReceiptConflict,
+    NpcSettlementModule,
     RuntimeModule,
     _battle_support_attestations,
     _battle_game_events,
@@ -548,6 +549,30 @@ class OrganizationOutcomeTests(unittest.TestCase):
         )
         self.assertEqual(complete["state"], "DELIVERED")
         self.assertEqual(complete["attempts"], 4)
+
+    def test_nexus_seals_all_four_npc_settlement_parts_deterministically(self) -> None:
+        task_id = "00000000-0000-4000-8000-000000000077"
+        delivered = {"state": "DELIVERED", "attempts": 1, "lastError": None}
+        outcome = {
+            "state": "DELIVERED",
+            "event": delivered,
+            "memory": delivered,
+            "quality": delivered,
+            "motivation": delivered,
+        }
+        first = NpcSettlementModule.seal_delivery(task_id, "SUCCESS", outcome)
+        replay = NpcSettlementModule.seal_delivery(task_id, "SUCCESS", outcome)
+        self.assertEqual(first, replay)
+        self.assertEqual(first["state"], "SEALED")
+        self.assertEqual(first["kernel"]["module"], "dongzhou_npc_settlement")
+        self.assertEqual(len(first["digest"]), 64)
+        self.assertEqual(
+            set(first["deliveries"]),
+            {"event", "memory", "quality", "motivation"},
+        )
+        pending = {**outcome, "motivation": {"state": "PENDING", "attempts": 1}}
+        with self.assertRaisesRegex(ValueError, "motivation"):
+            NpcSettlementModule.seal_delivery(task_id, "SUCCESS", pending)
 
 
 class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):

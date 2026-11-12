@@ -1304,7 +1304,10 @@
     }).join("") || "<p>随战役推进，出阵人物会进入官署名册。</p>";
     $("#officeTaskLedger").innerHTML = [...org.tasks].reverse().slice(0, 10).map((task) => {
       const outcomeState = task.npcOutcome?.state;
-      const outcomeLabel = outcomeState === "DELIVERED" ? " · 经历已形成" : outcomeState === "PENDING" ? (task.npcOutcome?.lastError ? " · 经历待重试" : " · 经历回写中") : "";
+      const outcomeSealed = task.npcOutcome?.receipt?.kernel?.state === "SEALED";
+      const outcomeLabel = outcomeState === "DELIVERED"
+        ? (outcomeSealed ? ` · 人物四项归档 · 内核封印 ${escapeHtml(String(task.npcOutcome.receipt.digest || "").slice(0, 10))}` : " · 经历已形成")
+        : outcomeState === "PENDING" ? (task.npcOutcome?.lastError ? " · 经历待重试" : " · 经历回写中") : "";
       const settlementLabel = task.settlement ? ` · 军府${Number(task.settlement.organizationDelta) >= 0 ? "+" : ""}${task.settlement.organizationDelta} · 功绩${Number(task.settlement.memberDelta) >= 0 ? "+" : ""}${task.settlement.memberDelta} · 印记 ${escapeHtml(String(task.closureReceipt?.digest || "").slice(0, 10))}` : "";
       const statusLabel = task.status === "active" ? (task.pendingReview?.state === "REQUIRES_ACTION" ? "复命待裁" : `${task.dueMonth}月复命`) : task.status === "success" ? "办成" : task.status === "partial" ? "部分办成" : task.status === "censured" ? "复命被申斥" : "未成";
       const emergencyLabel = task.mandate?.emergency ? ` · ${task.mandate.emergency.urgent ? "急报" : "常报"}${Number(task.mandate.emergency.score).toFixed(3)}` : "";

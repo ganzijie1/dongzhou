@@ -402,6 +402,62 @@ class CampaignRouteModule(Module):
         }
 
 
+class NpcSettlementModule(Module):
+    name = "dongzhou_npc_settlement"
+    version = "1.0.0"
+    dependencies = (RuntimeModule.name,)
+
+    @staticmethod
+    def seal_delivery(
+        task_id: str,
+        final_result: str,
+        outcome: dict[str, Any],
+    ) -> dict[str, Any]:
+        normalized_result = str(final_result).upper()
+        if normalized_result not in {"SUCCESS", "PARTIAL", "FAILURE"}:
+            raise ValueError("invalid organization task result")
+        UUID(task_id)
+        event_ids = {
+            "event": "npc-outcome:" + task_id,
+            "memory": "npc-memory:" + task_id,
+            "quality": "npc-quality:" + task_id,
+            "motivation": "npc-motivation:" + task_id,
+        }
+        deliveries: dict[str, dict[str, Any]] = {}
+        for name, event_id in event_ids.items():
+            status = outcome.get(name)
+            if not isinstance(status, dict) or status.get("state") != "DELIVERED":
+                raise ValueError(f"NPC settlement part is not delivered: {name}")
+            attempts = status.get("attempts")
+            if isinstance(attempts, bool) or not isinstance(attempts, int) or attempts < 1:
+                raise ValueError(f"NPC settlement attempts are invalid: {name}")
+            deliveries[name] = {"eventId": event_id, "attempts": attempts}
+        trace = {
+            "taskId": task_id,
+            "finalResult": normalized_result,
+            "deliveries": deliveries,
+        }
+        digest = hashlib.sha256(
+            json.dumps(
+                trace,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                sort_keys=True,
+            ).encode("utf-8")
+        ).hexdigest()
+        return {
+            "state": "SEALED",
+            "digest": digest,
+            **trace,
+            "kernel": {
+                "module": NpcSettlementModule.name,
+                "moduleVersion": NpcSettlementModule.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "SEALED",
+            },
+        }
+
+
 def _correspondence_evidence(message: dict[str, Any]) -> dict[str, Any]:
     evidence = {
         "messageId": str(message.get("messageId") or ""),
@@ -2238,12 +2294,14 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     mandate_workflow = MandateWorkflowModule()
     knowledge_tournament = KnowledgeTournamentModule()
     campaign_routes = CampaignRouteModule()
+    npc_settlement = NpcSettlementModule()
     kernel = Kernel(
         [
             LoadedModule(module=module, required=True, original_index=0),
             LoadedModule(module=mandate_workflow, required=True, original_index=1),
             LoadedModule(module=knowledge_tournament, required=True, original_index=2),
             LoadedModule(module=campaign_routes, required=True, original_index=3),
+            LoadedModule(module=npc_settlement, required=True, original_index=4),
         ]
     )
     router = APIRouter(prefix="/api/dongzhou/v1")
@@ -4902,6 +4960,16 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             require_quality=True,
             require_motivation=True,
         )
+        if (
+            isinstance(outcome, dict)
+            and outcome.get("state") == "DELIVERED"
+            and isinstance(settlement, dict)
+        ):
+            outcome["receipt"] = npc_settlement.seal_delivery(
+                task_key,
+                str(settlement.get("result") or ""),
+                outcome,
+            )
         task_state = {
             "taskId": task_key,
             "assigneeHeroId": assignee,

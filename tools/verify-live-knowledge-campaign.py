@@ -48,6 +48,7 @@ def main() -> int:
     )
 
     knowledge_ids: set[str] = set()
+    literary_source_entries = 0
     route_ids: set[str] = set()
     provision_costs: Counter[int] = Counter()
 
@@ -93,6 +94,18 @@ def main() -> int:
                 )
             sources = item.get("sourceDetails")
             assert isinstance(sources, list) and sources, f"stage {stage_id} has no source details"
+            literary_sources = [
+                source
+                for source in sources
+                if isinstance(source, dict)
+                and source.get("tier") == "文学演绎"
+                and isinstance(source.get("url"), str)
+                and source["url"].startswith("https://zh.wikisource.org/zh-hans/东周列国志/")
+            ]
+            assert literary_sources, (
+                f"stage {stage_id} has no explicit Dongzhou literary source boundary"
+            )
+            literary_source_entries += 1
             assert knowledge_id not in knowledge_ids, f"duplicate knowledge ID {knowledge_id}"
             knowledge_ids.add(knowledge_id)
 
@@ -132,6 +145,7 @@ def main() -> int:
         "organizationTaskCreated": False,
         "campaignStages": len(stages),
         "publishedKnowledgeEntries": len(knowledge_ids),
+        "literarySourceBoundaryEntries": literary_source_entries,
         "campaignRoutes": len(route_ids),
         "provisionCostHistogram": dict(sorted(provision_costs.items())),
     }
