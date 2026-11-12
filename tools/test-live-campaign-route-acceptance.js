@@ -69,8 +69,17 @@ const SYSTEM_CHROMIUM = [
       }));
       assert.strictEqual(result.profile.campaignResources.provisions, scenario.provisions);
       assert.strictEqual(result.profile.campaignResources.morale, scenario.morale);
+      assert.strictEqual(result.battle.campaignRoute.receipt.kernel.module, "dongzhou_campaign_route");
+      assert.strictEqual(result.battle.campaignRoute.receipt.kernel.state, "SEALED");
+      assert.strictEqual(result.battle.campaignRoute.receipt.digest.length, 64);
       assert.deepStrictEqual(errors, []);
-      accepted.push({ name: scenario.name, method: scenario.method, routeId: result.battle.campaignRoute.routeId, screenshot });
+      accepted.push({
+        name: scenario.name,
+        method: scenario.method,
+        routeId: result.battle.campaignRoute.routeId,
+        receipt: result.battle.campaignRoute.receipt.digest,
+        screenshot
+      });
       await context.close();
     }
     console.log(JSON.stringify({ result: "PASS", accepted }));

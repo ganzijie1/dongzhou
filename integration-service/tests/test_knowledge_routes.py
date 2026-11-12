@@ -120,6 +120,11 @@ def test_campaign_route_requires_completed_predecessor_and_validates_published_d
         assert accepted.status_code == 200
         assert accepted.json()["routeId"] == "campaign_progression_900001_900002"
         assert accepted.json()["provisionCost"] == 2
+        assert accepted.json()["receipt"]["kernel"]["module"] == "dongzhou_campaign_route"
+        assert accepted.json()["receipt"]["kernel"]["moduleVersion"] == "1.0.0"
+        assert accepted.json()["receipt"]["kernel"]["nexusKernelVersion"]
+        assert accepted.json()["receipt"]["kernel"]["state"] == "SEALED"
+        assert len(accepted.json()["receipt"]["digest"]) == 64
         assert len(accepted.json()["options"]) == 3
         assert {item["method"] for item in accepted.json()["options"]} == {
             "campaign_progression", "fixed_point", "npc_dialog"
@@ -131,6 +136,12 @@ def test_campaign_route_requires_completed_predecessor_and_validates_published_d
         assert guided.json()["provisionCost"] == 1
         assert guided.json()["moraleDelta"] == -4
         assert guided.json()["guideName"] == "乡民"
+        guided_replay = client.post(path, json={**request, "route_method": "npc_dialog"})
+        assert guided_replay.json()["receipt"]["digest"] == guided.json()["receipt"]["digest"]
+        assert guided.json()["receipt"]["digest"] != accepted.json()["receipt"]["digest"]
+        assert guided.json()["receipt"]["digest"] != accepted.json()["receipt"]["digest"]
+        repeated = client.post(path, json={**request, "route_method": "npc_dialog"})
+        assert repeated.json()["receipt"] == guided.json()["receipt"]
 
         upstreams.route_detail = {**upstreams.route_detail, "to_stage_id": "wrong"}
         invalid = client.post(path, json=request)

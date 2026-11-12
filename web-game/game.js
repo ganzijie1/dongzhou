@@ -475,14 +475,15 @@
     renderWarCouncil(record);
   }
 
-  function campaignRouteInput(record) {
+  function campaignRouteInput(record, routeMethod = null) {
     const previous = campaign?.stages?.[Number(record.index) - 2];
     if (!previous || Number(record.index) !== Number(previous.index) + 1) return null;
     return {
       from_stage_id: previous.id,
       from_stage_index: Number(previous.index),
       to_stage_id: record.id,
-      to_stage_index: Number(record.index)
+      to_stage_index: Number(record.index),
+      ...(routeMethod ? { route_method: routeMethod } : {})
     };
   }
 
@@ -507,6 +508,13 @@
       || options.find((option) => option.method === "campaign_progression")
       || response;
     return { ...response, ...selected, options };
+  }
+
+  function verifySelectedCampaignRoute(record) {
+    const method = profile.routePreferences?.[record.id] || "campaign_progression";
+    const input = campaignRouteInput(record, method);
+    if (!input) return Promise.resolve({ mode: "origin", found: true, provisionCost: 0 });
+    return integration.campaignRoute(input);
   }
 
   function renderCampaignRouteProof(record) {
@@ -646,9 +654,12 @@
       routeStartPending = true;
       if (button?.dataset.stageId === record.id) button.disabled = true;
       try {
-        campaignRoute = selectedCampaignRoute(record, await loadCampaignRoute(record));
+        campaignRoute = await verifySelectedCampaignRoute(record);
         const cost = Number(campaignRoute?.provisionCost);
         if (!campaignRoute?.found || !Number.isInteger(cost) || cost < 0 || cost > 20) throw new Error("路线军粮配置无效");
+        if (campaignRoute.mode === "connected" && campaignRoute.receipt?.kernel?.state !== "SEALED") {
+          throw new Error("路线未获内核封印");
+        }
         if (profile.campaignResources.provisions < cost) {
           showNotice(`行军需 ${cost} 军粮，请先在官署筹备`);
           return;

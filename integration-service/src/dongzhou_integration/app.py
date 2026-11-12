@@ -356,6 +356,27 @@ class KnowledgeTournamentModule(Module):
         }
 
 
+class CampaignRouteModule(Module):
+    name = "dongzhou_campaign_route"
+    version = "1.0.0"
+    dependencies = (RuntimeModule.name,)
+
+    @staticmethod
+    def seal_selection(trace: dict[str, Any]) -> dict[str, Any]:
+        digest = hashlib.sha256(
+            json.dumps(trace, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
+        ).hexdigest()
+        return {
+            "digest": digest,
+            "kernel": {
+                "module": CampaignRouteModule.name,
+                "moduleVersion": CampaignRouteModule.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "SEALED",
+            },
+        }
+
+
 def _correspondence_evidence(message: dict[str, Any]) -> dict[str, Any]:
     evidence = {
         "messageId": str(message.get("messageId") or ""),
@@ -1972,11 +1993,13 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     module = RuntimeModule(store, upstreams, settings)
     mandate_workflow = MandateWorkflowModule()
     knowledge_tournament = KnowledgeTournamentModule()
+    campaign_routes = CampaignRouteModule()
     kernel = Kernel(
         [
             LoadedModule(module=module, required=True, original_index=0),
             LoadedModule(module=mandate_workflow, required=True, original_index=1),
             LoadedModule(module=knowledge_tournament, required=True, original_index=2),
+            LoadedModule(module=campaign_routes, required=True, original_index=3),
         ]
     )
     router = APIRouter(prefix="/api/dongzhou/v1")
@@ -2024,12 +2047,22 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             {},
         )
         tournament_state = str(tournament.get("state") or "unknown").lower()
+        route_module = next(
+            (
+                item
+                for item in kernel_snapshot.get("modules", [])
+                if item.get("name") == CampaignRouteModule.name
+            ),
+            {},
+        )
+        route_state = str(route_module.get("state") or "unknown").lower()
         return {
             **external,
             "nexusKernel": {
                 "online": runtime_state in {"ready", "degraded"}
                 and workflow_state in {"ready", "degraded"}
-                and tournament_state in {"ready", "degraded"},
+                and tournament_state in {"ready", "degraded"}
+                and route_state in {"ready", "degraded"},
                 "mode": "embedded",
                 "version": _NEXUS_KERNEL_VERSION,
                 "runtimeState": runtime_state,
@@ -2037,6 +2070,8 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "workflowState": workflow_state,
                 "knowledgeTournamentModule": KnowledgeTournamentModule.name,
                 "knowledgeTournamentState": tournament_state,
+                "campaignRouteModule": CampaignRouteModule.name,
+                "campaignRouteState": route_state,
             },
         }
 
@@ -2707,6 +2742,13 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 **({"guideName": detail["npc"]["name"]} if method == "npc_dialog" else {}),
             })
         selected = next(option for option in route_options if option["method"] == request.route_method)
+        selection_trace = {
+            "fromStageId": request.from_stage_id,
+            "toStageId": request.to_stage_id,
+            "fromMapId": from_map_id,
+            "toMapId": to_map_id,
+            **selected,
+        }
         return {
             "mode": "connected",
             "found": True,
@@ -2716,6 +2758,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "toMapId": to_map_id,
             **selected,
             "options": route_options,
+            "receipt": campaign_routes.seal_selection(selection_trace),
         }
 
     @router.get("/knowledge/codex")
