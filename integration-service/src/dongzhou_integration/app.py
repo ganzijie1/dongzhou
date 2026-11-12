@@ -262,7 +262,7 @@ class RuntimeModule(Module):
 
 class MandateWorkflowModule(Module):
     name = "dongzhou_mandate_workflow"
-    version = "1.10.0"
+    version = "1.11.0"
     dependencies = (RuntimeModule.name,)
 
     @staticmethod
@@ -750,6 +750,14 @@ def _organization_task_chance(
         and isinstance(mandate.get("correspondence"), dict)
         else 0
     )
+    knowledge_mastery = mandate.get("knowledgeMastery") if isinstance(mandate, dict) else None
+    mastery_fit = (
+        3.0
+        if isinstance(knowledge_mastery, dict)
+        and knowledge_mastery.get("state") == "SEALED"
+        and knowledge_mastery.get("score") == 10
+        else 0.0
+    )
     loyalty = max(20.0, min(100.0, float(member.get("loyalty", 68) or 68)))
     fatigue = max(0.0, min(100.0, float(member.get("fatigue", 0) or 0)))
     assignment = mandate.get("assignment") if isinstance(mandate, dict) else None
@@ -786,6 +794,7 @@ def _organization_task_chance(
             _ORGANIZATION_TASK_BASE_CHANCE.get(task_type, 60)
             + office_fit
             + knowledge_fit
+            + mastery_fit
             + correspondence_fit
             + emergency_fit
             + collaboration_fit
@@ -4510,6 +4519,76 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     status_code=422,
                 )
 
+        knowledge_mastery: dict[str, Any] | None = None
+        if (
+            request.knowledge_quiz_question_id is not None
+            and request.knowledge_quiz_result_digest is not None
+        ):
+            quiz_record = await store.read_request(
+                player_id,
+                request.knowledge_quiz_question_id,
+                "knowledge_quiz",
+            )
+            quiz_request = quiz_record.get("request") if quiz_record else None
+            quiz_response = quiz_record.get("response") if quiz_record else None
+            quiz_receipt = (
+                quiz_response.get("receipt")
+                if isinstance(quiz_response, dict)
+                else None
+            )
+            quiz_digest = (
+                quiz_receipt.get("digest")
+                if isinstance(quiz_receipt, dict)
+                else None
+            )
+            quiz_kernel = (
+                quiz_receipt.get("kernel")
+                if isinstance(quiz_receipt, dict)
+                else None
+            )
+            mastery_marker = (
+                f"史识印记：{request.knowledge_quiz_result_digest[:12]}"
+            )
+            if (
+                not quiz_record
+                or quiz_record.get("state") != "ANSWERED"
+                or not isinstance(quiz_request, dict)
+                or not isinstance(quiz_response, dict)
+                or quiz_request.get("stageId") != request.stage_id
+                or quiz_response.get("stageId") != request.stage_id
+                or quiz_response.get("knowledgeId") != request.knowledge_id
+                or quiz_response.get("state") != "COMPLETED"
+                or quiz_response.get("correct") is not True
+                or quiz_response.get("score") != 10
+                or quiz_digest != request.knowledge_quiz_result_digest
+                or not isinstance(quiz_kernel, dict)
+                or quiz_kernel.get("module") != KnowledgeTournamentModule.name
+                or quiz_kernel.get("state") != "SEALED"
+                or mastery_marker not in str(council_request.get("question") or "")
+            ):
+                await store.finish_request(
+                    player_id,
+                    request.client_request_id,
+                    "REJECTED",
+                    {"state": "REJECTED"},
+                    "court_knowledge_mastery_unverified",
+                )
+                raise ApiError(
+                    "court_knowledge_mastery_unverified",
+                    "The mandate knowledge mastery is not a verified quiz result deliberated by this council.",
+                    status_code=422,
+                )
+            knowledge_mastery = {
+                "questionId": str(request.knowledge_quiz_question_id),
+                "stageId": request.stage_id,
+                "knowledgeId": request.knowledge_id,
+                "score": 10,
+                "bonus": 3.0,
+                "resultDigest": request.knowledge_quiz_result_digest,
+                "state": "SEALED",
+                "kernel": dict(quiz_kernel),
+            }
+
         try:
             entries = await upstreams.stage_knowledge(request.stage_id)
         except (UpstreamUnavailable, OSError, ValueError) as error:
@@ -4807,6 +4886,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "taskType": request.task_type,
             "evidence": evidence_trace,
             "evidenceFit": evidence_fit,
+            **(
+                {"knowledgeMastery": knowledge_mastery}
+                if knowledge_mastery is not None
+                else {}
+            ),
             "council": {
                 "requestId": str(request.council_request_id),
                 "question": str(council_request.get("question") or ""),
@@ -4814,6 +4898,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "text": str(selected_option.get("text") or ""),
                 "dialogueReceipt": dialogue_receipt,
                 **({"memory": selected_memory} if selected_memory else {}),
+                **(
+                    {"knowledgeMastery": knowledge_mastery}
+                    if knowledge_mastery is not None
+                    else {}
+                ),
             },
             "assignment": assignment,
             **({"collaboration": collaboration} if collaboration is not None else {}),
@@ -5885,6 +5974,20 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 f"({evidence_fit.get('band')}) for {evidence_fit.get('taskType')}."
             )
             brief = brief.rstrip()[: max(0, 1000 - len(evidence_note))] + evidence_note
+        knowledge_mastery = mandate.get("knowledgeMastery") if isinstance(mandate, dict) else None
+        if isinstance(knowledge_mastery, dict):
+            mastery_note = (
+                f" Sealed history mastery {knowledge_mastery.get('score')}/10 "
+                f"(task chance +{knowledge_mastery.get('bonus')})."
+            )
+            brief = brief.rstrip()[: max(0, 1000 - len(mastery_note))] + mastery_note
+            effective_parameters.update(
+                {
+                    "knowledge_quiz_question_id": knowledge_mastery.get("questionId"),
+                    "knowledge_mastery_score": knowledge_mastery.get("score"),
+                    "knowledge_mastery_bonus": knowledge_mastery.get("bonus"),
+                }
+            )
         emergency = mandate.get("emergency") if isinstance(mandate, dict) else None
         if isinstance(emergency, dict):
             emergency_note = (

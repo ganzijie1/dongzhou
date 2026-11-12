@@ -529,6 +529,32 @@ class OrganizationOutcomeTests(unittest.TestCase):
             _organization_task_chance(task, "intelligence", member, weak) + 4,
         )
 
+    def test_sealed_knowledge_mastery_adds_verified_task_chance(self) -> None:
+        task = {"id": "mastery-task", "dueMonth": 2, "knowledgeId": "dongzhou_stage_001"}
+        member = {"office": "none", "loyalty": 68, "fatigue": 10}
+        baseline = {"assignment": {"readiness": {"score": 65}}}
+        sealed = {
+            **baseline,
+            "knowledgeMastery": {
+                "state": "SEALED",
+                "score": 10,
+                "bonus": 3.0,
+                "resultDigest": "d" * 64,
+            },
+        }
+        wrong_score = {
+            **baseline,
+            "knowledgeMastery": {"state": "SEALED", "score": 0},
+        }
+        self.assertEqual(
+            _organization_task_chance(task, "drill", member, sealed),
+            _organization_task_chance(task, "drill", member, baseline) + 3,
+        )
+        self.assertEqual(
+            _organization_task_chance(task, "drill", member, wrong_score),
+            _organization_task_chance(task, "drill", member, baseline),
+        )
+
     def test_preparation_and_office_fit_materially_change_outcome(self) -> None:
         prepared = {"id": "task-4", "dueMonth": 2, "knowledgeId": "dongzhou_stage_004"}
         unprepared = {**prepared, "knowledgeId": None}

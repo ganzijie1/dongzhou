@@ -6,16 +6,16 @@
 
 | 来源 | 东周服务契约 | 玩家入口 | 权威结果 | 真实证据 |
 | --- | --- | --- | --- | --- |
-| knowledge-jizhan | 全文检索、按关卡读取已发布 AKU、战役路线、玩家简册、知识竞赛 | 查阅、本回史料、选定出处、已得简册、行军路线、史官问对 | 只接收 `dongzhou_stage_*`；出处和检索回执进入军议与军令；相邻关卡路线必须同时通过战役推进、定点和 NPC 对话三种图谱查询；问对题目从当前已发布 AKU 人物录生成，30 秒内答中记 10 分 | `test-live-knowledge-browser.js`、`test-live-fulltext-browser.js`、`test-live-campaign-route-acceptance.js`、`test-live-knowledge-quiz.js`、`verify-live-knowledge-campaign.py`、`campaign-routes-desktop-live.png`、`campaign-routes-mobile-live.png`、`knowledge-quiz-live.png` |
+| knowledge-jizhan | 全文检索、按关卡读取已发布 AKU、战役路线、玩家简册、知识竞赛 | 查阅、本回史料、选定出处、已得简册、行军路线、史官问对 | 只接收 `dongzhou_stage_*`；出处和检索回执进入军议与军令；相邻关卡路线必须同时通过战役推进、定点和 NPC 对话三种图谱查询；问对题目从当前已发布 AKU 人物录生成，30 秒内答中记 10 分；本回 10 分封存结果可作为史识凭据进入派差 | `test-live-knowledge-browser.js`、`test-live-fulltext-browser.js`、`test-live-campaign-route-acceptance.js`、`test-live-knowledge-quiz.js`、`verify-live-knowledge-campaign.py`、`campaign-routes-desktop-live.png`、`campaign-routes-mobile-live.png`、`knowledge-quiz-live.png` |
 | AINPC | NPC 注册与上线、主动来信偏好、状态/人格/动机/稳定品质/关系、双向私聊、90 天日程、关卡当值、主副手双向协同、自主念头、军议裁断、已签军令临时插程、玩家本人领差/响应/复命、急报评估、参战结果与长期经历 | 官署状态、品质与品行、府中书问、来信开关、拟定日程、本关当值、协办副手、请其进言、军议裁断、签发后下达、我的差事、官署战报 | 稳定 NPC/玩家身份；orgFlow 终态以稳定效果号沉淀品质并影响下一次任职；主办与副手的双向好感/关系形成有正有负的协同因子；已签军令分别进入两人的日程 owner 并形成独立防篡改回执；实际参战属官收到幂等的重要事件、长期系统消息和官署可读的短期记忆归档 | `verify-live-roster-npcs.py`、`test-live-office-npc-state.js`、`test-live-quality-loop.js`、`test-live-spontaneous-thought.js`、`test-live-correspondence-acceptance.js`、`test-live-interaction-preference.js`、`test-live-schedule-browser.js`、`test-live-player-career-browser.js`、`test-live-kernel-mandate-acceptance.js`、`test-live-battle-memory.js`、`test-live-battle-emotion.js` |
 | orgFlowEngine | 权威名册、玩家入仕/辞仕、组织谱系、贡献账、公共库藏、虚拟任务、玩家本人任务申请、任务终态、人工复命审核 | 个人仕籍、我的差事、直属主管、贡献收支、库藏、军需调拨、颁差、推进月令、收纳复命/申斥 | 岗位候选、任务候选、责任人响应、直属审核、贡献、功绩和结案凭据均以 orgFlow 为准；验收奖励进入 `task.execution` 实账，玩家可按 20 点一批调拨为 12 军粮；12 席均进入可操作官员集合，负责人不可向自己派单 | `test-live-membership-browser.js`、`test-live-player-career-browser.js`、`live-player-career-browser.json`、`test-live-roster-ledger.js`、`test-live-office-roster-browser.js`、`test-live-office-inventory.js`、`test-live-inventory-requisition.js`、`test-live-settlement-acceptance.js` |
-| NexusKernel | 运行模块健康、规范军令、主副手协同证据、确认动作、恢复签发、终态复命裁决、公共资源支出裁可、行军路线、问对结果与人物四项归档封存 | 内核军令草案、签发/驳回、复命待裁、军需调拨待裁、军令簿、行军择路、史官问对、官署任务簿 | 史料、军议、AINPC 进言、书问、主副手双向关系、两人当值、急报、适岗证据和军需支出统一 SHA-256 封存；确认动作可恢复，重放不重复计分；事件、长期记忆、品质和动机全部送达后才生成人物归档封印 | `test-live-kernel-mandate-acceptance.js`、`test-live-spontaneous-thought.js`、`test-live-settlement-acceptance.js`、`test-live-campaign-route-acceptance.js`、`test-live-knowledge-quiz.js`、`test-live-motivation-loop.js` |
+| NexusKernel | 运行模块健康、规范军令、主副手协同证据、确认动作、恢复签发、终态复命裁决、公共资源支出裁可、行军路线、问对结果与人物四项归档封存 | 内核军令草案、签发/驳回、复命待裁、军需调拨待裁、军令簿、行军择路、史官问对、官署任务簿 | 史料、军议、AINPC 进言、书问、主副手双向关系、两人当值、急报、适岗证据、史识凭据和军需支出统一 SHA-256 封存；确认动作可恢复，重放不重复计分；事件、长期记忆、品质和动机全部送达后才生成人物归档封印 | `test-live-kernel-mandate-acceptance.js`、`test-live-spontaneous-thought.js`、`test-live-settlement-acceptance.js`、`test-live-campaign-route-acceptance.js`、`test-live-knowledge-quiz.js`、`test-live-motivation-loop.js` |
 
 ## 跨服务闭环
 
 联网授命必须依次取得已发布史料、当前属官裁断、AINPC 当值与状态、NexusKernel 军令，再由 orgFlowEngine 受理。任务终态先形成 orgFlow 结案实账，再由 NexusKernel 生成玩家裁决，随后将结果写回 AINPC 重要事件和长期经历，最后作为战前助益进入战斗。缺少任一服务确认时不会在浏览器本地伪造成功。
 
-玩家现在可为差事指定一名协办副手。网关先用 orgFlow 权威名册确认主办与副手均在职，再读取 AINPC 两个方向的好感和关系，生成 `-8` 至 `+10` 的协同因子并计入任务成功率。NexusKernel `dongzhou_mandate_workflow 1.10.0` 同时封存两人身份、关系证据、协同分和各自当值；军令下达时两人分别获得稳定事件号和日程中断回执。任务终态为双方分别写入事件、长期记忆、品行与履职意愿，并由 `dongzhou_npc_settlement 1.1.0` 各自封印；战后两人也都进入权威参战者名单。任何一方未真正入程都不会形成可用的完整协办军令。
+玩家现在可为差事指定一名协办副手。网关先用 orgFlow 权威名册确认主办与副手均在职，再读取 AINPC 两个方向的好感和关系，生成 `-8` 至 `+10` 的协同因子并计入任务成功率。NexusKernel `dongzhou_mandate_workflow 1.11.0` 同时封存两人身份、关系证据、协同分和各自当值；军令下达时两人分别获得稳定事件号和日程中断回执。任务终态为双方分别写入事件、长期记忆、品行与履职意愿，并由 `dongzhou_npc_settlement 1.1.0` 各自封印；战后两人也都进入权威参战者名单。任何一方未真正入程都不会形成可用的完整协办军令。
 
 任务终态还会以独立 outbox 写入 AINPC 稳定品质。每个任务的效果号固定，重试、刷新和重启不会重复加点；升级只补齐已有权威结果，绝不重算成败。下一次任职读取正式品质档案，按军需、整训、巡防、情报或外交的价值要求计算品行适配，随后由 NexusKernel 连同胜任度一起封存并交给 orgFlowEngine。当前累积实账中左儒担当为 `100`，军需品行 `60/100`、胜任度品质因子 `+2`；测试从权威档案动态取值并验证官署展示与下一次任职使用同一数值，不再依赖历史快照常量。
 
@@ -35,6 +35,8 @@
 
 史官问对把 knowledge-jizhan 的知识竞赛规则落入当前战役。网关从本回已发布 AKU 的结构化人物录选取正确项，从其他关卡人物录选择三个干扰项；题面经 NexusKernel 生成稳定动作号和 SHA-256 题印，正确索引只保存在玩家隔离的服务端请求账本。题目限时 30 秒，答中 10 分，逾时或答错为 0 分；刷新可恢复未答题，同一题重复交卷只回放原结果，换答案或跨玩家交卷均拒绝。
 
+答中后的问对结果会成为下一次同关军议的“史识凭据”。网关在签令前重新核验玩家、关卡、AKU、10 分结果摘要与 NexusKernel `SEALED` 回执，并要求 AINPC 军议问题携带同一史识印记；通过后由 `dongzhou_mandate_workflow 1.11.0` 封存并传给 orgFlowEngine，任务成功率增加 `3` 点。答错、跨玩家、跨关卡、错配史料、摘要篡改或只在前端构造字段均为零加成并拒绝伪造凭据；旧存档和未参加问对的军令保持兼容。
+
 相邻关卡行军不再只有固定耗粮。网关按同一对 knowledge-jizhan 地图节点分别核验 `campaign_progression`、`fixed_point` 和 `npc_dialog` 路线，并拒绝地图号、落点或向导对话结构不完整的结果。玩家可选奉诏直进（军粮 2）、官道驿行（军粮 3、士气 +6）或向导引路（军粮 1、士气 -4）；偏好随云档保存，但开战不会信任展示缓存，而是把最终方法重新交给服务端查询并由 NexusKernel `dongzhou_campaign_route` 模块封存。联网结果缺少 `SEALED` 回执时拒绝开战；通过后才一次结算并把 64 位摘要写入战斗存档。桌面端和 390px 移动端均已通过真实接口验收。
 
 当前无拦截完整任务证据为：
@@ -50,10 +52,11 @@
 - `live-quality-loop-complete92.png`：历史 orgFlow 结果幂等沉淀为 AINPC 品质，品质进入下一次任职胜任度并由官署展示。
 - `live-motivation-authority-complete94-motivation.json`：真实 orgFlow 成功终态把军粮转运意愿从 `0 -> 8`；异步事件认知和 AINPC 八角色重启后仍保持 8；下一次军需派任读到该信号，动机适配分 `53`、胜任度因子 `+0.4`；四项归档由 `dongzhou_npc_settlement` 生成 64 位稳定封印。
 - `live-collaboration-complete101.json`：真实双人军令中左儒主办、秦襄公协办；副将事件、长期记忆、品行、履职意愿四项均送达并独立封印。筹备奖励已进入战场并从待用列表消耗后，战报仍通过服务端军议、军令和 orgFlow 结案认证，权威参战者为两人。
+- `live-knowledge-mastery-v5-complete105.json`：真实问对答中后进入 AINPC 军议，NexusKernel 军令封存 `10/10` 与成功率 `+3`；orgFlow 模板 5 实账保存同一题号、分数和加成。
 
 ## 当前验证基线
 
-- 网关新增战斗记忆契约回归：`28 passed`，另有 `16 subtests passed`；AINPC 组织回信格式定向回归 `13 passed`，并以真实玩家仕途浏览器链路验证内容过滤后仍可正常领差。
+- 网关完整回归：`117 passed`，另有 `21 subtests passed`；史识凭据覆盖正确封存、摘要篡改、跨玩家/关卡/史料隔离和 orgFlow 参数传递。
 - 前端：集成客户端、组织玩法、战斗系统、官署浏览器、军议浏览器和外交浏览器全部通过。
 - 真实冒烟：四项能力在线；独立访客存档往返、版本冲突和玩家隔离通过；172/172 关已发布史料且每关在线返回明确标注的《东周列国志》文学底本边界，171/171 组连续行军均具备战役推进、定点和 NPC 对话三种路线；左儒计划为 90 天、450 项东周事务。长期计划按 AINPC 契约只列可执行待办，休息由非活跃时段的运行时强制休息机制接管。
 - 权威名册：12/12 NPC 状态与 90 天计划通过；真实浏览器逐席显示心境、关系、性情、动机与日程，杜伯可调阅但不可向自己派单。

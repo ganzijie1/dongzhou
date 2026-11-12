@@ -276,6 +276,10 @@ class CourtMandateRequest(StrictModel):
     correspondence_digest: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     thought_request_id: UUID | None = Field(default=None, strict=False)
     thought_digest: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    knowledge_quiz_question_id: UUID | None = Field(default=None, strict=False)
+    knowledge_quiz_result_digest: str | None = Field(
+        default=None, pattern=r"^[0-9a-f]{64}$"
+    )
     operation: CourtMandateOperation | None = None
 
     @model_validator(mode="after")
@@ -288,6 +292,10 @@ class CourtMandateRequest(StrictModel):
             raise ValueError("court mandate correspondence reference is incomplete")
         if bool(self.thought_request_id) != bool(self.thought_digest):
             raise ValueError("court mandate thought reference is incomplete")
+        if bool(self.knowledge_quiz_question_id) != bool(
+            self.knowledge_quiz_result_digest
+        ):
+            raise ValueError("court mandate knowledge quiz reference is incomplete")
         return self
 
 

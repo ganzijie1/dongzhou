@@ -1370,7 +1370,8 @@
       const collaborationLabel = collaboration ? ` · 副手${escapeHtml(displayName(collaboration.supportHeroId))} · 配合${Number(collaboration.score)}/100 (${Number(collaboration.factor) >= 0 ? "+" : ""}${Number(collaboration.factor)})${task.mandate?.supportScheduleInterruption ? " · 双人已入程" : ""}` : "";
       const evidenceFit = Number(task.mandate?.evidenceFit?.factor);
       const evidenceLabel = Number.isFinite(evidenceFit) ? ` · 史证${evidenceFit}/9` : "";
-      return `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}${collaboration ? ` + ${escapeHtml(displayName(collaboration.supportHeroId))}` : ""}</strong><small>${statusLabel}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}${evidenceLabel}${task.mandate?.assignment?.name ? ` · 当值${escapeHtml(task.mandate.assignment.name)}` : ""}${Number.isFinite(Number(task.mandate?.assignment?.readiness?.score)) ? ` · 胜任${Number(task.mandate.assignment.readiness.score)}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${collaborationLabel}${emergencyLabel}${settlementLabel}${outcomeLabel}${supportOutcomeLabel}</small></li>`;
+      const masteryLabel = task.mandate?.knowledgeMastery ? ` · 史识+${Number(task.mandate.knowledgeMastery.bonus)}` : "";
+      return `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}${collaboration ? ` + ${escapeHtml(displayName(collaboration.supportHeroId))}` : ""}</strong><small>${statusLabel}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}${evidenceLabel}${masteryLabel}${task.mandate?.assignment?.name ? ` · 当值${escapeHtml(task.mandate.assignment.name)}` : ""}${Number.isFinite(Number(task.mandate?.assignment?.readiness?.score)) ? ` · 胜任${Number(task.mandate.assignment.readiness.score)}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${collaborationLabel}${emergencyLabel}${settlementLabel}${outcomeLabel}${supportOutcomeLabel}</small></li>`;
     }).join("") || '<li class="empty">尚无差事</li>';
     $("#officeMandateLedger").innerHTML = [...org.mandates].reverse().slice(0, 6).map((mandate) => {
       const label = mandate.state === "RESOLVED" ? (mandate.outcome?.won ? "战后告捷" : "战后失利") : mandate.state === "FULFILLED" ? "复命待战" : mandate.state === "PARTIAL" ? "部分复命" : mandate.state === "FAILED" ? "执行未成" : mandate.state === "ORDERED" ? "属官执行中" : "已签发";
@@ -1384,13 +1385,14 @@
       const collaborationLabel = collaboration ? ` · 副手${escapeHtml(displayName(collaboration.supportHeroId))} · 配合${Number(collaboration.score)}/100 (${Number(collaboration.factor) >= 0 ? "+" : ""}${Number(collaboration.factor)})${mandate.supportScheduleInterruption ? " · 双人已入程" : ""}` : "";
       const evidenceFit = Number(mandate.evidenceFit?.factor);
       const evidenceLabel = Number.isFinite(evidenceFit) ? ` · 史证${evidenceFit}/9` : "";
+      const masteryLabel = mandate.knowledgeMastery ? ` · 史识${Number(mandate.knowledgeMastery.score)}/10 · 成功率+${Number(mandate.knowledgeMastery.bonus)}` : "";
       const emergency = mandate.emergency;
       const emergencyLabel = emergency ? ` · ${emergency.urgent ? "急报" : "常报"}${Number(emergency.score).toFixed(3)}` : "";
       const interruption = mandate.scheduleInterruption;
       const interruptionLabel = interruption
         ? ` · ${interruption.action === "insert_today" ? "今日插程" : interruption.action === "future" ? "后续排程" : "日程裁定 " + interruption.action}${interruption.scheduleName ? `“${escapeHtml(interruption.scheduleName)}”` : ""}`
         : "";
-      return `<li class="${escapeHtml(String(mandate.state || "issued").toLowerCase())}"><span>${escapeHtml(mandate.evidence?.name || "内核军令")}</span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(mandate.evidence?.source?.work || "未列出处")}${evidenceLabel} · ${escapeHtml(mandate.assignment?.date || "未定日")} ${escapeHtml(mandate.assignment?.name || "旧军令未封当值")}${Number.isFinite(readiness) ? ` · 胜任${readiness}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${collaborationLabel}${emergencyLabel}${interruptionLabel} · 印记 ${escapeHtml(String(mandate.digest || "").slice(0, 10))}</small></li>`;
+      return `<li class="${escapeHtml(String(mandate.state || "issued").toLowerCase())}"><span>${escapeHtml(mandate.evidence?.name || "内核军令")}</span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(mandate.evidence?.source?.work || "未列出处")}${evidenceLabel}${masteryLabel} · ${escapeHtml(mandate.assignment?.date || "未定日")} ${escapeHtml(mandate.assignment?.name || "旧军令未封当值")}${Number.isFinite(readiness) ? ` · 胜任${readiness}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${collaborationLabel}${emergencyLabel}${interruptionLabel} · 印记 ${escapeHtml(String(mandate.digest || "").slice(0, 10))}</small></li>`;
     }).join("") || '<li class="empty">完成史料查阅与属官裁断后，可签发内核军令。</li>';
     $("#officeAllianceLedger").innerHTML = [...org.diplomacy.alliances].reverse().map((pact) => `<li class="${pact.status}"><span>${escapeHtml(pact.targetName)}盟约</span><strong>${pact.status === "active" ? "生效" : pact.status === "broken" ? "背盟待战" : "战后结案"}</strong><small>关系 ${Number(org.diplomacy.relations[pact.targetId] || 0)} · ${escapeHtml(pact.terms.join("、"))}</small></li>`).join("") || '<li class="empty">尚无盟约</li>';
     $("#officeBattleArchive").innerHTML = [...org.archives].reverse().slice(0, 12).map((entry) => `<li><strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml(entry.text)} · ${escapeHtml(String(entry.stageId || "无关卡"))}</span></li>`).join("") || "<li><strong>尚无档案</strong><span>完成盟约、背盟或战役后将在此存照。</span></li>";
@@ -1901,6 +1903,22 @@
     return source && knowledge ? { source, knowledge } : null;
   }
 
+  function currentOfficeKnowledgeMastery() {
+    const stageId = String(officeStage()?.id || "");
+    const evidence = currentOfficeEvidence();
+    if (!stageId || !evidence?.knowledge?.id) return null;
+    return [...(profile.knowledgeQuiz?.history || [])].reverse().find((entry) => (
+      entry?.stageId === stageId
+      && entry?.knowledgeId === evidence.knowledge.id
+      && entry?.state === "COMPLETED"
+      && entry?.correct === true
+      && Number(entry?.score) === 10
+      && /^[0-9a-f]{64}$/.test(String(entry?.receipt?.digest || ""))
+      && entry?.receipt?.kernel?.module === "dongzhou_knowledge_tournament"
+      && entry?.receipt?.kernel?.state === "SEALED"
+    )) || null;
+  }
+
   function currentOfficeThought() {
     const stageId = String(officeStage()?.id || "");
     const evidence = currentOfficeEvidence();
@@ -1922,18 +1940,19 @@
     const heroId = $("#officeMemberSelect").value;
     const correspondence = profile.organization.selectedCorrespondence?.[stageId];
     const activeCorrespondence = correspondence?.heroId === heroId ? correspondence : null;
-    return [...profile.organization.councils].reverse().find((entry) => entry.stageId === stageId && entry.memberId === heroId && entry.knowledgeId === evidence?.knowledge.id && Number(entry.evidenceSource?.index) === Number(evidence?.source.index) && (entry.correspondence?.digest || null) === (activeCorrespondence?.digest || null));
+    const mastery = currentOfficeKnowledgeMastery();
+    return [...profile.organization.councils].reverse().find((entry) => entry.stageId === stageId && entry.memberId === heroId && entry.knowledgeId === evidence?.knowledge.id && Number(entry.evidenceSource?.index) === Number(evidence?.source.index) && (entry.correspondence?.digest || null) === (activeCorrespondence?.digest || null) && (entry.knowledgeMastery?.receipt?.digest || null) === (mastery?.receipt?.digest || null));
   }
 
   function renderOfficeCouncil() {
     const council = currentOfficeCouncil();
     const control = $("#officeUseCouncil");
-    const contextKey = council ? [council.stageId, council.memberId, council.knowledgeId, council.correspondence?.digest || "", council.id].join(':') : "";
+    const contextKey = council ? [council.stageId, council.memberId, council.knowledgeId, council.correspondence?.digest || "", council.knowledgeMastery?.receipt?.digest || "", council.id].join(':') : "";
     if (control.dataset.councilContext !== contextKey) control.checked = false;
     control.dataset.councilContext = contextKey;
     control.disabled = !council;
     const evidence = currentOfficeEvidence();
-    $("#officeCouncilHint").textContent = council ? "已保存：" + council.memberName + "据" + council.evidenceSource.work + (council.correspondence ? "及府中耳报" : "") + (council.thought ? "，采纳自主进言" : "") + "建议“" + council.text + "”。联网授命须勾选并由内核签发军令。" : evidence ? "已选证：" + evidence.source.work + "（" + evidence.source.tier + "）。请当前属官据此参议。" : "先查本回史料并选定出处，再请当前属官参议。";
+    $("#officeCouncilHint").textContent = council ? "已保存：" + council.memberName + "据" + council.evidenceSource.work + (council.knowledgeMastery ? "、史官问对" : "") + (council.correspondence ? "及府中耳报" : "") + (council.thought ? "，采纳自主进言" : "") + "建议“" + council.text + "”。联网授命须勾选并由内核签发军令。" : evidence ? "已选证：" + evidence.source.work + "（" + evidence.source.tier + "）。请当前属官据此参议。" : "先查本回史料并选定出处，再请当前属官参议。";
     const thought = currentOfficeThought();
     $("#officeThoughtButton").disabled = officeThoughtInFlight || integration.isOffline() || !evidence;
     if (!officeThoughtInFlight) {
@@ -2176,7 +2195,9 @@
     const correspondenceMarker = activeCorrespondence ? `\n耳报印记：${activeCorrespondence.digest.slice(0, 12)}\n耳报：${activeCorrespondence.speakerName}“${activeCorrespondence.content.slice(0, 420)}”` : "";
     const activeMemory = officeSelectedMemory;
     const memoryMarker = activeMemory ? `\n记忆印记：${activeMemory.digest.slice(0, 12)}\n旧事：${activeMemory.content.slice(0, 420)}` : "";
-    const contextualQuestion = (question.slice(0, 750) + "\n史料：" + knowledge.name + "（" + knowledge.id + "）\n" + sourceMarker + retrievalMarker + correspondenceMarker + memoryMarker + "\n适用范围：" + String(evidence.source.scope || "未注明") + "\n" + String(knowledge.summary || "").slice(0, 450)).slice(0, 2000);
+    const knowledgeMastery = currentOfficeKnowledgeMastery();
+    const masteryMarker = knowledgeMastery ? `\n史识印记：${knowledgeMastery.receipt.digest.slice(0, 12)}\n史官问对：本回人物录答中，史识 10/10` : "";
+    const contextualQuestion = (question.slice(0, 750) + "\n史料：" + knowledge.name + "（" + knowledge.id + "）\n" + sourceMarker + retrievalMarker + masteryMarker + correspondenceMarker + memoryMarker + "\n适用范围：" + String(evidence.source.scope || "未注明") + "\n" + String(knowledge.summary || "").slice(0, 450)).slice(0, 2000);
     officeCouncilInFlight = true;
     panel.textContent = `${member.name}正在权衡…`;
     try {
@@ -2187,13 +2208,14 @@
       const currentEvidence = currentOfficeEvidence();
       const currentKnowledge = currentEvidence?.knowledge;
       const currentCorrespondence = profile.organization.selectedCorrespondence?.[stageId];
-      if (!currentKnowledge || currentKnowledge.id !== knowledge.id || currentKnowledge.name !== knowledge.name || currentKnowledge.summary !== knowledge.summary || Number(currentEvidence?.source.index) !== Number(evidence.source.index) || (currentCorrespondence?.heroId === member.id ? currentCorrespondence.digest : null) !== (activeCorrespondence?.digest || null) || (officeSelectedMemory?.digest || null) !== (activeMemory?.digest || null)) {
+      const currentMastery = currentOfficeKnowledgeMastery();
+      if (!currentKnowledge || currentKnowledge.id !== knowledge.id || currentKnowledge.name !== knowledge.name || currentKnowledge.summary !== knowledge.summary || Number(currentEvidence?.source.index) !== Number(evidence.source.index) || (currentCorrespondence?.heroId === member.id ? currentCorrespondence.digest : null) !== (activeCorrespondence?.digest || null) || (officeSelectedMemory?.digest || null) !== (activeMemory?.digest || null) || (currentMastery?.receipt?.digest || null) !== (knowledgeMastery?.receipt?.digest || null)) {
         panel.textContent = "史料或选证已更新，本轮议决不落档，请重新参议。";
         return;
       }
       const thought = currentOfficeThought();
       const selectedThought = thought?.thought?.hasThought === true && thought.councilProposal === options[selected.index] ? thought : null;
-      const noted = organization.recordCouncil(profile.organization, { id: response.clientRequestId, stageId, memberId: member.id, knowledgeId: knowledge.id, knowledgeName: knowledge.name, knowledgeSummary: knowledge.summary, evidenceSourceIndex: evidence.source.index, question: contextualQuestion, options, index: selected.index, dialogueReceipt: response.dialogueReceipt, ...(response.memoryReceipt ? { memory: response.memoryReceipt } : {}), ...(selectedThought ? { thoughtRequestId: selectedThought.requestId, thoughtDigest: selectedThought.digest } : {}) });
+      const noted = organization.recordCouncil(profile.organization, { id: response.clientRequestId, stageId, memberId: member.id, knowledgeId: knowledge.id, knowledgeName: knowledge.name, knowledgeSummary: knowledge.summary, evidenceSourceIndex: evidence.source.index, question: contextualQuestion, options, index: selected.index, dialogueReceipt: response.dialogueReceipt, ...(response.memoryReceipt ? { memory: response.memoryReceipt } : {}), ...(knowledgeMastery ? { knowledgeMastery } : {}), ...(selectedThought ? { thoughtRequestId: selectedThought.requestId, thoughtDigest: selectedThought.digest } : {}) });
       await integration.persist({ ...profile, organization: noted.state });
       profile.organization = noted.state;
       writeJson(PROFILE_KEY, profile);
@@ -2219,7 +2241,8 @@
     const emergencyLabel = emergency ? ` · ${emergency.urgent ? "急报优先" : "常报"} ${Number(emergency.score).toFixed(3)}` : "";
     const collaboration = mandate.collaboration;
     const collaborationLabel = collaboration ? ` · ${displayName(collaboration.supportHeroId)}协办 · 协同 ${Number(collaboration.score)}/100 (${Number(collaboration.factor) >= 0 ? "+" : ""}${Number(collaboration.factor)})` : "";
-    $("#officeMandateApprovalDetail").textContent = `${mandate.evidence?.name || "史料军令"} · ${mandate.assignment?.name || "属官当值"}${collaborationLabel}${emergencyLabel} · 印记 ${String(mandate.digest || "").slice(0, 10)}`;
+    const masteryLabel = mandate.knowledgeMastery ? ` · 史识 ${Number(mandate.knowledgeMastery.score)}/10 · 成功率 +${Number(mandate.knowledgeMastery.bonus)}` : "";
+    $("#officeMandateApprovalDetail").textContent = `${mandate.evidence?.name || "史料军令"} · ${mandate.assignment?.name || "属官当值"}${masteryLabel}${collaborationLabel}${emergencyLabel} · 印记 ${String(mandate.digest || "").slice(0, 10)}`;
     $("#officeMandateApproveButton").textContent = issued ? "下达" : "签发";
     $("#officeMandateRejectButton").hidden = issued;
   }
@@ -2366,7 +2389,7 @@
       const evidence = currentOfficeEvidence();
       const knowledge = evidence?.knowledge;
       const council = operation ? currentOfficeCouncil() : $("#officeUseCouncil").checked ? currentOfficeCouncil() : null;
-      const councilContext = council ? [council.stageId, council.memberId, council.knowledgeId, council.correspondence?.digest || "", council.id].join(':') : "";
+      const councilContext = council ? [council.stageId, council.memberId, council.knowledgeId, council.correspondence?.digest || "", council.knowledgeMastery?.receipt?.digest || "", council.id].join(':') : "";
       if ((operation || $("#officeUseCouncil").checked) && (!council || $("#officeUseCouncil").dataset.councilContext !== councilContext)) throw new Error("军议选择已变化，请重新确认引用");
       if (!integration.isOffline() && (!knowledge || !council)) throw new Error("联网授命必须引用本回史料与已保存军议");
       const assigneeId = $("#officeMemberSelect").value;
@@ -2400,6 +2423,10 @@
           task_type: taskType,
           ...(council.correspondence ? { correspondence_message_id: council.correspondence.messageId, correspondence_digest: council.correspondence.digest } : {}),
           ...(council.thought ? { thought_request_id: council.thought.requestId, thought_digest: council.thought.digest } : {}),
+          ...(council.knowledgeMastery ? {
+            knowledge_quiz_question_id: council.knowledgeMastery.questionId,
+            knowledge_quiz_result_digest: council.knowledgeMastery.receipt.digest
+          } : {}),
           ...(evidence.source.searchReceipt ? {
             knowledge_search_receipt_id: evidence.source.searchReceipt.id,
             knowledge_search_receipt_digest: evidence.source.searchReceipt.digest

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
 import hashlib
 import json
 import sqlite3
@@ -255,6 +256,7 @@ class MandateUpstreams:
                 "stageId": stage_id,
                 "name": "东郊旧闻",
                 "summary": "杜伯之谏与东郊军情。",
+                "entities": {"npcs": [{"name": "左儒"}]},
                 "sourceDetails": [
                     {
                         "work": "《史记·周本纪》",
@@ -422,11 +424,13 @@ def start_session(client: TestClient, installation_id: str | None = None) -> str
     return installation_id
 
 
-def complete_council(client: TestClient) -> tuple[str, dict[str, object]]:
+def complete_council(
+    client: TestClient, question_suffix: str = ""
+) -> tuple[str, dict[str, object]]:
     council_id = str(uuid4())
     request = {
         "client_request_id": council_id,
-        "question": "东郊一战如何部署？\n选证：《史记·周本纪》｜史实骨架",
+        "question": "东郊一战如何部署？\n选证：《史记·周本纪》｜史实骨架" + question_suffix,
         "options": [
             {"index": 0, "text": "固守军粮"},
             {"index": 1, "text": "整军强攻"},
@@ -508,7 +512,7 @@ def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -
             assert collaboration["supportAssignment"]["heroId"] == "QinXiangGong"
             assert collaboration["factor"] > 0
             assert collaboration["score"] == round(50 + collaboration["factor"] * 5)
-            assert drafted.json()["mandate"]["kernel"]["moduleVersion"] == "1.10.0"
+            assert drafted.json()["mandate"]["kernel"]["moduleVersion"] == "1.11.0"
 
             mandate = approve_mandate(client, drafted)
             scheduled = client.post(
@@ -625,7 +629,7 @@ def test_council_memory_is_recalled_verified_and_sealed_into_mandate() -> None:
             mandate = draft.json()["mandate"]
             assert mandate["memory"]["digest"] == memory["digest"]
             assert mandate["council"]["memory"]["idempotencyKey"] == memory["idempotencyKey"]
-            assert mandate["kernel"]["moduleVersion"] == "1.10.0"
+            assert mandate["kernel"]["moduleVersion"] == "1.11.0"
 
 
 def test_ainpc_correspondence_is_recomputed_and_sealed() -> None:
@@ -954,6 +958,111 @@ def test_logistics_briefing_reports_authoritative_facts_and_binds_thought() -> N
             )
             assert tampered.status_code == 422
             assert tampered.json()["error"]["code"] == "npc_thought_logistics_unverified"
+
+
+def test_verified_quiz_mastery_is_sealed_and_forwarded_to_orgflow() -> None:
+    with TemporaryDirectory() as directory:
+        root = Path(directory)
+        catalog = root / "knowledge-catalog.json"
+        catalog.write_text(
+            json.dumps(
+                {
+                    "entries": [
+                        {"stageId": "02", "people": ["伯阳父", "郑桓公", "申侯"]},
+                        {"stageId": "03", "people": ["周幽王"]},
+                    ]
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        upstreams = MandateUpstreams()
+        settings = replace(
+            configured(root / "gateway.sqlite3"), knowledge_file=catalog
+        )
+        app = build_application(settings, upstreams=upstreams)
+        with TestClient(app) as client:
+            start_session(client)
+            question_id = str(uuid4())
+            started = client.post(
+                "/api/dongzhou/v1/knowledge/quiz",
+                json={"client_request_id": question_id, "stage_id": "01"},
+            )
+            assert started.status_code == 200, started.text
+            question = started.json()["question"]
+            correct_index = question["options"].index("左儒")
+            answered = client.post(
+                f"/api/dongzhou/v1/knowledge/quiz/{question_id}/answer",
+                json={
+                    "action_id": started.json()["action"]["actionId"],
+                    "answer_index": correct_index,
+                },
+            )
+            assert answered.status_code == 200, answered.text
+            result = answered.json()
+            assert result["correct"] is True
+            assert result["score"] == 10
+            result_digest = result["receipt"]["digest"]
+
+            council_id, _ = complete_council(
+                client, f"\n史识印记：{result_digest[:12]}"
+            )
+            body = {
+                **mandate_body(council_id),
+                "knowledge_quiz_question_id": question_id,
+                "knowledge_quiz_result_digest": result_digest,
+            }
+            drafted = client.post("/api/dongzhou/v1/court/mandates", json=body)
+            assert drafted.status_code == 200, drafted.text
+            mastery = drafted.json()["mandate"]["knowledgeMastery"]
+            assert mastery == {
+                "questionId": question_id,
+                "stageId": "01",
+                "knowledgeId": "dongzhou_stage_001",
+                "score": 10,
+                "bonus": 3.0,
+                "resultDigest": result_digest,
+                "state": "SEALED",
+                "kernel": result["receipt"]["kernel"],
+            }
+            assert drafted.json()["mandate"]["council"]["knowledgeMastery"] == mastery
+
+            tampered = client.post(
+                "/api/dongzhou/v1/court/mandates",
+                json={
+                    **body,
+                    "client_request_id": str(uuid4()),
+                    "knowledge_quiz_result_digest": "0" * 64,
+                },
+            )
+            assert tampered.status_code == 422
+            assert tampered.json()["error"]["code"] == "court_knowledge_mastery_unverified"
+
+            mandate = approve_mandate(client, drafted)
+            schedule_mandate(client, mandate)
+            order = client.post(
+                "/api/dongzhou/v1/organization/tasks",
+                json={
+                    "client_request_id": str(uuid4()),
+                    "task_type": "drill",
+                    "assignee_hero_id": "ZuoRu",
+                    "stage_id": "01",
+                    "stage_title": "Dongzhou stage 01",
+                    "brief": "Verified history mastery assignment.",
+                    "parameters": {
+                        "resource_units": 8,
+                        "assignee_name": "左儒",
+                        "mandate_id": mandate["id"],
+                        "mandate_digest": mandate["digest"],
+                    },
+                },
+            )
+            assert order.status_code == 200, order.text
+            trigger = upstreams.triggers[-1]
+            assert trigger["parameters"]["knowledge_quiz_question_id"] == question_id
+            assert trigger["parameters"]["knowledge_mastery_score"] == 10
+            assert trigger["parameters"]["knowledge_mastery_bonus"] == 3.0
+            assert "Sealed history mastery 10/10 (task chance +3.0)" in trigger["brief"]
 
 
 def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
@@ -1291,7 +1400,7 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert review["state"] == "REQUIRES_ACTION"
             assert review["review"]["settlementId"] == settlement_id
             assert review["review"]["closureDigest"] == closure["digest"]
-            assert review["review"]["kernel"]["moduleVersion"] == "1.10.0"
+            assert review["review"]["kernel"]["moduleVersion"] == "1.11.0"
             wrong_action = client.post(
                 f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
                 json={"action_id": str(uuid4()), "decision": "ACCEPT"},
@@ -1329,7 +1438,7 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert growth_reward["contributionPoints"] == 100
             assert growth_reward["accountVersion"] == 1
             assert growth_reward["closureDigest"] == closure["digest"]
-            assert growth_reward["kernel"]["moduleVersion"] == "1.10.0"
+            assert growth_reward["kernel"]["moduleVersion"] == "1.11.0"
             assert len(growth_reward["digest"]) == 64
             assert upstreams.growth_credits == [(
                 "00000000-0000-0000-0000-000000000001",

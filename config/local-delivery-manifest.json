@@ -2,47 +2,47 @@
   "schemaVersion": 1,
   "containers": {
     "dongzhou-integration-gateway-1": {
-      "image": "dongzhou-integration:20261112-local-complete97",
+      "image": "dongzhou-integration:20261113-local-complete105",
       "healthRequired": true
     },
     "ainpc-v2-global-dev": {
-      "image": "ainpc-app:v20261112-dongzhou-local-complete65",
+      "image": "ainpc-app:v20261113-dongzhou-local-complete72",
       "healthRequired": true
     },
     "ainpc-v2-gateway-dev": {
-      "image": "ainpc-app:v20261112-dongzhou-local-complete65",
+      "image": "ainpc-app:v20261113-dongzhou-local-complete72",
       "healthRequired": true
     },
     "ainpc-v2-business-0-dev": {
-      "image": "ainpc-app:v20261112-dongzhou-local-complete65",
+      "image": "ainpc-app:v20261113-dongzhou-local-complete72",
       "healthRequired": true
     },
     "ainpc-v2-business-1-dev": {
-      "image": "ainpc-app:v20261112-dongzhou-local-complete65",
+      "image": "ainpc-app:v20261113-dongzhou-local-complete72",
       "healthRequired": true
     },
     "ainpc-v2-business-2-dev": {
-      "image": "ainpc-app:v20261112-dongzhou-local-complete65",
+      "image": "ainpc-app:v20261113-dongzhou-local-complete72",
       "healthRequired": true
     },
     "ainpc-v2-business-3-dev": {
-      "image": "ainpc-app:v20261112-dongzhou-local-complete65",
+      "image": "ainpc-app:v20261113-dongzhou-local-complete72",
       "healthRequired": true
     },
     "ainpc-v2-business-4-dev": {
-      "image": "ainpc-app:v20261112-dongzhou-local-complete65",
+      "image": "ainpc-app:v20261113-dongzhou-local-complete72",
       "healthRequired": true
     },
     "ainpc-v2-business-5-dev": {
-      "image": "ainpc-app:v20261112-dongzhou-local-complete65",
+      "image": "ainpc-app:v20261113-dongzhou-local-complete72",
       "healthRequired": true
     },
     "org-flow-engine-dev-api-1": {
-      "image": "org-flow-engine:dongzhou-local-complete86",
+      "image": "org-flow-engine:dongzhou-local-complete88",
       "healthRequired": true
     },
     "org-flow-engine-dev-worker-1": {
-      "image": "org-flow-engine:dongzhou-local-complete86",
+      "image": "org-flow-engine:dongzhou-local-complete88",
       "healthRequired": false
     }
   },

@@ -169,6 +169,8 @@
     if (dialogueReceipt && (dialogueReceipt.state !== 'RECORDED' || !String(dialogueReceipt.sourceRecordId || '').startsWith('dongzhou-council:') || !/^[0-9a-f]{64}$/.test(String(dialogueReceipt.digest || '')))) throw new Error('军议对话归档回执无效');
     const memory = input.memory && typeof input.memory === 'object' ? copy(input.memory) : null;
     if (memory && (!memory.idempotencyKey || !memory.content || !/^[0-9a-f]{64}$/.test(String(memory.digest || '')) || !String(input.question || '').includes(`记忆印记：${memory.digest.slice(0, 12)}`))) throw new Error('军议旧事回执无效');
+    const knowledgeMastery = input.knowledgeMastery && typeof input.knowledgeMastery === 'object' ? copy(input.knowledgeMastery) : null;
+    if (knowledgeMastery && (!knowledgeMastery.questionId || knowledgeMastery.stageId !== stageId || knowledgeMastery.knowledgeId !== knowledge.id || knowledgeMastery.correct !== true || Number(knowledgeMastery.score) !== 10 || !/^[0-9a-f]{64}$/.test(String(knowledgeMastery.receipt?.digest || '')) || knowledgeMastery.receipt?.kernel?.module !== 'dongzhou_knowledge_tournament' || knowledgeMastery.receipt?.kernel?.state !== 'SEALED' || !String(input.question || '').includes(`史识印记：${knowledgeMastery.receipt.digest.slice(0, 12)}`))) throw new Error('史官问对回执无效');
     if (correspondence && (correspondence.heroId !== member.id || !/^[0-9a-f]{64}$/.test(String(correspondence.digest || "")))) throw new Error('所选耳报不属于当前属官');
     const thought = input.thoughtRequestId ? state.thoughts.find((entry) => entry.requestId === input.thoughtRequestId) : null;
     if (input.thoughtRequestId && (!thought || thought.digest !== input.thoughtDigest || thought.heroId !== member.id || thought.stageId !== stageId || thought.knowledgeId !== knowledge.id || Number(thought.source?.index) !== Number(input.evidenceSourceIndex) || thought.thought?.hasThought !== true || thought.councilProposal !== options[input.index])) throw new Error('属官进言与本次军议结果不匹配');
@@ -178,6 +180,7 @@
       correspondence: correspondence ? copy(correspondence) : null,
       thought: thought ? copy(thought) : null,
       memory,
+      knowledgeMastery,
       dialogueReceipt,
       options: options.slice(), index: input.index, text: options[input.index] };
     const previous = state.councils.find((entry) => entry.id === council.id);
@@ -243,6 +246,7 @@
     if (!mandate.evidence?.id || !mandate.evidence?.source?.work || !mandate.council?.requestId || !mandate.council?.text) throw new Error("内核军令未绑定史料、选证与属官裁断");
     if (mandate.evidence.searchReceipt && (!/^[0-9a-f]{64}$/.test(String(mandate.evidence.searchReceipt.digest || "")) || !Array.isArray(mandate.evidence.retrieval?.channels) || !mandate.evidence.retrieval.channels.length)) throw new Error("内核军令检索回执无效");
     if (mandate.evidenceFit && (mandate.evidenceFit.taskType !== mandate.taskType || !Number.isFinite(Number(mandate.evidenceFit.factor)) || Number(mandate.evidenceFit.factor) < 0 || Number(mandate.evidenceFit.factor) > 9 || !["strong", "aligned", "weak"].includes(mandate.evidenceFit.band) || !Array.isArray(mandate.evidenceFit.signals))) throw new Error("内核军令史证适配无效");
+    if (mandate.knowledgeMastery && (mandate.knowledgeMastery.stageId !== mandate.stageId || mandate.knowledgeMastery.knowledgeId !== mandate.evidence.id || Number(mandate.knowledgeMastery.score) !== 10 || Number(mandate.knowledgeMastery.bonus) !== 3 || mandate.knowledgeMastery.state !== "SEALED" || !/^[0-9a-f]{64}$/.test(String(mandate.knowledgeMastery.resultDigest || "")) || mandate.knowledgeMastery.kernel?.module !== "dongzhou_knowledge_tournament" || mandate.knowledgeMastery.kernel?.state !== "SEALED" || mandate.knowledgeMastery.resultDigest !== mandate.council?.knowledgeMastery?.resultDigest)) throw new Error("内核军令史识凭据无效");
     if (mandate.correspondence && (!/^[0-9a-f]{64}$/.test(String(mandate.correspondence.digest || "")) || mandate.correspondence.messageId !== mandate.council?.correspondence?.messageId || mandate.correspondence.digest !== mandate.council?.correspondence?.digest)) throw new Error("内核军令耳报来源无效");
     if (mandate.thought && (!/^[0-9a-f]{64}$/.test(String(mandate.thought.digest || "")) || mandate.thought.requestId !== mandate.council?.thought?.requestId || mandate.thought.digest !== mandate.council?.thought?.digest)) throw new Error("内核军令进言来源无效");
     if (mandate.memory && (!mandate.memory.idempotencyKey || !/^[0-9a-f]{64}$/.test(String(mandate.memory.digest || "")) || mandate.memory.digest !== mandate.council?.memory?.digest)) throw new Error("内核军令旧事来源无效");

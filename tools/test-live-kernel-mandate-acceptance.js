@@ -18,6 +18,8 @@ const BATTLE = "dongzhou-h5-battle-v2";
 const acceptanceLabel = process.env.DONGZHOU_ACCEPTANCE_LABEL || "kernel-mandate-complete12";
 const settlementDecision = process.env.DONGZHOU_SETTLEMENT_DECISION || "ACCEPT";
 const supportHeroId = process.env.DONGZHOU_SUPPORT_HERO || "";
+const requireKnowledgeMastery = process.env.DONGZHOU_REQUIRE_KNOWLEDGE_MASTERY === "1";
+const stopAfterOrder = process.env.DONGZHOU_STOP_AFTER_ORDER === "1";
 const terminalTimeoutMs = Number(process.env.DONGZHOU_TERMINAL_TIMEOUT_MS || 600000);
 assert(Number.isFinite(terminalTimeoutMs) && terminalTimeoutMs >= 1000, "Invalid terminal timeout");
 assert(["ACCEPT", "CENSURE"].includes(settlementDecision), "Unsupported settlement decision");
@@ -99,15 +101,68 @@ saveJournal();
     await page.click('#officeKnowledgeResults [data-source-index="0"]');
     await page.waitForSelector("#officeKnowledgeResults >> text=已取为据");
 
+    let knowledgeMastery = null;
+    if (requireKnowledgeMastery) {
+      journal.stage = "knowledge-mastery";
+      saveJournal();
+      const quizResponsePromise = page.waitForResponse((response) =>
+        new URL(response.url()).pathname.endsWith("/knowledge/quiz")
+          && response.request().method() === "POST",
+      { timeout: 90000 });
+      await page.click("#officeQuizStart");
+      const quizResponse = await quizResponsePromise;
+      assert.equal(quizResponse.status(), 200);
+      const startedQuiz = await quizResponse.json();
+      const currentPeople = await page.evaluate(async () => {
+        const response = await fetch("/api/dongzhou/v1/knowledge/stages/01", { credentials: "same-origin" });
+        if (!response.ok) throw new Error("Unable to read stage people for knowledge mastery");
+        const stage = await response.json();
+        return (stage.results?.[0]?.entities?.npcs || []).map((entry) => entry.name || entry);
+      });
+      const correctIndex = startedQuiz.question.options.findIndex((name) => currentPeople.includes(name));
+      assert(correctIndex >= 0, "Unable to identify the published AKU answer");
+      const answerResponsePromise = page.waitForResponse((response) =>
+        /\/knowledge\/quiz\/[^/]+\/answer$/.test(new URL(response.url()).pathname),
+      { timeout: 90000 });
+      await page.click(`[data-quiz-answer="${correctIndex}"]`);
+      const answerResponse = await answerResponsePromise;
+      assert.equal(answerResponse.status(), 200);
+      knowledgeMastery = await answerResponse.json();
+      assert.equal(knowledgeMastery.correct, true);
+      assert.equal(knowledgeMastery.score, 10);
+      assert.equal(knowledgeMastery.receipt?.kernel?.state, "SEALED");
+    }
+
     journal.stage = "npc-council";
     saveJournal();
-    const decisionResponse = page.waitForResponse(
-      (response) => new URL(response.url()).pathname.endsWith("/decisions") && response.request().method() === "POST",
-      { timeout: 180000 }
-    );
-    await page.locator("#officeDecisionForm button[type=submit]").click();
-    assert.equal((await decisionResponse).status(), 200);
-    await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).organization.councils.length > 0, PROFILE, { timeout: 180000 });
+    const councilCountBefore = await page.evaluate((key) =>
+      JSON.parse(localStorage.getItem(key)).organization.councils.length,
+    PROFILE);
+    let decisionResult = null;
+    for (let attempt = 1; attempt <= 4; attempt += 1) {
+      const decisionResponse = page.waitForResponse(
+        (response) => new URL(response.url()).pathname.endsWith("/decisions") && response.request().method() === "POST",
+        { timeout: 180000 }
+      );
+      await page.locator("#officeDecisionForm button[type=submit]").click();
+      decisionResult = await decisionResponse;
+      if (decisionResult.status() === 200) break;
+      const body = await decisionResult.json().catch(() => ({}));
+      if (decisionResult.status() !== 503 || attempt === 4) {
+        throw new Error(`AINPC council failed (${decisionResult.status()}): ${JSON.stringify(body)}`);
+      }
+      await page.waitForTimeout(5000);
+    }
+    await page.waitForFunction(({ key, councilCountBefore, questionId }) => {
+      const councils = JSON.parse(localStorage.getItem(key)).organization.councils;
+      const latest = councils.at(-1);
+      return councils.length > councilCountBefore
+        && (!questionId || latest?.knowledgeMastery?.questionId === questionId);
+    }, {
+      key: PROFILE,
+      councilCountBefore,
+      questionId: requireKnowledgeMastery ? knowledgeMastery.questionId : null
+    }, { timeout: 180000 });
     council = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).organization.councils.at(-1), PROFILE);
     assert.equal(council.memberId, "ZuoRu");
     assert.equal(council.stageId, "01");
@@ -115,14 +170,37 @@ saveJournal();
     assert.equal(council.dialogueReceipt?.state, "RECORDED");
     assert.match(council.dialogueReceipt?.sourceRecordId || "", /^dongzhou-council:/);
     assert.match(council.dialogueReceipt?.digest || "", /^[0-9a-f]{64}$/);
+    if (requireKnowledgeMastery) {
+      assert.equal(council.knowledgeMastery?.questionId, knowledgeMastery.questionId);
+      assert.equal(council.knowledgeMastery?.score, 10);
+      assert.equal(council.knowledgeMastery?.receipt?.digest, knowledgeMastery.receipt.digest);
+      assert.match(council.question, new RegExp(`史识印记：${knowledgeMastery.receipt.digest.slice(0, 12)}`));
+    }
 
     await page.selectOption("#officeTaskType", "supply");
     if (supportHeroId) await page.selectOption("#officeSupportMemberSelect", supportHeroId);
     await page.locator("#officeUseCouncil").check();
     journal.stage = "kernel-mandate-and-order";
     saveJournal();
-    await page.click("#officeIssueButton");
-    await page.waitForSelector("#officeMandateApproval:not([hidden])", { timeout: 90000 });
+    let mandateApprovalVisible = false;
+    for (let attempt = 1; attempt <= 4; attempt += 1) {
+      await page.waitForFunction(() => !document.querySelector("#officeIssueButton").disabled, undefined, { timeout: 90000 });
+      await page.click("#officeIssueButton");
+      mandateApprovalVisible = await page.waitForSelector("#officeMandateApproval:not([hidden])", { timeout: 20000 })
+        .then(() => true)
+        .catch(() => false);
+      if (mandateApprovalVisible) break;
+    }
+    if (!mandateApprovalVisible) {
+      const diagnostic = await page.evaluate(() => ({
+        notice: document.querySelector("#notice")?.textContent || "",
+        hint: document.querySelector("#officeCouncilHint")?.textContent || "",
+        issueDisabled: document.querySelector("#officeIssueButton")?.disabled,
+        taskType: document.querySelector("#officeTaskType")?.value,
+        useCouncil: document.querySelector("#officeUseCouncil")?.checked
+      }));
+      throw new Error(`Mandate draft did not open: ${JSON.stringify(diagnostic)}`);
+    }
     assert.equal(requests.order, 0, "Draft mandate must not create an organization order before player approval");
     const orderResponsePromise = page.waitForResponse(
       (response) => new URL(response.url()).pathname.endsWith("/organization/tasks")
@@ -169,6 +247,14 @@ saveJournal();
     );
     assert.equal(issued.mandate.council.requestId, council.id);
     assert.deepEqual(issued.mandate.council.dialogueReceipt, council.dialogueReceipt);
+    if (requireKnowledgeMastery) {
+      assert.equal(issued.mandate.knowledgeMastery?.questionId, knowledgeMastery.questionId);
+      assert.equal(issued.mandate.knowledgeMastery?.resultDigest, knowledgeMastery.receipt.digest);
+      assert.equal(issued.mandate.knowledgeMastery?.score, 10);
+      assert.equal(issued.mandate.knowledgeMastery?.bonus, 3);
+      assert.equal(issued.mandate.knowledgeMastery?.state, "SEALED");
+      assert.equal(issued.mandate.knowledgeMastery?.kernel?.module, "dongzhou_knowledge_tournament");
+    }
     assert.equal(issued.mandate.assignment.heroId, "ZuoRu");
     assert.equal(issued.mandate.assignment.transactionId, 9100103);
     assert.match(issued.mandate.assignment.planId, /^schedule-plan-/);
@@ -209,7 +295,9 @@ saveJournal();
     assert.match(await page.locator("#officeMandateLedger").innerText(), /属官执行中/);
     assert.match(await page.locator("#officeMandateLedger").innerText(), /印记/);
     assert.match(await page.locator("#officeMandateLedger").innerText(), /今日插程|后续排程|日程裁定/);
-    assert.match(await page.locator("#officeMandateLedger").innerText(), new RegExp(`史证${issued.mandate.evidenceFit.factor}/9`));
+    const mandateLedgerText = await page.locator("#officeMandateLedger").innerText();
+    assert.match(mandateLedgerText, new RegExp(`史证${issued.mandate.evidenceFit.factor}/9`));
+    if (requireKnowledgeMastery) assert.match(mandateLedgerText, /史识10\/10 · 成功率\+3/);
 
     } else {
       ({ council, issued } = await page.evaluate(({ key, remoteTask, mandateId }) => {
@@ -220,6 +308,46 @@ saveJournal();
         return { council: matchingCouncil, issued: { task, mandate } };
       }, { key: PROFILE, remoteTask: journal.remoteTask, mandateId: journal.mandateId }));
       assert(issued.task && issued.mandate && council, "Existing acceptance task is missing from the restored profile");
+    }
+
+    if (requireKnowledgeMastery) {
+      assert.equal(issued.mandate.knowledgeMastery?.score, 10);
+      assert.equal(issued.mandate.knowledgeMastery?.bonus, 3);
+      assert.equal(issued.mandate.knowledgeMastery?.state, "SEALED");
+      assert.match(issued.mandate.knowledgeMastery?.resultDigest || "", /^[0-9a-f]{64}$/);
+    }
+    if (stopAfterOrder) {
+      const snapshot = await page.evaluate(
+        (taskId) => window.DongzhouIntegration.organizationTask(taskId),
+        issued.task.remoteResult
+      );
+      const authoritativeTask = snapshot?.result?.data || snapshot?.result;
+      const parameters = authoritativeTask?.parameters || authoritativeTask?.effective_parameters || {};
+      const orgFlowParametersVisible = Object.hasOwn(parameters, "knowledge_quiz_question_id");
+      if (requireKnowledgeMastery && orgFlowParametersVisible) {
+        assert.equal(parameters.knowledge_quiz_question_id, issued.mandate.knowledgeMastery.questionId);
+        assert.equal(Number(parameters.knowledge_mastery_score), 10);
+        assert.equal(Number(parameters.knowledge_mastery_bonus), 3);
+      }
+      const result = {
+        result: "PASS",
+        scope: "ORDERED",
+        taskId: issued.task.remoteResult,
+        mandateId: issued.mandate.id,
+        knowledgeMastery: issued.mandate.knowledgeMastery || null,
+        orgFlowParametersVisible,
+        parameters: requireKnowledgeMastery && orgFlowParametersVisible ? {
+          knowledge_quiz_question_id: parameters.knowledge_quiz_question_id,
+          knowledge_mastery_score: parameters.knowledge_mastery_score,
+          knowledge_mastery_bonus: parameters.knowledge_mastery_bonus
+        } : null,
+        taskState: authoritativeTask?.state || authoritativeTask?.status || null
+      };
+      fs.writeFileSync(resultPath, JSON.stringify(result, null, 2));
+      journal.stage = "order-verified";
+      saveJournal();
+      console.log(JSON.stringify(result));
+      return;
     }
 
     if (!recoveringExisting) {
