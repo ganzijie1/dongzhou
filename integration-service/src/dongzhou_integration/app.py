@@ -19,7 +19,13 @@ from nexus_kernel.gateway import ApiError, create_app
 from nexus_kernel.kernel import Kernel, LoadedModule, Module, ModuleContext
 
 from .config import Settings
-from .assignments import AssignmentUnavailable, collaboration_support, select_assignment
+from .assignments import (
+    AssignmentUnavailable,
+    assignment_day,
+    collaboration_support,
+    select_assignment,
+    task_duty,
+)
 from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
@@ -3593,19 +3599,61 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             runtime = await store.read_npc_runtime(
                 settings.game_server_id, str(npc_id)
             )
-            return select_assignment(
-                hero_id=hero_id,
-                npc_id=str(npc_id),
-                task_type=task_type,
-                stage_id=stage_id,
-                npc_state=npc_state,
-                schedule_response=schedule,
-                runtime=runtime,
-                personality=npc_state.get("personality"),
-                motivation=npc_state.get("motivation"),
-                quality=quality,
-                manager_npc_id=manager_npc_id,
+            def select(current_schedule: dict[str, Any]) -> dict[str, Any]:
+                return select_assignment(
+                    hero_id=hero_id,
+                    npc_id=str(npc_id),
+                    task_type=task_type,
+                    stage_id=stage_id,
+                    npc_state=npc_state,
+                    schedule_response=current_schedule,
+                    runtime=runtime,
+                    personality=npc_state.get("personality"),
+                    motivation=npc_state.get("motivation"),
+                    quality=quality,
+                    manager_npc_id=manager_npc_id,
+                )
+
+            try:
+                return select(schedule)
+            except AssignmentUnavailable as error:
+                if str(error) != "AINPC schedule has no duty matching this task":
+                    raise
+
+            target = assignment_day(schedule, stage_id)
+            duty = task_duty(task_type)
+            todo_id = str(
+                uuid5(
+                    NAMESPACE_URL,
+                    "dongzhou-duty:"
+                    f"{target['planId']}:{hero_id}:{task_type}:{stage_id}",
+                )
             )
+            await upstreams.append_npc_schedule_duty(
+                npc_id,
+                date=str(target["day"]["date"]),
+                activity={
+                    "todo_id": todo_id,
+                    "transaction_id": duty["transaction_id"],
+                    "transaction_name": duty["name"],
+                    "description": duty["description"],
+                    "duration_minutes": duty["duration_minutes"],
+                    "importance": duty["importance"],
+                    "strict_time_limit": False,
+                    "time_slot": None,
+                    "transaction_type": duty["type"],
+                    "priority": "high",
+                    "location": "东周官署",
+                    "extra_data": {
+                        "source": "dongzhou_court_duty",
+                        "hero_id": hero_id,
+                        "task_type": task_type,
+                        "stage_id": stage_id,
+                        "plan_id": target["planId"],
+                    },
+                },
+            )
+            return select(await upstreams.npc_schedule(npc_id))
         except UpstreamUnavailable as error:
             raise ApiError(
                 "ainpc_assignment_unavailable",

@@ -881,6 +881,42 @@ class Upstreams:
             payload={"game_server_id": str(self.settings.ainpc_game_server_id), "npc_id": str(npc_id), "force_regenerate": force_regenerate},
         )
 
+    async def append_npc_schedule_duty(
+        self, npc_id: int, *, date: str, activity: dict[str, Any]
+    ) -> dict[str, Any]:
+        response = await self._json(
+            "POST",
+            f"{self.settings.ainpc_url}/api/v1/schedule-planning/day/append",
+            token=self.settings.ainpc_token,
+            payload={
+                "game_server_id": str(self.settings.ainpc_game_server_id),
+                "npc_id": str(npc_id),
+                "date": date,
+                "activity": activity,
+                "reason": "dongzhou_court_duty",
+            },
+        )
+        data = response.get("data")
+        events = data.get("events") if isinstance(data, dict) else None
+        if (
+            response.get("code") not in (0, 200, "0", "200")
+            or not isinstance(data, dict)
+            or str(data.get("date") or "") != date
+            or not isinstance(events, list)
+            or not any(
+                isinstance(event, dict)
+                and str(event.get("todo_id") or event.get("id") or "")
+                == str(activity.get("todo_id") or "")
+                for event in events
+            )
+        ):
+            raise UpstreamUnavailable(
+                "AINPC did not commit the Dongzhou duty.",
+                error_code="ainpc_schedule_duty_invalid",
+                response_payload=response,
+            )
+        return {"date": date, "events": events}
+
     async def interrupt_npc_schedule(
         self, npc_id: int, payload: dict[str, Any]
     ) -> dict[str, Any]:

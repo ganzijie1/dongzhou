@@ -29,6 +29,8 @@ class MandateUpstreams:
         self.growth_credits: list[tuple[str, dict[str, object], str]] = []
         self.knowledge_available = True
         self.assignment_available = True
+        self.schedule_has_duties = True
+        self.appended_duties: list[dict[str, object]] = []
         self.task_snapshot: dict[str, object] | None = None
         self.thoughts: list[tuple[int, dict[str, object]]] = []
         self.interruptions: list[tuple[int, dict[str, object]]] = []
@@ -162,6 +164,16 @@ class MandateUpstreams:
             from dongzhou_integration.upstreams import UpstreamUnavailable
 
             raise UpstreamUnavailable("schedule restarting")
+        events = [
+            {"id": "event-supply", "transaction_id": 9100103, "name": "转运军粮", "type": "军需", "importance": 80},
+            {"id": "event-drill", "transaction_id": 9100102, "name": "检阅军阵", "type": "军事", "importance": 95},
+            {"id": "event-patrol", "transaction_id": 9100104, "name": "巡察营垒", "type": "治安", "importance": 75},
+            {"id": "event-intelligence", "transaction_id": 9100105, "name": "访求军情", "type": "谍报", "importance": 85},
+            {"id": "event-diplomacy", "transaction_id": 9100106, "name": "折冲诸侯", "type": "外交", "importance": 90},
+        ] if self.schedule_has_duties else [
+            {"id": "event-rest", "transaction_id": 100, "name": "休息", "type": "休息", "importance": 10}
+        ]
+        events.extend(self.appended_duties)
         return {
             "code": 200,
             "data": {
@@ -172,16 +184,26 @@ class MandateUpstreams:
                     "date": "0772-10-22",
                     "start_level": 1,
                     "end_level": 20,
-                    "events": [
-                        {"id": "event-supply", "transaction_id": 9100103, "name": "转运军粮", "type": "军需", "importance": 80},
-                        {"id": "event-drill", "transaction_id": 9100102, "name": "检阅军阵", "type": "军事", "importance": 95},
-                        {"id": "event-patrol", "transaction_id": 9100104, "name": "巡察营垒", "type": "治安", "importance": 75},
-                        {"id": "event-intelligence", "transaction_id": 9100105, "name": "访求军情", "type": "谍报", "importance": 85},
-                        {"id": "event-diplomacy", "transaction_id": 9100106, "name": "折冲诸侯", "type": "外交", "importance": 90},
-                    ],
+                    "events": events,
                 }],
             },
         }
+
+    async def append_npc_schedule_duty(self, npc_id, *, date, activity):
+        assert npc_id > 0
+        assert date == "0772-10-22"
+        event = {
+            "id": activity["todo_id"],
+            "todo_id": activity["todo_id"],
+            "transaction_id": activity["transaction_id"],
+            "name": activity["transaction_name"],
+            "type": activity["transaction_type"],
+            "importance": activity["importance"],
+            "extra_data": activity["extra_data"],
+        }
+        if not any(item["todo_id"] == event["todo_id"] for item in self.appended_duties):
+            self.appended_duties.append(event)
+        return {"date": date, "events": [event]}
 
     async def npc_quality(self, npc_id, *, auto_initialize=False):
         assert npc_id > 0
@@ -1750,6 +1772,41 @@ def test_mandate_rejects_source_not_deliberated_by_npc() -> None:
             )
             assert response.status_code == 422
             assert response.json()["error"]["code"] == "court_council_source_unverified"
+
+
+def test_assignment_preview_bootstraps_missing_dongzhou_duty_once() -> None:
+    with TemporaryDirectory() as directory:
+        upstreams = MandateUpstreams()
+        upstreams.schedule_has_duties = False
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=upstreams
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            first = client.get(
+                "/api/dongzhou/v1/npcs/ZuoRu/assignments/drill",
+                params={"stage_id": "01"},
+            )
+            assert first.status_code == 200, first.text
+            assignment = first.json()["assignment"]
+            assert assignment["transactionId"] == 9100102
+            assert assignment["name"] == "检阅军阵"
+            assert assignment["eventId"] == upstreams.appended_duties[0]["todo_id"]
+            assert upstreams.appended_duties[0]["extra_data"] == {
+                "source": "dongzhou_court_duty",
+                "hero_id": "ZuoRu",
+                "task_type": "drill",
+                "stage_id": "01",
+                "plan_id": "plan-1",
+            }
+
+            replay = client.get(
+                "/api/dongzhou/v1/npcs/ZuoRu/assignments/drill",
+                params={"stage_id": "01"},
+            )
+            assert replay.status_code == 200, replay.text
+            assert replay.json()["assignment"]["eventId"] == assignment["eventId"]
+            assert len(upstreams.appended_duties) == 1
 
 
 def test_assignment_preview_and_stale_schedule_are_enforced() -> None:

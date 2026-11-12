@@ -12,6 +12,49 @@ TASK_TRANSACTION_IDS = {
     "diplomacy": 9100106,
 }
 
+TASK_DUTIES = {
+    "supply": {
+        "transaction_id": 9100103,
+        "name": "转运军粮",
+        "type": "军需",
+        "description": "核定粮道并组织军粮车队按期送达前线",
+        "importance": 90,
+        "duration_minutes": 90,
+    },
+    "drill": {
+        "transaction_id": 9100102,
+        "name": "检阅军阵",
+        "type": "军事",
+        "description": "赴营垒检阅部伍操练与军纪执行情况",
+        "importance": 90,
+        "duration_minutes": 60,
+    },
+    "patrol": {
+        "transaction_id": 9100104,
+        "name": "巡察营垒",
+        "type": "治安",
+        "description": "巡查营门守备烽燧与夜间值守",
+        "importance": 85,
+        "duration_minutes": 60,
+    },
+    "intelligence": {
+        "transaction_id": 9100105,
+        "name": "访求军情",
+        "type": "谍报",
+        "description": "接见斥候校核敌情道路与诸侯动向",
+        "importance": 85,
+        "duration_minutes": 45,
+    },
+    "diplomacy": {
+        "transaction_id": 9100106,
+        "name": "折冲诸侯",
+        "type": "外交",
+        "description": "准备国书礼仪与盟约条件并出使诸侯",
+        "importance": 85,
+        "duration_minutes": 120,
+    },
+}
+
 _POSITIVE_EMOTIONS = {
     "calm": (6.0, 0.0),
     "peace": (4.0, 0.04),
@@ -122,6 +165,39 @@ _RELATIONSHIP_WEIGHTS = {"family": 3.0, "legal": 2.0, "organization": 2.0, "soci
 
 class AssignmentUnavailable(ValueError):
     pass
+
+
+def assignment_day(schedule_response: dict[str, Any], stage_id: str) -> dict[str, Any]:
+    """Choose the committed plan day closest to the requested Dongzhou stage."""
+    plan = _payload(schedule_response)
+    plan_id = str(plan.get("plan_id") or "").strip()
+    schedules = plan.get("schedules")
+    if not plan_id or not isinstance(schedules, list):
+        raise AssignmentUnavailable("AINPC returned no usable schedule plan")
+
+    stage_number = _stage_number(stage_id)
+    candidates: list[tuple[tuple[int, int], dict[str, Any]]] = []
+    for schedule_index, day in enumerate(schedules):
+        if not isinstance(day, dict) or not str(day.get("date") or "").strip():
+            continue
+        start = _integer(day.get("start_level") or day.get("day"), schedule_index + 1)
+        end = _integer(day.get("end_level"), start)
+        distance = (
+            0
+            if start <= stage_number <= end
+            else min(abs(stage_number - start), abs(stage_number - end))
+        )
+        candidates.append(((distance, _integer(day.get("day"), schedule_index + 1)), day))
+    if not candidates:
+        raise AssignmentUnavailable("AINPC schedule has no usable day for this task")
+    return {"planId": plan_id, "day": min(candidates, key=lambda item: item[0])[1]}
+
+
+def task_duty(task_type: str) -> dict[str, Any]:
+    duty = TASK_DUTIES.get(task_type)
+    if duty is None:
+        raise AssignmentUnavailable("unknown task type")
+    return dict(duty)
 
 
 def _stage_number(stage_id: str) -> int:
