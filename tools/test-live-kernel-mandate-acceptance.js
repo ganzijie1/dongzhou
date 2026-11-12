@@ -18,7 +18,7 @@ const BATTLE = "dongzhou-h5-battle-v2";
 const acceptanceLabel = process.env.DONGZHOU_ACCEPTANCE_LABEL || "kernel-mandate-complete12";
 const settlementDecision = process.env.DONGZHOU_SETTLEMENT_DECISION || "ACCEPT";
 const supportHeroId = process.env.DONGZHOU_SUPPORT_HERO || "";
-const terminalTimeoutMs = Number(process.env.DONGZHOU_TERMINAL_TIMEOUT_MS || 240000);
+const terminalTimeoutMs = Number(process.env.DONGZHOU_TERMINAL_TIMEOUT_MS || 600000);
 assert(Number.isFinite(terminalTimeoutMs) && terminalTimeoutMs >= 1000, "Invalid terminal timeout");
 assert(["ACCEPT", "CENSURE"].includes(settlementDecision), "Unsupported settlement decision");
 const privateDirectory = path.resolve(__dirname, `../.agentwork/root/${acceptanceLabel}`);

@@ -3,8 +3,8 @@
 ## 入口与交付包
 
 - 游戏入口：`http://127.0.0.1:8780/`
-- 东周网关镜像：`dongzhou-integration:20261112-local-complete101-patch1`
-- AINPC 八角色镜像：`ainpc-app:v20261112-dongzhou-local-complete65`
+- 东周网关镜像：`dongzhou-integration:20261112-local-complete104`
+- AINPC 八角色镜像：`ainpc-app:v20261112-dongzhou-local-complete70`
 - orgFlow API/Worker 镜像：`org-flow-engine:dongzhou-local-complete87`
 - H5 完整包：`output/2026-11-12-dongzhou-integrated-h5-complete74.zip`
 - H5 SHA256：`CD1F24A0CCD0D351041C8B357A60626EBC39FAEF77A575DC24C29CBA89163E05`
@@ -67,7 +67,7 @@ AINPC 容器通过宿主回环代理访问 LoongEQ、LoongMemory、输入预检�
 - `ainpc-readiness-complete23` 曾因 Docker Desktop 引擎失联只确认胜任度传递；其异步终态缺口已由后续 `complete38-race-fixed` 同任务全链验收覆盖。
 - 官署终态现增加第二个 NexusKernel 人在回路：orgFlowEngine 的贡献、功绩和终态先生成不可改写的封存凭据，玩家必须在官署选择“收纳复命”或“申斥”后才能推进月令。收纳才发放战前助益；申斥仍照录上游贡献与功绩，但取消战前助益或外交成功并扣减属官信任、关系。裁决按任务、玩家、结案摘要幂等保存，刷新和重试不会重复领奖或更换决定。
 - `complete42` 将 orgFlowEngine 的权威任务终态同时回写 AINPC 重要事件和长期系统消息。两条事件使用独立 outbox 重试，只有两者均送达时簿书才显示“经历已形成”；网关升级时会按已封存结果幂等补齐旧任务缺失的长期记忆，不重算成败或奖励。真实任务 `b2b66b37-732c-507b-970d-fb0ff7511698` 与 `cd9d873a-9264-53d1-bfc0-90048f909f11` 已在 AINPC `ops_reports` 持久化为左儒的可读经历，稳定消息号均为 `dongzhou-org-outcome:<task_id>`。
-- `complete43` 将 AINPC 协同加成收紧为属官到当前主管的具体关系：正向好感与有效上下级关系加分，厌恶或仇恨扣分，其他人物的关系不再误入胜任度。主管 ID、好感、有效关系和最终因子随 NexusKernel 军令封存，任务簿显示 `协同+N/-N`。真实只读验收确认左儒当前对主管杜伯无关系记录，因此军粮当值为 `协同+0`，没有人工补造状态。
+- `complete43` 将 AINPC 协同加成收紧为属官到当前主管的具体关系：正向好感与有效上下级关系加分，厌恶或仇恨扣分，其他人物的关系不再误入胜任度。主管 ID、好感、有效关系和最终因子随 NexusKernel 军令封存，任务簿显示 `协同+N/-N`。当前真实只读验收读到左儒与主管杜伯的双向组织上下级关系，因此军粮当值为 `协同+2.5`；验收按返回的好感与关系独立重算，不再把历史空关系和零因子写死。
 - `complete44` 让史料选择和 AINPC 军议结论真正进入结算：来源层级、出处范围、军议与差事类型的匹配、检索回执分别形成信号，合计封存为 `0-9` 的史证适配度。新差事按封存分数替代旧的固定知识加成，旧军令仍按中性 `6` 兼容；NexusKernel 军令、orgFlow 简报和官署簿书共同显示同一值。
 - `complete75` 将公共库藏军需调拨纳入 NexusKernel `1.2.0` 确认工作流：草案阶段不扣账，签发后才调用 orgFlow 权威负数调整并凭收据增加军粮，驳回零支出；签发动作、上游幂等键和云档效果可跨刷新恢复且不可重复落账。
 - `complete76` 将 AINPC 自主念头接入军议：当前属官会依据本回史料、出处、当值、人格和动机形成真实进言并触发动机路由；完整进言与稳定提案按请求幂等封存，只有提案被军议选中才由 NexusKernel 封入军令。真实 Chromium 已完成 `COMPLETED -> 军议选中 -> REQUIRES_ACTION -> REJECTED`，没有派发 orgFlow 差事；320px 页面无横向溢出，证据为 `live-spontaneous-thought-mobile.png`。
@@ -87,6 +87,7 @@ AINPC 容器通过宿主回环代理访问 LoongEQ、LoongMemory、输入预检�
 - `complete100` 增加“主办 + 协办副手”：orgFlow 权威名册校验两人均在职，AINPC 双向关系生成 `-8..+10` 协同因子并进入成功率，NexusKernel `dongzhou_mandate_workflow 1.9.0` 封存两份身份、关系和当值证据；下达时两人分别取得稳定日程中断回执。
 - `complete101` 补齐协办下游：orgFlow 任务参数与简报保留副手及协同分，主副手各自产生 AINPC 事件、长期记忆、品行和履职意愿四项归档；NexusKernel `dongzhou_npc_settlement 1.1.0` 分别封印，战报从服务端已签军令提取副手并把双方列入认证参战者。
 - `complete101-patch1` 修复战斗开始已消耗筹备奖励后无法封存战报的问题：已消耗记录必须通过服务端军议、已签军令和 orgFlow 结案三项认证。真实无拦截验收复用任务 `915dafe4-51bc-50ae-8b5d-8d016b12d5c4`，秦襄公四项归档全部 `DELIVERED`，人物封印与战果封印均为 `SEALED`，认证参战者为秦襄公、左儒；证据为 `live-collaboration-complete101.json` 与同名 PNG。
+- `complete104/complete70` 修复不同玩家在同一游戏时刻向同一 NPC 作出不同裁断时的短期记忆幂等冲突。AINPC 优先以东周传入的稳定 `source_record_id` 生成事实身份，重放仍复用原事实，不同玩家或不同裁断不再互相覆盖；NexusKernel 的归档摘要反查门禁保持严格。真实无拦截验收任务 `4eb5b95c-113e-5f44-bec9-d223b482f329` 已完成军议归档、签令、组织执行、直属审核、贡献 `3200 -> 3300`、云档重载和战斗日志验证，证据为 `live-kernel-mandate-complete70.json` 与同名 PNG。真实异步链在繁忙时可超过四分钟，验收默认终态等待现为十分钟。
 - `complete62` 已将当前四服务结果补成玩家可读界面：府中书问以稳定访客隔离并显示正式人物名，orgFlow 名册显示 12 席谱系、贡献余额、累计收支与直属主管，AINPC 主动来信偏好显示真实同步状态，90 天当值计划显示起止日期、首日事项和计划印记。对应无拦截验收为 `live-correspondence-acceptance.png`、`live-roster-ledger.png`、`live-interaction-preference.png` 与 `live-schedule-browser.png`。
 - `complete64` 将 orgFlow 权威名册的 12 席全部合并进可操作官员集合，不再只显示当前关卡的两名角色。新增成员使用游戏正式中文名并将内部岗位编号映射为可派差官职；既有忠诚、疲劳与关系状态保留。真实无拦截浏览器已逐席确认 12/12 AINPC 均为 `READY`，可调阅性情、动机和 90 日当值，证据为 `live-office-roster-browser.json` 与同名 PNG。
 - `complete67` 开放玩家申请 `officer_12` 军府属官席位，并显示直属杜伯与 orgFlow 权威贡献账户。入仕只以权威名册回写为成功，最长等待 180 秒；辞仕需要界面二次确认后才发送明确退出请求。真实无拦截浏览器已完成入仕、名册回读、辞仕和席位释放，证据为 `live-membership-browser.json`、`live-membership-joined.png` 与 `live-membership-released.png`。

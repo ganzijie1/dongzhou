@@ -34,12 +34,38 @@ const executablePath = [
       }
       throw new Error(failures.join(","));
     });
-    const support = result.response.assignment.managerSupport;
+    const assignment = result.response.assignment;
+    const support = assignment.managerSupport;
+    const positiveAffections = new Set([
+      "love", "adoration", "kinship", "friendship", "dependence", "respect", "appreciation",
+    ]);
+    const negativeAffections = { annoyance: -4, hatred: -6 };
+    const relationshipWeights = { family: 3, legal: 2, organization: 2, social: 1 };
+    const affection = support.affection;
+    let affectionFactor = 0;
+    if (affection) {
+      const value = Math.max(0, Math.min(100, Number(affection.value) || 0));
+      if (positiveAffections.has(affection.type)) affectionFactor = value * 0.06;
+      else if (Object.hasOwn(negativeAffections, affection.type)) {
+        affectionFactor = value * negativeAffections[affection.type] / 100;
+      }
+    }
+    const relationshipFactor = support.relationships.reduce((sum, relationship) => (
+      sum + (relationshipWeights[relationship.type] || 0) + (relationship.bilateral ? 0.5 : 0)
+    ), 0);
+    const expectedFactor = Math.round(
+      Math.max(-8, Math.min(10, affectionFactor + Math.min(4, relationshipFactor))) * 10,
+    ) / 10;
     assert.equal(support.managerNpcId, "6195011151089261734");
-    assert.equal(support.factor, 0);
-    assert.equal(support.affection, null);
-    assert.deepEqual(support.relationships, []);
-    console.log(JSON.stringify({ result: "PASS", taskType: result.taskType, managerSupport: support }));
+    assert.equal(support.factor, expectedFactor);
+    assert.equal(assignment.readiness.factors.support, expectedFactor);
+    assert(expectedFactor >= -8 && expectedFactor <= 10);
+    console.log(JSON.stringify({
+      result: "PASS",
+      taskType: result.taskType,
+      managerSupport: support,
+      readinessSupport: assignment.readiness.factors.support,
+    }));
   } finally {
     await browser.close();
   }
