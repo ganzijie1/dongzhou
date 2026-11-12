@@ -2069,19 +2069,23 @@
     try {
       previousPlanId = schedulePlanId(await integration.npcSchedule(member.id));
     } catch (_) {}
-    try {
-      await integration.generateNpcSchedule(member.id);
-      return;
-    } catch (_) {
-      // Expired-plan generation is durable and can outlive the gateway HTTP budget.
-    }
-    const deadline = Date.now() + 180000;
-    while (Date.now() < deadline) {
-      await sleep(2000);
+    for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
-        const currentPlanId = schedulePlanId(await integration.npcSchedule(member.id));
-        if (currentPlanId && currentPlanId !== previousPlanId) return;
-      } catch (_) {}
+        await integration.generateNpcSchedule(member.id);
+        return;
+      } catch (_) {
+        // Expired-plan generation is durable and can outlive the gateway HTTP budget.
+      }
+      const deadline = Date.now() + 120000;
+      while (Date.now() < deadline) {
+        await sleep(2000);
+        try {
+          const currentPlanId = schedulePlanId(await integration.npcSchedule(member.id));
+          if (currentPlanId && currentPlanId !== previousPlanId) return;
+        } catch (_) {}
+      }
+      // A concurrent actor revision can safely reject a durable result. Retry the
+      // same idempotent generation request once after that result has settled.
     }
     throw new Error(`${member.name || member.id}的当值日程尚未续拟完成`);
   }

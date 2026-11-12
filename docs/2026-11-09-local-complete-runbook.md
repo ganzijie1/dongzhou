@@ -5,7 +5,7 @@
 - 游戏入口：`http://127.0.0.1:8780/`
 - 东周网关镜像：`dongzhou-integration:20261112-local-complete104`
 - AINPC 八角色镜像：`ainpc-app:v20261113-dongzhou-local-complete72`
-- orgFlow API/Worker 镜像：`org-flow-engine:dongzhou-local-complete87`
+- orgFlow API/Worker 镜像：`org-flow-engine:dongzhou-local-complete88`
 - H5 完整包：`output/2026-11-12-dongzhou-integrated-h5-complete74.zip`
 - H5 SHA256：`CD1F24A0CCD0D351041C8B357A60626EBC39FAEF77A575DC24C29CBA89163E05`
 
