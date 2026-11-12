@@ -4,7 +4,7 @@
 
 - 游戏入口：`http://127.0.0.1:8780/`
 - 东周网关镜像：`dongzhou-integration:20261112-local-complete104`
-- AINPC 八角色镜像：`ainpc-app:v20261112-dongzhou-local-complete70`
+- AINPC 八角色镜像：`ainpc-app:v20261113-dongzhou-local-complete72`
 - orgFlow API/Worker 镜像：`org-flow-engine:dongzhou-local-complete87`
 - H5 完整包：`output/2026-11-12-dongzhou-integrated-h5-complete74.zip`
 - H5 SHA256：`CD1F24A0CCD0D351041C8B357A60626EBC39FAEF77A575DC24C29CBA89163E05`
@@ -88,6 +88,7 @@ AINPC 容器通过宿主回环代理访问 LoongEQ、LoongMemory、输入预检�
 - `complete101` 补齐协办下游：orgFlow 任务参数与简报保留副手及协同分，主副手各自产生 AINPC 事件、长期记忆、品行和履职意愿四项归档；NexusKernel `dongzhou_npc_settlement 1.1.0` 分别封印，战报从服务端已签军令提取副手并把双方列入认证参战者。
 - `complete101-patch1` 修复战斗开始已消耗筹备奖励后无法封存战报的问题：已消耗记录必须通过服务端军议、已签军令和 orgFlow 结案三项认证。真实无拦截验收复用任务 `915dafe4-51bc-50ae-8b5d-8d016b12d5c4`，秦襄公四项归档全部 `DELIVERED`，人物封印与战果封印均为 `SEALED`，认证参战者为秦襄公、左儒；证据为 `live-collaboration-complete101.json` 与同名 PNG。
 - `complete104/complete70` 修复不同玩家在同一游戏时刻向同一 NPC 作出不同裁断时的短期记忆幂等冲突。AINPC 优先以东周传入的稳定 `source_record_id` 生成事实身份，重放仍复用原事实，不同玩家或不同裁断不再互相覆盖；NexusKernel 的归档摘要反查门禁保持严格。真实无拦截验收任务 `4eb5b95c-113e-5f44-bec9-d223b482f329` 已完成军议归档、签令、组织执行、直属审核、贡献 `3200 -> 3300`、云档重载和战斗日志验证，证据为 `live-kernel-mandate-complete70.json` 与同名 PNG。真实异步链在繁忙时可超过四分钟，验收默认终态等待现为十分钟。
+- `complete72` 将 NPC 自动复命从模型措辞中解耦。由任务服务创建、且只绑定当前 NPC 的 `RESULT_SUBMIT` 回合会按唯一权威待办确定性提交；英文的成功、部分完成和无法完成意图分别映射为 `COMPLETED / PARTIALLY_COMPLETED / UNABLE`，普通玩家和普通 NPC 对话仍须通过原完成语义门禁。若旧回合已经送达“写入未确认”并结束，但 orgFlow 任务仍未提交，生产报告入口可在两分钟后以同一任务新开恢复轮次；正常完成、终态任务和身份不匹配仍不可恢复。真实无拦截任务 `3982e2b9-593e-5cbe-9489-89a7eb3254a9` 在模型链路可降级的环境中仍产生一条权威复命并终结为 `SUCCESS`，贡献 `3500 -> 3600`、公共库存 `640 -> 740`，云档重载和战斗承接均通过；证据为 `live-authoritative-report-complete72.json` 与同名 PNG。
 - `complete62` 已将当前四服务结果补成玩家可读界面：府中书问以稳定访客隔离并显示正式人物名，orgFlow 名册显示 12 席谱系、贡献余额、累计收支与直属主管，AINPC 主动来信偏好显示真实同步状态，90 天当值计划显示起止日期、首日事项和计划印记。对应无拦截验收为 `live-correspondence-acceptance.png`、`live-roster-ledger.png`、`live-interaction-preference.png` 与 `live-schedule-browser.png`。
 - `complete64` 将 orgFlow 权威名册的 12 席全部合并进可操作官员集合，不再只显示当前关卡的两名角色。新增成员使用游戏正式中文名并将内部岗位编号映射为可派差官职；既有忠诚、疲劳与关系状态保留。真实无拦截浏览器已逐席确认 12/12 AINPC 均为 `READY`，可调阅性情、动机和 90 日当值，证据为 `live-office-roster-browser.json` 与同名 PNG。
 - `complete67` 开放玩家申请 `officer_12` 军府属官席位，并显示直属杜伯与 orgFlow 权威贡献账户。入仕只以权威名册回写为成功，最长等待 180 秒；辞仕需要界面二次确认后才发送明确退出请求。真实无拦截浏览器已完成入仕、名册回读、辞仕和席位释放，证据为 `live-membership-browser.json`、`live-membership-joined.png` 与 `live-membership-released.png`。
