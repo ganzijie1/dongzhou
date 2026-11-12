@@ -920,6 +920,46 @@ class Upstreams:
             )
         return response
 
+    async def report_dialogue_choice(
+        self, npc_id: int, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        response = await self._json(
+            "POST",
+            f"{self.settings.ainpc_url}/callback/game-reports/dialogue-choice",
+            token=self.settings.ainpc_token,
+            payload={
+                "game_server_id": str(self.settings.ainpc_game_server_id),
+                "npc_id": str(npc_id),
+                **payload,
+            },
+        )
+        data = response.get("data")
+        inserted = data.get("inserted_count") if isinstance(data, dict) else None
+        skipped = data.get("skipped_count") if isinstance(data, dict) else None
+        if (
+            response.get("code") != 200
+            or not isinstance(data, dict)
+            or str(data.get("npc_id")) != str(npc_id)
+            or data.get("count") != 1
+            or isinstance(inserted, bool)
+            or not isinstance(inserted, int)
+            or inserted < 0
+            or isinstance(skipped, bool)
+            or not isinstance(skipped, int)
+            or skipped < 0
+            or inserted + skipped != 1
+        ):
+            raise UpstreamUnavailable(
+                "AINPC returned an invalid dialogue report receipt.",
+                error_code="ainpc_dialogue_report_invalid",
+                response_payload=response,
+            )
+        return {
+            "npcId": str(npc_id),
+            "insertedCount": inserted,
+            "skippedCount": skipped,
+        }
+
     async def generate_spontaneous_thought(
         self, npc_id: int, payload: dict[str, Any]
     ) -> dict[str, Any]:

@@ -161,6 +161,8 @@
     if (!Array.isArray(options) || options.length < 2 || options.some((text) => typeof text !== 'string' || !text.trim())) throw new Error('军议方案不完整');
     if (!Number.isInteger(input.index) || input.index < 0 || input.index >= options.length) throw new Error('军议结果不属于本次方案');
     if (!String(input.question || '').trim() || !String(input.id || '').trim()) throw new Error('军议缺少来源记录');
+    const dialogueReceipt = input.dialogueReceipt && typeof input.dialogueReceipt === 'object' ? copy(input.dialogueReceipt) : null;
+    if (dialogueReceipt && (dialogueReceipt.state !== 'RECORDED' || !String(dialogueReceipt.sourceRecordId || '').startsWith('dongzhou-council:') || !/^[0-9a-f]{64}$/.test(String(dialogueReceipt.digest || '')))) throw new Error('军议对话归档回执无效');
     if (correspondence && (correspondence.heroId !== member.id || !/^[0-9a-f]{64}$/.test(String(correspondence.digest || "")))) throw new Error('所选耳报不属于当前属官');
     const thought = input.thoughtRequestId ? state.thoughts.find((entry) => entry.requestId === input.thoughtRequestId) : null;
     if (input.thoughtRequestId && (!thought || thought.digest !== input.thoughtDigest || thought.heroId !== member.id || thought.stageId !== stageId || thought.knowledgeId !== knowledge.id || Number(thought.source?.index) !== Number(input.evidenceSourceIndex) || thought.thought?.hasThought !== true || thought.councilProposal !== options[input.index])) throw new Error('属官进言与本次军议结果不匹配');
@@ -169,6 +171,7 @@
       knowledgeSummary: String(input.knowledgeSummary ?? knowledge.summary ?? ''), evidenceSource: copy(evidenceSource), question: String(input.question),
       correspondence: correspondence ? copy(correspondence) : null,
       thought: thought ? copy(thought) : null,
+      dialogueReceipt,
       options: options.slice(), index: input.index, text: options[input.index] };
     const previous = state.councils.find((entry) => entry.id === council.id);
     if (previous && JSON.stringify(previous) !== JSON.stringify(council)) throw new Error('军议来源记录冲突');

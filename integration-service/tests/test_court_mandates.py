@@ -28,6 +28,7 @@ class MandateUpstreams:
         self.task_snapshot: dict[str, object] | None = None
         self.thoughts: list[tuple[int, dict[str, object]]] = []
         self.interruptions: list[tuple[int, dict[str, object]]] = []
+        self.dialogue_reports: list[tuple[int, dict[str, object]]] = []
 
     async def health(self):
         return {
@@ -49,6 +50,10 @@ class MandateUpstreams:
     async def choose_dialogue(self, npc_id, payload):
         assert npc_id > 0
         return {"code": 200, "data": {"index": 1, "type": "OPTION"}}
+
+    async def report_dialogue_choice(self, npc_id, payload):
+        self.dialogue_reports.append((npc_id, payload))
+        return {"npcId": str(npc_id), "insertedCount": 1, "skippedCount": 0}
 
     async def generate_spontaneous_thought(self, npc_id, payload):
         self.thoughts.append((npc_id, payload))
@@ -614,6 +619,12 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
                 ],
             }
             assert mandate["council"]["text"] == "整军强攻"
+            assert mandate["council"]["dialogueReceipt"]["state"] == "RECORDED"
+            assert len(mandate["council"]["dialogueReceipt"]["digest"]) == 64
+            assert (
+                mandate["council"]["dialogueReceipt"]["sourceRecordId"]
+                == upstreams.dialogue_reports[0][1]["dialogues"][0]["source_record_id"]
+            )
             assert mandate["assignment"]["planId"] == "plan-1"
             assert mandate["assignment"]["eventId"] == "event-drill"
             assert mandate["assignment"]["transactionId"] == 9100102

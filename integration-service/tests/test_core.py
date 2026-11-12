@@ -62,6 +62,9 @@ class _CapturingUpstreams(_HealthyUpstreams):
     async def choose_dialogue(self, npc_id, payload):
         return {"data": {"type": "OPTION", "index": 0}}
 
+    async def report_dialogue_choice(self, npc_id, payload):
+        return {"npcId": str(npc_id), "insertedCount": 1, "skippedCount": 0}
+
 
 class _NpcPreferenceUpstreams(_HealthyUpstreams):
     def __init__(self, *, applied_enabled=None) -> None:

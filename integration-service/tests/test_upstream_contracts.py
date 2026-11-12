@@ -350,6 +350,17 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                     {"code": 2, "data": None} if len(attempts) == 1 else
                     {"code": 200, "data": {"index": 0, "type": "OPTION"}}
                 ))
+            if request.url.path == "/callback/game-reports/dialogue-choice":
+                body = json.loads(request.content)
+                return httpx.Response(200, json={
+                    "code": 200,
+                    "data": {
+                        "npc_id": body["npc_id"],
+                        "count": 1,
+                        "inserted_count": 1,
+                        "skipped_count": 0,
+                    },
+                })
             return httpx.Response(200, json={"status": "ok"})
 
         with TemporaryDirectory() as directory:
@@ -367,6 +378,68 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(retried.json()["state"], "COMPLETED")
                 self.assertTrue(client.post(path, json=request).json()["replayed"])
                 self.assertEqual(len(attempts), 2)
+
+    def test_dialogue_report_retry_reuses_frozen_decision_and_source_id(self) -> None:
+        decisions: list[dict[str, object]] = []
+        reports: list[dict[str, object]] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            body = json.loads(request.content)
+            if request.url.path == "/callback/npc-dialogue/choice":
+                decisions.append(body)
+                return httpx.Response(
+                    200,
+                    json={"code": 200, "data": {"index": 1, "type": "OPTION"}},
+                )
+            if request.url.path == "/callback/game-reports/dialogue-choice":
+                reports.append(body)
+                if len(reports) == 1:
+                    return httpx.Response(503, json={"error": {"code": "busy"}})
+                return httpx.Response(200, json={
+                    "code": 200,
+                    "data": {
+                        "npc_id": body["npc_id"],
+                        "count": 1,
+                        "inserted_count": 0,
+                        "skipped_count": 1,
+                    },
+                })
+            return httpx.Response(200, json={"status": "ok"})
+
+        with TemporaryDirectory() as directory:
+            configured = settings(Path(directory) / "db.sqlite")
+            upstreams = Upstreams(configured)
+            upstreams.client = httpx.AsyncClient(
+                transport=httpx.MockTransport(handler)
+            )
+            app = build_application(configured, upstreams=upstreams)
+            with TestClient(app) as client:
+                client.post(
+                    "/api/dongzhou/v1/sessions/guest",
+                    json={"installation_id": str(uuid4())},
+                )
+                request = {
+                    "client_request_id": str(uuid4()),
+                    "stage_id": "01",
+                    "question": "Choose",
+                    "options": [
+                        {"index": 0, "text": "A"},
+                        {"index": 1, "text": "B"},
+                    ],
+                }
+                path = "/api/dongzhou/v1/npcs/DuBo/decisions"
+                self.assertEqual(client.post(path, json=request).status_code, 503)
+                retried = client.post(path, json=request)
+
+        self.assertEqual(retried.status_code, 200)
+        self.assertEqual(len(decisions), 1)
+        self.assertEqual(len(reports), 2)
+        self.assertEqual(
+            reports[0]["dialogues"][0]["source_record_id"],
+            reports[1]["dialogues"][0]["source_record_id"],
+        )
+        self.assertEqual(retried.json()["dialogueReceipt"]["skippedCount"], 1)
+        self.assertEqual(len(retried.json()["dialogueReceipt"]["digest"]), 64)
 
     def test_gateway_budget_covers_sequential_upstream_calls(self) -> None:
         with TemporaryDirectory() as directory:
@@ -553,6 +626,16 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                 })
             if request.url.path == "/callback/npc-dialogue/choice":
                 return httpx.Response(200, json={"code": 200, "data": {"index": 0, "type": "OPTION"}})
+            if request.url.path == "/callback/game-reports/dialogue-choice":
+                return httpx.Response(200, json={
+                    "code": 200,
+                    "data": {
+                        "npc_id": "42",
+                        "count": 1,
+                        "inserted_count": 1,
+                        "skipped_count": 0,
+                    },
+                })
             if request.url.path == "/callback/spontaneous-thought/generate":
                 body = json.loads(request.content)
                 return httpx.Response(200, json={
@@ -631,6 +714,12 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                 42, "0771-01-01 14:00:00", "Enemy riders reached the pass."
             )
             await upstreams.choose_dialogue(42, {"dialogues": [{"options": [{"index": 0, "type": "OPTION"}]}], "metadata": {}})
+            receipt = await upstreams.report_dialogue_choice(42, {
+                "npc_name": "左儒",
+                "game_time": "0771-01-01 14:00:00",
+                "dialogues": [{"source_record_id": "council-1"}],
+            })
+            self.assertEqual(receipt["insertedCount"], 1)
             thought = await upstreams.generate_spontaneous_thought(42, {
                 "operation_id": "dongzhou-thought:test",
                 "npc_context": {"npc_name": "左儒"},
@@ -761,6 +850,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("/api/v1/schedule-planning/long-term/generate", paths)
         self.assertIn("/callback/emergency-assessment/evaluate", paths)
         self.assertIn("/callback/npc-dialogue/choice", paths)
+        self.assertIn("/callback/game-reports/dialogue-choice", paths)
         self.assertIn("/callback/spontaneous-thought/generate", paths)
         self.assertIn("/internal/v1/organization-tasks/dialogues/report", paths)
         self.assertEqual(paths.count("/callback/game-reports/emergency"), 2)

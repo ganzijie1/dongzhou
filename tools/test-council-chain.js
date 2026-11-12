@@ -12,9 +12,11 @@ assert.equal(org.recordThought(thoughtRecorded.state,thought).state.thoughts.len
 const thoughtCouncil=org.recordCouncil(thoughtRecorded.state,{id:'council-thought',stageId:'01',memberId:'ZuoRu',knowledgeId:'dongzhou_stage_001',evidenceSourceIndex:0,question:'如何筹备？',options:['固军粮',thought.councilProposal],index:1,thoughtRequestId:thought.requestId,thoughtDigest:thought.digest});
 assert.equal(thoughtCouncil.council.thought.digest,thought.digest);
 assert.throws(()=>org.recordCouncil(thoughtRecorded.state,{id:'council-thought-bad',stageId:'01',memberId:'ZuoRu',knowledgeId:'dongzhou_stage_001',evidenceSourceIndex:0,question:'如何筹备？',options:['固军粮',thought.councilProposal],index:0,thoughtRequestId:thought.requestId,thoughtDigest:thought.digest}),/进言.*不匹配/);
-const input={id:'council-1',stageId:'01',memberId:'ZuoRu',knowledgeId:'dongzhou_stage_001',evidenceSourceIndex:0,question:'如何筹备？\n选证：《史记·周本纪》｜史实骨架',options:['固军粮','察军情'],index:0};
+const dialogueReceipt={state:'RECORDED',sourceRecordId:'dongzhou-council:91001:42:player:request',digest:'b'.repeat(64)};
+const input={id:'council-1',stageId:'01',memberId:'ZuoRu',knowledgeId:'dongzhou_stage_001',evidenceSourceIndex:0,question:'如何筹备？\n选证：《史记·周本纪》｜史实骨架',options:['固军粮','察军情'],index:0,dialogueReceipt};
 const recorded=org.recordCouncil(state,input);
 assert.equal(recorded.state.councils.length,1);
+assert.equal(recorded.council.dialogueReceipt.digest,dialogueReceipt.digest);
 assert.equal(org.recordCouncil(recorded.state,input).state.councils.length,1);
 assert.throws(()=>org.recordCouncil(recorded.state,{...input,index:1}),/冲突/);
 assert.throws(()=>org.recordCouncil(state,{...input,index:2}),/不属于/);

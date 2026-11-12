@@ -2094,13 +2094,13 @@
       }
       const thought = currentOfficeThought();
       const selectedThought = thought?.thought?.hasThought === true && thought.councilProposal === options[selected.index] ? thought : null;
-      const noted = organization.recordCouncil(profile.organization, { id: response.clientRequestId, stageId, memberId: member.id, knowledgeId: knowledge.id, knowledgeName: knowledge.name, knowledgeSummary: knowledge.summary, evidenceSourceIndex: evidence.source.index, question: contextualQuestion, options, index: selected.index, ...(selectedThought ? { thoughtRequestId: selectedThought.requestId, thoughtDigest: selectedThought.digest } : {}) });
+      const noted = organization.recordCouncil(profile.organization, { id: response.clientRequestId, stageId, memberId: member.id, knowledgeId: knowledge.id, knowledgeName: knowledge.name, knowledgeSummary: knowledge.summary, evidenceSourceIndex: evidence.source.index, question: contextualQuestion, options, index: selected.index, dialogueReceipt: response.dialogueReceipt, ...(selectedThought ? { thoughtRequestId: selectedThought.requestId, thoughtDigest: selectedThought.digest } : {}) });
       await integration.persist({ ...profile, organization: noted.state });
       profile.organization = noted.state;
       writeJson(PROFILE_KEY, profile);
       renderOfficeCouncil();
       const text = selected.text || options[Number(selected.index)] || "未能形成裁断";
-      panel.innerHTML = `<strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(text)}</span>`;
+      panel.innerHTML = `<strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(text)} · 对话已归档</span>`;
     } catch (error) {
       panel.textContent = `裁断暂不可用：${error.message}`;
     } finally {

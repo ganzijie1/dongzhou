@@ -109,6 +109,9 @@ saveJournal();
     assert.equal(council.memberId, "ZuoRu");
     assert.equal(council.stageId, "01");
     assert(council.evidenceSource?.work);
+    assert.equal(council.dialogueReceipt?.state, "RECORDED");
+    assert.match(council.dialogueReceipt?.sourceRecordId || "", /^dongzhou-council:/);
+    assert.match(council.dialogueReceipt?.digest || "", /^[0-9a-f]{64}$/);
 
     await page.selectOption("#officeTaskType", "supply");
     await page.locator("#officeUseCouncil").check();
@@ -161,6 +164,7 @@ saveJournal();
       "Evidence fit must reflect the sealed AINPC council choice"
     );
     assert.equal(issued.mandate.council.requestId, council.id);
+    assert.deepEqual(issued.mandate.council.dialogueReceipt, council.dialogueReceipt);
     assert.equal(issued.mandate.assignment.heroId, "ZuoRu");
     assert.equal(issued.mandate.assignment.transactionId, 9100103);
     assert.match(issued.mandate.assignment.planId, /^schedule-plan-/);

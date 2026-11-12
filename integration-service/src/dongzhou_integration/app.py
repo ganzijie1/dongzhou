@@ -483,6 +483,32 @@ def _payload(value: BaseModel) -> dict[str, Any]:
     return value.model_dump(mode="json")
 
 
+def _canonical_digest(value: dict[str, Any]) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            value, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def _council_source_record_id(
+    game_server_id: int, npc_id: int, player_id: UUID, request_id: UUID
+) -> str:
+    return f"dongzhou-council:{game_server_id}:{npc_id}:{player_id}:{request_id}"
+
+
+def _council_question_digest(
+    request_payload: dict[str, Any], selected_option: dict[str, Any]
+) -> str:
+    return _canonical_digest(
+        {
+            "question": str(request_payload.get("question") or ""),
+            "options": request_payload.get("options") or [],
+            "selected": selected_option,
+        }
+    )
+
+
 _ORGANIZATION_TASK_BASE_CHANCE = {
     "supply": 72,
     "drill": 68,
@@ -3491,6 +3517,9 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     async def decide_with_npc(request: NpcDecisionRequest, hero_id: str, player_id: UUID = Depends(player)) -> dict[str, Any]:
         npc_id = stable_npc_id(settings.ainpc_game_server_id, hero_id)
         body = _payload(request)
+        existing = await store.read_request(
+            player_id, request.client_request_id, "npc_decision"
+        )
         try:
             created, previous = await store.begin_request(player_id, request.client_request_id, "npc_decision", {"hero_id": hero_id, **body})
         except VersionConflict as error:
@@ -3507,13 +3536,140 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             }],
             "metadata": {"source": "dongzhou", "topic": request.topic, "player_id": str(player_id), "request_id": str(request.client_request_id)},
         }
+        frozen_response = (
+            existing.get("response")
+            if existing and existing.get("state") == "RETRYABLE"
+            else None
+        )
+        result = (
+            frozen_response.get("decision")
+            if isinstance(frozen_response, dict)
+            and isinstance(frozen_response.get("decision"), dict)
+            else None
+        )
+        draft = (
+            frozen_response.get("dialogueReportDraft")
+            if isinstance(frozen_response, dict)
+            and isinstance(frozen_response.get("dialogueReportDraft"), dict)
+            else None
+        )
+        if result is None:
+            try:
+                result = await upstreams.choose_dialogue(npc_id, dialogue)
+            except UpstreamUnavailable as error:
+                response = {"state": "RETRYABLE", "requestId": str(request.client_request_id)}
+                await store.finish_request(player_id, request.client_request_id, "RETRYABLE", response, str(error))
+                raise ApiError("ainpc_dialogue_unavailable", "NPC decision is retained for retry.", status_code=503) from error
+        raw_decision = result.get("data", result)
+        selected_option = next(
+            (
+                option
+                for option in body["options"]
+                if isinstance(raw_decision, dict)
+                and option["index"] == raw_decision.get("index")
+                and raw_decision.get("type") == "OPTION"
+            ),
+            None,
+        )
+        if selected_option is None:
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "FAILED",
+                {"state": "FAILED", "requestId": str(request.client_request_id)},
+                "ainpc_decision_invalid",
+            )
+            raise ApiError(
+                "ainpc_decision_invalid",
+                "AINPC returned a decision outside the offered council options.",
+                status_code=502,
+            )
+        if draft is None:
+            directory = await store.list_npcs(
+                settings.game_server_id, include_offline=True
+            )
+            npc_row = next(
+                (item for item in directory if str(item.get("id")) == str(npc_id)),
+                None,
+            )
+            clock = await store.read_game_clock()
+            draft = {
+                "sourceRecordId": _council_source_record_id(
+                    settings.ainpc_game_server_id,
+                    npc_id,
+                    player_id,
+                    request.client_request_id,
+                ),
+                "gameTime": str(clock.get("virtualTime") or ""),
+                "npcName": str((npc_row or {}).get("name") or hero_id),
+            }
+        report_payload = {
+            "npc_name": draft["npcName"],
+            "game_time": draft["gameTime"],
+            "dialogues": [
+                {
+                    "source_record_id": draft["sourceRecordId"],
+                    "timestamp": draft["gameTime"],
+                    "dialogue_npc_id": npc_id,
+                    "dialogue_npc_name": draft["npcName"],
+                    "question": request.question,
+                    "options": [
+                        {"index": option.index, "type": "OPTION", "text": option.text}
+                        for option in request.options
+                    ],
+                    "metadata": {
+                        "source": "dongzhou",
+                        "topic": request.topic,
+                        "stage_id": request.stage_id,
+                        "player_id": str(player_id),
+                        "request_id": str(request.client_request_id),
+                    },
+                    "select": {
+                        "index": selected_option["index"],
+                        "type": "OPTION",
+                        "text": selected_option["text"],
+                    },
+                }
+            ],
+        }
         try:
-            result = await upstreams.choose_dialogue(npc_id, dialogue)
+            report_result = await upstreams.report_dialogue_choice(
+                npc_id, report_payload
+            )
         except UpstreamUnavailable as error:
-            response = {"state": "RETRYABLE", "requestId": str(request.client_request_id)}
-            await store.finish_request(player_id, request.client_request_id, "RETRYABLE", response, str(error))
-            raise ApiError("ainpc_dialogue_unavailable", "NPC decision is retained for retry.", status_code=503) from error
-        response = {"state": "COMPLETED", "requestId": str(request.client_request_id), "decision": result}
+            response = {
+                "state": "RETRYABLE",
+                "requestId": str(request.client_request_id),
+                "decision": result,
+                "dialogueReportDraft": draft,
+            }
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "RETRYABLE",
+                response,
+                str(error),
+            )
+            raise ApiError(
+                "ainpc_dialogue_report_unavailable",
+                "The selected council decision is retained until AINPC records it.",
+                status_code=503,
+            ) from error
+        dialogue_receipt = {
+            "state": "RECORDED",
+            "sourceRecordId": draft["sourceRecordId"],
+            "npcId": str(npc_id),
+            "gameTime": draft["gameTime"],
+            "questionDigest": _council_question_digest(body, selected_option),
+            **report_result,
+        }
+        dialogue_receipt["digest"] = _canonical_digest(dialogue_receipt)
+        response = {
+            "state": "COMPLETED",
+            "requestId": str(request.client_request_id),
+            "decision": result,
+            "dialogueReceipt": dialogue_receipt,
+        }
         await store.finish_request(player_id, request.client_request_id, "COMPLETED", response)
         return response
 
@@ -3591,6 +3747,64 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             raise ApiError(
                 "court_council_unverified",
                 "The mandate must reference this player's completed NPC council decision.",
+                status_code=422,
+            )
+
+        dialogue_receipt = (
+            council_response.get("dialogueReceipt")
+            if isinstance(council_response, dict)
+            else None
+        )
+        expected_source_record_id = _council_source_record_id(
+            settings.ainpc_game_server_id,
+            stable_npc_id(settings.ainpc_game_server_id, request.hero_id),
+            player_id,
+            request.council_request_id,
+        )
+        receipt_without_digest = (
+            {key: value for key, value in dialogue_receipt.items() if key != "digest"}
+            if isinstance(dialogue_receipt, dict)
+            else {}
+        )
+        inserted_count = (
+            dialogue_receipt.get("insertedCount")
+            if isinstance(dialogue_receipt, dict)
+            else None
+        )
+        skipped_count = (
+            dialogue_receipt.get("skippedCount")
+            if isinstance(dialogue_receipt, dict)
+            else None
+        )
+        if (
+            not isinstance(dialogue_receipt, dict)
+            or dialogue_receipt.get("state") != "RECORDED"
+            or dialogue_receipt.get("sourceRecordId") != expected_source_record_id
+            or dialogue_receipt.get("npcId")
+            != str(stable_npc_id(settings.ainpc_game_server_id, request.hero_id))
+            or not str(dialogue_receipt.get("gameTime") or "")
+            or dialogue_receipt.get("questionDigest")
+            != _council_question_digest(council_request, selected_option)
+            or dialogue_receipt.get("digest")
+            != _canonical_digest(receipt_without_digest)
+            or isinstance(inserted_count, bool)
+            or not isinstance(inserted_count, int)
+            or inserted_count < 0
+            or isinstance(skipped_count, bool)
+            or not isinstance(skipped_count, int)
+            or skipped_count < 0
+            or inserted_count + skipped_count != 1
+        ):
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "REJECTED",
+                {"state": "REJECTED"},
+                "court_council_dialogue_unrecorded",
+            )
+            raise ApiError(
+                "court_council_dialogue_unrecorded",
+                "The mandate requires a verified AINPC dialogue archive receipt.",
                 status_code=422,
             )
 
@@ -3939,6 +4153,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "question": str(council_request.get("question") or ""),
                 "index": request.decision_index,
                 "text": str(selected_option.get("text") or ""),
+                "dialogueReceipt": dialogue_receipt,
             },
             "assignment": assignment,
             "emergency": emergency,
