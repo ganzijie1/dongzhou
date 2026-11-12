@@ -73,6 +73,46 @@ _TASK_MOTIVATION_KEYWORDS = {
     "diplomacy": ("diplomacy", "外交", "盟", "交涉", "游说", "诸侯", "使者"),
 }
 
+# Stable qualities are learned from authoritative duty outcomes and influence
+# only the duties whose value contract actually depends on them.
+_TASK_QUALITY_WEIGHTS = {
+    "supply": {
+        "responsibility": 12.0,
+        "integrity": 10.0,
+        "trustworthiness": 8.0,
+        "greed": -10.0,
+        "selfishness": -8.0,
+        "cruelty": -4.0,
+    },
+    "drill": {
+        "responsibility": 10.0,
+        "courage": 12.0,
+        "fairness": 6.0,
+        "cruelty": -6.0,
+    },
+    "patrol": {
+        "responsibility": 12.0,
+        "courage": 10.0,
+        "integrity": 8.0,
+        "cruelty": -8.0,
+    },
+    "intelligence": {
+        "trustworthiness": 14.0,
+        "integrity": 10.0,
+        "responsibility": 8.0,
+        "hypocrisy": -12.0,
+    },
+    "diplomacy": {
+        "fairness": 12.0,
+        "tolerance": 12.0,
+        "trustworthiness": 10.0,
+        "humility": 6.0,
+        "hypocrisy": -12.0,
+        "meanness": -8.0,
+        "cruelty": -8.0,
+    },
+}
+
 _POSITIVE_AFFECTIONS = {
     "love", "adoration", "kinship", "friendship", "dependence", "respect", "appreciation"
 }
@@ -193,6 +233,7 @@ def assignment_readiness(
     support_factor: float | None = None,
     personality_factor: float = 0.0,
     motivation_factor: float = 0.0,
+    quality_factor: float = 0.0,
 ) -> dict[str, Any]:
     normalized_emotion = emotion.casefold().strip() or "calm"
     bounded_intensity = max(0.0, min(100.0, intensity))
@@ -214,6 +255,7 @@ def assignment_readiness(
     )
     bounded_personality_factor = max(-8.0, min(8.0, personality_factor))
     bounded_motivation_factor = max(-8.0, min(6.0, motivation_factor))
+    bounded_quality_factor = max(-6.0, min(6.0, quality_factor))
     score = max(
         25,
         min(
@@ -226,6 +268,7 @@ def assignment_readiness(
                 + support_factor
                 + bounded_personality_factor
                 + bounded_motivation_factor
+                + bounded_quality_factor
             ),
         ),
     )
@@ -240,6 +283,7 @@ def assignment_readiness(
             "support": round(support_factor, 1),
             "personality": round(bounded_personality_factor, 1),
             "motivation": round(bounded_motivation_factor, 1),
+            "quality": round(bounded_quality_factor, 1),
         },
     }
 
@@ -313,6 +357,35 @@ def motivation_task_fit(
     }
 
 
+def quality_task_fit(task_type: str, quality: dict[str, Any] | None) -> dict[str, Any]:
+    if not quality or quality.get("available") is not True:
+        return {"available": False, "score": None, "band": "unavailable", "factor": 0.0, "signals": []}
+    qualities = quality.get("qualities")
+    weights = _TASK_QUALITY_WEIGHTS.get(task_type)
+    if not isinstance(qualities, dict) or not weights:
+        return {"available": False, "score": None, "band": "unavailable", "factor": 0.0, "signals": []}
+
+    signals = []
+    adjustment = 0.0
+    for name, weight in weights.items():
+        value = max(0.0, min(100.0, _number(qualities.get(name))))
+        contribution = weight * value / 100.0
+        adjustment += contribution
+        if value > 0:
+            signals.append({"quality": name, "value": round(value, 1), "effect": round(contribution, 1)})
+    signals.sort(key=lambda item: abs(item["effect"]), reverse=True)
+    score = max(25, min(90, round(50 + adjustment)))
+    factor = max(-6.0, min(6.0, round((score - 50) * 0.2, 1)))
+    band = "strong" if score >= 65 else "steady" if score >= 50 else "strained"
+    return {
+        "available": True,
+        "score": score,
+        "band": band,
+        "factor": factor,
+        "signals": signals[:4],
+    }
+
+
 def select_assignment(
     *,
     hero_id: str,
@@ -324,6 +397,7 @@ def select_assignment(
     runtime: dict[str, Any] | None,
     personality: dict[str, Any] | None = None,
     motivation: dict[str, Any] | None = None,
+    quality: dict[str, Any] | None = None,
     manager_npc_id: str | None = None,
 ) -> dict[str, Any]:
     transaction_id = TASK_TRANSACTION_IDS.get(task_type)
@@ -362,6 +436,7 @@ def select_assignment(
     importance = max(0, min(100, _integer(event.get("importance"))))
     fit = personality_task_fit(task_type, personality)
     willingness = motivation_task_fit(task_type, motivation)
+    quality_fit = quality_task_fit(task_type, quality)
     support = manager_support(npc_state, manager_npc_id) if manager_npc_id else {
         "managerNpcId": None, "affection": None, "relationships": [], "factor": 0.0
     }
@@ -398,6 +473,10 @@ def select_assignment(
             **(motivation or {"available": False}),
             "fit": willingness,
         },
+        "quality": {
+            **(quality or {"available": False}),
+            "fit": quality_fit,
+        },
         "managerSupport": support,
         "readiness": assignment_readiness(
             runtime_state=runtime_state,
@@ -409,5 +488,6 @@ def select_assignment(
             support_factor=support["factor"],
             personality_factor=fit["factor"],
             motivation_factor=willingness["factor"],
+            quality_factor=quality_fit["factor"],
         ),
     }

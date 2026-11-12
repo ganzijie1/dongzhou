@@ -2091,14 +2091,14 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         )
         try:
             deadline = asyncio.get_running_loop().time() + 2
-            while len(upstreams.events) < 3 and asyncio.get_running_loop().time() < deadline:
+            while len(upstreams.events) < 4 and asyncio.get_running_loop().time() < deadline:
                 await asyncio.sleep(0.01)
         finally:
             dispatch.cancel()
             await asyncio.gather(dispatch, return_exceptions=True)
         self.assertEqual(
             {kind for kind, _ in upstreams.events},
-            {"ORG_REPORT_START", "NPC_TASK_OUTCOME", "NPC_TASK_MEMORY"},
+            {"ORG_REPORT_START", "NPC_TASK_OUTCOME", "NPC_TASK_MEMORY", "NPC_QUALITY_SETTLEMENT"},
         )
         payloads = {kind: payload for kind, payload in upstreams.events}
         event = payloads["NPC_TASK_OUTCOME"]
@@ -2120,6 +2120,14 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         memory_status = await self.store.game_event_status("npc-memory:" + task_id)
         self.assertEqual(memory_status["state"], "DELIVERED")
         self.assertEqual(memory_status["attempts"], 1)
+        quality = payloads["NPC_QUALITY_SETTLEMENT"]
+        self.assertEqual(quality["settlement_effect_id"], "dongzhou-org-quality:" + task_id + ":v1")
+        self.assertEqual(quality["quality"], "responsibility")
+        self.assertEqual(quality["delta"], 0.5)
+        self.assertEqual(quality["related_event_id"], str(event["events"][0]["event_id"]))
+        quality_status = await self.store.game_event_status("npc-quality:" + task_id)
+        self.assertEqual(quality_status["state"], "DELIVERED")
+        self.assertEqual(quality_status["attempts"], 1)
         self.assertEqual(await self.store.pending_game_events(), [])
 
     async def test_startup_backfills_missing_npc_memory_once(self) -> None:
@@ -2148,6 +2156,38 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
             "dongzhou-org-outcome:" + task_id,
         )
         await runtime._backfill_npc_memories()
+        replay = await self.store.pending_game_events()
+        self.assertEqual(replay, first)
+
+    async def test_startup_backfills_missing_npc_quality_once(self) -> None:
+        task_id = str(uuid4())
+        outcome = {
+            "task_id": task_id,
+            "task_type": "intelligence",
+            "game_server_id": "91001",
+            "npc_id": "42",
+            "npc_name": "Zuo Ru",
+            "game_time": "0771-01-01 14:00:00",
+            "task_name": "Scout the road",
+            "stage_title": "Eastern Outskirts",
+        }
+        await self.store.enqueue_game_event(
+            "npc-outcome:" + task_id,
+            "NPC_TASK_OUTCOME",
+            _npc_outcome_event(outcome, "SUCCESS"),
+        )
+        await self.store.finish_game_event("npc-outcome:" + task_id)
+        runtime = RuntimeModule(self.store, _HealthyUpstreams(), None)
+        await runtime._backfill_npc_qualities()
+        first = await self.store.pending_game_events()
+        self.assertEqual([item["kind"] for item in first], ["NPC_QUALITY_SETTLEMENT"])
+        self.assertEqual(first[0]["payload"]["quality"], "trustworthiness")
+        self.assertEqual(first[0]["payload"]["delta"], 2.0)
+        self.assertEqual(
+            first[0]["payload"]["settlement_effect_id"],
+            "dongzhou-org-quality:" + task_id + ":v1",
+        )
+        await runtime._backfill_npc_qualities()
         replay = await self.store.pending_game_events()
         self.assertEqual(replay, first)
 

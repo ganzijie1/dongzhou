@@ -4,6 +4,7 @@ from dongzhou_integration.assignments import (
     manager_support,
     motivation_task_fit,
     personality_task_fit,
+    quality_task_fit,
     select_assignment,
 )
 
@@ -58,13 +59,17 @@ def test_selects_matching_duty_nearest_stage_range() -> None:
     assert result["readiness"] == {
         "score": 73,
         "band": "watch",
-        "factors": {"runtime": 6.0, "duty": 6.3, "emotion": 0.0, "support": 5.5, "personality": 0.0, "motivation": 0.0},
+        "factors": {"runtime": 6.0, "duty": 6.3, "emotion": 0.0, "support": 5.5, "personality": 0.0, "motivation": 0.0, "quality": 0.0},
     }
     assert result["personality"] == {
         "available": False,
         "fit": {"available": False, "score": None, "band": "unavailable", "factor": 0.0, "signals": []},
     }
     assert result["motivation"] == {
+        "available": False,
+        "fit": {"available": False, "score": None, "band": "unavailable", "factor": 0.0, "signals": []},
+    }
+    assert result["quality"] == {
         "available": False,
         "fit": {"available": False, "score": None, "band": "unavailable", "factor": 0.0, "signals": []},
     }
@@ -110,12 +115,12 @@ def test_readiness_uses_live_emotion_relationships_and_runtime() -> None:
     assert steady == {
         "score": 83,
         "band": "steady",
-        "factors": {"runtime": 6.0, "duty": 8.1, "emotion": 6.8, "support": 7.0, "personality": 0.0, "motivation": 0.0},
+        "factors": {"runtime": 6.0, "duty": 8.1, "emotion": 6.8, "support": 7.0, "personality": 0.0, "motivation": 0.0, "quality": 0.0},
     }
     assert strained == {
         "score": 32,
         "band": "strained",
-        "factors": {"runtime": -12.0, "duty": -1.8, "emotion": -9.0, "support": 0.0, "personality": 0.0, "motivation": 0.0},
+        "factors": {"runtime": -12.0, "duty": -1.8, "emotion": -9.0, "support": 0.0, "personality": 0.0, "motivation": 0.0, "quality": 0.0},
     }
 
 
@@ -205,6 +210,50 @@ def test_motivation_willingness_only_changes_relevant_duty() -> None:
     )
     assert assignment["motivation"]["fit"] == intelligence
     assert assignment["readiness"]["factors"]["motivation"] == 2.1
+
+
+def test_stable_quality_fit_is_task_specific_and_sealed_into_assignment() -> None:
+    quality = {
+        "available": True,
+        "profileId": "quality-zuoru",
+        "qualities": {"responsibility": 85.0, "cruelty": 54.0},
+        "dominantQualities": ["responsibility", "cruelty"],
+        "valueOrder": ["responsibility", "cruelty"],
+    }
+    drill = quality_task_fit("drill", quality)
+    diplomacy = quality_task_fit("diplomacy", quality)
+    assert drill == {
+        "available": True,
+        "score": 55,
+        "band": "steady",
+        "factor": 1.0,
+        "signals": [
+            {"quality": "responsibility", "value": 85.0, "effect": 8.5},
+            {"quality": "cruelty", "value": 54.0, "effect": -3.2},
+        ],
+    }
+    assert diplomacy["score"] == 46
+    assert diplomacy["factor"] == -0.8
+
+    assignment = select_assignment(
+        hero_id="ZuoRu",
+        npc_id="42",
+        task_type="drill",
+        stage_id="01",
+        npc_state={},
+        schedule_response=schedule({
+            "day": 1,
+            "date": "0772-01-01",
+            "start_level": 1,
+            "end_level": 3,
+            "events": [{"id": "drill-quality", "transaction_id": 9100102, "importance": 50}],
+        }),
+        runtime={"state": "READY"},
+        quality=quality,
+    )
+    assert assignment["quality"]["profileId"] == "quality-zuoru"
+    assert assignment["quality"]["fit"] == drill
+    assert assignment["readiness"]["factors"]["quality"] == 1.0
 
 
 def test_rejects_schedule_without_matching_duty() -> None:

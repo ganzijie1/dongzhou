@@ -181,6 +181,28 @@ class Upstreams:
                     response_payload=response,
                 )
             return response
+        if kind == "NPC_QUALITY_SETTLEMENT":
+            server = str(payload["game_server_id"])
+            npc_id = str(payload["npc_id"])
+            await self._json(
+                "GET",
+                f"{self.settings.ainpc_url}/api/v1/quality/profile/{server}/{npc_id}",
+                token=self.settings.ainpc_token,
+                params={"auto_initialize": "true"},
+            )
+            response = await self._json(
+                "POST",
+                self.settings.ainpc_url + "/api/v1/quality/event-settlement",
+                token=self.settings.ainpc_token,
+                payload=payload,
+            )
+            if response.get("data") is not True:
+                raise UpstreamUnavailable(
+                    "AINPC rejected the authoritative quality settlement.",
+                    error_code="ainpc_quality_settlement_rejected",
+                    response_payload=response,
+                )
+            return response
         paths = {
             "CHAT_START": "/api/v1/social-interaction/chat",
             "CHAT_TURN": "/api/v1/social-interaction/chat",
@@ -491,12 +513,13 @@ class Upstreams:
     async def npc_state(self, npc_id: int) -> dict[str, Any]:
         base = self.settings.ainpc_url
         server = self.settings.ainpc_game_server_id
-        emotion, affection, relationships, personality, motivation = await asyncio.gather(
+        emotion, affection, relationships, personality, motivation, quality = await asyncio.gather(
             self.optional_npc_emotion(npc_id),
             self._json("GET", f"{base}/api/v1/affection/targets/{server}/{npc_id}", token=self.settings.ainpc_token),
             self._json("GET", f"{base}/api/v1/relationship/all/{server}/{npc_id}", token=self.settings.ainpc_token),
             self.optional_npc_personality(npc_id),
             self.optional_npc_motivation(npc_id),
+            self.optional_npc_quality(npc_id),
         )
         return {
             "emotion": emotion,
@@ -504,6 +527,7 @@ class Upstreams:
             "relationships": relationships,
             "personality": personality,
             "motivation": motivation,
+            "quality": quality,
         }
 
     async def optional_npc_emotion(self, npc_id: int) -> dict[str, Any]:
@@ -651,6 +675,77 @@ class Upstreams:
             "templateSource": str(item.get("template_source") or ""),
             "backgroundNote": str(item.get("background_note") or ""),
             "updatedAt": str(item.get("updated_at") or ""),
+        }
+
+    async def optional_npc_quality(self, npc_id: int) -> dict[str, Any]:
+        try:
+            return await self.npc_quality(npc_id, auto_initialize=False)
+        except UpstreamUnavailable:
+            return {"available": False}
+
+    async def npc_quality(
+        self, npc_id: int, *, auto_initialize: bool = False
+    ) -> dict[str, Any]:
+        server = str(self.settings.ainpc_game_server_id)
+        response = await self._json(
+            "GET",
+            f"{self.settings.ainpc_url}/api/v1/quality/profile/{server}/{npc_id}",
+            token=self.settings.ainpc_token,
+            params={"auto_initialize": "true" if auto_initialize else "false"},
+        )
+        if response.get("code") not in (0, 200, "0", "200"):
+            raise UpstreamUnavailable(
+                "AINPC returned an invalid quality profile.",
+                error_code="ainpc_quality_invalid",
+                response_payload=response,
+            )
+        item = response.get("item")
+        if item is None:
+            return {"available": False}
+        qualities = item.get("qualities") if isinstance(item, dict) else None
+        dominant = item.get("dominant_qualities") if isinstance(item, dict) else None
+        value_order = item.get("value_order") if isinstance(item, dict) else None
+        valid_qualities = (
+            isinstance(qualities, dict)
+            and all(
+                isinstance(key, str)
+                and key
+                and not isinstance(value, bool)
+                and isinstance(value, (int, float))
+                and math.isfinite(float(value))
+                and 0 <= float(value) <= 100
+                for key, value in qualities.items()
+            )
+        )
+        valid_order = (
+            isinstance(dominant, list)
+            and isinstance(value_order, list)
+            and all(isinstance(value, str) and value in qualities for value in [*dominant, *value_order])
+        ) if valid_qualities else False
+        if (
+            not isinstance(item, dict)
+            or str(item.get("game_server_id") or "") != server
+            or str(item.get("npc_id") or "") != str(npc_id)
+            or not str(item.get("profile_id") or "").strip()
+            or not valid_qualities
+            or not valid_order
+            or not isinstance(response.get("auto_initialized"), bool)
+        ):
+            raise UpstreamUnavailable(
+                "AINPC returned an invalid quality profile.",
+                error_code="ainpc_quality_invalid",
+                response_payload=response,
+            )
+        return {
+            "available": True,
+            "profileId": str(item["profile_id"]),
+            "qualities": {key: round(float(value), 1) for key, value in qualities.items()},
+            "dominantQualities": list(dominant),
+            "valueOrder": list(value_order),
+            "templateSource": str(item.get("template_source") or ""),
+            "backgroundNote": str(item.get("background_note") or ""),
+            "updatedAt": str(item.get("updated_at") or ""),
+            "autoInitialized": response.get("auto_initialized") is True,
         }
 
     async def npc_schedule(self, npc_id: int) -> dict[str, Any]:

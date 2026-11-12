@@ -1310,17 +1310,19 @@
       const emergencyLabel = task.mandate?.emergency ? ` · ${task.mandate.emergency.urgent ? "急报" : "常报"}${Number(task.mandate.emergency.score).toFixed(3)}` : "";
       const personalityLabel = task.mandate?.assignment?.personality?.fit?.available === true ? ` · 适岗${Number(task.mandate.assignment.personality.fit.score)}` : "";
       const motivationLabel = task.mandate?.assignment?.motivation?.fit?.available === true ? ` · 意愿${Number(task.mandate.assignment.motivation.fit.score)}` : "";
+      const qualityLabel = task.mandate?.assignment?.quality?.fit?.available === true ? ` · 品行${Number(task.mandate.assignment.quality.fit.score)}` : "";
       const support = Number(task.mandate?.assignment?.managerSupport?.factor);
       const supportLabel = Number.isFinite(support) ? ` · 协同${support >= 0 ? "+" : ""}${support}` : "";
       const evidenceFit = Number(task.mandate?.evidenceFit?.factor);
       const evidenceLabel = Number.isFinite(evidenceFit) ? ` · 史证${evidenceFit}/9` : "";
-      return `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}</strong><small>${statusLabel}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}${evidenceLabel}${task.mandate?.assignment?.name ? ` · 当值${escapeHtml(task.mandate.assignment.name)}` : ""}${Number.isFinite(Number(task.mandate?.assignment?.readiness?.score)) ? ` · 胜任${Number(task.mandate.assignment.readiness.score)}` : ""}${personalityLabel}${motivationLabel}${supportLabel}${emergencyLabel}${settlementLabel}${outcomeLabel}</small></li>`;
+      return `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}</strong><small>${statusLabel}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}${evidenceLabel}${task.mandate?.assignment?.name ? ` · 当值${escapeHtml(task.mandate.assignment.name)}` : ""}${Number.isFinite(Number(task.mandate?.assignment?.readiness?.score)) ? ` · 胜任${Number(task.mandate.assignment.readiness.score)}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${emergencyLabel}${settlementLabel}${outcomeLabel}</small></li>`;
     }).join("") || '<li class="empty">尚无差事</li>';
     $("#officeMandateLedger").innerHTML = [...org.mandates].reverse().slice(0, 6).map((mandate) => {
       const label = mandate.state === "RESOLVED" ? (mandate.outcome?.won ? "战后告捷" : "战后失利") : mandate.state === "FULFILLED" ? "复命待战" : mandate.state === "PARTIAL" ? "部分复命" : mandate.state === "FAILED" ? "执行未成" : mandate.state === "ORDERED" ? "属官执行中" : "已签发";
       const readiness = Number(mandate.assignment?.readiness?.score);
       const personalityLabel = mandate.assignment?.personality?.fit?.available === true ? ` · 适岗${Number(mandate.assignment.personality.fit.score)}` : "";
       const motivationLabel = mandate.assignment?.motivation?.fit?.available === true ? ` · 意愿${Number(mandate.assignment.motivation.fit.score)}` : "";
+      const qualityLabel = mandate.assignment?.quality?.fit?.available === true ? ` · 品行${Number(mandate.assignment.quality.fit.score)}` : "";
       const support = Number(mandate.assignment?.managerSupport?.factor);
       const supportLabel = Number.isFinite(support) ? ` · 协同${support >= 0 ? "+" : ""}${support}` : "";
       const evidenceFit = Number(mandate.evidenceFit?.factor);
@@ -1331,7 +1333,7 @@
       const interruptionLabel = interruption
         ? ` · ${interruption.action === "insert_today" ? "今日插程" : interruption.action === "future" ? "后续排程" : "日程裁定 " + interruption.action}${interruption.scheduleName ? `“${escapeHtml(interruption.scheduleName)}”` : ""}`
         : "";
-      return `<li class="${escapeHtml(String(mandate.state || "issued").toLowerCase())}"><span>${escapeHtml(mandate.evidence?.name || "内核军令")}</span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(mandate.evidence?.source?.work || "未列出处")}${evidenceLabel} · ${escapeHtml(mandate.assignment?.date || "未定日")} ${escapeHtml(mandate.assignment?.name || "旧军令未封当值")}${Number.isFinite(readiness) ? ` · 胜任${readiness}` : ""}${personalityLabel}${motivationLabel}${supportLabel}${emergencyLabel}${interruptionLabel} · 印记 ${escapeHtml(String(mandate.digest || "").slice(0, 10))}</small></li>`;
+      return `<li class="${escapeHtml(String(mandate.state || "issued").toLowerCase())}"><span>${escapeHtml(mandate.evidence?.name || "内核军令")}</span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(mandate.evidence?.source?.work || "未列出处")}${evidenceLabel} · ${escapeHtml(mandate.assignment?.date || "未定日")} ${escapeHtml(mandate.assignment?.name || "旧军令未封当值")}${Number.isFinite(readiness) ? ` · 胜任${readiness}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${emergencyLabel}${interruptionLabel} · 印记 ${escapeHtml(String(mandate.digest || "").slice(0, 10))}</small></li>`;
     }).join("") || '<li class="empty">完成史料查阅与属官裁断后，可签发内核军令。</li>';
     $("#officeAllianceLedger").innerHTML = [...org.diplomacy.alliances].reverse().map((pact) => `<li class="${pact.status}"><span>${escapeHtml(pact.targetName)}盟约</span><strong>${pact.status === "active" ? "生效" : pact.status === "broken" ? "背盟待战" : "战后结案"}</strong><small>关系 ${Number(org.diplomacy.relations[pact.targetId] || 0)} · ${escapeHtml(pact.terms.join("、"))}</small></li>`).join("") || '<li class="empty">尚无盟约</li>';
     $("#officeBattleArchive").innerHTML = [...org.archives].reverse().slice(0, 12).map((entry) => `<li><strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml(entry.text)} · ${escapeHtml(String(entry.stageId || "无关卡"))}</span></li>`).join("") || "<li><strong>尚无档案</strong><span>完成盟约、背盟或战役后将在此存照。</span></li>";
@@ -1679,6 +1681,8 @@
       panel.querySelector("dl")?.insertAdjacentHTML("beforeend", `<div><dt>性情</dt><dd>${escapeHtml(officePersonalityText(personality))}</dd></div>`);
       const motivation = state.motivation || { available: false };
       panel.querySelector("dl")?.insertAdjacentHTML("beforeend", `<div><dt>动机</dt><dd>${escapeHtml(officeMotivationText(motivation))}</dd></div>`);
+      const quality = state.quality || { available: false };
+      panel.querySelector("dl")?.insertAdjacentHTML("beforeend", `<div><dt>品质</dt><dd>${escapeHtml(officeQualityText(quality))}</dd></div>`);
       await refreshOfficeCorrespondence(member, serial);
       await refreshOfficeNpcSchedule(member, serial);
     } catch (error) {
@@ -1735,6 +1739,23 @@
     return motivation.motives.slice(0, 3).map((motive) => `${motive.name} ${Number(motive.score)}`).join("、");
   }
 
+  const OFFICE_QUALITY_LABELS = {
+    responsibility: "担当", integrity: "操守", trustworthiness: "信义", fairness: "公正",
+    courage: "勇毅", tolerance: "宽容", humility: "谦逊", greed: "贪欲",
+    selfishness: "自私", cruelty: "酷烈", hypocrisy: "虚伪", meanness: "刻薄"
+  };
+
+  function officeQualityText(quality) {
+    if (quality?.available !== true || !quality.qualities) return "未建档";
+    const dominant = Array.isArray(quality.dominantQualities) ? quality.dominantQualities : [];
+    const names = dominant.length
+      ? dominant
+      : Object.entries(quality.qualities).sort((left, right) => Number(right[1]) - Number(left[1])).map(([name]) => name);
+    return names.slice(0, 3)
+      .map((name) => `${OFFICE_QUALITY_LABELS[name] || name} ${Number(quality.qualities[name] || 0)}`)
+      .join(" · ") || "已建档";
+  }
+
   async function refreshOfficeNpcAssignment(memberOverride, requestSerial, taskTypeOverride) {
     const panel = $("#officeNpcAssignment");
     const member = memberOverride || profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
@@ -1761,6 +1782,10 @@
       const willingnessBand = { strong: "强烈", willing: "愿任", neutral: "中性", reluctant: "勉强" }[assignment.motivation?.fit?.band] || "待评";
       const willingnessText = assignment.motivation?.fit?.available === true && Number.isFinite(willingness) ? `意愿 ${willingness}/100 · ${willingnessBand}` : "意愿暂无记录";
       panel.insertAdjacentHTML("beforeend", `<small class="office-npc-motivation">${escapeHtml(willingnessText)} · 动机 ${escapeHtml(officeMotivationText(assignment.motivation))}</small>`);
+      const qualityScore = Number(assignment.quality?.fit?.score);
+      const qualityBand = { strong: "可信", steady: "可察", strained: "存疑" }[assignment.quality?.fit?.band] || "待评";
+      const qualityText = assignment.quality?.fit?.available === true && Number.isFinite(qualityScore) ? `品行 ${qualityScore}/100 · ${qualityBand}` : "品行未建档";
+      panel.insertAdjacentHTML("beforeend", `<small class="office-npc-quality">${escapeHtml(qualityText)} · 品质 ${escapeHtml(officeQualityText(assignment.quality))}</small>`);
       return assignment;
     } catch (error) {
       officeAssignmentSnapshots.delete(officeAssignmentKey(member.id, taskType, stageId));

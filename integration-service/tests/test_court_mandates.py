@@ -123,6 +123,24 @@ class MandateUpstreams:
             },
         }
 
+    async def npc_quality(self, npc_id, *, auto_initialize=False):
+        assert npc_id > 0
+        assert auto_initialize is True
+        return {
+            "available": True,
+            "profileId": "quality-zuoru",
+            "qualities": {
+                "responsibility": 85.0,
+                "cruelty": 54.0,
+            },
+            "dominantQualities": ["responsibility", "cruelty"],
+            "valueOrder": ["responsibility", "cruelty"],
+            "templateSource": "identity",
+            "backgroundNote": "fixed quality profile",
+            "updatedAt": "2026-11-11T00:49:12.279000",
+            "autoInitialized": False,
+        }
+
     async def evaluate_emergency(self, npc_id, timestamp, description):
         assert npc_id > 0
         assert timestamp
@@ -612,13 +630,14 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
                 "factor": 2.0,
             }
             assert mandate["assignment"]["readiness"] == {
-                "score": 60,
+                "score": 61,
                 "band": "watch",
-                "factors": {"runtime": -12.0, "duty": 8.1, "emotion": 6.0, "support": 2.0, "personality": 1.2, "motivation": 0.0},
+                "factors": {"runtime": -12.0, "duty": 8.1, "emotion": 6.0, "support": 2.0, "personality": 1.2, "motivation": 0.0, "quality": 1.0},
             }
             assert mandate["assignment"]["personality"]["profileId"] == "profile-zuoru"
             assert mandate["assignment"]["personality"]["fit"]["score"] == 56
             assert mandate["assignment"]["motivation"]["fit"]["score"] == 50
+            assert mandate["assignment"]["quality"]["fit"]["score"] == 55
             assert mandate["emergency"] == {
                 "urgent": True,
                 "score": 81.25,
@@ -722,7 +741,8 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
             assert upstreams.triggers[0]["expected_hierarchy_version"] == 8
             assert "mandate_id" not in upstreams.triggers[0]["parameters"]
             assert "mandate_digest" not in upstreams.triggers[0]["parameters"]
-            assert "Readiness 60/100 (watch)." in upstreams.triggers[0]["brief"]
+            assert "Readiness 61/100 (watch)." in upstreams.triggers[0]["brief"]
+            assert "Stable quality task fit 55/100 (steady)." in upstreams.triggers[0]["brief"]
             assert "Personality task fit 56/100 (steady)." in upstreams.triggers[0]["brief"]
             assert "Motivation task willingness 50/100 (neutral)." in upstreams.triggers[0]["brief"]
             assert "AINPC emergency assessment: urgent, score 81.25" in upstreams.triggers[0]["brief"]
@@ -886,7 +906,7 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert review["state"] == "REQUIRES_ACTION"
             assert review["review"]["settlementId"] == settlement_id
             assert review["review"]["closureDigest"] == closure["digest"]
-            assert review["review"]["kernel"]["moduleVersion"] == "1.5.0"
+            assert review["review"]["kernel"]["moduleVersion"] == "1.6.0"
             wrong_action = client.post(
                 f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
                 json={"action_id": str(uuid4()), "decision": "ACCEPT"},
@@ -1260,9 +1280,10 @@ def test_diplomacy_operation_is_sealed_and_drives_orgflow_brief() -> None:
                 f"zheng. Nexus operation reference {operation_reference}. "
                 "Report only the in-game outcome. "
                     "Bound AINPC duty event-diplomacy (折冲诸侯) on 0772-10-22 from plan plan-1. "
-                    "Readiness 58/100 (watch). "
+                    "Readiness 57/100 (watch). "
                     "Personality task fit 48/100 (strained). "
                     "Motivation task willingness 50/100 (neutral). "
+                    "Stable quality task fit 46/100 (strained). "
                     "Sealed evidence fit 2.0/9 (weak) for diplomacy. "
                     "AINPC emergency assessment: urgent, score 81.25, "
                     "trace emergency_evaluate:test-trace."

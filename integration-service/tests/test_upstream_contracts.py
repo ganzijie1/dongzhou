@@ -521,6 +521,24 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                     },
                     "threshold": 80.0,
                 })
+            if request.url.path == "/api/v1/quality/profile/91001/42":
+                return httpx.Response(200, json={
+                    "code": 200,
+                    "item": {
+                        "game_server_id": "91001",
+                        "npc_id": "42",
+                        "profile_id": "quality-42",
+                        "qualities": {"responsibility": 85.0, "cruelty": 54.0},
+                        "dominant_qualities": ["responsibility", "cruelty"],
+                        "value_order": ["responsibility", "cruelty"],
+                        "template_source": "identity",
+                        "background_note": "fixed quality profile",
+                        "updated_at": "2026-11-11T00:49:12.279000",
+                    },
+                    "auto_initialized": request.url.params.get("auto_initialize") == "true",
+                })
+            if request.url.path == "/api/v1/quality/event-settlement":
+                return httpx.Response(200, json={"data": True})
             if request.url.path == "/callback/npc-dialogue/choice":
                 return httpx.Response(200, json={"code": 200, "data": {"index": 0, "type": "OPTION"}})
             if request.url.path == "/callback/spontaneous-thought/generate":
@@ -662,6 +680,19 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                     }],
                 },
             )
+            await upstreams.send_game_event(
+                "NPC_QUALITY_SETTLEMENT",
+                {
+                    "settlement_effect_id": "dongzhou-org-quality:task-id:v1",
+                    "game_server_id": "91001",
+                    "npc_id": "42",
+                    "quality": "responsibility",
+                    "delta": 2.0,
+                    "reason": "authoritative organization duty result: success",
+                    "related_event_id": "7001",
+                    "confidence": 1.0,
+                },
+            )
             await client.aclose()
 
         paths = [request.url.path for request in seen]
@@ -692,6 +723,8 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("/api/v1/relationship/ensure-organization-supervision", paths)
         self.assertIn("/api/v1/personality/profile/91001/42", paths)
         self.assertIn("/api/v1/motivation/snapshot/91001/42", paths)
+        self.assertEqual(paths.count("/api/v1/quality/profile/91001/42"), 2)
+        self.assertIn("/api/v1/quality/event-settlement", paths)
         self.assertIn("/api/v1/schedule-planning/current", paths)
         self.assertIn("/api/v1/schedule-planning/long-term/generate", paths)
         self.assertIn("/callback/emergency-assessment/evaluate", paths)
@@ -797,6 +830,52 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                     with self.assertRaises(UpstreamUnavailable) as caught:
                         await Upstreams(settings(Path("unused")), client).npc_motivation(42)
                     self.assertEqual(caught.exception.error_code, "ainpc_motivation_invalid")
+
+    async def test_quality_profile_supports_explicit_initialization_and_strict_validation(self) -> None:
+        seen: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen.append(request)
+            return httpx.Response(200, json={
+                "code": 200,
+                "item": {
+                    "game_server_id": "91001",
+                    "npc_id": "42",
+                    "profile_id": "quality-42",
+                    "qualities": {"responsibility": 85, "cruelty": 54},
+                    "dominant_qualities": ["responsibility", "cruelty"],
+                    "value_order": ["responsibility", "cruelty"],
+                    "template_source": "identity",
+                    "background_note": "fixed profile",
+                    "updated_at": "2026-11-11T00:49:12.279000",
+                },
+                "auto_initialized": True,
+            })
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            result = await Upstreams(settings(Path("unused")), client).npc_quality(
+                42, auto_initialize=True
+            )
+        self.assertEqual(result["qualities"]["responsibility"], 85.0)
+        self.assertEqual(result["dominantQualities"], ["responsibility", "cruelty"])
+        self.assertTrue(result["autoInitialized"])
+        self.assertEqual(seen[0].url.params.get("auto_initialize"), "true")
+
+        invalid = {
+            "code": 200,
+            "item": {
+                "game_server_id": "91001", "npc_id": "42", "profile_id": "quality-42",
+                "qualities": {"responsibility": 101},
+                "dominant_qualities": ["responsibility"], "value_order": ["responsibility"],
+            },
+            "auto_initialized": False,
+        }
+        async with httpx.AsyncClient(transport=httpx.MockTransport(
+            lambda request: httpx.Response(200, json=invalid)
+        )) as client:
+            with self.assertRaises(UpstreamUnavailable) as caught:
+                await Upstreams(settings(Path("unused")), client).npc_quality(42)
+        self.assertEqual(caught.exception.error_code, "ainpc_quality_invalid")
 
     async def test_decision_rejects_business_failures_and_unknown_options(self) -> None:
         payload = {"dialogues": [{"options": [{"index": 0, "type": "OPTION"}]}]}

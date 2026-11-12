@@ -352,6 +352,22 @@ class Store:
             for row in rows
         ]
 
+    async def npc_outcomes_missing_quality(self) -> list[dict[str, Any]]:
+        async with self._lock:
+            with self._connection() as db:
+                rows = db.execute(
+                    "SELECT event_id,payload FROM game_server_outbox AS outcome "
+                    "WHERE event_kind='NPC_TASK_OUTCOME' AND state='DELIVERED' "
+                    "AND event_id LIKE 'npc-outcome:%' AND NOT EXISTS ("
+                    "SELECT 1 FROM game_server_outbox AS quality "
+                    "WHERE quality.event_id='npc-quality:' || substr(outcome.event_id,13)"
+                    ") ORDER BY created_at,event_id"
+                ).fetchall()
+        return [
+            {"eventId": str(row["event_id"]), "payload": json.loads(row["payload"])}
+            for row in rows
+        ]
+
     async def retry_game_event(self, event_id: str, error: str) -> None:
         async with self._lock:
             with self._connection() as db:

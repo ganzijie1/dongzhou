@@ -46,6 +46,7 @@ class RuntimeModule(Module):
     async def on_start(self, context: ModuleContext) -> None:
         await self.store.start()
         await self._backfill_npc_memories()
+        await self._backfill_npc_qualities()
         self.services = await self.upstreams.health()
         self._health_task = asyncio.create_task(self._poll_health(), name="dongzhou-upstream-health")
         self._game_event_task = asyncio.create_task(
@@ -99,6 +100,20 @@ class RuntimeModule(Module):
                     _npc_memory_from_event(payload),
                 )
 
+    async def _backfill_npc_qualities(self) -> None:
+        for outcome in await self.store.npc_outcomes_missing_quality():
+            event_id = str(outcome.get("eventId") or "")
+            if not event_id.startswith("npc-outcome:"):
+                continue
+            task_id = event_id.removeprefix("npc-outcome:")
+            payload = outcome.get("payload")
+            if task_id and isinstance(payload, dict):
+                await self.store.enqueue_game_event(
+                    "npc-quality:" + task_id,
+                    "NPC_QUALITY_SETTLEMENT",
+                    _npc_quality_from_event(payload),
+                )
+
     async def _dispatch_game_events(self) -> None:
         while True:
             events = await self.store.pending_game_events()
@@ -128,6 +143,11 @@ class RuntimeModule(Module):
                                     "npc-memory:" + task_id,
                                     "NPC_TASK_MEMORY",
                                     _npc_outcome_memory(outcome, final_result),
+                                )
+                                await self.store.enqueue_game_event(
+                                    "npc-quality:" + task_id,
+                                    "NPC_QUALITY_SETTLEMENT",
+                                    _npc_outcome_quality(outcome, final_result),
                                 )
                 except Exception as error:
                     await self.store.retry_game_event(event["eventId"], type(error).__name__)
@@ -186,7 +206,7 @@ class RuntimeModule(Module):
 
 class MandateWorkflowModule(Module):
     name = "dongzhou_mandate_workflow"
-    version = "1.5.0"
+    version = "1.6.0"
     dependencies = (RuntimeModule.name,)
 
     @staticmethod
@@ -1147,6 +1167,33 @@ def _npc_outcome_memory(outcome: dict[str, Any], final_result: str) -> dict[str,
     return _npc_memory_from_event(_npc_outcome_event(outcome, final_result))
 
 
+def _npc_quality_from_event(event: dict[str, Any]) -> dict[str, Any]:
+    detail = event["events"][0]
+    metadata = detail.get("metadata") if isinstance(detail.get("metadata"), dict) else {}
+    final_result = str(metadata.get("final_result") or "FAILURE").upper()
+    task_type = str(metadata.get("task_type") or "").casefold()
+    quality = {
+        "intelligence": "trustworthiness",
+        "diplomacy": "fairness",
+    }.get(task_type, "responsibility")
+    delta = 2.0 if final_result == "SUCCESS" else 0.5 if final_result == "PARTIAL" else -1.0
+    task_id = str(detail["source_record_id"])
+    return {
+        "settlement_effect_id": "dongzhou-org-quality:" + task_id + ":v1",
+        "game_server_id": str(event["game_server_id"]),
+        "npc_id": str(event["npc_id"]),
+        "quality": quality,
+        "delta": delta,
+        "reason": f"authoritative organization duty result: {final_result.casefold()}",
+        "related_event_id": str(detail["event_id"]),
+        "confidence": 1.0,
+    }
+
+
+def _npc_outcome_quality(outcome: dict[str, Any], final_result: str) -> dict[str, Any]:
+    return _npc_quality_from_event(_npc_outcome_event(outcome, final_result))
+
+
 def _npc_censure_events(
     settings: Settings,
     player_id: UUID,
@@ -1902,12 +1949,18 @@ def _npc_outcome_status(
     event: dict[str, Any] | None,
     memory: dict[str, Any] | None,
     affection: dict[str, Any] | None = None,
+    quality: dict[str, Any] | None = None,
+    *,
+    require_affection: bool = False,
+    require_quality: bool = False,
 ) -> dict[str, Any] | None:
-    if event is None and memory is None and affection is None:
+    if event is None and memory is None and affection is None and quality is None:
         return None
     parts = {"event": event, "memory": memory}
-    if affection is not None:
+    if affection is not None or require_affection:
         parts["affection"] = affection
+    if quality is not None or require_quality:
+        parts["quality"] = quality
     states = [part.get("state") for part in parts.values() if isinstance(part, dict)]
     delivered = len(states) == len(parts) and all(state == "DELIVERED" for state in states)
     last_error = next(
@@ -1918,7 +1971,7 @@ def _npc_outcome_status(
         ),
         None,
     )
-    return {
+    result = {
         "state": "DELIVERED" if delivered else "PENDING",
         "attempts": sum(
             int(part.get("attempts") or 0)
@@ -1929,6 +1982,11 @@ def _npc_outcome_status(
         "event": event,
         "memory": memory,
     }
+    if affection is not None or require_affection:
+        result["affection"] = affection
+    if quality is not None or require_quality:
+        result["quality"] = quality
+    return result
 
 
 async def _prepare_due_organization_reports(
@@ -3045,9 +3103,10 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     ) -> dict[str, Any]:
         npc_id = stable_npc_id(settings.ainpc_game_server_id, hero_id)
         try:
-            npc_state, schedule = await asyncio.gather(
+            npc_state, schedule, quality = await asyncio.gather(
                 upstreams.npc_state(npc_id),
                 upstreams.npc_schedule(npc_id),
+                upstreams.npc_quality(npc_id, auto_initialize=True),
             )
             runtime = await store.read_npc_runtime(
                 settings.game_server_id, str(npc_id)
@@ -3062,6 +3121,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 runtime=runtime,
                 personality=npc_state.get("personality"),
                 motivation=npc_state.get("motivation"),
+                quality=quality,
                 manager_npc_id=manager_npc_id,
             )
         except UpstreamUnavailable as error:
@@ -4511,10 +4571,17 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 if isinstance(willingness, dict) and willingness.get("available") is True
                 else ""
             )
+            quality = assignment.get("quality")
+            quality_fit = quality.get("fit") if isinstance(quality, dict) else None
+            quality_note = (
+                f" Stable quality task fit {quality_fit.get('score')}/100 ({quality_fit.get('band')})."
+                if isinstance(quality_fit, dict) and quality_fit.get("available") is True
+                else ""
+            )
             duty_note = (
                 f" Bound AINPC duty {assignment.get('eventId')} "
                 f"({assignment.get('name')}) on {assignment.get('date')} from plan "
-                f"{assignment.get('planId')}.{readiness_note}{personality_note}{motivation_note}"
+                f"{assignment.get('planId')}.{readiness_note}{personality_note}{motivation_note}{quality_note}"
             )
             brief = brief.rstrip()[: max(0, 1000 - len(duty_note))] + duty_note
         evidence_fit = mandate.get("evidenceFit") if isinstance(mandate, dict) else None
@@ -4730,6 +4797,8 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         outcome = _npc_outcome_status(
             await store.game_event_status("npc-outcome:" + task_key),
             await store.game_event_status("npc-memory:" + task_key),
+            quality=await store.game_event_status("npc-quality:" + task_key),
+            require_quality=True,
         )
         task_state = {
             "taskId": task_key,
@@ -4750,6 +4819,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 consequence_event,
                 consequence_memory,
                 consequence_affection,
+                require_affection=True,
             )
             task_state["npcConsequence"] = {
                 **consequence,
