@@ -11,7 +11,7 @@ try {
 }
 
 const URL = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
-const SCREENSHOT = path.resolve(__dirname, "..", "output", "campaign-route-live.png");
+const OUTPUT_DIR = path.resolve(__dirname, "..", "output", "integration-validation");
 const SYSTEM_CHROMIUM = [
   process.env.DONGZHOU_CHROMIUM_EXECUTABLE,
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
@@ -21,44 +21,59 @@ const SYSTEM_CHROMIUM = [
 
 (async () => {
   const browser = await chromium.launch({ headless: true, ...(SYSTEM_CHROMIUM ? { executablePath: SYSTEM_CHROMIUM } : {}) });
-  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
-  const errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
   try {
-    await page.goto(URL, { waitUntil: "domcontentloaded" });
-    await page.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
-    await page.evaluate(async () => {
-      const key = "dongzhou-h5-profile-v2";
-      const profile = JSON.parse(localStorage.getItem(key));
-      profile.completed = ["01"];
-      profile.lastStage = "01";
-      profile.campaignResources.provisions = 100;
-      localStorage.setItem(key, JSON.stringify(profile));
-      await window.DongzhouIntegration.persist(profile);
-    });
-    await page.reload({ waitUntil: "domcontentloaded" });
-    await page.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
-    await page.waitForFunction(() => document.querySelector("#focusRouteProof")?.textContent.includes("行军 2 军粮"), null, { timeout: 30000 });
-    const layout = await page.locator("#focusRouteProof").evaluate((element) => {
-      const rect = element.getBoundingClientRect();
-      return { text: element.textContent, width: rect.width, height: rect.height, viewport: innerWidth };
-    });
-    assert(layout.width > 0 && layout.height > 0 && layout.width <= layout.viewport);
-    fs.mkdirSync(path.dirname(SCREENSHOT), { recursive: true });
-    await page.screenshot({ path: SCREENSHOT, fullPage: false });
-    await page.click("#focusStageButton");
-    await page.waitForFunction(() => {
-      const battle = JSON.parse(localStorage.getItem("dongzhou-h5-battle-v2") || "null");
-      return battle?.campaignRoute?.routeId === "campaign_progression_900001_900002";
-    }, null, { timeout: 30000 });
-    const result = await page.evaluate(() => ({
-      profile: JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")),
-      battle: JSON.parse(localStorage.getItem("dongzhou-h5-battle-v2"))
-    }));
-    assert.strictEqual(result.profile.campaignResources.provisions, 98);
-    assert.strictEqual(result.battle.campaignRoute.provisionCost, 2);
-    assert.deepStrictEqual(errors, []);
-    console.log(JSON.stringify({ result: "PASS", routeId: result.battle.campaignRoute.routeId, provisions: 98, screenshot: SCREENSHOT }));
+    const scenarios = [
+      { name: "desktop", viewport: { width: 1280, height: 800 }, method: "npc_dialog", provisions: 99, morale: 66 },
+      { name: "mobile", viewport: { width: 390, height: 844 }, isMobile: true, method: "fixed_point", provisions: 97, morale: 76 }
+    ];
+    const accepted = [];
+    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+    for (const scenario of scenarios) {
+      const context = await browser.newContext({ viewport: scenario.viewport, isMobile: Boolean(scenario.isMobile) });
+      const page = await context.newPage();
+      const errors = [];
+      page.on("pageerror", (error) => errors.push(error.message));
+      await page.goto(URL, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
+      await page.evaluate(async () => {
+        const key = "dongzhou-h5-profile-v2";
+        const profile = JSON.parse(localStorage.getItem(key));
+        profile.completed = ["01"];
+        profile.lastStage = "01";
+        profile.campaignResources = { provisions: 100, morale: 70 };
+        profile.routePreferences = {};
+        localStorage.setItem(key, JSON.stringify(profile));
+        await window.DongzhouIntegration.persist(profile);
+      });
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#focusRouteOptions:not([hidden]) button", { timeout: 45000 });
+      const options = await page.locator("#focusRouteOptions button").evaluateAll((buttons) => buttons.map((button) => ({
+        method: button.dataset.routeMethod,
+        right: button.getBoundingClientRect().right,
+        left: button.getBoundingClientRect().left
+      })));
+      assert.deepStrictEqual(options.map((option) => option.method), ["campaign_progression", "fixed_point", "npc_dialog"]);
+      assert(options.every((option) => option.left >= 0 && option.right <= scenario.viewport.width));
+      await page.click(`[data-route-method="${scenario.method}"]`);
+      await page.waitForFunction((method) => document.querySelector(`[data-route-method="${method}"]`)?.getAttribute("aria-checked") === "true", scenario.method);
+      const screenshot = path.join(OUTPUT_DIR, `campaign-routes-${scenario.name}-live.png`);
+      await page.screenshot({ path: screenshot, fullPage: false });
+      await page.click("#focusStageButton");
+      await page.waitForFunction((method) => {
+        const battle = JSON.parse(localStorage.getItem("dongzhou-h5-battle-v2") || "null");
+        return battle?.campaignRoute?.method === method;
+      }, scenario.method, { timeout: 30000 });
+      const result = await page.evaluate(() => ({
+        profile: JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")),
+        battle: JSON.parse(localStorage.getItem("dongzhou-h5-battle-v2"))
+      }));
+      assert.strictEqual(result.profile.campaignResources.provisions, scenario.provisions);
+      assert.strictEqual(result.profile.campaignResources.morale, scenario.morale);
+      assert.deepStrictEqual(errors, []);
+      accepted.push({ name: scenario.name, method: scenario.method, routeId: result.battle.campaignRoute.routeId, screenshot });
+      await context.close();
+    }
+    console.log(JSON.stringify({ result: "PASS", accepted }));
   } finally {
     await browser.close();
   }

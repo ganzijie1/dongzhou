@@ -500,12 +500,22 @@
     return campaignRoutePlans.get(record.id);
   }
 
+  function selectedCampaignRoute(record, response) {
+    const options = Array.isArray(response?.options) ? response.options : [];
+    const method = profile.routePreferences?.[record.id] || "campaign_progression";
+    const selected = options.find((option) => option.method === method)
+      || options.find((option) => option.method === "campaign_progression")
+      || response;
+    return { ...response, ...selected, options };
+  }
+
   function renderCampaignRouteProof(record) {
     const proof = $("#focusRouteProof");
     const serial = ++campaignRouteSerial;
     if (Number(record.index) <= 1) {
       proof.dataset.state = "origin";
       proof.textContent = "王畿启程 · 无行军耗粮";
+      $("#focusRouteOptions").hidden = true;
       return;
     }
     proof.dataset.state = "loading";
@@ -513,12 +523,19 @@
     loadCampaignRoute(record).then((route) => {
       if (serial !== campaignRouteSerial || $("#focusStageButton").dataset.stageId !== record.id) return;
       const previous = campaign.stages[Number(record.index) - 2];
+      const selected = selectedCampaignRoute(record, route);
       proof.dataset.state = "ready";
-      proof.textContent = `${previous.battleTitle} → ${record.battleTitle} · 行军 ${route.provisionCost} 军粮`;
+      proof.textContent = `${previous.battleTitle} → ${record.battleTitle} · ${selected.label || "奉诏直进"} · 军粮 ${selected.provisionCost}${selected.moraleDelta ? ` · 士气 ${selected.moraleDelta > 0 ? "+" : ""}${selected.moraleDelta}` : ""}`;
+      const options = $("#focusRouteOptions");
+      options.hidden = !Array.isArray(route.options) || route.options.length < 2;
+      options.innerHTML = (route.options || []).map((option) =>
+        `<button type="button" role="radio" aria-checked="${option.method === selected.method}" data-route-method="${option.method}"><strong>${escapeHtml(option.label)}</strong><small>${option.provisionCost} 粮${option.moraleDelta ? ` · 士气 ${option.moraleDelta > 0 ? "+" : ""}${option.moraleDelta}` : ""}${option.guideName ? ` · ${escapeHtml(option.guideName)}` : ""}</small></button>`
+      ).join("");
     }).catch(() => {
       if (serial !== campaignRouteSerial || $("#focusStageButton").dataset.stageId !== record.id) return;
       proof.dataset.state = "error";
       proof.textContent = "史料路线暂不可用";
+      $("#focusRouteOptions").hidden = true;
     });
   }
 
@@ -629,7 +646,7 @@
       routeStartPending = true;
       if (button?.dataset.stageId === record.id) button.disabled = true;
       try {
-        campaignRoute = await loadCampaignRoute(record);
+        campaignRoute = selectedCampaignRoute(record, await loadCampaignRoute(record));
         const cost = Number(campaignRoute?.provisionCost);
         if (!campaignRoute?.found || !Number.isInteger(cost) || cost < 0 || cost > 20) throw new Error("路线军粮配置无效");
         if (profile.campaignResources.provisions < cost) {
@@ -707,6 +724,11 @@
           0,
           200
         );
+        profile.campaignResources.morale = clamp(
+          profile.campaignResources.morale + Number(campaignRoute.moraleDelta || 0),
+          0,
+          100
+        );
       }
       profile.organization = organization.syncMembers(profile.organization, record, displayName);
       const prepared = organization.consumeSupport(profile.organization, record.id);
@@ -729,7 +751,7 @@
       log(`难度：${{ easy: "简单", medium: "标准", hard: "艰难" }[preset.id]}；敌军等级 ${preset.enemyLevelOffset >= 0 ? "+" : ""}${preset.enemyLevelOffset}，生命 ×${preset.enemyHpMultiplier}，攻击 ×${preset.enemyPowerMultiplier}，防御 ×${preset.enemyDefenseMultiplier}。`, "event");
       const formation = systems.FORMATION_PRESETS[profile.formation];
       const vanguard = profile.stageVanguards[record.id];
-      if (state.campaignRoute) log(`史料行军：${state.campaignRoute.routeId}；军粮 -${state.campaignRoute.provisionCost}。`, "event");
+      if (state.campaignRoute) log(`史料行军：${state.campaignRoute.label || "奉诏直进"}（${state.campaignRoute.routeId}）；军粮 -${state.campaignRoute.provisionCost}${state.campaignRoute.moraleDelta ? `，士气 ${state.campaignRoute.moraleDelta > 0 ? "+" : ""}${state.campaignRoute.moraleDelta}` : ""}。`, "event");
       log(`军议：${formation.name}${vanguard ? `；${displayName(vanguard)}任先锋` : ""}；军粮 ${profile.campaignResources.provisions}，士气 ${profile.campaignResources.morale}${profile.campaignResources.provisions < 40 ? "；缺粮导致兵力与攻击下降" : ""}。`, "event");
       if (state.assist.active) log(`连续失利援助已启用：回合上限 +15%，临时金疮药 +1、士气 +8；首通铜钱 -10%。`, "event");
       if (state.organizationSupport?.sources?.length) {
@@ -4219,6 +4241,15 @@
       $("#confirmModal").hidden = false;
     });
     $("#focusArchiveButton").addEventListener("click", () => $("#campaignArchive").scrollIntoView({ behavior: "smooth", block: "start" }));
+    $("#focusRouteOptions").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-route-method]");
+      const record = findStageRecord($("#focusStageButton").dataset.stageId);
+      if (!button || !record) return;
+      profile.routePreferences ||= {};
+      profile.routePreferences[record.id] = button.dataset.routeMethod;
+      writeJson(PROFILE_KEY, profile);
+      renderCampaignRouteProof(record);
+    });
     $("#campaignCampButton").addEventListener("click", () => setCampaignCamp(true));
     $("#campaignCampCloseButton").addEventListener("click", () => setCampaignCamp(false));
     $("#campaignCampBackdrop").addEventListener("click", (event) => {

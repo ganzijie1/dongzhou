@@ -5,7 +5,7 @@ const systems = require("../web-game/game-systems.js");
 
 const stages = Array.from({ length: 12 }, (_, index) => ({ id: `stage-${index + 1}`, index: index + 1 }));
 const migrated = systems.normalizeProfile({ completed: ["stage-1", "stage-2", "stage-3", "stage-4", "stage-5", "stage-6"] }, stages);
-assert.equal(migrated.schemaVersion, 10);
+assert.equal(migrated.schemaVersion, 11);
 assert.equal(migrated.armyRank, 3);
 assert.equal(systems.isStageUnlocked(stages[6], migrated, stages), true);
 assert.equal(systems.isStageUnlocked(stages[7], migrated, stages), false);

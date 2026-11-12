@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const PROFILE_VERSION = 10;
+  const PROFILE_VERSION = 11;
   const TELEMETRY_SCHEMA = "dongzhou-battle-v4";
   const REPLAY_SCHEMA = "dongzhou-replay-v1";
   const POLICY_VERSION = "happo-2026-11-02";
@@ -207,6 +207,11 @@
       tutorial: { completed: Boolean(source.tutorial?.completed), dismissed: Boolean(source.tutorial?.dismissed) },
       battleHistory,
       knowledgeQuiz: normalizeKnowledgeQuiz(source.knowledgeQuiz),
+      routePreferences: Object.fromEntries(
+        Object.entries(source.routePreferences || {}).filter(([, method]) =>
+          ["campaign_progression", "fixed_point", "npc_dialog"].includes(method)
+        )
+      ),
       difficultyBandit: { ...normalizeBandit(source.difficultyBandit), enabled: source.settings?.telemetryEnabled !== false && source.difficultyBandit?.enabled !== false },
       formation: FORMATION_PRESETS[source.formation] ? source.formation : "balanced",
       stageVanguards: source.stageVanguards && typeof source.stageVanguards === "object" ? { ...source.stageVanguards } : {},

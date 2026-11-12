@@ -289,7 +289,10 @@ class Upstreams:
         ]
 
     async def campaign_route(
-        self, from_map_id: int, to_map_id: int
+        self,
+        from_map_id: int,
+        to_map_id: int,
+        method: str = "campaign_progression",
     ) -> dict[str, Any]:
         response = await self._json(
             "POST",
@@ -299,7 +302,7 @@ class Upstreams:
                 "from_doc_id": str(from_map_id),
                 "to_doc_id": str(to_map_id),
                 "max_depth": 1,
-                "methods": ["campaign_progression"],
+                "methods": [method],
             },
         )
         data = response.get("data", response)

@@ -2613,59 +2613,100 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             )
         from_map_id = 900000 + request.from_stage_index
         to_map_id = 900000 + request.to_stage_index
+        methods = ("campaign_progression", "fixed_point", "npc_dialog")
         try:
-            result = await upstreams.campaign_route(from_map_id, to_map_id)
+            results = await asyncio.gather(
+                *(upstreams.campaign_route(from_map_id, to_map_id, method) for method in methods)
+            )
         except UpstreamUnavailable as error:
             raise ApiError(
                 "knowledge_route_unavailable",
                 "Campaign route verification is temporarily unavailable.",
                 status_code=503,
             ) from error
-        route = None
-        for plan in result.get("plans", []):
-            if not isinstance(plan, dict):
-                continue
-            for step in plan.get("steps", []):
-                if not isinstance(step, dict):
+        route_options: list[dict[str, Any]] = []
+        route_rules = {
+            "campaign_progression": {"label": "奉诏直进", "provisionCost": 2, "moraleDelta": 0},
+            "fixed_point": {"label": "官道驿行", "provisionCost": 3, "moraleDelta": 6},
+            "npc_dialog": {"label": "向导引路", "provisionCost": 1, "moraleDelta": -4},
+        }
+        for method, result in zip(methods, results):
+            route = None
+            for plan in result.get("plans", []):
+                if not isinstance(plan, dict):
                     continue
-                for candidate in step.get("routes", []):
-                    if isinstance(candidate, dict) and candidate.get("method") == "campaign_progression":
-                        route = candidate
+                for step in plan.get("steps", []):
+                    if not isinstance(step, dict):
+                        continue
+                    route = next(
+                        (
+                            candidate
+                            for candidate in step.get("routes", [])
+                            if isinstance(candidate, dict) and candidate.get("method") == method
+                        ),
+                        None,
+                    )
+                    if route is not None:
                         break
                 if route is not None:
                     break
-            if route is not None:
-                break
-        if route is None:
-            for candidate in result.get("routes", []):
-                if isinstance(candidate, dict) and candidate.get("method") == "campaign_progression":
-                    route = candidate
-                    break
-        if result.get("found") is not True or route is None:
-            raise ApiError(
-                "campaign_route_not_found",
-                "No published campaign route joins these stages.",
-                status_code=404,
-            )
-        detail = route.get("detail")
-        expected = {
-            "from_stage_id": request.from_stage_id,
-            "to_stage_id": request.to_stage_id,
-            "requires_completed_stage_id": request.from_stage_id,
-        }
-        if not isinstance(detail, dict) or any(detail.get(key) != value for key, value in expected.items()):
-            raise ApiError(
-                "campaign_route_invalid",
-                "The published campaign route does not match these stages.",
-                status_code=502,
-            )
-        provision_cost = detail.get("provision_cost")
-        if isinstance(provision_cost, bool) or not isinstance(provision_cost, int) or not 0 <= provision_cost <= 20:
-            raise ApiError(
-                "campaign_route_invalid",
-                "The published campaign route has an invalid provision cost.",
-                status_code=502,
-            )
+            if route is None:
+                route = next(
+                    (
+                        candidate
+                        for candidate in result.get("routes", [])
+                        if isinstance(candidate, dict) and candidate.get("method") == method
+                    ),
+                    None,
+                )
+            if (
+                result.get("found") is not True
+                or result.get("from") != from_map_id
+                or result.get("to") != to_map_id
+                or route is None
+            ):
+                raise ApiError(
+                    "campaign_route_not_found",
+                    f"No published {method} route joins these stages.",
+                    status_code=404,
+                )
+            detail = route.get("detail")
+            if not isinstance(detail, dict):
+                raise ApiError("campaign_route_invalid", "Published route detail is invalid.", status_code=502)
+            if method == "campaign_progression":
+                expected = {
+                    "from_stage_id": request.from_stage_id,
+                    "to_stage_id": request.to_stage_id,
+                    "requires_completed_stage_id": request.from_stage_id,
+                }
+                if any(detail.get(key) != value for key, value in expected.items()) or detail.get("provision_cost") != 2:
+                    raise ApiError("campaign_route_invalid", "Published campaign route is invalid.", status_code=502)
+            elif method == "fixed_point":
+                if any(isinstance(detail.get(key), bool) or not isinstance(detail.get(key), int) for key in ("x", "y")):
+                    raise ApiError("campaign_route_invalid", "Published fixed-point route is invalid.", status_code=502)
+            else:
+                npc = detail.get("npc")
+                dialog = detail.get("dialog_path")
+                target = detail.get("target")
+                if (
+                    not isinstance(npc, dict)
+                    or not str(npc.get("name") or "").strip()
+                    or not isinstance(dialog, list)
+                    or not dialog
+                    or not all(isinstance(item, dict) and str(item.get("selected_option") or "").strip() for item in dialog)
+                    or not isinstance(target, dict)
+                ):
+                    raise ApiError("campaign_route_invalid", "Published guide route is invalid.", status_code=502)
+            rule = route_rules[method]
+            route_options.append({
+                "method": method,
+                "routeId": route.get("route_id"),
+                "label": rule["label"],
+                "provisionCost": rule["provisionCost"],
+                "moraleDelta": rule["moraleDelta"],
+                **({"guideName": detail["npc"]["name"]} if method == "npc_dialog" else {}),
+            })
+        selected = next(option for option in route_options if option["method"] == request.route_method)
         return {
             "mode": "connected",
             "found": True,
@@ -2673,8 +2714,8 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "toStageId": request.to_stage_id,
             "fromMapId": from_map_id,
             "toMapId": to_map_id,
-            "routeId": route.get("route_id"),
-            "provisionCost": provision_cost,
+            **selected,
+            "options": route_options,
         }
 
     @router.get("/knowledge/codex")

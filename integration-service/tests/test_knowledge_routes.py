@@ -39,19 +39,34 @@ class PublishedKnowledge:
             }]
         return [{"id": "dongzhou_stage_004", "stageId": stage_id, "name": "本回史料"}] if stage_id == "03b" else []
 
-    async def campaign_route(self, from_map_id, to_map_id):
+    async def campaign_route(self, from_map_id, to_map_id, method="campaign_progression"):
         if self.unavailable:
             raise UpstreamUnavailable("not ready")
+        details = {
+            "campaign_progression": dict(self.route_detail),
+            "fixed_point": {"x": 1, "y": 1},
+            "npc_dialog": {
+                "npc": {"id": 90000103, "name": "乡民", "x": 3, "y": 1},
+                "dialog_path": [{"selected_option": "请为我军引路。"}],
+                "target": {"x": 1, "y": 1},
+            },
+        }
         return {
             "found": True,
+            "from": from_map_id,
+            "to": to_map_id,
             "plans": [{
                 "steps": [{
                     "from": from_map_id,
                     "to": to_map_id,
                     "routes": [{
-                        "route_id": f"campaign_progression_{from_map_id}_{to_map_id}",
-                        "method": "campaign_progression",
-                        "detail": dict(self.route_detail),
+                        "route_id": (
+                            f"campaign_progression_{from_map_id}_{to_map_id}"
+                            if method == "campaign_progression"
+                            else f"dongzhou_{method}_{from_map_id}_{to_map_id}"
+                        ),
+                        "method": method,
+                        "detail": details[method],
                     }],
                 }],
             }],
@@ -105,6 +120,17 @@ def test_campaign_route_requires_completed_predecessor_and_validates_published_d
         assert accepted.status_code == 200
         assert accepted.json()["routeId"] == "campaign_progression_900001_900002"
         assert accepted.json()["provisionCost"] == 2
+        assert len(accepted.json()["options"]) == 3
+        assert {item["method"] for item in accepted.json()["options"]} == {
+            "campaign_progression", "fixed_point", "npc_dialog"
+        }
+        assert next(item for item in accepted.json()["options"] if item["method"] == "fixed_point")["moraleDelta"] == 6
+        guided = client.post(path, json={**request, "route_method": "npc_dialog"})
+        assert guided.status_code == 200
+        assert guided.json()["routeId"] == "dongzhou_npc_dialog_900001_900002"
+        assert guided.json()["provisionCost"] == 1
+        assert guided.json()["moraleDelta"] == -4
+        assert guided.json()["guideName"] == "乡民"
 
         upstreams.route_detail = {**upstreams.route_detail, "to_stage_id": "wrong"}
         invalid = client.post(path, json=request)

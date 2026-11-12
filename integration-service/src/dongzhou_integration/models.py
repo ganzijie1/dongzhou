@@ -166,6 +166,7 @@ class CampaignRouteRequest(StrictModel):
     from_stage_index: int = Field(ge=1, le=172)
     to_stage_id: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_.:-]+$")
     to_stage_index: int = Field(ge=2, le=172)
+    route_method: Literal["campaign_progression", "fixed_point", "npc_dialog"] = "campaign_progression"
 
     @model_validator(mode="after")
     def validate_adjacent_stages(self) -> CampaignRouteRequest:
