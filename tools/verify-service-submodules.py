@@ -60,6 +60,20 @@ def main() -> None:
         origin = git("remote", "get-url", "origin", cwd=directory)
         if origin != expected_url:
             failures.append(f"{relative_path}: origin is not the sanitized GitHub repository")
+        try:
+            branch_commit = git(
+                "rev-parse",
+                "refs/remotes/origin/dev-gzj",
+                cwd=directory,
+            )
+        except RuntimeError:
+            failures.append(f"{relative_path}: origin/dev-gzj is not available")
+        else:
+            if branch_commit != pinned_commit:
+                failures.append(
+                    f"{relative_path}: pinned {pinned_commit[:12]}, "
+                    f"origin/dev-gzj is {branch_commit[:12]}"
+                )
 
     if failures:
         raise SystemExit("Service submodule verification failed:\n- " + "\n- ".join(failures))
