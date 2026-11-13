@@ -27,7 +27,7 @@ from .assignments import (
     select_assignment,
     task_duty,
 )
-from .models import AdviserFeedbackRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
+from .models import AdviserFeedbackRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
@@ -3792,6 +3792,13 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 for row in rows
                 if row["id"] != request.ai_id
             ]
+        }
+
+    @game_clock_router.post("/api/v2/QueryNDLLMTargetPlayerInfo")
+    async def query_target_player(request: AinpcTargetPlayerQuery) -> dict[str, Any]:
+        return {
+            "playerId": request.target_player_id,
+            "playerName": "东周玩家",
         }
 
     @game_clock_router.post("/api/v2/QueryNDLLMFriendInfo")

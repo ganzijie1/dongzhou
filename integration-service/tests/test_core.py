@@ -1568,6 +1568,16 @@ class AuthenticationRouteTests(unittest.TestCase):
                 self.assertEqual(offline.status_code, 200)
                 self.assertEqual(offline.json(), {"isOnline": False})
 
+                target_player = client.post(
+                    "/api/v2/QueryNDLLMTargetPlayerInfo",
+                    json={"aiId": "42", "targetPlayerId": 123},
+                )
+                self.assertEqual(target_player.status_code, 200)
+                self.assertEqual(
+                    target_player.json(),
+                    {"playerId": 123, "playerName": "东周玩家"},
+                )
+
                 tasks = client.post(
                     "/api/v2/QueryNDLLMTaskInfoByStatus",
                     json={"aiId": "42", "queryTaskStatus": "TASK_STATUS_RUNNING"},

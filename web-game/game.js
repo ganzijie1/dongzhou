@@ -995,7 +995,14 @@
       renderOrganizationPanel();
       refreshOfficeTaskSnapshots().catch((error) => showNotice(`官署簿书暂不可达：${error.message}`));
       refreshOfficeScheduledDuty().catch(() => {});
-      syncOfficeNpcs(profile.organization.members).then(() => warmCurrentOfficeNpcSchedules()).catch(() => {});
+      const manager = profile.organization.members.find((member) => member.id === "DuBo");
+      const otherMembers = profile.organization.members.filter((member) => member.id !== "DuBo");
+      syncOfficeNpcs(manager ? [manager] : [])
+        .then(() => {
+          warmCurrentOfficeNpcSchedules();
+          return syncOfficeNpcs(otherMembers);
+        })
+        .catch(() => {});
       refreshOfficeNpcState();
       refreshOfficeAdviser();
       requestAnimationFrame(() => $("#campaignOfficeCloseButton").focus());
@@ -1589,18 +1596,19 @@
     if (integration.isOffline() || officeCareerBusy || !profile.organization.remoteRoster?.playerMembership) return;
     const commands = {
       options: "请列出我当前岗位可以领取的组织任务。",
-      request: `我申请领取组织任务：${detail}，请现在派发给我。`,
+      request: `【东周玩家领差】我申请领取组织任务：${detail}。我接受该任务的默认参数、时限和交付要求，请现在创建并派发给我，不需要补充询问。`,
       inbox: "请列出你与我之间已经下发、已经领取的组织任务和待办事项。",
       accept: "我接受你刚才下发给我的组织任务。",
+      exception: "我在执行当前组织任务时遇到重大异常，请立即按任务冻结规则登记受阻并列出处置方案。",
       result: "我已完成当前组织任务，请审核我的完成成果。"
     };
-    const content = action === "result"
-      ? `${commands.result}完成情况：${detail}`
+    const content = action === "result" || action === "exception"
+      ? `${commands[action]}${action === "result" ? "完成情况" : "受阻情况"}：${detail}`
       : commands[action];
     if (!content) return;
     officeCareerBusy = true;
     renderOfficeCareer();
-    $("#officeCareerFeedback").textContent = ({ options: "正在向杜伯查询可领差事……", request: "领差申请已送杜伯，等待派发……", inbox: "正在调阅我的任务待办……", accept: "受命回执已送杜伯……", result: "复命已送杜伯，等待审核与贡献结算……" })[action];
+    $("#officeCareerFeedback").textContent = ({ options: "正在向杜伯查询可领差事……", request: "领差申请已送杜伯，等待派发……", inbox: "正在调阅我的任务待办……", accept: "受命回执已送杜伯……", exception: "受阻报告已送杜伯，等待冻结方案裁定……", result: "复命已送杜伯，等待审核与贡献结算……" })[action];
     try {
       await syncOfficeNpcs(profile.organization.members.filter((member) => member.id === "DuBo"));
       const accepted = await integration.sendNpcMessage("DuBo", content);
@@ -1615,7 +1623,7 @@
       profile.organization = organization.recordRemoteRoster(profile.organization, roster, displayName);
       $("#officeCareerFeedback").textContent = reply?.content || "军府已受理，权威回信稍后可在府中书问查看。";
       if (action === "request" && detail) $("#officeCareerTaskName").value = "";
-      if (action === "result" && detail) $("#officeCareerResult").value = "";
+      if ((action === "result" || action === "exception") && detail) $("#officeCareerResult").value = "";
       localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
       renderOrganizationPanel();
       if ($("#officeMemberSelect").value === "DuBo") await refreshOfficeCorrespondence(profile.organization.members.find((member) => member.id === "DuBo"));
@@ -1632,6 +1640,15 @@
     const summary = $("#officeCareerResult").value.trim();
     if (!summary) return;
     requestOfficeCareer("result", summary);
+  }
+
+  function reportOfficeCareerException() {
+    const summary = $("#officeCareerResult").value.trim();
+    if (!summary) {
+      $("#officeCareerFeedback").textContent = "请先填写实际受阻情况。";
+      return;
+    }
+    requestOfficeCareer("exception", summary);
   }
 
   function submitOfficeCareerRequest(event) {
@@ -2169,8 +2186,8 @@
     officeNpcSyncQueue = officeNpcSyncQueue.catch(() => {}).then(async () => {
       const pending = force ? requested : requested.filter((member) => !syncedNpcIds.has(member.id));
       if (!pending.length) return;
-      await integration.syncNpcs(pending.map((member) => ({ heroId: member.id, name: member.name })));
-      pending.forEach((member) => syncedNpcIds.add(member.id));
+      const result = await integration.syncNpcs(pending.map((member) => ({ heroId: member.id, name: member.name })));
+      if (result?.ready === true) pending.forEach((member) => syncedNpcIds.add(member.id));
     });
     return officeNpcSyncQueue;
   }
@@ -4661,6 +4678,7 @@
     $("#officeCareerRequestForm").addEventListener("submit", submitOfficeCareerRequest);
     $("#officeCareerInbox").addEventListener("click", () => requestOfficeCareer("inbox"));
     $("#officeCareerAccept").addEventListener("click", () => requestOfficeCareer("accept"));
+    $("#officeCareerException").addEventListener("click", reportOfficeCareerException);
     $("#officeCareerResultForm").addEventListener("submit", submitOfficeCareerResult);
     $("#officeMessageForm").addEventListener("submit", sendOfficeNpcMessage);
     $("#officeCorrespondence").addEventListener("click", (event) => { const button = event.target.closest("[data-correspondence-id]"); if (button) selectOfficeCorrespondence(button.dataset.correspondenceId); });

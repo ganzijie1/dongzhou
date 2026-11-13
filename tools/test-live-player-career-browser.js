@@ -16,13 +16,14 @@ const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
 const timeout = Number(process.env.DONGZHOU_CAREER_TIMEOUT_MS || 240000);
 const installation = process.env.DONGZHOU_CAREER_INSTALLATION || crypto.randomUUID();
 const outputDir = path.resolve(__dirname, "../output/integration-validation");
-const reportPath = path.join(outputDir, "live-player-career-browser.json");
-const screenshotPath = path.join(outputDir, "live-player-career-browser.png");
+const reportPath = path.join(outputDir, "live-player-career-exception-browser.json");
+const screenshotPath = path.join(outputDir, "live-player-career-exception-browser.png");
 const executablePath = [
   process.env.DONGZHOU_CHROMIUM_EXECUTABLE,
   "C:/Program Files/Google/Chrome/Application/chrome.exe",
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
 ].find((entry) => entry && fs.existsSync(entry));
+const diagnostics = {};
 
 async function readRoster(page) {
   return page.evaluate(async () => {
@@ -64,6 +65,23 @@ async function careerAction(page, selector, label) {
   return waitForCareerReply(page, previous, label);
 }
 
+async function careerRefresh(page, selector, label) {
+  await page.click(selector);
+  await page.waitForTimeout(100);
+  await page.waitForFunction(
+    () => {
+      const feedback = document.querySelector("#officeCareerFeedback")?.textContent?.trim() || "";
+      const busy = [...document.querySelectorAll("#officeCareer button")].some((button) => button.disabled);
+      return !busy && feedback && !feedback.includes("……") && !feedback.includes("稍后可在府中书问查看");
+    },
+    undefined,
+    { timeout },
+  );
+  const text = (await page.locator("#officeCareerFeedback").textContent()).trim();
+  assert(text, `${label} returned an empty reply`);
+  return text;
+}
+
 async function releaseMembership(page) {
   const roster = await readRoster(page);
   if (!roster.playerMembership) return;
@@ -88,8 +106,17 @@ async function releaseMembership(page) {
     await page.waitForSelector("#app:not([hidden])", { timeout: 45000 });
     await page.click("#campaignOfficeButton");
     await page.waitForSelector("#campaignOfficeBackdrop:not([hidden])", { timeout: 45000 });
-    const initial = await readRoster(page);
+    let initial = await readRoster(page);
     assert.equal(initial.playerMembership, null, "Fresh player unexpectedly already has a court membership");
+    for (let attempt = 0; attempt < 3 && initial.openPositions?.length
+      && await page.locator("#officeMembershipApply").isDisabled(); attempt += 1) {
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#app:not([hidden])", { timeout: 45000 });
+      await page.waitForTimeout(2500);
+      await page.click("#campaignOfficeButton");
+      await page.waitForSelector("#campaignOfficeBackdrop:not([hidden])", { timeout: 45000 });
+      initial = await readRoster(page);
+    }
     await page.waitForFunction(() => !document.querySelector("#officeMembershipApply")?.disabled, null, { timeout });
     await page.click("#officeMembershipApply");
     const admitted = await waitForRoster(page, (roster) => Boolean(roster.playerMembership), "Player admission");
@@ -97,21 +124,48 @@ async function releaseMembership(page) {
     await page.waitForSelector("#officeCareer:not([hidden])", { timeout });
     const startingContribution = Number(admitted.playerMembership.contributionBalance || 0);
 
-    const optionsReply = await careerAction(page, "#officeCareerOptions", "Task options");
+    let optionsReply = "";
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      optionsReply = await careerAction(page, "#officeCareerOptions", "Task options");
+      if (/任务|差事|申请|领取/.test(optionsReply)) break;
+      await page.waitForTimeout(1500);
+    }
     assert.match(optionsReply, /任务|差事|申请|领取/, optionsReply);
-    const structuredTaskName = optionsReply.match(/(?:^|\n)\s*1\.\s*[^｜\n]*｜([^（｜\n]+)(?:（[^）]+）)?/)?.[1]?.trim();
+    const structuredTaskName = optionsReply.match(/(?:^|\s)1\.\s*[^｜\n]*｜([^（｜\n]+)(?:（[^）]+）)?/)?.[1]?.trim();
     const naturalTaskName = [...optionsReply.matchAll(/([\u4e00-\u9fff]{2,12}任务)/g)]
       .map((match) => match[1])
       .find((name) => !/(几个|组织|岗位|申请|领取|可供)/.test(name));
     const firstTaskName = structuredTaskName || naturalTaskName;
     assert(firstTaskName, `Could not extract the first authoritative task name: ${optionsReply}`);
+    assert.notEqual(firstTaskName, "组织任务", `Extracted a generic task name: ${optionsReply}`);
+    diagnostics.optionsReply = optionsReply;
+    diagnostics.structuredTaskName = structuredTaskName || null;
+    diagnostics.naturalTaskName = naturalTaskName || null;
+    diagnostics.firstTaskName = firstTaskName;
     await page.fill("#officeCareerTaskName", firstTaskName);
     const requestReply = await careerAction(page, "#officeCareerRequestForm button[type=submit]", "Task request");
+    diagnostics.requestReply = requestReply;
+    assert.doesNotMatch(requestReply, /补充|说清楚|确认.*任务|哪项任务|没查到.*任务/, requestReply);
     assert.match(requestReply, /任务|接受|派|安排|领/, requestReply);
     const inboxReply = await careerAction(page, "#officeCareerInbox", "Task inbox");
     assert.match(inboxReply, /任务|待办|接受|处理/, inboxReply);
     const acceptReply = await careerAction(page, "#officeCareerAccept", "Task acceptance");
-    assert.match(acceptReply, /任务|接受|执行|开始|受命/, acceptReply);
+    assert.doesNotMatch(acceptReply, /暂无.*任务|没有.*任务|待接受.*为空/, acceptReply);
+    assert.match(acceptReply, /任务|接受|执行|开始|受命|交给你|完成后|mission/i, acceptReply);
+
+    const exceptionSummary = "北路桥梁冲毁，军粮车队无法通行，请登记重大受阻并按冻结方案处置。";
+    await page.fill("#officeCareerResult", exceptionSummary);
+    const exceptionReply = await careerAction(page, "#officeCareerException", "Task exception");
+    assert.match(exceptionReply, /异常|受阻|暂停|方案|处置|登记/, exceptionReply);
+
+    let resumedReply = "";
+    const resumeDeadline = Date.now() + timeout;
+    while (Date.now() < resumeDeadline) {
+      resumedReply = await careerRefresh(page, "#officeCareerInbox", "Task exception resolution");
+      if (/已按.*裁定方案恢复执行|已按上级裁定方案恢复执行/.test(resumedReply)) break;
+      await page.waitForTimeout(2000);
+    }
+    assert.match(resumedReply, /已按.*裁定方案恢复执行|已按上级裁定方案恢复执行/, resumedReply);
 
     const resultSummary = "已核清军府粮册与入库数目，账目相符，封存复核记录。";
     await page.fill("#officeCareerResult", resultSummary);
@@ -136,13 +190,13 @@ async function releaseMembership(page) {
 
     const report = {
       result: "PASS",
-      mode: "real-ainpc-orgflow-player-career-browser-no-interception",
+      mode: "real-ainpc-orgflow-player-career-exception-browser-no-interception",
       installation,
       position: admitted.playerMembership.office,
       managerHeroId: admitted.playerMembership.directManagerHeroId,
       contributionBefore: startingContribution,
       contributionAfter: Number(settled.playerMembership.contributionBalance),
-      replies: { optionsReply, requestReply, inboxReply, acceptReply, resultReply },
+      replies: { optionsReply, requestReply, inboxReply, acceptReply, exceptionReply, resumedReply, resultReply },
       screenshot: screenshotPath,
     };
     fs.writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
@@ -159,6 +213,6 @@ async function releaseMembership(page) {
     await browser.close();
   }
 })().catch((error) => {
-  console.error(JSON.stringify({ result: "FAIL", errorType: error.name, message: error.message, stack: error.stack }));
+  console.error(JSON.stringify({ result: "FAIL", errorType: error.name, message: error.message, stack: error.stack, diagnostics }));
   process.exitCode = 1;
 });

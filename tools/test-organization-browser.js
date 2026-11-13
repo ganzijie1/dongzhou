@@ -115,6 +115,8 @@ async function openReady(page) {
     online.on("pageerror", (error) => errors.push(error.message));
     let saveVersion = 1;
     let npcStateAttempts = 0;
+    let npcSyncAttempts = 0;
+    const npcSyncRequests = [];
     let npcMessageTaskId = null;
     let npcCorrespondenceReads = 0;
     let membershipJoined = false;
@@ -143,7 +145,11 @@ async function openReady(page) {
       else if (pathName.endsWith("/organization/roster")) body = { organization: { name: "东周军府", state: "ACTIVE", hierarchyVersion: membershipJoined ? 8 : 7, growthContribution: 245 }, members: [{ heroId: "DuBo", office: "司马", role: "军府主官", level: "manager", directManagerHeroId: null, contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 }, { heroId: "ZuoRu", office: "行人", role: "军府属官", level: "officer", directManagerHeroId: "DuBo", contributionBalance: 31, lifetimeEarned: 42, lifetimeSpent: 11 }], playerMembership: membershipJoined ? { office: "officer_12", role: "court_officer", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 } : null, openPositions: membershipJoined ? [] : [{ office: "officer_12", role: "court_officer", level: "staff" }] };
       else if (pathName.endsWith("/knowledge/search")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回·东郊索命", summary: "杜伯进谏", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }] }] };
       else if (pathName.endsWith("/knowledge/stages/01")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回·已发布本回史料", summary: "杜伯进谏", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }] }] };
-      else if (pathName.endsWith("/npcs/sync")) body = { ready: false, npcs: [{ npcId: "42" }], relogin: [{ npcId: "42", receipt: { accepted: true } }] };
+      else if (pathName.endsWith("/npcs/sync")) {
+        npcSyncAttempts += 1;
+        npcSyncRequests.push(request.postDataJSON());
+        body = { ready: npcSyncAttempts > 1, npcs: [{ npcId: "42" }], relogin: [{ npcId: "42", receipt: { accepted: true } }] };
+      }
       else if (/\/npcs\/[^/]+\/state$/.test(pathName)) {
         npcStateAttempts += 1;
         if (npcStateAttempts <= 6) return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "npc_unavailable", message: "NPC state is temporarily unavailable." } }) });
@@ -157,6 +163,7 @@ async function openReady(page) {
           : message.includes("申请领取组织任务：") ? "request"
           : message.includes("任务和待办事项") ? "inbox"
           : message.includes("接受你刚才下发") ? "accept"
+          : message.includes("重大异常") ? "exception"
           : message.includes("完成当前组织任务") ? "result"
           : null;
         if (careerAction) careerActions.push({ action: careerAction, message });
@@ -172,6 +179,7 @@ async function openReady(page) {
           request: "核验军粮账册已经派发给你，请明确回复是否接受。",
           inbox: "已有一项核验军粮账册任务等待你处理。",
           accept: "已记录受命，核验军粮账册开始执行。",
+          exception: "受阻已经登记，差事暂停；请从冻结方案中等待直属裁定。",
           result: "复命已收纳，贡献已经结算。"
         };
         const reply = membershipAction === "join" ? "准你入仕，列入军府属官。" : membershipAction === "confirmLeave" ? "辞仕已办结。" : careerReplies[careerAction] || "北路军粮已经入仓。";
@@ -232,10 +240,14 @@ async function openReady(page) {
     await online.waitForSelector("#officeCareerFeedback >> text=等待你处理", { timeout: 15000 });
     await online.click("#officeCareerAccept");
     await online.waitForSelector("#officeCareerFeedback >> text=开始执行", { timeout: 15000 });
+    await online.fill("#officeCareerResult", "北路桥梁冲毁，军粮车队无法通行");
+    await online.click("#officeCareerException");
+    await online.waitForSelector("#officeCareerFeedback >> text=差事暂停", { timeout: 15000 });
     await online.fill("#officeCareerResult", "核清军粮三十车，账册已封存");
     await online.click("#officeCareerResultForm button[type=submit]");
     await online.waitForSelector("#officeCareerFeedback >> text=贡献已经结算", { timeout: 15000 });
-    if (careerActions.map((entry) => entry.action).join(",") !== "options,request,inbox,accept,result") throw new Error(`Unexpected player career sequence: ${JSON.stringify(careerActions)}`);
+    if (careerActions.map((entry) => entry.action).join(",") !== "options,request,inbox,accept,exception,result") throw new Error(`Unexpected player career sequence: ${JSON.stringify(careerActions)}`);
+    if (!careerActions.find((entry) => entry.action === "exception")?.message.includes("北路桥梁冲毁")) throw new Error("Player blocker summary was not sent to the manager");
     if (!careerActions.at(-1).message.includes("核清军粮三十车，账册已封存")) throw new Error("Player result summary was not sent to the manager");
     await online.click("#officeMembershipLeave");
     await online.waitForSelector("#officeMembershipLeaveConfirm:not([hidden])", { timeout: 15000 });
@@ -308,6 +320,8 @@ async function openReady(page) {
     if (taskNameWidth < 100) throw new Error(`Task ledger name column collapsed to ${taskNameWidth}px`);
     if (organizationTaskReads < 2) throw new Error("A pending organization task was not polled within the same month advance");
     if (!savedRemoteTask) throw new Error("Remote task binding was not persisted");
+    if (npcSyncAttempts < 2) throw new Error("NPC activation was cached before the service reported ready");
+    if (npcSyncRequests.filter((entry) => entry.npcs?.some((npc) => npc.hero_id === "DuBo")).length < 2) throw new Error("Initializing manager NPC was not retried");
     await online.screenshot({ path: path.join(OUT, "desktop-office-online.png"), fullPage: false });
     if (errors.length) throw new Error(`Page errors: ${errors.join(" | ")}`);
     console.log(JSON.stringify({ result: "PASS", desktopLayout, mobileLayout, screenshots: OUT }, null, 2));

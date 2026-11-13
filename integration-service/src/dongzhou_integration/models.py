@@ -107,6 +107,11 @@ class AinpcNearbyQuery(StrictModel):
     filters: list[AinpcNearbyFilter] = Field(min_length=1, max_length=4)
 
 
+class AinpcTargetPlayerQuery(StrictModel):
+    ai_id: str = Field(alias="aiId", min_length=1, max_length=128)
+    target_player_id: int = Field(alias="targetPlayerId", ge=1)
+
+
 class AinpcPlayerInfo(StrictModel):
     # AINPC forwards the complete V1 playerInfo object. Dongzhou only consumes
     # identity and display name, but must not reject fleet/guild/position fields.

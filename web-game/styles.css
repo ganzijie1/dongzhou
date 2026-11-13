@@ -3766,6 +3766,7 @@ button:focus-visible {
 .office-career-actions { display: flex; flex-wrap: wrap; gap: 7px; }
 .office-career-result { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .office-career-result input { min-width: 0; }
+.office-career-result-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
 .office-career > p { margin: 0; font-size: 11px; }
 .office-members > div { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; padding: 11px 12px; background: #101510; }
 .office-members strong { color: #e3d8bb; font-size: 13px; }
