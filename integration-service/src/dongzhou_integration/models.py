@@ -306,6 +306,10 @@ class CourtMandateRequest(StrictModel):
     knowledge_quiz_result_digest: str | None = Field(
         default=None, pattern=r"^[0-9a-f]{64}$"
     )
+    supersedes_mandate_id: str | None = Field(default=None, min_length=1, max_length=256)
+    supersedes_mandate_digest: str | None = Field(
+        default=None, pattern=r"^[0-9a-f]{64}$"
+    )
     operation: CourtMandateOperation | None = None
 
     @model_validator(mode="after")
@@ -322,12 +326,14 @@ class CourtMandateRequest(StrictModel):
             self.knowledge_quiz_result_digest
         ):
             raise ValueError("court mandate knowledge quiz reference is incomplete")
+        if bool(self.supersedes_mandate_id) != bool(self.supersedes_mandate_digest):
+            raise ValueError("court mandate revision reference is incomplete")
         return self
 
 
 class CourtMandateResumeRequest(StrictModel):
     action_id: UUID = Field(strict=False)
-    decision: Literal["APPROVE", "REJECT"]
+    decision: Literal["APPROVE", "REJECT", "REVISE"]
 
 
 class CourtMandateScheduleRequest(StrictModel):

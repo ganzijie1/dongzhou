@@ -37,7 +37,7 @@ const executablePath = [
       const result = {
         state: "REQUIRES_ACTION",
         mandate: { id: "dongzhou:test:00000000-0000-4000-8000-000000000002", digest: "a".repeat(64), evidence: { name: "东郊旧闻" }, assignment: { name: "转运军粮" } },
-        action: { actionId: "00000000-0000-4000-8000-000000000003", code: "seal_court_mandate", type: "confirmation", options: ["APPROVE", "REJECT"] }
+        action: { actionId: "00000000-0000-4000-8000-000000000003", code: "seal_court_mandate", type: "confirmation", options: ["APPROVE", "REVISE", "REJECT"] }
       };
       localStorage.setItem("dongzhou-pending-mandate-v1:visual-acceptance", JSON.stringify({ input, result }));
     });
@@ -47,9 +47,11 @@ const executablePath = [
     await page.waitForSelector("#officeMandateApproval:not([hidden])");
     assert.match(await page.locator("#officeMandateApproval").innerText(), /内核待裁/);
     assert.equal(await page.locator("#officeMandateApproveButton").innerText(), "签发");
+    assert(await page.locator("#officeMandateReviseButton").isVisible());
     await page.setViewportSize({ width: 320, height: 700 });
     await page.locator("#officeMandateApproval").scrollIntoViewIfNeeded();
     assert(await page.locator("#officeMandateApproveButton").isVisible());
+    assert(await page.locator("#officeMandateReviseButton").isVisible());
     const bounds = await page.locator("#officeMandateApproval").evaluate((element) => {
       const box = element.getBoundingClientRect();
       return { left: box.left, right: box.right, viewport: innerWidth, scrollWidth: document.documentElement.scrollWidth };

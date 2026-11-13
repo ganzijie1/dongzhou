@@ -161,7 +161,8 @@ global.fetch = async (url, options = {}) => {
   }
   else if (/\/court\/mandates\/[^/]+\/resume$/.test(url)) {
     mandateResumeAttempts += 1;
-    response = { state: body.decision === "APPROVE" ? "ISSUED" : "REJECTED", mandate: { id: decodeURIComponent(url.split("/").at(-2)), digest: "a".repeat(64), state: body.decision === "APPROVE" ? "ISSUED" : "REJECTED" } };
+    const state = body.decision === "APPROVE" ? "ISSUED" : body.decision === "REVISE" ? "RETURNED" : "REJECTED";
+    response = { state, mandate: { id: decodeURIComponent(url.split("/").at(-2)), digest: "a".repeat(64), state } };
   }
   else if (/\/court\/mandates\/[^/]+\/schedule$/.test(url)) {
     mandateScheduleAttempts += 1;
@@ -321,6 +322,17 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(mandateScheduleIds[0], mandateScheduleIds[1]);
   client.acknowledgeCourtMandate(mandateInput);
   assert.ok(![...values.keys()].some((key) => key.startsWith("dongzhou-pending-mandate-v1:")));
+  const returnedDraft = await client.createCourtMandate({ ...mandateInput, hero_id: "ZuoRu" });
+  const returnedMandate = await client.resumeCourtMandate(returnedDraft.mandate.id, returnedDraft.action.actionId, "REVISE");
+  assert.strictEqual(returnedMandate.state, "RETURNED");
+  assert.strictEqual(client.pendingCourtMandate(), null);
+  const revisedDraft = await client.createCourtMandate({ ...mandateInput, hero_id: "ZuoRu" });
+  assert.strictEqual(revisedDraft.state, "REQUIRES_ACTION");
+  assert.strictEqual(revisedDraft.mandate.id !== returnedDraft.mandate.id, true);
+  const revisedRequest = JSON.parse([...values.entries()].find(([key]) => key.startsWith("dongzhou-pending-mandate-v1:"))[1]).input;
+  assert.strictEqual(revisedRequest.supersedes_mandate_id, returnedDraft.mandate.id);
+  assert.strictEqual(revisedRequest.supersedes_mandate_digest, returnedDraft.mandate.digest);
+  client.acknowledgeCourtMandate({ ...mandateInput, hero_id: "ZuoRu" });
   const input = { task_type: "supply", assignee_hero_id: "DuBo", stage_id: "01", stage_title: "东郊索命", brief: "test", parameters: {} };
   await assert.rejects(() => client.createOrganizationTask(input), /retry/);
   const accepted = await client.createOrganizationTask(input);

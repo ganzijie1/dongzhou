@@ -2302,6 +2302,7 @@
     $("#officeMandateApprovalDetail").textContent = `${mandate.evidence?.name || "史料军令"} · ${mandate.assignment?.name || "属官当值"}${masteryLabel}${collaborationLabel}${emergencyLabel} · 印记 ${String(mandate.digest || "").slice(0, 10)}`;
     $("#officeMandateApproveButton").textContent = issued ? "下达" : "签发";
     $("#officeMandateRejectButton").hidden = issued;
+    $("#officeMandateReviseButton").hidden = issued;
   }
 
   function renderOfficeSettlementReview() {
@@ -2404,6 +2405,7 @@
     officeOrderInFlight = true;
     $("#officeMandateApproveButton").disabled = true;
     $("#officeMandateRejectButton").disabled = true;
+    $("#officeMandateReviseButton").disabled = true;
     try {
       let result = pending.result;
       if (result.state === "REQUIRES_ACTION") {
@@ -2414,6 +2416,11 @@
         showNotice("军令草案已驳回，未派差也未耗用军粮");
         return;
       }
+      if (result.state === "RETURNED") {
+        renderOfficeMandateApproval();
+        showNotice("军令已退回改拟；调整属官、差事或史料后重新授命，新令将承接原令印记");
+        return;
+      }
       await completeIssuedOfficeTask(pending.input, result.mandate);
     } catch (error) {
       renderOfficeMandateApproval();
@@ -2422,6 +2429,7 @@
       officeOrderInFlight = false;
       $("#officeMandateApproveButton").disabled = false;
       $("#officeMandateRejectButton").disabled = false;
+      $("#officeMandateReviseButton").disabled = false;
     }
   }
 
@@ -4606,6 +4614,7 @@
     $("#officeBetrayButton").addEventListener("click", betrayAlliance);
     $("#officeIssueButton").addEventListener("click", () => issueOfficeTask());
     $("#officeMandateApproveButton").addEventListener("click", () => resolveOfficeMandate("APPROVE"));
+    $("#officeMandateReviseButton").addEventListener("click", () => resolveOfficeMandate("REVISE"));
     $("#officeMandateRejectButton").addEventListener("click", () => resolveOfficeMandate("REJECT"));
     $("#officeSettlementAcceptButton").addEventListener("click", () => resolveOfficeSettlement("ACCEPT"));
     $("#officeSettlementCensureButton").addEventListener("click", () => resolveOfficeSettlement("CENSURE"));

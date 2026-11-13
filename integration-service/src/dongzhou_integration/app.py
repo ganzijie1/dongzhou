@@ -262,7 +262,7 @@ class RuntimeModule(Module):
 
 class MandateWorkflowModule(Module):
     name = "dongzhou_mandate_workflow"
-    version = "1.11.0"
+    version = "1.12.0"
     dependencies = (RuntimeModule.name,)
 
     @staticmethod
@@ -276,7 +276,7 @@ class MandateWorkflowModule(Module):
                 "code": "seal_court_mandate",
                 "type": "confirmation",
                 "prompt": "Confirm issuance of this court mandate?",
-                "options": ["APPROVE", "REJECT"],
+                "options": ["APPROVE", "REVISE", "REJECT"],
             },
         }
 
@@ -285,8 +285,22 @@ class MandateWorkflowModule(Module):
         mandate = response.get("mandate")
         if not isinstance(mandate, dict):
             raise ValueError("missing mandate draft")
-        state = "ISSUED" if decision == "APPROVE" else "REJECTED"
-        return {"state": state, "mandate": {**mandate, "state": state}}
+        state = {
+            "APPROVE": "ISSUED",
+            "REVISE": "RETURNED",
+            "REJECT": "REJECTED",
+        }[decision]
+        return {
+            "state": state,
+            "mandate": {
+                **mandate,
+                "state": state,
+                "kernel": {
+                    **dict(mandate.get("kernel") or {}),
+                    "state": state,
+                },
+            },
+        }
 
     @staticmethod
     def draft_inventory_requisition(
@@ -4755,6 +4769,64 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 )
             return {"replayed": True, **(previous or {})}
 
+        revision_trace: dict[str, Any] | None = None
+        if request.supersedes_mandate_id and request.supersedes_mandate_digest:
+            prior = await store.read_external_request_record(
+                player_id,
+                request.supersedes_mandate_id,
+                "court_mandate",
+            )
+            prior_response = prior.get("response") if isinstance(prior, dict) else None
+            prior_mandate = (
+                prior_response.get("mandate")
+                if isinstance(prior_response, dict)
+                else None
+            )
+            prior_request = prior.get("request") if isinstance(prior, dict) else None
+            prior_revision = (
+                prior_mandate.get("revision")
+                if isinstance(prior_mandate, dict)
+                else None
+            )
+            prior_number = (
+                prior_revision.get("number", 0)
+                if isinstance(prior_revision, dict)
+                else 0
+            )
+            if (
+                not isinstance(prior, dict)
+                or prior.get("state") != "RETURNED"
+                or not isinstance(prior_mandate, dict)
+                or prior_mandate.get("id") != request.supersedes_mandate_id
+                or prior_mandate.get("digest") != request.supersedes_mandate_digest
+                or prior_mandate.get("state") != "RETURNED"
+                or not isinstance(prior_request, dict)
+                or prior_request.get("stage_id") != request.stage_id
+                or request.supersedes_mandate_id
+                == stable_event_id(player_id, request.client_request_id)
+                or isinstance(prior_number, bool)
+                or not isinstance(prior_number, int)
+                or prior_number < 0
+                or prior_number >= 20
+            ):
+                await store.finish_request(
+                    player_id,
+                    request.client_request_id,
+                    "REJECTED",
+                    {"state": "REJECTED"},
+                    "court_mandate_revision_unverified",
+                )
+                raise ApiError(
+                    "court_mandate_revision_unverified",
+                    "The revised mandate must supersede this player's returned mandate for the same stage.",
+                    status_code=422,
+                )
+            revision_trace = {
+                "number": prior_number + 1,
+                "supersedesMandateId": request.supersedes_mandate_id,
+                "supersedesDigest": request.supersedes_mandate_digest,
+            }
+
         council = await store.read_request(
             player_id, request.council_request_id, "npc_decision"
         )
@@ -5381,6 +5453,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
                 "state": str(workflow_status["state"]).upper(),
             },
+            **({"revision": revision_trace} if revision_trace is not None else {}),
         }
         if thought_receipt is not None:
             trace["thought"] = thought_receipt
@@ -5435,7 +5508,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=404,
             )
         response = record.get("response")
-        if record.get("state") in {"ISSUED", "REJECTED"} and isinstance(response, dict):
+        if record.get("state") in {"ISSUED", "RETURNED", "REJECTED"} and isinstance(response, dict):
             return {"replayed": True, **response}
         action = response.get("action") if isinstance(response, dict) else None
         if record.get("state") != "REQUIRES_ACTION" or not isinstance(action, dict):
@@ -5462,7 +5535,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         if not transitioned:
             latest = await store.read_request(player_id, request_id, "court_mandate")
             latest_response = latest.get("response") if latest else None
-            if latest and latest.get("state") in {"ISSUED", "REJECTED"} and isinstance(latest_response, dict):
+            if latest and latest.get("state") in {"ISSUED", "RETURNED", "REJECTED"} and isinstance(latest_response, dict):
                 return {"replayed": True, **latest_response}
             raise ApiError(
                 "court_mandate_not_resumable",

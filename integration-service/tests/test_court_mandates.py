@@ -512,7 +512,7 @@ def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -
             assert collaboration["supportAssignment"]["heroId"] == "QinXiangGong"
             assert collaboration["factor"] > 0
             assert collaboration["score"] == round(50 + collaboration["factor"] * 5)
-            assert drafted.json()["mandate"]["kernel"]["moduleVersion"] == "1.11.0"
+            assert drafted.json()["mandate"]["kernel"]["moduleVersion"] == "1.12.0"
 
             mandate = approve_mandate(client, drafted)
             scheduled = client.post(
@@ -629,7 +629,7 @@ def test_council_memory_is_recalled_verified_and_sealed_into_mandate() -> None:
             mandate = draft.json()["mandate"]
             assert mandate["memory"]["digest"] == memory["digest"]
             assert mandate["council"]["memory"]["idempotencyKey"] == memory["idempotencyKey"]
-            assert mandate["kernel"]["moduleVersion"] == "1.11.0"
+            assert mandate["kernel"]["moduleVersion"] == "1.12.0"
 
 
 def test_ainpc_correspondence_is_recomputed_and_sealed() -> None:
@@ -1400,7 +1400,7 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert review["state"] == "REQUIRES_ACTION"
             assert review["review"]["settlementId"] == settlement_id
             assert review["review"]["closureDigest"] == closure["digest"]
-            assert review["review"]["kernel"]["moduleVersion"] == "1.11.0"
+            assert review["review"]["kernel"]["moduleVersion"] == "1.12.0"
             wrong_action = client.post(
                 f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
                 json={"action_id": str(uuid4()), "decision": "ACCEPT"},
@@ -1443,7 +1443,7 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert growth_reward["contributionPoints"] == 100
             assert growth_reward["accountVersion"] == 1
             assert growth_reward["closureDigest"] == closure["digest"]
-            assert growth_reward["kernel"]["moduleVersion"] == "1.11.0"
+            assert growth_reward["kernel"]["moduleVersion"] == "1.12.0"
             assert len(growth_reward["digest"]) == 64
             assert upstreams.growth_credits == [(
                 "00000000-0000-0000-0000-000000000001",
@@ -2051,6 +2051,60 @@ def test_mandate_rejection_is_terminal_and_replayed() -> None:
             assert contradictory.status_code == 200
             assert contradictory.json()["replayed"] is True
             assert contradictory.json()["state"] == "REJECTED"
+
+
+def test_returned_mandate_can_be_revised_with_a_verified_chain() -> None:
+    with TemporaryDirectory() as directory:
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=MandateUpstreams()
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            council_id, _ = complete_council(client)
+            original_body = mandate_body(council_id)
+            original = client.post(
+                "/api/dongzhou/v1/court/mandates", json=original_body
+            ).json()
+            returned = client.post(
+                f"/api/dongzhou/v1/court/mandates/{original['mandate']['id']}/resume",
+                json={
+                    "action_id": original["action"]["actionId"],
+                    "decision": "REVISE",
+                },
+            )
+            assert returned.status_code == 200
+            assert returned.json()["state"] == "RETURNED"
+            assert returned.json()["mandate"]["kernel"]["state"] == "RETURNED"
+
+            revised_body = {
+                **original_body,
+                "client_request_id": str(uuid4()),
+                "supersedes_mandate_id": original["mandate"]["id"],
+                "supersedes_mandate_digest": original["mandate"]["digest"],
+            }
+            revised = client.post(
+                "/api/dongzhou/v1/court/mandates", json=revised_body
+            )
+            assert revised.status_code == 200, revised.text
+            revision = revised.json()["mandate"]["revision"]
+            assert revision == {
+                "number": 1,
+                "supersedesMandateId": original["mandate"]["id"],
+                "supersedesDigest": original["mandate"]["digest"],
+            }
+            assert revised.json()["mandate"]["digest"] != original["mandate"]["digest"]
+
+            forged_body = {
+                **original_body,
+                "client_request_id": str(uuid4()),
+                "supersedes_mandate_id": original["mandate"]["id"],
+                "supersedes_mandate_digest": "f" * 64,
+            }
+            forged = client.post(
+                "/api/dongzhou/v1/court/mandates", json=forged_body
+            )
+            assert forged.status_code == 422
+            assert forged.json()["error"]["code"] == "court_mandate_revision_unverified"
 
 
 def test_mandate_action_survives_application_restart() -> None:

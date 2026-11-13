@@ -10,6 +10,7 @@
   const ORDER_JOURNAL_KEY = "dongzhou-order-journal-v1";
   const KNOWLEDGE_CODEX_KEY = "dongzhou-knowledge-codex-v1";
   const MANDATE_PENDING_PREFIX = "dongzhou-pending-mandate-v1:";
+  const MANDATE_REVISION_KEY = "dongzhou-mandate-revision-v1";
   const NPC_MESSAGE_PENDING_PREFIX = "dongzhou-pending-npc-message-v1:";
   const NPC_THOUGHT_PENDING_PREFIX = "dongzhou-pending-npc-thought-v1:";
   const MANDATE_SCHEDULE_PENDING_PREFIX = "dongzhou-pending-mandate-schedule-v1:";
@@ -283,7 +284,18 @@
   async function createCourtMandate(input) {
     const pendingKey = mandatePendingKey(input);
     const saved = read(pendingKey, null);
-    const pending = saved?.input || saved || { ...input, client_request_id: input.client_request_id || root.crypto.randomUUID() };
+    const revision = read(MANDATE_REVISION_KEY, null);
+    const revisionReference = revision?.stage_id === input.stage_id
+      ? {
+          supersedes_mandate_id: revision.mandate_id,
+          supersedes_mandate_digest: revision.mandate_digest
+        }
+      : {};
+    const pending = saved?.input || saved || {
+      ...input,
+      ...revisionReference,
+      client_request_id: input.client_request_id || root.crypto.randomUUID()
+    };
     if (saved?.result?.state === "REQUIRES_ACTION") return saved.result;
     write(pendingKey, { input: pending, result: saved?.result || null });
     let result;
@@ -296,6 +308,7 @@
     const validMandate = result.mandate?.id && result.mandate?.digest;
     if (result.state === "REQUIRES_ACTION" && validMandate && result.action?.actionId) {
       write(pendingKey, { input: pending, result });
+      if (pending.supersedes_mandate_id) root.localStorage.removeItem(MANDATE_REVISION_KEY);
       return result;
     }
     if (result.state !== "ISSUED" || !validMandate) {
@@ -334,7 +347,14 @@
       method: "POST",
       body: JSON.stringify({ action_id: actionId, decision })
     });
-    if (result.state === "REJECTED") root.localStorage.removeItem(pendingKey);
+    if (result.state === "RETURNED") {
+      root.localStorage.removeItem(pendingKey);
+      write(MANDATE_REVISION_KEY, {
+        stage_id: saved.input.stage_id,
+        mandate_id: result.mandate.id,
+        mandate_digest: result.mandate.digest
+      });
+    } else if (result.state === "REJECTED") root.localStorage.removeItem(pendingKey);
     else write(pendingKey, { ...saved, result });
     return result;
   }

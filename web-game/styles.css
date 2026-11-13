@@ -3746,7 +3746,7 @@ button:focus-visible {
 .office-mandate-approval strong { color: #e3d8bb; font-size: 13px; }
 .office-mandate-approval small { color: #888b82; overflow-wrap: anywhere; }
 .office-settlement-review { border-top-color: rgba(178, 112, 88, .35); }
-.office-mandate-actions { display: flex; gap: 8px; }
+.office-mandate-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .office-members { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin-top: 18px; background: rgba(191, 161, 91, .13); }
 .office-roster-summary { margin: 12px 0 -8px; color: #898b82; font-size: 11px; overflow-wrap: anywhere; }
 .office-membership { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; align-items: center; margin-top: 18px; padding: 12px; border: 1px solid rgba(191, 161, 91, .2); background: #0d130e; }
@@ -3877,7 +3877,8 @@ button:focus-visible {
   .office-inventory .office-inventory-actions { grid-column: 1; }
   .office-order-fields { grid-template-columns: 1fr; }
   .office-mandate-approval { grid-template-columns: 1fr; }
-  .office-mandate-actions { display: flex; justify-content: flex-end; gap: 8px; }
+  .office-mandate-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+  .office-mandate-actions .large-button { flex: 1 1 72px; min-width: 0; }
   .office-mandate-approval { grid-template-columns: 1fr; align-items: start; }
   .office-members, .office-knowledge-results { grid-template-columns: 1fr; }
   #officeQuizOptions { grid-template-columns: 1fr; }
