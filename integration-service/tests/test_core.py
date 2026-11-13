@@ -17,6 +17,7 @@ from pydantic import ValidationError
 
 from dongzhou_integration.app import (
     BattleReceiptConflict,
+    CampaignRouteModule,
     NpcCollaborationRelationshipModule,
     NpcReviewRelationshipModule,
     NpcSettlementModule,
@@ -225,8 +226,8 @@ class OrganizationOutcomeTests(unittest.TestCase):
                     {"id": "SiTu", "name": "司徒"},
                 ],
                 "battleReports": [{
-                    "id": "battle:01:1000",
-                    "stageId": "01",
+                    "id": "battle:02:1000",
+                    "stageId": "02",
                     "stageTitle": "繻葛之战",
                     "won": True,
                     "turns": 8,
@@ -255,17 +256,36 @@ class OrganizationOutcomeTests(unittest.TestCase):
             "digest": "a" * 64,
         }]
         report["support"]["orders"] = [{"id": "order-1", "memberId": "DuBo"}]
+        campaign_routes = CampaignRouteModule("test-route-attestation-secret")
+        route = {
+            "fromStageId": "01",
+            "toStageId": "02",
+            "fromMapId": 900001,
+            "toMapId": 900002,
+            "knowledgeWitnesses": {
+                "from": {"stageId": "01", "knowledgeIds": ["dongzhou_stage_001"], "digest": "1" * 64},
+                "to": {"stageId": "02", "knowledgeIds": ["dongzhou_stage_002"], "digest": "2" * 64},
+            },
+            "method": "npc_dialog",
+            "routeId": "dongzhou_npc_dialog_900001_900002",
+            "label": "向导引路",
+            "provisionCost": 1,
+            "moraleDelta": -4,
+            "guideName": "乡民",
+        }
+        route["receipt"] = campaign_routes.seal_selection(route)
+        report["campaignRoute"] = route
         previous_payload = {
             "organization": {
                 "members": payload["organization"]["members"],
                 "councils": [{
                     "id": "council-1",
-                    "stageId": "01",
+                    "stageId": "02",
                     "memberId": "ZuoRu",
                 }],
                 "mandates": [{
                     "id": "mandate-1",
-                    "stageId": "01",
+                    "stageId": "02",
                     "heroId": "ZuoRu",
                     "digest": "a" * 64,
                     "collaboration": {
@@ -275,12 +295,12 @@ class OrganizationOutcomeTests(unittest.TestCase):
                 }],
                 "tasks": [{
                     "id": "order-1",
-                    "stageId": "01",
+                    "stageId": "02",
                     "assigneeId": "DuBo",
                 }],
                 "pendingSupport": [{
                     "id": "order-1",
-                    "stageId": "01",
+                    "stageId": "02",
                     "memberId": "DuBo",
                     "council": {"id": "council-1"},
                     "mandate": {"id": "mandate-1"},
@@ -288,7 +308,13 @@ class OrganizationOutcomeTests(unittest.TestCase):
                 "battleReports": [],
             }
         }
-        payload = _seal_battle_reports(player_id, previous_payload, payload)
+        payload = _seal_battle_reports(
+            player_id,
+            previous_payload,
+            payload,
+            campaign_routes=campaign_routes,
+            route_required_stages={"02"},
+        )
         first = _battle_game_events(
             settings, player_id, payload, "0771-01-01 14:00:00"
         )
@@ -345,6 +371,24 @@ class OrganizationOutcomeTests(unittest.TestCase):
             payload["organization"]["battleReports"][0]["kernelReceipt"]["digest"],
         )
         self.assertIn("繻葛之战告捷", detail["params"])
+        self.assertIn("行军采用向导引路", detail["params"])
+        self.assertIn("dongzhou_stage_001、dongzhou_stage_002", detail["params"])
+        self.assertEqual(
+            detail["metadata"]["campaign_route_id"],
+            "dongzhou_npc_dialog_900001_900002",
+        )
+        self.assertEqual(detail["metadata"]["campaign_route_method"], "npc_dialog")
+        self.assertEqual(
+            detail["metadata"]["campaign_route_knowledge_ids"],
+            ["dongzhou_stage_001", "dongzhou_stage_002"],
+        )
+        memory = next(
+            event["payload"]["messages"][0]["content"]
+            for event in first
+            if event["kind"] == "NPC_BATTLE_MEMORY"
+            and event["payload"]["npc_name"] == "左儒"
+        )
+        self.assertIn("双史料见证", memory)
         self.assertEqual(detail["source_record_id"], detail["interrupt_trace_id"])
         self.assertNotIn(str(player_id), detail["source_record_id"])
 

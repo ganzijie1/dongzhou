@@ -1506,9 +1506,14 @@
       const verifiedCount = Number(sealedBattleReport.kernelReceipt.verifiedParticipants?.length || 0);
       const verifiedNames = (sealedBattleReport.kernelReceipt.verifiedParticipants || []).map(displayName).join("、");
       const rejectedCount = Number(sealedBattleReport.kernelReceipt.rejectedSupport?.length || 0);
+      const sealedRoute = sealedBattleReport.campaignRoute;
+      const routeLabel = sealedRoute?.receipt?.kernel?.state === "SEALED"
+        && /^[0-9a-f]{64}$/.test(String(sealedRoute?.receipt?.attestation || ""))
+        ? ` · 行军${escapeHtml(sealedRoute.label || sealedRoute.method || sealedRoute.routeId)} · 双史料封印 ${escapeHtml(String(sealedRoute.receipt.digest || "").slice(0, 10))}`
+        : "";
       $("#officeBattleArchive").insertAdjacentHTML(
         "afterbegin",
-        `<li><strong>\u5185\u6838\u6218\u679c\u5370\u8bb0</strong><span>${escapeHtml(sealedBattleReport.stageTitle || sealedBattleReport.stageId)} \u00b7 ${escapeHtml(String(sealedBattleReport.kernelReceipt.digest || "").slice(0, 12))} \u00b7 ${escapeHtml(String(sealedBattleReport.kernelReceipt.kernel.moduleVersion || ""))} \u00b7 ${verifiedCount}\u4eba\u8ba4\u8bc1${verifiedNames ? `（${escapeHtml(verifiedNames)}）` : ""}${rejectedCount ? ` \u00b7 ${rejectedCount}\u9879\u672a\u8ba4\u8bc1` : ""}</span></li>`
+        `<li><strong>\u5185\u6838\u6218\u679c\u5370\u8bb0</strong><span>${escapeHtml(sealedBattleReport.stageTitle || sealedBattleReport.stageId)} \u00b7 ${escapeHtml(String(sealedBattleReport.kernelReceipt.digest || "").slice(0, 12))} \u00b7 ${escapeHtml(String(sealedBattleReport.kernelReceipt.kernel.moduleVersion || ""))} \u00b7 ${verifiedCount}\u4eba\u8ba4\u8bc1${verifiedNames ? `（${escapeHtml(verifiedNames)}）` : ""}${rejectedCount ? ` \u00b7 ${rejectedCount}\u9879\u672a\u8ba4\u8bc1` : ""}${routeLabel}</span></li>`
       );
     }
     const selectedTask = organization.TASK_TYPES[$("#officeTaskType").value] || organization.TASK_TYPES.supply;

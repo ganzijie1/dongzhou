@@ -2999,6 +2999,41 @@ def _battle_game_events(
             for item in mandate_entries[:8]
             if isinstance(item, dict) and item.get("id")
         ] if isinstance(mandate_entries, list) else []
+        campaign_route = report.get("campaignRoute")
+        route_receipt = (
+            campaign_route.get("receipt")
+            if isinstance(campaign_route, dict)
+            else None
+        )
+        route_kernel = (
+            route_receipt.get("kernel")
+            if isinstance(route_receipt, dict)
+            else None
+        )
+        route_verified = (
+            isinstance(campaign_route, dict)
+            and isinstance(route_receipt, dict)
+            and isinstance(route_kernel, dict)
+            and route_kernel.get("module") == CampaignRouteModule.name
+            and route_kernel.get("state") == "SEALED"
+            and isinstance(route_receipt.get("digest"), str)
+            and len(route_receipt["digest"]) == 64
+            and isinstance(route_receipt.get("attestation"), str)
+            and len(route_receipt["attestation"]) == 64
+        )
+        route_label = str(campaign_route.get("label") or "").strip()[:80] if route_verified else ""
+        route_id = str(campaign_route.get("routeId") or "").strip()[:160] if route_verified else ""
+        route_method = str(campaign_route.get("method") or "").strip()[:80] if route_verified else ""
+        route_knowledge_ids: list[str] = []
+        if route_verified:
+            witnesses = campaign_route.get("knowledgeWitnesses")
+            for side in ("from", "to"):
+                witness = witnesses.get(side) if isinstance(witnesses, dict) else None
+                knowledge_ids = witness.get("knowledgeIds") if isinstance(witness, dict) else None
+                for knowledge_id in knowledge_ids if isinstance(knowledge_ids, list) else []:
+                    normalized = str(knowledge_id).strip()[:160]
+                    if normalized and normalized not in route_knowledge_ids:
+                        route_knowledge_ids.append(normalized)
         result_text = "告捷" if won else "失利"
         player_target_id = str(
             stable_player_id(settings.ainpc_game_server_id, player_id)
@@ -3006,6 +3041,12 @@ def _battle_game_events(
         content = (
             f"{stage_title}{result_text}，历时{turns}回合，己方折损{own_losses}部。"
             + (f"战前筹备：{'、'.join(sources[:3])}。" if sources else "")
+            + (
+                f"行军采用{route_label or route_method or route_id}，"
+                f"双史料见证：{'、'.join(route_knowledge_ids[:2])}。"
+                if route_verified
+                else ""
+            )
         )[:1000]
         for hero_id in sorted(participant_ids):
             identity_digest = hashlib.sha256(
@@ -3059,6 +3100,17 @@ def _battle_game_events(
                         "hero_id": hero_id,
                         "mandate_ids": mandate_ids,
                         "sources": sources,
+                        **(
+                            {
+                                "campaign_route_id": route_id,
+                                "campaign_route_method": route_method,
+                                "campaign_route_label": route_label,
+                                "campaign_route_receipt_digest": route_receipt["digest"],
+                                "campaign_route_knowledge_ids": route_knowledge_ids,
+                            }
+                            if route_verified
+                            else {}
+                        ),
                     },
                     "interrupt_trace_id": outcome_source_record_id,
                 }],

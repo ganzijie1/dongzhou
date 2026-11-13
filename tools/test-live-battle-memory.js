@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert/strict');
-const { randomUUID } = require('crypto');
+const { createHash, randomUUID } = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
@@ -13,8 +13,8 @@ try {
 }
 
 const root = path.resolve(__dirname, '..');
-const evidencePath = path.join(root, 'output', 'integration-validation', 'live-battle-memory-complete81.json');
-const screenshotPath = path.join(root, 'output', 'integration-validation', 'live-battle-memory-complete81.png');
+const evidencePath = path.join(root, 'output', 'integration-validation', 'live-route-battle-memory129.json');
+const screenshotPath = path.join(root, 'output', 'integration-validation', 'live-route-battle-memory129.png');
 const installationId = randomUUID();
 const reportId = `battle:memory-complete81:${Date.now()}`;
 const executablePath = [
@@ -49,7 +49,27 @@ const executablePath = [
       const profile = JSON.parse(localStorage.getItem(profileKey));
       assertProfile(profile);
       const hero = profile.organization.members[0];
-      const stageTitle = `繻葛之战-${reportId.slice(-8)}`;
+      const stageTitle = `骊山烽火-${reportId.slice(-8)}`;
+      profile.completed = [...new Set([...(profile.completed || []), '01'])];
+      await window.DongzhouIntegration.persist(profile);
+      const routeResponse = await fetch('/api/dongzhou/v1/knowledge/routes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from_stage_id: '01',
+          from_stage_index: 1,
+          to_stage_id: '02',
+          to_stage_index: 2,
+          route_method: 'npc_dialog',
+        }),
+      });
+      if (!routeResponse.ok) throw new Error(`campaign_route_failed:${routeResponse.status}`);
+      const campaignRoute = await routeResponse.json();
+      if (
+        campaignRoute?.receipt?.kernel?.module !== 'dongzhou_campaign_route'
+        || campaignRoute?.receipt?.kernel?.state !== 'SEALED'
+        || !/^[0-9a-f]{64}$/.test(String(campaignRoute?.receipt?.attestation || ''))
+      ) throw new Error('campaign_route_attestation_invalid');
       const councilId = crypto.randomUUID();
       const question = '此战应当如何部署？';
       const options = ['稳守阵列', '整军进击'];
@@ -58,7 +78,7 @@ const executablePath = [
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           client_request_id: councilId,
-          stage_id: '01',
+          stage_id: '02',
           question,
           options: options.map((text, index) => ({ index, text })),
           topic: 'court_decision',
@@ -70,7 +90,7 @@ const executablePath = [
       if (decision?.type !== 'OPTION' || !Number.isInteger(decision.index)) throw new Error('council_decision_invalid');
       const council = {
         id: councilId,
-        stageId: '01',
+        stageId: '02',
         memberId: hero.id,
         memberName: hero.name,
         question,
@@ -81,19 +101,20 @@ const executablePath = [
       profile.organization.councils = [...(profile.organization.councils || []), council];
       profile.organization.pendingSupport = [...(profile.organization.pendingSupport || []), {
         id: `support:${reportId}`,
-        stageId: '01',
+        stageId: '02',
         source: '实服军议',
         council,
       }];
       await window.DongzhouIntegration.persist(profile);
       const recorded = window.DongzhouOrganizationPlay.recordBattleOutcome(profile.organization, {
         id: reportId,
-        stageId: '01',
+        stageId: '02',
         stageTitle,
         won: true,
         turns: 7,
         ownLosses: 1,
         terminalReason: 'acceptance',
+        campaignRoute,
         support: {
           sources: ['左传战策', '实服军议'],
           councils: [council],
@@ -118,6 +139,15 @@ const executablePath = [
         reportId: recorded.report.id,
         hero: { id: hero.id, name: hero.name },
         stageTitle,
+        route: {
+          routeId: campaignRoute.routeId,
+          label: campaignRoute.label,
+          knowledgeIds: [
+            ...(campaignRoute.knowledgeWitnesses?.from?.knowledgeIds || []),
+            ...(campaignRoute.knowledgeWitnesses?.to?.knowledgeIds || []),
+          ],
+          receipt: campaignRoute.receipt,
+        },
         receipt: sealedReport.kernelReceipt,
       };
 
@@ -129,21 +159,54 @@ const executablePath = [
     }, { reportId });
 
     console.log(JSON.stringify({ stage: 'wait-authoritative-memory', hero: result.hero }));
+    const identityDigest = createHash('sha256')
+      .update(`${result.playerId}\n${result.reportId}\n${result.hero.id}`)
+      .digest('hex');
+    const outcomeDigest = createHash('sha256')
+      .update(`${identityDigest}\nbattle-semantics-v3\n${result.receipt.digest}`)
+      .digest('hex');
+    let expectedEventId = Number(BigInt(`0x${outcomeDigest.slice(0, 8)}`) & 0x7fffffffn);
+    if (expectedEventId === 0) expectedEventId = 1;
     let matchedMemory = null;
+    let matchedEmotion = null;
     const memoryDeadline = Date.now() + 180000;
     while (Date.now() < memoryDeadline) {
-      matchedMemory = await page.evaluate(async ({ heroId, stageTitle }) => {
+      const checked = await page.evaluate(async ({ heroId, stageTitle, routeLabel, expectedEventId }) => {
         const response = await fetch(`/api/dongzhou/v1/npcs/${encodeURIComponent(heroId)}/state`);
-        if (!response.ok) return null;
+        if (!response.ok) return { memory: null, emotion: null };
         const body = await response.json();
-        return (body.memories?.items || []).find((item) =>
-          String(item?.content || '').includes(stageTitle) && String(item?.content || '').includes('告捷')
+        const memory = (body.memories?.items || []).find((item) =>
+          String(item?.content || '').includes(stageTitle)
+          && String(item?.content || '').includes('告捷')
+          && String(item?.content || '').includes(routeLabel)
+          && String(item?.content || '').includes('dongzhou_stage_001')
+          && String(item?.content || '').includes('dongzhou_stage_002')
         ) || null;
-      }, { heroId: result.hero.id, stageTitle: result.stageTitle });
-      if (matchedMemory) break;
+        const emotionPayload = body?.emotion?.data ?? body?.emotion ?? {};
+        const emotions = [
+          ...(Array.isArray(emotionPayload) ? emotionPayload : []),
+          ...(Array.isArray(emotionPayload.items) ? emotionPayload.items : []),
+          ...(Array.isArray(emotionPayload.emotions) ? emotionPayload.emotions : []),
+          ...(Array.isArray(emotionPayload.current_emotions) ? emotionPayload.current_emotions : []),
+        ];
+        const emotion = emotions.find((item) =>
+          String(item?.related_event_id ?? item?.relatedEventId ?? '') === String(expectedEventId)
+        ) || null;
+        return { memory, emotion };
+      }, {
+        heroId: result.hero.id,
+        stageTitle: result.stageTitle,
+        routeLabel: result.route.label,
+        expectedEventId,
+      });
+      matchedMemory = checked.memory;
+      matchedEmotion = checked.emotion;
+      if (matchedMemory && matchedEmotion) break;
       await page.waitForTimeout(3000);
     }
     assert(matchedMemory, `battle memory for ${result.stageTitle} was not persisted before timeout`);
+    assert(matchedEmotion, `battle event ${expectedEventId} was not persisted before timeout`);
+    assert.equal(matchedEmotion.emotion_type ?? matchedEmotion.emotionType, 'joy');
 
     console.log(JSON.stringify({ stage: 'reload-cloud-save', playerId: result.playerId }));
     await page.reload({ waitUntil: 'domcontentloaded' });
@@ -152,8 +215,11 @@ const executablePath = [
     await page.waitForSelector('#campaignOfficeBackdrop:not([hidden])');
     await page.selectOption('#officeMemberSelect', result.hero.id);
     await page.waitForFunction(
-      (stageTitle) => document.querySelector('#officeNpcMemories')?.innerText.includes(stageTitle),
-      result.stageTitle,
+      ({ stageTitle, routeLabel }) => {
+        const text = document.querySelector('#officeBattleArchive')?.innerText || '';
+        return text.includes(stageTitle) && text.includes(`行军${routeLabel}`) && text.includes('双史料封印');
+      },
+      { stageTitle: result.stageTitle, routeLabel: result.route.label },
       { timeout: 60000 },
     );
     const archive = page.locator('#officeBattleArchive');
@@ -161,6 +227,10 @@ const executablePath = [
     const archiveText = await archive.innerText();
     assert(archiveText.includes(`${result.stageTitle}告捷`));
     assert.match(archiveText, /左传战策/);
+    assert(archiveText.includes(`行军${result.route.label}`));
+    assert(archiveText.includes('双史料封印'));
+    assert.deepEqual(result.route.knowledgeIds, ['dongzhou_stage_001', 'dongzhou_stage_002']);
+    assert.equal(result.route.receipt.kernel.moduleVersion, '1.2.0');
     assert.equal(result.receipt.kernel.module, 'dongzhou_mandate_workflow');
     assert.equal(result.receipt.kernel.state, 'SEALED');
     assert.deepEqual(result.receipt.verifiedParticipants, [result.hero.id]);
@@ -175,6 +245,8 @@ const executablePath = [
       installationId,
       ...result,
       cloudReloadArchive: true,
+      expectedEventId,
+      matchedEmotion,
       matchedMemory,
       saveResponses: responses,
       screenshot: screenshotPath,
