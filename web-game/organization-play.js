@@ -596,6 +596,9 @@
       if (snapshot.npcConsequence && typeof snapshot.npcConsequence === "object") {
         task.npcConsequence = copy(snapshot.npcConsequence);
       }
+      if (snapshot.collaborationRelationship && typeof snapshot.collaborationRelationship === "object") {
+        task.collaborationRelationship = copy(snapshot.collaborationRelationship);
+      }
       if (task.status !== "active") continue;
       if (task.derivation && snapshot.assigneeHeroId && String(snapshot.assigneeHeroId) !== String(task.assigneeId)) {
         const authoritativeMember = state.members.find((entry) => String(entry.id) === String(snapshot.assigneeHeroId));

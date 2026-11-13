@@ -553,11 +553,70 @@ def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -
                 },
             )
             assert order.status_code == 200, order.text
+            task_id = order.json()["taskId"]
             trigger = upstreams.triggers[-1]
             assert trigger["parameters"]["support_hero_id"] == "QinXiangGong"
             assert trigger["parameters"]["collaboration_score"] == collaboration["score"]
             assert trigger["parameters"]["collaboration_factor"] == collaboration["factor"]
             assert "Sealed support officer QinXiangGong" in trigger["brief"]
+
+            settlement_id = str(uuid4())
+            upstreams.task_snapshot = {
+                "task_id": task_id,
+                "organization_id": "00000000-0000-0000-0000-000000000001",
+                "state": "SUCCEEDED",
+                "final_result": "SUCCESS",
+                "contribution_eligible": True,
+                "responsible_member_id": "00000000-0000-0000-0000-000000000004",
+                "version": "3",
+                "settlement": {
+                    "settlement_id": settlement_id,
+                    "task_id": task_id,
+                    "organization_id": "00000000-0000-0000-0000-000000000001",
+                    "member_id": "00000000-0000-0000-0000-000000000004",
+                    "result": "SUCCESS",
+                    "organization_delta": "100",
+                    "member_delta": "75",
+                    "source": "NPC_CONFIRMATION",
+                    "source_event_id": "dongzhou-collaboration-result-1",
+                    "settled_game_time": "24306616800",
+                    "settled_clock_epoch": "dongzhou-v1",
+                    "settled_at": "2026-11-13T00:00:00Z",
+                },
+            }
+            relationship = None
+            for _ in range(100):
+                current = client.get(
+                    f"/api/dongzhou/v1/organization/tasks/{task_id}"
+                )
+                assert current.status_code == 200, current.text
+                relationship = current.json().get("collaborationRelationship")
+                if relationship and relationship["state"] == "DELIVERED":
+                    break
+                time.sleep(0.02)
+            assert relationship is not None
+            assert relationship["state"] == "DELIVERED"
+            assert relationship["primaryHeroId"] == "ZuoRu"
+            assert relationship["supportHeroId"] == "QinXiangGong"
+            assert relationship["affectionType"] == "friendship"
+            assert relationship["affectionDelta"] == 4.0
+            assert relationship["receipt"]["state"] == "SEALED"
+            assert relationship["receipt"]["kernel"]["module"] == (
+                "dongzhou_npc_collaboration_relationship"
+            )
+            peer_settlements = [
+                payload
+                for kind, payload in upstreams.events
+                if kind == "NPC_AFFECTION_SETTLEMENT"
+                and payload.get("settlement_effect_id", "").startswith(
+                    "dongzhou-org-collaboration:"
+                )
+            ]
+            assert len(peer_settlements) == 2
+            assert {
+                (item["npc_id"], item["target_id"])
+                for item in peer_settlements
+            } == {(ZUORU_NPC_ID, QIN_NPC_ID), (QIN_NPC_ID, ZUORU_NPC_ID)}
 
             invalid = client.post(
                 "/api/dongzhou/v1/court/mandates",

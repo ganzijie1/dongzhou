@@ -1425,10 +1425,15 @@
       const supportLabel = Number.isFinite(support) ? ` · 协同${support >= 0 ? "+" : ""}${support}` : "";
       const collaboration = task.mandate?.collaboration;
       const collaborationLabel = collaboration ? ` · 副手${escapeHtml(displayName(collaboration.supportHeroId))} · 配合${Number(collaboration.score)}/100 (${Number(collaboration.factor) >= 0 ? "+" : ""}${Number(collaboration.factor)})${task.mandate?.supportScheduleInterruption ? " · 双人已入程" : ""}` : "";
+      const peerRelationship = task.collaborationRelationship;
+      const peerRelationshipType = peerRelationship?.affectionType === "friendship" ? "同袍" : peerRelationship?.affectionType === "respect" ? "敬重" : peerRelationship?.affectionType === "annoyance" ? "失和" : "关系";
+      const peerRelationshipLabel = peerRelationship?.state === "DELIVERED"
+        ? ` · 双向${peerRelationshipType}+${Number(peerRelationship.affectionDelta || 0)}${peerRelationship.receipt?.kernel?.state === "SEALED" ? ` · 同袍封印 ${escapeHtml(String(peerRelationship.receipt.digest || "").slice(0, 10))}` : ""}`
+        : peerRelationship?.state === "PENDING" ? " · 同袍关系回写中" : "";
       const evidenceFit = Number(task.mandate?.evidenceFit?.factor);
       const evidenceLabel = Number.isFinite(evidenceFit) ? ` · 史证${evidenceFit}/9` : "";
       const masteryLabel = task.mandate?.knowledgeMastery ? ` · 史识+${Number(task.mandate.knowledgeMastery.bonus)}` : "";
-      return `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}${collaboration ? ` + ${escapeHtml(displayName(collaboration.supportHeroId))}` : ""}</strong><small>${statusLabel}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}${evidenceLabel}${masteryLabel}${task.mandate?.assignment?.name ? ` · 当值${escapeHtml(task.mandate.assignment.name)}` : ""}${Number.isFinite(Number(task.mandate?.assignment?.readiness?.score)) ? ` · 胜任${Number(task.mandate.assignment.readiness.score)}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${collaborationLabel}${emergencyLabel}${settlementLabel}${outcomeLabel}${supportOutcomeLabel}${relationshipLabel}</small></li>`;
+      return `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}${collaboration ? ` + ${escapeHtml(displayName(collaboration.supportHeroId))}` : ""}</strong><small>${statusLabel}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}${evidenceLabel}${masteryLabel}${task.mandate?.assignment?.name ? ` · 当值${escapeHtml(task.mandate.assignment.name)}` : ""}${Number.isFinite(Number(task.mandate?.assignment?.readiness?.score)) ? ` · 胜任${Number(task.mandate.assignment.readiness.score)}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${collaborationLabel}${peerRelationshipLabel}${emergencyLabel}${settlementLabel}${outcomeLabel}${supportOutcomeLabel}${relationshipLabel}</small></li>`;
     }).join("") || '<li class="empty">尚无差事</li>';
     $("#officeMandateLedger").innerHTML = [...org.mandates].reverse().slice(0, 6).map((mandate) => {
       const label = mandate.state === "RESOLVED" ? (mandate.outcome?.won ? "战后告捷" : "战后失利") : mandate.state === "FULFILLED" ? "复命待战" : mandate.state === "PARTIAL" ? "部分复命" : mandate.state === "FAILED" ? "执行未成" : mandate.state === "ORDERED" ? "属官执行中" : "已签发";
@@ -2567,7 +2572,7 @@
   function organizationTaskSnapshot(response) {
     const snapshot = response.result?.data || response.result || null;
     return snapshot && typeof snapshot === "object"
-      ? { ...snapshot, assigneeHeroId: response.assigneeHeroId || null, settlement: response.settlement || null, closureReceipt: response.closureReceipt || null, npcOutcome: response.npcOutcome || null, supportNpcOutcomes: Array.isArray(response.supportNpcOutcomes) ? response.supportNpcOutcomes : [], npcConsequence: response.npcConsequence || null, review: response.review || null, followUps: Array.isArray(response.followUps) ? response.followUps : [] }
+      ? { ...snapshot, assigneeHeroId: response.assigneeHeroId || null, settlement: response.settlement || null, closureReceipt: response.closureReceipt || null, npcOutcome: response.npcOutcome || null, supportNpcOutcomes: Array.isArray(response.supportNpcOutcomes) ? response.supportNpcOutcomes : [], collaborationRelationship: response.collaborationRelationship || null, npcConsequence: response.npcConsequence || null, review: response.review || null, followUps: Array.isArray(response.followUps) ? response.followUps : [] }
       : snapshot;
   }
 
@@ -2584,6 +2589,7 @@
       task.status === "active"
       || task.npcOutcome?.state === "PENDING"
       || task.supportNpcOutcomes?.some((outcome) => outcome?.state === "PENDING")
+      || task.collaborationRelationship?.state === "PENDING"
       || ["QUEUED", "PENDING"].includes(task.npcConsequence?.state)
     ));
     if (!tasks.length || integration.isOffline() || !profile.organization.backend.orgFlow) return;

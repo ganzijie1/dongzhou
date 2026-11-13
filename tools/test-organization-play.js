@@ -205,6 +205,14 @@ const acceptedRelationship = {
   affectionDelta: 6,
   receipt: { state: "SEALED", digest: "e".repeat(64), kernel: { state: "SEALED" } }
 };
+const collaborationRelationship = {
+  state: "DELIVERED",
+  primaryHeroId: "ZuoRu",
+  supportHeroId: "QinXiangGong",
+  affectionType: "friendship",
+  affectionDelta: 4,
+  receipt: { state: "SEALED", digest: "f".repeat(64), kernel: { state: "SEALED" } }
+};
 assert.throws(
   () => play.recordTaskReview(state, {
     taskId: remote.task.remoteResult,
@@ -218,6 +226,7 @@ state = play.reconcileRemoteTasks(state, [{
   task_id: remote.task.remoteResult, state: "SUCCEEDED", final_result: "SUCCESS", version: "3",
   settlement: authoritativeSettlement, closureReceipt, review: acceptedReview,
   npcOutcome: { state: "DELIVERED", attempts: 1 },
+  collaborationRelationship,
   npcConsequence: acceptedRelationship
 }]);
 assert.strictEqual(state.tasks.at(-1).status, "success");
@@ -225,6 +234,8 @@ assert.strictEqual(state.tasks.at(-1).remoteVersion, "3");
 assert.strictEqual(state.tasks.at(-1).npcOutcome.state, "DELIVERED");
 assert.strictEqual(state.tasks.at(-1).npcConsequence.affectionType, "appreciation");
 assert.strictEqual(state.tasks.at(-1).npcConsequence.receipt.digest, "e".repeat(64));
+assert.strictEqual(state.tasks.at(-1).collaborationRelationship.affectionType, "friendship");
+assert.strictEqual(state.tasks.at(-1).collaborationRelationship.receipt.digest, "f".repeat(64));
 assert.ok(state.pendingSupport.some((entry) => entry.id === remote.task.id));
 assert.strictEqual(state.contribution, contributionBefore + 100);
 assert.strictEqual(state.members.find((member) => member.id === "ZuoRu").merit, meritBefore + 75);

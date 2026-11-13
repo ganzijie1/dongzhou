@@ -17,6 +17,7 @@ from pydantic import ValidationError
 
 from dongzhou_integration.app import (
     BattleReceiptConflict,
+    NpcCollaborationRelationshipModule,
     NpcReviewRelationshipModule,
     NpcSettlementModule,
     RuntimeModule,
@@ -26,6 +27,7 @@ from dongzhou_integration.app import (
     _npc_outcome_event,
     _npc_outcome_memory,
     _npc_outcome_status,
+    _npc_collaboration_affection_events,
     _organization_supervision_links,
     _organization_task_chance,
     _prepare_due_organization_reports,
@@ -2489,13 +2491,13 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         )
         try:
             deadline = asyncio.get_running_loop().time() + 2
-            while len(upstreams.events) < 9 and asyncio.get_running_loop().time() < deadline:
+            while len(upstreams.events) < 11 and asyncio.get_running_loop().time() < deadline:
                 await asyncio.sleep(0.01)
         finally:
             dispatch.cancel()
             await asyncio.gather(dispatch, return_exceptions=True)
 
-        self.assertEqual(len(upstreams.events), 9)
+        self.assertEqual(len(upstreams.events), 11)
         support_events = [
             payload
             for kind, payload in upstreams.events
@@ -2514,7 +2516,75 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         ):
             status = await self.store.game_event_status(prefix + support_key)
             self.assertEqual(status["state"], "DELIVERED")
+        relationship_events = [
+            payload
+            for kind, payload in upstreams.events
+            if kind == "NPC_AFFECTION_SETTLEMENT"
+        ]
+        self.assertEqual(len(relationship_events), 2)
+        self.assertEqual(
+            {(item["npc_id"], item["target_id"]) for item in relationship_events},
+            {("42", "43"), ("43", "42")},
+        )
+        self.assertTrue(all(
+            item["changes"] == [{
+                "affection_type": "friendship",
+                "delta": 4.0,
+                "reason": "shared organization duty result: success",
+                "confidence": 1.0,
+            }]
+            for item in relationship_events
+        ))
+        for event in _npc_collaboration_affection_events(
+            task_id=task_id,
+            game_server_id="91001",
+            primary_hero_id="ZuoRu",
+            primary_npc_id="42",
+            support_hero_id="SiTu",
+            support_npc_id="43",
+            final_result="SUCCESS",
+        ):
+            status = await self.store.game_event_status(event["eventId"])
+            self.assertEqual(status["state"], "DELIVERED")
         self.assertEqual(await self.store.pending_game_events(), [])
+
+    def test_collaboration_relationship_receipt_requires_both_directions(self) -> None:
+        task_id = str(uuid4())
+        delivered = {"state": "DELIVERED", "attempts": 1, "lastError": None}
+        relationship = {
+            "primaryHeroId": "ZuoRu",
+            "supportHeroId": "SiTu",
+            "affectionType": "respect",
+            "affectionDelta": 1.5,
+            "primaryToSupport": delivered,
+            "supportToPrimary": delivered,
+        }
+        receipt = NpcCollaborationRelationshipModule.seal_delivery(
+            task_id,
+            "PARTIAL",
+            relationship,
+            event_ids={
+                "primaryToSupport": "relationship-primary",
+                "supportToPrimary": "relationship-support",
+            },
+        )
+        self.assertEqual(receipt["state"], "SEALED")
+        self.assertEqual(receipt["affectionType"], "respect")
+        self.assertEqual(receipt["affectionDelta"], 1.5)
+        self.assertEqual(
+            receipt["kernel"]["module"],
+            "dongzhou_npc_collaboration_relationship",
+        )
+        with self.assertRaisesRegex(ValueError, "supportToPrimary"):
+            NpcCollaborationRelationshipModule.seal_delivery(
+                task_id,
+                "PARTIAL",
+                {**relationship, "supportToPrimary": {"state": "PENDING", "attempts": 0}},
+                event_ids={
+                    "primaryToSupport": "relationship-primary",
+                    "supportToPrimary": "relationship-support",
+                },
+            )
 
     async def test_startup_backfills_missing_npc_memory_once(self) -> None:
         task_id = str(uuid4())

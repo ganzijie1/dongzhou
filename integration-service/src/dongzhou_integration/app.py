@@ -205,6 +205,20 @@ class RuntimeModule(Module):
                                             support_outcome, final_result
                                         ),
                                     )
+                                    for relationship_event in _npc_collaboration_affection_events(
+                                        task_id=task_id,
+                                        game_server_id=str(outcome["game_server_id"]),
+                                        primary_hero_id=str(outcome["hero_id"]),
+                                        primary_npc_id=str(outcome["npc_id"]),
+                                        support_hero_id=support_hero_id,
+                                        support_npc_id=str(support_outcome["npc_id"]),
+                                        final_result=final_result,
+                                    ):
+                                        await self.store.enqueue_game_event(
+                                            relationship_event["eventId"],
+                                            relationship_event["kind"],
+                                            relationship_event["payload"],
+                                        )
                 except Exception as error:
                     await self.store.retry_game_event(event["eventId"], type(error).__name__)
                 else:
@@ -612,6 +626,67 @@ class NpcReviewRelationshipModule(Module):
             "kernel": {
                 "module": NpcReviewRelationshipModule.name,
                 "moduleVersion": NpcReviewRelationshipModule.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "SEALED",
+            },
+        }
+
+
+class NpcCollaborationRelationshipModule(Module):
+    name = "dongzhou_npc_collaboration_relationship"
+    version = "1.0.0"
+    dependencies = (RuntimeModule.name,)
+
+    @staticmethod
+    def seal_delivery(
+        task_id: str,
+        final_result: str,
+        relationship: dict[str, Any],
+        *,
+        event_ids: dict[str, str],
+    ) -> dict[str, Any]:
+        UUID(task_id)
+        normalized = str(final_result).upper()
+        if normalized not in {"SUCCESS", "PARTIAL", "FAILURE"}:
+            raise ValueError("invalid collaboration task result")
+        if set(event_ids) != {"primaryToSupport", "supportToPrimary"} or not all(
+            isinstance(value, str) and value for value in event_ids.values()
+        ):
+            raise ValueError("invalid collaboration relationship event identities")
+        deliveries: dict[str, dict[str, Any]] = {}
+        for direction, event_id in event_ids.items():
+            status = relationship.get(direction)
+            if not isinstance(status, dict) or status.get("state") != "DELIVERED":
+                raise ValueError(f"collaboration relationship is not delivered: {direction}")
+            attempts = status.get("attempts")
+            if isinstance(attempts, bool) or not isinstance(attempts, int) or attempts < 1:
+                raise ValueError(f"collaboration relationship attempts are invalid: {direction}")
+            deliveries[direction] = {"eventId": event_id, "attempts": attempts}
+        trace = {
+            "taskId": task_id,
+            "finalResult": normalized,
+            "primaryHeroId": str(relationship["primaryHeroId"]),
+            "supportHeroId": str(relationship["supportHeroId"]),
+            "affectionType": str(relationship["affectionType"]),
+            "affectionDelta": float(relationship["affectionDelta"]),
+            "deliveries": deliveries,
+        }
+        if (
+            not trace["primaryHeroId"]
+            or not trace["supportHeroId"]
+            or trace["primaryHeroId"] == trace["supportHeroId"]
+            or trace["affectionType"] not in {"friendship", "respect", "annoyance"}
+            or not 0 < trace["affectionDelta"] <= 10
+        ):
+            raise ValueError("invalid collaboration relationship trace")
+        digest = _canonical_digest(trace)
+        return {
+            "state": "SEALED",
+            "digest": digest,
+            **trace,
+            "kernel": {
+                "module": NpcCollaborationRelationshipModule.name,
+                "moduleVersion": NpcCollaborationRelationshipModule.version,
                 "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
                 "state": "SEALED",
             },
@@ -1614,6 +1689,79 @@ def _npc_motivation_from_event(event: dict[str, Any]) -> dict[str, Any]:
 
 def _npc_outcome_motivation(outcome: dict[str, Any], final_result: str) -> dict[str, Any]:
     return _npc_motivation_from_event(_npc_outcome_event(outcome, final_result))
+
+
+def _normalized_task_result(final_result: str) -> str:
+    normalized = str(final_result or "FAILURE").upper()
+    return {
+        "SUCCEEDED": "SUCCESS",
+        "PARTIALLY_COMPLETED": "PARTIAL",
+        "FAILED": "FAILURE",
+    }.get(normalized, normalized)
+
+
+def _npc_collaboration_affection_events(
+    *,
+    task_id: str,
+    game_server_id: str,
+    primary_hero_id: str,
+    primary_npc_id: str,
+    support_hero_id: str,
+    support_npc_id: str,
+    final_result: str,
+) -> list[dict[str, Any]]:
+    normalized = _normalized_task_result(final_result)
+    effect = {
+        "SUCCESS": ("friendship", 4.0),
+        "PARTIAL": ("respect", 1.5),
+        "FAILURE": ("annoyance", 3.0),
+    }.get(normalized)
+    if effect is None:
+        raise ValueError("invalid collaboration task result")
+    if (
+        not task_id
+        or not game_server_id
+        or not primary_hero_id
+        or not support_hero_id
+        or primary_hero_id == support_hero_id
+        or not primary_npc_id
+        or not support_npc_id
+        or primary_npc_id == support_npc_id
+    ):
+        raise ValueError("invalid collaboration participant identities")
+    affection_type, delta = effect
+    reason = f"shared organization duty result: {normalized.casefold()}"
+    directions = (
+        ("primary-to-support", primary_hero_id, primary_npc_id, support_hero_id, support_npc_id),
+        ("support-to-primary", support_hero_id, support_npc_id, primary_hero_id, primary_npc_id),
+    )
+    return [
+        {
+            "eventId": f"npc-collaboration-affection:{task_id}:{source_hero_id}:{target_hero_id}",
+            "kind": "NPC_AFFECTION_SETTLEMENT",
+            "direction": direction,
+            "affectionType": affection_type,
+            "affectionDelta": delta,
+            "payload": {
+                "settlement_effect_id": (
+                    f"dongzhou-org-collaboration:{task_id}:{source_npc_id}:{target_npc_id}:v1"
+                ),
+                "game_server_id": str(game_server_id),
+                "npc_id": str(source_npc_id),
+                "target_id": str(target_npc_id),
+                "changes": [
+                    {
+                        "affection_type": affection_type,
+                        "delta": delta,
+                        "reason": reason,
+                        "confidence": 1.0,
+                    }
+                ],
+                "related_event_id": f"dongzhou-org-collaboration:{task_id}:{direction}",
+            },
+        }
+        for direction, source_hero_id, source_npc_id, target_hero_id, target_npc_id in directions
+    ]
 
 
 def _npc_acceptance_events(
@@ -2800,6 +2948,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     campaign_routes = CampaignRouteModule()
     npc_settlement = NpcSettlementModule()
     npc_review_relationship = NpcReviewRelationshipModule()
+    npc_collaboration_relationship = NpcCollaborationRelationshipModule()
     logistics_briefing = LogisticsBriefingModule()
     kernel = Kernel(
         [
@@ -2809,7 +2958,8 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             LoadedModule(module=campaign_routes, required=True, original_index=3),
             LoadedModule(module=npc_settlement, required=True, original_index=4),
             LoadedModule(module=npc_review_relationship, required=True, original_index=5),
-            LoadedModule(module=logistics_briefing, required=True, original_index=6),
+            LoadedModule(module=npc_collaboration_relationship, required=True, original_index=6),
+            LoadedModule(module=logistics_briefing, required=True, original_index=7),
         ]
     )
     router = APIRouter(prefix="/api/dongzhou/v1")
@@ -7029,6 +7179,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 outcome,
             )
         support_npc_outcomes: list[dict[str, Any]] = []
+        collaboration_relationship: dict[str, Any] | None = None
         parameters = original.get("parameters")
         parameters = parameters if isinstance(parameters, dict) else {}
         mandate_id = str(parameters.get("mandate_id") or "")
@@ -7099,6 +7250,80 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                         participant_hero_id=support_hero_id,
                     )
                 support_npc_outcomes.append(support_outcome)
+                if isinstance(settlement, dict):
+                    primary_npc_id = str(collaboration.get("primaryNpcId") or "")
+                    support_npc_id = str(collaboration.get("supportNpcId") or "")
+                    try:
+                        relationship_events = _npc_collaboration_affection_events(
+                            task_id=task_key,
+                            game_server_id=str(settings.ainpc_game_server_id),
+                            primary_hero_id=assignee,
+                            primary_npc_id=primary_npc_id,
+                            support_hero_id=support_hero_id,
+                            support_npc_id=support_npc_id,
+                            final_result=str(settlement["result"]),
+                        )
+                        for relationship_event in relationship_events:
+                            await store.enqueue_game_event(
+                                relationship_event["eventId"],
+                                relationship_event["kind"],
+                                relationship_event["payload"],
+                            )
+                    except (KeyError, TypeError, ValueError, VersionConflict) as error:
+                        raise ApiError(
+                            "organization_collaboration_relationship_invalid",
+                            "The sealed collaboration relationship settlement is invalid.",
+                            status_code=502,
+                        ) from error
+                    event_ids = {
+                        "primaryToSupport": relationship_events[0]["eventId"],
+                        "supportToPrimary": relationship_events[1]["eventId"],
+                    }
+                    primary_status = await store.game_event_status(
+                        event_ids["primaryToSupport"]
+                    )
+                    support_status = await store.game_event_status(
+                        event_ids["supportToPrimary"]
+                    )
+                    statuses = [primary_status, support_status]
+                    delivered = all(
+                        isinstance(status, dict) and status.get("state") == "DELIVERED"
+                        for status in statuses
+                    )
+                    collaboration_relationship = {
+                        "state": "DELIVERED" if delivered else "PENDING",
+                        "primaryHeroId": assignee,
+                        "primaryNpcId": primary_npc_id,
+                        "supportHeroId": support_hero_id,
+                        "supportNpcId": support_npc_id,
+                        "finalResult": str(settlement["result"]),
+                        "affectionType": relationship_events[0]["affectionType"],
+                        "affectionDelta": relationship_events[0]["affectionDelta"],
+                        "attempts": sum(
+                            int(status.get("attempts") or 0)
+                            for status in statuses
+                            if isinstance(status, dict)
+                        ),
+                        "lastError": next(
+                            (
+                                status.get("lastError")
+                                for status in statuses
+                                if isinstance(status, dict) and status.get("lastError")
+                            ),
+                            None,
+                        ),
+                        "primaryToSupport": primary_status,
+                        "supportToPrimary": support_status,
+                    }
+                    if delivered:
+                        collaboration_relationship["receipt"] = (
+                            npc_collaboration_relationship.seal_delivery(
+                                task_key,
+                                str(settlement["result"]),
+                                collaboration_relationship,
+                                event_ids=event_ids,
+                            )
+                        )
         task_state = {
             "taskId": task_key,
             "assigneeHeroId": assignee,
@@ -7107,6 +7332,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "closureReceipt": closure,
             "npcOutcome": outcome,
             "supportNpcOutcomes": support_npc_outcomes,
+            **(
+                {"collaborationRelationship": collaboration_relationship}
+                if collaboration_relationship is not None
+                else {}
+            ),
             "review": review,
             "followUps": follow_ups,
         }
