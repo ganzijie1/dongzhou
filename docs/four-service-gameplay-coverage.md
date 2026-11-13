@@ -27,7 +27,7 @@
 
 玩家对复命的裁决也会进入人物关系，而不再只有申斥能改变好感。成功、部分完成和失败但如实接纳分别写入 `appreciation +6 / +3` 或 `respect +1`；申斥继续写入 `annoyance +5.8`。重要事件、长期记忆和好感三项使用稳定事件号异步送达 AINPC，全部完成后由 NexusKernel `dongzhou_npc_review_relationship 1.0.0` 绑定任务号、裁决摘要、NPC、玩家和三项送达次数生成封印；重放裁决不会重复加点。官署任务簿持续轮询已结案但关系尚在回写的任务，最终展示关系变化与封印摘要。
 
-“军师问策”使用 AINPC 正式 AI Helper，而不是把普通 NPC 对话改名。网关先读取知识仓当前关卡已发布 AKU，把史料号、摘要、目标、人物与出处作为权威玩家状态提交；AINPC 同步受理后异步回调 `/api/v2/NDLLMSendLittleElfMessage`。回调按稳定玩家号与请求号双重校验，加载提示只更新进度，最终答案才结案，重复内容返回同一 `talkId`，不同内容冲突拒绝；浏览器刷新后继续轮询同一请求，并可提交一次“准确/不准确”评价。AI Helper 的三维带路会被明确忽略，不在战棋地图中伪造寻路成功。
+“军师问策”使用 AINPC 正式 AI Helper，而不是把普通 NPC 对话改名。网关先读取知识仓当前关卡已发布 AKU，把史料号、摘要、目标、人物与出处作为权威玩家状态提交；AINPC 同步受理后异步回调 `/api/v2/NDLLMSendLittleElfMessage`。加载提示和最终答案在回调前都经过 AIFirewall HMAC 敏感词接口，容器通过宿主机 `8090` 桥接访问；过滤服务异常时才会显式标记降级。回调按稳定玩家号与请求号双重校验，加载提示只更新进度，最终答案才结案，重复内容返回同一 `talkId`，不同内容冲突拒绝；浏览器刷新后继续轮询同一请求，并可提交一次“准确/不准确”评价。AI Helper 的三维带路会被明确忽略，不在战棋地图中伪造寻路成功。
 
 军令由玩家确认签发后，网关先调用 AINPC 正式 `POST /api/v1/schedule-interrupts/temp/generate`。请求绑定军令号、摘要、属官、当前当值、急报分、游戏时钟和稳定事件号；AINPC 的日程 owner 负责保护休息日程、插入今日临时事项或写入未来计划。只有通过事件号和返回结构复核的结果才封成 `scheduleInterruption` 回执并随军令、组织差事和云存档保留；断线重试复用同一请求号和事件号，不会重复插程。orgFlow 派差接口会在服务端反查该玩家同一军令摘要的已完成入程记录，未入程、入程失败、跨玩家或摘要不符均无法绕过前端直接派差。
 
@@ -63,7 +63,7 @@
 - `live-knowledge-mastery-v5-complete105.json`：真实问对答中后进入 AINPC 军议，NexusKernel 军令封存 `10/10` 与成功率 `+3`；orgFlow 模板 5 实账保存同一题号、分数和加成。
 - `live-terminal-gate-complete89.json`：真实 orgFlow 执行尚未终态时不会提前生成 AINPC 复命提示；执行进入 `SUCCESS` 后才允许主管审核，公共库藏 `task.execution` 从 `940 -> 1040`，云档恢复与战报回读均通过。
 - `live-relationship-growth-complete107.json`：真实玩家接纳左儒成功复命后，AINPC 重要事件、长期记忆和 `appreciation +6` 三项均送达；NexusKernel 生成关系封印 `ca9f6793...74249`，重放不重复加点，官署任务簿显示“感激+6”和封印摘要。
-- `live-adviser-complete108.json`：真实 Chromium 提交“本关史料中的关键人物是谁”，知识仓已发布 AKU 随玩家状态进入 AINPC；加载提示和最终答案经游戏服回调，页面显示周宣王、杜伯、左儒及史事情由，并成功提交“准确”评价。
+- `live-adviser-complete108.json`：真实 Chromium 提交“本关史料中的关键人物是谁”，知识仓已发布 AKU 随玩家状态进入 AINPC；加载提示和最终答案经 AIFirewall 过滤后由游戏服回调，两次均为 `filter_degraded=false`，页面显示周宣王、杜伯、左儒及史事情由，并成功提交“准确”评价。最近一次完整复验任务为 `1fcce851-19f7-4b8b-bc1f-7b45e4742607`。
 - `live-route-battle-memory129.json`：真实向导路线及第一、第二回 AKU 经 NexusKernel 验签后进入第二回战报，实际参战属官的 AINPC 记忆和官署战报均回读到同一路线与双史料封印。
 
 ## 当前验证基线
@@ -81,7 +81,7 @@
 - 史官问对：真实 Chromium 从第一回已发布 AKU 开题，公开题面不含正确索引；刷新后恢复同一题并答中伯阳父，NexusKernel 返回 `SEALED` 结果，云档累计 10 分，证据为 `knowledge-quiz-live.png`。
 - 行军择路：真实 Chromium 在桌面端选择向导引路，军粮 `100 -> 99`、士气 `70 -> 66`；390px 移动端选择官道驿行，军粮 `100 -> 97`、士气 `70 -> 76`。两次开战均重新读取真实 knowledge-jizhan 图谱并得到 `dongzhou_campaign_route 1.2.0 / SEALED` 回执和服务端证明；第二回真实战报还把向导路线及 `dongzhou_stage_001/002` 写入实际参战属官的 AINPC 长期记忆，证据为 `campaign-routes-desktop-live.png`、`campaign-routes-mobile-live.png` 与 `live-route-battle-memory129.json`。
 - 本地交付：网关、AINPC、orgFlow 和九个依赖容器均符合镜像、健康与 `unless-stopped` 约束；完整 H5 包哈希通过；检查过程业务写入为 0。
-- 版本交付：东周父仓库只固定 `ganzijie1` GitHub 上四个 `dev-gzj` 的精确提交：knowledge-jizhan `7b8b0378`、AINPC `633a0b653`、orgFlowEngine `bdd432c`、NexusKernel `beda977d`。`python tools/verify-service-submodules.py` 验证四个公开远端、分支声明、远端分支、gitlink 与检出提交一致，内网 GitLab 不作为推送目标；本轮真实月令触发已回读同一权威任务号 `866d1e9c-7ecd-507d-badb-24161e91222d` 的标题与状态。该任务来自 AINPC 原私聊，orgFlow 的 `END` 与 `ACTION_PROMPT` 已按依赖顺序收敛为 `FAILED/npc_original_chat_owned`，不会重复另建私聊；API、Worker 和网关均保持健康。
+- 版本交付：东周父仓库只固定 `ganzijie1` GitHub 上四个 `dev-gzj` 的精确提交：knowledge-jizhan `7b8b0378`、AINPC `7db51b0cf`、orgFlowEngine `bdd432c`、NexusKernel `beda977d`。`python tools/verify-service-submodules.py` 验证四个公开远端、分支声明、远端分支、gitlink 与检出提交一致，内网 GitLab 不作为推送目标；本轮真实月令触发已回读同一权威任务号 `866d1e9c-7ecd-507d-badb-24161e91222d` 的标题与状态。该任务来自 AINPC 原私聊，orgFlow 的 `END` 与 `ACTION_PROMPT` 已按依赖顺序收敛为 `FAILED/npc_original_chat_owned`，不会重复另建私聊；API、Worker 和网关均保持健康。
 
 ## orgFlow 追办与补救
 
