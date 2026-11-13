@@ -27,6 +27,7 @@ class ScheduledDutyUpstreams:
         self.status_calls = []
         self.schedule_append_calls = []
         self.schedule_events = {}
+        self.active_task_id = "00000000-0000-4000-8000-000000000099"
 
     async def health(self):
         return {name: {"online": True} for name in ("orgFlow", "aiNpc", "knowledge")}
@@ -36,7 +37,19 @@ class ScheduledDutyUpstreams:
 
     async def query_organization_scheduled_task_rules(self, payload):
         rules = [
-            {"rule": rule, "latest_trigger": None}
+            {
+                "rule": rule,
+                "latest_trigger": (
+                    {
+                        "state": "SKIPPED",
+                        "failure_code": "duplicate_active_task",
+                        "task_id": self.active_task_id,
+                    }
+                    if rule.get("template", {}).get("task_code")
+                    == "dongzhou.intelligence"
+                    else None
+                ),
+            }
             for rule in self.rules
         ]
         return {"data": {"rules": rules}}
@@ -61,6 +74,21 @@ class ScheduledDutyUpstreams:
         rule["state"] = payload["status"]
         rule["version"] += 1
         return {"data": {"rule": rule}}
+
+    async def get_virtual_task(self, organization_id, task_id):
+        assert task_id == self.active_task_id
+        return {
+            "data": {
+                "task_id": task_id,
+                "organization_id": organization_id,
+                "task_code": "dongzhou.intelligence",
+                "title": "东周朝廷月例察访",
+                "state": "IN_PROGRESS",
+                "responsible_member_id": "e3419e13-7498-5a6b-9259-a2c30aeb5a19",
+                "final_result": None,
+                "updated_at": "2026-11-13T10:00:00Z",
+            }
+        }
 
     async def npc_schedule(self, npc_id):
         is_worker = str(npc_id) == "5445994056112890376"
@@ -124,6 +152,13 @@ def test_scheduled_duty_is_registered_once_and_returned(tmp_path):
     assert first.json()["managerHeroId"] == "DuBo"
     assert first.json()["workerHeroId"] == "ZuoRu"
     assert first.json()["taskCode"] == "dongzhou.intelligence"
+    assert second.json()["activeTask"] == {
+        "taskId": upstreams.active_task_id,
+        "title": "东周朝廷月例察访",
+        "state": "IN_PROGRESS",
+        "finalResult": None,
+        "updatedAt": "2026-11-13T10:00:00Z",
+    }
     assert second.json()["ruleId"] == first.json()["ruleId"]
     assert len(upstreams.create_calls) == 1
     assert len(upstreams.status_calls) == 1

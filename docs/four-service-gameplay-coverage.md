@@ -8,12 +8,14 @@
 | --- | --- | --- | --- | --- |
 | knowledge-jizhan | 全文检索、按关卡读取已发布 AKU、战役路线、玩家简册、知识竞赛 | 查阅、本回史料、选定出处、已得简册、行军路线、史官问对 | 只接收 `dongzhou_stage_*`；出处和检索回执进入军议与军令；相邻关卡路线必须同时通过战役推进、定点和 NPC 对话三种图谱查询；问对题目从当前已发布 AKU 人物录生成，30 秒内答中记 10 分；本回 10 分封存结果可作为史识凭据进入派差 | `test-live-knowledge-browser.js`、`test-live-fulltext-browser.js`、`test-live-campaign-route-acceptance.js`、`test-live-knowledge-quiz.js`、`verify-live-knowledge-campaign.py`、`campaign-routes-desktop-live.png`、`campaign-routes-mobile-live.png`、`knowledge-quiz-live.png` |
 | AINPC | NPC 注册与上线、主动来信偏好、状态/人格/动机/稳定品质/关系、双向私聊、AI Helper 问答与评价、90 天日程、关卡当值、主副手双向协同、自主念头、军议裁断、已签军令临时插程、玩家本人领差/响应/复命、复命裁决后的玩家关系、急报评估、参战结果与长期经历 | 官署状态、品质与品行、府中书问、军师问策、来信开关、拟定日程、本关当值、协办副手、请其进言、军议裁断、签发后下达、我的差事、官署战报 | 稳定 NPC/玩家身份；问策先绑定知识仓已发布的本关 AKU，再由 AINPC 异步生成答案并经游戏服回调按玩家隔离落账；进度提示与最终答案分离，重复回调不重复写入，三维带路不在战棋中伪执行；orgFlow 终态以稳定效果号沉淀品质并影响下一次任职；主办与副手的双向好感/关系形成有正有负的协同因子；成功、部分完成或失败复命被玩家接纳后分别形成不同幅度的感激或敬重，申斥形成恼怒；已签军令分别进入两人的日程 owner 并形成独立防篡改回执；实际参战属官收到幂等的重要事件、长期系统消息和官署可读的短期记忆归档，其中已验签行军路线、路线回执和两端 AKU 随战果进入人物经历 | `test-live-adviser.js`、`verify-live-roster-npcs.py`、`test-live-office-npc-state.js`、`test-live-quality-loop.js`、`test-live-spontaneous-thought.js`、`test-live-correspondence-acceptance.js`、`test-live-interaction-preference.js`、`test-live-schedule-browser.js`、`test-live-player-career-browser.js`、`test-live-kernel-mandate-acceptance.js`、`test-live-battle-memory.js`、`test-live-battle-emotion.js` |
-| orgFlowEngine | 权威名册、玩家入仕/辞仕、组织谱系、贡献账、公共库藏、虚拟任务、玩家本人任务申请、任务终态、人工复命审核 | 个人仕籍、我的差事、直属主管、贡献收支、库藏、军需调拨、颁差、推进月令、收纳复命/申斥 | 岗位候选、任务候选、责任人响应、直属审核、贡献、功绩和结案凭据均以 orgFlow 为准；验收奖励进入 `task.execution` 实账，玩家可按 20 点一批调拨为 12 军粮；12 席均进入可操作官员集合，负责人不可向自己派单 | `test-live-membership-browser.js`、`test-live-player-career-browser.js`、`live-player-career-browser.json`、`test-live-roster-ledger.js`、`test-live-office-roster-browser.js`、`test-live-office-inventory.js`、`test-live-inventory-requisition.js`、`test-live-settlement-acceptance.js` |
+| orgFlowEngine | 权威名册、玩家入仕/辞仕、组织谱系、贡献账、公共库藏、虚拟任务、玩家本人任务申请、月例定时派差、任务终态、人工复命审核 | 个人仕籍、我的差事、直属主管、贡献收支、库藏、军需调拨、颁差、推进月令、月例察访、收纳复命/申斥 | 岗位候选、任务候选、责任人响应、直属审核、贡献、功绩和结案凭据均以 orgFlow 为准；月令命中同类在办差事时跳过重复派发，并返回阻止派发的权威任务供官署显示标题、状态与结果；验收奖励进入 `task.execution` 实账，玩家可按 20 点一批调拨为 12 军粮；12 席均进入可操作官员集合，负责人不可向自己派单 | `test-live-membership-browser.js`、`test-live-player-career-browser.js`、`live-player-career-browser.json`、`test-live-roster-ledger.js`、`test-live-office-roster-browser.js`、`test-live-office-inventory.js`、`test-live-inventory-requisition.js`、`test-live-settlement-acceptance.js`、`test_scheduled_duties.py` |
 | NexusKernel | 运行模块健康、规范军令、主副手协同证据、确认动作、恢复签发、终态复命裁决、公共资源支出裁可、行军路线、问对结果与人物四项归档封存 | 内核军令草案、签发/驳回、复命待裁、军需调拨待裁、军令簿、行军择路、史官问对、官署任务簿 | 史料、军议、AINPC 进言、书问、主副手双向关系、两人当值、急报、适岗证据、史识凭据和军需支出统一 SHA-256 封存；确认动作可恢复，重放不重复计分；事件、长期记忆、品质和动机全部送达后才生成人物归档封印 | `test-live-kernel-mandate-acceptance.js`、`test-live-spontaneous-thought.js`、`test-live-settlement-acceptance.js`、`test-live-campaign-route-acceptance.js`、`test-live-knowledge-quiz.js`、`test-live-motivation-loop.js` |
 
 ## 跨服务闭环
 
 联网授命必须依次取得已发布史料、当前属官裁断、AINPC 当值与状态、NexusKernel 军令，再由 orgFlowEngine 受理。任务终态先形成 orgFlow 结案实账，再由 NexusKernel 生成玩家裁决，随后将结果写回 AINPC 重要事件和长期经历，最后作为战前助益进入战斗。缺少任一服务确认时不会在浏览器本地伪造成功。
+
+推进月令会由 AINPC 协调 orgFlow 的月例察访规则。若左儒已有同类非终态任务，orgFlow 以确定顺序选出权威任务并把任务号写入 `SKIPPED / duplicate_active_task` 触发记录；东周再通过签名管理接口反查组织、任务类型和责任人，官署直接展示任务标题、当前状态与最终结果。历史触发在迁移时只按同一严格条件回填，无法追溯的记录明确标为引用不可用，不会猜测绑定。
 
 玩家现在可为差事指定一名协办副手。网关先用 orgFlow 权威名册确认主办与副手均在职，再读取 AINPC 两个方向的好感和关系，生成 `-8` 至 `+10` 的协同因子并计入任务成功率。NexusKernel `dongzhou_mandate_workflow 1.11.0` 同时封存两人身份、关系证据、协同分和各自当值；军令下达时两人分别获得稳定事件号和日程中断回执。任务终态为双方分别写入事件、长期记忆、品行与履职意愿，并由 `dongzhou_npc_settlement 1.1.0` 各自封印；战后两人也都进入权威参战者名单。任何一方未真正入程都不会形成可用的完整协办军令。
 
@@ -79,7 +81,7 @@
 - 史官问对：真实 Chromium 从第一回已发布 AKU 开题，公开题面不含正确索引；刷新后恢复同一题并答中伯阳父，NexusKernel 返回 `SEALED` 结果，云档累计 10 分，证据为 `knowledge-quiz-live.png`。
 - 行军择路：真实 Chromium 在桌面端选择向导引路，军粮 `100 -> 99`、士气 `70 -> 66`；390px 移动端选择官道驿行，军粮 `100 -> 97`、士气 `70 -> 76`。两次开战均重新读取真实 knowledge-jizhan 图谱并得到 `dongzhou_campaign_route 1.2.0 / SEALED` 回执和服务端证明；第二回真实战报还把向导路线及 `dongzhou_stage_001/002` 写入实际参战属官的 AINPC 长期记忆，证据为 `campaign-routes-desktop-live.png`、`campaign-routes-mobile-live.png` 与 `live-route-battle-memory129.json`。
 - 本地交付：网关、AINPC、orgFlow 和九个依赖容器均符合镜像、健康与 `unless-stopped` 约束；完整 H5 包哈希通过；检查过程业务写入为 0。
-- 版本交付：东周父仓库只固定 `ganzijie1` GitHub 上四个 `dev-gzj` 的精确提交：knowledge-jizhan `7b8b0378`、AINPC `c54558bb`、orgFlowEngine `238ef43c`、NexusKernel `beda977d`。`python tools/verify-service-submodules.py` 验证四个公开远端、分支声明、远端分支、gitlink 与检出提交一致，内网 GitLab 不作为推送目标；父仓库上下文构建的 `dongzhou-integration:20261113-parent-pins130` 已健康运行并通过四服务真实冒烟。
+- 版本交付：东周父仓库只固定 `ganzijie1` GitHub 上四个 `dev-gzj` 的精确提交：knowledge-jizhan `7b8b0378`、AINPC `c54558bb`、orgFlowEngine `1f21bc9d`、NexusKernel `beda977d`。`python tools/verify-service-submodules.py` 验证四个公开远端、分支声明、远端分支、gitlink 与检出提交一致，内网 GitLab 不作为推送目标；本轮真实月令触发已回读同一权威任务号 `866d1e9c-7ecd-507d-badb-24161e91222d` 的标题与状态，API、Worker 和网关均保持健康。
 
 ## orgFlow 追办与补救
 

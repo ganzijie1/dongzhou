@@ -6669,6 +6669,54 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             if not isinstance(rule, dict):
                 raise ValueError("scheduled rule item is invalid")
             latest = item.get("latest_trigger")
+            active_task = None
+            latest_task_id = (
+                str(latest.get("task_id") or "").strip()
+                if isinstance(latest, dict)
+                else ""
+            )
+            if latest_task_id:
+                try:
+                    task_response = await upstreams.get_virtual_task(
+                        settings.orgflow_org_id, latest_task_id
+                    )
+                    task = (
+                        task_response.get("data", task_response)
+                        if isinstance(task_response, dict)
+                        else None
+                    )
+                    if (
+                        not isinstance(task, dict)
+                        or str(task.get("task_id") or "") != latest_task_id
+                        or str(task.get("organization_id") or "")
+                        != settings.orgflow_org_id
+                        or str(task.get("task_code") or "")
+                        != "dongzhou.intelligence"
+                        or str(task.get("responsible_member_id") or "")
+                        != settings.orgflow_hero_members[worker_hero_id]
+                    ):
+                        raise ValueError(
+                            "scheduled duty task does not match the authoritative rule"
+                        )
+                    active_task = {
+                        "taskId": latest_task_id,
+                        "title": str(task.get("title") or "月例察访"),
+                        "state": str(task.get("state") or "UNKNOWN"),
+                        "finalResult": (
+                            str(task["final_result"])
+                            if task.get("final_result") is not None
+                            else None
+                        ),
+                        "updatedAt": str(task.get("updated_at") or ""),
+                    }
+                except UpstreamUnavailable:
+                    active_task = {
+                        "taskId": latest_task_id,
+                        "title": None,
+                        "state": "UNAVAILABLE",
+                        "finalResult": None,
+                        "updatedAt": "",
+                    }
             return {
                 "ruleId": str(rule_id),
                 "state": str(rule.get("state") or "UNKNOWN"),
@@ -6682,6 +6730,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     else "dongzhou.intelligence"
                 ),
                 "latestTrigger": latest if isinstance(latest, dict) else None,
+                "activeTask": active_task,
             }
         except UpstreamUnavailable as error:
             raise ApiError(

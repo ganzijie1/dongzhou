@@ -1318,7 +1318,12 @@
       const duplicateActive = latest.state === "SKIPPED" && latest.failure_code === "duplicate_active_task";
       const state = duplicateActive ? "已有同类差事在办" : ({ DISPATCHED: "已派发", CLAIMED: "派发中", WAITING_ACTIVE: "候值", SKIPPED: "略过", FAILED: "派发未成", CANCELLED: "已撤销" })[latest.state] || latest.state || "待核";
       const task = latest.task_id ? ` · 差事 ${String(latest.task_id).slice(0, 8)}` : "";
-      status.textContent = `${duplicateActive ? "" : "本期"}${state}${task}`;
+      const activeTask = officeScheduledDutyView.activeTask;
+      const taskStates = { GENERATED: "待受理", ASSIGNMENT_CONFIRMATION_PENDING: "待确认派任", MEMBER_RESPONSE_PENDING: "待领命", MODIFICATION_CONFIRMATION_PENDING: "待确认改令", IN_PROGRESS: "办理中", SUBMISSION_PENDING: "待复命", RESULT_CONFIRMATION_PENDING: "复命待核", SUPPLEMENT_PENDING: "待补件", SUCCEEDED: "已办结", PARTIALLY_COMPLETED: "部分办结", FAILED: "未办成", REJECTED: "已驳回", CANCELLED: "已撤销", INVALIDATED: "已失效", UNAVAILABLE: "详情暂不可达" };
+      const activeTaskText = activeTask?.taskId
+        ? ` · ${activeTask.title || "权威在办任务"} · ${taskStates[activeTask.state] || activeTask.state}${activeTask.finalResult ? ` · ${activeTask.finalResult}` : ""}`
+        : "";
+      status.textContent = `${duplicateActive ? "" : "本期"}${state}${task}${activeTaskText}`;
     }
   }
 
