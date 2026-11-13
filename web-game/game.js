@@ -1303,9 +1303,10 @@
     } else if (!latest) {
       status.textContent = "规则已立，推进月令后由杜伯自动派左儒察访";
     } else {
-      const state = ({ DISPATCHED: "已派发", CLAIMED: "派发中", WAITING_ACTIVE: "候值", SKIPPED: "略过", FAILED: "派发未成", CANCELLED: "已撤销" })[latest.state] || latest.state || "待核";
+      const duplicateActive = latest.state === "SKIPPED" && latest.failure_code === "duplicate_active_task";
+      const state = duplicateActive ? "已有同类差事在办" : ({ DISPATCHED: "已派发", CLAIMED: "派发中", WAITING_ACTIVE: "候值", SKIPPED: "略过", FAILED: "派发未成", CANCELLED: "已撤销" })[latest.state] || latest.state || "待核";
       const task = latest.task_id ? ` · 差事 ${String(latest.task_id).slice(0, 8)}` : "";
-      status.textContent = `本期${state}${task}`;
+      status.textContent = `${duplicateActive ? "" : "本期"}${state}${task}`;
     }
   }
 
