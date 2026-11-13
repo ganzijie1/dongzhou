@@ -35,6 +35,31 @@ from .upstreams import UpstreamUnavailable, Upstreams
 
 _NEXUS_KERNEL_VERSION = version("nexus-kernel-starter")
 
+_DONGZHOU_DUTIES = {
+    9100101: "朝会听政",
+    9100102: "检阅军阵",
+    9100103: "转运军粮",
+    9100104: "巡察营垒",
+    9100105: "访求军情",
+    9100106: "折冲诸侯",
+    9100107: "研读史策",
+    9100108: "议定军令",
+    9100109: "修缮城防",
+    9100110: "募兵抚民",
+    9100111: "祭告整肃",
+}
+_DONGZHOU_DUTY_CATALOG = {
+    "AtomicActions": [
+        {
+            "id": 9100199,
+            "name": "DongzhouDutyTree",
+            "desc": "执行已排定的东周官署日程，事务身份由不可变日程上下文提供",
+            "params": [],
+        }
+    ],
+    "clearExisting": False,
+}
+
 
 class RuntimeModule(Module):
     name = "dongzhou_runtime"
@@ -55,6 +80,12 @@ class RuntimeModule(Module):
         await self.store.start()
         await self._backfill_npc_memories()
         await self._backfill_npc_qualities()
+        await self.store.enqueue_game_event(
+            "ainpc-action-catalog:dongzhou-duty-v1",
+            "AINPC_ACTION_CATALOG",
+            _DONGZHOU_DUTY_CATALOG,
+            requeue_delivered=True,
+        )
         self.services = await self.upstreams.health()
         self._health_task = asyncio.create_task(self._poll_health(), name="dongzhou-upstream-health")
         self._game_event_task = asyncio.create_task(
@@ -134,6 +165,8 @@ class RuntimeModule(Module):
                         receipt = await self.upstreams.report_action_execution_result(
                             event["payload"]["callback"]
                         )
+                    elif event["kind"] == "AINPC_ACTION_CATALOG":
+                        receipt = await self.upstreams.sync_action_catalog(event["payload"])
                     else:
                         receipt = await self.upstreams.send_game_event(
                             event["kind"], event["payload"]
@@ -3613,6 +3646,9 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         if tree_name == "Reborn":
             valid = params == {}
             return valid, "" if valid else "Reborn does not accept parameters"
+        if tree_name == "DongzhouDutyTree":
+            valid = params == {}
+            return valid, "" if valid else "DongzhouDutyTree does not accept parameters"
         return False, "behavior tree is not supported by Dongzhou"
 
     @game_clock_router.post("/api/v2/ValidateBTParams")
@@ -3632,6 +3668,21 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         valid, message = validate_behavior_params(request.action_name, request.action_params)
         if not valid:
             raise ApiError("behavior_params_invalid", message, status_code=422)
+        if request.action_name == "DongzhouDutyTree":
+            raw_schedule_id = request.schedule_id
+            schedule_id = (
+                int(raw_schedule_id)
+                if type(raw_schedule_id) is int
+                or (isinstance(raw_schedule_id, str) and raw_schedule_id.isascii() and raw_schedule_id.isdigit())
+                else -1
+            )
+            expected_name = _DONGZHOU_DUTIES.get(schedule_id)
+            if expected_name is None or request.schedule_name != expected_name:
+                raise ApiError(
+                    "dongzhou_duty_identity_invalid",
+                    "Dongzhou duty schedule ID and name do not match the authoritative catalog.",
+                    status_code=422,
+                )
         callback = {
             "game_server_id": request.game_server_id,
             "npc_id": request.ai_id,
@@ -3648,11 +3699,19 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 {
                     "actionName": request.action_name,
                     "duration": request.duration,
+                    "scheduleId": request.schedule_id,
+                    "scheduleName": request.schedule_name,
+                    "planId": request.plan_id,
+                    "actionChainId": request.action_chain_id,
                     "callback": callback,
                 },
                 not_before=datetime.now(UTC)
                 + timedelta(
-                    seconds=request.duration if request.action_name == "SleepTree" else 0
+                    seconds=(
+                        request.duration
+                        if request.action_name in {"SleepTree", "DongzhouDutyTree"}
+                        else 0
+                    )
                 ),
             )
         except VersionConflict as error:

@@ -60,6 +60,9 @@ class _HealthyUpstreams:
     async def report_action_execution_result(self, payload):
         return {"code": 200, "data": {"received": True}}
 
+    async def sync_action_catalog(self, payload):
+        return {"code": 200, "data": {"count": 1}}
+
     async def get_virtual_task_trace(self, organization_id, task_id):
         return {
             "data": {
@@ -1594,6 +1597,11 @@ class AuthenticationRouteTests(unittest.TestCase):
                     json={"treeName": "UnknownTree", "params": "{}"},
                 )
                 self.assertEqual(unsupported.json()["valid"], False)
+                valid_duty = client.post(
+                    "/api/v2/ValidateBTParams",
+                    json={"treeName": "DongzhouDutyTree", "params": "{}"},
+                )
+                self.assertEqual(valid_duty.json(), {"valid": True, "errorMessage": ""})
 
                 executed = client.post(
                     "/api/v2/ExecuteBehavior",
@@ -1647,6 +1655,35 @@ class AuthenticationRouteTests(unittest.TestCase):
                 )
                 self.assertEqual(sleeping.status_code, 200)
                 self.assertEqual(duplicate_sleeping.status_code, 200)
+                time.sleep(0.3)
+                self.assertEqual(len(upstreams.action_results), 1)
+
+                duty_payload = {
+                    "gameServerId": settings.game_server_id,
+                    "aiId": "42",
+                    "uid": "durable-duty-42",
+                    "actionId": "9100199",
+                    "actionName": "DongzhouDutyTree",
+                    "actionParams": "{}",
+                    "duration": 60,
+                    "scheduleId": 9100104,
+                    "scheduleName": "巡察营垒",
+                    "planId": "duty-plan-42",
+                    "actionChainId": "duty-chain-42",
+                }
+                duty = client.post("/api/v2/ExecuteBehavior", json=duty_payload)
+                duplicate_duty = client.post("/api/v2/ExecuteBehavior", json=duty_payload)
+                self.assertEqual(duty.status_code, 200)
+                self.assertEqual(duplicate_duty.status_code, 200)
+                invalid_duty = client.post(
+                    "/api/v2/ExecuteBehavior",
+                    json={**duty_payload, "uid": "wrong-duty-42", "scheduleName": "转运军粮"},
+                )
+                self.assertEqual(invalid_duty.status_code, 422)
+                self.assertEqual(
+                    invalid_duty.json()["error"]["code"],
+                    "dongzhou_duty_identity_invalid",
+                )
                 time.sleep(0.3)
                 self.assertEqual(len(upstreams.action_results), 1)
 

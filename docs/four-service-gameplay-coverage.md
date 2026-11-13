@@ -21,6 +21,8 @@
 
 无可执行待办时，AINPC 现在无论生成快照是否位于核心地图，都直接采用固定 `SleepTree`，不再退回模型并因旧目录中的运行态 `Reborn` 被过滤而形成空链。东周网关严格实现 `ValidateBTParams / ExecuteBehavior`：仅接受参数合法且网关已确认就绪的 `SleepTree` 与 `Reborn`，休息按声明时长持有同一物理 UID，结束后才回调。回调复合身份、物理 UID 与到期时间进入 SQLite outbox，网关重启不丢失；同 UID 同载荷只复用，冲突载荷返回 409。真实干净重启验收中 12 名 NPC 各生成并下发一条休息链，验收窗口内预检失败、空链、模型配置失败和提前完成均为 0。
 
+其余 11 类日常当值不再落入旧游戏原子动作。AINPC 通过东周专用 `transaction2actions` 与默认链目录，把朝会、军阵、军粮、巡营、军情、外交、史策、军令、城防、募兵和祭告统一下发为无可伪造参数的 `DongzhouDutyTree`；事务编号、名称、计划号与行为链号由不可变执行上下文携带。网关启动后用 SQLite outbox 调用正式目录同步接口，追加该动作但不清理其他游戏目录；执行时严格复核 `9100101..9100111` 的编号和名称，按计划时长到期才回调。真实合同验收中 `9100104 / 巡察营垒` 在 3 秒后形成 `DELIVERED` 记录且回调一次，故意改名为“转运军粮”则返回 `422 / dongzhou_duty_identity_invalid`。
+
 玩家现在可为差事指定一名协办副手。网关先用 orgFlow 权威名册确认主办与副手均在职，再读取 AINPC 两个方向的好感和关系，生成 `-8` 至 `+10` 的协同因子并计入任务成功率。NexusKernel `dongzhou_mandate_workflow 1.11.0` 同时封存两人身份、关系证据、协同分和各自当值；军令下达时两人分别获得稳定事件号和日程中断回执。任务终态为双方分别写入事件、长期记忆、品行与履职意愿，并由 `dongzhou_npc_settlement 1.1.0` 各自封印；战后两人也都进入权威参战者名单。任何一方未真正入程都不会形成可用的完整协办军令。
 
 协办不再只是成功率参数。联合军令会在 orgFlow 原子生成汇总父任务以及主办、协办两个关键子任务，双方独立执行并保留各自的异常、补件、确认与结案行迹；任一方未终态时不会提前结算。NexusKernel `dongzhou_organization_task_topology 1.0.0` 封存父子拓扑和双方权威状态，官署军务账簿直接显示联合进度。
@@ -85,7 +87,7 @@
 - 史官问对：真实 Chromium 从第一回已发布 AKU 开题，公开题面不含正确索引；刷新后恢复同一题并答中伯阳父，NexusKernel 返回 `SEALED` 结果，云档累计 10 分，证据为 `knowledge-quiz-live.png`。
 - 行军择路：真实 Chromium 在桌面端选择向导引路，军粮 `100 -> 99`、士气 `70 -> 66`；390px 移动端选择官道驿行，军粮 `100 -> 97`、士气 `70 -> 76`。两次开战均重新读取真实 knowledge-jizhan 图谱并得到 `dongzhou_campaign_route 1.2.0 / SEALED` 回执和服务端证明；第二回真实战报还把向导路线及 `dongzhou_stage_001/002` 写入实际参战属官的 AINPC 长期记忆，证据为 `campaign-routes-desktop-live.png`、`campaign-routes-mobile-live.png` 与 `live-route-battle-memory129.json`。
 - 本地交付：网关、AINPC、orgFlow 和九个依赖容器均符合镜像、健康与 `unless-stopped` 约束；完整 H5 包哈希通过；检查过程业务写入为 0。
-- 版本交付：东周父仓库只固定 `ganzijie1` GitHub 上四个精确提交：knowledge-jizhan `7b8b0378`、AINPC `031bc4af6`、orgFlowEngine `bdd432c`、NexusKernel `beda977d`；内网 GitLab 不作为推送目标。AINPC 的生产私聊已切换到 LoongEQ `guidance/v1` 与 `eq-abilities-v2`，并在画像缺失时调用正式幂等 `/ensure`，不再把永久缺档当正常状态。真实书问任务 `playerchat-4643eac3374c36fe422a4c2b4bc3020a` 完成回信且 API、Worker 和网关健康；当时 LoongEQ 外部画像存储返回 `503 guidance_profile_storage_unavailable`，因此该次验收只证明显式降级和聊天连续性，不能宣称 EQ 策略已应用。
+- 版本交付：东周父仓库只固定 `ganzijie1` GitHub 上四个精确提交：knowledge-jizhan `7b8b0378`、AINPC `36249f4ff`、orgFlowEngine `bdd432c`、NexusKernel `beda977d`；内网 GitLab 不作为推送目标。AINPC 的生产私聊已切换到 LoongEQ `guidance/v1` 与 `eq-abilities-v2`，并在画像缺失时调用正式幂等 `/ensure`，不再把永久缺档当正常状态。真实书问任务 `playerchat-4643eac3374c36fe422a4c2b4bc3020a` 完成回信且 API、Worker 和网关健康；当时 LoongEQ 外部画像存储返回 `503 guidance_profile_storage_unavailable`，因此该次验收只证明显式降级和聊天连续性，不能宣称 EQ 策略已应用。
 
 ## orgFlow 追办与补救
 

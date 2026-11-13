@@ -58,6 +58,10 @@ class AinpcBehaviorExecutionRequest(BaseModel):
     action_name: str = Field(alias="actionName", min_length=1, max_length=128)
     action_params: str = Field(alias="actionParams", min_length=2, max_length=20_000)
     duration: int = Field(ge=1, le=604_800)
+    schedule_id: int | str | None = Field(default=None, alias="scheduleId")
+    schedule_name: str | None = Field(default=None, alias="scheduleName", min_length=1, max_length=128)
+    plan_id: str | None = Field(default=None, alias="planId", min_length=1, max_length=256)
+    action_chain_id: str | None = Field(default=None, alias="actionChainId", min_length=1, max_length=256)
 
 
 class AinpcPrivateChatRuntimeQuery(StrictModel):

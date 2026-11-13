@@ -84,6 +84,24 @@ class Upstreams:
             payload=payload,
         )
 
+    async def sync_action_catalog(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Publish Dongzhou-owned behavior definitions without replacing other games."""
+
+        response = await self._json(
+            "POST",
+            self.settings.ainpc_url + "/callback/atomic-actions/synchronize",
+            token=self.settings.ainpc_token,
+            payload=payload,
+        )
+        data = response.get("data")
+        if response.get("code") != 200 or not isinstance(data, dict) or data.get("count") != 1:
+            raise UpstreamUnavailable(
+                "AINPC rejected the Dongzhou action catalog.",
+                error_code="ainpc_action_catalog_rejected",
+                response_payload=response,
+            )
+        return response
+
     @staticmethod
     def _headers(token: str) -> dict[str, str]:
         return {"Authorization": f"Bearer {token}"} if token else {}
