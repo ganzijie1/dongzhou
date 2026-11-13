@@ -602,6 +602,9 @@
       if (snapshot.organizationTrace && typeof snapshot.organizationTrace === "object") {
         task.organizationTrace = copy(snapshot.organizationTrace);
       }
+      if (snapshot.organizationTopology && typeof snapshot.organizationTopology === "object") {
+        task.organizationTopology = copy(snapshot.organizationTopology);
+      }
       if (task.status !== "active") continue;
       if (task.derivation && snapshot.assigneeHeroId && String(snapshot.assigneeHeroId) !== String(task.assigneeId)) {
         const authoritativeMember = state.members.find((entry) => String(entry.id) === String(snapshot.assigneeHeroId));

@@ -25,6 +25,7 @@ QIN_NPC_ID = str(stable_npc_id(91001, "QinXiangGong"))
 class MandateUpstreams:
     def __init__(self) -> None:
         self.triggers: list[dict[str, object]] = []
+        self.composite_triggers: list[dict[str, object]] = []
         self.events: list[tuple[str, dict[str, object]]] = []
         self.inventory_adjustments: list[tuple[str, dict[str, object], str]] = []
         self.growth_credits: list[tuple[str, dict[str, object], str]] = []
@@ -33,6 +34,7 @@ class MandateUpstreams:
         self.schedule_has_duties = True
         self.appended_duties: list[dict[str, object]] = []
         self.task_snapshot: dict[str, object] | None = None
+        self.task_snapshots: dict[str, dict[str, object]] = {}
         self.thoughts: list[tuple[int, dict[str, object]]] = []
         self.interruptions: list[tuple[int, dict[str, object]]] = []
         self.dialogue_reports: list[tuple[int, dict[str, object]]] = []
@@ -301,6 +303,22 @@ class MandateUpstreams:
         self.triggers.append(payload)
         return {"data": {"task_id": "00000000-0000-0000-0000-000000000099"}}
 
+    async def trigger_composite_virtual_task(self, organization_id, payload):
+        self.composite_triggers.append(payload)
+        return {
+            "data": {
+                "parent_task_id": "00000000-0000-0000-0000-000000000097",
+                "child_task_ids": [
+                    "00000000-0000-0000-0000-000000000099",
+                    "00000000-0000-0000-0000-000000000098",
+                ],
+                "expected_key_child_task_ids": [
+                    "00000000-0000-0000-0000-000000000099",
+                    "00000000-0000-0000-0000-000000000098",
+                ],
+            }
+        }
+
     async def organization_roster(self, organization_id):
         return {
             "data": {
@@ -328,7 +346,19 @@ class MandateUpstreams:
         return {"code": 200, "data": {"accepted": True}}
 
     async def get_virtual_task(self, organization_id, task_id):
+        if str(task_id) in self.task_snapshots:
+            return {"data": self.task_snapshots[str(task_id)]}
         if self.task_snapshot is not None:
+            if str(self.task_snapshot.get("task_id") or "") != str(task_id):
+                return {
+                    "data": {
+                        "task_id": task_id,
+                        "organization_id": organization_id,
+                        "state": self.task_snapshot.get("state", "IN_PROGRESS"),
+                        "final_result": self.task_snapshot.get("final_result"),
+                        "version": self.task_snapshot.get("version", "2"),
+                    }
+                }
             return {"data": self.task_snapshot}
         return {
             "data": {
@@ -422,6 +452,7 @@ def configured(path: Path) -> Settings:
         orgflow_hero_slots={
             "DuBo": "00000000-0000-0000-0000-000000000005",
             "ZuoRu": "00000000-0000-0000-0000-000000000003",
+            "QinXiangGong": "00000000-0000-0000-0000-000000000007",
         },
         orgflow_hero_members={
             "DuBo": "00000000-0000-0000-0000-000000000002",
@@ -516,8 +547,9 @@ def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -
         upstreams = MandateUpstreams()
         upstreams.collaboration_available = True
         upstreams.roster_members = [
-            {"member_id": "00000000-0000-0000-0000-000000000004", "state": "ACTIVE"},
-            {"member_id": "00000000-0000-0000-0000-000000000006", "state": "ACTIVE"},
+            {"member_id": "00000000-0000-0000-0000-000000000002", "position_slot_id": "00000000-0000-0000-0000-000000000005", "state": "ACTIVE"},
+            {"member_id": "00000000-0000-0000-0000-000000000004", "position_slot_id": "00000000-0000-0000-0000-000000000003", "state": "ACTIVE"},
+            {"member_id": "00000000-0000-0000-0000-000000000006", "position_slot_id": "00000000-0000-0000-0000-000000000007", "state": "ACTIVE"},
         ]
         app = build_application(
             configured(Path(directory) / "gateway.sqlite3"), upstreams=upstreams
@@ -581,11 +613,14 @@ def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -
             )
             assert order.status_code == 200, order.text
             task_id = order.json()["taskId"]
-            trigger = upstreams.triggers[-1]
-            assert trigger["parameters"]["support_hero_id"] == "QinXiangGong"
-            assert trigger["parameters"]["collaboration_score"] == collaboration["score"]
-            assert trigger["parameters"]["collaboration_factor"] == collaboration["factor"]
-            assert "Sealed support officer QinXiangGong" in trigger["brief"]
+            assert order.json()["topology"]["supportHeroId"] == "QinXiangGong"
+            trigger = upstreams.composite_triggers[-1]
+            assert trigger["authorization_position_slot_id"] == "00000000-0000-0000-0000-000000000003"
+            assert len(trigger["children"]) == 2
+            assert trigger["children"][0]["parameters"]["support_hero_id"] == "QinXiangGong"
+            assert trigger["children"][0]["parameters"]["collaboration_score"] == collaboration["score"]
+            assert trigger["children"][1]["parameters"]["assignee_hero_id"] == "QinXiangGong"
+            assert trigger["children"][1]["target_position_slot_id"] == "00000000-0000-0000-0000-000000000007"
 
             settlement_id = str(uuid4())
             upstreams.task_snapshot = {
@@ -611,6 +646,39 @@ def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -
                     "settled_at": "2026-11-13T00:00:00Z",
                 },
             }
+            topology = order.json()["topology"]
+            upstreams.task_snapshots[topology["supportTaskId"]] = {
+                "task_id": topology["supportTaskId"],
+                "organization_id": "00000000-0000-0000-0000-000000000001",
+                "state": "IN_PROGRESS",
+                "final_result": None,
+                "version": "2",
+            }
+            upstreams.task_snapshots[topology["parentTaskId"]] = {
+                "task_id": topology["parentTaskId"],
+                "organization_id": "00000000-0000-0000-0000-000000000001",
+                "state": "IN_PROGRESS",
+                "final_result": None,
+                "version": "2",
+            }
+            waiting = client.get(
+                f"/api/dongzhou/v1/organization/tasks/{task_id}"
+            )
+            assert waiting.status_code == 200, waiting.text
+            assert waiting.json()["settlement"] is None
+            assert waiting.json()["result"]["data"]["state"] == (
+                "WAITING_FOR_COLLABORATOR"
+            )
+            assert waiting.json()["organizationTopology"]["state"] == "ACTIVE"
+            assert waiting.json()["organizationTopology"]["kernel"]["module"] == (
+                "dongzhou_organization_task_topology"
+            )
+            upstreams.task_snapshots[topology["supportTaskId"]].update(
+                state="SUCCEEDED", final_result="SUCCESS", version="3"
+            )
+            upstreams.task_snapshots[topology["parentTaskId"]].update(
+                state="SUCCEEDED", final_result="SUCCESS", version="3"
+            )
             relationship = None
             for _ in range(100):
                 current = client.get(
@@ -638,6 +706,8 @@ def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -
             assert organization_trace["kernel"]["module"] == (
                 "dongzhou_organization_task_trace"
             )
+            assert current.json()["organizationTopology"]["state"] == "SEALED"
+            assert current.json()["organizationTopology"]["allChildrenTerminal"] is True
             peer_settlements = [
                 payload
                 for kind, payload in upstreams.events

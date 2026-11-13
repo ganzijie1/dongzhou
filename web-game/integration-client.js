@@ -404,7 +404,12 @@
       mandate.state = "ORDERED";
       mandate.organizationTaskId = result.taskId;
     }
-    const restored = { ...task, remoteMirrored: true, remoteResult: result.taskId };
+    const restored = {
+      ...task,
+      remoteMirrored: true,
+      remoteResult: result.taskId,
+      ...(result.topology ? { organizationTopology: JSON.parse(JSON.stringify(result.topology)) } : {})
+    };
     org.tasks.push(restored);
     const sequence = /^dz-\d+-(\d+)-/.exec(task.id);
     org.taskSequence = Math.max(org.taskSequence || 0, sequence ? Number(sequence[1]) : 0);

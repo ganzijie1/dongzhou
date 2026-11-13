@@ -725,6 +725,42 @@ class OrganizationTaskTraceModule(Module):
         }
 
 
+class OrganizationTaskTopologyModule(Module):
+    name = "dongzhou_organization_task_topology"
+    version = "1.0.0"
+    dependencies = (RuntimeModule.name,)
+
+    @staticmethod
+    def seal(topology: dict[str, Any]) -> dict[str, Any]:
+        identifiers = (
+            str(topology.get("parentTaskId") or ""),
+            str(topology.get("primaryTaskId") or ""),
+            str(topology.get("supportTaskId") or ""),
+        )
+        for identifier in identifiers:
+            UUID(identifier)
+        if len(set(identifiers)) != 3:
+            raise ValueError("organization task topology identifiers must be unique")
+        if (
+            not str(topology.get("primaryHeroId") or "")
+            or not str(topology.get("supportHeroId") or "")
+            or topology.get("primaryHeroId") == topology.get("supportHeroId")
+            or topology.get("state") not in {"ACTIVE", "SEALED", "UNAVAILABLE"}
+        ):
+            raise ValueError("organization task topology is invalid")
+        digest = _canonical_digest(topology)
+        return {
+            **topology,
+            "digest": digest,
+            "kernel": {
+                "module": OrganizationTaskTopologyModule.name,
+                "moduleVersion": OrganizationTaskTopologyModule.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "SEALED",
+            },
+        }
+
+
 class LogisticsBriefingModule(Module):
     name = "dongzhou_logistics_briefing"
     version = "1.0.0"
@@ -3167,6 +3203,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     npc_review_relationship = NpcReviewRelationshipModule()
     npc_collaboration_relationship = NpcCollaborationRelationshipModule()
     organization_task_trace = OrganizationTaskTraceModule()
+    organization_task_topology = OrganizationTaskTopologyModule()
     logistics_briefing = LogisticsBriefingModule()
     kernel = Kernel(
         [
@@ -3182,7 +3219,12 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 required=True,
                 original_index=7,
             ),
-            LoadedModule(module=logistics_briefing, required=True, original_index=8),
+            LoadedModule(
+                module=organization_task_topology,
+                required=True,
+                original_index=8,
+            ),
+            LoadedModule(module=logistics_briefing, required=True, original_index=9),
         ]
     )
     router = APIRouter(prefix="/api/dongzhou/v1")
@@ -7157,8 +7199,9 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             roster_response = await upstreams.organization_roster(
                 settings.orgflow_org_id
             )
+            roster_snapshot = roster_response.get("data")
             roster = _organization_roster_view(
-                roster_response.get("data"), settings
+                roster_snapshot, settings
             )
             hierarchy_version = roster["organization"]["hierarchyVersion"]
         except UpstreamUnavailable as error:
@@ -7211,7 +7254,99 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "brief": brief,
         }
         try:
-            result = await upstreams.trigger_virtual_task(settings.orgflow_org_id, trigger)
+            support_hero_id = (
+                str(collaboration.get("supportHeroId") or "")
+                if isinstance(collaboration, dict)
+                else ""
+            )
+            if support_hero_id:
+                support_slot_id = settings.orgflow_hero_slots.get(support_hero_id)
+                support_member_id = settings.orgflow_hero_members.get(support_hero_id)
+                raw_members = (
+                    roster_snapshot.get("members")
+                    if isinstance(roster_snapshot, dict)
+                    else None
+                )
+                active_member_ids = {
+                    str(item.get("member_id") or "")
+                    for item in (raw_members or [])
+                    if isinstance(item, dict)
+                }
+                if (
+                    not support_slot_id
+                    or not support_member_id
+                    or support_member_id not in active_member_ids
+                    or settings.orgflow_manager_member_id not in active_member_ids
+                    or support_hero_id == request.assignee_hero_id
+                ):
+                    response = {
+                        "state": "REJECTED",
+                        "requestId": str(request.client_request_id),
+                        "error": {
+                            "code": "organization_collaborator_unconfigured",
+                            "message": (
+                                "The sealed support officer is not mapped to the "
+                                "current organization hierarchy."
+                            ),
+                        },
+                    }
+                    await store.finish_request(
+                        player_id,
+                        request.client_request_id,
+                        "REJECTED",
+                        response,
+                        response["error"]["message"],
+                    )
+                    raise ApiError(
+                        "organization_collaborator_unconfigured",
+                        response["error"]["message"],
+                        status_code=422,
+                    )
+                source_event_id = trigger["source_event_id"]
+                primary_parameters = dict(trigger["parameters"])
+                support_parameters = {
+                    **primary_parameters,
+                    "assignee_hero_id": support_hero_id,
+                    "assignee_name": support_hero_id,
+                    "resource_units": 0,
+                    "support_hero_id": request.assignee_hero_id,
+                }
+                composite_trigger = {
+                    "source": trigger["source"],
+                    "source_event_id": source_event_id,
+                    "manager_member_id": settings.orgflow_manager_member_id,
+                    "authorization_position_slot_id": slot_id,
+                    "summary_task_code": trigger["task_code"],
+                    "expected_hierarchy_version": hierarchy_version,
+                    "summary_parameters": primary_parameters,
+                    "summary_brief": (
+                        f"Joint Dongzhou operation for {request.assignee_hero_id} "
+                        f"and {support_hero_id}. {brief}"
+                    )[:1000],
+                    "children": [
+                        {
+                            "target_position_slot_id": slot_id,
+                            "task_code": trigger["task_code"],
+                            "parameters": primary_parameters,
+                            "brief": f"Primary officer. {brief}"[:1000],
+                            "is_key_child": True,
+                        },
+                        {
+                            "target_position_slot_id": support_slot_id,
+                            "task_code": trigger["task_code"],
+                            "parameters": support_parameters,
+                            "brief": f"Support officer for {request.assignee_hero_id}. {brief}"[:1000],
+                            "is_key_child": True,
+                        },
+                    ],
+                }
+                result = await upstreams.trigger_composite_virtual_task(
+                    settings.orgflow_org_id, composite_trigger
+                )
+            else:
+                result = await upstreams.trigger_virtual_task(
+                    settings.orgflow_org_id, trigger
+                )
         except UpstreamUnavailable as error:
             if error.status_code in {400, 404, 409, 422}:
                 code = error.error_code or "organization_task_rejected"
@@ -7225,20 +7360,60 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             await store.finish_request(player_id, request.client_request_id, "RETRYABLE", response, str(error))
             raise ApiError("organization_unavailable", "The order is retained and can be retried with the same request ID.", status_code=503) from error
         task_snapshot = result.get("data", result)
-        task_id = str(task_snapshot.get("task_id") or "") if isinstance(task_snapshot, dict) else ""
+        topology = None
+        if support_hero_id and isinstance(task_snapshot, dict):
+            child_task_ids = task_snapshot.get("child_task_ids")
+            if (
+                not isinstance(child_task_ids, list)
+                or len(child_task_ids) != 2
+                or not all(isinstance(value, str) and value for value in child_task_ids)
+            ):
+                child_task_ids = []
+            task_id = str(child_task_ids[0]) if child_task_ids else ""
+            topology = {
+                "state": "ACTIVE",
+                "parentTaskId": str(task_snapshot.get("parent_task_id") or ""),
+                "primaryTaskId": task_id,
+                "supportTaskId": str(child_task_ids[1]) if child_task_ids else "",
+                "primaryHeroId": request.assignee_hero_id,
+                "supportHeroId": support_hero_id,
+            }
+            if not all(topology.values()):
+                task_id = ""
+        else:
+            task_id = str(task_snapshot.get("task_id") or "") if isinstance(task_snapshot, dict) else ""
         if not task_id:
             await store.finish_request(player_id, request.client_request_id, "FAILED", {"state": "FAILED"}, "orgflow_task_id_missing")
             raise ApiError("organization_contract_invalid", "Organization service returned no task ID.", status_code=502)
-        response = {"state": "ACCEPTED", "requestId": str(request.client_request_id), "taskId": task_id, "result": result}
+        response = {
+            "state": "ACCEPTED",
+            "requestId": str(request.client_request_id),
+            "taskId": task_id,
+            "result": result,
+            **({"topology": topology} if topology is not None else {}),
+        }
         await store.finish_request(player_id, request.client_request_id, "ACCEPTED", response, external_id=task_id)
         return response
 
     async def _organization_task_state(task_key: str, player_id: UUID) -> dict[str, Any]:
-        original = await store.read_external_request(
+        original_record = await store.read_external_request_record(
             player_id, task_key, "organization_task"
         )
-        if original is None:
+        if original_record is None:
             raise ApiError("organization_task_not_found", "Task does not belong to this player.", status_code=404)
+        original = original_record.get("request")
+        if not isinstance(original, dict):
+            raise ApiError(
+                "organization_contract_invalid",
+                "Stored organization task request is invalid.",
+                status_code=502,
+            )
+        creation_response = original_record.get("response")
+        stored_topology = (
+            creation_response.get("topology")
+            if isinstance(creation_response, dict)
+            else None
+        )
         try:
             result = await upstreams.get_virtual_task(settings.orgflow_org_id, task_key)
         except UpstreamUnavailable as error:
@@ -7249,6 +7424,134 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "organization_contract_invalid",
                 "Organization service returned an invalid task snapshot.",
                 status_code=502,
+            )
+        composite_topology: dict[str, Any] | None = None
+        if isinstance(stored_topology, dict):
+            parent_task_id = str(stored_topology.get("parentTaskId") or "")
+            primary_task_id = str(stored_topology.get("primaryTaskId") or "")
+            support_task_id = str(stored_topology.get("supportTaskId") or "")
+            support_hero_id = str(stored_topology.get("supportHeroId") or "")
+            try:
+                UUID(parent_task_id)
+                UUID(primary_task_id)
+                UUID(support_task_id)
+            except ValueError as error:
+                raise ApiError(
+                    "organization_composite_topology_invalid",
+                    "Stored joint-operation topology is invalid.",
+                    status_code=502,
+                ) from error
+            if primary_task_id != task_key or not support_hero_id:
+                raise ApiError(
+                    "organization_composite_topology_invalid",
+                    "Stored joint-operation topology does not match this task.",
+                    status_code=502,
+                )
+            try:
+                support_result, parent_result = await asyncio.gather(
+                    upstreams.get_virtual_task(
+                        settings.orgflow_org_id, support_task_id
+                    ),
+                    upstreams.get_virtual_task(
+                        settings.orgflow_org_id, parent_task_id
+                    ),
+                )
+            except UpstreamUnavailable:
+                support_snapshot = None
+                parent_snapshot = None
+            else:
+                support_snapshot = (
+                    support_result.get("data", support_result)
+                    if isinstance(support_result, dict)
+                    else None
+                )
+                parent_snapshot = (
+                    parent_result.get("data", parent_result)
+                    if isinstance(parent_result, dict)
+                    else None
+                )
+                if not isinstance(support_snapshot, dict) or not isinstance(
+                    parent_snapshot, dict
+                ):
+                    raise ApiError(
+                        "organization_composite_topology_invalid",
+                        "Organization service returned an invalid joint-operation topology.",
+                        status_code=502,
+                    )
+                if (
+                    str(support_snapshot.get("task_id") or "") != support_task_id
+                    or str(parent_snapshot.get("task_id") or "") != parent_task_id
+                    or str(support_snapshot.get("organization_id") or "")
+                    != settings.orgflow_org_id
+                    or str(parent_snapshot.get("organization_id") or "")
+                    != settings.orgflow_org_id
+                ):
+                    raise ApiError(
+                        "organization_composite_topology_invalid",
+                        "Organization joint-operation tasks do not match the sealed topology.",
+                        status_code=502,
+                    )
+            all_children_terminal = bool(
+                snapshot.get("final_result")
+                and isinstance(support_snapshot, dict)
+                and support_snapshot.get("final_result")
+            )
+            composite_topology = {
+                **stored_topology,
+                "state": (
+                    "SEALED"
+                    if all_children_terminal
+                    else "ACTIVE"
+                    if support_snapshot is not None
+                    else "UNAVAILABLE"
+                ),
+                "allChildrenTerminal": all_children_terminal,
+                "parent": {
+                    "taskId": parent_task_id,
+                    "state": parent_snapshot.get("state"),
+                    "finalResult": parent_snapshot.get("final_result"),
+                    "version": parent_snapshot.get("version"),
+                }
+                if isinstance(parent_snapshot, dict)
+                else None,
+                "primary": {
+                    "taskId": primary_task_id,
+                    "heroId": str(stored_topology.get("primaryHeroId") or ""),
+                    "state": snapshot.get("state"),
+                    "finalResult": snapshot.get("final_result"),
+                    "version": snapshot.get("version"),
+                },
+                "support": {
+                    "taskId": support_task_id,
+                    "heroId": support_hero_id,
+                    "state": support_snapshot.get("state"),
+                    "finalResult": support_snapshot.get("final_result"),
+                    "version": support_snapshot.get("version"),
+                }
+                if isinstance(support_snapshot, dict)
+                else None,
+            }
+            try:
+                composite_topology = organization_task_topology.seal(
+                    composite_topology
+                )
+            except (TypeError, ValueError) as error:
+                raise ApiError(
+                    "organization_composite_topology_invalid",
+                    "Joint-operation topology could not be sealed.",
+                    status_code=502,
+                ) from error
+            if not all_children_terminal and snapshot.get("final_result"):
+                snapshot = {
+                    **snapshot,
+                    "state": "WAITING_FOR_COLLABORATOR",
+                    "final_result": None,
+                    "settlement": None,
+                }
+            result = (
+                {**result, "data": snapshot}
+                if isinstance(result, dict) and "data" in result
+                else snapshot
             )
         try:
             trace_response = await upstreams.get_virtual_task_trace(
@@ -7594,6 +7897,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "npcOutcome": outcome,
             "supportNpcOutcomes": support_npc_outcomes,
             "organizationTrace": organization_trace,
+            **(
+                {"organizationTopology": composite_topology}
+                if composite_topology is not None
+                else {}
+            ),
             **(
                 {"collaborationRelationship": collaboration_relationship}
                 if collaboration_relationship is not None

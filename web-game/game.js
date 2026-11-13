@@ -1448,10 +1448,16 @@
       const traceLabel = organizationTrace?.state === "SEALED"
         ? ` · ${activeConfirmation ? escapeHtml(confirmationTypeLabels[activeConfirmation.type] || activeConfirmation.type) : "军务行迹"}${organizationTrace.executionException?.state === "OPEN" ? ` · ${escapeHtml(organizationTrace.executionException.summary || organizationTrace.executionException.code)}` : ""}${traceSteps ? ` · ${escapeHtml(traceSteps)}` : ""} · 行迹封印 ${escapeHtml(String(organizationTrace.digest || "").slice(0, 10))}`
         : organizationTrace?.state === "UNAVAILABLE" ? " · 军务行迹待恢复" : "";
+      const topology = task.organizationTopology;
+      const topologyLabel = topology?.state === "SEALED"
+        ? ` · 联合作战已合卷 · ${escapeHtml(String(topology.primary?.finalResult || ""))}/${escapeHtml(String(topology.support?.finalResult || ""))}`
+        : topology?.state === "ACTIVE"
+          ? ` · 联合作战进行中 · 主办${escapeHtml(String(topology.primary?.state || ""))} · 协办${escapeHtml(String(topology.support?.state || ""))}`
+          : topology?.state === "UNAVAILABLE" ? " · 联合作战状态待恢复" : "";
       const evidenceFit = Number(task.mandate?.evidenceFit?.factor);
       const evidenceLabel = Number.isFinite(evidenceFit) ? ` · 史证${evidenceFit}/9` : "";
       const masteryLabel = task.mandate?.knowledgeMastery ? ` · 史识+${Number(task.mandate.knowledgeMastery.bonus)}` : "";
-      return `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}${collaboration ? ` + ${escapeHtml(displayName(collaboration.supportHeroId))}` : ""}</strong><small>${statusLabel}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}${evidenceLabel}${masteryLabel}${task.mandate?.assignment?.name ? ` · 当值${escapeHtml(task.mandate.assignment.name)}` : ""}${Number.isFinite(Number(task.mandate?.assignment?.readiness?.score)) ? ` · 胜任${Number(task.mandate.assignment.readiness.score)}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${collaborationLabel}${peerRelationshipLabel}${emergencyLabel}${traceLabel}${settlementLabel}${outcomeLabel}${supportOutcomeLabel}${relationshipLabel}</small></li>`;
+      return `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}${collaboration ? ` + ${escapeHtml(displayName(collaboration.supportHeroId))}` : ""}</strong><small>${statusLabel}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}${evidenceLabel}${masteryLabel}${task.mandate?.assignment?.name ? ` · 当值${escapeHtml(task.mandate.assignment.name)}` : ""}${Number.isFinite(Number(task.mandate?.assignment?.readiness?.score)) ? ` · 胜任${Number(task.mandate.assignment.readiness.score)}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${collaborationLabel}${topologyLabel}${peerRelationshipLabel}${emergencyLabel}${traceLabel}${settlementLabel}${outcomeLabel}${supportOutcomeLabel}${relationshipLabel}</small></li>`;
     }).join("") || '<li class="empty">尚无差事</li>';
     $("#officeMandateLedger").innerHTML = [...org.mandates].reverse().slice(0, 6).map((mandate) => {
       const label = mandate.state === "RESOLVED" ? (mandate.outcome?.won ? "战后告捷" : "战后失利") : mandate.state === "FULFILLED" ? "复命待战" : mandate.state === "PARTIAL" ? "部分复命" : mandate.state === "FAILED" ? "执行未成" : mandate.state === "ORDERED" ? "属官执行中" : "已签发";
@@ -2590,7 +2596,7 @@
   function organizationTaskSnapshot(response) {
     const snapshot = response.result?.data || response.result || null;
     return snapshot && typeof snapshot === "object"
-      ? { ...snapshot, assigneeHeroId: response.assigneeHeroId || null, settlement: response.settlement || null, closureReceipt: response.closureReceipt || null, npcOutcome: response.npcOutcome || null, supportNpcOutcomes: Array.isArray(response.supportNpcOutcomes) ? response.supportNpcOutcomes : [], collaborationRelationship: response.collaborationRelationship || null, organizationTrace: response.organizationTrace || null, npcConsequence: response.npcConsequence || null, review: response.review || null, followUps: Array.isArray(response.followUps) ? response.followUps : [] }
+      ? { ...snapshot, assigneeHeroId: response.assigneeHeroId || null, settlement: response.settlement || null, closureReceipt: response.closureReceipt || null, npcOutcome: response.npcOutcome || null, supportNpcOutcomes: Array.isArray(response.supportNpcOutcomes) ? response.supportNpcOutcomes : [], collaborationRelationship: response.collaborationRelationship || null, organizationTrace: response.organizationTrace || null, organizationTopology: response.organizationTopology || null, npcConsequence: response.npcConsequence || null, review: response.review || null, followUps: Array.isArray(response.followUps) ? response.followUps : [] }
       : snapshot;
   }
 

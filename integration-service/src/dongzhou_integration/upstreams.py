@@ -1279,6 +1279,33 @@ class Upstreams:
             compatible["brief"] = f"{str(payload.get('brief') or '').strip()} [Dongzhou context: {context}]".strip()
             return await submit(compatible)
 
+    async def trigger_composite_virtual_task(
+        self, organization_id: str, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        path = (
+            "/internal/v1/organization-administration/organizations/"
+            f"{organization_id}/virtual-task-composite-triggers"
+        )
+        body = json.dumps(
+            payload,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode()
+        return await self._json(
+            "POST",
+            f"{self.settings.orgflow_url}{path}",
+            headers=sign_orgflow_request(
+                method="POST",
+                path_and_query=path,
+                audience=self.settings.orgflow_audience,
+                key_id=self.settings.orgflow_hmac_key_id,
+                secret=self.settings.orgflow_hmac_secret,
+                body=body,
+            ),
+            content=body,
+        )
+
     async def get_virtual_task(self, organization_id: str, task_id: str) -> dict[str, Any]:
         path = f"/internal/v1/organization-administration/organizations/{organization_id}/virtual-tasks/{task_id}"
         return await self._json(
