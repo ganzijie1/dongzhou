@@ -119,6 +119,9 @@ async function openOffice(page) {
       const selected = profile.organization?.selectedCorrespondence?.["01"];
       return selected?.messageId === messageId && selected?.digest === digest && selected?.heroId === "ZuoRu";
     }, { messageId: reply.messageId, digest: reply.digest });
+    await page.waitForFunction((buttonSelector) => {
+      return document.querySelector(buttonSelector)?.textContent?.includes("已取用");
+    }, selector);
     assert.match(await page.locator(selector).innerText(), /已取用/);
     assert.equal(await page.locator(selector).locator("xpath=ancestor::div[contains(@class, 'office-correspondence-item')]/strong").innerText(), "左儒");
     const untranslatedNames = await page.evaluate(() => {
