@@ -87,7 +87,7 @@
 - 史官问对：真实 Chromium 从第一回已发布 AKU 开题，公开题面不含正确索引；刷新后恢复同一题并答中伯阳父，NexusKernel 返回 `SEALED` 结果，云档累计 10 分，证据为 `knowledge-quiz-live.png`。
 - 行军择路：真实 Chromium 在桌面端选择向导引路，军粮 `100 -> 99`、士气 `70 -> 66`；390px 移动端选择官道驿行，军粮 `100 -> 97`、士气 `70 -> 76`。两次开战均重新读取真实 knowledge-jizhan 图谱并得到 `dongzhou_campaign_route 1.2.0 / SEALED` 回执和服务端证明；第二回真实战报还把向导路线及 `dongzhou_stage_001/002` 写入实际参战属官的 AINPC 长期记忆，证据为 `campaign-routes-desktop-live.png`、`campaign-routes-mobile-live.png` 与 `live-route-battle-memory129.json`。
 - 本地交付：网关、AINPC、orgFlow 和九个依赖容器均符合镜像、健康与 `unless-stopped` 约束；完整 H5 包哈希通过；检查过程业务写入为 0。
-- 版本交付：东周父仓库只固定 `ganzijie1` GitHub 上四个精确提交：knowledge-jizhan `7b8b0378`、AINPC `36249f4ff`、orgFlowEngine `bdd432c`、NexusKernel `beda977d`；内网 GitLab 不作为推送目标。AINPC 的生产私聊已切换到 LoongEQ `guidance/v1` 与 `eq-abilities-v2`，并在画像缺失时调用正式幂等 `/ensure`，不再把永久缺档当正常状态。真实书问任务 `playerchat-4643eac3374c36fe422a4c2b4bc3020a` 完成回信且 API、Worker 和网关健康；当时 LoongEQ 外部画像存储返回 `503 guidance_profile_storage_unavailable`，因此该次验收只证明显式降级和聊天连续性，不能宣称 EQ 策略已应用。
+- 版本交付：东周父仓库只固定 `ganzijie1` GitHub 上四个精确提交：knowledge-jizhan `7b8b0378`、AINPC `e01cb1eea`、orgFlowEngine `bdd432c`、NexusKernel `beda977d`；内网 GitLab 不作为推送目标。AINPC 的生产私聊已切换到 LoongEQ `guidance/v1` 与 `eq-abilities-v2`，并在画像缺失时调用正式幂等 `/ensure`，不再把永久缺档当正常状态。真实书问任务 `playerchat-4643eac3374c36fe422a4c2b4bc3020a` 完成回信且 API、Worker 和网关健康；当时 LoongEQ 外部画像存储返回 `503 guidance_profile_storage_unavailable`，因此该次验收只证明显式降级和聊天连续性，不能宣称 EQ 策略已应用。已完成组织会话的精确旧回执现在返回“终止重试”而不改写历史证据；新镜像部署后，原先每分钟重放的 11 月 8 日 `npc-task-*` 回执已跨两个恢复周期保持零重试。
 
 ## orgFlow 追办与补救
 
