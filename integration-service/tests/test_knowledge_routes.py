@@ -11,6 +11,7 @@ from dongzhou_integration.upstreams import UpstreamUnavailable
 
 class PublishedKnowledge:
     unavailable = False
+    missing_stage = None
     route_detail = {
         "from_stage_id": "01",
         "from_stage_title": "第一回",
@@ -29,6 +30,8 @@ class PublishedKnowledge:
     async def stage_knowledge(self, stage_id):
         if self.unavailable:
             raise UpstreamUnavailable("not ready")
+        if stage_id == self.missing_stage:
+            return []
         if stage_id == "01":
             return [{
                 "id": "dongzhou_stage_001",
@@ -36,6 +39,13 @@ class PublishedKnowledge:
                 "name": "第一回·东郊索命",
                 "entities": {"npcs": [{"name": "杜伯"}]},
                 "sourceDetails": [{"work": "《史记·周本纪》", "tier": "史官骨架", "scope": "杜伯之死"}],
+            }]
+        if stage_id == "02":
+            return [{
+                "id": "dongzhou_stage_002",
+                "stageId": "02",
+                "name": "第二回史料",
+                "sourceDetails": [{"work": "史记", "tier": "史实骨架", "scope": "骊山之变"}],
             }]
         return [{"id": "dongzhou_stage_004", "stageId": stage_id, "name": "本回史料"}] if stage_id == "03b" else []
 
@@ -121,10 +131,13 @@ def test_campaign_route_requires_completed_predecessor_and_validates_published_d
         assert accepted.json()["routeId"] == "campaign_progression_900001_900002"
         assert accepted.json()["provisionCost"] == 2
         assert accepted.json()["receipt"]["kernel"]["module"] == "dongzhou_campaign_route"
-        assert accepted.json()["receipt"]["kernel"]["moduleVersion"] == "1.0.0"
+        assert accepted.json()["receipt"]["kernel"]["moduleVersion"] == "1.1.0"
         assert accepted.json()["receipt"]["kernel"]["nexusKernelVersion"]
         assert accepted.json()["receipt"]["kernel"]["state"] == "SEALED"
         assert len(accepted.json()["receipt"]["digest"]) == 64
+        assert accepted.json()["knowledgeWitnesses"]["from"]["knowledgeIds"] == ["dongzhou_stage_001"]
+        assert accepted.json()["knowledgeWitnesses"]["to"]["knowledgeIds"] == ["dongzhou_stage_002"]
+        assert len(accepted.json()["knowledgeWitnesses"]["from"]["digest"]) == 64
         assert len(accepted.json()["options"]) == 3
         assert {item["method"] for item in accepted.json()["options"]} == {
             "campaign_progression", "fixed_point", "npc_dialog"
@@ -142,6 +155,12 @@ def test_campaign_route_requires_completed_predecessor_and_validates_published_d
         assert guided.json()["receipt"]["digest"] != accepted.json()["receipt"]["digest"]
         repeated = client.post(path, json={**request, "route_method": "npc_dialog"})
         assert repeated.json()["receipt"] == guided.json()["receipt"]
+
+        upstreams.missing_stage = "02"
+        missing = client.post(path, json=request)
+        assert missing.status_code == 404
+        assert missing.json()["error"]["code"] == "campaign_route_knowledge_missing"
+        upstreams.missing_stage = None
 
         upstreams.route_detail = {**upstreams.route_detail, "to_stage_id": "wrong"}
         invalid = client.post(path, json=request)

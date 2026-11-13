@@ -54,6 +54,9 @@ const SYSTEM_CHROMIUM = [
       })));
       assert.deepStrictEqual(options.map((option) => option.method), ["campaign_progression", "fixed_point", "npc_dialog"]);
       assert(options.every((option) => option.left >= 0 && option.right <= scenario.viewport.width));
+      const routeProof = await page.locator("#focusRouteProof").textContent();
+      assert(routeProof.includes("双史料封印"));
+      assert.strictEqual(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
       await page.click(`[data-route-method="${scenario.method}"]`);
       await page.waitForFunction((method) => document.querySelector(`[data-route-method="${method}"]`)?.getAttribute("aria-checked") === "true", scenario.method);
       const screenshot = path.join(OUTPUT_DIR, `campaign-routes-${scenario.name}-live.png`);
@@ -70,8 +73,13 @@ const SYSTEM_CHROMIUM = [
       assert.strictEqual(result.profile.campaignResources.provisions, scenario.provisions);
       assert.strictEqual(result.profile.campaignResources.morale, scenario.morale);
       assert.strictEqual(result.battle.campaignRoute.receipt.kernel.module, "dongzhou_campaign_route");
+      assert.strictEqual(result.battle.campaignRoute.receipt.kernel.moduleVersion, "1.1.0");
       assert.strictEqual(result.battle.campaignRoute.receipt.kernel.state, "SEALED");
       assert.strictEqual(result.battle.campaignRoute.receipt.digest.length, 64);
+      assert.deepStrictEqual(result.battle.campaignRoute.knowledgeWitnesses.from.knowledgeIds, ["dongzhou_stage_001"]);
+      assert.deepStrictEqual(result.battle.campaignRoute.knowledgeWitnesses.to.knowledgeIds, ["dongzhou_stage_002"]);
+      assert.strictEqual(result.battle.campaignRoute.knowledgeWitnesses.from.digest.length, 64);
+      assert.strictEqual(result.battle.campaignRoute.knowledgeWitnesses.to.digest.length, 64);
       assert.deepStrictEqual(errors, []);
       accepted.push({
         name: scenario.name,

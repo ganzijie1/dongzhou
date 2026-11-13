@@ -474,7 +474,7 @@ class KnowledgeTournamentModule(Module):
 
 class CampaignRouteModule(Module):
     name = "dongzhou_campaign_route"
-    version = "1.0.0"
+    version = "1.1.0"
     dependencies = (RuntimeModule.name,)
 
     @staticmethod
@@ -2326,6 +2326,32 @@ def _digest_json(value: dict[str, Any]) -> str:
             sort_keys=True,
         ).encode("utf-8")
     ).hexdigest()
+
+
+def _campaign_route_knowledge_witness(
+    stage_id: str,
+    entries: list[dict[str, Any]],
+) -> dict[str, Any]:
+    published = sorted(
+        (
+            entry
+            for entry in entries
+            if isinstance(entry, dict)
+            and str(entry.get("stageId") or "") == stage_id
+            and str(entry.get("id") or entry.get("aku_id") or "").startswith("dongzhou_stage_")
+        ),
+        key=lambda entry: str(entry.get("id") or entry.get("aku_id") or ""),
+    )
+    if not published:
+        raise ValueError("published_stage_knowledge_missing")
+    return {
+        "stageId": stage_id,
+        "knowledgeIds": [
+            str(entry.get("id") or entry.get("aku_id"))
+            for entry in published
+        ],
+        "digest": _digest_json({"stageId": stage_id, "entries": published}),
+    }
 
 
 def _knowledge_quiz_trace(
@@ -4246,8 +4272,10 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         to_map_id = 900000 + request.to_stage_index
         methods = ("campaign_progression", "fixed_point", "npc_dialog")
         try:
-            results = await asyncio.gather(
-                *(upstreams.campaign_route(from_map_id, to_map_id, method) for method in methods)
+            gathered = await asyncio.gather(
+                upstreams.stage_knowledge(request.from_stage_id),
+                upstreams.stage_knowledge(request.to_stage_id),
+                *(upstreams.campaign_route(from_map_id, to_map_id, method) for method in methods),
             )
         except UpstreamUnavailable as error:
             raise ApiError(
@@ -4255,6 +4283,18 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "Campaign route verification is temporarily unavailable.",
                 status_code=503,
             ) from error
+        try:
+            knowledge_witnesses = {
+                "from": _campaign_route_knowledge_witness(request.from_stage_id, gathered[0]),
+                "to": _campaign_route_knowledge_witness(request.to_stage_id, gathered[1]),
+            }
+        except ValueError as error:
+            raise ApiError(
+                "campaign_route_knowledge_missing",
+                "Both campaign stages require published player knowledge.",
+                status_code=404,
+            ) from error
+        results = gathered[2:]
         route_options: list[dict[str, Any]] = []
         route_rules = {
             "campaign_progression": {"label": "奉诏直进", "provisionCost": 2, "moraleDelta": 0},
@@ -4343,6 +4383,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "toStageId": request.to_stage_id,
             "fromMapId": from_map_id,
             "toMapId": to_map_id,
+            "knowledgeWitnesses": knowledge_witnesses,
             **selected,
         }
         return {
@@ -4354,6 +4395,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "toMapId": to_map_id,
             **selected,
             "options": route_options,
+            "knowledgeWitnesses": knowledge_witnesses,
             "receipt": campaign_routes.seal_selection(selection_trace),
         }
 

@@ -536,8 +536,14 @@
       if (serial !== campaignRouteSerial || $("#focusStageButton").dataset.stageId !== record.id) return;
       const previous = campaign.stages[Number(record.index) - 2];
       const selected = selectedCampaignRoute(record, route);
+      const witnessCount = [route?.knowledgeWitnesses?.from, route?.knowledgeWitnesses?.to]
+        .filter((witness) => Array.isArray(witness?.knowledgeIds) && witness.knowledgeIds.length && String(witness?.digest || "").length === 64)
+        .length;
+      const witnessSeal = witnessCount === 2 && route?.receipt?.kernel?.state === "SEALED"
+        ? ` · 双史料封印 ${String(route.receipt.digest || "").slice(0, 10)}`
+        : "";
       proof.dataset.state = "ready";
-      proof.textContent = `${previous.battleTitle} → ${record.battleTitle} · ${selected.label || "奉诏直进"} · 军粮 ${selected.provisionCost}${selected.moraleDelta ? ` · 士气 ${selected.moraleDelta > 0 ? "+" : ""}${selected.moraleDelta}` : ""}`;
+      proof.textContent = `${previous.battleTitle} → ${record.battleTitle} · ${selected.label || "奉诏直进"} · 军粮 ${selected.provisionCost}${selected.moraleDelta ? ` · 士气 ${selected.moraleDelta > 0 ? "+" : ""}${selected.moraleDelta}` : ""}${witnessSeal}`;
       const options = $("#focusRouteOptions");
       options.hidden = !Array.isArray(route.options) || route.options.length < 2;
       options.innerHTML = (route.options || []).map((option) =>
