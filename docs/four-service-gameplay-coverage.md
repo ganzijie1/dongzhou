@@ -81,7 +81,7 @@
 - 史官问对：真实 Chromium 从第一回已发布 AKU 开题，公开题面不含正确索引；刷新后恢复同一题并答中伯阳父，NexusKernel 返回 `SEALED` 结果，云档累计 10 分，证据为 `knowledge-quiz-live.png`。
 - 行军择路：真实 Chromium 在桌面端选择向导引路，军粮 `100 -> 99`、士气 `70 -> 66`；390px 移动端选择官道驿行，军粮 `100 -> 97`、士气 `70 -> 76`。两次开战均重新读取真实 knowledge-jizhan 图谱并得到 `dongzhou_campaign_route 1.2.0 / SEALED` 回执和服务端证明；第二回真实战报还把向导路线及 `dongzhou_stage_001/002` 写入实际参战属官的 AINPC 长期记忆，证据为 `campaign-routes-desktop-live.png`、`campaign-routes-mobile-live.png` 与 `live-route-battle-memory129.json`。
 - 本地交付：网关、AINPC、orgFlow 和九个依赖容器均符合镜像、健康与 `unless-stopped` 约束；完整 H5 包哈希通过；检查过程业务写入为 0。
-- 版本交付：东周父仓库只固定 `ganzijie1` GitHub 上四个 `dev-gzj` 的精确提交：knowledge-jizhan `7b8b0378`、AINPC `c85447ef7`、orgFlowEngine `1f21bc9d`、NexusKernel `beda977d`。`python tools/verify-service-submodules.py` 验证四个公开远端、分支声明、远端分支、gitlink 与检出提交一致，内网 GitLab 不作为推送目标；本轮真实月令触发已回读同一权威任务号 `866d1e9c-7ecd-507d-badb-24161e91222d` 的标题与状态，API、Worker 和网关均保持健康。
+- 版本交付：东周父仓库只固定 `ganzijie1` GitHub 上四个 `dev-gzj` 的精确提交：knowledge-jizhan `7b8b0378`、AINPC `633a0b653`、orgFlowEngine `1f21bc9d`、NexusKernel `beda977d`。`python tools/verify-service-submodules.py` 验证四个公开远端、分支声明、远端分支、gitlink 与检出提交一致，内网 GitLab 不作为推送目标；本轮真实月令触发已回读同一权威任务号 `866d1e9c-7ecd-507d-badb-24161e91222d` 的标题与状态，API、Worker 和网关均保持健康。
 
 ## orgFlow 追办与补救
 

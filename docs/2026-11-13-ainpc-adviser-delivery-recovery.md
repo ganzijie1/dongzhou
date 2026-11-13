@@ -25,3 +25,5 @@ AINPC `c94119d4f` 补齐了最终回答的持久恢复：
 真实页面验收还发现东周 UUID 派生玩家 ID 可能超过 BSON signed int64。AINPC 旧评价路径保留 JSON 数字类型，导致 Mongo `OverflowError`，页面虽显示已评价，`ai_helper_feedback` 实际没有记录。AINPC `c85447ef7` 在 service 和 repository 两层把新写入的游戏服、NPC 和玩家身份规范成字符串，历史数字文档仍保持可读。
 
 修复后真实 Chromium 问题 `d99dda12-5a57-427f-abc0-3befcaea85b1` 使用玩家 ID `13888431256065969160` 完成问答和“准确”评价。Mongo 回读得到同 task 的 `rating=accurate`，`playerId` 为字符串；相关回归 `71` 项全部通过，运行日志不再出现 `ai_helper_feedback OverflowError`。
+
+AINPC `633a0b653` 还把本地 knowledge-jizhan 检索预算从 10 秒提高到 20 秒。真实查询通常在 10.1 秒左右完成，旧预算会在结果返回前中断。问题 `d1524a1e-164a-497b-8fda-fcbcf893ccd0` 验证召回耗时 `10.149s`，命中 `dongzhou_stage_001` 等 5 个 AKU，持久摘要为 `called=true`，随后正常回答并记录评价。
