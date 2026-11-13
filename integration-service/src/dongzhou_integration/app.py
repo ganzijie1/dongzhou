@@ -6585,8 +6585,21 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 },
             )
 
-        await ensure_duty_slot(manager_hero_id, manager_npc_id)
-        await ensure_duty_slot(worker_hero_id, worker_npc_id)
+        try:
+            await ensure_duty_slot(manager_hero_id, manager_npc_id)
+            await ensure_duty_slot(worker_hero_id, worker_npc_id)
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "ainpc_schedule_unavailable",
+                "NPC schedules are temporarily unavailable; the monthly duty can be retried.",
+                status_code=503,
+            ) from error
+        except (AttributeError, TypeError, ValueError) as error:
+            raise ApiError(
+                "ainpc_schedule_contract_invalid",
+                "NPC schedule response is invalid.",
+                status_code=502,
+            ) from error
         query = {
             "schema_version": "organization.scheduled-task-rule-query.v1",
             "request_id": f"dongzhou-scheduled-query-{settings.game_server_id}",

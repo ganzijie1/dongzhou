@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from dongzhou_integration.app import build_application
 from dongzhou_integration.config import Settings
+from dongzhou_integration.upstreams import UpstreamUnavailable
 
 
 class ScheduledDutyUpstreams:
@@ -166,3 +167,42 @@ def test_scheduled_duty_is_registered_once_and_returned(tmp_path):
     assert len(upstreams.schedule_append_calls) == 1
     assert upstreams.schedule_append_calls[0][2]["time_slot"] == "14:00-14:45"
     assert upstreams.create_calls[0]["parameters"]["assignee_hero_id"] == "ZuoRu"
+
+
+def test_scheduled_duty_maps_ainpc_schedule_outage_to_retryable_503(tmp_path):
+    class UnavailableScheduleUpstreams(ScheduledDutyUpstreams):
+        async def npc_schedule(self, npc_id):
+            raise UpstreamUnavailable("AINPC schedule is offline")
+
+    with patch.dict(
+        "os.environ",
+        {
+            "DONGZHOU_ENV": "test",
+            "DONGZHOU_WEB_ROOT": str(tmp_path),
+            "DONGZHOU_DATABASE_PATH": str(tmp_path / "save.db"),
+            "DONGZHOU_GAME_SERVER_ID": "91001",
+            "DONGZHOU_AINPC_GAME_SERVER_ID": "91001",
+            "DONGZHOU_ORGFLOW_ORG_ID": "596354f7-c343-5c78-958d-757a9e58fde6",
+            "DONGZHOU_ORGFLOW_HERO_MEMBERS": (
+                "DuBo=bb531833-924f-5a59-a148-5d33e3fbface,"
+                "ZuoRu=e3419e13-7498-5a6b-9259-a2c30aeb5a19"
+            ),
+        },
+        clear=True,
+    ):
+        settings = Settings.from_env()
+
+    with TestClient(
+        build_application(settings, upstreams=UnavailableScheduleUpstreams())
+    ) as client:
+        session = client.post(
+            "/api/dongzhou/v1/sessions/guest",
+            json={"installation_id": str(uuid4())},
+        )
+        assert session.status_code == 200
+        response = client.get(
+            "/api/dongzhou/v1/organization/scheduled-duties"
+        )
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "ainpc_schedule_unavailable"
