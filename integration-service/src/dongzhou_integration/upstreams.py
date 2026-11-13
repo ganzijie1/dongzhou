@@ -73,6 +73,17 @@ class Upstreams:
             )
         return response
 
+    async def report_action_execution_result(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Close the exact AINPC physical action accepted by the Dongzhou adapter."""
+
+        return await self._json(
+            "POST",
+            self.settings.ainpc_url
+            + "/callback/schedule-execution/executor/report_action_execution_result",
+            token=self.settings.ainpc_token,
+            payload=payload,
+        )
+
     @staticmethod
     def _headers(token: str) -> dict[str, str]:
         return {"Authorization": f"Bearer {token}"} if token else {}

@@ -57,6 +57,9 @@ class _HealthyUpstreams:
     async def close(self):
         return None
 
+    async def report_action_execution_result(self, payload):
+        return {"code": 200, "data": {"received": True}}
+
     async def get_virtual_task_trace(self, organization_id, task_id):
         return {
             "data": {
@@ -107,6 +110,15 @@ class _CapturingUpstreams(_HealthyUpstreams):
             "timestamp": dialogue["timestamp"],
             "content": dialogue["question"],
         }
+
+
+class _BehaviorUpstreams(_HealthyUpstreams):
+    def __init__(self) -> None:
+        self.action_results: list[dict[str, object]] = []
+
+    async def report_action_execution_result(self, payload):
+        self.action_results.append(payload)
+        return {"code": 200, "data": {"received": True}}
 
 
 class _NpcPreferenceUpstreams(_HealthyUpstreams):
@@ -1508,10 +1520,11 @@ class AuthenticationRouteTests(unittest.TestCase):
             clear=True,
         ):
             settings = Settings.from_env()
+            upstreams = _BehaviorUpstreams()
             application = build_application(
                 settings,
                 store=Store(settings.database_path),
-                upstreams=_HealthyUpstreams(),
+                upstreams=upstreams,
             )
             with TestClient(application) as client:
                 servers = client.post("/api/v1/QueryServers", json={})
@@ -1563,6 +1576,79 @@ class AuthenticationRouteTests(unittest.TestCase):
                     json={"aiId": "42", "queryTaskStatus": "TASK_STATUS_COMPLETED"},
                 )
                 self.assertEqual(invalid_tasks.status_code, 422)
+
+                valid_sleep = client.post(
+                    "/api/v2/ValidateBTParams",
+                    json={"treeName": "SleepTree", "params": '{"areaID":0}'},
+                )
+                self.assertEqual(
+                    valid_sleep.json(), {"valid": True, "errorMessage": ""}
+                )
+                invalid_sleep = client.post(
+                    "/api/v2/ValidateBTParams",
+                    json={"treeName": "SleepTree", "params": '{"areaID":true}'},
+                )
+                self.assertEqual(invalid_sleep.json()["valid"], False)
+                unsupported = client.post(
+                    "/api/v2/ValidateBTParams",
+                    json={"treeName": "UnknownTree", "params": "{}"},
+                )
+                self.assertEqual(unsupported.json()["valid"], False)
+
+                executed = client.post(
+                    "/api/v2/ExecuteBehavior",
+                    json={
+                        "gameServerId": settings.game_server_id,
+                        "aiId": "42",
+                        "uid": "sleep-action-42",
+                        "actionId": "1100028",
+                        "actionName": "Reborn",
+                        "actionParams": "{}",
+                        "duration": 3,
+                        "scheduleId": "0",
+                    },
+                )
+                self.assertEqual(executed.status_code, 200)
+                self.assertEqual(
+                    executed.json(),
+                    {"success": True, "accepted": True, "uid": "sleep-action-42"},
+                )
+                deadline = time.time() + 1
+                while not upstreams.action_results and time.time() < deadline:
+                    time.sleep(0.01)
+                self.assertEqual(
+                    upstreams.action_results,
+                    [
+                        {
+                            "game_server_id": settings.game_server_id,
+                            "npc_id": "42",
+                            "action_uid": "sleep-action-42",
+                            "status_code": 2002,
+                            "error_code": 0,
+                            "status_message": "Dongzhou behavior completed",
+                            "error_message": "",
+                        }
+                    ],
+                )
+                sleeping_payload = {
+                    "gameServerId": settings.game_server_id,
+                    "aiId": "42",
+                    "uid": "durable-sleep-42",
+                    "actionId": "1100034",
+                    "actionName": "SleepTree",
+                    "actionParams": '{"areaID":0}',
+                    "duration": 60,
+                }
+                sleeping = client.post(
+                    "/api/v2/ExecuteBehavior", json=sleeping_payload
+                )
+                duplicate_sleeping = client.post(
+                    "/api/v2/ExecuteBehavior", json=sleeping_payload
+                )
+                self.assertEqual(sleeping.status_code, 200)
+                self.assertEqual(duplicate_sleeping.status_code, 200)
+                time.sleep(0.3)
+                self.assertEqual(len(upstreams.action_results), 1)
 
                 guest = client.post(
                     "/api/dongzhou/v1/sessions/guest",

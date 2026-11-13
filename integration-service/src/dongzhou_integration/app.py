@@ -27,7 +27,7 @@ from .assignments import (
     select_assignment,
     task_duty,
 )
-from .models import AdviserFeedbackRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
+from .models import AdviserFeedbackRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
@@ -130,9 +130,14 @@ class RuntimeModule(Module):
                 continue
             for event in events:
                 try:
-                    receipt = await self.upstreams.send_game_event(
-                        event["kind"], event["payload"]
-                    )
+                    if event["kind"] == "AINPC_ACTION_RESULT":
+                        receipt = await self.upstreams.report_action_execution_result(
+                            event["payload"]["callback"]
+                        )
+                    else:
+                        receipt = await self.upstreams.send_game_event(
+                            event["kind"], event["payload"]
+                        )
                     if event["kind"] == "ORG_REPORT_START":
                         outcome = event["payload"].get("npc_outcome")
                         if isinstance(outcome, dict):
@@ -3593,6 +3598,70 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         # Organization orders are owned by orgFlow, not resumable game-server
         # behavior-tree tasks, so they must not be mixed into this contract.
         return {"taskInfos": []}
+
+    def validate_behavior_params(tree_name: str, encoded_params: str) -> tuple[bool, str]:
+        try:
+            params = json.loads(encoded_params)
+        except (TypeError, json.JSONDecodeError):
+            return False, "actionParams must be a JSON object"
+        if not isinstance(params, dict):
+            return False, "actionParams must be a JSON object"
+        if tree_name == "SleepTree":
+            area_id = params.get("areaID")
+            valid = set(params) == {"areaID"} and type(area_id) is int and area_id >= 0
+            return valid, "" if valid else "SleepTree requires one non-negative integer areaID"
+        if tree_name == "Reborn":
+            valid = params == {}
+            return valid, "" if valid else "Reborn does not accept parameters"
+        return False, "behavior tree is not supported by Dongzhou"
+
+    @game_clock_router.post("/api/v2/ValidateBTParams")
+    async def validate_behavior(
+        request: AinpcBehaviorParamsValidationRequest,
+    ) -> dict[str, Any]:
+        valid, message = validate_behavior_params(request.tree_name, request.params)
+        return {"valid": valid, "errorMessage": message}
+
+    @game_clock_router.post("/api/v2/ExecuteBehavior")
+    async def execute_behavior(request: AinpcBehaviorExecutionRequest) -> dict[str, Any]:
+        if request.game_server_id != settings.game_server_id:
+            raise ApiError("game_server_not_found", "Game server is not configured.", status_code=404)
+        runtime = await store.read_npc_runtime(settings.game_server_id, request.ai_id)
+        if runtime is None or runtime.get("state") != "READY":
+            raise ApiError("npc_not_ready", "NPC is not ready.", status_code=409)
+        valid, message = validate_behavior_params(request.action_name, request.action_params)
+        if not valid:
+            raise ApiError("behavior_params_invalid", message, status_code=422)
+        callback = {
+            "game_server_id": request.game_server_id,
+            "npc_id": request.ai_id,
+            "action_uid": request.uid,
+            "status_code": 2002,
+            "error_code": 0,
+            "status_message": "Dongzhou behavior completed",
+            "error_message": "",
+        }
+        try:
+            await store.enqueue_game_event(
+                f"ainpc-action:{request.game_server_id}:{request.ai_id}:{request.uid}",
+                "AINPC_ACTION_RESULT",
+                {
+                    "actionName": request.action_name,
+                    "duration": request.duration,
+                    "callback": callback,
+                },
+                not_before=datetime.now(UTC)
+                + timedelta(
+                    seconds=request.duration if request.action_name == "SleepTree" else 0
+                ),
+            )
+        except VersionConflict as error:
+            raise ApiError(
+                "behavior_uid_conflict",
+                "Behavior UID was already used for a different action.",
+                status_code=409,
+            ) from error
+        return {"success": True, "accepted": True, "uid": request.uid}
 
     def npc_wire(row: dict[str, Any]) -> dict[str, str]:
         return {"heroId": str(row["heroId"]), "name": str(row["name"]), "npcId": str(row["id"])}

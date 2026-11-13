@@ -42,6 +42,8 @@ The gateway implements the AINPC private-chat transport and runtime contracts at
 - `POST /api/v2/NDLLMSendPrivateMessage` persists the frozen message before returning success and emits a durable delivery callback.
 - `POST /api/v2/QueryPrivateChatRuntimeState` projects persisted sessions and messages without exposing PII.
 - `POST /api/v2/ResetPrivateChatRuntimeState` is an idempotent no-op because Dongzhou has no game-side pending-send or waiting-reply queue; it returns a fresh authoritative projection.
+- `POST /api/v2/ValidateBTParams` strictly validates the locally supported `SleepTree` and runtime `Reborn` parameters; unsupported trees return `valid=false` rather than a fabricated success.
+- `POST /api/v2/ExecuteBehavior` accepts only a ready NPC and the same validated parameters. `Reborn` reports its exact physical UID immediately, while `SleepTree` remains in flight for its declared duration before reporting completion. Accepted results use the SQLite outbox, so gateway restarts preserve their due time; duplicate UIDs reuse the same payload or fail on a conflict.
 
 Never infer delivery from an accepted chat request. Only the delivery callback proves that the game server persisted the message.
 

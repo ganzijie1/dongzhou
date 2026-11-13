@@ -41,6 +41,25 @@ class AinpcTaskStatusQuery(StrictModel):
     query_task_status: Literal["TASK_STATUS_RUNNING"] = Field(alias="queryTaskStatus")
 
 
+class AinpcBehaviorParamsValidationRequest(StrictModel):
+    tree_name: str = Field(alias="treeName", min_length=1, max_length=128)
+    params: str = Field(min_length=2, max_length=20_000)
+
+
+class AinpcBehaviorExecutionRequest(BaseModel):
+    # AINPC may add immutable execution context fields as its protocol evolves.
+    # The Dongzhou adapter validates all fields it consumes and preserves the rest.
+    model_config = ConfigDict(extra="allow", strict=True)
+
+    game_server_id: str = Field(alias="gameServerId", min_length=1, max_length=128)
+    ai_id: str = Field(alias="aiId", min_length=1, max_length=128)
+    uid: str = Field(min_length=1, max_length=256)
+    action_id: str = Field(alias="actionId", min_length=1, max_length=128)
+    action_name: str = Field(alias="actionName", min_length=1, max_length=128)
+    action_params: str = Field(alias="actionParams", min_length=2, max_length=20_000)
+    duration: int = Field(ge=1, le=604_800)
+
+
 class AinpcPrivateChatRuntimeQuery(StrictModel):
     ai_id: str = Field(alias="aiId", min_length=1, max_length=128)
     reveal_pii: Literal[False] = Field(default=False, alias="revealPii")

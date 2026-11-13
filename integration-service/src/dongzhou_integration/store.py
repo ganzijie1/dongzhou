@@ -265,8 +265,14 @@ class Store:
         payload: dict[str, Any],
         *,
         requeue_delivered: bool = False,
+        not_before: datetime | None = None,
     ) -> bool:
         encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+        due_at = (
+            not_before.astimezone(UTC).strftime("%Y-%m-%d %H:%M:%S")
+            if not_before is not None
+            else None
+        )
         async with self._lock:
             with self._connection() as db:
                 row = db.execute(
@@ -286,8 +292,9 @@ class Store:
                         return True
                     return False
                 db.execute(
-                    "INSERT INTO game_server_outbox(event_id,event_kind,payload) VALUES (?,?,?)",
-                    (event_id, event_kind, encoded),
+                    "INSERT INTO game_server_outbox(event_id,event_kind,payload,next_attempt_at) "
+                    "VALUES (?,?,?,COALESCE(?,CURRENT_TIMESTAMP))",
+                    (event_id, event_kind, encoded, due_at),
                 )
         return True
 
