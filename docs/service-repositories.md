@@ -23,4 +23,4 @@ To advance a service deliberately, fetch its sanitized GitHub branch, check out 
 
 The internal GitLab repositories are not configured as submodule remotes and must never be push targets from this repository.
 
-Current AINPC pin: `c94119d4f` (`dev-gzj`). Its adviser answer delivery recovery and live acceptance are recorded in [2026-11-13-ainpc-adviser-delivery-recovery.md](2026-11-13-ainpc-adviser-delivery-recovery.md).
+Current AINPC pin: `c85447ef7` (`dev-gzj`). Its adviser answer delivery recovery, large-player feedback fix, and live acceptance are recorded in [2026-11-13-ainpc-adviser-delivery-recovery.md](2026-11-13-ainpc-adviser-delivery-recovery.md).

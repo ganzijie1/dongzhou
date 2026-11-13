@@ -19,3 +19,9 @@ AINPC `c94119d4f` 补齐了最终回答的持久恢复：
 - 无 API 拦截 Chromium 从东周页面完成问策士、回调、显示和“准确”反馈。问题号为 `e49f3c1a-30b5-484b-8f02-a333f2d19d3b`，回答已进入 `ANSWERED`。
 
 旧问题 `9cd889f7-f75b-4c9e-9dd2-2e5615bc9464` 在升级前已经生成回答但回调失败；本次通过相同正式回调恢复为 `ANSWERED`，没有直接改写网关数据库。旧日志缺少 `chatId`，因此不会被新循环猜测性重放；自动恢复只适用于升级后保存了完整投递身份的记录。
+
+## 超大玩家身份评价
+
+真实页面验收还发现东周 UUID 派生玩家 ID 可能超过 BSON signed int64。AINPC 旧评价路径保留 JSON 数字类型，导致 Mongo `OverflowError`，页面虽显示已评价，`ai_helper_feedback` 实际没有记录。AINPC `c85447ef7` 在 service 和 repository 两层把新写入的游戏服、NPC 和玩家身份规范成字符串，历史数字文档仍保持可读。
+
+修复后真实 Chromium 问题 `d99dda12-5a57-427f-abc0-3befcaea85b1` 使用玩家 ID `13888431256065969160` 完成问答和“准确”评价。Mongo 回读得到同 task 的 `rating=accurate`，`playerId` 为字符串；相关回归 `71` 项全部通过，运行日志不再出现 `ai_helper_feedback OverflowError`。
