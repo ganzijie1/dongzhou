@@ -714,6 +714,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
             upstreams = Upstreams(settings(Path(directory) / "db"), client)
             await upstreams.trigger_virtual_task("org-id", {"source_event_id": "stable"})
             await upstreams.get_virtual_task("org-id", "task-id")
+            await upstreams.get_virtual_task_trace("org-id", "task-id")
             await upstreams.organization_roster("org-id")
             await upstreams.organization_inventory("org-id")
             await upstreams.adjust_organization_inventory(
@@ -881,6 +882,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         paths = [request.url.path for request in seen]
         self.assertIn("/internal/v1/organization-administration/organizations/org-id/virtual-task-triggers", paths)
         self.assertIn("/internal/v1/organization-administration/organizations/org-id/virtual-tasks/task-id", paths)
+        self.assertIn("/internal/v1/organization-administration/organizations/org-id/virtual-tasks/task-id/trace", paths)
         self.assertIn("/internal/v1/organization-administration/organizations/org-id/roster", paths)
         self.assertIn("/internal/v1/organization-administration/organizations/org-id/inventory", paths)
         adjustment_request = next(

@@ -343,6 +343,33 @@ class MandateUpstreams:
             }
         }
 
+    async def get_virtual_task_trace(self, organization_id, task_id):
+        task = self.task_snapshot or {}
+        return {
+            "data": {
+                "task": {
+                    "task_id": task_id,
+                    "organization_id": organization_id,
+                    "state": task.get("state", "IN_PROGRESS"),
+                    "version": str(task.get("version", "2")),
+                    "supplement_count": int(task.get("supplement_count", 0)),
+                    "execution_exception": task.get("execution_exception"),
+                },
+                "confirmations": [],
+                "timeline": [
+                    {
+                        "sequence_no": "1",
+                        "occurred_at": "2026-11-13T00:00:00Z",
+                        "entry_type": "TASK_CREATED",
+                        "reference_id": task_id,
+                        "case_id": None,
+                        "state_code": "GENERATED",
+                        "reason_code": None,
+                    }
+                ],
+            }
+        }
+
     async def adjust_organization_inventory(
         self, organization_id, payload, *, idempotency_key
     ):
@@ -603,6 +630,13 @@ def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -
             assert relationship["receipt"]["state"] == "SEALED"
             assert relationship["receipt"]["kernel"]["module"] == (
                 "dongzhou_npc_collaboration_relationship"
+            )
+            organization_trace = current.json()["organizationTrace"]
+            assert organization_trace["state"] == "SEALED"
+            assert organization_trace["taskId"] == task_id
+            assert organization_trace["timeline"][0]["type"] == "TASK_CREATED"
+            assert organization_trace["kernel"]["module"] == (
+                "dongzhou_organization_task_trace"
             )
             peer_settlements = [
                 payload

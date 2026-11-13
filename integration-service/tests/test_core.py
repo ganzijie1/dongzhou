@@ -20,6 +20,7 @@ from dongzhou_integration.app import (
     NpcCollaborationRelationshipModule,
     NpcReviewRelationshipModule,
     NpcSettlementModule,
+    OrganizationTaskTraceModule,
     RuntimeModule,
     _battle_support_attestations,
     _battle_game_events,
@@ -29,6 +30,7 @@ from dongzhou_integration.app import (
     _npc_outcome_status,
     _npc_collaboration_affection_events,
     _organization_supervision_links,
+    _organization_task_trace_view,
     _organization_task_chance,
     _prepare_due_organization_reports,
     _repair_utf8_mojibake,
@@ -53,6 +55,32 @@ class _HealthyUpstreams:
 
     async def close(self):
         return None
+
+    async def get_virtual_task_trace(self, organization_id, task_id):
+        return {
+            "data": {
+                "task": {
+                    "task_id": task_id,
+                    "organization_id": organization_id,
+                    "state": "IN_PROGRESS",
+                    "version": "2",
+                    "supplement_count": 0,
+                    "execution_exception": None,
+                },
+                "confirmations": [],
+                "timeline": [
+                    {
+                        "sequence_no": "1",
+                        "occurred_at": "2026-11-13T00:00:00Z",
+                        "entry_type": "TASK_CREATED",
+                        "reference_id": task_id,
+                        "case_id": None,
+                        "state_code": "GENERATED",
+                        "reason_code": None,
+                    }
+                ],
+            }
+        }
 
 
 class _CapturingUpstreams(_HealthyUpstreams):
@@ -2584,6 +2612,77 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
                     "primaryToSupport": "relationship-primary",
                     "supportToPrimary": "relationship-support",
                 },
+            )
+
+    def test_organization_task_trace_projects_safe_fields_and_seals(self) -> None:
+        task_id = str(uuid4())
+        organization_id = str(uuid4())
+        case_id = str(uuid4())
+        trace = _organization_task_trace_view(
+            {
+                "task": {
+                    "task_id": task_id,
+                    "organization_id": organization_id,
+                    "state": "RESULT_CONFIRMATION_PENDING",
+                    "version": "7",
+                    "supplement_count": 1,
+                    "execution_exception": None,
+                },
+                "confirmations": [
+                    {
+                        "case_id": case_id,
+                        "business_id": task_id,
+                        "organization_id": organization_id,
+                        "case_type": "TASK_RESULT_CONFIRMATION",
+                        "state": "WAITING_CONFIRMATION",
+                        "recipient_subject_type": "NPC",
+                        "allowed_actions": ["accept", "return_for_supplement"],
+                        "deadline_at": "2026-11-13T01:00:00Z",
+                        "final_action": None,
+                        "messages": [{"body_snapshot": "must not escape"}],
+                    }
+                ],
+                "timeline": [
+                    {
+                        "sequence_no": "1",
+                        "occurred_at": "2026-11-13T00:00:00Z",
+                        "entry_type": "TASK_CREATED",
+                        "reference_id": task_id,
+                        "case_id": None,
+                        "state_code": "GENERATED",
+                        "reason_code": None,
+                    },
+                    {
+                        "sequence_no": "2",
+                        "occurred_at": "2026-11-13T00:30:00Z",
+                        "entry_type": "CONFIRMATION_OPENED",
+                        "reference_id": case_id,
+                        "case_id": case_id,
+                        "state_code": "WAITING_CONFIRMATION",
+                        "reason_code": None,
+                    },
+                ],
+            },
+            task_id=task_id,
+            organization_id=organization_id,
+        )
+        receipt = OrganizationTaskTraceModule.seal(trace)
+        self.assertEqual(receipt["state"], "SEALED")
+        self.assertEqual(receipt["supplementCount"], 1)
+        self.assertEqual(receipt["activeConfirmations"][0]["type"], "TASK_RESULT_CONFIRMATION")
+        self.assertNotIn("messages", receipt["activeConfirmations"][0])
+        self.assertEqual(receipt["kernel"]["module"], "dongzhou_organization_task_trace")
+        with self.assertRaisesRegex(ValueError, "ownership"):
+            _organization_task_trace_view(
+                {
+                    "task": {
+                        "task_id": str(uuid4()),
+                        "organization_id": organization_id,
+                    },
+                    "timeline": [],
+                },
+                task_id=task_id,
+                organization_id=organization_id,
             )
 
     async def test_startup_backfills_missing_npc_memory_once(self) -> None:

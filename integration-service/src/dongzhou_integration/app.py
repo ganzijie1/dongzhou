@@ -693,6 +693,38 @@ class NpcCollaborationRelationshipModule(Module):
         }
 
 
+class OrganizationTaskTraceModule(Module):
+    name = "dongzhou_organization_task_trace"
+    version = "1.0.0"
+    dependencies = (RuntimeModule.name,)
+
+    @staticmethod
+    def seal(trace: dict[str, Any]) -> dict[str, Any]:
+        task_id = str(trace.get("taskId") or "")
+        organization_id = str(trace.get("organizationId") or "")
+        UUID(task_id)
+        UUID(organization_id)
+        timeline = trace.get("timeline")
+        if not isinstance(timeline, list) or not timeline:
+            raise ValueError("organization task trace timeline is missing")
+        if [item.get("sequence") for item in timeline] != list(
+            range(1, len(timeline) + 1)
+        ):
+            raise ValueError("organization task trace sequence is invalid")
+        digest = _canonical_digest(trace)
+        return {
+            "state": "SEALED",
+            **trace,
+            "digest": digest,
+            "kernel": {
+                "module": OrganizationTaskTraceModule.name,
+                "moduleVersion": OrganizationTaskTraceModule.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "SEALED",
+            },
+        }
+
+
 class LogisticsBriefingModule(Module):
     name = "dongzhou_logistics_briefing"
     version = "1.0.0"
@@ -1133,6 +1165,191 @@ def _organization_inventory_view(snapshot: Any, settings: Settings) -> dict[str,
         "gameServerId": game_server_id,
         "revision": revision,
         "accounts": sanitized,
+    }
+
+
+def _organization_task_trace_view(
+    snapshot: Any,
+    *,
+    task_id: str,
+    organization_id: str,
+) -> dict[str, Any]:
+    if not isinstance(snapshot, dict):
+        raise ValueError("organization task trace must be an object")
+    task = snapshot.get("task")
+    if (
+        not isinstance(task, dict)
+        or str(task.get("task_id") or "") != task_id
+        or str(task.get("organization_id") or "") != organization_id
+    ):
+        raise ValueError("organization task trace ownership is invalid")
+    UUID(task_id)
+    UUID(organization_id)
+    raw_timeline = snapshot.get("timeline")
+    if not isinstance(raw_timeline, list) or not raw_timeline:
+        raise ValueError("organization task trace timeline is missing")
+    allowed_entries = {
+        "TASK_CREATED",
+        "RECOMMENDATION_COMPLETED",
+        "CONFIRMATION_OPENED",
+        "MESSAGE_SENT",
+        "MESSAGE_SEND_FAILED",
+        "REPLY_RECEIVED",
+        "CONFIRMATION_RESOLVED",
+        "EXECUTION_STARTED",
+        "SUBMISSION_RECORDED",
+        "LIGHTWEIGHT_CHECK_COMPLETED",
+        "SUPPLEMENT_REQUESTED",
+        "EXECUTION_EXCEPTION_REPORTED",
+        "EXECUTION_EXCEPTION_RESOLVED",
+        "DERIVED_TASK_INTENT_CREATED",
+        "DERIVED_TASK_CREATED",
+        "DERIVED_TASK_SKIPPED",
+        "TASK_FINALIZED",
+        "SETTLEMENT_RECORDED",
+        "TASK_INVALIDATED",
+    }
+    timeline: list[dict[str, Any]] = []
+    for expected, raw in enumerate(raw_timeline, start=1):
+        if not isinstance(raw, dict):
+            raise ValueError("organization task trace timeline entry is invalid")
+        sequence = int(raw.get("sequence_no") or 0)
+        entry_type = str(raw.get("entry_type") or "")
+        occurred_at = str(raw.get("occurred_at") or "")
+        reference_id = str(raw.get("reference_id") or "")
+        if (
+            sequence != expected
+            or entry_type not in allowed_entries
+            or not occurred_at
+            or not reference_id
+        ):
+            raise ValueError("organization task trace timeline entry is invalid")
+        UUID(reference_id)
+        case_id = str(raw.get("case_id") or "")
+        if case_id:
+            UUID(case_id)
+        timeline.append(
+            {
+                "sequence": sequence,
+                "type": entry_type,
+                "occurredAt": occurred_at,
+                "referenceId": reference_id,
+                "caseId": case_id or None,
+                "stateCode": str(raw.get("state_code") or ""),
+                "reasonCode": str(raw.get("reason_code") or "") or None,
+            }
+        )
+    raw_confirmations = snapshot.get("confirmations") or []
+    if not isinstance(raw_confirmations, list):
+        raise ValueError("organization task confirmations are invalid")
+    allowed_case_types = {
+        "TASK_ASSIGNMENT_CONFIRMATION",
+        "TASK_MEMBER_RESPONSE",
+        "TASK_MODIFICATION_CONFIRMATION",
+        "TASK_FINAL_MEMBER_CHOICE",
+        "TASK_RESULT_CONFIRMATION",
+        "TASK_SUPPLEMENT_REQUEST",
+        "TASK_MAJOR_EXECUTION_EXCEPTION",
+        "TASK_NO_ELIGIBLE_RESPONSIBLE_MEMBER",
+    }
+    allowed_case_states = {
+        "CREATED",
+        "WAITING_SEND",
+        "WAITING_CONFIRMATION",
+        "PROCESSING",
+        "ENDED",
+        "SEND_FAILED",
+        "INVALIDATED",
+    }
+    confirmations: list[dict[str, Any]] = []
+    for raw in raw_confirmations:
+        if (
+            not isinstance(raw, dict)
+            or str(raw.get("business_id") or "") != task_id
+            or str(raw.get("organization_id") or "") != organization_id
+        ):
+            raise ValueError("organization task confirmation ownership is invalid")
+        case_id = str(raw.get("case_id") or "")
+        UUID(case_id)
+        case_type = str(raw.get("case_type") or "")
+        case_state = str(raw.get("state") or "")
+        recipient_type = str(raw.get("recipient_subject_type") or "")
+        allowed_actions = raw.get("allowed_actions")
+        if (
+            case_type not in allowed_case_types
+            or case_state not in allowed_case_states
+            or recipient_type not in {"PLAYER", "NPC"}
+            or not isinstance(allowed_actions, list)
+            or not allowed_actions
+            or not all(
+                isinstance(value, str) and value for value in allowed_actions
+            )
+        ):
+            raise ValueError("organization task confirmation actions are invalid")
+        confirmations.append(
+            {
+                "caseId": case_id,
+                "type": case_type,
+                "state": case_state,
+                "recipientType": recipient_type,
+                "allowedActions": allowed_actions,
+                "deadlineAt": str(raw.get("deadline_at") or "") or None,
+                "finalAction": str(raw.get("final_action") or "") or None,
+            }
+        )
+    raw_exception = task.get("execution_exception")
+    execution_exception = None
+    if raw_exception is not None:
+        if (
+            not isinstance(raw_exception, dict)
+            or str(raw_exception.get("task_id") or "") != task_id
+            or str(raw_exception.get("organization_id") or "") != organization_id
+        ):
+            raise ValueError("organization task execution exception is invalid")
+        plans = raw_exception.get("plans")
+        if not isinstance(plans, list) or not plans:
+            raise ValueError("organization task execution exception plans are invalid")
+        execution_exception = {
+            "exceptionId": str(raw_exception.get("exception_id") or ""),
+            "code": str(raw_exception.get("exception_code") or ""),
+            "summary": str(raw_exception.get("summary") or "")[:500],
+            "state": str(raw_exception.get("state") or ""),
+            "defaultPlanId": str(raw_exception.get("default_plan_id") or ""),
+            "selectedPlanId": str(raw_exception.get("selected_plan_id") or "") or None,
+            "plans": [
+                {
+                    "id": str(plan.get("plan_id") or ""),
+                    "title": str(plan.get("title") or "")[:200],
+                }
+                for plan in plans
+                if isinstance(plan, dict)
+            ],
+        }
+        if not execution_exception["exceptionId"] or not execution_exception["plans"]:
+            raise ValueError("organization task execution exception is incomplete")
+        UUID(execution_exception["exceptionId"])
+    supplement_count = task.get("supplement_count")
+    if (
+        isinstance(supplement_count, bool)
+        or not isinstance(supplement_count, int)
+        or not 0 <= supplement_count <= 2
+        or not str(task.get("state") or "")
+        or not str(task.get("version") or "")
+    ):
+        raise ValueError("organization task supplement count is invalid")
+    return {
+        "taskId": task_id,
+        "organizationId": organization_id,
+        "taskState": str(task.get("state") or ""),
+        "taskVersion": str(task.get("version") or ""),
+        "supplementCount": supplement_count,
+        "activeConfirmations": [
+            item
+            for item in confirmations
+            if item["state"] not in {"ENDED", "INVALIDATED"}
+        ],
+        "executionException": execution_exception,
+        "timeline": timeline,
     }
 
 
@@ -2949,6 +3166,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     npc_settlement = NpcSettlementModule()
     npc_review_relationship = NpcReviewRelationshipModule()
     npc_collaboration_relationship = NpcCollaborationRelationshipModule()
+    organization_task_trace = OrganizationTaskTraceModule()
     logistics_briefing = LogisticsBriefingModule()
     kernel = Kernel(
         [
@@ -2959,7 +3177,12 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             LoadedModule(module=npc_settlement, required=True, original_index=4),
             LoadedModule(module=npc_review_relationship, required=True, original_index=5),
             LoadedModule(module=npc_collaboration_relationship, required=True, original_index=6),
-            LoadedModule(module=logistics_briefing, required=True, original_index=7),
+            LoadedModule(
+                module=organization_task_trace,
+                required=True,
+                original_index=7,
+            ),
+            LoadedModule(module=logistics_briefing, required=True, original_index=8),
         ]
     )
     router = APIRouter(prefix="/api/dongzhou/v1")
@@ -3025,6 +3248,15 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             {},
         )
         logistics_state = str(logistics_module.get("state") or "unknown").lower()
+        task_trace_module = next(
+            (
+                item
+                for item in kernel_snapshot.get("modules", [])
+                if item.get("name") == OrganizationTaskTraceModule.name
+            ),
+            {},
+        )
+        task_trace_state = str(task_trace_module.get("state") or "unknown").lower()
         return {
             **external,
             "nexusKernel": {
@@ -3032,6 +3264,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 and workflow_state in {"ready", "degraded"}
                 and tournament_state in {"ready", "degraded"}
                 and route_state in {"ready", "degraded"}
+                and task_trace_state in {"ready", "degraded"}
                 and logistics_state in {"ready", "degraded"},
                 "mode": "embedded",
                 "version": _NEXUS_KERNEL_VERSION,
@@ -3042,6 +3275,8 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "knowledgeTournamentState": tournament_state,
                 "campaignRouteModule": CampaignRouteModule.name,
                 "campaignRouteState": route_state,
+                "organizationTaskTraceModule": OrganizationTaskTraceModule.name,
+                "organizationTaskTraceState": task_trace_state,
                 "logisticsBriefingModule": LogisticsBriefingModule.name,
                 "logisticsBriefingState": logistics_state,
             },
@@ -7016,6 +7251,32 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=502,
             )
         try:
+            trace_response = await upstreams.get_virtual_task_trace(
+                settings.orgflow_org_id,
+                task_key,
+            )
+        except UpstreamUnavailable:
+            organization_trace: dict[str, Any] = {"state": "UNAVAILABLE"}
+        else:
+            trace_snapshot = (
+                trace_response.get("data", trace_response)
+                if isinstance(trace_response, dict)
+                else None
+            )
+            try:
+                trace = _organization_task_trace_view(
+                    trace_snapshot,
+                    task_id=task_key,
+                    organization_id=settings.orgflow_org_id,
+                )
+                organization_trace = organization_task_trace.seal(trace)
+            except (TypeError, ValueError) as error:
+                raise ApiError(
+                    "organization_task_trace_invalid",
+                    "Organization service returned an invalid task trace.",
+                    status_code=502,
+                ) from error
+        try:
             follow_ups = _derived_follow_ups(task_key, original, snapshot)
             for follow_up in follow_ups:
                 if follow_up["state"] != "CREATED" or not follow_up["taskId"]:
@@ -7332,6 +7593,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "closureReceipt": closure,
             "npcOutcome": outcome,
             "supportNpcOutcomes": support_npc_outcomes,
+            "organizationTrace": organization_trace,
             **(
                 {"collaborationRelationship": collaboration_relationship}
                 if collaboration_relationship is not None

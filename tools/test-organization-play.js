@@ -213,6 +213,19 @@ const collaborationRelationship = {
   affectionDelta: 4,
   receipt: { state: "SEALED", digest: "f".repeat(64), kernel: { state: "SEALED" } }
 };
+const organizationTrace = {
+  state: "SEALED",
+  taskId: remote.task.remoteResult,
+  organizationId: "00000000-0000-0000-0000-000000000001",
+  taskState: "SUCCEEDED",
+  taskVersion: "3",
+  supplementCount: 0,
+  activeConfirmations: [],
+  executionException: null,
+  timeline: [{ sequence: 1, type: "TASK_CREATED" }],
+  digest: "8".repeat(64),
+  kernel: { module: "dongzhou_organization_task_trace", state: "SEALED" }
+};
 assert.throws(
   () => play.recordTaskReview(state, {
     taskId: remote.task.remoteResult,
@@ -227,6 +240,7 @@ state = play.reconcileRemoteTasks(state, [{
   settlement: authoritativeSettlement, closureReceipt, review: acceptedReview,
   npcOutcome: { state: "DELIVERED", attempts: 1 },
   collaborationRelationship,
+  organizationTrace,
   npcConsequence: acceptedRelationship
 }]);
 assert.strictEqual(state.tasks.at(-1).status, "success");
@@ -236,6 +250,7 @@ assert.strictEqual(state.tasks.at(-1).npcConsequence.affectionType, "appreciatio
 assert.strictEqual(state.tasks.at(-1).npcConsequence.receipt.digest, "e".repeat(64));
 assert.strictEqual(state.tasks.at(-1).collaborationRelationship.affectionType, "friendship");
 assert.strictEqual(state.tasks.at(-1).collaborationRelationship.receipt.digest, "f".repeat(64));
+assert.strictEqual(state.tasks.at(-1).organizationTrace.digest, "8".repeat(64));
 assert.ok(state.pendingSupport.some((entry) => entry.id === remote.task.id));
 assert.strictEqual(state.contribution, contributionBefore + 100);
 assert.strictEqual(state.members.find((member) => member.id === "ZuoRu").merit, meritBefore + 75);

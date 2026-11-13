@@ -1430,10 +1430,28 @@
       const peerRelationshipLabel = peerRelationship?.state === "DELIVERED"
         ? ` · 双向${peerRelationshipType}+${Number(peerRelationship.affectionDelta || 0)}${peerRelationship.receipt?.kernel?.state === "SEALED" ? ` · 同袍封印 ${escapeHtml(String(peerRelationship.receipt.digest || "").slice(0, 10))}` : ""}`
         : peerRelationship?.state === "PENDING" ? " · 同袍关系回写中" : "";
+      const organizationTrace = task.organizationTrace;
+      const traceTypeLabels = {
+        TASK_CREATED: "立案", CONFIRMATION_OPENED: "待确认", CONFIRMATION_RESOLVED: "已确认",
+        EXECUTION_STARTED: "开工", SUBMISSION_RECORDED: "复命", SUPPLEMENT_REQUESTED: "待补件",
+        EXECUTION_EXCEPTION_REPORTED: "行事受阻", EXECUTION_EXCEPTION_RESOLVED: "已复行",
+        TASK_FINALIZED: "定案", SETTLEMENT_RECORDED: "结算", TASK_INVALIDATED: "作废"
+      };
+      const confirmationTypeLabels = {
+        TASK_ASSIGNMENT_CONFIRMATION: "指派待确认", TASK_MEMBER_RESPONSE: "受命待回覆",
+        TASK_MODIFICATION_CONFIRMATION: "变更待确认", TASK_FINAL_MEMBER_CHOICE: "人选待定",
+        TASK_RESULT_CONFIRMATION: "复命待核", TASK_SUPPLEMENT_REQUEST: "待补件",
+        TASK_MAJOR_EXECUTION_EXCEPTION: "处置待定", TASK_NO_ELIGIBLE_RESPONSIBLE_MEMBER: "无人可派"
+      };
+      const activeConfirmation = organizationTrace?.activeConfirmations?.[0];
+      const traceSteps = organizationTrace?.timeline?.slice(-3).map((entry) => traceTypeLabels[entry.type] || entry.stateCode || entry.type).join("→");
+      const traceLabel = organizationTrace?.state === "SEALED"
+        ? ` · ${activeConfirmation ? escapeHtml(confirmationTypeLabels[activeConfirmation.type] || activeConfirmation.type) : "军务行迹"}${organizationTrace.executionException?.state === "OPEN" ? ` · ${escapeHtml(organizationTrace.executionException.summary || organizationTrace.executionException.code)}` : ""}${traceSteps ? ` · ${escapeHtml(traceSteps)}` : ""} · 行迹封印 ${escapeHtml(String(organizationTrace.digest || "").slice(0, 10))}`
+        : organizationTrace?.state === "UNAVAILABLE" ? " · 军务行迹待恢复" : "";
       const evidenceFit = Number(task.mandate?.evidenceFit?.factor);
       const evidenceLabel = Number.isFinite(evidenceFit) ? ` · 史证${evidenceFit}/9` : "";
       const masteryLabel = task.mandate?.knowledgeMastery ? ` · 史识+${Number(task.mandate.knowledgeMastery.bonus)}` : "";
-      return `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}${collaboration ? ` + ${escapeHtml(displayName(collaboration.supportHeroId))}` : ""}</strong><small>${statusLabel}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}${evidenceLabel}${masteryLabel}${task.mandate?.assignment?.name ? ` · 当值${escapeHtml(task.mandate.assignment.name)}` : ""}${Number.isFinite(Number(task.mandate?.assignment?.readiness?.score)) ? ` · 胜任${Number(task.mandate.assignment.readiness.score)}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${collaborationLabel}${peerRelationshipLabel}${emergencyLabel}${settlementLabel}${outcomeLabel}${supportOutcomeLabel}${relationshipLabel}</small></li>`;
+      return `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}${collaboration ? ` + ${escapeHtml(displayName(collaboration.supportHeroId))}` : ""}</strong><small>${statusLabel}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}${evidenceLabel}${masteryLabel}${task.mandate?.assignment?.name ? ` · 当值${escapeHtml(task.mandate.assignment.name)}` : ""}${Number.isFinite(Number(task.mandate?.assignment?.readiness?.score)) ? ` · 胜任${Number(task.mandate.assignment.readiness.score)}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${collaborationLabel}${peerRelationshipLabel}${emergencyLabel}${traceLabel}${settlementLabel}${outcomeLabel}${supportOutcomeLabel}${relationshipLabel}</small></li>`;
     }).join("") || '<li class="empty">尚无差事</li>';
     $("#officeMandateLedger").innerHTML = [...org.mandates].reverse().slice(0, 6).map((mandate) => {
       const label = mandate.state === "RESOLVED" ? (mandate.outcome?.won ? "战后告捷" : "战后失利") : mandate.state === "FULFILLED" ? "复命待战" : mandate.state === "PARTIAL" ? "部分复命" : mandate.state === "FAILED" ? "执行未成" : mandate.state === "ORDERED" ? "属官执行中" : "已签发";
@@ -2572,7 +2590,7 @@
   function organizationTaskSnapshot(response) {
     const snapshot = response.result?.data || response.result || null;
     return snapshot && typeof snapshot === "object"
-      ? { ...snapshot, assigneeHeroId: response.assigneeHeroId || null, settlement: response.settlement || null, closureReceipt: response.closureReceipt || null, npcOutcome: response.npcOutcome || null, supportNpcOutcomes: Array.isArray(response.supportNpcOutcomes) ? response.supportNpcOutcomes : [], collaborationRelationship: response.collaborationRelationship || null, npcConsequence: response.npcConsequence || null, review: response.review || null, followUps: Array.isArray(response.followUps) ? response.followUps : [] }
+      ? { ...snapshot, assigneeHeroId: response.assigneeHeroId || null, settlement: response.settlement || null, closureReceipt: response.closureReceipt || null, npcOutcome: response.npcOutcome || null, supportNpcOutcomes: Array.isArray(response.supportNpcOutcomes) ? response.supportNpcOutcomes : [], collaborationRelationship: response.collaborationRelationship || null, organizationTrace: response.organizationTrace || null, npcConsequence: response.npcConsequence || null, review: response.review || null, followUps: Array.isArray(response.followUps) ? response.followUps : [] }
       : snapshot;
   }
 

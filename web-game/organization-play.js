@@ -599,6 +599,9 @@
       if (snapshot.collaborationRelationship && typeof snapshot.collaborationRelationship === "object") {
         task.collaborationRelationship = copy(snapshot.collaborationRelationship);
       }
+      if (snapshot.organizationTrace && typeof snapshot.organizationTrace === "object") {
+        task.organizationTrace = copy(snapshot.organizationTrace);
+      }
       if (task.status !== "active") continue;
       if (task.derivation && snapshot.assigneeHeroId && String(snapshot.assigneeHeroId) !== String(task.assigneeId)) {
         const authoritativeMember = state.members.find((entry) => String(entry.id) === String(snapshot.assigneeHeroId));
