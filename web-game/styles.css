@@ -3890,6 +3890,11 @@ button:focus-visible {
   .office-task-ledger li > small { grid-column: 1 / -1; }
 }
 .office-npc-state { margin: 10px 0 14px; padding: 10px 12px; border: 1px solid rgba(174, 146, 69, .28); background: rgba(8, 14, 10, .72); }
+.office-scheduled-duty { display: grid; grid-template-columns: minmax(0, 1fr) 40px; gap: 12px; align-items: center; margin: 10px 0 14px; padding: 10px 12px; border: 1px solid rgba(174, 146, 69, .28); background: rgba(8, 14, 10, .72); }
+.office-scheduled-duty > div { display: grid; gap: 3px; min-width: 0; }
+.office-scheduled-duty span { color: #b99344; font-size: 10px; }
+.office-scheduled-duty strong, .office-scheduled-duty small { min-width: 0; overflow-wrap: anywhere; }
+.office-scheduled-duty small { color: #74776f; }
 .office-npc-state > strong { display: block; margin-bottom: 8px; }
 .office-npc-state dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
 .office-npc-state dl div { min-width: 0; }

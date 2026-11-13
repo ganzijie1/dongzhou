@@ -5738,6 +5738,226 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=502,
             ) from error
 
+    @router.get("/organization/scheduled-duties")
+    async def read_organization_scheduled_duties(
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        del player_id
+        if not settings.orgflow_org_id or not settings.orgflow_hero_members:
+            raise ApiError(
+                "organization_not_configured",
+                "Organization integration is not configured.",
+                status_code=503,
+            )
+        manager_hero_id = "DuBo"
+        worker_hero_id = "ZuoRu"
+        if manager_hero_id not in settings.orgflow_hero_members or worker_hero_id not in settings.orgflow_hero_members:
+            raise ApiError(
+                "organization_scheduled_duty_not_configured",
+                "The monthly court duty is not configured.",
+                status_code=503,
+            )
+        manager_npc_id = str(
+            stable_npc_id(settings.ainpc_game_server_id, manager_hero_id)
+        )
+        worker_npc_id = str(
+            stable_npc_id(settings.ainpc_game_server_id, worker_hero_id)
+        )
+        legacy_rule_id = uuid5(
+            NAMESPACE_URL,
+            f"dongzhou:{settings.game_server_id}:scheduled-duty:monthly-patrol:v1",
+        )
+        rule_id = uuid5(
+            NAMESPACE_URL,
+            f"dongzhou:{settings.game_server_id}:scheduled-duty:monthly-intelligence:v2",
+        )
+        clock = await store.read_game_clock()
+        duty_date = str(clock["virtualTime"]).split(" ", 1)[0]
+
+        def covers_dispatch_time(event: object) -> bool:
+            if not isinstance(event, dict):
+                return False
+            slot = str(event.get("time_slot") or "")
+            try:
+                start, end = slot.split("-", 1)
+                start_hour, start_minute = (int(part) for part in start.split(":"))
+                end_hour, end_minute = (int(part) for part in end.split(":"))
+            except (TypeError, ValueError):
+                return False
+            minute = 14 * 60
+            return start_hour * 60 + start_minute <= minute < end_hour * 60 + end_minute
+
+        async def ensure_duty_slot(hero_id: str, npc_id: str) -> None:
+            schedule = await upstreams.npc_schedule(int(npc_id))
+            data = schedule.get("data") if isinstance(schedule, dict) else None
+            days = data.get("schedules") if isinstance(data, dict) else None
+            day = next(
+                (
+                    candidate
+                    for candidate in (days if isinstance(days, list) else [])
+                    if isinstance(candidate, dict)
+                    and str(candidate.get("date")) == duty_date
+                ),
+                None,
+            )
+            if day is None:
+                await upstreams.generate_npc_schedule(int(npc_id), False)
+                schedule = await upstreams.npc_schedule(int(npc_id))
+                data = schedule.get("data") if isinstance(schedule, dict) else None
+                days = data.get("schedules") if isinstance(data, dict) else None
+                day = next(
+                    (
+                        candidate
+                        for candidate in (days if isinstance(days, list) else [])
+                        if isinstance(candidate, dict)
+                        and str(candidate.get("date")) == duty_date
+                    ),
+                    None,
+                )
+            events = day.get("events") if isinstance(day, dict) else None
+            if not isinstance(events, list):
+                raise ValueError("scheduled duty date is absent from the NPC plan")
+            if any(covers_dispatch_time(event) for event in events):
+                return
+            todo_id = str(
+                uuid5(
+                    NAMESPACE_URL,
+                    f"dongzhou-scheduled-duty-slot:{rule_id}:{hero_id}:{duty_date}",
+                )
+            )
+            await upstreams.append_npc_schedule_duty(
+                int(npc_id),
+                date=duty_date,
+                activity={
+                    "todo_id": todo_id,
+                    "transaction_id": 9100105,
+                    "transaction_name": "月例察访签押" if hero_id == manager_hero_id else "月例察访",
+                    "description": "核定本月朝廷察访范围并提交查验结果。",
+                    "duration_minutes": 45,
+                    "importance": 88,
+                    "strict_time_limit": True,
+                    "time_slot": "14:00-14:45",
+                    "transaction_type": "谍报",
+                    "priority": "high",
+                    "location": "东周官署",
+                    "extra_data": {
+                        "source": "dongzhou_scheduled_duty",
+                        "hero_id": hero_id,
+                        "rule_id": str(rule_id),
+                    },
+                },
+            )
+
+        await ensure_duty_slot(manager_hero_id, manager_npc_id)
+        await ensure_duty_slot(worker_hero_id, worker_npc_id)
+        query = {
+            "schema_version": "organization.scheduled-task-rule-query.v1",
+            "request_id": f"dongzhou-scheduled-query-{settings.game_server_id}",
+            "game_server_id": settings.game_server_id,
+            "manager_npc_id": manager_npc_id,
+            "worker_npc_id": worker_npc_id,
+            "limit": 100,
+        }
+        try:
+            response = await upstreams.query_organization_scheduled_task_rules(query)
+            data = response.get("data") if isinstance(response, dict) else None
+            rules = data.get("rules") if isinstance(data, dict) else None
+            if not isinstance(rules, list):
+                raise ValueError("scheduled rule query response must contain rules")
+            legacy_item = next(
+                (
+                    candidate
+                    for candidate in rules
+                    if isinstance(candidate, dict)
+                    and str(candidate.get("rule", {}).get("rule_id"))
+                    == str(legacy_rule_id)
+                ),
+                None,
+            )
+            legacy_rule = (
+                legacy_item.get("rule") if isinstance(legacy_item, dict) else None
+            )
+            if isinstance(legacy_rule, dict) and legacy_rule.get("state") == "ACTIVE":
+                await upstreams.update_organization_scheduled_task_rule_status(
+                    {
+                        "schema_version": "organization.scheduled-task-rule-status.v1",
+                        "request_id": (
+                            f"dongzhou-scheduled-disable-v1-{settings.game_server_id}"
+                        ),
+                        "idempotency_key": (
+                            f"dongzhou-scheduled-duty-{settings.game_server_id}-disable-v1"
+                        ),
+                        "rule_id": str(legacy_rule_id),
+                        "expected_version": int(legacy_rule.get("version", 1)),
+                        "status": "DISABLED",
+                    }
+                )
+            item = next(
+                (
+                    candidate
+                    for candidate in rules
+                    if isinstance(candidate, dict)
+                    and str(candidate.get("rule", {}).get("rule_id")) == str(rule_id)
+                ),
+                None,
+            )
+            if item is None:
+                created = await upstreams.register_organization_scheduled_task_rule(
+                    {
+                        "schema_version": "organization.scheduled-task-rule.v1",
+                        "request_id": f"dongzhou-scheduled-create-v2-{settings.game_server_id}",
+                        "idempotency_key": f"dongzhou-scheduled-duty-{settings.game_server_id}-v2",
+                        "rule_id": str(rule_id),
+                        "game_server_id": settings.game_server_id,
+                        "manager_npc_id": manager_npc_id,
+                        "worker_npc_id": worker_npc_id,
+                        "task_code": "dongzhou.intelligence",
+                        "frequency": "DAILY",
+                        "trigger_minute": 780,
+                        "parameters": {
+                            "assignee_hero_id": worker_hero_id,
+                            "assignee_name": "左儒",
+                            "resource_units": 6,
+                            "stage_id": "court-monthly-intelligence",
+                            "stage_title": "东周朝廷月例察访",
+                        },
+                    }
+                )
+                created_data = created.get("data") if isinstance(created, dict) else None
+                rule = created_data.get("rule") if isinstance(created_data, dict) else None
+                if not isinstance(rule, dict):
+                    raise ValueError("scheduled rule create response must contain a rule")
+                item = {"rule": rule, "latest_trigger": None}
+            rule = item.get("rule")
+            if not isinstance(rule, dict):
+                raise ValueError("scheduled rule item is invalid")
+            latest = item.get("latest_trigger")
+            return {
+                "ruleId": str(rule_id),
+                "state": str(rule.get("state") or "UNKNOWN"),
+                "frequency": str(rule.get("frequency") or "DAILY"),
+                "triggerMinute": int(rule.get("trigger_minute", 780)),
+                "managerHeroId": manager_hero_id,
+                "workerHeroId": worker_hero_id,
+                "taskCode": str(
+                    rule.get("template", {}).get("task_code")
+                    if isinstance(rule.get("template"), dict)
+                    else "dongzhou.intelligence"
+                ),
+                "latestTrigger": latest if isinstance(latest, dict) else None,
+            }
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "organization_scheduled_duties_unavailable",
+                "Organization scheduled duties are temporarily unavailable.",
+                status_code=503,
+            ) from error
+        except (AttributeError, TypeError, ValueError) as error:
+            raise ApiError(
+                "organization_scheduled_duties_contract_invalid",
+                "Organization scheduled duty response is invalid.",
+                status_code=502,
+            ) from error
     @router.post("/organization/logistics-briefings/{hero_id}")
     async def create_logistics_briefing(
         hero_id: str,

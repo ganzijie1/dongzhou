@@ -1306,6 +1306,72 @@ class Upstreams:
             content=b"",
         )
 
+    async def query_organization_scheduled_task_rules(
+        self, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        path = "/internal/v1/organization-administration/scheduled-task-rules/query"
+        body = json.dumps(
+            payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+        ).encode()
+        return await self._json(
+            "POST",
+            f"{self.settings.orgflow_url}{path}",
+            headers=sign_orgflow_request(
+                method="POST",
+                path_and_query=path,
+                audience=self.settings.orgflow_audience,
+                key_id=self.settings.orgflow_hmac_key_id,
+                secret=self.settings.orgflow_hmac_secret,
+                body=body,
+            ),
+            content=body,
+        )
+
+    async def register_organization_scheduled_task_rule(
+        self, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        path = "/internal/v1/organization-administration/scheduled-task-rules"
+        body = json.dumps(
+            payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+        ).encode()
+        return await self._json(
+            "POST",
+            f"{self.settings.orgflow_url}{path}",
+            headers=sign_orgflow_request(
+                method="POST",
+                path_and_query=path,
+                audience=self.settings.orgflow_audience,
+                key_id=self.settings.orgflow_hmac_key_id,
+                secret=self.settings.orgflow_hmac_secret,
+                body=body,
+            ),
+            content=body,
+        )
+
+    async def update_organization_scheduled_task_rule_status(
+        self, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        path = (
+            "/internal/v1/organization-administration/"
+            "scheduled-task-rule-statuses"
+        )
+        body = json.dumps(
+            payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+        ).encode()
+        return await self._json(
+            "POST",
+            f"{self.settings.orgflow_url}{path}",
+            headers=sign_orgflow_request(
+                method="POST",
+                path_and_query=path,
+                audience=self.settings.orgflow_audience,
+                key_id=self.settings.orgflow_hmac_key_id,
+                secret=self.settings.orgflow_hmac_secret,
+                body=body,
+            ),
+            content=body,
+        )
+
     async def adjust_organization_inventory(
         self,
         organization_id: str,

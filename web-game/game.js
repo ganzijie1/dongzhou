@@ -98,6 +98,7 @@
   let officeMemoryView = [];
   let officeSelectedMemory = null;
   let officeInventoryView = null;
+  let officeScheduledDutyView = null;
   let officeInventoryRequisitionBusy = false;
   let officeLogisticsBriefingBusy = false;
   let officeMembershipLeavePending = false;
@@ -981,6 +982,7 @@
       setCampaignSettings(false);
       renderOrganizationPanel();
       refreshOfficeTaskSnapshots().catch((error) => showNotice(`官署簿书暂不可达：${error.message}`));
+      refreshOfficeScheduledDuty().catch(() => {});
       syncOfficeNpcs(profile.organization.members).then(() => warmCurrentOfficeNpcSchedules()).catch(() => {});
       refreshOfficeNpcState();
       refreshOfficeAdviser();
@@ -1278,6 +1280,51 @@
     }
   }
 
+  function renderOfficeScheduledDuty() {
+    const status = $("#officeScheduledDutyStatus");
+    const refresh = $("#officeScheduledDutyRefresh");
+    if (!status || !refresh) return;
+    refresh.disabled = Boolean(officeScheduledDutyView?.loading);
+    if (integration.isOffline()) {
+      status.textContent = "离线演练不派发自动差事";
+      return;
+    }
+    if (officeScheduledDutyView?.loading) {
+      status.textContent = "正在调阅定时簿……";
+      return;
+    }
+    if (officeScheduledDutyView?.error) {
+      status.textContent = "定时簿暂不可达，可稍后重试";
+      return;
+    }
+    const latest = officeScheduledDutyView?.latestTrigger;
+    if (!officeScheduledDutyView) {
+      status.textContent = "等待调阅定时簿";
+    } else if (!latest) {
+      status.textContent = "规则已立，推进月令后由杜伯自动派左儒察访";
+    } else {
+      const state = ({ DISPATCHED: "已派发", CLAIMED: "派发中", WAITING_ACTIVE: "候值", SKIPPED: "略过", FAILED: "派发未成", CANCELLED: "已撤销" })[latest.state] || latest.state || "待核";
+      const task = latest.task_id ? ` · 差事 ${String(latest.task_id).slice(0, 8)}` : "";
+      status.textContent = `本期${state}${task}`;
+    }
+  }
+
+  async function refreshOfficeScheduledDuty() {
+    if (integration.isOffline()) {
+      officeScheduledDutyView = { error: true };
+      renderOfficeScheduledDuty();
+      return;
+    }
+    officeScheduledDutyView = { ...(officeScheduledDutyView || {}), loading: true };
+    renderOfficeScheduledDuty();
+    try {
+      officeScheduledDutyView = await integration.organizationScheduledDuties();
+    } catch (_) {
+      officeScheduledDutyView = { error: true };
+    }
+    renderOfficeScheduledDuty();
+  }
+
   async function requestOfficeLogisticsBriefing() {
     if (officeLogisticsBriefingBusy || integration.isOffline()) return;
     const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
@@ -1316,6 +1363,7 @@
     $("#officeActiveTasks").textContent = org.tasks.filter((task) => task.status === "active").length;
     $("#officeSupportCount").textContent = org.pendingSupport.length;
     renderOfficeInventory();
+    renderOfficeScheduledDuty();
     const serviceLabels = [["nexusKernel", "内核"], ["orgFlow", "朝议"], ["aiNpc", "属官"], ["knowledge", "史官"]];
     $("#officeServiceStatus").innerHTML = serviceLabels.map(([key, label]) => `<span class="${org.backend[key] ? "online" : "local"}"><i></i>${label}${org.backend[key] ? "通达" : "本地推演"}</span>`).join("");
     $("#officeModeText").textContent = integration.isOffline() ? "当前为显式离线演算，属官与官署结果仅保存在本机。" : org.backend.mode === "connected" ? "朝议、属官与史官已互通；远端未确认的结果不会在本地结算。" : "官署服务暂不可达，联网玩法已暂停。";
@@ -2573,6 +2621,7 @@
           return;
         }
         await commitOrganizationState(organization.reconcileRemoteTasks(profile.organization, snapshots));
+        setTimeout(() => refreshOfficeScheduledDuty().catch(() => {}), 6000);
         const latest = profile.organization.history.at(-1);
         showNotice(latest?.text || "月令已进，官署差事仍在办理");
       } catch (error) {
@@ -4531,6 +4580,7 @@
     $("#officeSupportMemberSelect").addEventListener("change", renderOfficeMandateApproval);
     $("#officeCorrespondenceRefresh").addEventListener("click", () => refreshOfficeCorrespondence());
     $("#officeInventoryRefresh").addEventListener("click", refreshOfficeInventory);
+    $("#officeScheduledDutyRefresh").addEventListener("click", refreshOfficeScheduledDuty);
     $("#officeLogisticsBriefing").addEventListener("click", requestOfficeLogisticsBriefing);
     $("#officeInventoryRequisition").addEventListener("click", requisitionOfficeInventory);
     $("#officeInventoryApprove").addEventListener("click", () => decideOfficeInventoryRequisition("APPROVE"));
