@@ -13,7 +13,8 @@ try {
 const BASE = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
 const JOURNAL = process.env.DONGZHOU_SETTLEMENT_JOURNAL
   || path.resolve(__dirname, "../.agentwork/root/kernel-mandate-complete44-evidence/acceptance-private.json");
-const SCREENSHOT = path.resolve(__dirname, "../output/integration-validation/live-authoritative-settlement.png");
+const RESULT = path.resolve(__dirname, "../output/integration-validation/live-relationship-growth-complete107.json");
+const SCREENSHOT = path.resolve(__dirname, "../output/integration-validation/live-relationship-growth-complete107.png");
 const PROFILE = "dongzhou-h5-profile-v2";
 const executablePath = [
   "C:/Program Files/Google/Chrome/Application/chrome.exe",
@@ -63,8 +64,13 @@ assert(journal.installation && taskId, "completed live task journal is incomplet
     assert(["PENDING", "DELIVERED"].includes(actual.npcOutcome?.state));
     assert.equal(actual.npcOutcome?.event?.state, "DELIVERED");
     assert.equal(actual.npcOutcome?.memory?.state, "DELIVERED");
+    assert.equal(actual.npcConsequence?.state, "DELIVERED");
+    assert.equal(actual.npcConsequence?.affectionType, "appreciation");
+    assert.equal(actual.npcConsequence?.affectionDelta, 6);
+    assert.equal(actual.npcConsequence?.receipt?.kernel?.module, "dongzhou_npc_review_relationship");
+    assert.equal(actual.npcConsequence?.receipt?.kernel?.state, "SEALED");
 
-    const applied = await page.evaluate(({ id, snapshot, settlement, closureReceipt, review }) => {
+    const applied = await page.evaluate(({ id, snapshot, settlement, closureReceipt, review, npcConsequence }) => {
       const play = window.DongzhouOrganizationPlay;
       let state = play.defaultState();
       state.members = [{ id: "ZuoRu", name: "左儒", office: "司徒", loyalty: 68, fatigue: 0, merit: 0 }];
@@ -72,7 +78,7 @@ assert(journal.installation && taskId, "completed live task journal is incomplet
         type: "supply", assigneeId: "ZuoRu", stageId: "01", stageTitle: "东郊索命"
       });
       created.task.remoteResult = id;
-      const input = { ...snapshot, settlement, closureReceipt, review };
+      const input = { ...snapshot, settlement, closureReceipt, review, npcConsequence };
       const first = play.reconcileRemoteTasks(created.state, [input], { advanceMonth: false });
       const replayed = play.reconcileRemoteTasks(first, [input], { advanceMonth: false });
       const profile = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2"));
@@ -84,9 +90,10 @@ assert(journal.installation && taskId, "completed live task journal is incomplet
         firstMerit: first.members[0].merit,
         replayMerit: replayed.members[0].merit,
         settlementIds: replayed.settlementIds,
-        closureDigest: replayed.tasks[0].closureReceipt.digest
+        closureDigest: replayed.tasks[0].closureReceipt.digest,
+        relationshipDigest: replayed.tasks[0].npcConsequence.receipt.digest
       };
-    }, { id: taskId, snapshot, settlement: actual.settlement, closureReceipt: actual.closureReceipt, review: actual.review });
+    }, { id: taskId, snapshot, settlement: actual.settlement, closureReceipt: actual.closureReceipt, review: actual.review, npcConsequence: actual.npcConsequence });
 
     assert.equal(applied.firstContribution, actual.review.growthReward.contributionPoints);
     assert.equal(applied.replayContribution, applied.firstContribution);
@@ -94,6 +101,7 @@ assert(journal.installation && taskId, "completed live task journal is incomplet
     assert.equal(applied.replayMerit, applied.firstMerit);
     assert.deepEqual(applied.settlementIds, [actual.settlement.settlementId]);
     assert.match(applied.closureDigest, /^[0-9a-f]{64}$/);
+    assert.equal(applied.relationshipDigest, actual.npcConsequence.receipt.digest);
 
     await page.goto(BASE + "?offline=1", { waitUntil: "domcontentloaded" });
     await page.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
@@ -105,11 +113,15 @@ assert(journal.installation && taskId, "completed live task journal is incomplet
     assert(memberText.includes(`功绩 +${actual.settlement.memberDelta}`));
     assert(ledgerText.includes("军府+100"));
     assert(ledgerText.includes("印记"));
+    assert(ledgerText.includes("感激+6"));
+    assert(ledgerText.includes("关系封印"));
     fs.mkdirSync(path.dirname(SCREENSHOT), { recursive: true });
+    await page.locator("#officeTaskLedger").scrollIntoViewIfNeeded();
     await page.screenshot({ path: SCREENSHOT, fullPage: false });
     assert.deepEqual(errors, []);
-    console.log(JSON.stringify({
+    const result = {
       result: "PASS",
+      mode: "real-services-browser-no-interception",
       taskId,
       settlementId: actual.settlement.settlementId,
       organizationContribution: applied.replayContribution,
@@ -120,9 +132,14 @@ assert(journal.installation && taskId, "completed live task journal is incomplet
       npcOutcome: actual.npcOutcome.state,
       npcEvent: actual.npcOutcome.event.state,
       npcMemory: actual.npcOutcome.memory.state,
+      npcRelationship: actual.npcConsequence.affectionType,
+      npcRelationshipValue: actual.npcConsequence.affectionDelta,
+      relationshipDigest: actual.npcConsequence.receipt.digest,
       exactlyOnce: true,
       screenshot: SCREENSHOT
-    }));
+    };
+    fs.writeFileSync(RESULT, JSON.stringify(result, null, 2) + "\n");
+    console.log(JSON.stringify(result));
   } finally {
     await browser.close();
   }

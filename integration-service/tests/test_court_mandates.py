@@ -1411,10 +1411,15 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
                 json={"action_id": review["action"]["actionId"], "decision": "ACCEPT"},
             )
             assert accepted.status_code == 200
-            assert accepted.json()["state"] == "ACCEPTED"
-            assert accepted.json()["review"]["decision"] == "ACCEPT"
-            assert len(accepted.json()["review"]["digest"]) == 64
-            assert accepted.json()["inventoryReward"] == {
+            accepted_body = accepted.json()
+            assert accepted_body["state"] == "ACCEPTED"
+            assert accepted_body["review"]["decision"] == "ACCEPT"
+            assert len(accepted_body["review"]["digest"]) == 64
+            assert accepted_body["npcConsequence"]["decision"] == "ACCEPT"
+            assert accepted_body["npcConsequence"]["tone"] == "positive"
+            assert accepted_body["npcConsequence"]["affectionType"] == "appreciation"
+            assert accepted_body["npcConsequence"]["affectionDelta"] == 6.0
+            assert accepted_body["inventoryReward"] == {
                 "entryId": "00000000-0000-4000-8000-000000000088",
                 "resourceKey": "task.execution",
                 "delta": 100,
@@ -1431,7 +1436,7 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
                 },
                 f"dongzhou-settlement-reward:{settlement_id}",
             )]
-            growth_reward = accepted.json()["growthReward"]
+            growth_reward = accepted_body["growthReward"]
             assert growth_reward["settlementId"] == settlement_id
             assert growth_reward["taskId"] == task_id
             assert growth_reward["amount"] == 100
@@ -1449,6 +1454,31 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
                 },
                 f"dongzhou-settlement-growth:{settlement_id}",
             )]
+            deadline = time.monotonic() + 3
+            accepted_current = None
+            while time.monotonic() < deadline:
+                accepted_current = client.get(
+                    f"/api/dongzhou/v1/organization/tasks/{task_id}"
+                ).json()
+                if accepted_current.get("npcConsequence", {}).get("state") == "DELIVERED":
+                    break
+                time.sleep(0.05)
+            relationship = accepted_current["npcConsequence"]
+            assert relationship["state"] == "DELIVERED"
+            assert relationship["receipt"]["state"] == "SEALED"
+            assert relationship["receipt"]["kernel"]["module"] == "dongzhou_npc_review_relationship"
+            assert relationship["receipt"]["decision"] == "ACCEPT"
+            assert relationship["receipt"]["reviewDigest"] == accepted_body["review"]["digest"]
+            accepted_affection_events = [
+                payload
+                for kind, payload in upstreams.events
+                if kind == "NPC_AFFECTION_SETTLEMENT"
+                and str(payload.get("settlement_effect_id") or "").startswith("dongzhou-accept-affection:")
+            ]
+            assert len(accepted_affection_events) == 1
+            assert accepted_affection_events[0]["target_id"] == accepted_body["npcConsequence"]["targetId"]
+            assert accepted_affection_events[0]["changes"][0]["affection_type"] == "appreciation"
+            assert accepted_affection_events[0]["changes"][0]["delta"] == 6.0
             connection = sqlite3.connect(database)
             try:
                 row = connection.execute(
@@ -1489,6 +1519,12 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert replay.json()["replayed"] is True
             assert len(upstreams.inventory_adjustments) == 1
             assert len(upstreams.growth_credits) == 1
+            assert len([
+                payload
+                for kind, payload in upstreams.events
+                if kind == "NPC_AFFECTION_SETTLEMENT"
+                and str(payload.get("settlement_effect_id") or "").startswith("dongzhou-accept-affection:")
+            ]) == 1
             conflict = client.post(
                 f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
                 json={"action_id": review["action"]["actionId"], "decision": "CENSURE"},
@@ -1612,6 +1648,9 @@ def test_censured_settlement_records_ainpc_affection_and_memory_once() -> None:
             assert current["npcConsequence"]["event"]["state"] == "DELIVERED"
             assert current["npcConsequence"]["memory"]["state"] == "DELIVERED"
             assert current["npcConsequence"]["affection"]["state"] == "DELIVERED"
+            assert current["npcConsequence"]["receipt"]["state"] == "SEALED"
+            assert current["npcConsequence"]["receipt"]["kernel"]["module"] == "dongzhou_npc_review_relationship"
+            assert current["npcConsequence"]["receipt"]["decision"] == "CENSURE"
             consequence_events = [
                 (kind, payload)
                 for kind, payload in upstreams.events

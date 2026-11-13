@@ -17,6 +17,7 @@ from pydantic import ValidationError
 
 from dongzhou_integration.app import (
     BattleReceiptConflict,
+    NpcReviewRelationshipModule,
     NpcSettlementModule,
     RuntimeModule,
     _battle_support_attestations,
@@ -712,6 +713,56 @@ class OrganizationOutcomeTests(unittest.TestCase):
         pending = {**outcome, "motivation": {"state": "PENDING", "attempts": 1}}
         with self.assertRaisesRegex(ValueError, "motivation"):
             NpcSettlementModule.seal_delivery(task_id, "SUCCESS", pending)
+
+    def test_nexus_seals_review_relationship_after_all_three_deliveries(self) -> None:
+        task_id = "00000000-0000-4000-8000-000000000077"
+        delivered = {"state": "DELIVERED", "attempts": 1, "lastError": None}
+        relationship = {
+            "npcId": "91001001",
+            "targetId": "91001999",
+            "affectionType": "appreciation",
+            "affectionDelta": 6.0,
+            "event": delivered,
+            "memory": delivered,
+            "affection": delivered,
+        }
+        event_ids = {
+            "event": "settlement-accept:event",
+            "memory": "settlement-accept:memory",
+            "affection": "settlement-accept:affection",
+        }
+        first = NpcReviewRelationshipModule.seal_delivery(
+            task_id,
+            "ACCEPT",
+            "a" * 64,
+            relationship,
+            event_ids=event_ids,
+        )
+        replay = NpcReviewRelationshipModule.seal_delivery(
+            task_id,
+            "ACCEPT",
+            "a" * 64,
+            relationship,
+            event_ids=event_ids,
+        )
+        self.assertEqual(first, replay)
+        self.assertEqual(first["state"], "SEALED")
+        self.assertEqual(first["kernel"]["module"], "dongzhou_npc_review_relationship")
+        self.assertEqual(first["affectionType"], "appreciation")
+        self.assertEqual(first["affectionDelta"], 6.0)
+        self.assertEqual(len(first["digest"]), 64)
+        pending = {
+            **relationship,
+            "affection": {"state": "PENDING", "attempts": 1},
+        }
+        with self.assertRaisesRegex(ValueError, "affection"):
+            NpcReviewRelationshipModule.seal_delivery(
+                task_id,
+                "ACCEPT",
+                "a" * 64,
+                pending,
+                event_ids=event_ids,
+            )
 
 
 class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):

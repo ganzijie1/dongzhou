@@ -403,6 +403,7 @@ saveJournal();
 
     let settlementReviewed = false;
     let inventoryReward = null;
+    let relationshipGrowth = null;
     const recoveredSettlement = recoveringExisting && await page.evaluate(({ key, taskId, mandateId }) => {
       const organization = JSON.parse(localStorage.getItem(key)).organization;
       return organization.pendingSupport.some((entry) => entry.mandate?.id === mandateId)
@@ -527,6 +528,9 @@ saveJournal();
       assert.equal(replay.growthReward?.kernel?.state, "SEALED", "settlement growth receipt is not Nexus-sealed");
       assert.match(replay.growthReward?.digest || "", /^[0-9a-f]{64}$/);
       assert(Number(replay.growthReward?.accountVersion) > 0, "settlement growth receipt has no account version");
+      assert.equal(replay.npcConsequence?.decision, "ACCEPT", "accepted review did not queue NPC relationship growth");
+      assert.equal(replay.npcConsequence?.affectionType, "appreciation");
+      assert.equal(replay.npcConsequence?.affectionDelta, 6);
       assert(
         replay.growthReward.contributionPoints === reviewContext.growthContribution + reviewContext.rewardUnits
           || replay.growthReward.contributionPoints === reviewContext.growthContribution,
@@ -578,11 +582,48 @@ saveJournal();
         accountVersion: replay.growthReward.accountVersion,
         digest: replay.growthReward.digest
       };
+      relationshipGrowth = await page.evaluate(async ({ taskId, heroId, targetId }) => {
+        const deadline = Date.now() + 180000;
+        let task;
+        let matched;
+        while (Date.now() < deadline) {
+          task = await window.DongzhouIntegration.organizationTask(taskId);
+          const state = await window.DongzhouIntegration.npcState(heroId);
+          const affection = state?.affection?.data ?? state?.affection ?? {};
+          const items = [
+            ...(Array.isArray(affection) ? affection : []),
+            ...(Array.isArray(affection.items) ? affection.items : []),
+          ];
+          matched = items.find((item) =>
+            String(item?.target_id ?? item?.targetId ?? "") === String(targetId)
+            && String(item?.dominant_affection_type ?? item?.dominantAffectionType ?? "") === "appreciation"
+          );
+          if (task?.npcConsequence?.state === "DELIVERED" && task?.npcConsequence?.receipt?.kernel?.state === "SEALED" && matched) {
+            return { task: task.npcConsequence, matched };
+          }
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+        }
+        return { task: task?.npcConsequence || null, matched: matched || null };
+      }, {
+        taskId: reviewContext.taskId,
+        heroId: replay.npcConsequence.heroId,
+        targetId: replay.npcConsequence.targetId,
+      });
+      assert.equal(relationshipGrowth.task?.event?.state, "DELIVERED");
+      assert.equal(relationshipGrowth.task?.memory?.state, "DELIVERED");
+      assert.equal(relationshipGrowth.task?.affection?.state, "DELIVERED");
+      assert.equal(relationshipGrowth.task?.receipt?.kernel?.module, "dongzhou_npc_review_relationship");
+      assert.match(relationshipGrowth.task?.receipt?.digest || "", /^[0-9a-f]{64}$/);
+      assert(relationshipGrowth.matched, "authoritative AINPC appreciation was not persisted before timeout");
+      assert.equal(Number(relationshipGrowth.matched.max_value ?? relationshipGrowth.matched.maxValue), 6);
       settlementReviewed = true;
       journal.stage = "support-reconcile";
       saveJournal();
       await page.click("#officeAdvanceButton");
       await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, undefined, { timeout: 240000 });
+      const relationshipLedger = await page.locator("#officeTaskLedger").innerText();
+      assert.match(relationshipLedger, /感激\+6/);
+      assert.match(relationshipLedger, /关系封印/);
     }
     }
     await page.waitForFunction(({ key, taskId }) => {
@@ -693,6 +734,11 @@ saveJournal();
       } : null,
       settlementReviewed,
       inventoryReward,
+      relationshipGrowth: relationshipGrowth ? {
+        affectionType: relationshipGrowth.task.affectionType,
+        affectionValue: Number(relationshipGrowth.matched.max_value ?? relationshipGrowth.matched.maxValue),
+        receiptDigest: relationshipGrowth.task.receipt.digest,
+      } : null,
       rewardProvisions: 24,
       cloudReloadVerified: true,
       battleLogVerified: battle.enteredBattle,

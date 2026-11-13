@@ -533,6 +533,77 @@ class NpcSettlementModule(Module):
         }
 
 
+class NpcReviewRelationshipModule(Module):
+    name = "dongzhou_npc_review_relationship"
+    version = "1.0.0"
+    dependencies = (RuntimeModule.name,)
+
+    @staticmethod
+    def seal_delivery(
+        task_id: str,
+        decision: str,
+        review_digest: str,
+        relationship: dict[str, Any],
+        *,
+        event_ids: dict[str, str],
+    ) -> dict[str, Any]:
+        UUID(task_id)
+        if decision not in {"ACCEPT", "CENSURE"}:
+            raise ValueError("invalid organization review decision")
+        if not re.fullmatch(r"[0-9a-f]{64}", review_digest):
+            raise ValueError("invalid organization review digest")
+        if set(event_ids) != {"event", "memory", "affection"} or not all(
+            isinstance(event_id, str) and event_id for event_id in event_ids.values()
+        ):
+            raise ValueError("invalid NPC review relationship event identities")
+        deliveries: dict[str, dict[str, Any]] = {}
+        for name, event_id in event_ids.items():
+            status = relationship.get(name)
+            if not isinstance(status, dict) or status.get("state") != "DELIVERED":
+                raise ValueError(f"NPC review relationship part is not delivered: {name}")
+            attempts = status.get("attempts")
+            if isinstance(attempts, bool) or not isinstance(attempts, int) or attempts < 1:
+                raise ValueError(f"NPC review relationship attempts are invalid: {name}")
+            deliveries[name] = {"eventId": event_id, "attempts": attempts}
+        affection_type = str(relationship.get("affectionType") or "")
+        affection_delta = relationship.get("affectionDelta")
+        if affection_type not in {"appreciation", "respect", "annoyance"}:
+            raise ValueError("invalid NPC review affection type")
+        if isinstance(affection_delta, bool) or not isinstance(affection_delta, (int, float)):
+            raise ValueError("invalid NPC review affection delta")
+        trace = {
+            "taskId": task_id,
+            "decision": decision,
+            "reviewDigest": review_digest,
+            "npcId": str(relationship.get("npcId") or ""),
+            "targetId": str(relationship.get("targetId") or ""),
+            "affectionType": affection_type,
+            "affectionDelta": float(affection_delta),
+            "deliveries": deliveries,
+        }
+        if not trace["npcId"] or not trace["targetId"]:
+            raise ValueError("invalid NPC review relationship identities")
+        digest = hashlib.sha256(
+            json.dumps(
+                trace,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                sort_keys=True,
+            ).encode("utf-8")
+        ).hexdigest()
+        return {
+            "state": "SEALED",
+            "digest": digest,
+            **trace,
+            "kernel": {
+                "module": NpcReviewRelationshipModule.name,
+                "moduleVersion": NpcReviewRelationshipModule.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "SEALED",
+            },
+        }
+
+
 class LogisticsBriefingModule(Module):
     name = "dongzhou_logistics_briefing"
     version = "1.0.0"
@@ -1529,6 +1600,112 @@ def _npc_motivation_from_event(event: dict[str, Any]) -> dict[str, Any]:
 
 def _npc_outcome_motivation(outcome: dict[str, Any], final_result: str) -> dict[str, Any]:
     return _npc_motivation_from_event(_npc_outcome_event(outcome, final_result))
+
+
+def _npc_acceptance_events(
+    settings: Settings,
+    player_id: UUID,
+    *,
+    task_id: str,
+    hero_id: str,
+    npc_name: str,
+    game_time: str,
+    review_digest: str,
+    final_result: str,
+) -> list[dict[str, Any]]:
+    result = final_result.upper()
+    relationship = {
+        "SUCCESS": (
+            "appreciation",
+            6.0,
+            60,
+            f"{npc_name}复命获主君嘉纳，功绩与战前助益照录。",
+        ),
+        "PARTIAL": (
+            "appreciation",
+            3.0,
+            45,
+            f"{npc_name}复命获主君接纳，已成之功据实照录。",
+        ),
+        "FAILURE": (
+            "respect",
+            1.0,
+            30,
+            f"{npc_name}虽未成事，但如实复命获主君接纳。",
+        ),
+    }.get(result)
+    if relationship is None:
+        raise ValueError("invalid organization task result")
+    affection_type, affection_delta, severity, description = relationship
+    npc_id = str(stable_npc_id(settings.ainpc_game_server_id, hero_id))
+    player_target_id = str(stable_player_id(settings.ainpc_game_server_id, player_id))
+    identity_digest = hashlib.sha256(
+        f"{player_id}\n{task_id}\n{hero_id}\n{review_digest}\naccept-{result.casefold()}-v1".encode("utf-8")
+    ).hexdigest()
+    source_record_id = "dongzhou-accept:" + identity_digest[:48]
+    event_id = int.from_bytes(bytes.fromhex(identity_digest[:8]), "big") & 0x7FFFFFFF or 1
+    outcome = {
+        "game_server_id": str(settings.ainpc_game_server_id),
+        "npc_id": npc_id,
+        "npc_name": npc_name,
+        "game_time": game_time,
+        "events": [{
+            "source_record_id": source_record_id,
+            "timestamp": game_time,
+            "event_id": event_id,
+            "event_name": "官署复命获接纳",
+            "event_type": "organization_review_accept",
+            "params": description,
+            "metadata": {
+                "standard_event_authority": "game_server",
+                "event_instance_id": source_record_id,
+                "actor_id": player_target_id,
+                "target_id": npc_id,
+                "behavior_parent": "support",
+                "behavior_sub": "official_recognition",
+                "motivation": "organization_recognition",
+                "result": f"accepted_{result.casefold()}",
+                "result_confirmed": True,
+                "severity": severity,
+                "confidence": 1.0,
+                "source_module": "dongzhou_settlement_review",
+                "task_id": task_id,
+                "hero_id": hero_id,
+                "review_digest": review_digest,
+                "description": description,
+            },
+            "interrupt_trace_id": source_record_id,
+        }],
+    }
+    memory = {
+        "game_server_id": str(settings.ainpc_game_server_id),
+        "npc_id": npc_id,
+        "npc_name": npc_name,
+        "game_time": game_time,
+        "messages": [{
+            "timestamp": game_time,
+            "content": description,
+            "message_id": "dongzhou-accept-memory:" + identity_digest[:48],
+        }],
+    }
+    affection = {
+        "settlement_effect_id": "dongzhou-accept-affection:" + identity_digest,
+        "game_server_id": str(settings.ainpc_game_server_id),
+        "npc_id": npc_id,
+        "target_id": player_target_id,
+        "changes": [{
+            "affection_type": affection_type,
+            "delta": affection_delta,
+            "reason": f"confirmed official acceptance of {result.casefold()} organization report",
+            "confidence": 1.0,
+        }],
+        "related_event_id": str(event_id),
+    }
+    return [
+        {"eventId": "settlement-accept:" + identity_digest, "kind": "NPC_TASK_OUTCOME", "payload": outcome},
+        {"eventId": "settlement-accept-memory:" + identity_digest, "kind": "NPC_TASK_MEMORY", "payload": memory},
+        {"eventId": "settlement-accept-affection:" + identity_digest, "kind": "NPC_AFFECTION_SETTLEMENT", "payload": affection},
+    ]
 
 
 def _npc_censure_events(
@@ -2608,6 +2785,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     knowledge_tournament = KnowledgeTournamentModule()
     campaign_routes = CampaignRouteModule()
     npc_settlement = NpcSettlementModule()
+    npc_review_relationship = NpcReviewRelationshipModule()
     logistics_briefing = LogisticsBriefingModule()
     kernel = Kernel(
         [
@@ -2616,7 +2794,8 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             LoadedModule(module=knowledge_tournament, required=True, original_index=2),
             LoadedModule(module=campaign_routes, required=True, original_index=3),
             LoadedModule(module=npc_settlement, required=True, original_index=4),
-            LoadedModule(module=logistics_briefing, required=True, original_index=5),
+            LoadedModule(module=npc_review_relationship, required=True, original_index=5),
+            LoadedModule(module=logistics_briefing, required=True, original_index=6),
         ]
     )
     router = APIRouter(prefix="/api/dongzhou/v1")
@@ -6360,13 +6539,30 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 consequence_affection,
                 require_affection=True,
             )
-            task_state["npcConsequence"] = {
+            relationship = {
                 **consequence,
                 "state": consequence_status["state"] if consequence_status else "MISSING",
                 "event": consequence_event,
                 "memory": consequence_memory,
                 "affection": consequence_affection,
             }
+            review_trace = review.get("review") if isinstance(review, dict) else None
+            if (
+                relationship["state"] == "DELIVERED"
+                and isinstance(review_trace, dict)
+            ):
+                relationship["receipt"] = npc_review_relationship.seal_delivery(
+                    task_key,
+                    str(review_trace.get("decision") or ""),
+                    str(review_trace.get("digest") or ""),
+                    relationship,
+                    event_ids={
+                        "event": str(consequence.get("eventId") or ""),
+                        "memory": str(consequence.get("memoryEventId") or ""),
+                        "affection": str(consequence.get("affectionEventId") or ""),
+                    },
+                )
+            task_state["npcConsequence"] = relationship
         if settlement is not None and closure is not None:
             await store.cache_external_request_result(
                 player_id,
@@ -6554,27 +6750,32 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     status_code=502,
                 ) from error
             result["growthReward"] = growth_reward
+        original = await store.read_external_request(player_id, task_key, "organization_task")
+        parameters = original.get("parameters") if isinstance(original, dict) else None
+        parameters = parameters if isinstance(parameters, dict) else {}
+        hero_id = str(task_state.get("assigneeHeroId") or "")
+        npc_name = str(parameters.get("assignee_name") or hero_id or "属官")[:100]
+        game_time = str((await store.read_game_clock())["virtualTime"])
+        if not hero_id:
+            error_code = (
+                "organization_censure_contract_invalid"
+                if request.decision == "CENSURE"
+                else "organization_acceptance_contract_invalid"
+            )
+            await store.finish_request(
+                player_id,
+                review_id,
+                "RETRYABLE",
+                {"state": "RETRYABLE"},
+                error=error_code,
+                external_id=task_key,
+            )
+            raise ApiError(
+                error_code,
+                "The organization report cannot identify its reviewed officer.",
+                status_code=502,
+            )
         if request.decision == "CENSURE":
-            original = await store.read_external_request(player_id, task_key, "organization_task")
-            parameters = original.get("parameters") if isinstance(original, dict) else None
-            parameters = parameters if isinstance(parameters, dict) else {}
-            hero_id = str(task_state.get("assigneeHeroId") or "")
-            npc_name = str(parameters.get("assignee_name") or hero_id or "属官")[:100]
-            game_time = str((await store.read_game_clock())["virtualTime"])
-            if not hero_id:
-                await store.finish_request(
-                    player_id,
-                    review_id,
-                    "RETRYABLE",
-                    {"state": "RETRYABLE"},
-                    error="organization_censure_contract_invalid",
-                    external_id=task_key,
-                )
-                raise ApiError(
-                    "organization_censure_contract_invalid",
-                    "The organization report cannot identify its censured officer.",
-                    status_code=502,
-                )
             consequence_events = _npc_censure_events(
                 settings,
                 player_id,
@@ -6584,18 +6785,33 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 game_time=game_time,
                 review_digest=str(result["review"]["digest"]),
             )
-            result["npcConsequence"] = {
-                "state": "QUEUED",
-                "heroId": hero_id,
-                "npcId": str(stable_npc_id(settings.ainpc_game_server_id, hero_id)),
-                "targetId": str(stable_player_id(settings.ainpc_game_server_id, player_id)),
-                "eventId": consequence_events[0]["eventId"],
-                "memoryEventId": consequence_events[1]["eventId"],
-                "affectionEventId": consequence_events[2]["eventId"],
-                "affectionType": "annoyance",
-                "affectionDelta": 5.8,
-                "severity": 58,
-            }
+        else:
+            consequence_events = _npc_acceptance_events(
+                settings,
+                player_id,
+                task_id=task_key,
+                hero_id=hero_id,
+                npc_name=npc_name,
+                game_time=game_time,
+                review_digest=str(result["review"]["digest"]),
+                final_result=str(settlement["result"]),
+            )
+        affection_change = consequence_events[2]["payload"]["changes"][0]
+        event_metadata = consequence_events[0]["payload"]["events"][0]["metadata"]
+        result["npcConsequence"] = {
+            "state": "QUEUED",
+            "decision": request.decision,
+            "tone": "negative" if request.decision == "CENSURE" else "positive",
+            "heroId": hero_id,
+            "npcId": str(stable_npc_id(settings.ainpc_game_server_id, hero_id)),
+            "targetId": str(stable_player_id(settings.ainpc_game_server_id, player_id)),
+            "eventId": consequence_events[0]["eventId"],
+            "memoryEventId": consequence_events[1]["eventId"],
+            "affectionEventId": consequence_events[2]["eventId"],
+            "affectionType": str(affection_change["affection_type"]),
+            "affectionDelta": float(affection_change["delta"]),
+            "severity": int(event_metadata["severity"]),
+        }
         await store.finish_request(
             player_id,
             review_id,

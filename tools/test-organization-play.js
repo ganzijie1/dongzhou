@@ -198,6 +198,13 @@ const acceptedReview = {
     kernel: { state: "SEALED" }
   }
 };
+const acceptedRelationship = {
+  state: "DELIVERED",
+  decision: "ACCEPT",
+  affectionType: "appreciation",
+  affectionDelta: 6,
+  receipt: { state: "SEALED", digest: "e".repeat(64), kernel: { state: "SEALED" } }
+};
 assert.throws(
   () => play.recordTaskReview(state, {
     taskId: remote.task.remoteResult,
@@ -210,11 +217,14 @@ assert.strictEqual(play.remoteTaskReadyForAdvance({ final_result: "SUCCESS", set
 state = play.reconcileRemoteTasks(state, [{
   task_id: remote.task.remoteResult, state: "SUCCEEDED", final_result: "SUCCESS", version: "3",
   settlement: authoritativeSettlement, closureReceipt, review: acceptedReview,
-  npcOutcome: { state: "DELIVERED", attempts: 1 }
+  npcOutcome: { state: "DELIVERED", attempts: 1 },
+  npcConsequence: acceptedRelationship
 }]);
 assert.strictEqual(state.tasks.at(-1).status, "success");
 assert.strictEqual(state.tasks.at(-1).remoteVersion, "3");
 assert.strictEqual(state.tasks.at(-1).npcOutcome.state, "DELIVERED");
+assert.strictEqual(state.tasks.at(-1).npcConsequence.affectionType, "appreciation");
+assert.strictEqual(state.tasks.at(-1).npcConsequence.receipt.digest, "e".repeat(64));
 assert.ok(state.pendingSupport.some((entry) => entry.id === remote.task.id));
 assert.strictEqual(state.contribution, contributionBefore + 100);
 assert.strictEqual(state.members.find((member) => member.id === "ZuoRu").merit, meritBefore + 75);
@@ -316,9 +326,11 @@ const censuredClosure = { state: "SEALED", digest: "d".repeat(64), settlement: c
 const censuredPending = { state: "REQUIRES_ACTION", review: { settlementId: censuredSettlement.settlementId, closureDigest: censuredClosure.digest, finalResult: "SUCCESS", state: "PENDING" }, action: { actionId: "00000000-0000-4000-8000-000000000032" } };
 let censuredState = play.reconcileRemoteTasks(censuredOrder.state, [{ task_id: censuredOrder.task.remoteResult, state: "SUCCEEDED", final_result: "SUCCESS", version: "3", settlement: censuredSettlement, closureReceipt: censuredClosure, review: censuredPending }], { advanceMonth: false });
 const censuredReview = { state: "CENSURED", review: { ...censuredPending.review, state: "CENSURED", decision: "CENSURE" } };
+const censuredRelationship = { state: "DELIVERED", decision: "CENSURE", affectionType: "annoyance", affectionDelta: 5.8, receipt: { state: "SEALED", digest: "f".repeat(64), kernel: { state: "SEALED" } } };
 censuredState = play.recordTaskReview(censuredState, { taskId: censuredOrder.task.remoteResult, review: censuredReview }).state;
-censuredState = play.reconcileRemoteTasks(censuredState, [{ task_id: censuredOrder.task.remoteResult, state: "SUCCEEDED", final_result: "SUCCESS", version: "3", settlement: censuredSettlement, closureReceipt: censuredClosure, review: censuredReview }]);
+censuredState = play.reconcileRemoteTasks(censuredState, [{ task_id: censuredOrder.task.remoteResult, state: "SUCCEEDED", final_result: "SUCCESS", version: "3", settlement: censuredSettlement, closureReceipt: censuredClosure, review: censuredReview, npcConsequence: censuredRelationship }]);
 assert.strictEqual(censuredState.tasks.at(-1).status, "censured");
+assert.strictEqual(censuredState.tasks.at(-1).npcConsequence.affectionType, "annoyance");
 assert.strictEqual(censuredState.contribution, contributionBeforeCensure + 30, "Authoritative org contribution must still be booked after censure");
 assert.strictEqual(censuredState.pendingSupport.length, supportBeforeCensure, "Censured reports must not grant battle support");
 assert.match(censuredState.history.at(-1).text, /被申斥/);

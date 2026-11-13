@@ -593,6 +593,9 @@
       if (Array.isArray(snapshot.supportNpcOutcomes)) {
         task.supportNpcOutcomes = snapshot.supportNpcOutcomes.map(copy);
       }
+      if (snapshot.npcConsequence && typeof snapshot.npcConsequence === "object") {
+        task.npcConsequence = copy(snapshot.npcConsequence);
+      }
       if (task.status !== "active") continue;
       if (task.derivation && snapshot.assigneeHeroId && String(snapshot.assigneeHeroId) !== String(task.assigneeId)) {
         const authoritativeMember = state.members.find((entry) => String(entry.id) === String(snapshot.assigneeHeroId));
