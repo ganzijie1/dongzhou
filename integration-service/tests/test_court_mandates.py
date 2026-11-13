@@ -673,6 +673,12 @@ def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -
             assert waiting.json()["organizationTopology"]["kernel"]["module"] == (
                 "dongzhou_organization_task_topology"
             )
+            assert waiting.json()["organizationTopology"]["supportTrace"]["state"] == (
+                "SEALED"
+            )
+            assert waiting.json()["organizationTopology"]["supportTrace"]["taskId"] == (
+                topology["supportTaskId"]
+            )
             upstreams.task_snapshots[topology["supportTaskId"]].update(
                 state="SUCCEEDED", final_result="SUCCESS", version="3"
             )

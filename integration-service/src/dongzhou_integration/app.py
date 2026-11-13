@@ -7478,6 +7478,33 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                         "Organization service returned an invalid joint-operation topology.",
                         status_code=502,
                     )
+                try:
+                    support_trace_response = await upstreams.get_virtual_task_trace(
+                        settings.orgflow_org_id,
+                        support_task_id,
+                    )
+                except UpstreamUnavailable:
+                    support_trace: dict[str, Any] = {"state": "UNAVAILABLE"}
+                else:
+                    support_trace_snapshot = (
+                        support_trace_response.get("data", support_trace_response)
+                        if isinstance(support_trace_response, dict)
+                        else None
+                    )
+                    try:
+                        support_trace = organization_task_trace.seal(
+                            _organization_task_trace_view(
+                                support_trace_snapshot,
+                                task_id=support_task_id,
+                                organization_id=settings.orgflow_org_id,
+                            )
+                        )
+                    except (TypeError, ValueError) as error:
+                        raise ApiError(
+                            "organization_composite_topology_invalid",
+                            "Organization support-task trace is invalid.",
+                            status_code=502,
+                        ) from error
                 if (
                     str(support_snapshot.get("task_id") or "") != support_task_id
                     or str(parent_snapshot.get("task_id") or "") != parent_task_id
@@ -7530,6 +7557,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 }
                 if isinstance(support_snapshot, dict)
                 else None,
+                "supportTrace": support_trace if support_snapshot is not None else None,
             }
             try:
                 composite_topology = organization_task_topology.seal(

@@ -1449,10 +1449,17 @@
         ? ` · ${activeConfirmation ? escapeHtml(confirmationTypeLabels[activeConfirmation.type] || activeConfirmation.type) : "军务行迹"}${organizationTrace.executionException?.state === "OPEN" ? ` · ${escapeHtml(organizationTrace.executionException.summary || organizationTrace.executionException.code)}` : ""}${traceSteps ? ` · ${escapeHtml(traceSteps)}` : ""} · 行迹封印 ${escapeHtml(String(organizationTrace.digest || "").slice(0, 10))}`
         : organizationTrace?.state === "UNAVAILABLE" ? " · 军务行迹待恢复" : "";
       const topology = task.organizationTopology;
+      const supportTrace = topology?.supportTrace;
+      const supportConfirmation = supportTrace?.activeConfirmations?.[0];
+      const supportAction = supportConfirmation
+        ? (confirmationTypeLabels[supportConfirmation.type] || supportConfirmation.type)
+        : supportTrace?.executionException?.state === "OPEN"
+          ? (supportTrace.executionException.summary || supportTrace.executionException.code)
+          : "";
       const topologyLabel = topology?.state === "SEALED"
         ? ` · 联合作战已合卷 · ${escapeHtml(String(topology.primary?.finalResult || ""))}/${escapeHtml(String(topology.support?.finalResult || ""))}`
         : topology?.state === "ACTIVE"
-          ? ` · 联合作战进行中 · 主办${escapeHtml(String(topology.primary?.state || ""))} · 协办${escapeHtml(String(topology.support?.state || ""))}`
+          ? ` · 联合作战进行中 · 主办${escapeHtml(String(topology.primary?.state || ""))} · 协办${escapeHtml(String(topology.support?.state || ""))}${supportAction ? ` · ${escapeHtml(supportAction)}` : ""}`
           : topology?.state === "UNAVAILABLE" ? " · 联合作战状态待恢复" : "";
       const evidenceFit = Number(task.mandate?.evidenceFit?.factor);
       const evidenceLabel = Number.isFinite(evidenceFit) ? ` · 史证${evidenceFit}/9` : "";
