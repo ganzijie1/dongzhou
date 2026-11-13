@@ -983,6 +983,7 @@
       refreshOfficeTaskSnapshots().catch((error) => showNotice(`官署簿书暂不可达：${error.message}`));
       syncOfficeNpcs(profile.organization.members).then(() => warmCurrentOfficeNpcSchedules()).catch(() => {});
       refreshOfficeNpcState();
+      refreshOfficeAdviser();
       requestAnimationFrame(() => $("#campaignOfficeCloseButton").focus());
     } else {
       officeNpcRefreshSerial += 1;
@@ -990,6 +991,8 @@
       officeNpcRefreshTimer = null;
       clearTimeout(officeQuizTimer);
       officeQuizTimer = null;
+      clearTimeout(officeAdviserTimer);
+      officeAdviserTimer = null;
     }
   }
 
@@ -2591,6 +2594,84 @@
   let officeCodexRequestSerial = 0;
   let officeCodexView = [];
   let officeCodexSelectedId = "";
+  let officeAdviserTimer = null;
+  let officeAdviserInFlight = false;
+
+  function renderOfficeAdviser() {
+    const journal = integration.pendingAdviserQuestion();
+    const result = journal?.result;
+    const answer = $("#officeAdviserAnswer");
+    const feedback = $("#officeAdviserFeedback");
+    if (!answer || !feedback) return;
+    const processing = result?.state === "PROCESSING" || result?.state === "PENDING";
+    $("#officeAdviserAsk").disabled = officeAdviserInFlight || processing || integration.isOffline();
+    answer.classList.toggle("answered", result?.state === "ANSWERED");
+    if (integration.isOffline()) answer.textContent = "离线演算不启用军师问策。";
+    else if (result?.state === "ANSWERED") answer.textContent = result.answer || "军师未留下答复。";
+    else if (processing) answer.textContent = result.progress || "军师正在查阅军情……";
+    else if (result?.state === "RETRYABLE") answer.textContent = "军师暂未应答，可再次问策。";
+    else answer.textContent = "";
+    const recorded = journal?.feedback?.result?.state === "RECORDED";
+    feedback.hidden = result?.state !== "ANSWERED" || recorded;
+    feedback.querySelectorAll("button").forEach((button) => { button.disabled = officeAdviserInFlight; });
+    if (recorded) answer.textContent += `\n已记下评价：${journal.feedback.rating === "accurate" ? "准确" : "不准确"}`;
+  }
+
+  async function refreshOfficeAdviser() {
+    clearTimeout(officeAdviserTimer);
+    officeAdviserTimer = null;
+    renderOfficeAdviser();
+    const journal = integration.pendingAdviserQuestion();
+    if (integration.isOffline() || journal?.result?.state !== "PROCESSING") return;
+    try {
+      await integration.adviserQuestion(journal.input.client_request_id);
+    } catch (_) {
+      // A transient read failure should not discard an accepted asynchronous question.
+    }
+    renderOfficeAdviser();
+    const latest = integration.pendingAdviserQuestion();
+    if (!$("#campaignOfficeBackdrop").hidden && latest?.result?.state === "PROCESSING") {
+      officeAdviserTimer = setTimeout(refreshOfficeAdviser, 1500);
+    }
+  }
+
+  async function submitOfficeAdviser(event) {
+    event.preventDefault();
+    const question = $("#officeAdviserQuestion").value.trim();
+    const stage = officeStage();
+    if (!question || !stage || officeAdviserInFlight) return;
+    officeAdviserInFlight = true;
+    renderOfficeAdviser();
+    try {
+      await integration.askAdviser({
+        question,
+        stage_id: String(stage.id),
+        stage_title: String(stage.battleTitle || stage.name || stage.id),
+        stage_index: Number(stage.index || 1)
+      });
+      $("#officeAdviserQuestion").value = "";
+    } catch (error) {
+      showNotice(`军师问策未受理：${error.message}`);
+    } finally {
+      officeAdviserInFlight = false;
+      refreshOfficeAdviser();
+    }
+  }
+
+  async function submitOfficeAdviserFeedback(rating) {
+    const journal = integration.pendingAdviserQuestion();
+    if (!journal?.input?.client_request_id || journal?.result?.state !== "ANSWERED" || officeAdviserInFlight) return;
+    officeAdviserInFlight = true;
+    renderOfficeAdviser();
+    try {
+      await integration.feedbackAdviser(journal.input.client_request_id, rating);
+    } catch (error) {
+      showNotice(`评价未记下：${error.message}`);
+    } finally {
+      officeAdviserInFlight = false;
+      renderOfficeAdviser();
+    }
+  }
 
   function knowledgeRetrievalText(entry) {
     const labels = { graph: "图谱牵连", entity: "实体命中", bm25: "原文命中", vector: "文义相近", category: "同类史料", schedule_tag: "时序相合" };
@@ -4479,6 +4560,11 @@
     $("#officeSettlementCensureButton").addEventListener("click", () => resolveOfficeSettlement("CENSURE"));
     $("#officeAdvanceButton").addEventListener("click", advanceOfficeMonth);
     $("#officeKnowledgeForm").addEventListener("submit", searchOfficeKnowledge);
+    $("#officeAdviserForm").addEventListener("submit", submitOfficeAdviser);
+    $("#officeAdviserFeedback").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-adviser-rating]");
+      if (button) submitOfficeAdviserFeedback(button.dataset.adviserRating);
+    });
     $("#officeStageKnowledgeButton").addEventListener("click", loadOfficeStageKnowledge);
     $("#officeQuizStart").addEventListener("click", startOfficeQuiz);
     $("#officeQuizOptions").addEventListener("click", (event) => {

@@ -311,6 +311,12 @@
           <section class="office-knowledge" aria-labelledby="officeKnowledgeTitle">
             <div class="office-section-heading"><div><span>史官参议</span><h3 id="officeKnowledgeTitle">查阅本战旧闻</h3></div><button id="officeCodexToggle" class="large-button" type="button" aria-expanded="false" aria-controls="officeCodexPanel">已得简册</button></div>
             <form id="officeKnowledgeForm" class="office-knowledge-form"><input id="officeKnowledgeQuery" type="search" autocomplete="off" placeholder="输入人物、战役或军令"><button class="large-button" type="submit">查阅</button></form>
+            <div class="office-adviser" aria-labelledby="officeAdviserTitle">
+              <div class="office-adviser-heading"><div><span>小精灵问答</span><strong id="officeAdviserTitle">军师问策</strong></div></div>
+              <form id="officeAdviserForm" class="office-adviser-form"><input id="officeAdviserQuestion" maxlength="500" required aria-label="向军师提问" placeholder="问人物、任务、物品或系统"><button id="officeAdviserAsk" class="large-button primary" type="submit">问策</button></form>
+              <div id="officeAdviserAnswer" class="office-adviser-answer" aria-live="polite"></div>
+              <div id="officeAdviserFeedback" class="office-adviser-feedback" hidden><button class="large-button" type="button" data-adviser-rating="accurate">准确</button><button class="large-button" type="button" data-adviser-rating="inaccurate">不准确</button></div>
+            </div>
             <div class="office-quiz" aria-labelledby="officeQuizTitle">
               <div class="office-quiz-heading"><div><span>知识大赛</span><strong id="officeQuizTitle">史官问对</strong><small id="officeQuizScore">累计 0 分</small></div><button id="officeQuizStart" class="large-button" type="button">开题</button></div>
               <p id="officeQuizStatus" aria-live="polite">本回史录可出一题，限时三十息。</p>

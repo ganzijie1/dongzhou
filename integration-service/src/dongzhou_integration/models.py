@@ -140,6 +140,32 @@ class AinpcPrivateMessageDeliveryQuery(StrictModel):
     attempt: int = Field(ge=1)
 
 
+class AinpcLittleElfMessageRequest(StrictModel):
+    game_server_id: int | str
+    player_id: int | str
+    answer: str = Field(min_length=1, max_length=20_000)
+    task_id: str = Field(min_length=1, max_length=256)
+    chat_id: str = Field(min_length=1, max_length=256)
+    intent_type: str = Field(default="unknown", max_length=64)
+    guide_session_id: str = Field(default="", max_length=256)
+    guide_started: bool = False
+    reason: str = Field(default="", max_length=1000)
+
+
+class AdviserQuestionRequest(StrictModel):
+    client_request_id: UUID = Field(strict=False)
+    question: str = Field(min_length=1, max_length=500)
+    stage_id: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_.:-]+$")
+    stage_title: str = Field(min_length=1, max_length=200)
+    stage_index: int = Field(ge=1, le=172)
+
+
+class AdviserFeedbackRequest(StrictModel):
+    action_id: UUID = Field(strict=False)
+    rating: Literal["accurate", "inaccurate"]
+    reason: str = Field(default="", max_length=500)
+
+
 class KnowledgeSearchRequest(StrictModel):
     client_request_id: UUID | None = Field(default=None, strict=False)
     stage_id: str | None = Field(default=None, min_length=1, max_length=64)

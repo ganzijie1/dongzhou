@@ -1049,6 +1049,27 @@ class Store:
             "externalId": row["external_id"],
         }
 
+    async def find_request(self, request_id: UUID, kind: str) -> dict[str, Any] | None:
+        async with self._lock:
+            with self._connection() as db:
+                rows = db.execute(
+                    "SELECT player_id,state,request_payload,response_payload,external_id "
+                    "FROM requests WHERE request_id=? AND kind=? LIMIT 2",
+                    (str(request_id), kind),
+                ).fetchall()
+        if not rows:
+            return None
+        if len(rows) != 1:
+            raise VersionConflict("request_identity_ambiguous")
+        row = rows[0]
+        return {
+            "playerId": row["player_id"],
+            "state": row["state"],
+            "request": json.loads(row["request_payload"]),
+            "response": json.loads(row["response_payload"]) if row["response_payload"] else None,
+            "externalId": row["external_id"],
+        }
+
     async def read_external_request(
         self, player_id: UUID, external_id: str, kind: str
     ) -> dict[str, Any] | None:

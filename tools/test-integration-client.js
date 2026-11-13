@@ -40,6 +40,9 @@ let inventoryRequisitionInput = null;
 let campaignRouteAttempts = 0;
 let knowledgeSearchInput = null;
 let knowledgeCodexRequests = 0;
+let adviserQuestionInput = null;
+let adviserStatusReads = 0;
+let adviserFeedbackInput = null;
 let organizationResponse = null;
 let npcInteractionPreferenceInput = null;
 let storedProfile = {};
@@ -102,6 +105,18 @@ global.fetch = async (url, options = {}) => {
   else if (url.endsWith("/knowledge/codex")) {
     knowledgeCodexRequests += 1;
     response = { results: [{ id: "dongzhou_stage_001", stageId: "01", name: "第一回·东郊索命" }] };
+  }
+  else if (url.endsWith("/adviser/questions") && options.method === "POST") {
+    adviserQuestionInput = body;
+    response = { state: "PROCESSING", questionId: body.client_request_id, taskId: body.client_request_id };
+  }
+  else if (/\/adviser\/questions\/[^/]+\/feedback$/.test(url)) {
+    adviserFeedbackInput = body;
+    response = { state: "RECORDED", questionId: decodeURIComponent(url.split("/").at(-2)), rating: body.rating };
+  }
+  else if (/\/adviser\/questions\/[^/]+$/.test(url)) {
+    adviserStatusReads += 1;
+    response = { state: "ANSWERED", questionId: decodeURIComponent(url.split("/").at(-1)), answer: "adviser answer", intentType: "role" };
   }
   else if (url.endsWith("/organization/roster")) {
     response = { organization: { name: "东周军府", growthContribution: 245 }, members: [{ heroId: "DuBo", lifetimeEarned: 80 }] };
@@ -241,6 +256,17 @@ const client = require("../web-game/integration-client.js");
   const codex = await client.knowledgeCodex();
   assert.strictEqual(codex.results[0].name, "第一回·东郊索命");
   assert.strictEqual(knowledgeCodexRequests, 1);
+  const adviser = await client.askAdviser({ question: "key people?", stage_id: "01", stage_title: "stage one", stage_index: 1 });
+  assert.strictEqual(adviser.state, "PROCESSING");
+  assert.match(adviserQuestionInput.client_request_id, /^[0-9a-f-]{36}$/);
+  assert.strictEqual(client.pendingAdviserQuestion().input.stage_id, "01");
+  const adviserAnswer = await client.adviserQuestion(adviser.questionId);
+  assert.strictEqual(adviserAnswer.answer, "adviser answer");
+  assert.strictEqual(adviserStatusReads, 1);
+  const adviserFeedback = await client.feedbackAdviser(adviser.questionId, "accurate");
+  assert.strictEqual(adviserFeedback.state, "RECORDED");
+  assert.strictEqual(adviserFeedbackInput.rating, "accurate");
+  assert.match(adviserFeedbackInput.action_id, /^[0-9a-f-]{36}$/);
   const roster = await client.organizationRoster();
   assert.strictEqual(roster.organization.growthContribution, 245);
   assert.strictEqual(roster.members[0].heroId, "DuBo");

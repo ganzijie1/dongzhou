@@ -26,7 +26,7 @@ from .assignments import (
     select_assignment,
     task_duty,
 )
-from .models import AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
+from .models import AdviserFeedbackRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
@@ -3153,6 +3153,89 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "state": state,
         }
 
+    @game_clock_router.post("/api/v2/NDLLMSendLittleElfMessage")
+    async def receive_adviser_answer(
+        request: AinpcLittleElfMessageRequest,
+    ) -> dict[str, Any]:
+        if str(request.game_server_id) != settings.game_server_id:
+            return {"success": False, "errorCode": "game_server_not_found"}
+        try:
+            request_id = UUID(request.task_id)
+        except ValueError as error:
+            raise ApiError(
+                "adviser_task_invalid", "Adviser task ID is invalid.", status_code=422
+            ) from error
+        record = await store.find_request(request_id, "adviser_question")
+        if record is None:
+            return {"success": False, "errorCode": "adviser_question_not_found"}
+        owner_id = UUID(record["playerId"])
+        if str(request.player_id) != str(
+            stable_player_id(settings.ainpc_game_server_id, owner_id)
+        ):
+            return {"success": False, "errorCode": "adviser_player_mismatch"}
+        talk_id = int.from_bytes(
+            hashlib.sha256(f"dongzhou-adviser:{request_id}".encode()).digest()[:7],
+            "big",
+        )
+        if request.intent_type == "loading":
+            progress = {
+                "state": "PROCESSING",
+                "questionId": str(request_id),
+                "taskId": request.task_id,
+                "progress": request.answer.strip(),
+            }
+            if record["state"] != "ANSWERED":
+                await store.transition_request(
+                    owner_id,
+                    request_id,
+                    "adviser_question",
+                    record["state"],
+                    "PROCESSING",
+                    progress,
+                )
+            return {
+                "success": True,
+                "message": "ok",
+                "errorCode": 0,
+                "talkId": talk_id,
+            }
+        answer = {
+            "state": "ANSWERED",
+            "questionId": str(request_id),
+            "taskId": request.task_id,
+            "chatId": request.chat_id,
+            "answer": request.answer.strip(),
+            "intentType": request.intent_type or "unknown",
+            "guideIgnored": bool(request.guide_session_id or request.guide_started),
+            "reason": request.reason,
+            "talkId": talk_id,
+        }
+        if record["state"] == "ANSWERED":
+            if record["response"] != answer:
+                raise ApiError(
+                    "adviser_answer_conflict",
+                    "The adviser answer was already recorded with different content.",
+                    status_code=409,
+                )
+        else:
+            updated = await store.transition_request(
+                owner_id,
+                request_id,
+                "adviser_question",
+                record["state"],
+                "ANSWERED",
+                answer,
+            )
+            if not updated:
+                latest = await store.find_request(request_id, "adviser_question")
+                if latest is None or latest["state"] != "ANSWERED" or latest["response"] != answer:
+                    raise ApiError(
+                        "adviser_answer_conflict",
+                        "The adviser answer changed concurrently.",
+                        status_code=409,
+                    )
+        return {"success": True, "message": "ok", "errorCode": 0, "talkId": talk_id}
+
     def player(
         authorization: Annotated[str | None, Header()] = None,
         dongzhou_session: Annotated[str | None, Cookie()] = None,
@@ -3185,6 +3268,212 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     async def integration_status(player_id: UUID = Depends(player)) -> dict[str, Any]:
         services = service_statuses(await upstreams.health())
         return {"mode": "connected", "services": services, "playerId": str(player_id), "organizationId": settings.orgflow_org_id or None}
+
+    @router.post("/adviser/questions")
+    async def ask_adviser(
+        request: AdviserQuestionRequest, player_id: UUID = Depends(player)
+    ) -> dict[str, Any]:
+        body = _payload(request)
+        try:
+            created, previous = await store.begin_request(
+                player_id,
+                request.client_request_id,
+                "adviser_question",
+                body,
+                retry_states=("RETRYABLE",),
+            )
+        except VersionConflict as error:
+            raise ApiError(
+                "idempotency_conflict",
+                "The request identifier was already used with different input.",
+                status_code=409,
+            ) from error
+        if not created:
+            return {"replayed": True, **(previous or {})}
+        clock = await store.read_game_clock()
+        task_id = str(request.client_request_id)
+        try:
+            stage_entries = await upstreams.stage_knowledge(request.stage_id)
+        except (UpstreamUnavailable, OSError, ValueError) as error:
+            response = {
+                "state": "RETRYABLE",
+                "questionId": task_id,
+                "taskId": task_id,
+            }
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "RETRYABLE",
+                response,
+                str(error),
+                external_id=task_id,
+            )
+            raise ApiError(
+                "adviser_knowledge_unavailable",
+                "Published stage knowledge is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        if not stage_entries:
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "RETRYABLE",
+                {"state": "RETRYABLE", "questionId": task_id, "taskId": task_id},
+                "published_stage_knowledge_missing",
+                external_id=task_id,
+            )
+            raise ApiError(
+                "adviser_knowledge_missing",
+                "Published stage knowledge is missing.",
+                status_code=503,
+            )
+        source = stage_entries[0]
+        raw_people = source.get("people")
+        if not isinstance(raw_people, list):
+            entities = source.get("entities")
+            raw_people = entities.get("npcs", []) if isinstance(entities, dict) else []
+        people = [
+            str(item.get("name") if isinstance(item, dict) else item)
+            for item in raw_people
+            if str(item.get("name") if isinstance(item, dict) else item).strip()
+        ]
+        sources = [
+            str(item.get("work") or "").strip()
+            for item in source.get("sourceDetails", [])
+            if isinstance(item, dict) and str(item.get("work") or "").strip()
+        ]
+        payload = {
+            "taskId": task_id,
+            "gameServerId": settings.game_server_id,
+            "playerId": stable_player_id(settings.ainpc_game_server_id, player_id),
+            "chatId": f"dongzhou-adviser-{task_id}",
+            "question": request.question.strip(),
+            "currTime": clock["virtualTime"],
+            "playerState": {
+                "mapName": request.stage_title,
+                "level": request.stage_index,
+                "sceneState": "campaign",
+                "behaviorState": "planning",
+                "tasks": [{
+                    "stageId": request.stage_id,
+                    "title": request.stage_title,
+                    "knowledgeId": str(source.get("id") or ""),
+                    "summary": str(source.get("summary") or source.get("content") or "")[:2000],
+                    "objective": str(source.get("objective") or "")[:500],
+                    "people": people[:30],
+                    "sources": sources[:10],
+                    "authority": "knowledge-jizhan-published-aku",
+                }],
+            },
+        }
+        try:
+            await upstreams.ask_ai_helper(payload)
+        except UpstreamUnavailable as error:
+            response = {
+                "state": "RETRYABLE",
+                "questionId": task_id,
+                "taskId": task_id,
+            }
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "RETRYABLE",
+                response,
+                str(error),
+                external_id=task_id,
+            )
+            raise ApiError(
+                "adviser_unavailable",
+                "The adviser is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        response = {"state": "PROCESSING", "questionId": task_id, "taskId": task_id}
+        updated = await store.transition_request(
+            player_id,
+            request.client_request_id,
+            "adviser_question",
+            "PENDING",
+            "PROCESSING",
+            response,
+        )
+        if not updated:
+            current = await store.read_request(
+                player_id, request.client_request_id, "adviser_question"
+            )
+            return current["response"] if current and current["response"] else response
+        return response
+
+    @router.get("/adviser/questions/{question_id}")
+    async def read_adviser_answer(
+        question_id: UUID, player_id: UUID = Depends(player)
+    ) -> dict[str, Any]:
+        record = await store.read_request(player_id, question_id, "adviser_question")
+        if record is None:
+            raise ApiError(
+                "adviser_question_not_found", "Adviser question was not found.", status_code=404
+            )
+        return record["response"] or {
+            "state": record["state"],
+            "questionId": str(question_id),
+            "taskId": str(question_id),
+        }
+
+    @router.post("/adviser/questions/{question_id}/feedback")
+    async def submit_adviser_feedback(
+        question_id: UUID,
+        request: AdviserFeedbackRequest,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        question = await store.read_request(player_id, question_id, "adviser_question")
+        if question is None:
+            raise ApiError(
+                "adviser_question_not_found", "Adviser question was not found.", status_code=404
+            )
+        if question["state"] != "ANSWERED":
+            raise ApiError(
+                "adviser_answer_pending", "Adviser answer is not ready.", status_code=409
+            )
+        body = {"question_id": str(question_id), **_payload(request)}
+        try:
+            created, previous = await store.begin_request(
+                player_id, request.action_id, "adviser_feedback", body
+            )
+        except VersionConflict as error:
+            raise ApiError(
+                "idempotency_conflict",
+                "The feedback identifier was already used with different input.",
+                status_code=409,
+            ) from error
+        if not created:
+            return {"replayed": True, **(previous or {})}
+        payload = {
+            "gameServerId": settings.game_server_id,
+            "playerId": stable_player_id(settings.ainpc_game_server_id, player_id),
+            "taskId": str(question_id),
+            "rating": request.rating,
+            "reason": request.reason,
+        }
+        try:
+            await upstreams.submit_ai_helper_feedback(payload)
+        except UpstreamUnavailable as error:
+            response = {"state": "RETRYABLE", "questionId": str(question_id)}
+            await store.finish_request(
+                player_id, request.action_id, "RETRYABLE", response, str(error)
+            )
+            raise ApiError(
+                "adviser_feedback_unavailable",
+                "Adviser feedback is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        response = {
+            "state": "RECORDED",
+            "questionId": str(question_id),
+            "rating": request.rating,
+        }
+        await store.finish_request(
+            player_id, request.action_id, "COMPLETED", response
+        )
+        return response
 
     @router.get("/save")
     async def read_save(player_id: UUID = Depends(player)) -> dict[str, Any]:

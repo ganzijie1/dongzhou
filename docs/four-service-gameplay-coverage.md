@@ -7,7 +7,7 @@
 | 来源 | 东周服务契约 | 玩家入口 | 权威结果 | 真实证据 |
 | --- | --- | --- | --- | --- |
 | knowledge-jizhan | 全文检索、按关卡读取已发布 AKU、战役路线、玩家简册、知识竞赛 | 查阅、本回史料、选定出处、已得简册、行军路线、史官问对 | 只接收 `dongzhou_stage_*`；出处和检索回执进入军议与军令；相邻关卡路线必须同时通过战役推进、定点和 NPC 对话三种图谱查询；问对题目从当前已发布 AKU 人物录生成，30 秒内答中记 10 分；本回 10 分封存结果可作为史识凭据进入派差 | `test-live-knowledge-browser.js`、`test-live-fulltext-browser.js`、`test-live-campaign-route-acceptance.js`、`test-live-knowledge-quiz.js`、`verify-live-knowledge-campaign.py`、`campaign-routes-desktop-live.png`、`campaign-routes-mobile-live.png`、`knowledge-quiz-live.png` |
-| AINPC | NPC 注册与上线、主动来信偏好、状态/人格/动机/稳定品质/关系、双向私聊、90 天日程、关卡当值、主副手双向协同、自主念头、军议裁断、已签军令临时插程、玩家本人领差/响应/复命、复命裁决后的玩家关系、急报评估、参战结果与长期经历 | 官署状态、品质与品行、府中书问、来信开关、拟定日程、本关当值、协办副手、请其进言、军议裁断、签发后下达、我的差事、官署战报 | 稳定 NPC/玩家身份；orgFlow 终态以稳定效果号沉淀品质并影响下一次任职；主办与副手的双向好感/关系形成有正有负的协同因子；成功、部分完成或失败复命被玩家接纳后分别形成不同幅度的感激或敬重，申斥形成恼怒；已签军令分别进入两人的日程 owner 并形成独立防篡改回执；实际参战属官收到幂等的重要事件、长期系统消息和官署可读的短期记忆归档 | `verify-live-roster-npcs.py`、`test-live-office-npc-state.js`、`test-live-quality-loop.js`、`test-live-spontaneous-thought.js`、`test-live-correspondence-acceptance.js`、`test-live-interaction-preference.js`、`test-live-schedule-browser.js`、`test-live-player-career-browser.js`、`test-live-kernel-mandate-acceptance.js`、`test-live-battle-memory.js`、`test-live-battle-emotion.js` |
+| AINPC | NPC 注册与上线、主动来信偏好、状态/人格/动机/稳定品质/关系、双向私聊、AI Helper 问答与评价、90 天日程、关卡当值、主副手双向协同、自主念头、军议裁断、已签军令临时插程、玩家本人领差/响应/复命、复命裁决后的玩家关系、急报评估、参战结果与长期经历 | 官署状态、品质与品行、府中书问、军师问策、来信开关、拟定日程、本关当值、协办副手、请其进言、军议裁断、签发后下达、我的差事、官署战报 | 稳定 NPC/玩家身份；问策先绑定知识仓已发布的本关 AKU，再由 AINPC 异步生成答案并经游戏服回调按玩家隔离落账；进度提示与最终答案分离，重复回调不重复写入，三维带路不在战棋中伪执行；orgFlow 终态以稳定效果号沉淀品质并影响下一次任职；主办与副手的双向好感/关系形成有正有负的协同因子；成功、部分完成或失败复命被玩家接纳后分别形成不同幅度的感激或敬重，申斥形成恼怒；已签军令分别进入两人的日程 owner 并形成独立防篡改回执；实际参战属官收到幂等的重要事件、长期系统消息和官署可读的短期记忆归档 | `test-live-adviser.js`、`verify-live-roster-npcs.py`、`test-live-office-npc-state.js`、`test-live-quality-loop.js`、`test-live-spontaneous-thought.js`、`test-live-correspondence-acceptance.js`、`test-live-interaction-preference.js`、`test-live-schedule-browser.js`、`test-live-player-career-browser.js`、`test-live-kernel-mandate-acceptance.js`、`test-live-battle-memory.js`、`test-live-battle-emotion.js` |
 | orgFlowEngine | 权威名册、玩家入仕/辞仕、组织谱系、贡献账、公共库藏、虚拟任务、玩家本人任务申请、任务终态、人工复命审核 | 个人仕籍、我的差事、直属主管、贡献收支、库藏、军需调拨、颁差、推进月令、收纳复命/申斥 | 岗位候选、任务候选、责任人响应、直属审核、贡献、功绩和结案凭据均以 orgFlow 为准；验收奖励进入 `task.execution` 实账，玩家可按 20 点一批调拨为 12 军粮；12 席均进入可操作官员集合，负责人不可向自己派单 | `test-live-membership-browser.js`、`test-live-player-career-browser.js`、`live-player-career-browser.json`、`test-live-roster-ledger.js`、`test-live-office-roster-browser.js`、`test-live-office-inventory.js`、`test-live-inventory-requisition.js`、`test-live-settlement-acceptance.js` |
 | NexusKernel | 运行模块健康、规范军令、主副手协同证据、确认动作、恢复签发、终态复命裁决、公共资源支出裁可、行军路线、问对结果与人物四项归档封存 | 内核军令草案、签发/驳回、复命待裁、军需调拨待裁、军令簿、行军择路、史官问对、官署任务簿 | 史料、军议、AINPC 进言、书问、主副手双向关系、两人当值、急报、适岗证据、史识凭据和军需支出统一 SHA-256 封存；确认动作可恢复，重放不重复计分；事件、长期记忆、品质和动机全部送达后才生成人物归档封印 | `test-live-kernel-mandate-acceptance.js`、`test-live-spontaneous-thought.js`、`test-live-settlement-acceptance.js`、`test-live-campaign-route-acceptance.js`、`test-live-knowledge-quiz.js`、`test-live-motivation-loop.js` |
 
@@ -22,6 +22,8 @@
 同一终态还会以独立、幂等的动机结算写入 AINPC：成功、部分完成、失败分别增加 `8 / 18 / 30` 点对应差事意愿。东周事件认知携带外部权威动机策略，AINPC 仍处理事件、情绪、关系和记忆，但不再用模型候选覆盖已经结算的意愿；刷新、事件异步完成和八角色容器重启均不会重复加点或回退。下一次派任会读取该意愿作为匹配信号，并把动机因子计入胜任度；事件、长期记忆、品质和动机四项全部送达后，NexusKernel 才封存完整人物归档。
 
 玩家对复命的裁决也会进入人物关系，而不再只有申斥能改变好感。成功、部分完成和失败但如实接纳分别写入 `appreciation +6 / +3` 或 `respect +1`；申斥继续写入 `annoyance +5.8`。重要事件、长期记忆和好感三项使用稳定事件号异步送达 AINPC，全部完成后由 NexusKernel `dongzhou_npc_review_relationship 1.0.0` 绑定任务号、裁决摘要、NPC、玩家和三项送达次数生成封印；重放裁决不会重复加点。官署任务簿持续轮询已结案但关系尚在回写的任务，最终展示关系变化与封印摘要。
+
+“军师问策”使用 AINPC 正式 AI Helper，而不是把普通 NPC 对话改名。网关先读取知识仓当前关卡已发布 AKU，把史料号、摘要、目标、人物与出处作为权威玩家状态提交；AINPC 同步受理后异步回调 `/api/v2/NDLLMSendLittleElfMessage`。回调按稳定玩家号与请求号双重校验，加载提示只更新进度，最终答案才结案，重复内容返回同一 `talkId`，不同内容冲突拒绝；浏览器刷新后继续轮询同一请求，并可提交一次“准确/不准确”评价。AI Helper 的三维带路会被明确忽略，不在战棋地图中伪造寻路成功。
 
 军令由玩家确认签发后，网关先调用 AINPC 正式 `POST /api/v1/schedule-interrupts/temp/generate`。请求绑定军令号、摘要、属官、当前当值、急报分、游戏时钟和稳定事件号；AINPC 的日程 owner 负责保护休息日程、插入今日临时事项或写入未来计划。只有通过事件号和返回结构复核的结果才封成 `scheduleInterruption` 回执并随军令、组织差事和云存档保留；断线重试复用同一请求号和事件号，不会重复插程。orgFlow 派差接口会在服务端反查该玩家同一军令摘要的已完成入程记录，未入程、入程失败、跨玩家或摘要不符均无法绕过前端直接派差。
 
@@ -57,6 +59,7 @@
 - `live-knowledge-mastery-v5-complete105.json`：真实问对答中后进入 AINPC 军议，NexusKernel 军令封存 `10/10` 与成功率 `+3`；orgFlow 模板 5 实账保存同一题号、分数和加成。
 - `live-terminal-gate-complete89.json`：真实 orgFlow 执行尚未终态时不会提前生成 AINPC 复命提示；执行进入 `SUCCESS` 后才允许主管审核，公共库藏 `task.execution` 从 `940 -> 1040`，云档恢复与战报回读均通过。
 - `live-relationship-growth-complete107.json`：真实玩家接纳左儒成功复命后，AINPC 重要事件、长期记忆和 `appreciation +6` 三项均送达；NexusKernel 生成关系封印 `ca9f6793...74249`，重放不重复加点，官署任务簿显示“感激+6”和封印摘要。
+- `live-adviser-complete108.json`：真实 Chromium 提交“本关史料中的关键人物是谁”，知识仓已发布 AKU 随玩家状态进入 AINPC；加载提示和最终答案经游戏服回调，页面显示周宣王、杜伯、左儒及史事情由，并成功提交“准确”评价。
 
 ## 当前验证基线
 

@@ -15,6 +15,7 @@
   const MANDATE_SCHEDULE_PENDING_PREFIX = "dongzhou-pending-mandate-schedule-v1:";
   const INVENTORY_REQUISITION_PENDING_KEY = "dongzhou-pending-inventory-requisition-v1";
   const LOGISTICS_BRIEFING_PENDING_PREFIX = "dongzhou-pending-logistics-briefing-v1:";
+  const ADVISER_QUESTION_KEY = "dongzhou-adviser-question-v1";
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
   let session = read(SESSION_KEY, null);
   let sessionPromise = null;
@@ -578,5 +579,53 @@
     });
   }
 
-  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, syncNpcs, setNpcInteractionPreference, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationInventory, organizationLogisticsBriefing, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
+  function pendingAdviserQuestion() {
+    return read(ADVISER_QUESTION_KEY, null);
+  }
+
+  async function askAdviser(input) {
+    if (offline) return Promise.reject(new Error("adviser_requires_online"));
+    const existing = pendingAdviserQuestion();
+    const pending = existing?.result?.state === "PROCESSING"
+      ? existing
+      : {
+          input: { ...input, client_request_id: root.crypto.randomUUID() },
+          result: null,
+          feedback: null
+        };
+    write(ADVISER_QUESTION_KEY, pending);
+    const result = await request("/adviser/questions", {
+      method: "POST",
+      body: JSON.stringify(pending.input)
+    });
+    write(ADVISER_QUESTION_KEY, { ...pending, result });
+    return result;
+  }
+
+  async function adviserQuestion(questionId) {
+    if (offline) return Promise.reject(new Error("adviser_requires_online"));
+    const result = await requestWithTransientRetry(`/adviser/questions/${encodeURIComponent(questionId)}`);
+    const pending = pendingAdviserQuestion();
+    if (pending?.input?.client_request_id === questionId) {
+      write(ADVISER_QUESTION_KEY, { ...pending, result });
+    }
+    return result;
+  }
+
+  async function feedbackAdviser(questionId, rating, reason = "") {
+    if (offline) return Promise.reject(new Error("adviser_requires_online"));
+    const pending = pendingAdviserQuestion();
+    const feedback = pending?.feedback?.rating === rating
+      ? pending.feedback
+      : { action_id: root.crypto.randomUUID(), rating, reason };
+    if (pending) write(ADVISER_QUESTION_KEY, { ...pending, feedback });
+    const result = await request(`/adviser/questions/${encodeURIComponent(questionId)}/feedback`, {
+      method: "POST",
+      body: JSON.stringify(feedback)
+    });
+    if (pending) write(ADVISER_QUESTION_KEY, { ...pending, feedback: { ...feedback, result } });
+    return result;
+  }
+
+  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, pendingAdviserQuestion, askAdviser, adviserQuestion, feedbackAdviser, syncNpcs, setNpcInteractionPreference, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationInventory, organizationLogisticsBriefing, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
 });

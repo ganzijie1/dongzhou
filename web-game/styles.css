@@ -3782,6 +3782,16 @@ button:focus-visible {
 .office-task-ledger .censured small { color: #d29a72; }
 .office-knowledge { grid-column: 1 / -1; }
 .office-knowledge-form { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 18px; }
+.office-adviser { margin-top: 18px; padding: 16px 0; border-top: 1px solid rgba(196, 172, 111, .2); }
+.office-adviser-heading > div { display: grid; gap: 4px; }
+.office-adviser-heading span { color: #b99344; font-size: 9px; }
+.office-adviser-heading strong { color: #ded2b3; font: 500 17px/1.2 var(--font-display); }
+.office-adviser-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; margin-top: 12px; }
+.office-adviser-form input { min-width: 0; }
+.office-adviser-answer { min-height: 36px; margin-top: 12px; color: #a9aa9f; font-size: 12px; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; }
+.office-adviser-answer.answered { color: #ded2b3; }
+.office-adviser-feedback { display: flex; gap: 8px; margin-top: 10px; }
+.office-adviser-feedback[hidden] { display: none; }
 .office-quiz { margin: 18px 0; padding: 16px 0; border-top: 1px solid rgba(196, 172, 111, .2); border-bottom: 1px solid rgba(196, 172, 111, .2); }
 .office-quiz-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .office-quiz-heading > div { display: grid; gap: 4px; }
@@ -3912,6 +3922,7 @@ button:focus-visible {
 @media (max-width: 640px) { .office-memory-heading, .office-memory-item { grid-template-columns: 1fr; } .office-memory-item button { justify-self: end; } }
 @media (max-width: 640px) { .office-membership { grid-template-columns: 1fr; } .office-membership-actions { justify-content: flex-start; } .office-career-heading { align-items: start; flex-direction: column; } .office-career-result { grid-template-columns: 1fr; } .office-career-result button { justify-self: end; } }
 @media (max-width: 640px) { .office-message-form, .office-correspondence-item { grid-template-columns: 1fr; } .office-message-form button, .office-correspondence-item button { justify-self: end; } }
+@media (max-width: 640px) { .office-adviser-form { grid-template-columns: 1fr; } .office-adviser-form button { justify-self: end; } }
 @media (max-width: 640px) { .office-memory-heading, .office-memory-item { grid-template-columns: 1fr; } .office-memory-item button { justify-self: end; } }
 .office-npc-schedule { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 14px; }
 .office-npc-schedule > div { min-width: 0; color: #5e4b34; }

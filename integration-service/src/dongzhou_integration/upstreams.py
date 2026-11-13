@@ -33,6 +33,46 @@ class Upstreams:
         if self._owns_client:
             await self.client.aclose()
 
+    async def ask_ai_helper(self, payload: dict[str, Any]) -> dict[str, Any]:
+        response = await self._json(
+            "POST",
+            self.settings.ainpc_url + "/api/v1/ai-helper/ask",
+            token=self.settings.ainpc_token,
+            payload=payload,
+        )
+        data = response.get("data")
+        if (
+            response.get("code") not in (0, 200, "0", "200")
+            or not isinstance(data, dict)
+            or str(data.get("taskId") or "") != str(payload.get("taskId") or "")
+        ):
+            raise UpstreamUnavailable(
+                "AINPC rejected the adviser question.",
+                error_code="ainpc_ai_helper_rejected",
+                response_payload=response,
+            )
+        return response
+
+    async def submit_ai_helper_feedback(self, payload: dict[str, Any]) -> dict[str, Any]:
+        response = await self._json(
+            "POST",
+            self.settings.ainpc_url + "/api/v1/ai-helper/feedback",
+            token=self.settings.ainpc_token,
+            payload=payload,
+        )
+        data = response.get("data")
+        if (
+            response.get("code") not in (0, 200, "0", "200")
+            or not isinstance(data, dict)
+            or str(data.get("taskId") or "") != str(payload.get("taskId") or "")
+        ):
+            raise UpstreamUnavailable(
+                "AINPC rejected the adviser feedback.",
+                error_code="ainpc_ai_helper_feedback_rejected",
+                response_payload=response,
+            )
+        return response
+
     @staticmethod
     def _headers(token: str) -> dict[str, str]:
         return {"Authorization": f"Bearer {token}"} if token else {}
