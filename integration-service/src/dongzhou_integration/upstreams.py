@@ -378,7 +378,7 @@ class Upstreams:
             ids = sorted(provenance, key=lambda identifier: (-aggregates.get(identifier, 0.0), identifier))
             if not ids:
                 return "connected", []
-            details = await self._json("POST", f"{self.settings.knowledge_url}/api/v1/aku/batch_get", token=self.settings.knowledge_token, payload={"ids": ids[:recall_limit]})
+            details = await self._json("POST", f"{self.settings.knowledge_url}/api/v1/player/aku/batch_get", token=self.settings.knowledge_token, payload={"ids": ids[:recall_limit]})
             raw = details.get("data", details)
             if isinstance(raw, dict):
                 raw = raw.get("items", raw.get("akus", list(raw.values())))
@@ -427,7 +427,7 @@ class Upstreams:
         if not ids:
             return []
         response = await self._json(
-            "POST", f"{self.settings.knowledge_url}/api/v1/aku/batch_get",
+            "POST", f"{self.settings.knowledge_url}/api/v1/player/aku/batch_get",
             token=self.settings.knowledge_token, payload={"ids": ids},
         )
         data = response.get("data", response)

@@ -36,6 +36,16 @@ class ScheduleAcceptanceTests(unittest.TestCase):
                 with self.assertRaisesRegex(AssertionError, "another game's"):
                     module.validate_dongzhou_schedule(schedule)
 
+        schedule = copy.deepcopy(self.schedule)
+        schedule["data"]["description"] = "完成普通天关挑战"
+        with self.assertRaisesRegex(AssertionError, "another game's"):
+            module.validate_dongzhou_schedule(schedule)
+
+    def test_daytime_key_phrase_is_not_misclassified_as_tianguan_content(self):
+        self.schedule["data"]["schedules"][-1]["rationale"] = "严格集中在白天关键节点"
+        result = module.validate_dongzhou_schedule(self.schedule)
+        self.assertTrue(result["dongzhouContentVerified"])
+
     def test_missing_duplicate_and_empty_days_fail(self):
         for change in ("short", "duplicate", "empty_events"):
             with self.subTest(change=change):

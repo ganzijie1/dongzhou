@@ -55,7 +55,7 @@ orgFlow 东周任务目录当前为 v5。v5 在五类正式任务的参数契约
 - 官署差事的复命结果按任务基础难度、官职匹配、忠诚、疲劳和已查阅史料统一计算；相同存档与任务输入可重放，浏览器与服务端不再各算一套。
 - knowledge-jizhan 不可用时返回 `503`；只有显式 `?offline=1` 才使用本地演算。
 - 在线知识结果只接受 `dongzhou_stage_*` AKU。网关扩大候选召回后再做领域过滤，共享知识库中的其他游戏记录不会进入东周 H5。
-- 官署“本回史料”通过 `/api/dongzhou/v1/knowledge/stages/{stage_id}` 按当前战役精确读取已发布 AKU，并加入玩家简册用于筹备。此入口不依赖 LLM 查询解析；本地目录仅映射关卡和 AKU 编号，在线正文仍来自 knowledge-jizhan。全文搜索故障时继续明确报错，不自动切换本地资料。
+- 官署“本回史料”通过 `/api/dongzhou/v1/knowledge/stages/{stage_id}` 按当前战役精确读取已发布 AKU，并加入玩家简册用于筹备。上游固定使用 knowledge-jizhan 的 `/api/v1/player/aku/batch_get`，只有 `is_valid=true` 且用途包含“玩家问题解答”的条目能进入史官问对、军议和 NexusKernel 军令封印；无效或仅供 AI 决策的固定 ID 也按缺失处理。此入口不依赖 LLM 查询解析；本地目录仅映射关卡和 AKU 编号，在线正文仍来自 knowledge-jizhan。全文搜索故障时继续明确报错，不自动切换本地资料。
 - 相邻关卡通过 knowledge-jizhan 的正式地图跳转接口分别查询 `campaign_progression`、`fixed_point` 和 `npc_dialog`。网关逐项校验起止地图、定点坐标及向导对话后才下发三种行军方案；开战时把最终选择重新提交服务端查询，并由 NexusKernel `dongzhou_campaign_route` 模块对关卡、地图、方法、路线号、粮草和士气生成稳定 SHA-256 回执。联网模式缺少 `SEALED` 回执时拒绝开战；知识服务不可用或任一路线结构不合法时也不允许用本地伪路线替代。
 - 关卡编号使用目录映射，不能从 AKU 编号推算；例如 `dongzhou_stage_004` 对应 `03b`，并非关卡 `04`。
 

@@ -489,7 +489,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                 items = await upstreams.stage_knowledge("03b")
                 self.assertEqual(items, [{"id": "dongzhou_stage_004", "name": "已发布史料", "stageId": "03b", "sourceDetails": [source]}])
                 self.assertEqual(await upstreams.stage_knowledge("unknown"), [])
-        self.assertEqual(seen, ["/api/v1/aku/batch_get"])
+        self.assertEqual(seen, ["/api/v1/player/aku/batch_get"])
 
     async def test_stage_knowledge_never_falls_back_on_upstream_failure(self) -> None:
         with TemporaryDirectory() as directory:
@@ -510,6 +510,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                     "bm25": [{"id": "dongzhou_stage_006", "score": 7.0, "normalized_score": 0.7}],
                     "graph": [{"id": "dongzhou_stage_005", "score": 1.0, "normalized_score": 1.0}],
                 }}})
+            self.assertEqual(request.url.path, "/api/v1/player/aku/batch_get")
             payload = json.loads(request.content)
             seen_batch_ids.extend(payload["ids"])
             return httpx.Response(200, json={"data": {"items": [

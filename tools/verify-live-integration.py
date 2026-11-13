@@ -5,6 +5,7 @@ import argparse
 from datetime import date, datetime, timedelta, timezone
 import json
 from pathlib import Path
+import re
 import sys
 from uuid import uuid4
 
@@ -45,7 +46,14 @@ def validate_dongzhou_schedule(schedule: dict) -> dict:
             transaction_ids.add(identifier)
             event_count += 1
     text = json.dumps(data, ensure_ascii=False)
-    assert not any(word in text for word in ("机体", "银河币", "天关", "飞船")), "schedule contains another game's content"
+    foreign_game_patterns = (
+        r"机体",
+        r"银河币",
+        r"飞船",
+        r"(?:普通|困难|精英|挑战|每日|组队)天关",
+        r"天关(?:副本|关卡|奖励|挑战|首领)",
+    )
+    assert not any(re.search(pattern, text) for pattern in foreign_game_patterns), "schedule contains another game's content"
     return {"hero": "ZuoRu", "days": len(days), "events": event_count,
             "transactionIds": sorted(transaction_ids), "dongzhouContentVerified": True}
 
