@@ -56,6 +56,8 @@ assert.equal(consumed.support.morale, -8);
 assert.equal(consumed.support.alliances[0].id, "pact-01");
 
 const reportInput = { id: "battle:02:123", stageId: "02", stageTitle: "背盟之战", won: true, turns: 8, ownLosses: 1, terminalReason: "敌军溃败", support: { ...consumed.support, councils: [council.council], orders: [{ id: "order-1", memberId: "envoy", source: "折冲诸侯" }] } };
+const campaignRoute = { toStageId: "02", routeId: "route-01-02", receipt: { digest: "a".repeat(64), attestation: "b".repeat(64), kernel: { state: "SEALED" } } };
+reportInput.campaignRoute = campaignRoute;
 const reported = org.recordBattleOutcome(consumed.state, reportInput);
 state = reported.state;
 assert.equal(reported.duplicate, false);
@@ -63,6 +65,7 @@ assert.equal(state.battleReports.length, 1);
 assert.equal(state.relations.envoy, 4);
 assert.equal(state.diplomacy.alliances[0].status, "resolved");
 assert.equal(state.battleReports[0].betrayal.targetName, "郑国");
+assert.equal(state.battleReports[0].campaignRoute.receipt.attestation, "b".repeat(64));
 const replayed = org.recordBattleOutcome(state, reportInput);
 assert.equal(replayed.duplicate, true);
 assert.equal(replayed.state.relations.envoy, 4, "replayed result must not change relations twice");

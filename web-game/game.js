@@ -667,7 +667,13 @@
         campaignRoute = await verifySelectedCampaignRoute(record);
         const cost = Number(campaignRoute?.provisionCost);
         if (!campaignRoute?.found || !Number.isInteger(cost) || cost < 0 || cost > 20) throw new Error("路线军粮配置无效");
-        if (campaignRoute.mode === "connected" && campaignRoute.receipt?.kernel?.state !== "SEALED") {
+        if (
+          campaignRoute.mode === "connected"
+          && (
+            campaignRoute.receipt?.kernel?.state !== "SEALED"
+            || !/^[0-9a-f]{64}$/.test(String(campaignRoute.receipt?.attestation || ""))
+          )
+        ) {
           throw new Error("路线未获内核封印");
         }
         if (profile.campaignResources.provisions < cost) {
@@ -3810,7 +3816,8 @@
       id: "battle:" + stageRecord.id + ":" + String(state.startedAt || Date.now()),
       stageId: String(stageRecord.id), stageTitle: stageRecord.battleTitle, won, turns: state.turn,
       ownLosses: ownUnits.filter((unit) => unit.hp <= 0).length, terminalReason,
-      support: state.organizationSupport || {}
+      support: state.organizationSupport || {},
+      campaignRoute: state.campaignRoute || null
     });
     profile.organization = officeReport.state;
     profile.organization.history.push({ month: profile.organization.month, tone: won ? "good" : "bad", text: `${stageRecord.battleTitle}${won ? "告捷" : "失利"}，战后回报已收入官署档案。` });

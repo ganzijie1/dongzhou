@@ -4,6 +4,7 @@ import asyncio
 from copy import deepcopy
 from datetime import UTC, date, datetime, timedelta
 import hashlib
+import hmac
 from importlib.metadata import version
 import json
 import re
@@ -474,16 +475,22 @@ class KnowledgeTournamentModule(Module):
 
 class CampaignRouteModule(Module):
     name = "dongzhou_campaign_route"
-    version = "1.1.0"
+    version = "1.2.0"
     dependencies = (RuntimeModule.name,)
 
-    @staticmethod
-    def seal_selection(trace: dict[str, Any]) -> dict[str, Any]:
-        digest = hashlib.sha256(
-            json.dumps(trace, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
-        ).hexdigest()
+    def __init__(self, secret: str) -> None:
+        super().__init__()
+        self._secret = secret.encode("utf-8")
+
+    def seal_selection(self, trace: dict[str, Any]) -> dict[str, Any]:
+        digest = _digest_json(trace)
         return {
             "digest": digest,
+            "attestation": hmac.new(
+                self._secret,
+                digest.encode("ascii"),
+                hashlib.sha256,
+            ).hexdigest(),
             "kernel": {
                 "module": CampaignRouteModule.name,
                 "moduleVersion": CampaignRouteModule.version,
@@ -491,6 +498,30 @@ class CampaignRouteModule(Module):
                 "state": "SEALED",
             },
         }
+
+    def verify_selection(self, route: dict[str, Any]) -> bool:
+        receipt = route.get("receipt")
+        if not isinstance(receipt, dict):
+            return False
+        trace = _campaign_route_trace(route)
+        digest = _digest_json(trace)
+        expected_attestation = hmac.new(
+            self._secret,
+            digest.encode("ascii"),
+            hashlib.sha256,
+        ).hexdigest()
+        kernel = receipt.get("kernel")
+        return (
+            isinstance(kernel, dict)
+            and kernel.get("module") == self.name
+            and kernel.get("moduleVersion") == self.version
+            and kernel.get("state") == "SEALED"
+            and hmac.compare_digest(str(receipt.get("digest") or ""), digest)
+            and hmac.compare_digest(
+                str(receipt.get("attestation") or ""),
+                expected_attestation,
+            )
+        )
 
 
 class NpcSettlementModule(Module):
@@ -2287,6 +2318,7 @@ class BattleReceiptConflict(ValueError):
 
 def _battle_report_signature(report: dict[str, Any]) -> dict[str, Any]:
     support = report.get("support") if isinstance(report.get("support"), dict) else {}
+    campaign_route = report.get("campaignRoute")
 
     def references(entries: Any, hero_key: str) -> list[dict[str, str]]:
         if not isinstance(entries, list):
@@ -2303,7 +2335,7 @@ def _battle_report_signature(report: dict[str, Any]) -> dict[str, Any]:
             key=lambda entry: (entry["id"], entry["heroId"]),
         )
 
-    return {
+    signature = {
         "reportId": str(report.get("id") or ""),
         "stageId": str(report.get("stageId") or ""),
         "won": report.get("won"),
@@ -2315,6 +2347,13 @@ def _battle_report_signature(report: dict[str, Any]) -> dict[str, Any]:
         "mandates": references(report.get("mandates"), "heroId"),
         "orders": references(support.get("orders"), "memberId"),
     }
+    if isinstance(campaign_route, dict):
+        signature["campaignRoute"] = {
+            **_campaign_route_trace(campaign_route),
+            "receiptDigest": str(campaign_route.get("receipt", {}).get("digest") or ""),
+            "receiptAttestation": str(campaign_route.get("receipt", {}).get("attestation") or ""),
+        }
+    return signature
 
 
 def _digest_json(value: dict[str, Any]) -> str:
@@ -2326,6 +2365,23 @@ def _digest_json(value: dict[str, Any]) -> str:
             sort_keys=True,
         ).encode("utf-8")
     ).hexdigest()
+
+
+def _campaign_route_trace(route: dict[str, Any]) -> dict[str, Any]:
+    keys = (
+        "fromStageId",
+        "toStageId",
+        "fromMapId",
+        "toMapId",
+        "knowledgeWitnesses",
+        "method",
+        "routeId",
+        "label",
+        "provisionCost",
+        "moraleDelta",
+        "guideName",
+    )
+    return {key: route[key] for key in keys if key in route}
 
 
 def _campaign_route_knowledge_witness(
@@ -2578,6 +2634,8 @@ def _seal_battle_reports(
     previous_payload: dict[str, Any],
     submitted_payload: dict[str, Any],
     attestations: dict[str, set[str]] | None = None,
+    campaign_routes: CampaignRouteModule | None = None,
+    route_required_stages: set[str] | None = None,
 ) -> dict[str, Any]:
     payload = deepcopy(submitted_payload)
     organization = payload.get("organization")
@@ -2651,6 +2709,22 @@ def _seal_battle_reports(
             continue
 
         report.pop("kernelReceipt", None)
+        campaign_route = report.get("campaignRoute")
+        if (
+            isinstance(campaign_route, dict)
+            and (
+                campaign_routes is None
+                or not campaign_routes.verify_selection(campaign_route)
+                or str(campaign_route.get("toStageId") or "") != stage_id
+            )
+        ):
+            raise BattleReceiptConflict("battle_campaign_route_invalid")
+        if (
+            route_required_stages
+            and stage_id in route_required_stages
+            and not isinstance(campaign_route, dict)
+        ):
+            raise BattleReceiptConflict("battle_campaign_route_missing")
         eligible_support = {
             support_id: entry
             for support_id, entry in previous_support.items()
@@ -3279,10 +3353,19 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     settings = settings or Settings.from_env()
     store = store or Store(settings.database_path)
     upstreams = upstreams or Upstreams(settings)
+    campaign_path = settings.web_root / "scenario" / "campaign.json"
+    route_required_stages: set[str] = set()
+    if campaign_path.is_file():
+        campaign_catalog = json.loads(campaign_path.read_text(encoding="utf-8"))
+        route_required_stages = {
+            str(stage.get("id"))
+            for stage in campaign_catalog.get("stages", [])
+            if isinstance(stage, dict) and int(stage.get("index") or 0) > 1
+        }
     module = RuntimeModule(store, upstreams, settings)
     mandate_workflow = MandateWorkflowModule()
     knowledge_tournament = KnowledgeTournamentModule()
-    campaign_routes = CampaignRouteModule()
+    campaign_routes = CampaignRouteModule(settings.session_secret)
     npc_settlement = NpcSettlementModule()
     npc_review_relationship = NpcReviewRelationshipModule()
     npc_collaboration_relationship = NpcCollaborationRelationshipModule()
@@ -4024,6 +4107,8 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 previous["payload"],
                 request.payload,
                 attestations,
+                campaign_routes,
+                route_required_stages,
             )
             reports = await _prepare_due_organization_reports(
                 store, settings, player_id, sealed_payload

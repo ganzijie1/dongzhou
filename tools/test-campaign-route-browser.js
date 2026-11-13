@@ -45,7 +45,8 @@ const SYSTEM_CHROMIUM = [
           from_stage_id: "01",
           from_stage_index: 1,
           to_stage_id: "02",
-          to_stage_index: 2
+          to_stage_index: 2,
+          ...(routeRequests > 1 ? { route_method: "campaign_progression" } : {})
         });
         body = {
           mode: "connected",
@@ -55,7 +56,8 @@ const SYSTEM_CHROMIUM = [
           fromMapId: 900001,
           toMapId: 900002,
           routeId: "campaign_progression_900001_900002",
-          provisionCost: 2
+          provisionCost: 2,
+          receipt: { attestation: "a".repeat(64), kernel: { state: "SEALED" } }
         };
       } else body = {};
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
@@ -73,7 +75,7 @@ const SYSTEM_CHROMIUM = [
   try {
     await page.goto(`${ORIGIN}/`, { waitUntil: "domcontentloaded" });
     await page.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
-    await page.waitForFunction(() => document.querySelector("#focusRouteProof")?.textContent.includes("行军 2 军粮"));
+    await page.waitForFunction(() => document.querySelector("#focusRouteProof")?.textContent.includes("军粮 2"));
     assert.strictEqual(await page.locator("#focusStageButton").getAttribute("data-stage-id"), "02");
     await page.click("#focusStageButton");
     await page.waitForFunction(() => {
@@ -86,7 +88,7 @@ const SYSTEM_CHROMIUM = [
     }));
     assert.strictEqual(stored.battle.campaignRoute.provisionCost, 2);
     assert.strictEqual(stored.profile.campaignResources.provisions, 98);
-    assert.strictEqual(routeRequests, 1, "campaign route should be reused between focus and deployment");
+    assert.strictEqual(routeRequests, 2, "deployment must revalidate the selected campaign route");
     assert.deepStrictEqual(errors, []);
     console.log(JSON.stringify({ result: "PASS", routeRequests, provisionCost: 2, provisions: 98 }));
   } finally {

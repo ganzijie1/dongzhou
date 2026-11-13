@@ -109,6 +109,11 @@ def test_published_knowledge_requires_session_and_codex_is_player_scoped(tmp_pat
 
 
 def test_campaign_route_requires_completed_predecessor_and_validates_published_detail(tmp_path):
+    scenario = tmp_path / "scenario"
+    scenario.mkdir()
+    (scenario / "campaign.json").write_text(json.dumps({
+        "stages": [{"id": "01", "index": 1}, {"id": "02", "index": 2}],
+    }), encoding="utf-8")
     with patch.dict("os.environ", {"DONGZHOU_ENV": "test", "DONGZHOU_WEB_ROOT": str(tmp_path), "DONGZHOU_DATABASE_PATH": str(tmp_path / "save.db")}, clear=True):
         settings = Settings.from_env()
     upstreams = PublishedKnowledge()
@@ -131,10 +136,11 @@ def test_campaign_route_requires_completed_predecessor_and_validates_published_d
         assert accepted.json()["routeId"] == "campaign_progression_900001_900002"
         assert accepted.json()["provisionCost"] == 2
         assert accepted.json()["receipt"]["kernel"]["module"] == "dongzhou_campaign_route"
-        assert accepted.json()["receipt"]["kernel"]["moduleVersion"] == "1.1.0"
+        assert accepted.json()["receipt"]["kernel"]["moduleVersion"] == "1.2.0"
         assert accepted.json()["receipt"]["kernel"]["nexusKernelVersion"]
         assert accepted.json()["receipt"]["kernel"]["state"] == "SEALED"
         assert len(accepted.json()["receipt"]["digest"]) == 64
+        assert len(accepted.json()["receipt"]["attestation"]) == 64
         assert accepted.json()["knowledgeWitnesses"]["from"]["knowledgeIds"] == ["dongzhou_stage_001"]
         assert accepted.json()["knowledgeWitnesses"]["to"]["knowledgeIds"] == ["dongzhou_stage_002"]
         assert len(accepted.json()["knowledgeWitnesses"]["from"]["digest"]) == 64
@@ -155,6 +161,54 @@ def test_campaign_route_requires_completed_predecessor_and_validates_published_d
         assert guided.json()["receipt"]["digest"] != accepted.json()["receipt"]["digest"]
         repeated = client.post(path, json={**request, "route_method": "npc_dialog"})
         assert repeated.json()["receipt"] == guided.json()["receipt"]
+
+        report = {
+            "id": "battle:02:route-attested",
+            "stageId": "02",
+            "won": True,
+            "turns": 8,
+            "ownLosses": 1,
+            "terminalReason": "victory",
+            "campaignRoute": guided.json(),
+        }
+        saved = client.put("/api/dongzhou/v1/save", json={
+            "expected_version": 2,
+            "payload": {"completed": ["01", "02"], "organization": {"battleReports": [report]}},
+        })
+        assert saved.status_code == 200
+        sealed_report = saved.json()["payload"]["organization"]["battleReports"][0]
+        assert sealed_report["campaignRoute"]["receipt"]["attestation"] == guided.json()["receipt"]["attestation"]
+        assert sealed_report["kernelReceipt"]["kernel"]["state"] == "SEALED"
+
+        missing_route = client.put("/api/dongzhou/v1/save", json={
+            "expected_version": 3,
+            "payload": {
+                **saved.json()["payload"],
+                "organization": {"battleReports": [sealed_report, {
+                    **report,
+                    "id": "battle:02:missing-route",
+                    "campaignRoute": None,
+                }]},
+            },
+        })
+        assert missing_route.status_code == 409
+        assert missing_route.json()["error"]["code"] == "battle_campaign_route_missing"
+
+        forged_route = json.loads(json.dumps(accepted.json()))
+        forged_route["provisionCost"] = 0
+        forged = client.put("/api/dongzhou/v1/save", json={
+            "expected_version": 3,
+            "payload": {
+                **saved.json()["payload"],
+                "organization": {"battleReports": [sealed_report, {
+                    **report,
+                    "id": "battle:02:forged-route",
+                    "campaignRoute": forged_route,
+                }]},
+            },
+        })
+        assert forged.status_code == 409
+        assert forged.json()["error"]["code"] == "battle_campaign_route_invalid"
 
         upstreams.missing_stage = "02"
         missing = client.post(path, json=request)
