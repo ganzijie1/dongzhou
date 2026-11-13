@@ -10,9 +10,10 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from uuid import UUID, uuid4
 
+import pytest
 from fastapi.testclient import TestClient
 
-from dongzhou_integration.app import build_application
+from dongzhou_integration.app import _composite_authoritative_settlement, build_application
 from dongzhou_integration.config import Settings
 from dongzhou_integration.security import stable_npc_id, stable_player_id
 from dongzhou_integration.store import Store
@@ -20,6 +21,63 @@ from dongzhou_integration.store import Store
 MANAGER_NPC_ID = str(stable_npc_id(91001, "DuBo"))
 ZUORU_NPC_ID = str(stable_npc_id(91001, "ZuoRu"))
 QIN_NPC_ID = str(stable_npc_id(91001, "QinXiangGong"))
+
+
+def test_composite_settlement_uses_parent_aggregate_result() -> None:
+    primary_id = str(uuid4())
+    support_id = str(uuid4())
+    parent_id = str(uuid4())
+    common = {
+        "taskId": str(uuid4()),
+        "organizationId": str(uuid4()),
+        "memberId": str(uuid4()),
+        "source": "NPC_CONFIRMATION",
+        "settledGameTime": "100",
+        "settledClockEpoch": "dongzhou-v1",
+        "settledAt": "2026-11-13T00:00:00Z",
+    }
+    settlement = _composite_authoritative_settlement(
+        {
+            **common,
+            "settlementId": primary_id,
+            "result": "SUCCESS",
+            "organizationDelta": 100,
+            "memberDelta": 75,
+        },
+        {
+            **common,
+            "settlementId": support_id,
+            "result": "FAILURE",
+            "organizationDelta": 0,
+            "memberDelta": 0,
+        },
+        parent_task_id=parent_id,
+        parent_result="PARTIAL",
+    )
+
+    assert settlement["result"] == "PARTIAL"
+    assert settlement["organizationDelta"] == 100
+    assert settlement["memberDelta"] == 75
+    assert settlement["childSettlementIds"] == sorted((primary_id, support_id))
+    with pytest.raises(ValueError, match="composite_parent_result_mismatch"):
+        _composite_authoritative_settlement(
+            {
+                **common,
+                "settlementId": primary_id,
+                "result": "SUCCESS",
+                "organizationDelta": 100,
+                "memberDelta": 75,
+            },
+            {
+                **common,
+                "settlementId": support_id,
+                "result": "FAILURE",
+                "organizationDelta": 0,
+                "memberDelta": 0,
+            },
+            parent_task_id=parent_id,
+            parent_result="SUCCESS",
+        )
 
 
 class MandateUpstreams:
@@ -619,8 +677,14 @@ def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -
             assert len(trigger["children"]) == 2
             assert trigger["children"][0]["parameters"]["support_hero_id"] == "QinXiangGong"
             assert trigger["children"][0]["parameters"]["collaboration_score"] == collaboration["score"]
+            assert trigger["children"][0]["direct_responsible_member_id"] == (
+                "00000000-0000-0000-0000-000000000004"
+            )
             assert trigger["children"][1]["parameters"]["assignee_hero_id"] == "QinXiangGong"
             assert trigger["children"][1]["target_position_slot_id"] == "00000000-0000-0000-0000-000000000007"
+            assert trigger["children"][1]["direct_responsible_member_id"] == (
+                "00000000-0000-0000-0000-000000000006"
+            )
 
             settlement_id = str(uuid4())
             upstreams.task_snapshot = {
@@ -680,7 +744,25 @@ def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -
                 topology["supportTaskId"]
             )
             upstreams.task_snapshots[topology["supportTaskId"]].update(
-                state="SUCCEEDED", final_result="SUCCESS", version="3"
+                state="SUCCEEDED",
+                final_result="SUCCESS",
+                contribution_eligible=True,
+                responsible_member_id="00000000-0000-0000-0000-000000000006",
+                version="3",
+                settlement={
+                    "settlement_id": str(uuid4()),
+                    "task_id": topology["supportTaskId"],
+                    "organization_id": "00000000-0000-0000-0000-000000000001",
+                    "member_id": "00000000-0000-0000-0000-000000000006",
+                    "result": "SUCCESS",
+                    "organization_delta": "50",
+                    "member_delta": "25",
+                    "source": "NPC_CONFIRMATION",
+                    "source_event_id": "dongzhou-collaboration-support-result-1",
+                    "settled_game_time": "24306616800",
+                    "settled_clock_epoch": "dongzhou-v1",
+                    "settled_at": "2026-11-13T00:00:01Z",
+                },
             )
             upstreams.task_snapshots[topology["parentTaskId"]].update(
                 state="SUCCEEDED", final_result="SUCCESS", version="3"
@@ -714,6 +796,17 @@ def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -
             )
             assert current.json()["organizationTopology"]["state"] == "SEALED"
             assert current.json()["organizationTopology"]["allChildrenTerminal"] is True
+            joint_settlement = current.json()["settlement"]
+            assert joint_settlement["result"] == "SUCCESS"
+            assert joint_settlement["organizationDelta"] == 150
+            assert joint_settlement["memberDelta"] == 75
+            assert joint_settlement["parentTaskId"] == topology["parentTaskId"]
+            assert set(joint_settlement["childSettlementIds"]) == {
+                settlement_id,
+                upstreams.task_snapshots[topology["supportTaskId"]]["settlement"][
+                    "settlement_id"
+                ],
+            }
             peer_settlements = [
                 payload
                 for kind, payload in upstreams.events

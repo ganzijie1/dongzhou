@@ -1665,6 +1665,64 @@ def _authoritative_settlement(
     }
 
 
+def _composite_authoritative_settlement(
+    primary: dict[str, Any],
+    support: dict[str, Any],
+    *,
+    parent_task_id: str,
+    parent_result: str,
+) -> dict[str, Any]:
+    child_results = {str(primary.get("result") or ""), str(support.get("result") or "")}
+    if child_results == {"SUCCESS"}:
+        aggregate_result = "SUCCESS"
+    elif child_results.intersection({"SUCCESS", "PARTIAL"}):
+        aggregate_result = "PARTIAL"
+    else:
+        aggregate_result = "FAILURE"
+    if parent_result != aggregate_result:
+        raise ValueError("composite_parent_result_mismatch")
+    primary_id = str(primary.get("settlementId") or "")
+    support_id = str(support.get("settlementId") or "")
+    UUID(primary_id)
+    UUID(support_id)
+    if primary_id == support_id:
+        raise ValueError("composite_settlement_duplicate")
+    organization_delta = _bounded_settlement_delta(
+        int(primary["organizationDelta"]) + int(support["organizationDelta"]),
+        "organization_delta",
+    )
+    primary_epoch = primary.get("settledClockEpoch")
+    support_epoch = support.get("settledClockEpoch")
+    if primary_epoch and support_epoch and primary_epoch != support_epoch:
+        raise ValueError("composite_settlement_clock_mismatch")
+    evidence = tuple(sorted((primary_id, support_id)))
+    settlement_id = str(
+        uuid5(
+            NAMESPACE_URL,
+            "dongzhou-composite-settlement:"
+            + parent_task_id
+            + ":"
+            + ":".join(evidence),
+        )
+    )
+    return {
+        "settlementId": settlement_id,
+        "taskId": str(primary["taskId"]),
+        "parentTaskId": parent_task_id,
+        "organizationId": str(primary["organizationId"]),
+        "memberId": str(primary["memberId"]),
+        "result": aggregate_result,
+        "organizationDelta": organization_delta,
+        "memberDelta": int(primary["memberDelta"]),
+        "source": "COMPOSITE_AGGREGATION",
+        "sourceEventId": "organization-summary:" + parent_task_id,
+        "settledGameTime": primary.get("settledGameTime"),
+        "settledClockEpoch": primary_epoch or support_epoch,
+        "settledAt": max(str(primary["settledAt"]), str(support["settledAt"])),
+        "childSettlementIds": list(evidence),
+    }
+
+
 def _closure_receipt(
     *,
     task_id: str,
@@ -7330,6 +7388,14 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                             "parameters": primary_parameters,
                             "brief": f"Primary officer. {brief}"[:1000],
                             "is_key_child": True,
+                            "direct_responsible_member_id": member_id,
+                            "expected_recipient_subject_type": "NPC",
+                            "expected_recipient_subject_id": str(
+                                stable_npc_id(
+                                    settings.ainpc_game_server_id,
+                                    request.assignee_hero_id,
+                                )
+                            ),
                         },
                         {
                             "target_position_slot_id": support_slot_id,
@@ -7337,6 +7403,14 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                             "parameters": support_parameters,
                             "brief": f"Support officer for {request.assignee_hero_id}. {brief}"[:1000],
                             "is_key_child": True,
+                            "direct_responsible_member_id": support_member_id,
+                            "expected_recipient_subject_type": "NPC",
+                            "expected_recipient_subject_id": str(
+                                stable_npc_id(
+                                    settings.ainpc_game_server_id,
+                                    support_hero_id,
+                                )
+                            ),
                         },
                     ],
                 }
@@ -7426,6 +7500,8 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=502,
             )
         composite_topology: dict[str, Any] | None = None
+        support_snapshot: dict[str, Any] | None = None
+        parent_snapshot: dict[str, Any] | None = None
         if isinstance(stored_topology, dict):
             parent_task_id = str(stored_topology.get("parentTaskId") or "")
             primary_task_id = str(stored_topology.get("primaryTaskId") or "")
@@ -7523,11 +7599,17 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 and isinstance(support_snapshot, dict)
                 and support_snapshot.get("final_result")
             )
+            parent_final_result = (
+                str(parent_snapshot.get("final_result") or "")
+                if isinstance(parent_snapshot, dict)
+                else ""
+            )
+            topology_sealed = all_children_terminal and bool(parent_final_result)
             composite_topology = {
                 **stored_topology,
                 "state": (
                     "SEALED"
-                    if all_children_terminal
+                    if topology_sealed
                     else "ACTIVE"
                     if support_snapshot is not None
                     else "UNAVAILABLE"
@@ -7569,7 +7651,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     "Joint-operation topology could not be sealed.",
                     status_code=502,
                 ) from error
-            if not all_children_terminal and snapshot.get("final_result"):
+            if not topology_sealed and snapshot.get("final_result"):
                 snapshot = {
                     **snapshot,
                     "state": "WAITING_FOR_COLLABORATOR",
@@ -7670,6 +7752,44 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 organization_id=settings.orgflow_org_id,
                 member_id=member_id,
             )
+            if (
+                settlement is not None
+                and isinstance(stored_topology, dict)
+                and isinstance(support_snapshot, dict)
+                and isinstance(parent_snapshot, dict)
+            ):
+                support_hero_id = str(stored_topology.get("supportHeroId") or "")
+                support_member_id = str(
+                    support_snapshot.get("responsible_member_id") or ""
+                )
+                support_responsible_hero_id = next(
+                    (
+                        hero_id
+                        for hero_id, configured_member_id in (
+                            settings.orgflow_hero_members.items()
+                        )
+                        if configured_member_id == support_member_id
+                    ),
+                    "",
+                )
+                if not support_responsible_hero_id:
+                    raise ValueError("composite_support_responsible_invalid")
+                support_settlement = _authoritative_settlement(
+                    support_snapshot,
+                    task_id=str(stored_topology.get("supportTaskId") or ""),
+                    organization_id=settings.orgflow_org_id,
+                    member_id=support_member_id,
+                )
+                parent_result = str(parent_snapshot.get("final_result") or "")
+                if support_settlement is None or not parent_result:
+                    settlement = None
+                else:
+                    settlement = _composite_authoritative_settlement(
+                        settlement,
+                        support_settlement,
+                        parent_task_id=str(stored_topology.get("parentTaskId") or ""),
+                        parent_result=parent_result,
+                    )
         except ValueError as error:
             raise ApiError(
                 "organization_settlement_invalid",
