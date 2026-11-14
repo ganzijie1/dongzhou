@@ -17,6 +17,8 @@ class AdviserUpstreams:
     def __init__(self) -> None:
         self.questions: list[dict] = []
         self.feedback: list[dict] = []
+        self.guide_decisions: list[dict] = []
+        self.guide_cancellations: list[dict] = []
 
     async def health(self):
         return {
@@ -44,6 +46,14 @@ class AdviserUpstreams:
     async def submit_ai_helper_feedback(self, payload):
         self.feedback.append(payload)
         return {"code": 200, "data": {"taskId": payload["taskId"]}}
+
+    async def decide_ai_helper_guide(self, payload):
+        self.guide_decisions.append(payload)
+        return {"code": 200, "data": {"guideSessionId": payload["guideSessionId"]}}
+
+    async def cancel_ai_helper_guide(self, payload):
+        self.guide_cancellations.append(payload)
+        return {"code": 200, "data": {"guideSessionId": payload["guideSessionId"]}}
 
 
 def test_adviser_async_answer_is_isolated_idempotent_and_reviewable() -> None:
@@ -137,7 +147,77 @@ def test_adviser_async_answer_is_isolated_idempotent_and_reviewable() -> None:
                 f"/api/dongzhou/v1/adviser/questions/{question_id}"
             )
             assert answer.json()["state"] == "ANSWERED"
-            assert answer.json()["guideIgnored"] is True
+            assert answer.json()["guideIgnored"] is False
+            assert answer.json()["guide"] == {
+                "available": True,
+                "sessionId": "not-applicable-to-tactics",
+                "status": "AVAILABLE",
+                "started": False,
+            }
+
+            guide_action_id = uuid4()
+            accepted = client.post(
+                f"/api/dongzhou/v1/adviser/questions/{question_id}/guide",
+                json={"action_id": str(guide_action_id), "decision": "ACCEPT"},
+            )
+            assert accepted.status_code == 200, accepted.text
+            assert accepted.json()["state"] == "ACCEPTED"
+            assert accepted.json()["guide"]["decision"] == "ACCEPT"
+            assert accepted.json()["guide"]["kernel"]["module"] == "dongzhou_adviser_guide"
+            assert accepted.json()["guide"]["kernel"]["state"] == "SEALED"
+            assert upstreams.guide_decisions == [{
+                "taskId": str(question_id),
+                "gameServerId": settings.game_server_id,
+                "playerId": str(stable_player_id(settings.ainpc_game_server_id, player_id)),
+                "chatId": f"dongzhou-adviser-{question_id}",
+                "guideSessionId": "not-applicable-to-tactics",
+                "confirm": True,
+            }]
+            replayed_guide = client.post(
+                f"/api/dongzhou/v1/adviser/questions/{question_id}/guide",
+                json={"action_id": str(guide_action_id), "decision": "ACCEPT"},
+            )
+            assert replayed_guide.json()["replayed"] is True
+            duplicate_decision = client.post(
+                f"/api/dongzhou/v1/adviser/questions/{question_id}/guide",
+                json={"action_id": str(uuid4()), "decision": "REJECT"},
+            )
+            assert duplicate_decision.status_code == 409
+            assert duplicate_decision.json()["error"]["code"] == "adviser_guide_already_decided"
+
+            started = client.post(
+                "/api/v2/NDLLMSendLittleElfMessage",
+                json={
+                    **callback,
+                    "answer": "Guide started.",
+                    "intent_type": "guide_started",
+                    "guide_started": True,
+                },
+            )
+            assert started.status_code == 200, started.text
+            guide_status = client.get(
+                f"/api/dongzhou/v1/adviser/guides/{guide_action_id}"
+            )
+            assert guide_status.json()["state"] == "RUNNING"
+            assert guide_status.json()["guide"]["eventType"] == "guide_started"
+            assert guide_status.json()["guide"]["guideStarted"] is True
+
+            completed = client.post(
+                "/api/v2/NDLLMSendLittleElfMessage",
+                json={
+                    **callback,
+                    "answer": "Guide completed.",
+                    "intent_type": "guide_completed",
+                    "guide_started": True,
+                },
+            )
+            assert completed.status_code == 200, completed.text
+            guide_status = client.get(
+                f"/api/dongzhou/v1/adviser/guides/{guide_action_id}"
+            )
+            assert guide_status.json()["state"] == "COMPLETED"
+            assert guide_status.json()["guide"]["eventType"] == "guide_completed"
+            assert guide_status.json()["guide"]["message"] == "Guide completed."
 
             action_id = uuid4()
             reviewed = client.post(
@@ -151,6 +231,64 @@ def test_adviser_async_answer_is_isolated_idempotent_and_reviewable() -> None:
                 json={"action_id": str(action_id), "rating": "accurate", "reason": ""},
             ).json()["replayed"] is True
             assert len(upstreams.feedback) == 1
+
+            cancel_question_id = uuid4()
+            cancel_asked = client.post(
+                "/api/dongzhou/v1/adviser/questions",
+                json={
+                    "client_request_id": str(cancel_question_id),
+                    "question": "Guide me to the next objective.",
+                    "stage_id": "001",
+                    "stage_title": "Stage One",
+                    "stage_index": 1,
+                },
+            )
+            assert cancel_asked.status_code == 200, cancel_asked.text
+            cancel_callback = {
+                **callback,
+                "task_id": str(cancel_question_id),
+                "chat_id": f"dongzhou-adviser-{cancel_question_id}",
+                "answer": "A guide is available.",
+                "guide_session_id": "cancel-guide-session",
+            }
+            assert client.post(
+                "/api/v2/NDLLMSendLittleElfMessage", json=cancel_callback
+            ).status_code == 200
+            cancel_guide_action_id = uuid4()
+            assert client.post(
+                f"/api/dongzhou/v1/adviser/questions/{cancel_question_id}/guide",
+                json={
+                    "action_id": str(cancel_guide_action_id),
+                    "decision": "ACCEPT",
+                },
+            ).json()["state"] == "ACCEPTED"
+            cancel_action_id = uuid4()
+            cancelled = client.post(
+                f"/api/dongzhou/v1/adviser/guides/{cancel_guide_action_id}/cancel",
+                json={
+                    "action_id": str(cancel_action_id),
+                    "reason": "player_changed_plan",
+                },
+            )
+            assert cancelled.status_code == 200, cancelled.text
+            assert cancelled.json()["state"] == "CANCELLED"
+            assert cancelled.json()["guide"]["eventType"] == "guide_cancelled"
+            assert upstreams.guide_cancellations == [{
+                "gameServerId": settings.game_server_id,
+                "playerId": str(stable_player_id(settings.ainpc_game_server_id, player_id)),
+                "guideSessionId": "cancel-guide-session",
+                "reason": "player_changed_plan",
+            }]
+            assert client.post(
+                f"/api/dongzhou/v1/adviser/guides/{cancel_guide_action_id}/cancel",
+                json={
+                    "action_id": str(cancel_action_id),
+                    "reason": "player_changed_plan",
+                },
+            ).json()["replayed"] is True
+            assert client.get(
+                f"/api/dongzhou/v1/adviser/guides/{cancel_guide_action_id}"
+            ).json()["state"] == "CANCELLED"
 
             client.post(
                 "/api/dongzhou/v1/sessions/guest",

@@ -73,6 +73,48 @@ class Upstreams:
             )
         return response
 
+    async def decide_ai_helper_guide(self, payload: dict[str, Any]) -> dict[str, Any]:
+        response = await self._json(
+            "POST",
+            self.settings.ainpc_url + "/api/v1/ai-helper/guide/confirm",
+            token=self.settings.ainpc_token,
+            payload=payload,
+        )
+        data = response.get("data")
+        if (
+            response.get("code") not in (0, 200, "0", "200")
+            or not isinstance(data, dict)
+            or str(data.get("guideSessionId") or "")
+            != str(payload.get("guideSessionId") or "")
+        ):
+            raise UpstreamUnavailable(
+                "AINPC rejected the adviser guide decision.",
+                error_code="ainpc_ai_helper_guide_rejected",
+                response_payload=response,
+            )
+        return response
+
+    async def cancel_ai_helper_guide(self, payload: dict[str, Any]) -> dict[str, Any]:
+        response = await self._json(
+            "POST",
+            self.settings.ainpc_url + "/api/v1/ai-helper/guide/cancel",
+            token=self.settings.ainpc_token,
+            payload=payload,
+        )
+        data = response.get("data")
+        if (
+            response.get("code") not in (0, 200, "0", "200")
+            or not isinstance(data, dict)
+            or str(data.get("guideSessionId") or "")
+            != str(payload.get("guideSessionId") or "")
+        ):
+            raise UpstreamUnavailable(
+                "AINPC rejected the adviser guide cancellation.",
+                error_code="ainpc_ai_helper_guide_cancel_rejected",
+                response_payload=response,
+            )
+        return response
+
     async def report_action_execution_result(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Close the exact AINPC physical action accepted by the Dongzhou adapter."""
 

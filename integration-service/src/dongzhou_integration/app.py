@@ -27,7 +27,7 @@ from .assignments import (
     select_assignment,
     task_duty,
 )
-from .models import AdviserFeedbackRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcPublicMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcCommendationRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMeritCommendationRequest, NpcMessageRequest, NpcRecollectionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
+from .models import AdviserFeedbackRequest, AdviserGuideCancelRequest, AdviserGuideDecisionRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcPublicMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcCommendationRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMeritCommendationRequest, NpcMessageRequest, NpcRecollectionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
@@ -1015,6 +1015,49 @@ class NpcMeritCommendationModule(Module):
         ):
             raise ValueError("NPC merit commendation trace is invalid")
         UUID(str(trace["entryId"]))
+        return {
+            **trace,
+            "digest": _canonical_digest(trace),
+            "kernel": {
+                "module": cls.name,
+                "moduleVersion": cls.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "SEALED",
+            },
+        }
+
+
+class AdviserGuideModule(Module):
+    name = "dongzhou_adviser_guide"
+    version = "1.0.0"
+    dependencies = (RuntimeModule.name,)
+
+    @classmethod
+    def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
+        state = str(trace.get("state") or "")
+        decision = str(trace.get("decision") or "")
+        allowed_states = {
+            "ACCEPTED", "RUNNING", "COMPLETED", "FAILED", "REJECTED", "CANCELLED"
+        }
+        if (
+            any(
+                not str(trace.get(key) or "").strip()
+                for key in (
+                    "actionId", "questionId", "taskId", "playerId", "chatId",
+                    "guideSessionId", "eventType",
+                )
+            )
+            or decision not in {"ACCEPT", "REJECT"}
+            or state not in allowed_states
+            or trace.get("taskId") != trace.get("questionId")
+            or (decision == "REJECT" and state != "REJECTED")
+            or (decision == "ACCEPT" and state == "REJECTED")
+            or not isinstance(trace.get("guideStarted"), bool)
+        ):
+            raise ValueError("adviser guide trace is invalid")
+        UUID(str(trace["actionId"]))
+        UUID(str(trace["questionId"]))
+        UUID(str(trace["playerId"]))
         return {
             **trace,
             "digest": _canonical_digest(trace),
@@ -3894,6 +3937,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     logistics_briefing = LogisticsBriefingModule()
     npc_commendation = NpcCommendationModule()
     npc_merit_commendation = NpcMeritCommendationModule()
+    adviser_guide = AdviserGuideModule()
     npc_recollection = NpcRecollectionModule()
     npc_public_notice = NpcPublicNoticeModule()
     organization_contribution_ledger = OrganizationContributionLedgerModule()
@@ -3923,6 +3967,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             LoadedModule(module=organization_contribution_ledger, required=True, original_index=13),
             LoadedModule(module=organization_contribution_dossier, required=True, original_index=14),
             LoadedModule(module=npc_merit_commendation, required=True, original_index=15),
+            LoadedModule(module=adviser_guide, required=True, original_index=16),
         ]
     )
     router = APIRouter(prefix="/api/dongzhou/v1")
@@ -4531,6 +4576,63 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "errorCode": 0,
                 "talkId": talk_id,
             }
+        if record["state"] == "ANSWERED" and request.guide_session_id:
+            current_answer = record.get("response") or {}
+            current_guide = current_answer.get("guide")
+            guide_session_id = str(request.guide_session_id)
+            if (
+                isinstance(current_guide, dict)
+                and current_guide.get("sessionId") == guide_session_id
+            ):
+                guide_record = await store.read_external_request_record(
+                    owner_id, guide_session_id, "adviser_guide"
+                )
+                receipt = (
+                    guide_record.get("response", {}).get("guide")
+                    if isinstance(guide_record, dict)
+                    and isinstance(guide_record.get("response"), dict)
+                    else None
+                )
+                if isinstance(receipt, dict):
+                    event_type = str(request.intent_type or "guide_update")
+                    state_by_event = {
+                        "guide_started": "RUNNING",
+                        "guide_completed": "COMPLETED",
+                        "guide_failed": "FAILED",
+                    }
+                    next_state = state_by_event.get(event_type)
+                    if next_state is None and request.reason and receipt.get("decision") == "ACCEPT":
+                        next_state = "FAILED"
+                    if next_state is not None and receipt.get("decision") == "ACCEPT":
+                        trace = {
+                            key: value
+                            for key, value in receipt.items()
+                            if key not in {"digest", "kernel"}
+                        }
+                        trace.update({
+                            "state": next_state,
+                            "eventType": event_type,
+                            "guideStarted": bool(request.guide_started),
+                            "message": request.answer.strip(),
+                            "reason": request.reason,
+                        })
+                        sealed = adviser_guide.seal(trace)
+                        await store.transition_external_request(
+                            owner_id,
+                            guide_session_id,
+                            "adviser_guide",
+                            (
+                                "ACCEPTED", "RUNNING", "COMPLETED", "FAILED"
+                            ),
+                            next_state,
+                            {"state": next_state, "guide": sealed},
+                        )
+                    return {
+                        "success": True,
+                        "message": "ok",
+                        "errorCode": 0,
+                        "talkId": talk_id,
+                    }
         answer = {
             "state": "ANSWERED",
             "questionId": str(request_id),
@@ -4538,7 +4640,17 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "chatId": request.chat_id,
             "answer": request.answer.strip(),
             "intentType": request.intent_type or "unknown",
-            "guideIgnored": bool(request.guide_session_id or request.guide_started),
+            "guide": {
+                "available": bool(request.guide_session_id),
+                "sessionId": request.guide_session_id or None,
+                "status": (
+                    "RUNNING" if request.guide_started
+                    else "AVAILABLE" if request.guide_session_id
+                    else "UNAVAILABLE"
+                ),
+                "started": bool(request.guide_started),
+            },
+            "guideIgnored": False,
             "reason": request.reason,
             "talkId": talk_id,
         }
@@ -4749,6 +4861,239 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "questionId": str(question_id),
             "taskId": str(question_id),
         }
+
+    @router.post("/adviser/questions/{question_id}/guide")
+    async def decide_adviser_guide(
+        question_id: UUID,
+        request: AdviserGuideDecisionRequest,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        question = await store.read_request(player_id, question_id, "adviser_question")
+        if question is None:
+            raise ApiError(
+                "adviser_question_not_found", "Adviser question was not found.", status_code=404
+            )
+        answer = question.get("response") or {}
+        guide = answer.get("guide")
+        guide_session_id = (
+            str(guide.get("sessionId") or "") if isinstance(guide, dict) else ""
+        )
+        if question["state"] != "ANSWERED" or not guide_session_id:
+            raise ApiError(
+                "adviser_guide_unavailable",
+                "The adviser answer has no active guide proposal.",
+                status_code=409,
+            )
+        existing_guide = await store.read_external_request_record(
+            player_id, guide_session_id, "adviser_guide"
+        )
+        if (
+            existing_guide is not None
+            and str(existing_guide.get("request", {}).get("action_id") or "")
+            != str(request.action_id)
+        ):
+            raise ApiError(
+                "adviser_guide_already_decided",
+                "This adviser guide already has a recorded decision.",
+                status_code=409,
+            )
+        body = {"question_id": str(question_id), **_payload(request)}
+        try:
+            created, previous = await store.begin_request(
+                player_id,
+                request.action_id,
+                "adviser_guide",
+                body,
+                retry_states=("RETRYABLE",),
+            )
+        except VersionConflict as error:
+            raise ApiError(
+                "idempotency_conflict",
+                "The guide decision identifier was already used with different input.",
+                status_code=409,
+            ) from error
+        if not created:
+            return {"replayed": True, **(previous or {})}
+        payload = {
+            "taskId": str(question_id),
+            "gameServerId": settings.game_server_id,
+            "playerId": str(stable_player_id(settings.ainpc_game_server_id, player_id)),
+            "chatId": str(answer.get("chatId") or f"dongzhou-adviser-{question_id}"),
+            "guideSessionId": guide_session_id,
+            "confirm": request.decision == "ACCEPT",
+        }
+        try:
+            await upstreams.decide_ai_helper_guide(payload)
+        except UpstreamUnavailable as error:
+            retryable = {
+                "state": "RETRYABLE",
+                "questionId": str(question_id),
+                "actionId": str(request.action_id),
+            }
+            await store.finish_request(
+                player_id,
+                request.action_id,
+                "RETRYABLE",
+                retryable,
+                str(error),
+                external_id=guide_session_id,
+            )
+            raise ApiError(
+                "adviser_guide_unavailable",
+                "The adviser guide decision is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        state = "ACCEPTED" if request.decision == "ACCEPT" else "REJECTED"
+        trace = {
+            "actionId": str(request.action_id),
+            "questionId": str(question_id),
+            "taskId": str(question_id),
+            "playerId": str(player_id),
+            "chatId": payload["chatId"],
+            "guideSessionId": guide_session_id,
+            "decision": request.decision,
+            "state": state,
+            "eventType": "guide_decision",
+            "guideStarted": False,
+            "message": "",
+            "reason": "",
+        }
+        sealed = adviser_guide.seal(trace)
+        response = {"state": state, "guide": sealed}
+        await store.finish_request(
+            player_id,
+            request.action_id,
+            state,
+            response,
+            external_id=guide_session_id,
+        )
+        return {"replayed": False, **response}
+
+    @router.get("/adviser/guides/{action_id}")
+    async def read_adviser_guide(
+        action_id: UUID, player_id: UUID = Depends(player)
+    ) -> dict[str, Any]:
+        record = await store.read_request(player_id, action_id, "adviser_guide")
+        if record is None:
+            raise ApiError(
+                "adviser_guide_not_found", "Adviser guide was not found.", status_code=404
+            )
+        return record["response"] or {"state": record["state"]}
+
+    @router.post("/adviser/guides/{guide_action_id}/cancel")
+    async def cancel_adviser_guide(
+        guide_action_id: UUID,
+        request: AdviserGuideCancelRequest,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        guide_record = await store.read_request(
+            player_id, guide_action_id, "adviser_guide"
+        )
+        receipt = (
+            guide_record.get("response", {}).get("guide")
+            if isinstance(guide_record, dict)
+            and isinstance(guide_record.get("response"), dict)
+            else None
+        )
+        body = {
+            "guide_action_id": str(guide_action_id),
+            **_payload(request),
+        }
+        existing_cancel = await store.read_request(
+            player_id, request.action_id, "adviser_guide_cancel"
+        )
+        if existing_cancel is not None:
+            try:
+                _, previous = await store.begin_request(
+                    player_id, request.action_id, "adviser_guide_cancel", body
+                )
+            except VersionConflict as error:
+                raise ApiError(
+                    "idempotency_conflict",
+                    "The guide cancellation identifier was already used with different input.",
+                    status_code=409,
+                ) from error
+            return {"replayed": True, **(previous or {})}
+        if (
+            not isinstance(receipt, dict)
+            or receipt.get("decision") != "ACCEPT"
+            or guide_record.get("state") not in {"ACCEPTED", "RUNNING"}
+        ):
+            raise ApiError(
+                "adviser_guide_not_cancellable",
+                "The adviser guide is not active.",
+                status_code=409,
+            )
+        try:
+            created, previous = await store.begin_request(
+                player_id, request.action_id, "adviser_guide_cancel", body
+            )
+        except VersionConflict as error:
+            raise ApiError(
+                "idempotency_conflict",
+                "The guide cancellation identifier was already used with different input.",
+                status_code=409,
+            ) from error
+        if not created:
+            return {"replayed": True, **(previous or {})}
+        guide_session_id = str(receipt["guideSessionId"])
+        try:
+            await upstreams.cancel_ai_helper_guide({
+                "gameServerId": settings.game_server_id,
+                "playerId": str(stable_player_id(settings.ainpc_game_server_id, player_id)),
+                "guideSessionId": guide_session_id,
+                "reason": request.reason,
+            })
+        except UpstreamUnavailable as error:
+            await store.finish_request(
+                player_id,
+                request.action_id,
+                "RETRYABLE",
+                {"state": "RETRYABLE", "guideActionId": str(guide_action_id)},
+                str(error),
+                external_id=guide_session_id,
+            )
+            raise ApiError(
+                "adviser_guide_cancel_unavailable",
+                "The adviser guide could not be cancelled.",
+                status_code=503,
+            ) from error
+        trace = {
+            key: value
+            for key, value in receipt.items()
+            if key not in {"digest", "kernel"}
+        }
+        trace.update({
+            "state": "CANCELLED",
+            "eventType": "guide_cancelled",
+            "guideStarted": False,
+            "message": "",
+            "reason": request.reason,
+        })
+        sealed = adviser_guide.seal(trace)
+        response = {"state": "CANCELLED", "guide": sealed}
+        updated = await store.transition_external_request(
+            player_id,
+            guide_session_id,
+            "adviser_guide",
+            ("ACCEPTED", "RUNNING"),
+            "CANCELLED",
+            response,
+        )
+        if not updated:
+            raise ApiError(
+                "adviser_guide_cancel_conflict",
+                "The adviser guide changed while cancellation was being recorded.",
+                status_code=409,
+            )
+        await store.finish_request(
+            player_id,
+            request.action_id,
+            "CANCELLED",
+            response,
+            external_id=guide_session_id,
+        )
+        return {"replayed": False, **response}
 
     @router.post("/adviser/questions/{question_id}/feedback")
     async def submit_adviser_feedback(

@@ -200,6 +200,16 @@ class AdviserFeedbackRequest(StrictModel):
     reason: str = Field(default="", max_length=500)
 
 
+class AdviserGuideDecisionRequest(StrictModel):
+    action_id: UUID = Field(strict=False)
+    decision: Literal["ACCEPT", "REJECT"]
+
+
+class AdviserGuideCancelRequest(StrictModel):
+    action_id: UUID = Field(strict=False)
+    reason: str = Field(default="player_cancelled", min_length=1, max_length=500)
+
+
 class KnowledgeSearchRequest(StrictModel):
     client_request_id: UUID | None = Field(default=None, strict=False)
     stage_id: str | None = Field(default=None, min_length=1, max_length=64)

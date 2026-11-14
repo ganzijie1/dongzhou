@@ -1191,6 +1191,36 @@ class Store:
                 )
         return True
 
+    async def transition_external_request(
+        self,
+        player_id: UUID,
+        external_id: str,
+        kind: str,
+        expected_states: tuple[str, ...],
+        state: str,
+        response: dict[str, Any],
+    ) -> bool:
+        if not expected_states:
+            raise ValueError("expected_states must not be empty")
+        placeholders = ",".join("?" for _ in expected_states)
+        async with self._lock:
+            with self._connection() as db:
+                result = db.execute(
+                    "UPDATE requests SET state=?,response_payload=?,attempts=attempts+1,"
+                    "last_error=NULL,updated_at=CURRENT_TIMESTAMP "
+                    "WHERE player_id=? AND external_id=? AND kind=? "
+                    f"AND state IN ({placeholders})",
+                    (
+                        state,
+                        json.dumps(response, ensure_ascii=False, separators=(",", ":")),
+                        str(player_id),
+                        external_id,
+                        kind,
+                        *expected_states,
+                    ),
+                )
+        return result.rowcount == 1
+
     async def register_derived_external_request(
         self,
         player_id: UUID,

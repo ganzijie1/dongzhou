@@ -3052,7 +3052,9 @@
     const result = journal?.result;
     const answer = $("#officeAdviserAnswer");
     const feedback = $("#officeAdviserFeedback");
-    if (!answer || !feedback) return;
+    const guidePanel = $("#officeAdviserGuide");
+    const guideStatus = $("#officeAdviserGuideStatus");
+    if (!answer || !feedback || !guidePanel || !guideStatus) return;
     const processing = result?.state === "PROCESSING" || result?.state === "PENDING";
     $("#officeAdviserAsk").disabled = officeAdviserInFlight || processing || integration.isOffline();
     answer.classList.toggle("answered", result?.state === "ANSWERED");
@@ -3065,6 +3067,29 @@
     feedback.hidden = result?.state !== "ANSWERED" || recorded;
     feedback.querySelectorAll("button").forEach((button) => { button.disabled = officeAdviserInFlight; });
     if (recorded) answer.textContent += `\n已记下评价：${journal.feedback.rating === "accurate" ? "准确" : "不准确"}`;
+    const guideResult = journal?.guideCancellation?.result || journal?.guideDecision?.result;
+    const guideReceipt = guideResult?.guide;
+    const guideState = guideResult?.state || (result?.guide?.available ? "AVAILABLE" : "");
+    const guideLabels = {
+      AVAILABLE: "军师提出引路方案，等待你的决定。",
+      ACCEPTED: "已采纳引路，正在等待属官启程。",
+      RUNNING: "属官正在引路。",
+      COMPLETED: "引路已经完成。",
+      FAILED: "本次引路未能完成。",
+      REJECTED: "本次引路方案已暂缓。",
+      CANCELLED: "已停止本次引路。"
+    };
+    guidePanel.hidden = !guideState;
+    guideStatus.textContent = guideState
+      ? `${guideLabels[guideState] || guideState}${guideReceipt?.digest ? ` · 印记 ${String(guideReceipt.digest).slice(0, 12)}` : ""}`
+      : "";
+    guidePanel.querySelectorAll("[data-adviser-guide]").forEach((button) => {
+      button.hidden = guideState !== "AVAILABLE" || Boolean(journal?.guideDecision);
+      button.disabled = officeAdviserInFlight;
+    });
+    const cancelButton = guidePanel.querySelector("[data-adviser-guide-cancel]");
+    cancelButton.hidden = !["ACCEPTED", "RUNNING"].includes(guideState);
+    cancelButton.disabled = officeAdviserInFlight;
   }
 
   async function refreshOfficeAdviser() {
@@ -3072,15 +3097,29 @@
     officeAdviserTimer = null;
     renderOfficeAdviser();
     const journal = integration.pendingAdviserQuestion();
-    if (integration.isOffline() || journal?.result?.state !== "PROCESSING") return;
+    if (integration.isOffline()) return;
     try {
-      await integration.adviserQuestion(journal.input.client_request_id);
+      if (journal?.result?.state === "PROCESSING") {
+        await integration.adviserQuestion(journal.input.client_request_id);
+      }
+      const latestJournal = integration.pendingAdviserQuestion();
+      const guideState = latestJournal?.guideDecision?.result?.state;
+      if (
+        latestJournal?.guideDecision?.action_id
+        && ["ACCEPTED", "RUNNING"].includes(guideState)
+      ) {
+        await integration.adviserGuide(latestJournal.guideDecision.action_id);
+      }
     } catch (_) {
-      // A transient read failure should not discard an accepted asynchronous question.
+      // A transient read failure should not discard accepted asynchronous work.
     }
     renderOfficeAdviser();
     const latest = integration.pendingAdviserQuestion();
-    if (!$("#campaignOfficeBackdrop").hidden && latest?.result?.state === "PROCESSING") {
+    const guideState = latest?.guideDecision?.result?.state;
+    if (
+      !$("#campaignOfficeBackdrop").hidden
+      && (latest?.result?.state === "PROCESSING" || ["ACCEPTED", "RUNNING"].includes(guideState))
+    ) {
       officeAdviserTimer = setTimeout(refreshOfficeAdviser, 1500);
     }
   }
@@ -3117,6 +3156,44 @@
       await integration.feedbackAdviser(journal.input.client_request_id, rating);
     } catch (error) {
       showNotice(`评价未记下：${error.message}`);
+    } finally {
+      officeAdviserInFlight = false;
+      renderOfficeAdviser();
+    }
+  }
+
+  async function decideOfficeAdviserGuide(decision) {
+    const journal = integration.pendingAdviserQuestion();
+    if (!journal?.input?.client_request_id || !journal?.result?.guide?.available || officeAdviserInFlight) return;
+    officeAdviserInFlight = true;
+    renderOfficeAdviser();
+    try {
+      const result = await integration.decideAdviserGuide(
+        journal.input.client_request_id,
+        decision
+      );
+      showNotice(decision === "ACCEPT" ? "已采纳军师引路" : "已暂缓军师引路");
+      if (["ACCEPTED", "RUNNING"].includes(result.state)) refreshOfficeAdviser();
+    } catch (error) {
+      showNotice(`引路决定未送达：${error.message}`);
+    } finally {
+      officeAdviserInFlight = false;
+      renderOfficeAdviser();
+    }
+  }
+
+  async function cancelOfficeAdviserGuide() {
+    const journal = integration.pendingAdviserQuestion();
+    const guideActionId = journal?.guideDecision?.action_id;
+    const guideState = journal?.guideDecision?.result?.state;
+    if (!guideActionId || !["ACCEPTED", "RUNNING"].includes(guideState) || officeAdviserInFlight) return;
+    officeAdviserInFlight = true;
+    renderOfficeAdviser();
+    try {
+      await integration.cancelAdviserGuide(guideActionId);
+      showNotice("已停止军师引路");
+    } catch (error) {
+      showNotice(`停止引路失败：${error.message}`);
     } finally {
       officeAdviserInFlight = false;
       renderOfficeAdviser();
@@ -5023,6 +5100,11 @@
     $("#officeAdviserFeedback").addEventListener("click", (event) => {
       const button = event.target.closest("[data-adviser-rating]");
       if (button) submitOfficeAdviserFeedback(button.dataset.adviserRating);
+    });
+    $("#officeAdviserGuide").addEventListener("click", (event) => {
+      const decision = event.target.closest("[data-adviser-guide]");
+      if (decision) { decideOfficeAdviserGuide(decision.dataset.adviserGuide); return; }
+      if (event.target.closest("[data-adviser-guide-cancel]")) cancelOfficeAdviserGuide();
     });
     $("#officeStageKnowledgeButton").addEventListener("click", loadOfficeStageKnowledge);
     $("#officeCommendButton").addEventListener("click", commendOfficeNpc);

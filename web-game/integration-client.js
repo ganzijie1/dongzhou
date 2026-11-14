@@ -690,5 +690,54 @@
     return result;
   }
 
-  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, verifyKnowledgeQuizSeal, pendingAdviserQuestion, askAdviser, adviserQuestion, feedbackAdviser, syncNpcs, setNpcInteractionPreference, commendNpc, commendMeritNpc, recallNpc, npcState, npcCorrespondence, organizationPublicNotices, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationMemberContributions, organizationContributionDossier, organizationPlayerTasks, organizationInventory, organizationScheduledDuties, organizationLogisticsBriefing, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
+  async function decideAdviserGuide(questionId, decision) {
+    if (offline) return Promise.reject(new Error("adviser_requires_online"));
+    const pending = pendingAdviserQuestion();
+    const guideDecision = pending?.guideDecision?.decision === decision
+      ? pending.guideDecision
+      : { action_id: root.crypto.randomUUID(), decision, result: null };
+    if (pending) write(ADVISER_QUESTION_KEY, { ...pending, guideDecision });
+    const result = await request(`/adviser/questions/${encodeURIComponent(questionId)}/guide`, {
+      method: "POST",
+      body: JSON.stringify({ action_id: guideDecision.action_id, decision })
+    });
+    if (pending) write(ADVISER_QUESTION_KEY, { ...pending, guideDecision: { ...guideDecision, result } });
+    return result;
+  }
+
+  async function adviserGuide(actionId) {
+    if (offline) return Promise.reject(new Error("adviser_requires_online"));
+    const result = await requestWithTransientRetry(`/adviser/guides/${encodeURIComponent(actionId)}`);
+    const pending = pendingAdviserQuestion();
+    if (pending?.guideDecision?.action_id === actionId) {
+      write(ADVISER_QUESTION_KEY, {
+        ...pending,
+        guideDecision: { ...pending.guideDecision, result }
+      });
+    }
+    return result;
+  }
+
+  async function cancelAdviserGuide(actionId, reason = "player_cancelled") {
+    if (offline) return Promise.reject(new Error("adviser_requires_online"));
+    const pending = pendingAdviserQuestion();
+    const cancellation = pending?.guideCancellation || {
+      action_id: root.crypto.randomUUID(), reason, result: null
+    };
+    if (pending) write(ADVISER_QUESTION_KEY, { ...pending, guideCancellation: cancellation });
+    const result = await request(`/adviser/guides/${encodeURIComponent(actionId)}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({ action_id: cancellation.action_id, reason: cancellation.reason })
+    });
+    if (pending) write(ADVISER_QUESTION_KEY, {
+      ...pending,
+      guideDecision: pending.guideDecision
+        ? { ...pending.guideDecision, result }
+        : pending.guideDecision,
+      guideCancellation: { ...cancellation, result }
+    });
+    return result;
+  }
+
+  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, verifyKnowledgeQuizSeal, pendingAdviserQuestion, askAdviser, adviserQuestion, feedbackAdviser, decideAdviserGuide, adviserGuide, cancelAdviserGuide, syncNpcs, setNpcInteractionPreference, commendNpc, commendMeritNpc, recallNpc, npcState, npcCorrespondence, organizationPublicNotices, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationMemberContributions, organizationContributionDossier, organizationPlayerTasks, organizationInventory, organizationScheduledDuties, organizationLogisticsBriefing, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
 });

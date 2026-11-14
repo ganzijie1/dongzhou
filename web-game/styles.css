@@ -3805,6 +3805,10 @@ button:focus-visible {
 .office-adviser-answer.answered { color: #ded2b3; }
 .office-adviser-feedback { display: flex; gap: 8px; margin-top: 10px; }
 .office-adviser-feedback[hidden] { display: none; }
+.office-adviser-guide { display: grid; gap: 9px; margin-top: 10px; padding: 10px 0; border-top: 1px dotted rgba(196, 172, 111, .24); }
+.office-adviser-guide[hidden] { display: none; }
+.office-adviser-guide p { margin: 0; color: #b99344; font-size: 11px; line-height: 1.6; }
+.office-adviser-guide > div { display: flex; flex-wrap: wrap; gap: 8px; }
 .office-quiz { margin: 18px 0; padding: 16px 0; border-top: 1px solid rgba(196, 172, 111, .2); border-bottom: 1px solid rgba(196, 172, 111, .2); }
 .office-quiz-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .office-quiz-heading > div { display: grid; gap: 4px; }

@@ -45,6 +45,9 @@ let knowledgeCodexRequests = 0;
 let adviserQuestionInput = null;
 let adviserStatusReads = 0;
 let adviserFeedbackInput = null;
+let adviserGuideDecisionInput = null;
+let adviserGuideStatusReads = 0;
+let adviserGuideCancelInput = null;
 let organizationResponse = null;
 let npcInteractionPreferenceInput = null;
 let storedProfile = {};
@@ -116,9 +119,21 @@ global.fetch = async (url, options = {}) => {
     adviserFeedbackInput = body;
     response = { state: "RECORDED", questionId: decodeURIComponent(url.split("/").at(-2)), rating: body.rating };
   }
+  else if (/\/adviser\/questions\/[^/]+\/guide$/.test(url)) {
+    adviserGuideDecisionInput = body;
+    response = { state: "ACCEPTED", guide: { actionId: body.action_id, decision: body.decision, state: "ACCEPTED", digest: "1".repeat(64), kernel: { module: "dongzhou_adviser_guide", state: "SEALED" } } };
+  }
+  else if (/\/adviser\/guides\/[^/]+\/cancel$/.test(url)) {
+    adviserGuideCancelInput = body;
+    response = { state: "CANCELLED", guide: { actionId: decodeURIComponent(url.split("/").at(-2)), decision: "ACCEPT", state: "CANCELLED", digest: "2".repeat(64), kernel: { module: "dongzhou_adviser_guide", state: "SEALED" } } };
+  }
+  else if (/\/adviser\/guides\/[^/]+$/.test(url)) {
+    adviserGuideStatusReads += 1;
+    response = { state: "RUNNING", guide: { actionId: decodeURIComponent(url.split("/").at(-1)), decision: "ACCEPT", state: "RUNNING", digest: "3".repeat(64), kernel: { module: "dongzhou_adviser_guide", state: "SEALED" } } };
+  }
   else if (/\/adviser\/questions\/[^/]+$/.test(url)) {
     adviserStatusReads += 1;
-    response = { state: "ANSWERED", questionId: decodeURIComponent(url.split("/").at(-1)), answer: "adviser answer", intentType: "role" };
+    response = { state: "ANSWERED", questionId: decodeURIComponent(url.split("/").at(-1)), answer: "adviser answer", intentType: "role", guide: { available: true, sessionId: "guide-session-1", status: "AVAILABLE", started: false } };
   }
   else if (url.endsWith("/organization/roster")) {
     response = { organization: { name: "东周军府", growthContribution: 245 }, members: [{ heroId: "DuBo", lifetimeEarned: 80 }] };
@@ -274,6 +289,17 @@ const client = require("../web-game/integration-client.js");
   const adviserAnswer = await client.adviserQuestion(adviser.questionId);
   assert.strictEqual(adviserAnswer.answer, "adviser answer");
   assert.strictEqual(adviserStatusReads, 1);
+  const adviserGuide = await client.decideAdviserGuide(adviser.questionId, "ACCEPT");
+  assert.strictEqual(adviserGuide.state, "ACCEPTED");
+  assert.strictEqual(adviserGuideDecisionInput.decision, "ACCEPT");
+  assert.match(adviserGuideDecisionInput.action_id, /^[0-9a-f-]{36}$/);
+  const adviserGuideStatus = await client.adviserGuide(adviserGuide.guide.actionId);
+  assert.strictEqual(adviserGuideStatus.state, "RUNNING");
+  assert.strictEqual(adviserGuideStatusReads, 1);
+  const adviserGuideCancelled = await client.cancelAdviserGuide(adviserGuide.guide.actionId);
+  assert.strictEqual(adviserGuideCancelled.state, "CANCELLED");
+  assert.strictEqual(adviserGuideCancelInput.reason, "player_cancelled");
+  assert.match(adviserGuideCancelInput.action_id, /^[0-9a-f-]{36}$/);
   const adviserFeedback = await client.feedbackAdviser(adviser.questionId, "accurate");
   assert.strictEqual(adviserFeedback.state, "RECORDED");
   assert.strictEqual(adviserFeedbackInput.rating, "accurate");
