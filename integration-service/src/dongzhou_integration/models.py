@@ -279,6 +279,9 @@ class NpcDecisionRequest(StrictModel):
     contribution_entry_digest: str | None = Field(
         default=None, pattern=r"^[0-9a-f]{64}$"
     )
+    contribution_dossier_digest: str | None = Field(
+        default=None, pattern=r"^[0-9a-f]{64}$"
+    )
 
     @model_validator(mode="after")
     def memory_reference_is_complete(self) -> "NpcDecisionRequest":
@@ -288,6 +291,8 @@ class NpcDecisionRequest(StrictModel):
             raise ValueError("NPC public notice reference is incomplete")
         if bool(self.contribution_entry_id) != bool(self.contribution_entry_digest):
             raise ValueError("organization contribution reference is incomplete")
+        if self.contribution_dossier_digest and not self.contribution_entry_id:
+            raise ValueError("organization contribution dossier has no ledger entry")
         return self
 
 

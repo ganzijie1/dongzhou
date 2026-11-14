@@ -464,6 +464,27 @@ class MandateUpstreams:
 
     async def get_virtual_task_trace(self, organization_id, task_id):
         task = self.task_snapshot or {}
+        timeline = [
+            {
+                "sequence_no": "1",
+                "occurred_at": "2026-11-13T00:00:00Z",
+                "entry_type": "TASK_CREATED",
+                "reference_id": task_id,
+                "case_id": None,
+                "state_code": "GENERATED",
+                "reason_code": None,
+            }
+        ]
+        if task.get("state") in {"SUCCEEDED", "PARTIALLY_COMPLETED", "FAILED"}:
+            timeline.append({
+                "sequence_no": "2",
+                "occurred_at": "2026-11-13T00:30:00Z",
+                "entry_type": "TASK_FINALIZED",
+                "reference_id": task_id,
+                "case_id": None,
+                "state_code": str(task["state"]),
+                "reason_code": None,
+            })
         return {
             "data": {
                 "task": {
@@ -475,17 +496,7 @@ class MandateUpstreams:
                     "execution_exception": task.get("execution_exception"),
                 },
                 "confirmations": [],
-                "timeline": [
-                    {
-                        "sequence_no": "1",
-                        "occurred_at": "2026-11-13T00:00:00Z",
-                        "entry_type": "TASK_CREATED",
-                        "reference_id": task_id,
-                        "case_id": None,
-                        "state_code": "GENERATED",
-                        "reason_code": None,
-                    }
-                ],
+                "timeline": timeline,
             }
         }
 
@@ -650,6 +661,8 @@ def test_contribution_entry_is_reverified_and_sealed_into_mandate() -> None:
             "contribution_lifetime_spent": 0,
         }]
         entry_id = str(uuid4())
+        task_id = str(uuid4())
+        upstreams.task_snapshot = {"state": "SUCCEEDED", "version": "3"}
         upstreams.contribution_entries = [{
             "entry_id": entry_id,
             "account_version": 2,
@@ -658,7 +671,7 @@ def test_contribution_entry_is_reverified_and_sealed_into_mandate() -> None:
             "lifetime_earned_after": 20,
             "lifetime_spent_after": 0,
             "event_code": "TASK_COMPLETED",
-            "source_ref": "task-1",
+            "source_ref": f"organization-task:{task_id}",
             "violation_id": None,
             "rule_set_id": "organization.default",
             "rule_set_version": 1,
@@ -673,10 +686,15 @@ def test_contribution_entry_is_reverified_and_sealed_into_mandate() -> None:
             )
             assert ledger.status_code == 200, ledger.text
             contribution = ledger.json()["entries"][0]
+            dossier_response = client.get(
+                f"/api/dongzhou/v1/organization/members/ZuoRu/contributions/{entry_id}/dossier"
+            )
+            assert dossier_response.status_code == 200, dossier_response.text
+            dossier = dossier_response.json()["dossier"]
             council_id = str(uuid4())
             council = client.post("/api/dongzhou/v1/npcs/ZuoRu/decisions", json={
                 "client_request_id": council_id,
-                "question": "如何部署\n选证：《史记·周本纪》｜史实骨架\n功绩印记：" + contribution["digest"][:12],
+                "question": "如何部署\n选证：《史记·周本纪》｜史实骨架\n功绩印记：" + contribution["digest"][:12] + "\n卷宗印记：" + dossier["digest"][:12],
                 "options": [
                     {"index": 0, "text": "固守关隘"},
                     {"index": 1, "text": "整军进取"},
@@ -684,9 +702,11 @@ def test_contribution_entry_is_reverified_and_sealed_into_mandate() -> None:
                 "topic": "court_decision",
                 "contribution_entry_id": entry_id,
                 "contribution_entry_digest": contribution["digest"],
+                "contribution_dossier_digest": dossier["digest"],
             })
             assert council.status_code == 200, council.text
             assert council.json()["contributionReceipt"] == contribution
+            assert council.json()["contributionDossierReceipt"] == dossier
 
             draft = client.post(
                 "/api/dongzhou/v1/court/mandates",
@@ -696,6 +716,8 @@ def test_contribution_entry_is_reverified_and_sealed_into_mandate() -> None:
             mandate = draft.json()["mandate"]
             assert mandate["contribution"] == contribution
             assert mandate["council"]["contribution"] == contribution
+            assert mandate["contributionDossier"] == dossier
+            assert mandate["council"]["contributionDossier"] == dossier
 
             upstreams.roster_members = []
             stale = client.post(

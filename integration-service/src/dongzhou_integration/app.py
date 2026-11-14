@@ -3939,6 +3939,35 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 return None
             before_version = next_before_version
 
+    async def current_contribution_dossier(
+        contribution: dict[str, Any],
+    ) -> dict[str, Any]:
+        source_match = re.fullmatch(
+            r"(?:organization-task|virtual_task):([0-9a-fA-F-]{36})",
+            str(contribution.get("sourceRef") or ""),
+        )
+        if source_match is None:
+            raise ValueError("contribution source is not an organization task")
+        task_id = str(UUID(source_match.group(1)))
+        trace_response = await upstreams.get_virtual_task_trace(
+            settings.orgflow_org_id, task_id
+        )
+        trace_snapshot = (
+            trace_response.get("data", trace_response)
+            if isinstance(trace_response, dict)
+            else None
+        )
+        task_trace = organization_task_trace.seal(
+            _organization_task_trace_view(
+                trace_snapshot,
+                task_id=task_id,
+                organization_id=settings.orgflow_org_id,
+            )
+        )
+        return organization_contribution_dossier.seal(
+            contribution, task_trace
+        )
+
     def service_statuses(external: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
         kernel_snapshot = kernel.health_status()
         runtime = next(
@@ -6066,6 +6095,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 await store.finish_request(player_id, request.client_request_id, "REJECTED", {"state": "REJECTED"}, "npc_public_notice_unverified")
                 raise ApiError("npc_public_notice_unverified", "The council public notice is no longer verifiable.", status_code=422)
         contribution_receipt: dict[str, Any] | None = None
+        contribution_dossier_receipt: dict[str, Any] | None = None
         if request.contribution_entry_id and request.contribution_entry_digest:
             try:
                 contribution_receipt = await current_contribution_receipt(
@@ -6102,6 +6132,39 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 raise ApiError(
                     "organization_contribution_unverified",
                     "The selected officer contribution is no longer verifiable.",
+                    status_code=422,
+                )
+        if request.contribution_dossier_digest:
+            try:
+                contribution_dossier_receipt = await current_contribution_dossier(
+                    contribution_receipt or {}
+                )
+            except UpstreamUnavailable as error:
+                await store.finish_request(
+                    player_id, request.client_request_id, "RETRYABLE",
+                    {"state": "RETRYABLE"}, str(error),
+                )
+                raise ApiError(
+                    "organization_contribution_dossier_unavailable",
+                    "The selected contribution dossier is temporarily unavailable.",
+                    status_code=503,
+                ) from error
+            except (TypeError, ValueError):
+                contribution_dossier_receipt = None
+            if (
+                contribution_dossier_receipt is None
+                or contribution_dossier_receipt.get("digest")
+                != request.contribution_dossier_digest
+                or request.contribution_dossier_digest[:12] not in request.question
+            ):
+                await store.finish_request(
+                    player_id, request.client_request_id, "REJECTED",
+                    {"state": "REJECTED"},
+                    "organization_contribution_dossier_unverified",
+                )
+                raise ApiError(
+                    "organization_contribution_dossier_unverified",
+                    "The selected contribution dossier is no longer verifiable.",
                     status_code=422,
                 )
         memory_receipt: dict[str, Any] | None = None
@@ -6316,6 +6379,10 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             **({"memoryReceipt": memory_receipt} if memory_receipt else {}),
             **({"publicNoticeReceipt": public_notice_receipt} if public_notice_receipt else {}),
             **({"contributionReceipt": contribution_receipt} if contribution_receipt else {}),
+            **(
+                {"contributionDossierReceipt": contribution_dossier_receipt}
+                if contribution_dossier_receipt else {}
+            ),
         }
         await store.finish_request(player_id, request.client_request_id, "COMPLETED", response)
         return response
@@ -6614,6 +6681,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             if isinstance(council_response, dict)
             else None
         )
+        current_contribution: dict[str, Any] | None = None
         if selected_contribution is not None:
             try:
                 current_contribution = await current_contribution_receipt(
@@ -6652,6 +6720,45 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 raise ApiError(
                     "court_contribution_unverified",
                     "The mandate contribution evidence is no longer verifiable.",
+                    status_code=422,
+                )
+
+        selected_contribution_dossier = (
+            council_response.get("contributionDossierReceipt")
+            if isinstance(council_response, dict)
+            else None
+        )
+        if selected_contribution_dossier is not None:
+            try:
+                current_dossier = await current_contribution_dossier(
+                    current_contribution or {}
+                )
+            except UpstreamUnavailable as error:
+                await store.finish_request(
+                    player_id, request.client_request_id, "RETRYABLE",
+                    {"state": "RETRYABLE"}, str(error),
+                )
+                raise ApiError(
+                    "organization_contribution_dossier_unavailable",
+                    "The mandate contribution dossier is temporarily unavailable.",
+                    status_code=503,
+                ) from error
+            except (TypeError, ValueError):
+                current_dossier = None
+            if (
+                current_dossier is None
+                or current_dossier != selected_contribution_dossier
+                or str(selected_contribution_dossier.get("digest") or "")[:12]
+                not in str(council_request.get("question") or "")
+            ):
+                await store.finish_request(
+                    player_id, request.client_request_id, "REJECTED",
+                    {"state": "REJECTED"},
+                    "court_contribution_dossier_unverified",
+                )
+                raise ApiError(
+                    "court_contribution_dossier_unverified",
+                    "The mandate contribution dossier is no longer verifiable.",
                     status_code=422,
                 )
 
@@ -7107,6 +7214,10 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 **({"publicNotice": selected_public_notice} if selected_public_notice else {}),
                 **({"contribution": selected_contribution} if selected_contribution else {}),
                 **(
+                    {"contributionDossier": selected_contribution_dossier}
+                    if selected_contribution_dossier else {}
+                ),
+                **(
                     {"knowledgeMastery": knowledge_mastery}
                     if knowledge_mastery is not None
                     else {}
@@ -7141,6 +7252,9 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         if selected_contribution is not None:
             trace["contribution"] = selected_contribution
             trace["council"]["contribution"] = selected_contribution
+        if selected_contribution_dossier is not None:
+            trace["contributionDossier"] = selected_contribution_dossier
+            trace["council"]["contributionDossier"] = selected_contribution_dossier
         if request.operation is not None:
             trace["operation"] = request.operation.model_dump(mode="json")
         # Canonical JSON keeps the seal stable across retries and process restarts.
@@ -7512,36 +7626,17 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     "The selected contribution entry is no longer available.",
                     status_code=404,
                 )
-            source_match = re.fullmatch(
-                r"(?:organization-task|virtual_task):([0-9a-fA-F-]{36})",
+            if not re.fullmatch(
+                r"(?:organization-task|virtual_task):[0-9a-fA-F-]{36}",
                 str(contribution.get("sourceRef") or ""),
-            )
-            if source_match is None:
+            ):
                 raise ApiError(
                     "organization_contribution_source_unsupported",
                     "This contribution entry does not refer to an organization task.",
                     status_code=422,
                 )
-            task_id = str(UUID(source_match.group(1)))
-            trace_response = await upstreams.get_virtual_task_trace(
-                settings.orgflow_org_id, task_id
-            )
-            trace_snapshot = (
-                trace_response.get("data", trace_response)
-                if isinstance(trace_response, dict)
-                else None
-            )
-            task_trace = organization_task_trace.seal(
-                _organization_task_trace_view(
-                    trace_snapshot,
-                    task_id=task_id,
-                    organization_id=settings.orgflow_org_id,
-                )
-            )
             return {
-                "dossier": organization_contribution_dossier.seal(
-                    contribution, task_trace
-                )
+                "dossier": await current_contribution_dossier(contribution)
             }
         except ApiError:
             raise
