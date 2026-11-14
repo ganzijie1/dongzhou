@@ -14,6 +14,7 @@ from uuid import UUID, uuid4
 from fastapi.testclient import TestClient
 import httpx
 from pydantic import ValidationError
+from nexus_kernel.kernel import ModuleState
 
 from dongzhou_integration.app import (
     BattleReceiptConflict,
@@ -1813,6 +1814,26 @@ class AuthenticationRouteTests(unittest.TestCase):
                 self.assertTrue(nexus["online"])
                 self.assertEqual(nexus["mode"], "embedded")
                 self.assertRegex(nexus["version"], r"^\d+\.\d+\.\d+")
+                self.assertEqual(nexus["requiredModuleCount"], 17)
+                self.assertEqual(nexus["operationalModuleCount"], 17)
+                self.assertEqual(len(nexus["moduleStates"]), 17)
+                self.assertEqual(nexus["unavailableModules"], [])
+
+                merit_module = next(
+                    entry.module
+                    for entry in application.state.kernel._ordered
+                    if entry.module.name == "dongzhou_npc_merit_commendation"
+                )
+                merit_module.state = ModuleState.FAILED
+                degraded = client.get("/api/dongzhou/v1/integration/status")
+                self.assertEqual(degraded.status_code, 200)
+                degraded_nexus = degraded.json()["services"]["nexusKernel"]
+                self.assertFalse(degraded_nexus["online"])
+                self.assertEqual(degraded_nexus["operationalModuleCount"], 16)
+                self.assertEqual(
+                    degraded_nexus["unavailableModules"],
+                    ["dongzhou_npc_merit_commendation"],
+                )
 
     def test_private_chat_game_server_contract_is_durable_and_complete(self) -> None:
         with TemporaryDirectory() as directory, patch.dict(

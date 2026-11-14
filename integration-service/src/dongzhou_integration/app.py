@@ -4222,71 +4222,51 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
 
     def service_statuses(external: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
         kernel_snapshot = kernel.health_status()
-        runtime = next(
-            (
-                item
-                for item in kernel_snapshot.get("modules", [])
-                if item.get("name") == RuntimeModule.name
-            ),
-            {},
-        )
-        runtime_state = str(runtime.get("state") or "unknown").lower()
-        workflow = next(
-            (
-                item
-                for item in kernel_snapshot.get("modules", [])
-                if item.get("name") == MandateWorkflowModule.name
-            ),
-            {},
-        )
-        workflow_state = str(workflow.get("state") or "unknown").lower()
-        tournament = next(
-            (
-                item
-                for item in kernel_snapshot.get("modules", [])
-                if item.get("name") == KnowledgeTournamentModule.name
-            ),
-            {},
-        )
-        tournament_state = str(tournament.get("state") or "unknown").lower()
-        route_module = next(
-            (
-                item
-                for item in kernel_snapshot.get("modules", [])
-                if item.get("name") == CampaignRouteModule.name
-            ),
-            {},
-        )
-        route_state = str(route_module.get("state") or "unknown").lower()
-        logistics_module = next(
-            (
-                item
-                for item in kernel_snapshot.get("modules", [])
-                if item.get("name") == LogisticsBriefingModule.name
-            ),
-            {},
-        )
-        logistics_state = str(logistics_module.get("state") or "unknown").lower()
-        task_trace_module = next(
-            (
-                item
-                for item in kernel_snapshot.get("modules", [])
-                if item.get("name") == OrganizationTaskTraceModule.name
-            ),
-            {},
-        )
-        task_trace_state = str(task_trace_module.get("state") or "unknown").lower()
+        module_statuses = [
+            item
+            for item in kernel_snapshot.get("modules", [])
+            if isinstance(item, dict) and item.get("name")
+        ]
+        module_states = {
+            str(item["name"]): str(item.get("state") or "unknown").lower()
+            for item in module_statuses
+        }
+        required_modules = [
+            str(item["name"])
+            for item in module_statuses
+            if item.get("required") is True
+        ]
+        operational_states = {"ready", "degraded"}
+        operational_modules = [
+            name
+            for name in required_modules
+            if module_states.get(name) in operational_states
+        ]
+        unavailable_modules = [
+            name
+            for name in required_modules
+            if module_states.get(name) not in operational_states
+        ]
+
+        def module_state(module_type: type[Module]) -> str:
+            return module_states.get(module_type.name, "unknown")
+
+        runtime_state = module_state(RuntimeModule)
+        workflow_state = module_state(MandateWorkflowModule)
+        tournament_state = module_state(KnowledgeTournamentModule)
+        route_state = module_state(CampaignRouteModule)
+        logistics_state = module_state(LogisticsBriefingModule)
+        task_trace_state = module_state(OrganizationTaskTraceModule)
         return {
             **external,
             "nexusKernel": {
-                "online": runtime_state in {"ready", "degraded"}
-                and workflow_state in {"ready", "degraded"}
-                and tournament_state in {"ready", "degraded"}
-                and route_state in {"ready", "degraded"}
-                and task_trace_state in {"ready", "degraded"}
-                and logistics_state in {"ready", "degraded"},
+                "online": bool(required_modules) and not unavailable_modules,
                 "mode": "embedded",
                 "version": _NEXUS_KERNEL_VERSION,
+                "requiredModuleCount": len(required_modules),
+                "operationalModuleCount": len(operational_modules),
+                "moduleStates": module_states,
+                "unavailableModules": unavailable_modules,
                 "runtimeState": runtime_state,
                 "workflowModule": MandateWorkflowModule.name,
                 "workflowState": workflow_state,

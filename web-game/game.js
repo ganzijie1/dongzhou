@@ -1535,7 +1535,12 @@
     $("#officeSupportCount").textContent = org.pendingSupport.length;
     renderOfficeInventory();
     renderOfficeScheduledDuty();
-    const serviceLabels = [["nexusKernel", "内核"], ["orgFlow", "朝议"], ["aiNpc", "属官"], ["knowledge", "史官"]];
+    const nexusModuleCount = Number.isSafeInteger(org.backend.nexusRequiredModules)
+      && Number.isSafeInteger(org.backend.nexusOperationalModules)
+      && org.backend.nexusRequiredModules > 0
+      ? `内核 ${org.backend.nexusOperationalModules}/${org.backend.nexusRequiredModules}`
+      : "内核";
+    const serviceLabels = [["nexusKernel", nexusModuleCount], ["orgFlow", "朝议"], ["aiNpc", "属官"], ["knowledge", "史官"]];
     $("#officeServiceStatus").innerHTML = serviceLabels.map(([key, label]) => `<span class="${org.backend[key] ? "online" : "local"}"><i></i>${label}${org.backend[key] ? "通达" : "本地推演"}</span>`).join("");
     $("#officeModeText").textContent = integration.isOffline() ? "当前为显式离线演算，属官与官署结果仅保存在本机。" : org.backend.mode === "connected" ? "朝议、属官与史官已互通；远端未确认的结果不会在本地结算。" : "官署服务暂不可达，联网玩法已暂停。";
     const currentMember = $("#officeMemberSelect").value;
@@ -1902,7 +1907,11 @@
       const response = await integration.status();
       const services = response.services || {};
       profile.organization = organization.updateBackend(profile.organization, {
-        nexusKernel: Boolean(services.nexusKernel?.online), orgFlow: Boolean(services.orgFlow?.online), aiNpc: Boolean(services.aiNpc?.online), knowledge: Boolean(services.knowledge?.online), remoteId: response.organizationId || profile.organization.remoteId || ""
+        nexusKernel: Boolean(services.nexusKernel?.online),
+        nexusRequiredModules: Number.isSafeInteger(services.nexusKernel?.requiredModuleCount) ? services.nexusKernel.requiredModuleCount : null,
+        nexusOperationalModules: Number.isSafeInteger(services.nexusKernel?.operationalModuleCount) ? services.nexusKernel.operationalModuleCount : null,
+        nexusUnavailableModules: Array.isArray(services.nexusKernel?.unavailableModules) ? services.nexusKernel.unavailableModules.map(String) : [],
+        orgFlow: Boolean(services.orgFlow?.online), aiNpc: Boolean(services.aiNpc?.online), knowledge: Boolean(services.knowledge?.online), remoteId: response.organizationId || profile.organization.remoteId || ""
       });
       if (services.orgFlow?.online) {
         const roster = await integration.organizationRoster();
@@ -1910,7 +1919,7 @@
         await refreshOfficeInventory();
       }
     } catch (_) {
-      profile.organization = organization.updateBackend(profile.organization, { nexusKernel: false, orgFlow: false, aiNpc: false, knowledge: false });
+      profile.organization = organization.updateBackend(profile.organization, { nexusKernel: false, nexusRequiredModules: null, nexusOperationalModules: null, nexusUnavailableModules: [], orgFlow: false, aiNpc: false, knowledge: false });
     }
     writeJson(PROFILE_KEY, profile);
     renderOrganizationPanel();

@@ -141,7 +141,7 @@ async function openReady(page) {
         if (payload.organization?.tasks?.some((task) => task.remoteResult)) savedRemoteTask = true;
         body = { version: ++saveVersion, payload };
       }
-      else if (pathName.endsWith("/integration/status")) body = { mode: "connected", organizationId: "org-e2e", services: { nexusKernel: { online: true, mode: "embedded", version: "0.2.0" }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } } };
+      else if (pathName.endsWith("/integration/status")) body = { mode: "connected", organizationId: "org-e2e", services: { nexusKernel: { online: true, mode: "embedded", version: "0.2.0", requiredModuleCount: 17, operationalModuleCount: 17, unavailableModules: [] }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } } };
       else if (pathName.endsWith("/organization/roster")) body = { organization: { name: "东周军府", state: "ACTIVE", hierarchyVersion: membershipJoined ? 8 : 7, growthContribution: 245 }, members: [{ heroId: "DuBo", office: "司马", role: "军府主官", level: "manager", directManagerHeroId: null, contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 }, { heroId: "ZuoRu", office: "行人", role: "军府属官", level: "officer", directManagerHeroId: "DuBo", contributionBalance: 31, lifetimeEarned: 42, lifetimeSpent: 11 }], playerMembership: membershipJoined ? { office: "officer_12", role: "court_officer", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 } : null, openPositions: membershipJoined ? [] : [{ office: "officer_12", role: "court_officer", level: "staff" }] };
       else if (pathName.endsWith("/knowledge/search")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回·东郊索命", summary: "杜伯进谏", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }] }] };
       else if (pathName.endsWith("/knowledge/stages/01")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回·已发布本回史料", summary: "杜伯进谏", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }] }] };
@@ -226,6 +226,7 @@ async function openReady(page) {
     await online.goto(onlineUrl.toString(), { waitUntil: "domcontentloaded" });
     await online.waitForSelector("#app:not([hidden])", { timeout: 45000 });
     await online.click("#campaignOfficeButton");
+    await online.waitForSelector("#officeServiceStatus >> text=内核 17/17通达", { timeout: 15000 });
     await online.waitForSelector("#officeMembers >> text=官署实账");
     await online.waitForFunction(() => !document.querySelector("#officeMembershipApply").disabled && /1 席可申请/.test(document.querySelector("#officeMembershipDetail").textContent));
     await online.click("#officeMembershipApply");
