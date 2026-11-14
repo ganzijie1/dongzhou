@@ -551,6 +551,7 @@ class OrganizationOutcomeTests(unittest.TestCase):
                 "councils": {"council-consumed"},
                 "mandates": {"mandate-consumed"},
                 "orders": {"order-consumed"},
+                "orderEffects": {"order-consumed": {}},
                 "mandateCollaborators": {"mandate-consumed": "SiTu"},
             },
         )
@@ -597,6 +598,7 @@ class OrganizationOutcomeTests(unittest.TestCase):
             "councils": [],
             "mandates": [],
             "support": {
+                "recon": 1,
                 "orders": [{"id": task_id, "memberId": "ZuoRu"}],
             },
         }]
@@ -605,6 +607,7 @@ class OrganizationOutcomeTests(unittest.TestCase):
             "mandates": set(),
             "orders": {task_id},
             "globalOrders": {task_id},
+            "orderEffects": {task_id: {"recon": 1}},
             "mandateCollaborators": {},
         }
         sealed = _seal_battle_reports(
@@ -620,6 +623,19 @@ class OrganizationOutcomeTests(unittest.TestCase):
             "heroId": "ZuoRu",
             "scope": "next_battle",
         }])
+        self.assertEqual(receipt["verifiedSupport"]["effect"]["recon"], 1)
+
+        inflated = json.loads(json.dumps(submitted))
+        inflated["organization"]["battleReports"][0]["support"]["recon"] = 99
+        with self.assertRaisesRegex(
+            BattleReceiptConflict, "battle_support_effect_mismatch"
+        ):
+            _seal_battle_reports(
+                player_id,
+                previous,
+                inflated,
+                attestations,
+            )
 
         replayed = json.loads(json.dumps(sealed))
         replayed["organization"]["battleReports"].append({
@@ -2381,6 +2397,7 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(attested["orders"], {local_task_id})
         self.assertEqual(attested["globalOrders"], {local_task_id})
+        self.assertEqual(attested["orderEffects"], {local_task_id: {"recon": 1}})
 
     async def test_explicit_redelivery_requeues_same_completed_game_event(self) -> None:
         payload = {"taskId": "stable-task", "topic": "stable-topic"}

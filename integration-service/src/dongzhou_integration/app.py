@@ -7,6 +7,7 @@ import hashlib
 import hmac
 from importlib.metadata import version
 import json
+import math
 import re
 from typing import Annotated, Any
 from uuid import NAMESPACE_URL, UUID, uuid5
@@ -34,6 +35,21 @@ from .upstreams import UpstreamUnavailable, Upstreams
 
 
 _NEXUS_KERNEL_VERSION = version("nexus-kernel-starter")
+
+_ORGANIZATION_TASK_SUPPORT_EFFECTS: dict[str, dict[str, int | float]] = {
+    "supply": {"provisions": 24},
+    "drill": {"attack": 0.08},
+    "patrol": {"defense": 0.1},
+    "intelligence": {"recon": 1},
+    "diplomacy": {"morale": 12},
+}
+_BATTLE_SUPPORT_EFFECT_KEYS = (
+    "provisions",
+    "morale",
+    "attack",
+    "defense",
+    "recon",
+)
 
 _DONGZHOU_DUTIES = {
     9100101: "朝会听政",
@@ -2856,6 +2872,10 @@ def _battle_report_signature(report: dict[str, Any]) -> dict[str, Any]:
         "councils": references(report.get("councils"), "memberId"),
         "mandates": references(report.get("mandates"), "heroId"),
         "orders": references(support.get("orders"), "memberId"),
+        "supportEffects": {
+            key: support.get(key, 0)
+            for key in _BATTLE_SUPPORT_EFFECT_KEYS
+        },
     }
     if isinstance(campaign_route, dict):
         signature["campaignRoute"] = {
@@ -2864,6 +2884,35 @@ def _battle_report_signature(report: dict[str, Any]) -> dict[str, Any]:
             "receiptAttestation": str(campaign_route.get("receipt", {}).get("attestation") or ""),
         }
     return signature
+
+
+def _organization_task_support_effect(
+    task_type: Any,
+    final_result: Any,
+) -> dict[str, int | float] | None:
+    reward = _ORGANIZATION_TASK_SUPPORT_EFFECTS.get(str(task_type or ""))
+    if reward is None or final_result not in {"SUCCESS", "PARTIAL"}:
+        return None
+    factor = 0.5 if final_result == "PARTIAL" else 1
+    return {
+        key: value * factor
+        for key, value in reward.items()
+    }
+
+
+def _normalized_battle_support_effect(value: Any) -> dict[str, int | float]:
+    if not isinstance(value, dict):
+        raise BattleReceiptConflict("battle_support_effect_invalid")
+    normalized: dict[str, int | float] = {}
+    for key in _BATTLE_SUPPORT_EFFECT_KEYS:
+        item = value.get(key, 0)
+        if isinstance(item, bool) or not isinstance(item, (int, float)):
+            raise BattleReceiptConflict("battle_support_effect_invalid")
+        numeric = float(item)
+        if not math.isfinite(numeric):
+            raise BattleReceiptConflict("battle_support_effect_invalid")
+        normalized[key] = int(numeric) if numeric.is_integer() else numeric
+    return normalized
 
 
 def _digest_json(value: dict[str, Any]) -> str:
@@ -2996,6 +3045,7 @@ async def _battle_support_attestations(
             "mandates": set(),
             "orders": set(),
             "globalOrders": set(),
+            "orderEffects": {},
             "mandateCollaborators": {},
         }
 
@@ -3006,6 +3056,7 @@ async def _battle_support_attestations(
             "mandates": set(),
             "orders": set(),
             "globalOrders": set(),
+            "orderEffects": {},
             "mandateCollaborators": {},
         }
     councils: dict[str, tuple[str, str]] = {}
@@ -3044,6 +3095,7 @@ async def _battle_support_attestations(
         "mandates": set(),
         "orders": set(),
         "globalOrders": set(),
+        "orderEffects": {},
         "mandateCollaborators": {},
     }
     previous_councils = {
@@ -3177,6 +3229,10 @@ async def _battle_support_attestations(
             and closure.get("digest") == task_closure.get("digest")
         ):
             attested["orders"].add(order_id)
+            attested["orderEffects"][order_id] = _organization_task_support_effect(
+                original.get("task_type"),
+                settlement.get("result"),
+            )
             if global_scheduled_support:
                 attested["globalOrders"].add(order_id)
     return attested
@@ -3186,7 +3242,7 @@ def _seal_battle_reports(
     player_id: UUID,
     previous_payload: dict[str, Any],
     submitted_payload: dict[str, Any],
-    attestations: dict[str, set[str]] | None = None,
+    attestations: dict[str, Any] | None = None,
     campaign_routes: CampaignRouteModule | None = None,
     route_required_stages: set[str] | None = None,
 ) -> dict[str, Any]:
@@ -3295,6 +3351,10 @@ def _seal_battle_reports(
         verified_orders: list[dict[str, str]] = []
         rejected_support: list[dict[str, str]] = []
         participants: set[str] = set()
+        verified_effect = {
+            key: 0
+            for key in _BATTLE_SUPPORT_EFFECT_KEYS
+        }
 
         report_councils = report.get("councils")
         for council in report_councils if isinstance(report_councils, list) else []:
@@ -3449,6 +3509,25 @@ def _seal_battle_reports(
                     "reason": "server_attestation_missing",
                 })
                 continue
+            order_effects = (
+                attestations.get("orderEffects", {})
+                if attestations is not None
+                else {}
+            )
+            authoritative_effect = (
+                order_effects.get(order_id)
+                if isinstance(order_effects, dict)
+                else None
+            )
+            if hero_id and attestations is not None and authoritative_effect is None:
+                raise BattleReceiptConflict("battle_order_effect_unavailable")
+            effect = _normalized_battle_support_effect(
+                authoritative_effect
+                if authoritative_effect is not None
+                else support_entry or {}
+            )
+            for key in _BATTLE_SUPPORT_EFFECT_KEYS:
+                verified_effect[key] += effect[key]
             verified_orders.append({
                 "id": order_id,
                 "heroId": hero_id,
@@ -3457,6 +3536,18 @@ def _seal_battle_reports(
             consumed_order_ids.add(order_id)
             if hero_id:
                 participants.add(hero_id)
+
+        submitted_effect = _normalized_battle_support_effect(support)
+        if any(
+            not math.isclose(
+                float(submitted_effect[key]),
+                float(verified_effect[key]),
+                rel_tol=0,
+                abs_tol=1e-9,
+            )
+            for key in _BATTLE_SUPPORT_EFFECT_KEYS
+        ):
+            raise BattleReceiptConflict("battle_support_effect_mismatch")
 
         receipt_trace = {
             "id": str(
@@ -3478,6 +3569,7 @@ def _seal_battle_reports(
                 "councils": sorted(verified_councils, key=lambda entry: entry["id"]),
                 "mandates": sorted(verified_mandates, key=lambda entry: entry["id"]),
                 "orders": sorted(verified_orders, key=lambda entry: entry["id"]),
+                "effect": verified_effect,
             },
             "rejectedSupport": sorted(
                 rejected_support,
