@@ -1164,6 +1164,34 @@
     }
   }
 
+  async function commendOfficeNpcForMerit(entryId) {
+    const contribution = officeContributions.find((entry) => entry.entryId === entryId && entry.heroId === $("#officeMemberSelect").value);
+    const dossier = officeContributionDossiers.get(entryId);
+    const member = profile.organization.members.find((entry) => entry.id === contribution?.heroId);
+    if (officeCommendationInFlight || !member || !contribution || Number(contribution.amount) <= 0 || dossier?.state !== "SEALED" || dossier?.contribution?.digest !== contribution.digest) return;
+    officeCommendationInFlight = true;
+    renderOfficeContributions();
+    try {
+      const response = await integration.commendMeritNpc(member.id, {
+        contribution_entry_id: contribution.entryId,
+        contribution_entry_digest: contribution.digest,
+        contribution_dossier_digest: dossier.digest
+      });
+      if (response?.state !== "COMPLETED" || !response.commendation) throw new Error("论功慰勉尚未完成");
+      const recorded = organization.recordCommendation(profile.organization, response.commendation);
+      profile.organization = recorded.state;
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+      await integration.persist(profile);
+      await refreshOfficeNpcState();
+      showNotice(response.replayed ? "论功慰勉回执已恢复" : `${member.name}已据功受勉，感激 +3`);
+    } catch (error) {
+      showNotice(error.message);
+    } finally {
+      officeCommendationInFlight = false;
+      renderOfficeContributions();
+    }
+  }
+
   async function recallOfficeNpc() {
     const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
     const evidence = currentOfficeEvidence();
@@ -1648,7 +1676,7 @@
     renderOfficeQuiz();
     const selectedHeroId = $("#officeMemberSelect").value;
     const currentStageId = String(officeStage()?.id || "");
-    const latestCommendation = [...org.commendations].reverse().find((entry) => entry.heroId === selectedHeroId && entry.stageId === currentStageId);
+    const latestCommendation = [...org.commendations].reverse().find((entry) => entry.heroId === selectedHeroId && entry.stageId === currentStageId && entry.kernel?.module === "dongzhou_npc_commendation");
     const selectedKnowledgeId = currentOfficeEvidence()?.knowledge?.id;
     const latestRecollection = [...org.recollections].reverse().find((entry) => entry.heroId === selectedHeroId && entry.stageId === currentStageId && entry.knowledgeId === selectedKnowledgeId);
     $("#officeCommendButton").disabled = officeCommendationInFlight || integration.isOffline();
@@ -2107,6 +2135,7 @@
         const sign = Number(entry.amount) > 0 ? "+" : "";
         const canTrace = /^(?:organization-task|virtual_task):[0-9a-f-]{36}$/i.test(String(entry.sourceRef || ""));
         const dossier = officeContributionDossiers.get(entry.entryId);
+        const meritCommendation = [...(profile.organization?.commendations || [])].reverse().find((item) => item.entryId === entry.entryId && item.heroId === entry.heroId && item.kernel?.module === "dongzhou_npc_merit_commendation");
         const trace = dossier?.taskTrace;
         const steps = Array.isArray(trace?.timeline) ? trace.timeline.slice(-6).map((item) => traceLabels[item.type] || item.stateCode || item.type).join(" → ") : "";
         const detail = dossier?.state === "LOADING"
@@ -2116,7 +2145,7 @@
             : dossier
               ? `<div class="office-contribution-dossier"><strong>功绩卷宗已封印</strong><span>${escapeHtml(steps)}</span><small>任务 ${escapeHtml(dossier.taskId)} · ${escapeHtml(dossier.taskState)} · 卷宗印记 ${escapeHtml(String(dossier.digest || "").slice(0, 12))}</small></div>`
               : "";
-        return `<li class="office-contribution-entry${selected ? " selected" : ""}"><strong>${escapeHtml(eventLabels[entry.eventCode] || entry.eventCode)}</strong><span>${sign}${Number(entry.amount)} · ${canTrace ? "组织差事" : escapeHtml(entry.sourceRef)}</span><small>账本版本 ${Number(entry.entryVersion)} · 内核印记 ${escapeHtml(String(entry.digest || "").slice(0, 12))}</small><div class="office-contribution-actions"><button class="large-button" type="button" data-contribution-dossier-id="${escapeHtml(entry.entryId)}" ${canTrace ? "" : "disabled"} aria-expanded="${dossier ? "true" : "false"}">${dossier ? "收起卷宗" : canTrace ? "查阅卷宗" : "无卷宗"}</button><button class="large-button" type="button" data-contribution-id="${escapeHtml(entry.entryId)}">${selected ? "已取为公议" : "取为公议"}</button></div>${detail}</li>`;
+        return `<li class="office-contribution-entry${selected ? " selected" : ""}"><strong>${escapeHtml(eventLabels[entry.eventCode] || entry.eventCode)}</strong><span>${sign}${Number(entry.amount)} · ${canTrace ? "组织差事" : escapeHtml(entry.sourceRef)}</span><small>账本版本 ${Number(entry.entryVersion)} · 内核印记 ${escapeHtml(String(entry.digest || "").slice(0, 12))}</small><div class="office-contribution-actions"><button class="large-button" type="button" data-contribution-dossier-id="${escapeHtml(entry.entryId)}" ${canTrace ? "" : "disabled"} aria-expanded="${dossier ? "true" : "false"}">${dossier ? "收起卷宗" : canTrace ? "查阅卷宗" : "无卷宗"}</button>${dossier?.state === "SEALED" && Number(entry.amount) > 0 ? `<button class="large-button" type="button" data-merit-commendation-id="${escapeHtml(entry.entryId)}" ${officeCommendationInFlight || meritCommendation ? "disabled" : ""}>${meritCommendation ? "已据功慰勉" : "据功慰勉"}</button>` : ""}<button class="large-button" type="button" data-contribution-id="${escapeHtml(entry.entryId)}">${selected ? "已取为公议" : "取为公议"}</button></div>${detail}</li>`;
       }).join("")
       : '<li class="empty">该属官尚无功绩账目</li>';
   }
@@ -4955,7 +4984,7 @@
     $("#officePublicNoticesRefresh").addEventListener("click", refreshOfficePublicNotices);
     $("#officePublicNotices").addEventListener("click", (event) => { const button = event.target.closest("[data-public-notice-id]"); if (button) selectOfficePublicNotice(button.dataset.publicNoticeId); });
     $("#officeContributionsRefresh").addEventListener("click", refreshOfficeContributions);
-    $("#officeContributions").addEventListener("click", (event) => { const dossierButton = event.target.closest("[data-contribution-dossier-id]"); if (dossierButton) { toggleOfficeContributionDossier(dossierButton.dataset.contributionDossierId); return; } const button = event.target.closest("[data-contribution-id]"); if (button) selectOfficeContribution(button.dataset.contributionId); });
+    $("#officeContributions").addEventListener("click", (event) => { const meritButton = event.target.closest("[data-merit-commendation-id]"); if (meritButton) { commendOfficeNpcForMerit(meritButton.dataset.meritCommendationId); return; } const dossierButton = event.target.closest("[data-contribution-dossier-id]"); if (dossierButton) { toggleOfficeContributionDossier(dossierButton.dataset.contributionDossierId); return; } const button = event.target.closest("[data-contribution-id]"); if (button) selectOfficeContribution(button.dataset.contributionId); });
     $("#officeInventoryRefresh").addEventListener("click", refreshOfficeInventory);
     $("#officeScheduledDutyRefresh").addEventListener("click", refreshOfficeScheduledDuty);
     $("#officeLogisticsBriefing").addEventListener("click", requestOfficeLogisticsBriefing);

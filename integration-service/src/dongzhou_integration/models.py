@@ -255,6 +255,12 @@ class NpcCommendationRequest(StrictModel):
     knowledge_id: str = Field(min_length=1, max_length=256)
 
 
+class NpcMeritCommendationRequest(StrictModel):
+    contribution_entry_id: UUID = Field(strict=False)
+    contribution_entry_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    contribution_dossier_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
 class NpcRecollectionRequest(StrictModel):
     stage_id: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_.:-]+$")
     knowledge_id: str = Field(min_length=1, max_length=256)

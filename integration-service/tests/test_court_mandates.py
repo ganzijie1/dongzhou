@@ -691,6 +691,50 @@ def test_contribution_entry_is_reverified_and_sealed_into_mandate() -> None:
             )
             assert dossier_response.status_code == 200, dossier_response.text
             dossier = dossier_response.json()["dossier"]
+            merit_body = {
+                "contribution_entry_id": entry_id,
+                "contribution_entry_digest": contribution["digest"],
+                "contribution_dossier_digest": dossier["digest"],
+            }
+            commended = client.post(
+                "/api/dongzhou/v1/npcs/ZuoRu/merit-commendations",
+                json=merit_body,
+            )
+            assert commended.status_code == 200, commended.text
+            commendation = commended.json()["commendation"]
+            assert commended.json()["state"] == "COMPLETED"
+            assert commended.json()["replayed"] is False
+            assert commendation["entryId"] == entry_id
+            assert commendation["affectionType"] == "appreciation"
+            assert commendation["affectionDelta"] == 3
+            assert commendation["contribution"] == contribution
+            assert commendation["contributionDossier"] == dossier
+            assert commendation["kernel"]["module"] == "dongzhou_npc_merit_commendation"
+            assert commendation["kernel"]["state"] == "SEALED"
+
+            replayed = client.post(
+                "/api/dongzhou/v1/npcs/ZuoRu/merit-commendations",
+                json=merit_body,
+            )
+            assert replayed.status_code == 200, replayed.text
+            assert replayed.json()["replayed"] is True
+            assert replayed.json()["commendation"]["digest"] == commendation["digest"]
+            merit_events = [
+                payload
+                for kind, payload in upstreams.events
+                if kind == "NPC_AFFECTION_SETTLEMENT"
+                and str(payload.get("settlement_effect_id") or "").startswith(
+                    "dongzhou-merit-commendation-affection:"
+                )
+            ]
+            assert len(merit_events) == 1
+
+            stale_merit = client.post(
+                "/api/dongzhou/v1/npcs/ZuoRu/merit-commendations",
+                json={**merit_body, "contribution_dossier_digest": "0" * 64},
+            )
+            assert stale_merit.status_code == 409
+            assert stale_merit.json()["error"]["code"] == "npc_merit_commendation_dossier_stale"
             council_id = str(uuid4())
             council = client.post("/api/dongzhou/v1/npcs/ZuoRu/decisions", json={
                 "client_request_id": council_id,

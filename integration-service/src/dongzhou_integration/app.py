@@ -27,7 +27,7 @@ from .assignments import (
     select_assignment,
     task_duty,
 )
-from .models import AdviserFeedbackRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcPublicMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcCommendationRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcRecollectionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
+from .models import AdviserFeedbackRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcPublicMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcCommendationRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMeritCommendationRequest, NpcMessageRequest, NpcRecollectionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
@@ -978,6 +978,49 @@ class OrganizationContributionDossierModule(Module):
             "kernel": {
                 "module": OrganizationContributionDossierModule.name,
                 "moduleVersion": OrganizationContributionDossierModule.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "SEALED",
+            },
+        }
+
+
+class NpcMeritCommendationModule(Module):
+    name = "dongzhou_npc_merit_commendation"
+    version = "1.0.0"
+    dependencies = (OrganizationContributionDossierModule.name,)
+
+    @classmethod
+    def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
+        contribution = trace.get("contribution")
+        dossier = trace.get("contributionDossier")
+        if (
+            any(
+                not str(trace.get(key) or "").strip()
+                for key in ("eventId", "playerId", "heroId", "npcId", "entryId")
+            )
+            or not isinstance(contribution, dict)
+            or not isinstance(dossier, dict)
+            or contribution.get("entryId") != trace.get("entryId")
+            or contribution.get("heroId") != trace.get("heroId")
+            or not isinstance(contribution.get("amount"), int)
+            or contribution["amount"] <= 0
+            or dossier.get("entryId") != contribution.get("entryId")
+            or dossier.get("contribution", {}).get("digest")
+            != contribution.get("digest")
+            or dossier.get("kernel", {}).get("module")
+            != OrganizationContributionDossierModule.name
+            or dossier.get("kernel", {}).get("state") != "SEALED"
+            or trace.get("affectionType") != "appreciation"
+            or trace.get("affectionDelta") != 3
+        ):
+            raise ValueError("NPC merit commendation trace is invalid")
+        UUID(str(trace["entryId"]))
+        return {
+            **trace,
+            "digest": _canonical_digest(trace),
+            "kernel": {
+                "module": cls.name,
+                "moduleVersion": cls.version,
                 "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
                 "state": "SEALED",
             },
@@ -3850,6 +3893,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     organization_task_topology = OrganizationTaskTopologyModule()
     logistics_briefing = LogisticsBriefingModule()
     npc_commendation = NpcCommendationModule()
+    npc_merit_commendation = NpcMeritCommendationModule()
     npc_recollection = NpcRecollectionModule()
     npc_public_notice = NpcPublicNoticeModule()
     organization_contribution_ledger = OrganizationContributionLedgerModule()
@@ -3878,6 +3922,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             LoadedModule(module=npc_public_notice, required=True, original_index=12),
             LoadedModule(module=organization_contribution_ledger, required=True, original_index=13),
             LoadedModule(module=organization_contribution_dossier, required=True, original_index=14),
+            LoadedModule(module=npc_merit_commendation, required=True, original_index=15),
         ]
     )
     router = APIRouter(prefix="/api/dongzhou/v1")
@@ -5147,6 +5192,121 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "affectionDelta": 2,
         }
         return {"state": "COMPLETED", "replayed": not created, "commendation": npc_commendation.seal(trace)}
+
+    @router.post("/npcs/{hero_id}/merit-commendations")
+    async def commend_npc_from_merit(
+        hero_id: str,
+        request: NpcMeritCommendationRequest,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        if hero_id not in settings.orgflow_hero_members:
+            raise ApiError(
+                "npc_not_in_organization",
+                "The selected officer is not in the organization roster.",
+                status_code=404,
+            )
+        try:
+            contribution = await current_contribution_receipt(
+                hero_id,
+                str(request.contribution_entry_id),
+                request.contribution_entry_digest,
+            )
+            if contribution is None or int(contribution.get("amount") or 0) <= 0:
+                raise ApiError(
+                    "npc_merit_commendation_entry_invalid",
+                    "Only a current positive contribution can support a merit commendation.",
+                    status_code=409,
+                )
+            dossier = await current_contribution_dossier(contribution)
+        except ApiError:
+            raise
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "npc_merit_commendation_upstream_unavailable",
+                "The organization merit record is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        except (TypeError, ValueError) as error:
+            raise ApiError(
+                "npc_merit_commendation_evidence_invalid",
+                "The merit evidence failed provenance verification.",
+                status_code=502,
+            ) from error
+        if dossier.get("digest") != request.contribution_dossier_digest:
+            raise ApiError(
+                "npc_merit_commendation_dossier_stale",
+                "The selected merit dossier has changed and must be reviewed again.",
+                status_code=409,
+            )
+
+        player_target_id = str(
+            stable_player_id(settings.ainpc_game_server_id, player_id)
+        )
+        npc_id = str(stable_npc_id(settings.ainpc_game_server_id, hero_id))
+        identity = hashlib.sha256(
+            (
+                f"{player_id}\n{hero_id}\n{contribution['entryId']}\n"
+                f"{dossier['digest']}\ndongzhou-npc-merit-commendation-v1"
+            ).encode("utf-8")
+        ).hexdigest()
+        event_id = "npc-merit-commendation:" + identity
+        payload = {
+            "settlement_effect_id": "dongzhou-merit-commendation-affection:" + identity,
+            "game_server_id": str(settings.ainpc_game_server_id),
+            "npc_id": npc_id,
+            "target_id": player_target_id,
+            "changes": [{
+                "affection_type": "appreciation",
+                "delta": 3.0,
+                "reason": (
+                    "player commended the officer using sealed organization merit "
+                    + str(contribution["entryId"])
+                ),
+                "confidence": 1.0,
+            }],
+            "related_event_id": event_id,
+        }
+        try:
+            created = await store.enqueue_game_event(
+                event_id, "NPC_AFFECTION_SETTLEMENT", payload
+            )
+        except VersionConflict as error:
+            raise ApiError(
+                "npc_merit_commendation_conflict",
+                "This merit was already commended with different evidence.",
+                status_code=409,
+            ) from error
+        status = await store.game_event_status(event_id)
+        for _ in range(12):
+            if status and status.get("state") == "DELIVERED":
+                break
+            await asyncio.sleep(0.1)
+            status = await store.game_event_status(event_id)
+        if not status or status.get("state") != "DELIVERED":
+            return {
+                "state": "PENDING",
+                "eventId": event_id,
+                "retryAfterMs": 300,
+                "replayed": not created,
+            }
+        trace = {
+            "eventId": event_id,
+            "playerId": player_target_id,
+            "heroId": hero_id,
+            "npcId": npc_id,
+            "entryId": str(contribution["entryId"]),
+            "eventCode": str(contribution["eventCode"]),
+            "amount": int(contribution["amount"]),
+            "affectionType": "appreciation",
+            "affectionDelta": 3,
+            "contribution": contribution,
+            "contributionDossier": dossier,
+        }
+        return {
+            "state": "COMPLETED",
+            "replayed": not created,
+            "commendation": npc_merit_commendation.seal(trace),
+        }
 
     @router.post("/npcs/{hero_id}/recollections")
     async def recall_npc_history(

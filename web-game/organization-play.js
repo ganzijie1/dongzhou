@@ -258,16 +258,32 @@
 
   function recordCommendation(rawState, receipt) {
     const state = normalizeState(rawState);
-    if (!receipt || receipt.kernel?.module !== "dongzhou_npc_commendation" || receipt.kernel?.state !== "SEALED"
-      || !/^[0-9a-f]{64}$/.test(String(receipt.digest || "")) || !String(receipt.eventId || "").startsWith("npc-commendation:")
-      || receipt.affectionType !== "appreciation" || Number(receipt.affectionDelta) !== 2) {
+    const historyCommendation = receipt?.kernel?.module === "dongzhou_npc_commendation"
+      && String(receipt.eventId || "").startsWith("npc-commendation:")
+      && Number(receipt.affectionDelta) === 2;
+    const meritCommendation = receipt?.kernel?.module === "dongzhou_npc_merit_commendation"
+      && String(receipt.eventId || "").startsWith("npc-merit-commendation:")
+      && Number(receipt.affectionDelta) === 3
+      && receipt.entryId === receipt.contribution?.entryId
+      && receipt.heroId === receipt.contribution?.heroId
+      && Number(receipt.contribution?.amount) > 0
+      && receipt.contributionDossier?.entryId === receipt.entryId
+      && receipt.contributionDossier?.contribution?.digest === receipt.contribution?.digest
+      && receipt.contributionDossier?.kernel?.module === "dongzhou_organization_contribution_dossier"
+      && receipt.contributionDossier?.kernel?.state === "SEALED";
+    if (!receipt || receipt.kernel?.state !== "SEALED"
+      || !/^[0-9a-f]{64}$/.test(String(receipt.digest || ""))
+      || receipt.affectionType !== "appreciation"
+      || (!historyCommendation && !meritCommendation)) {
       throw new Error("慰勉回执未通过内核校验");
     }
     const previous = state.commendations.find((entry) => entry.eventId === receipt.eventId);
     if (previous && previous.digest !== receipt.digest) throw new Error("同一慰勉事件出现冲突回执");
     if (!previous) {
       state.commendations = [...state.commendations, copy(receipt)].slice(-60);
-      state.history.push({ month: state.month, type: "commendation", text: `据《${receipt.knowledgeTitle}》慰勉${receipt.heroId}，感激 +2` });
+      state.history.push({ month: state.month, type: "commendation", text: meritCommendation
+        ? `据功绩卷宗慰勉${receipt.heroId}，感激 +3`
+        : `据《${receipt.knowledgeTitle}》慰勉${receipt.heroId}，感激 +2` });
       state.history = state.history.slice(-40);
     }
     return { state, commendation: copy(previous || receipt), replayed: Boolean(previous) };
