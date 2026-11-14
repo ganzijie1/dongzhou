@@ -49,15 +49,36 @@ const executablePath = [
     assert.ok(["knowledge_dialogue", "latest_system_message"].includes(receipt.matchMode));
     assert.ok(receipt.memoryContent.length > 0);
     assert.match(receipt.memoryDigest, /^[0-9a-f]{64}$/);
+    assert.equal(receipt.memoryReceipt.idempotencyKey, receipt.memoryId);
+    assert.equal(receipt.memoryReceipt.digest, receipt.memoryDigest);
     assert.match(receipt.digest, /^[0-9a-f]{64}$/);
     assert.equal(receipt.kernel.module, "dongzhou_npc_recollection");
     assert.equal(receipt.kernel.state, "SEALED");
+    assert.equal(receipt.kernel.moduleVersion, "1.1.0");
     await page.waitForFunction(() => document.querySelector("#officeRecollectionResult").textContent.includes("印记"));
+    assert.equal(await page.locator(".office-memory-item.selected").count(), 1);
+    assert.match(await page.locator("#officeRecollectionResult").innerText(), /已取为军议依据/);
 
     await page.click("#officeRecollectionButton");
     await page.waitForTimeout(1200);
     const countAfterReplay = await page.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.recollections.length);
     assert.equal(countAfterReplay, 1);
+
+    const councilCountBefore = await page.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.councils.length);
+    const decisionResponse = page.waitForResponse(
+      (response) => new URL(response.url()).pathname.endsWith("/decisions") && response.request().method() === "POST",
+      { timeout: 180000 }
+    );
+    await page.locator("#officeDecisionForm button[type=submit]").click();
+    const decision = await decisionResponse;
+    assert.equal(decision.status(), 200, await decision.text());
+    await page.waitForFunction((before) => {
+      const councils = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2") || "{}").organization?.councils || [];
+      return councils.length > before;
+    }, councilCountBefore, { timeout: 180000 });
+    const council = await page.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.councils.at(-1));
+    assert.equal(council.memory.idempotencyKey, receipt.memoryId);
+    assert.equal(council.memory.digest, receipt.memoryDigest);
 
     const screenshot = path.resolve(__dirname, "../output/integration-validation/history-recollection-live.png");
     const mobileScreenshot = path.resolve(__dirname, "../output/integration-validation/history-recollection-mobile-live.png");
@@ -73,7 +94,7 @@ const executablePath = [
     assert.ok(layout.actionWidth <= layout.viewport, JSON.stringify(layout));
     await page.locator(".office-commendation").screenshot({ path: mobileScreenshot });
     assert.deepEqual(errors, []);
-    console.log(JSON.stringify({ result: "PASS", ...selection, memoryType: receipt.memoryType, matchMode: receipt.matchMode, digest: receipt.digest, replayCount: countAfterReplay, screenshot, mobileScreenshot }));
+    console.log(JSON.stringify({ result: "PASS", ...selection, memoryType: receipt.memoryType, matchMode: receipt.matchMode, digest: receipt.digest, councilMemoryDigest: council.memory.digest, replayCount: countAfterReplay, screenshot, mobileScreenshot }));
   } finally {
     await browser.close();
   }

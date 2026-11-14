@@ -159,6 +159,12 @@ class MandateUpstreams:
         items = self.memories.get(npc_id, [])[:limit]
         return {"available": True, "items": items, "count": len(items)}
 
+    async def query_npc_memories(self, npc_id, *, source_type, limit=20):
+        return [
+            item for item in self.memories.get(npc_id, [])
+            if item.get("source_type") == source_type
+        ][:limit]
+
     async def generate_spontaneous_thought(self, npc_id, payload):
         self.thoughts.append((npc_id, payload))
         return {
@@ -835,6 +841,11 @@ def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -
 def test_council_memory_is_recalled_verified_and_sealed_into_mandate() -> None:
     with TemporaryDirectory() as directory:
         upstreams = MandateUpstreams()
+        upstreams.roster_members = [{
+            "member_id": "00000000-0000-0000-0000-000000000004",
+            "position_slot_id": "00000000-0000-0000-0000-000000000003",
+            "state": "ACTIVE",
+        }]
         app = build_application(
             configured(Path(directory) / "gateway.sqlite3"), upstreams=upstreams
         )
@@ -861,6 +872,14 @@ def test_council_memory_is_recalled_verified_and_sealed_into_mandate() -> None:
             memory = state.json()["memories"]["items"][0]
             assert memory["idempotencyKey"] == first_record["dialogueReceipt"]["memoryArchive"]["idempotencyKey"]
             assert len(memory["digest"]) == 64
+
+            recollection = client.post(
+                "/api/dongzhou/v1/npcs/ZuoRu/recollections",
+                json={"stage_id": "01", "knowledge_id": "dongzhou_stage_001"},
+            )
+            assert recollection.status_code == 200, recollection.text
+            assert recollection.json()["recollection"]["memoryReceipt"] == memory
+            memory = recollection.json()["recollection"]["memoryReceipt"]
 
             second_council_id = str(uuid4())
             recalled = client.post(

@@ -539,7 +539,7 @@ class NpcCommendationModule(Module):
 
 class NpcRecollectionModule(Module):
     name = "dongzhou_npc_recollection"
-    version = "1.0.0"
+    version = "1.1.0"
 
     @classmethod
     def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
@@ -552,6 +552,16 @@ class NpcRecollectionModule(Module):
             raise ValueError("NPC recollection trace is incomplete")
         if not re.fullmatch(r"[0-9a-f]{64}", str(trace["memoryDigest"])):
             raise ValueError("NPC recollection memory digest is invalid")
+        memory_receipt = trace.get("memoryReceipt")
+        if (
+            not isinstance(memory_receipt, dict)
+            or memory_receipt.get("idempotencyKey") != trace["memoryId"]
+            or memory_receipt.get("sourceType") != trace["memoryType"]
+            or memory_receipt.get("timestamp") != trace["memoryTimestamp"]
+            or memory_receipt.get("content") != trace["memoryContent"]
+            or memory_receipt.get("digest") != trace["memoryDigest"]
+        ):
+            raise ValueError("NPC recollection memory receipt is invalid")
         digest = _canonical_digest(trace)
         return {
             **trace,
@@ -4872,18 +4882,14 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         if not isinstance(selected_memory, dict):
             raise ApiError("npc_recollection_not_found", "The selected officer has no authoritative memory to recall.", status_code=404)
 
-        memory_id = str(selected_memory.get("idempotency_key") or selected_memory.get("idempotencyKey") or "").strip()
-        memory_type = str(selected_memory.get("source_type") or selected_memory.get("sourceType") or "").strip()
-        memory_timestamp = str(selected_memory.get("timestamp") or "").strip()
-        memory_content = str(selected_memory.get("content") or "").strip()[:4000]
+        memory_receipt = _npc_memory_receipt(selected_memory)
+        memory_id = str(memory_receipt.get("idempotencyKey") or "").strip()
+        memory_type = str(memory_receipt.get("sourceType") or "").strip()
+        memory_timestamp = str(memory_receipt.get("timestamp") or "").strip()
+        memory_content = str(memory_receipt.get("content") or "").strip()
         if not memory_id or memory_type not in {"dialogue_choice", "system_message"} or not memory_timestamp or not memory_content:
             raise ApiError("npc_recollection_memory_invalid", "AINPC returned an invalid officer memory.", status_code=502)
-        memory_digest = _canonical_digest({
-            "id": memory_id,
-            "type": memory_type,
-            "timestamp": memory_timestamp,
-            "content": memory_content,
-        })
+        memory_digest = str(memory_receipt["digest"])
         recollection_identity = hashlib.sha256(
             f"{player_id}\n{request.stage_id}\n{hero_id}\n{request.knowledge_id}\n{memory_digest}\ndongzhou-npc-recollection-v1".encode("utf-8")
         ).hexdigest()
@@ -4901,6 +4907,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "memoryTimestamp": memory_timestamp,
             "memoryContent": memory_content,
             "memoryDigest": memory_digest,
+            "memoryReceipt": memory_receipt,
             "matchMode": match_mode,
         }
         return {"state": "COMPLETED", "recollection": npc_recollection.seal(trace)}

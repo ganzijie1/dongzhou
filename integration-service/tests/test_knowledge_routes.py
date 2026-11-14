@@ -396,10 +396,18 @@ def test_history_recollection_uses_authoritative_memory_and_seals_receipt(tmp_pa
         assert receipt["memoryId"] == "memory-dongzhou-stage-001"
         assert receipt["memoryType"] == "dialogue_choice"
         assert receipt["matchMode"] == "knowledge_dialogue"
+        assert receipt["memoryReceipt"] == {
+            "idempotencyKey": receipt["memoryId"],
+            "sourceType": receipt["memoryType"],
+            "factKind": "event",
+            "timestamp": receipt["memoryTimestamp"],
+            "content": receipt["memoryContent"],
+            "digest": receipt["memoryDigest"],
+        }
         assert len(receipt["memoryDigest"]) == 64
         assert len(receipt["digest"]) == 64
         assert receipt["kernel"]["module"] == "dongzhou_npc_recollection"
-        assert receipt["kernel"]["moduleVersion"] == "1.0.0"
+        assert receipt["kernel"]["moduleVersion"] == "1.1.0"
         assert receipt["kernel"]["state"] == "SEALED"
         assert upstreams.memory_queries == [(int(receipt["npcId"]), "dialogue_choice", 50)]
 

@@ -273,7 +273,12 @@
       || !String(receipt.recollectionId || "").startsWith("npc-recollection:")
       || requiredText.some((key) => !String(receipt[key] || "").trim())
       || !["dialogue_choice", "system_message"].includes(receipt.memoryType)
-      || !["knowledge_dialogue", "latest_system_message"].includes(receipt.matchMode)) {
+      || !["knowledge_dialogue", "latest_system_message"].includes(receipt.matchMode)
+      || receipt.memoryReceipt?.idempotencyKey !== receipt.memoryId
+      || receipt.memoryReceipt?.sourceType !== receipt.memoryType
+      || receipt.memoryReceipt?.timestamp !== receipt.memoryTimestamp
+      || receipt.memoryReceipt?.content !== receipt.memoryContent
+      || receipt.memoryReceipt?.digest !== receipt.memoryDigest) {
       throw new Error("问忆回执未通过内核校验");
     }
     const previous = state.recollections.find((entry) => entry.recollectionId === receipt.recollectionId);

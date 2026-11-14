@@ -55,7 +55,7 @@
 
 玩家还可选定本回已发布 AKU 的具体出处，对当前在职属官执行“据史慰勉”。网关每次都重新读取 knowledge-jizhan 与 orgFlow 权威名册，不接受旧缓存中的史料或离职属官；以玩家、关卡和属官生成稳定事件号，通过 SQLite outbox 把 `appreciation +2` 送入 AINPC。同一玩家、关卡、属官即使刷新或换请求也只结算一次，换史料重放会被冲突保护拒绝。只有 AINPC 确认送达后，NexusKernel `dongzhou_npc_commendation 1.0.0` 才封存玩家、属官、AKU、出处与关系效果，浏览器写入官署存档并回读人物状态。
 
-“据史问忆”把已存在的人物经历变成可操作玩法。网关重新核验当前已发布 AKU 与 orgFlow 在职名册，再通过 AINPC 正式短期记忆查询读取当前属官的权威记录：优先选择正文含 AKU 号、标题或出处的 `dialogue_choice`，没有匹配军议时才回退最近的 `system_message`，两类记录都不存在则明确返回 404。NexusKernel `dongzhou_npc_recollection 1.0.0` 封存记忆号、原文摘要、时间、来源和匹配方式；浏览器按稳定问忆号去重保存，不能凭本地文本构造回忆。
+“据史问忆”把已存在的人物经历变成可操作玩法。网关重新核验当前已发布 AKU 与 orgFlow 在职名册，再通过 AINPC 正式短期记忆查询读取当前属官的权威记录：优先选择正文含 AKU 号、标题或出处的 `dialogue_choice`，没有匹配军议时才回退最近的 `system_message`，两类记录都不存在则明确返回 404。NexusKernel `dongzhou_npc_recollection 1.1.0` 同时封存记忆号、原文摘要、时间、来源、匹配方式和可供军议复核的 AINPC 原始回执；浏览器按稳定问忆号去重保存并自动取为当前军议旧事。后续军议会从 AINPC 再查同一记忆号与摘要，Nexus 军令继续封存该回执并交给 orgFlow 派差，不能凭本地文本构造或替换回忆。
 
 相邻关卡行军不再只有固定耗粮。网关按同一对 knowledge-jizhan 地图节点分别核验 `campaign_progression`、`fixed_point` 和 `npc_dialog` 路线，并拒绝地图号、落点或向导对话结构不完整的结果。玩家可选奉诏直进（军粮 2）、官道驿行（军粮 3、士气 +6）或向导引路（军粮 1、士气 -4）；偏好随云档保存，但开战不会信任展示缓存，而是把最终方法重新交给服务端查询并由 NexusKernel `dongzhou_campaign_route` 模块封存。联网结果缺少 `SEALED` 回执时拒绝开战；通过后才一次结算，路线及双史料见证随战果进入正式战报。回执除 64 位摘要外还包含服务端 HMAC 证明，云档入库时会重新验签并核对目标关卡，删除路线或篡改耗粮、士气、知识见证都会被拒绝。验签后的路线名、路线号、回执和两端 AKU 继续进入实际参战属官的 AINPC 重要事件与长期记忆，官署战报同步展示路线和双史料封印。桌面端和 390px 移动端均已通过真实接口验收。
 
@@ -76,7 +76,7 @@
 - `live-terminal-gate-complete89.json`：真实 orgFlow 执行尚未终态时不会提前生成 AINPC 复命提示；执行进入 `SUCCESS` 后才允许主管审核，公共库藏 `task.execution` 从 `940 -> 1040`，云档恢复与战报回读均通过。
 - `live-relationship-growth-complete107.json`：真实玩家接纳左儒成功复命后，AINPC 重要事件、长期记忆和 `appreciation +6` 三项均送达；NexusKernel 生成关系封印 `ca9f6793...74249`，重放不重复加点，官署任务簿显示“感激+6”和封印摘要。
 - `live-adviser-complete108.json`：真实 Chromium 提交“本关史料中的关键人物是谁”，知识仓已发布 AKU 随玩家状态进入 AINPC；加载提示和最终答案经 AIFirewall 过滤后由游戏服回调，两次均为 `filter_degraded=false`，页面显示周宣王、杜伯、左儒及史事情由，并成功提交“准确”评价。最近一次完整复验任务为 `1fcce851-19f7-4b8b-bc1f-7b45e4742607`。
-- `history-recollection-live.png`、`history-recollection-mobile-live.png`：真实 Chromium 选定第一回 AKU 后向左儒问忆，命中 AINPC 正式 `dialogue_choice`，由 NexusKernel 封印并写入云档；重复问忆仍保留一条稳定回执，桌面端与 320px 移动端无横向溢出。
+- `history-recollection-live.png`、`history-recollection-mobile-live.png`：真实 Chromium 选定第一回 AKU 后向左儒问忆，命中 AINPC 正式 `dialogue_choice`，由 NexusKernel 封印、自动取为军议旧事并写入云档；随后实际提交的 AINPC 军议保存了与问忆完全一致的记忆摘要，重复问忆仍保留一条稳定回执，桌面端与 320px 移动端无横向溢出。
 - `live-route-battle-memory129.json`：真实向导路线及第一、第二回 AKU 经 NexusKernel 验签后进入第二回战报，实际参战属官的 AINPC 记忆和官署战报均回读到同一路线与双史料封印。
 
 ## 当前验证基线

@@ -1175,9 +1175,15 @@
       if (response?.state !== "COMPLETED" || !response.recollection) throw new Error("属官尚未忆起可核验旧事");
       const recorded = organization.recordRecollection(profile.organization, response.recollection);
       profile.organization = recorded.state;
+      officeSelectedMemory = recorded.recollection.memoryReceipt;
+      if (!officeMemoryView.some((item) => item.idempotencyKey === officeSelectedMemory.idempotencyKey)) {
+        officeMemoryView = [officeSelectedMemory, ...officeMemoryView].slice(0, 20);
+      }
       writeJson(PROFILE_KEY, profile);
       await integration.persist(profile);
-      showNotice(recorded.replayed ? "问忆回执已恢复" : `${member.name}已据史忆起一段旧事`);
+      renderOfficeNpcMemories(member);
+      renderOfficeCouncil();
+      showNotice(recorded.replayed ? "问忆回执已恢复并取为军议旧事" : `${member.name}已据史忆起旧事并取为军议依据`);
     } catch (error) {
       showNotice(error.message);
     } finally {
@@ -1644,7 +1650,7 @@
       : "选定本回出处后，可慰勉当前在职属官；每关每人只结算一次。";
     $("#officeRecollectionButton").disabled = officeRecollectionInFlight || integration.isOffline();
     $("#officeRecollectionResult").textContent = latestRecollection
-      ? `${latestRecollection.memoryType === "dialogue_choice" ? "旧议" : "战报"}：${latestRecollection.memoryContent.slice(0, 90)} · 印记 ${String(latestRecollection.digest).slice(0, 12)}`
+      ? `${latestRecollection.memoryType === "dialogue_choice" ? "旧议" : "战报"}：${latestRecollection.memoryContent.slice(0, 90)} · ${officeSelectedMemory?.idempotencyKey === latestRecollection.memoryId ? "已取为军议依据 · " : ""}印记 ${String(latestRecollection.digest).slice(0, 12)}`
       : "选定本回出处后，可请当前属官据史追忆可核验旧事。";
     renderOfficeMandateApproval();
     renderOfficeSettlementReview();
