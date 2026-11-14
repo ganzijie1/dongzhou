@@ -27,7 +27,7 @@ from .assignments import (
     select_assignment,
     task_duty,
 )
-from .models import AdviserFeedbackRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcCommendationRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcRecollectionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
+from .models import AdviserFeedbackRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcPublicMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcCommendationRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcRecollectionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
@@ -572,6 +572,24 @@ class NpcRecollectionModule(Module):
                 "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
                 "state": "SEALED",
             },
+        }
+
+
+class NpcPublicNoticeModule(Module):
+    name = "dongzhou_npc_public_notice"
+    version = "1.0.0"
+
+    @classmethod
+    def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
+        required = ("messageId", "gameServerId", "npcId", "heroId", "npcName", "message", "loginRoundDigest")
+        if any(not str(trace.get(key) or "").strip() for key in required):
+            raise ValueError("NPC public notice trace is incomplete")
+        if not re.fullmatch(r"[0-9a-f]{64}", str(trace["loginRoundDigest"])):
+            raise ValueError("NPC public notice login round digest is invalid")
+        return {
+            **trace,
+            "digest": _canonical_digest(trace),
+            "kernel": {"module": cls.name, "moduleVersion": cls.version, "state": "SEALED"},
         }
 
 
@@ -3610,6 +3628,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     logistics_briefing = LogisticsBriefingModule()
     npc_commendation = NpcCommendationModule()
     npc_recollection = NpcRecollectionModule()
+    npc_public_notice = NpcPublicNoticeModule()
     kernel = Kernel(
         [
             LoadedModule(module=module, required=True, original_index=0),
@@ -3632,6 +3651,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             LoadedModule(module=logistics_briefing, required=True, original_index=9),
             LoadedModule(module=npc_commendation, required=True, original_index=10),
             LoadedModule(module=npc_recollection, required=True, original_index=11),
+            LoadedModule(module=npc_public_notice, required=True, original_index=12),
         ]
     )
     router = APIRouter(prefix="/api/dongzhou/v1")
@@ -4055,6 +4075,30 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "delivery:" + request.delivery_attempt_id, "DELIVERY_RESULT", callback
             )
         return {"success": True, "messageId": message_id}
+
+    @game_clock_router.post("/api/v2/NDLLMSendPublicMessage")
+    async def send_public_message(request: AinpcPublicMessageRequest) -> dict[str, Any]:
+        runtime = await store.read_npc_runtime(settings.game_server_id, request.ai_id)
+        if runtime is None or runtime["loginRequestId"] != request.login_request_id:
+            return {"success": False, "errorCode": "npc_login_round_changed"}
+        directory = await store.list_npcs(settings.game_server_id, include_offline=True)
+        npc = next((item for item in directory if item["id"] == request.ai_id), None)
+        if npc is None:
+            raise ApiError("public_message_npc_unknown", "Public message NPC is not registered.", status_code=422)
+        message_id = "npc-public:" + hashlib.sha256(
+            f"{settings.game_server_id}\n{request.ai_id}\n{request.login_request_id}\n{request.message}".encode("utf-8")
+        ).hexdigest()
+        notice = npc_public_notice.seal({
+            "messageId": message_id,
+            "gameServerId": settings.game_server_id,
+            "npcId": request.ai_id,
+            "heroId": npc["heroId"],
+            "npcName": npc["name"],
+            "message": request.message,
+            "loginRoundDigest": hashlib.sha256(request.login_request_id.encode("utf-8")).hexdigest(),
+        })
+        created = await store.record_public_message(message_id, settings.game_server_id, request.ai_id, notice)
+        return {"success": True, "messageId": message_id, "duplicate": not created}
 
     @game_clock_router.post("/api/v2/QueryNDLLMPrivateMessageDelivery")
     async def query_private_message_delivery(
@@ -4911,6 +4955,22 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "matchMode": match_mode,
         }
         return {"state": "COMPLETED", "recollection": npc_recollection.seal(trace)}
+
+    @router.get("/organization/public-notices")
+    async def organization_public_notices(player_id: UUID = Depends(player)) -> dict[str, Any]:
+        del player_id
+        try:
+            roster_response = await upstreams.organization_roster(settings.orgflow_org_id)
+            roster = _organization_roster_view(roster_response.get("data"), settings)
+        except UpstreamUnavailable as error:
+            raise ApiError("organization_roster_unavailable", "Organization roster is temporarily unavailable.", status_code=503) from error
+        active_heroes = {
+            str(member.get("heroId") or "")
+            for member in roster.get("members", [])
+            if str(member.get("state") or "ACTIVE") == "ACTIVE"
+        }
+        notices = await store.list_public_messages(settings.game_server_id, limit=30)
+        return {"notices": [notice for notice in notices if notice.get("heroId") in active_heroes]}
 
     @router.post("/knowledge/routes")
     async def campaign_route(

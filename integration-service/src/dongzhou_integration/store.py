@@ -156,6 +156,13 @@ class Store:
                   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                   PRIMARY KEY(game_server_id, pair_key)
                 );
+                CREATE TABLE IF NOT EXISTS npc_public_messages (
+                  message_id TEXT PRIMARY KEY, game_server_id TEXT NOT NULL,
+                  npc_id TEXT NOT NULL, payload TEXT NOT NULL,
+                  published_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE INDEX IF NOT EXISTS npc_public_messages_recent_idx
+                  ON npc_public_messages(game_server_id,published_at DESC,message_id DESC);
                 CREATE INDEX IF NOT EXISTS private_chat_messages_session_idx
                   ON private_chat_messages(game_server_id,chat_id,task_id,delivered_at,message_id);
                 """)
@@ -206,6 +213,31 @@ class Store:
             "startupId": row["startup_id"],
             "readyAt": row["ready_at"],
         }
+
+    async def record_public_message(self, message_id: str, game_server_id: str, npc_id: str, payload: dict[str, Any]) -> bool:
+        encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+        async with self._lock:
+            with self._connection() as db:
+                row = db.execute("SELECT payload FROM npc_public_messages WHERE message_id=?", (message_id,)).fetchone()
+                if row is not None:
+                    if row["payload"] != encoded:
+                        raise VersionConflict("public_message_idempotency_conflict")
+                    return False
+                db.execute(
+                    "INSERT INTO npc_public_messages(message_id,game_server_id,npc_id,payload) VALUES (?,?,?,?)",
+                    (message_id, game_server_id, npc_id, encoded),
+                )
+        return True
+
+    async def list_public_messages(self, game_server_id: str, limit: int = 30) -> list[dict[str, Any]]:
+        async with self._lock:
+            with self._connection() as db:
+                rows = db.execute(
+                    "SELECT payload,published_at FROM npc_public_messages WHERE game_server_id=? "
+                    "ORDER BY published_at DESC,message_id DESC LIMIT ?",
+                    (game_server_id, limit),
+                ).fetchall()
+        return [{**json.loads(row["payload"]), "publishedAt": row["published_at"]} for row in rows]
 
     async def clear_npc_runtime(self, game_server_id: str, npc_ids: list[str]) -> None:
         if not npc_ids:

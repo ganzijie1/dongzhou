@@ -111,6 +111,7 @@
   let officeQuizVerification = null;
   let officeCommendationInFlight = false;
   let officeRecollectionInFlight = false;
+  let officePublicNotices = [];
 
   const canvas = $("#battleCanvas");
   const ctx = canvas.getContext("2d");
@@ -1000,6 +1001,7 @@
       renderOrganizationPanel();
       refreshOfficeTaskSnapshots().catch((error) => showNotice(`官署簿书暂不可达：${error.message}`));
       refreshOfficeScheduledDuty().catch(() => {});
+      refreshOfficePublicNotices().catch(() => {});
       const manager = profile.organization.members.find((member) => member.id === "DuBo");
       const otherMembers = profile.organization.members.filter((member) => member.id !== "DuBo");
       syncOfficeNpcs(manager ? [manager] : [])
@@ -2039,6 +2041,26 @@
       const selected = memory.idempotencyKey === officeSelectedMemory?.idempotencyKey;
       return `<div class="office-memory-item${selected ? " selected" : ""}"><span>${escapeHtml(memory.content)}</span><button class="large-button" type="button" data-memory-id="${escapeHtml(memory.idempotencyKey)}">${selected ? "已取用" : "取为旧事"}</button><small>${escapeHtml(memory.sourceType || "旧事")} · 印记 ${escapeHtml(String(memory.digest || "").slice(0, 10))}</small></div>`;
     }).join("") || "<p>尚无可引用旧事；完成一次军议后将由属官记取。</p>"}`;
+  }
+
+  function renderOfficePublicNotices() {
+    const panel = $("#officePublicNotices");
+    if (!panel) return;
+    panel.innerHTML = officePublicNotices.length
+      ? officePublicNotices.slice(0, 12).map((notice) => `<li><strong>${escapeHtml(notice.npcName || displayName(notice.heroId))}</strong><span>${escapeHtml(notice.message)}</span><small>${escapeHtml(notice.publishedAt || "")} · 内核印记 ${escapeHtml(String(notice.digest || "").slice(0, 12))}</small></li>`).join("")
+      : '<li class="empty">尚无在职属官公开告示</li>';
+  }
+
+  async function refreshOfficePublicNotices() {
+    if (integration.isOffline()) { officePublicNotices = []; renderOfficePublicNotices(); return; }
+    try {
+      const response = await integration.organizationPublicNotices();
+      officePublicNotices = Array.isArray(response.notices) ? response.notices : [];
+    } catch (error) {
+      officePublicNotices = [];
+      showNotice(`官署告示暂不可达：${error.message}`);
+    }
+    renderOfficePublicNotices();
   }
 
   function selectOfficeMemory(memoryId) {
@@ -4806,6 +4828,7 @@
     $("#officeSupportMemberSelect").addEventListener("change", renderOfficeMandateApproval);
     $("#officeSupportMemberSelect").addEventListener("change", renderOfficeMandateApproval);
     $("#officeCorrespondenceRefresh").addEventListener("click", () => refreshOfficeCorrespondence());
+    $("#officePublicNoticesRefresh").addEventListener("click", refreshOfficePublicNotices);
     $("#officeInventoryRefresh").addEventListener("click", refreshOfficeInventory);
     $("#officeScheduledDutyRefresh").addEventListener("click", refreshOfficeScheduledDuty);
     $("#officeLogisticsBriefing").addEventListener("click", requestOfficeLogisticsBriefing);

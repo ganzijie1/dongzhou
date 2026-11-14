@@ -122,6 +122,9 @@ global.fetch = async (url, options = {}) => {
   else if (url.endsWith("/organization/roster")) {
     response = { organization: { name: "东周军府", growthContribution: 245 }, members: [{ heroId: "DuBo", lifetimeEarned: 80 }] };
   }
+  else if (url.endsWith("/organization/public-notices")) {
+    response = { notices: [{ messageId: "npc-public:1", heroId: "DuBo", npcName: "杜伯", message: "军令已布。", digest: "a".repeat(64) }] };
+  }
   else if (url.endsWith("/organization/inventory")) {
     response = { organizationId: "court", gameServerId: "91001", revision: 7, accounts: [{ resourceKey: "task.execution", balance: 128, version: 3 }] };
   }
@@ -276,6 +279,8 @@ const client = require("../web-game/integration-client.js");
   const roster = await client.organizationRoster();
   assert.strictEqual(roster.organization.growthContribution, 245);
   assert.strictEqual(roster.members[0].heroId, "DuBo");
+  const notices = await client.organizationPublicNotices();
+  assert.strictEqual(notices.notices[0].message, "军令已布。");
   const inventory = await client.organizationInventory();
   assert.strictEqual(inventory.accounts[0].balance, 128);
   assert.strictEqual(inventory.revision, 7);

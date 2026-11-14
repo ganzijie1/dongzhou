@@ -1941,6 +1941,51 @@ class AuthenticationRouteTests(unittest.TestCase):
                 )
                 self.assertEqual(pii.status_code, 422)
 
+    def test_public_message_requires_current_login_and_is_kernel_sealed(self) -> None:
+        with TemporaryDirectory() as directory, patch.dict(
+            "os.environ",
+            {
+                "DONGZHOU_ENV": "test",
+                "DONGZHOU_WEB_ROOT": directory,
+                "DONGZHOU_DATABASE_PATH": str(Path(directory) / "gateway.sqlite3"),
+                "DONGZHOU_ORGFLOW_ORG_ID": "00000000-0000-4000-8000-000000000100",
+                "DONGZHOU_ORGFLOW_HERO_MEMBERS": "ZuoRu=00000000-0000-4000-8000-000000000104",
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            store = Store(settings.database_path)
+            upstreams = _NpcRecoveryUpstreams(roster={"data": {
+                "name": "Dongzhou Court", "state": "ACTIVE", "hierarchy_version": 1,
+                "growth_contribution_points": 0, "positions": [],
+                "members": [{"member_id": "00000000-0000-4000-8000-000000000104", "state": "ACTIVE"}],
+            }})
+            application = build_application(settings, store=store, upstreams=upstreams)
+            with TestClient(application) as client:
+                asyncio.run(store.upsert_npc_directory(settings.game_server_id, [{"npcId": "42", "heroId": "ZuoRu", "name": "左儒"}]))
+                ready = client.post("/api/v1/ainpc/login-ready", json={
+                    "gameServerId": settings.game_server_id,
+                    "aiId": "42",
+                    "loginRequestId": "round-42",
+                })
+                self.assertEqual(ready.status_code, 200)
+                stale = client.post("/api/v2/NDLLMSendPublicMessage", json={"aiId": "42", "message": "军粮已至。", "loginRequestId": "old-round"})
+                self.assertFalse(stale.json()["success"])
+                sent = client.post("/api/v2/NDLLMSendPublicMessage", json={"aiId": "42", "message": "军粮已至。", "loginRequestId": "round-42"})
+                self.assertEqual(sent.status_code, 200)
+                self.assertTrue(sent.json()["success"])
+                replay = client.post("/api/v2/NDLLMSendPublicMessage", json={"aiId": "42", "message": "军粮已至。", "loginRequestId": "round-42"})
+                self.assertTrue(replay.json()["duplicate"])
+                notices = asyncio.run(store.list_public_messages(settings.game_server_id))
+                self.assertEqual(len(notices), 1)
+                self.assertEqual(notices[0]["heroId"], "ZuoRu")
+                self.assertEqual(notices[0]["kernel"], {"module": "dongzhou_npc_public_notice", "moduleVersion": "1.0.0", "state": "SEALED"})
+                self.assertRegex(notices[0]["digest"], r"^[0-9a-f]{64}$")
+                self.assertEqual(client.post("/api/dongzhou/v1/sessions/guest", json={"installation_id": str(uuid4())}).status_code, 200)
+                visible = client.get("/api/dongzhou/v1/organization/public-notices")
+                self.assertEqual(visible.status_code, 200, visible.text)
+                self.assertEqual(visible.json()["notices"][0]["message"], "军粮已至。")
+
 
 class StoreTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:

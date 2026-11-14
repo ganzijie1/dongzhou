@@ -157,6 +157,12 @@ class AinpcPrivateMessageRequest(StrictModel):
     player_info: AinpcPlayerInfo | None = Field(default=None, alias="playerInfo")
 
 
+class AinpcPublicMessageRequest(StrictModel):
+    ai_id: str = Field(alias="aiId", min_length=1, max_length=128)
+    message: str = Field(min_length=1, max_length=500)
+    login_request_id: str = Field(alias="loginRequestId", min_length=1, max_length=256)
+
+
 class AinpcPrivateMessageDeliveryQuery(StrictModel):
     ai_id: str = Field(alias="aiId", min_length=1, max_length=128)
     chat_id: str = Field(alias="chatId", min_length=1, max_length=256)
