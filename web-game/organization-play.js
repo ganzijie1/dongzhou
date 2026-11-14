@@ -179,6 +179,8 @@
     if (memory && (!memory.idempotencyKey || !memory.content || !/^[0-9a-f]{64}$/.test(String(memory.digest || '')) || !String(input.question || '').includes(`记忆印记：${memory.digest.slice(0, 12)}`))) throw new Error('军议旧事回执无效');
     const publicNotice = input.publicNotice && typeof input.publicNotice === 'object' ? copy(input.publicNotice) : null;
     if (publicNotice && (!String(publicNotice.messageId || '').startsWith('npc-public:') || publicNotice.heroId !== member.id || !String(publicNotice.message || '').trim() || !/^[0-9a-f]{64}$/.test(String(publicNotice.digest || '')) || publicNotice.kernel?.module !== 'dongzhou_npc_public_notice' || publicNotice.kernel?.state !== 'SEALED' || !String(input.question || '').includes(`告示印记：${publicNotice.digest.slice(0, 12)}`))) throw new Error('军议官署告示回执无效');
+    const contribution = input.contribution && typeof input.contribution === 'object' ? copy(input.contribution) : null;
+    if (contribution && (!contribution.entryId || contribution.heroId !== member.id || !Number.isSafeInteger(contribution.entryVersion) || !Number.isSafeInteger(contribution.amount) || contribution.amount === 0 || !/^[0-9a-f]{64}$/.test(String(contribution.digest || '')) || contribution.kernel?.module !== 'dongzhou_organization_contribution_ledger' || contribution.kernel?.state !== 'SEALED' || !String(input.question || '').includes(`功绩印记：${contribution.digest.slice(0, 12)}`))) throw new Error('军议属官功绩回执无效');
     const knowledgeMastery = input.knowledgeMastery && typeof input.knowledgeMastery === 'object' ? copy(input.knowledgeMastery) : null;
     if (knowledgeMastery && (!knowledgeMastery.questionId || knowledgeMastery.stageId !== stageId || knowledgeMastery.knowledgeId !== knowledge.id || knowledgeMastery.correct !== true || Number(knowledgeMastery.score) !== 10 || !/^[0-9a-f]{64}$/.test(String(knowledgeMastery.receipt?.digest || '')) || knowledgeMastery.receipt?.kernel?.module !== 'dongzhou_knowledge_tournament' || knowledgeMastery.receipt?.kernel?.state !== 'SEALED' || !String(input.question || '').includes(`史识印记：${knowledgeMastery.receipt.digest.slice(0, 12)}`))) throw new Error('史官问对回执无效');
     if (correspondence && (correspondence.heroId !== member.id || !/^[0-9a-f]{64}$/.test(String(correspondence.digest || "")))) throw new Error('所选耳报不属于当前属官');
@@ -191,6 +193,7 @@
       thought: thought ? copy(thought) : null,
       memory,
       publicNotice,
+      contribution,
       knowledgeMastery,
       dialogueReceipt,
       options: options.slice(), index: input.index, text: options[input.index] };
@@ -306,6 +309,7 @@
     if (mandate.thought && (!/^[0-9a-f]{64}$/.test(String(mandate.thought.digest || "")) || mandate.thought.requestId !== mandate.council?.thought?.requestId || mandate.thought.digest !== mandate.council?.thought?.digest)) throw new Error("内核军令进言来源无效");
     if (mandate.memory && (!mandate.memory.idempotencyKey || !/^[0-9a-f]{64}$/.test(String(mandate.memory.digest || "")) || mandate.memory.digest !== mandate.council?.memory?.digest)) throw new Error("内核军令旧事来源无效");
     if (mandate.publicNotice && (!String(mandate.publicNotice.messageId || "").startsWith("npc-public:") || mandate.publicNotice.heroId !== mandate.heroId || !/^[0-9a-f]{64}$/.test(String(mandate.publicNotice.digest || "")) || mandate.publicNotice.kernel?.module !== "dongzhou_npc_public_notice" || mandate.publicNotice.kernel?.state !== "SEALED" || mandate.publicNotice.messageId !== mandate.council?.publicNotice?.messageId || mandate.publicNotice.digest !== mandate.council?.publicNotice?.digest)) throw new Error("内核军令官署告示来源无效");
+    if (mandate.contribution && (!mandate.contribution.entryId || mandate.contribution.heroId !== mandate.heroId || !Number.isSafeInteger(mandate.contribution.entryVersion) || !Number.isSafeInteger(mandate.contribution.amount) || mandate.contribution.amount === 0 || !/^[0-9a-f]{64}$/.test(String(mandate.contribution.digest || "")) || mandate.contribution.kernel?.module !== "dongzhou_organization_contribution_ledger" || mandate.contribution.kernel?.state !== "SEALED" || mandate.contribution.entryId !== mandate.council?.contribution?.entryId || mandate.contribution.digest !== mandate.council?.contribution?.digest)) throw new Error("内核军令属官功绩来源无效");
     if (!mandate.assignment?.planId || !mandate.assignment?.eventId || mandate.assignment?.heroId !== mandate.heroId) throw new Error("内核军令未绑定属官当值日程");
     if (mandate.collaboration) {
       const collaboration = mandate.collaboration;
@@ -368,6 +372,7 @@
     if ((mandate?.correspondence?.messageId || null) !== (council?.correspondence?.messageId || null) || (mandate?.correspondence?.digest || null) !== (council?.correspondence?.digest || null)) throw new Error("内核军令与军议耳报不匹配");
     if ((mandate?.thought?.requestId || null) !== (council?.thought?.requestId || null) || (mandate?.thought?.digest || null) !== (council?.thought?.digest || null)) throw new Error("内核军令与军议进言不匹配");
     if ((mandate?.publicNotice?.messageId || null) !== (council?.publicNotice?.messageId || null) || (mandate?.publicNotice?.digest || null) !== (council?.publicNotice?.digest || null)) throw new Error("内核军令与军议官署告示不匹配");
+    if ((mandate?.contribution?.entryId || null) !== (council?.contribution?.entryId || null) || (mandate?.contribution?.digest || null) !== (council?.contribution?.digest || null)) throw new Error("内核军令与军议属官功绩不匹配");
     const operation = input.operation && typeof input.operation === "object" ? copy(input.operation) : mandate?.operation ? copy(mandate.operation) : null;
     if (operation && (input.type !== "diplomacy" || operation.kind !== "diplomacy" || !operation.target_id || !operation.target_name || !operation.proposal || !mandate?.operation || JSON.stringify(operation) !== JSON.stringify(mandate.operation))) throw new Error("外交差事与内核军令不匹配");
     const supportHeroId = mandate?.collaboration?.supportHeroId || null;

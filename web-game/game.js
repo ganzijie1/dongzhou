@@ -113,6 +113,8 @@
   let officeRecollectionInFlight = false;
   let officePublicNotices = [];
   let officeSelectedPublicNotice = null;
+  let officeContributions = [];
+  let officeSelectedContribution = null;
 
   const canvas = $("#battleCanvas");
   const ctx = canvas.getContext("2d");
@@ -1003,6 +1005,7 @@
       refreshOfficeTaskSnapshots().catch((error) => showNotice(`官署簿书暂不可达：${error.message}`));
       refreshOfficeScheduledDuty().catch(() => {});
       refreshOfficePublicNotices().catch(() => {});
+      refreshOfficeContributions().catch(() => {});
       const manager = profile.organization.members.find((member) => member.id === "DuBo");
       const otherMembers = profile.organization.members.filter((member) => member.id !== "DuBo");
       syncOfficeNpcs(manager ? [manager] : [])
@@ -2077,6 +2080,43 @@
     renderOfficeCouncil();
   }
 
+  function renderOfficeContributions() {
+    const panel = $("#officeContributions");
+    if (!panel) return;
+    panel.innerHTML = officeContributions.length
+      ? officeContributions.map((entry) => {
+        const selected = entry.entryId === officeSelectedContribution?.entryId;
+        const sign = Number(entry.amount) > 0 ? "+" : "";
+        return `<li class="${selected ? "selected" : ""}"><strong>${escapeHtml(entry.eventCode)}</strong><span>${sign}${Number(entry.amount)} · ${escapeHtml(entry.sourceRef)}</span><small>账本版本 ${Number(entry.entryVersion)} · 内核印记 ${escapeHtml(String(entry.digest || "").slice(0, 12))}</small><button class="large-button" type="button" data-contribution-id="${escapeHtml(entry.entryId)}">${selected ? "已取为公议" : "取为公议"}</button></li>`;
+      }).join("")
+      : '<li class="empty">该属官尚无功绩账目</li>';
+  }
+
+  async function refreshOfficeContributions() {
+    const heroId = $("#officeMemberSelect").value;
+    if (integration.isOffline() || !heroId) { officeContributions = []; officeSelectedContribution = null; renderOfficeContributions(); return; }
+    try {
+      const response = await integration.organizationMemberContributions(heroId);
+      if (response.heroId !== heroId || !Array.isArray(response.entries)) throw new Error("功绩簿身份不匹配");
+      officeContributions = response.entries;
+      if (!officeContributions.some((entry) => entry.entryId === officeSelectedContribution?.entryId && entry.digest === officeSelectedContribution?.digest)) officeSelectedContribution = null;
+    } catch (error) {
+      officeContributions = [];
+      officeSelectedContribution = null;
+      showNotice(`属官功绩暂不可用：${error.message}`);
+    }
+    renderOfficeContributions();
+    renderOfficeCouncil();
+  }
+
+  function selectOfficeContribution(entryId) {
+    const contribution = officeContributions.find((entry) => entry.entryId === entryId && entry.heroId === $("#officeMemberSelect").value);
+    if (!contribution) return;
+    officeSelectedContribution = officeSelectedContribution?.entryId === entryId ? null : contribution;
+    renderOfficeContributions();
+    renderOfficeCouncil();
+  }
+
   function selectOfficeMemory(memoryId) {
     const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
     const memory = officeMemoryView.find((entry) => entry.idempotencyKey === memoryId);
@@ -2251,13 +2291,14 @@
     const activeCorrespondence = correspondence?.heroId === heroId ? correspondence : null;
     const mastery = currentOfficeKnowledgeMastery();
     const activePublicNotice = officeSelectedPublicNotice?.heroId === heroId ? officeSelectedPublicNotice : null;
-    return [...profile.organization.councils].reverse().find((entry) => entry.stageId === stageId && entry.memberId === heroId && entry.knowledgeId === evidence?.knowledge.id && Number(entry.evidenceSource?.index) === Number(evidence?.source.index) && (entry.correspondence?.digest || null) === (activeCorrespondence?.digest || null) && (entry.publicNotice?.digest || null) === (activePublicNotice?.digest || null) && (entry.knowledgeMastery?.receipt?.digest || null) === (mastery?.receipt?.digest || null));
+    const activeContribution = officeSelectedContribution?.heroId === heroId ? officeSelectedContribution : null;
+    return [...profile.organization.councils].reverse().find((entry) => entry.stageId === stageId && entry.memberId === heroId && entry.knowledgeId === evidence?.knowledge.id && Number(entry.evidenceSource?.index) === Number(evidence?.source.index) && (entry.correspondence?.digest || null) === (activeCorrespondence?.digest || null) && (entry.publicNotice?.digest || null) === (activePublicNotice?.digest || null) && (entry.contribution?.digest || null) === (activeContribution?.digest || null) && (entry.knowledgeMastery?.receipt?.digest || null) === (mastery?.receipt?.digest || null));
   }
 
   function renderOfficeCouncil() {
     const council = currentOfficeCouncil();
     const control = $("#officeUseCouncil");
-    const contextKey = council ? [council.stageId, council.memberId, council.knowledgeId, council.correspondence?.digest || "", council.publicNotice?.digest || "", council.knowledgeMastery?.receipt?.digest || "", council.id].join(':') : "";
+    const contextKey = council ? [council.stageId, council.memberId, council.knowledgeId, council.correspondence?.digest || "", council.publicNotice?.digest || "", council.contribution?.digest || "", council.knowledgeMastery?.receipt?.digest || "", council.id].join(':') : "";
     if (control.dataset.councilContext !== contextKey) control.checked = false;
     control.dataset.councilContext = contextKey;
     control.disabled = !council;
@@ -2505,15 +2546,17 @@
     const correspondenceMarker = activeCorrespondence ? `\n耳报印记：${activeCorrespondence.digest.slice(0, 12)}\n耳报：${activeCorrespondence.speakerName}“${activeCorrespondence.content.slice(0, 420)}”` : "";
     const activeMemory = officeSelectedMemory;
     const activePublicNotice = officeSelectedPublicNotice?.heroId === member.id ? officeSelectedPublicNotice : null;
+    const activeContribution = officeSelectedContribution?.heroId === member.id ? officeSelectedContribution : null;
     const memoryMarker = activeMemory ? `\n记忆印记：${activeMemory.digest.slice(0, 12)}\n旧事：${activeMemory.content.slice(0, 420)}` : "";
     const publicNoticeMarker = activePublicNotice ? `\n告示印记：${activePublicNotice.digest.slice(0, 12)}\n公议：${activePublicNotice.message.slice(0, 420)}` : "";
+    const contributionMarker = activeContribution ? `\n功绩印记：${activeContribution.digest.slice(0, 12)}\n功绩：${activeContribution.eventCode} ${Number(activeContribution.amount) >= 0 ? "+" : ""}${Number(activeContribution.amount)}（${activeContribution.sourceRef}）` : "";
     const knowledgeMastery = currentOfficeKnowledgeMastery();
     const masteryMarker = knowledgeMastery ? `\n史识印记：${knowledgeMastery.receipt.digest.slice(0, 12)}\n史官问对：本回人物录答中，史识 10/10` : "";
-    const contextualQuestion = (question.slice(0, 750) + "\n史料：" + knowledge.name + "（" + knowledge.id + "）\n" + sourceMarker + retrievalMarker + masteryMarker + correspondenceMarker + memoryMarker + publicNoticeMarker + "\n适用范围：" + String(evidence.source.scope || "未注明") + "\n" + String(knowledge.summary || "").slice(0, 450)).slice(0, 2000);
+    const contextualQuestion = (question.slice(0, 750) + "\n史料：" + knowledge.name + "（" + knowledge.id + "）\n" + sourceMarker + retrievalMarker + masteryMarker + correspondenceMarker + memoryMarker + publicNoticeMarker + contributionMarker + "\n适用范围：" + String(evidence.source.scope || "未注明") + "\n" + String(knowledge.summary || "").slice(0, 450)).slice(0, 2000);
     officeCouncilInFlight = true;
     panel.textContent = `${member.name}正在权衡…`;
     try {
-      const response = await integration.npcDecision(member.id, contextualQuestion, options, stageId, activeMemory, activePublicNotice);
+      const response = await integration.npcDecision(member.id, contextualQuestion, options, stageId, activeMemory, activePublicNotice, activeContribution);
       if (String(officeStage()?.id || "") !== stageId || $("#officeMemberSelect").value !== member.id || $("#officeDecisionQuestion").value.trim() !== question || JSON.stringify([...document.querySelectorAll(".office-decision-option")].map((input) => input.value.trim()).filter(Boolean)) !== JSON.stringify(options)) { panel.textContent = "选择已改变，本轮结果不用于当前派差，请重新参议。"; return; }
       const selected = response.decision?.data || response.decision || {};
       if (response.state !== "COMPLETED" || selected.type !== "OPTION") throw new Error("军议尚未返回有效方案");
@@ -2521,13 +2564,13 @@
       const currentKnowledge = currentEvidence?.knowledge;
       const currentCorrespondence = profile.organization.selectedCorrespondence?.[stageId];
       const currentMastery = currentOfficeKnowledgeMastery();
-      if (!currentKnowledge || currentKnowledge.id !== knowledge.id || currentKnowledge.name !== knowledge.name || currentKnowledge.summary !== knowledge.summary || Number(currentEvidence?.source.index) !== Number(evidence.source.index) || (currentCorrespondence?.heroId === member.id ? currentCorrespondence.digest : null) !== (activeCorrespondence?.digest || null) || (officeSelectedMemory?.digest || null) !== (activeMemory?.digest || null) || (officeSelectedPublicNotice?.digest || null) !== (activePublicNotice?.digest || null) || (currentMastery?.receipt?.digest || null) !== (knowledgeMastery?.receipt?.digest || null)) {
+      if (!currentKnowledge || currentKnowledge.id !== knowledge.id || currentKnowledge.name !== knowledge.name || currentKnowledge.summary !== knowledge.summary || Number(currentEvidence?.source.index) !== Number(evidence.source.index) || (currentCorrespondence?.heroId === member.id ? currentCorrespondence.digest : null) !== (activeCorrespondence?.digest || null) || (officeSelectedMemory?.digest || null) !== (activeMemory?.digest || null) || (officeSelectedPublicNotice?.digest || null) !== (activePublicNotice?.digest || null) || (officeSelectedContribution?.digest || null) !== (activeContribution?.digest || null) || (currentMastery?.receipt?.digest || null) !== (knowledgeMastery?.receipt?.digest || null)) {
         panel.textContent = "史料或选证已更新，本轮议决不落档，请重新参议。";
         return;
       }
       const thought = currentOfficeThought();
       const selectedThought = thought?.thought?.hasThought === true && thought.councilProposal === options[selected.index] ? thought : null;
-      const noted = organization.recordCouncil(profile.organization, { id: response.clientRequestId, stageId, memberId: member.id, knowledgeId: knowledge.id, knowledgeName: knowledge.name, knowledgeSummary: knowledge.summary, evidenceSourceIndex: evidence.source.index, question: contextualQuestion, options, index: selected.index, dialogueReceipt: response.dialogueReceipt, ...(response.memoryReceipt ? { memory: response.memoryReceipt } : {}), ...(response.publicNoticeReceipt ? { publicNotice: response.publicNoticeReceipt } : {}), ...(knowledgeMastery ? { knowledgeMastery } : {}), ...(selectedThought ? { thoughtRequestId: selectedThought.requestId, thoughtDigest: selectedThought.digest } : {}) });
+      const noted = organization.recordCouncil(profile.organization, { id: response.clientRequestId, stageId, memberId: member.id, knowledgeId: knowledge.id, knowledgeName: knowledge.name, knowledgeSummary: knowledge.summary, evidenceSourceIndex: evidence.source.index, question: contextualQuestion, options, index: selected.index, dialogueReceipt: response.dialogueReceipt, ...(response.memoryReceipt ? { memory: response.memoryReceipt } : {}), ...(response.publicNoticeReceipt ? { publicNotice: response.publicNoticeReceipt } : {}), ...(response.contributionReceipt ? { contribution: response.contributionReceipt } : {}), ...(knowledgeMastery ? { knowledgeMastery } : {}), ...(selectedThought ? { thoughtRequestId: selectedThought.requestId, thoughtDigest: selectedThought.digest } : {}) });
       await integration.persist({ ...profile, organization: noted.state });
       profile.organization = noted.state;
       writeJson(PROFILE_KEY, profile);
@@ -2608,7 +2651,9 @@
     const operation = mandateInput.operation || null;
     const evidence = currentOfficeEvidence();
     const knowledge = evidence?.knowledge;
-    const council = currentOfficeCouncil();
+    const council = profile.organization.councils.find(
+      (entry) => entry.id === mandateInput.council_request_id
+    );
     const assigneeId = mandateInput.hero_id;
     const taskDefinition = organization.TASK_TYPES[taskType];
     if (!taskDefinition || profile.campaignResources.provisions < taskDefinition.cost) throw new Error("军粮不足，无法下达这项军令");
@@ -2711,7 +2756,7 @@
       const evidence = currentOfficeEvidence();
       const knowledge = evidence?.knowledge;
       const council = operation ? currentOfficeCouncil() : $("#officeUseCouncil").checked ? currentOfficeCouncil() : null;
-      const councilContext = council ? [council.stageId, council.memberId, council.knowledgeId, council.correspondence?.digest || "", council.knowledgeMastery?.receipt?.digest || "", council.id].join(':') : "";
+      const councilContext = council ? [council.stageId, council.memberId, council.knowledgeId, council.correspondence?.digest || "", council.publicNotice?.digest || "", council.contribution?.digest || "", council.knowledgeMastery?.receipt?.digest || "", council.id].join(':') : "";
       if ((operation || $("#officeUseCouncil").checked) && (!council || $("#officeUseCouncil").dataset.councilContext !== councilContext)) throw new Error("军议选择已变化，请重新确认引用");
       if (!integration.isOffline() && (!knowledge || !council)) throw new Error("联网授命必须引用本回史料与已保存军议");
       const assigneeId = $("#officeMemberSelect").value;
@@ -4841,12 +4886,14 @@
     $("#campaignOfficeCloseButton").addEventListener("click", () => setCampaignOffice(false));
     $("#campaignOfficeBackdrop").addEventListener("click", (event) => { if (event.target === event.currentTarget) setCampaignOffice(false); });
     $("#officeTaskType").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOrganizationPanel(); refreshOfficeNpcAssignment(); });
-    $("#officeMemberSelect").addEventListener("change", () => { $("#officeUseCouncil").checked = false; officeMemoryView = []; officeSelectedMemory = null; officeSelectedPublicNotice = null; renderOrganizationPanel(); renderOfficePublicNotices(); refreshOfficeNpcState(); });
+    $("#officeMemberSelect").addEventListener("change", () => { $("#officeUseCouncil").checked = false; officeMemoryView = []; officeSelectedMemory = null; officeSelectedPublicNotice = null; officeContributions = []; officeSelectedContribution = null; renderOrganizationPanel(); renderOfficePublicNotices(); renderOfficeContributions(); refreshOfficeContributions().catch(() => {}); refreshOfficeNpcState(); });
     $("#officeSupportMemberSelect").addEventListener("change", renderOfficeMandateApproval);
     $("#officeSupportMemberSelect").addEventListener("change", renderOfficeMandateApproval);
     $("#officeCorrespondenceRefresh").addEventListener("click", () => refreshOfficeCorrespondence());
     $("#officePublicNoticesRefresh").addEventListener("click", refreshOfficePublicNotices);
     $("#officePublicNotices").addEventListener("click", (event) => { const button = event.target.closest("[data-public-notice-id]"); if (button) selectOfficePublicNotice(button.dataset.publicNoticeId); });
+    $("#officeContributionsRefresh").addEventListener("click", refreshOfficeContributions);
+    $("#officeContributions").addEventListener("click", (event) => { const button = event.target.closest("[data-contribution-id]"); if (button) selectOfficeContribution(button.dataset.contributionId); });
     $("#officeInventoryRefresh").addEventListener("click", refreshOfficeInventory);
     $("#officeScheduledDutyRefresh").addEventListener("click", refreshOfficeScheduledDuty);
     $("#officeLogisticsBriefing").addEventListener("click", requestOfficeLogisticsBriefing);

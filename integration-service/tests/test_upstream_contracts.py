@@ -35,6 +35,99 @@ def settings(path: Path) -> Settings:
 
 
 class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
+    async def test_member_contribution_route_seals_authoritative_entries(self) -> None:
+        member_id = "00000000-0000-0000-0000-000000000004"
+        entry_id = "00000000-0000-0000-0000-000000000009"
+
+        class ContributionUpstreams:
+            async def health(self):
+                return {
+                    "orgFlow": {"online": True},
+                    "aiNpc": {"online": True},
+                    "knowledge": {"online": True},
+                }
+
+            async def organization_roster(self, organization_id: str):
+                return {"data": {
+                    "organization_id": organization_id,
+                    "name": "Dongzhou Commandery",
+                    "state": "ACTIVE",
+                    "hierarchy_version": 7,
+                    "growth_contribution_points": 20,
+                    "positions": [{
+                        "position_slot_id": "00000000-0000-0000-0000-000000000003",
+                        "position_display_name": "Marshal",
+                        "role_display_name": "Commander",
+                        "level_key": "manager",
+                        "state": "OCCUPIED",
+                    }],
+                    "members": [{
+                        "member_id": member_id,
+                        "position_slot_id": "00000000-0000-0000-0000-000000000003",
+                        "direct_manager_member_id": None,
+                        "contribution_balance": 20,
+                        "contribution_lifetime_earned": 20,
+                        "contribution_lifetime_spent": 0,
+                    }],
+                }}
+
+            async def organization_member_contributions(
+                self, organization_id: str, requested_member_id: str, **kwargs
+            ):
+                assert requested_member_id == member_id
+                assert kwargs == {"limit": 50}
+                return {"data": {
+                    "account": {
+                        "organization_id": organization_id,
+                        "member_id": requested_member_id,
+                        "balance": 20,
+                        "lifetime_earned": 20,
+                        "lifetime_spent": 0,
+                        "version": 2,
+                    },
+                    "entries": [{
+                        "entry_id": entry_id,
+                        "account_version": 2,
+                        "amount": 20,
+                        "balance_after": 20,
+                        "lifetime_earned_after": 20,
+                        "lifetime_spent_after": 0,
+                        "event_code": "TASK_COMPLETED",
+                        "source_ref": "task-1",
+                        "violation_id": None,
+                        "rule_set_id": "organization.default",
+                        "rule_set_version": 1,
+                    }],
+                    "next_before_version": None,
+                }}
+
+            async def close(self):
+                return None
+
+        with TemporaryDirectory() as directory:
+            configured = settings(Path(directory) / "gateway.sqlite3")
+            application = build_application(configured, upstreams=ContributionUpstreams())
+            with TestClient(application) as client:
+                client.post(
+                    "/api/dongzhou/v1/sessions/guest",
+                    json={"installation_id": str(uuid4())},
+                )
+                response = client.get(
+                    "/api/dongzhou/v1/organization/members/DuBo/contributions"
+                )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        receipt = response.json()["entries"][0]
+        self.assertEqual(receipt["entryId"], entry_id)
+        self.assertEqual(receipt["heroId"], "DuBo")
+        self.assertEqual(receipt["amount"], 20)
+        self.assertEqual(
+            receipt["kernel"]["module"],
+            "dongzhou_organization_contribution_ledger",
+        )
+        self.assertEqual(receipt["kernel"]["state"], "SEALED")
+        self.assertRegex(receipt["digest"], r"^[0-9a-f]{64}$")
+
     async def test_roster_route_exposes_mapped_heroes_and_current_player_only(self) -> None:
         class RosterUpstreams:
             player_subject_id = "pending"

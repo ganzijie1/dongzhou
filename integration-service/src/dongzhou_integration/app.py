@@ -593,6 +593,38 @@ class NpcPublicNoticeModule(Module):
         }
 
 
+class OrganizationContributionLedgerModule(Module):
+    name = "dongzhou_organization_contribution_ledger"
+    version = "1.0.0"
+
+    @classmethod
+    def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
+        required = (
+            "organizationId", "memberId", "heroId", "entryId", "eventCode",
+            "sourceRef", "ruleSetId",
+        )
+        if any(not str(trace.get(key) or "").strip() for key in required):
+            raise ValueError("organization contribution trace is incomplete")
+        for key in (
+            "entryVersion", "amount", "balanceAfter", "lifetimeEarnedAfter",
+            "lifetimeSpentAfter", "ruleSetVersion",
+        ):
+            if isinstance(trace.get(key), bool) or not isinstance(trace.get(key), int):
+                raise ValueError("organization contribution trace contains an invalid amount")
+        if trace["amount"] == 0 or trace["entryVersion"] < 2:
+            raise ValueError("organization contribution entry is invalid")
+        return {
+            **trace,
+            "digest": _canonical_digest(trace),
+            "kernel": {
+                "module": cls.name,
+                "moduleVersion": cls.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "SEALED",
+            },
+        }
+
+
 class CampaignRouteModule(Module):
     name = "dongzhou_campaign_route"
     version = "1.2.0"
@@ -1322,6 +1354,109 @@ def _organization_roster_view(
             and position.get("state") == "OPEN"
             and str(position.get("level_key") or "").lower() != "owner"
         ],
+    }
+
+
+def _organization_contribution_view(
+    snapshot: Any,
+    settings: Settings,
+    *,
+    hero_id: str,
+    member_id: str,
+    ledger: OrganizationContributionLedgerModule,
+) -> dict[str, Any]:
+    if not isinstance(snapshot, dict):
+        raise ValueError("contribution snapshot must be an object")
+    account = snapshot.get("account")
+    entries = snapshot.get("entries")
+    if not isinstance(account, dict) or not isinstance(entries, list):
+        raise ValueError("contribution snapshot is incomplete")
+    if (
+        str(account.get("organization_id") or "") != settings.orgflow_org_id
+        or str(account.get("member_id") or "") != member_id
+    ):
+        raise ValueError("contribution account identity does not match configuration")
+    numeric_account = {
+        "accountVersion": account.get("version"),
+        "accountBalance": account.get("balance"),
+        "lifetimeEarned": account.get("lifetime_earned"),
+        "lifetimeSpent": account.get("lifetime_spent"),
+    }
+    if any(
+        isinstance(value, bool) or not isinstance(value, int) or value < 0
+        for value in numeric_account.values()
+    ):
+        raise ValueError("contribution account totals are invalid")
+    if (
+        numeric_account["accountVersion"] < 1
+        or numeric_account["accountBalance"]
+        != numeric_account["lifetimeEarned"] - numeric_account["lifetimeSpent"]
+    ):
+        raise ValueError("contribution account totals are inconsistent")
+    sealed: list[dict[str, Any]] = []
+    previous_version: int | None = None
+    for raw in entries:
+        if not isinstance(raw, dict):
+            raise ValueError("contribution entry must be an object")
+        entry_values = {
+            "entryVersion": raw.get("account_version"),
+            "amount": raw.get("amount"),
+            "balanceAfter": raw.get("balance_after"),
+            "lifetimeEarnedAfter": raw.get("lifetime_earned_after"),
+            "lifetimeSpentAfter": raw.get("lifetime_spent_after"),
+            "ruleSetVersion": raw.get("rule_set_version"),
+        }
+        if any(
+            isinstance(value, bool) or not isinstance(value, int)
+            for value in entry_values.values()
+        ):
+            raise ValueError("contribution entry amounts are invalid")
+        if (
+            entry_values["entryVersion"] < 2
+            or entry_values["amount"] == 0
+            or entry_values["balanceAfter"] < 0
+            or entry_values["lifetimeEarnedAfter"] < 0
+            or entry_values["lifetimeSpentAfter"] < 0
+            or entry_values["ruleSetVersion"] < 1
+            or entry_values["balanceAfter"]
+            != entry_values["lifetimeEarnedAfter"] - entry_values["lifetimeSpentAfter"]
+            or (
+                previous_version is not None
+                and entry_values["entryVersion"] != previous_version - 1
+            )
+        ):
+            raise ValueError("contribution entry contract is invalid")
+        previous_version = entry_values["entryVersion"]
+        violation_id = raw.get("violation_id")
+        trace = {
+            "organizationId": settings.orgflow_org_id,
+            "memberId": member_id,
+            "heroId": hero_id,
+            "entryId": str(raw.get("entry_id") or ""),
+            **entry_values,
+            "eventCode": str(raw.get("event_code") or ""),
+            "sourceRef": str(raw.get("source_ref") or ""),
+            "violationId": str(violation_id) if violation_id else None,
+            "ruleSetId": str(raw.get("rule_set_id") or ""),
+        }
+        UUID(trace["entryId"])
+        if trace["violationId"]:
+            UUID(trace["violationId"])
+        sealed.append(ledger.seal(trace))
+    next_before_version = snapshot.get("next_before_version")
+    if next_before_version is not None and (
+        isinstance(next_before_version, bool)
+        or not isinstance(next_before_version, int)
+        or not sealed
+        or next_before_version != sealed[-1]["entryVersion"]
+    ):
+        raise ValueError("contribution cursor is invalid")
+    return {
+        "heroId": hero_id,
+        "memberId": member_id,
+        "account": numeric_account,
+        "entries": sealed,
+        "nextBeforeVersion": next_before_version,
     }
 
 
@@ -3640,6 +3775,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     npc_commendation = NpcCommendationModule()
     npc_recollection = NpcRecollectionModule()
     npc_public_notice = NpcPublicNoticeModule()
+    organization_contribution_ledger = OrganizationContributionLedgerModule()
     kernel = Kernel(
         [
             LoadedModule(module=module, required=True, original_index=0),
@@ -3663,6 +3799,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             LoadedModule(module=npc_commendation, required=True, original_index=10),
             LoadedModule(module=npc_recollection, required=True, original_index=11),
             LoadedModule(module=npc_public_notice, required=True, original_index=12),
+            LoadedModule(module=organization_contribution_ledger, required=True, original_index=13),
         ]
     )
     router = APIRouter(prefix="/api/dongzhou/v1")
@@ -3680,6 +3817,48 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         if manager_hero_id
         else None
     )
+
+    async def current_contribution_receipt(
+        hero_id: str,
+        entry_id: str,
+        digest: str,
+    ) -> dict[str, Any] | None:
+        member_id = settings.orgflow_hero_members.get(hero_id)
+        if not member_id:
+            return None
+        roster_response = await upstreams.organization_roster(settings.orgflow_org_id)
+        roster = _organization_roster_view(roster_response.get("data"), settings)
+        if not any(item.get("heroId") == hero_id for item in roster["members"]):
+            return None
+        before_version: int | None = None
+        while True:
+            response = await upstreams.organization_member_contributions(
+                settings.orgflow_org_id,
+                member_id,
+                before_version=before_version,
+                limit=100,
+            )
+            page = _organization_contribution_view(
+                response.get("data"),
+                settings,
+                hero_id=hero_id,
+                member_id=member_id,
+                ledger=organization_contribution_ledger,
+            )
+            selected = next(
+                (
+                    item
+                    for item in page["entries"]
+                    if item.get("entryId") == entry_id and item.get("digest") == digest
+                ),
+                None,
+            )
+            if selected is not None:
+                return selected
+            next_before_version = page.get("nextBeforeVersion")
+            if next_before_version is None:
+                return None
+            before_version = next_before_version
 
     def service_statuses(external: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
         kernel_snapshot = kernel.health_status()
@@ -5807,6 +5986,45 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             ):
                 await store.finish_request(player_id, request.client_request_id, "REJECTED", {"state": "REJECTED"}, "npc_public_notice_unverified")
                 raise ApiError("npc_public_notice_unverified", "The council public notice is no longer verifiable.", status_code=422)
+        contribution_receipt: dict[str, Any] | None = None
+        if request.contribution_entry_id and request.contribution_entry_digest:
+            try:
+                contribution_receipt = await current_contribution_receipt(
+                    hero_id,
+                    str(request.contribution_entry_id),
+                    request.contribution_entry_digest,
+                )
+            except UpstreamUnavailable as error:
+                await store.finish_request(
+                    player_id,
+                    request.client_request_id,
+                    "RETRYABLE",
+                    {"state": "RETRYABLE"},
+                    str(error),
+                )
+                raise ApiError(
+                    "organization_contributions_unavailable",
+                    "Organization contribution history is temporarily unavailable.",
+                    status_code=503,
+                ) from error
+            except (TypeError, ValueError) as error:
+                contribution_receipt = None
+            if (
+                contribution_receipt is None
+                or request.contribution_entry_digest[:12] not in request.question
+            ):
+                await store.finish_request(
+                    player_id,
+                    request.client_request_id,
+                    "REJECTED",
+                    {"state": "REJECTED"},
+                    "organization_contribution_unverified",
+                )
+                raise ApiError(
+                    "organization_contribution_unverified",
+                    "The selected officer contribution is no longer verifiable.",
+                    status_code=422,
+                )
         memory_receipt: dict[str, Any] | None = None
         if request.memory_idempotency_key and request.memory_digest:
             try:
@@ -6018,6 +6236,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "dialogueReceipt": dialogue_receipt,
             **({"memoryReceipt": memory_receipt} if memory_receipt else {}),
             **({"publicNoticeReceipt": public_notice_receipt} if public_notice_receipt else {}),
+            **({"contributionReceipt": contribution_receipt} if contribution_receipt else {}),
         }
         await store.finish_request(player_id, request.client_request_id, "COMPLETED", response)
         return response
@@ -6310,6 +6529,52 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             ):
                 await store.finish_request(player_id, request.client_request_id, "REJECTED", {"state": "REJECTED"}, "court_public_notice_unverified")
                 raise ApiError("court_public_notice_unverified", "The mandate public notice is no longer verifiable.", status_code=422)
+
+        selected_contribution = (
+            council_response.get("contributionReceipt")
+            if isinstance(council_response, dict)
+            else None
+        )
+        if selected_contribution is not None:
+            try:
+                current_contribution = await current_contribution_receipt(
+                    request.hero_id,
+                    str(selected_contribution.get("entryId") or ""),
+                    str(selected_contribution.get("digest") or ""),
+                )
+            except UpstreamUnavailable as error:
+                await store.finish_request(
+                    player_id,
+                    request.client_request_id,
+                    "RETRYABLE",
+                    {"state": "RETRYABLE"},
+                    str(error),
+                )
+                raise ApiError(
+                    "organization_contributions_unavailable",
+                    "Organization contribution history is temporarily unavailable.",
+                    status_code=503,
+                ) from error
+            except (TypeError, ValueError):
+                current_contribution = None
+            if (
+                current_contribution is None
+                or current_contribution != selected_contribution
+                or str(selected_contribution.get("digest") or "")[:12]
+                not in str(council_request.get("question") or "")
+            ):
+                await store.finish_request(
+                    player_id,
+                    request.client_request_id,
+                    "REJECTED",
+                    {"state": "REJECTED"},
+                    "court_contribution_unverified",
+                )
+                raise ApiError(
+                    "court_contribution_unverified",
+                    "The mandate contribution evidence is no longer verifiable.",
+                    status_code=422,
+                )
 
         thought_receipt: dict[str, Any] | None = None
         if request.thought_request_id is not None and request.thought_digest is not None:
@@ -6761,6 +7026,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "dialogueReceipt": dialogue_receipt,
                 **({"memory": selected_memory} if selected_memory else {}),
                 **({"publicNotice": selected_public_notice} if selected_public_notice else {}),
+                **({"contribution": selected_contribution} if selected_contribution else {}),
                 **(
                     {"knowledgeMastery": knowledge_mastery}
                     if knowledge_mastery is not None
@@ -6793,6 +7059,9 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         if selected_public_notice is not None:
             trace["publicNotice"] = selected_public_notice
             trace["council"]["publicNotice"] = selected_public_notice
+        if selected_contribution is not None:
+            trace["contribution"] = selected_contribution
+            trace["council"]["contribution"] = selected_contribution
         if request.operation is not None:
             trace["operation"] = request.operation.model_dump(mode="json")
         # Canonical JSON keeps the seal stable across retries and process restarts.
@@ -7101,13 +7370,49 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "Organization roster response is invalid.",
                 status_code=502,
             ) from error
-        except (AttributeError, ValueError) as error:
+
+    @router.get("/organization/members/{hero_id}/contributions")
+    async def read_organization_member_contributions(
+        hero_id: str,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        del player_id
+        member_id = settings.orgflow_hero_members.get(hero_id)
+        if not member_id:
             raise ApiError(
-                "organization_roster_contract_invalid",
-                "Organization roster response is invalid.",
+                "organization_member_not_found",
+                "The selected officer is not mapped to the organization.",
+                status_code=404,
+            )
+        try:
+            roster_response = await upstreams.organization_roster(settings.orgflow_org_id)
+            roster = _organization_roster_view(roster_response.get("data"), settings)
+            if not any(item.get("heroId") == hero_id for item in roster["members"]):
+                raise ValueError("organization member is not active")
+            response = await upstreams.organization_member_contributions(
+                settings.orgflow_org_id,
+                member_id,
+                limit=50,
+            )
+            return _organization_contribution_view(
+                response.get("data"),
+                settings,
+                hero_id=hero_id,
+                member_id=member_id,
+                ledger=organization_contribution_ledger,
+            )
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "organization_contributions_unavailable",
+                "Organization contribution history is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        except (TypeError, ValueError) as error:
+            raise ApiError(
+                "organization_contributions_contract_invalid",
+                "Organization contribution history is invalid.",
                 status_code=502,
             ) from error
-
     @router.get("/organization/player-tasks")
     async def read_organization_player_tasks(
         player_id: UUID = Depends(player),

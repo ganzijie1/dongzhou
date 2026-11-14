@@ -275,6 +275,10 @@ class NpcDecisionRequest(StrictModel):
     memory_digest: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     public_notice_id: str | None = Field(default=None, min_length=1, max_length=128)
     public_notice_digest: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    contribution_entry_id: UUID | None = Field(default=None, strict=False)
+    contribution_entry_digest: str | None = Field(
+        default=None, pattern=r"^[0-9a-f]{64}$"
+    )
 
     @model_validator(mode="after")
     def memory_reference_is_complete(self) -> "NpcDecisionRequest":
@@ -282,6 +286,8 @@ class NpcDecisionRequest(StrictModel):
             raise ValueError("NPC memory reference is incomplete")
         if bool(self.public_notice_id) != bool(self.public_notice_digest):
             raise ValueError("NPC public notice reference is incomplete")
+        if bool(self.contribution_entry_id) != bool(self.contribution_entry_digest):
+            raise ValueError("organization contribution reference is incomplete")
         return self
 
 

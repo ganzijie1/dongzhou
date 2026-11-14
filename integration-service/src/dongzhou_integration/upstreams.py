@@ -1404,6 +1404,36 @@ class Upstreams:
             content=b"",
         )
 
+    async def organization_member_contributions(
+        self,
+        organization_id: str,
+        member_id: str,
+        *,
+        before_version: int | None = None,
+        limit: int = 50,
+    ) -> dict[str, Any]:
+        path = (
+            "/internal/v1/organization-administration/organizations/"
+            f"{organization_id}/members/{member_id}/contributions"
+        )
+        query = f"limit={limit}"
+        if before_version is not None:
+            query = f"before_version={before_version}&{query}"
+        path_and_query = f"{path}?{query}"
+        return await self._json(
+            "GET",
+            f"{self.settings.orgflow_url}{path_and_query}",
+            headers=sign_orgflow_request(
+                method="GET",
+                path_and_query=path_and_query,
+                audience=self.settings.orgflow_audience,
+                key_id=self.settings.orgflow_hmac_key_id,
+                secret=self.settings.orgflow_hmac_secret,
+                body=b"",
+            ),
+            content=b"",
+        )
+
     async def organization_player_task_statuses(
         self,
         *,

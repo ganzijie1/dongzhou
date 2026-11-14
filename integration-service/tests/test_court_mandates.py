@@ -100,6 +100,7 @@ class MandateUpstreams:
         self.collaboration_available = False
         self.roster_members: list[dict[str, object]] = []
         self.roster_positions: list[dict[str, object]] = []
+        self.contribution_entries: list[dict[str, object]] = []
         self.market_reports: list[dict[str, object]] = []
         self.warehouse_reports: list[dict[str, object]] = []
         self.inventory_snapshot = {
@@ -397,6 +398,30 @@ class MandateUpstreams:
             }
         }
 
+    async def organization_member_contributions(
+        self, organization_id, member_id, *, before_version=None, limit=50
+    ):
+        del limit
+        entries = [
+            entry
+            for entry in self.contribution_entries
+            if before_version is None or entry["account_version"] < before_version
+        ]
+        earned = sum(max(0, int(entry["amount"])) for entry in self.contribution_entries)
+        spent = sum(max(0, -int(entry["amount"])) for entry in self.contribution_entries)
+        return {"data": {
+            "account": {
+                "organization_id": organization_id,
+                "member_id": member_id,
+                "balance": earned - spent,
+                "lifetime_earned": earned,
+                "lifetime_spent": spent,
+                "version": max([int(entry["account_version"]) for entry in self.contribution_entries] or [1]),
+            },
+            "entries": entries,
+            "next_before_version": None,
+        }}
+
     async def organization_inventory(self, organization_id):
         assert organization_id == self.inventory_snapshot["organization_id"]
         return {"data": self.inventory_snapshot}
@@ -604,6 +629,81 @@ def schedule_mandate(client: TestClient, mandate: dict[str, object]) -> dict[str
     )
     assert scheduled.status_code == 200, scheduled.text
     return scheduled.json()["scheduleReceipt"]
+
+
+def test_contribution_entry_is_reverified_and_sealed_into_mandate() -> None:
+    with TemporaryDirectory() as directory:
+        upstreams = MandateUpstreams()
+        upstreams.roster_positions = [{
+            "position_slot_id": "00000000-0000-0000-0000-000000000003",
+            "position_display_name": "Court Officer",
+            "role_display_name": "Officer",
+            "level_key": "staff",
+            "state": "OCCUPIED",
+        }]
+        upstreams.roster_members = [{
+            "member_id": "00000000-0000-0000-0000-000000000004",
+            "position_slot_id": "00000000-0000-0000-0000-000000000003",
+            "state": "ACTIVE",
+            "contribution_balance": 20,
+            "contribution_lifetime_earned": 20,
+            "contribution_lifetime_spent": 0,
+        }]
+        entry_id = str(uuid4())
+        upstreams.contribution_entries = [{
+            "entry_id": entry_id,
+            "account_version": 2,
+            "amount": 20,
+            "balance_after": 20,
+            "lifetime_earned_after": 20,
+            "lifetime_spent_after": 0,
+            "event_code": "TASK_COMPLETED",
+            "source_ref": "task-1",
+            "violation_id": None,
+            "rule_set_id": "organization.default",
+            "rule_set_version": 1,
+        }]
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=upstreams
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            ledger = client.get(
+                "/api/dongzhou/v1/organization/members/ZuoRu/contributions"
+            )
+            assert ledger.status_code == 200, ledger.text
+            contribution = ledger.json()["entries"][0]
+            council_id = str(uuid4())
+            council = client.post("/api/dongzhou/v1/npcs/ZuoRu/decisions", json={
+                "client_request_id": council_id,
+                "question": "如何部署\n选证：《史记·周本纪》｜史实骨架\n功绩印记：" + contribution["digest"][:12],
+                "options": [
+                    {"index": 0, "text": "固守关隘"},
+                    {"index": 1, "text": "整军进取"},
+                ],
+                "topic": "court_decision",
+                "contribution_entry_id": entry_id,
+                "contribution_entry_digest": contribution["digest"],
+            })
+            assert council.status_code == 200, council.text
+            assert council.json()["contributionReceipt"] == contribution
+
+            draft = client.post(
+                "/api/dongzhou/v1/court/mandates",
+                json=mandate_body(council_id),
+            )
+            assert draft.status_code == 200, draft.text
+            mandate = draft.json()["mandate"]
+            assert mandate["contribution"] == contribution
+            assert mandate["council"]["contribution"] == contribution
+
+            upstreams.roster_members = []
+            stale = client.post(
+                "/api/dongzhou/v1/court/mandates",
+                json=mandate_body(council_id, str(uuid4())),
+            )
+            assert stale.status_code == 422
+            assert stale.json()["error"]["code"] == "court_contribution_unverified"
 
 
 def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -> None:
