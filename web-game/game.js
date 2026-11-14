@@ -106,6 +106,8 @@
   let officeCareerBusy = false;
   let officeCareerStatusBusy = false;
   let officeCareerStatusItems = [];
+  let officeCareerSelectedTaskId = null;
+  const officeCareerExpandedTaskIds = new Set();
   let officeCareerContributionBusy = false;
   let officeCareerContributionAccount = null;
   let officeCareerContributions = [];
@@ -1755,7 +1757,11 @@
     const panel = $("#officeCareer");
     if (!panel) return;
     panel.hidden = !membership;
-    if (!membership) return;
+    if (!membership) {
+      officeCareerSelectedTaskId = null;
+      officeCareerExpandedTaskIds.clear();
+      return;
+    }
     const account = officeCareerContributionAccount || {
       accountBalance: membership.contributionBalance,
       lifetimeEarned: membership.lifetimeEarned,
@@ -1770,6 +1776,16 @@
       PARTIALLY_COMPLETED: "部分办成", FAILED: "未办成", REJECTED: "已驳回", CANCELLED: "已撤销", INVALIDATED: "已失效"
     };
     const exceptionStates = { OPEN: "异常待裁", ACCEPTED: "已按方案恢复", REJECTED: "异常已驳回", TERMINATED: "异常已终止", INVALIDATED: "异常已失效" };
+    const traceLabels = {
+      TASK_CREATED: "立案", RECOMMENDATION_COMPLETED: "荐人", CONFIRMATION_OPENED: "请确认",
+      MESSAGE_SENT: "传令", MESSAGE_SEND_FAILED: "传令受阻", REPLY_RECEIVED: "回覆",
+      CONFIRMATION_RESOLVED: "已确认", EXECUTION_STARTED: "开工", SUBMISSION_RECORDED: "复命",
+      LIGHTWEIGHT_CHECK_COMPLETED: "核验", SUPPLEMENT_REQUESTED: "补件",
+      EXECUTION_EXCEPTION_REPORTED: "报阻", EXECUTION_EXCEPTION_RESOLVED: "复行",
+      DERIVED_TASK_INTENT_CREATED: "拟定续办", DERIVED_TASK_CREATED: "续办立案",
+      DERIVED_TASK_SKIPPED: "无需续办", TASK_FINALIZED: "定案", SETTLEMENT_RECORDED: "结算",
+      TASK_INVALIDATED: "作废"
+    };
     $("#officeCareerStatus").innerHTML = officeCareerStatusItems.map((task) => {
       const trace = task.organizationTrace;
       const exception = trace?.state === "SEALED" ? trace.executionException : task.executionException;
@@ -1785,7 +1801,14 @@
       const traceDetail = trace?.state === "SEALED"
         ? ` · 行迹封印 ${escapeHtml(String(trace.digest || "").slice(0, 10))}`
         : trace?.state === "UNAVAILABLE" ? " · 权威行迹暂不可用" : "";
-      return `<li data-task-id="${escapeHtml(task.taskId)}" data-task-state="${escapeHtml(task.state)}" data-exception-state="${escapeHtml(exception?.state || "")}" data-trace-state="${escapeHtml(trace?.state || "")}"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(taskStates[task.state] || task.state)}${exceptionLabel}</span><small>版本 ${Number(task.version || 0)} · ${escapeHtml(task.updatedAt || "未记录时间")}${planDetail}${traceDetail}</small></li>`;
+      const actionable = ["IN_PROGRESS", "SUPPLEMENT_PENDING"].includes(task.state) && exception?.state !== "OPEN";
+      const selected = actionable && officeCareerSelectedTaskId === task.taskId;
+      const expanded = trace?.state === "SEALED" && officeCareerExpandedTaskIds.has(task.taskId);
+      const timeline = expanded
+        ? `<ol class="office-career-trace">${(trace.timeline || []).map((item) => `<li><span>${Number(item.sequence)} · ${escapeHtml(traceLabels[item.type] || item.type)}</span><strong>${escapeHtml(item.stateCode || "已记录")}</strong><small>${escapeHtml(String(item.occurredAt || "").replace("T", " ").replace("Z", " UTC"))}</small></li>`).join("")}</ol>`
+        : "";
+      const controls = `<div class="office-career-task-actions">${actionable ? `<button class="large-button${selected ? " primary" : ""}" type="button" data-office-career-select-task-id="${escapeHtml(task.taskId)}" aria-pressed="${selected ? "true" : "false"}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>${selected ? "当前差事" : "选为当前"}</button>` : ""}${trace?.state === "SEALED" ? `<button class="large-button" type="button" data-office-career-trace-task-id="${escapeHtml(task.taskId)}" aria-expanded="${expanded ? "true" : "false"}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>${expanded ? "收起履历" : "查看履历"}</button>` : ""}</div>`;
+      return `<li class="${selected ? "selected" : ""}" data-task-id="${escapeHtml(task.taskId)}" data-task-state="${escapeHtml(task.state)}" data-exception-state="${escapeHtml(exception?.state || "")}" data-trace-state="${escapeHtml(trace?.state || "")}"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(taskStates[task.state] || task.state)}${exceptionLabel}</span><small>版本 ${Number(task.version || 0)} · ${escapeHtml(task.updatedAt || "未记录时间")}${planDetail}${traceDetail}</small>${controls}${timeline}</li>`;
     }).join("") || '<li class="empty">尚无权威差事状态</li>';
     renderOfficeCareerContributions();
   }
@@ -1889,6 +1912,16 @@
         refreshOfficeCareerContributions({ quiet: true })
       ]);
       officeCareerStatusItems = Array.isArray(response.items) ? response.items : [];
+      const actionable = officeCareerStatusItems.filter((task) => {
+        const exception = task.organizationTrace?.state === "SEALED" ? task.organizationTrace.executionException : task.executionException;
+        return ["IN_PROGRESS", "SUPPLEMENT_PENDING"].includes(task.state) && exception?.state !== "OPEN";
+      });
+      if (!actionable.some((task) => task.taskId === officeCareerSelectedTaskId)) {
+        officeCareerSelectedTaskId = actionable.length === 1 ? actionable[0].taskId : null;
+      }
+      for (const taskId of officeCareerExpandedTaskIds) {
+        if (!officeCareerStatusItems.some((task) => task.taskId === taskId && task.organizationTrace?.state === "SEALED")) officeCareerExpandedTaskIds.delete(taskId);
+      }
       return response;
     } catch (error) {
       if (!quiet) $("#officeCareerFeedback").textContent = error.message || "权威差事状态暂不可用。";
@@ -1901,6 +1934,11 @@
 
   async function requestOfficeCareer(action, detail = "") {
     if (integration.isOffline() || officeCareerBusy || !profile.organization.remoteRoster?.playerMembership) return;
+    const selectedTask = officeCareerStatusItems.find((task) => task.taskId === officeCareerSelectedTaskId) || null;
+    if ((action === "result" || action === "exception") && !selectedTask) {
+      $("#officeCareerFeedback").textContent = "请先在权威差事状态中选定本次要汇报的差事。";
+      return;
+    }
     const commands = {
       options: "请列出我当前岗位可以领取的组织任务。",
       request: `【东周玩家领差】我申请领取组织任务：${detail}。我接受该任务的默认参数、时限和交付要求，请现在创建并派发给我，不需要补充询问。`,
@@ -1910,7 +1948,7 @@
       result: "我已完成当前组织任务，请审核我的完成成果。"
     };
     const content = action === "result" || action === "exception"
-      ? `${commands[action]}${action === "result" ? "完成情况" : "受阻情况"}：${detail}`
+      ? `${commands[action]}我明确汇报的差事是《${selectedTask.title}》。${action === "result" ? "完成情况" : "受阻情况"}：${detail}`
       : commands[action];
     if (!content) return;
     officeCareerBusy = true;
@@ -1957,6 +1995,21 @@
       return;
     }
     requestOfficeCareer("exception", summary);
+  }
+
+  function handleOfficeCareerStatusAction(event) {
+    const selectButton = event.target.closest("[data-office-career-select-task-id]");
+    if (selectButton) {
+      officeCareerSelectedTaskId = selectButton.dataset.officeCareerSelectTaskId;
+      renderOfficeCareer();
+      return;
+    }
+    const traceButton = event.target.closest("[data-office-career-trace-task-id]");
+    if (!traceButton) return;
+    const taskId = traceButton.dataset.officeCareerTraceTaskId;
+    if (officeCareerExpandedTaskIds.has(taskId)) officeCareerExpandedTaskIds.delete(taskId);
+    else officeCareerExpandedTaskIds.add(taskId);
+    renderOfficeCareer();
   }
 
   function submitOfficeCareerRequest(event) {
@@ -5252,6 +5305,7 @@
     $("#officeCareerRequestForm").addEventListener("submit", submitOfficeCareerRequest);
     $("#officeCareerInbox").addEventListener("click", () => requestOfficeCareer("inbox"));
     $("#officeCareerStatusRefresh").addEventListener("click", () => refreshOfficeCareerStatus());
+    $("#officeCareerStatus").addEventListener("click", handleOfficeCareerStatusAction);
     $("#officeCareerContributionsRefresh").addEventListener("click", () => refreshOfficeCareerContributions());
     $("#officeCareerContributions").addEventListener("click", (event) => { const button = event.target.closest("[data-player-contribution-dossier-id]"); if (button) toggleOfficeCareerContributionDossier(button.dataset.playerContributionDossierId); });
     $("#officeCareerAccept").addEventListener("click", () => requestOfficeCareer("accept"));

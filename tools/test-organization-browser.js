@@ -148,7 +148,7 @@ async function openReady(page) {
         body = !careerAction ? { items: [], hasMore: false } : { items: [{
           taskId: "00000000-0000-4000-8000-000000000081",
           title: "核验军粮账册",
-          state: careerAction === "result" ? "SUCCEEDED" : "IN_PROGRESS",
+          state: careerAction === "result" ? "SUCCEEDED" : ["accept", "exception"].includes(careerAction) ? "IN_PROGRESS" : "MEMBER_RESPONSE_PENDING",
           version: hasException ? 8 : 7,
           updatedAt: "2026-11-14T10:05:00Z",
           executionException: hasException ? {
@@ -167,7 +167,7 @@ async function openReady(page) {
           organizationTrace: {
             state: "SEALED",
             taskId: "00000000-0000-4000-8000-000000000081",
-            taskState: careerAction === "result" ? "SUCCEEDED" : "IN_PROGRESS",
+            taskState: careerAction === "result" ? "SUCCEEDED" : ["accept", "exception"].includes(careerAction) ? "IN_PROGRESS" : "MEMBER_RESPONSE_PENDING",
             taskVersion: hasException ? "8" : "7",
             executionException: hasException ? {
               exceptionId: "00000000-0000-4000-8000-000000000082",
@@ -178,10 +178,39 @@ async function openReady(page) {
               selectedPlanId: "reroute-west-post-road",
               plans: [{ id: "reroute-west-post-road", title: "改走西驿道", description: "拆分车队，经西驿道绕行并补派斥候护送。" }]
             } : null,
+            timeline: [
+              { sequence: 1, type: "TASK_CREATED", occurredAt: "2026-11-14T09:40:00Z", stateCode: "GENERATED" },
+              { sequence: 2, type: "EXECUTION_STARTED", occurredAt: "2026-11-14T09:50:00Z", stateCode: "IN_PROGRESS" },
+              ...(hasException ? [
+                { sequence: 3, type: "EXECUTION_EXCEPTION_REPORTED", occurredAt: "2026-11-14T10:00:00Z", stateCode: "OPEN" },
+                { sequence: 4, type: "EXECUTION_EXCEPTION_RESOLVED", occurredAt: "2026-11-14T10:05:00Z", stateCode: "ACCEPTED" }
+              ] : [])
+            ],
             digest: "8".repeat(64),
             kernel: { module: "dongzhou_organization_task_trace", state: "SEALED" }
           }
         }], hasMore: false };
+        if (["accept", "exception", "result"].includes(careerAction)) body.items.push({
+          taskId: "00000000-0000-4000-8000-000000000083",
+          title: "巡核西仓封识",
+          state: "IN_PROGRESS",
+          version: 3,
+          updatedAt: "2026-11-14T09:55:00Z",
+          executionException: null,
+          organizationTrace: {
+            state: "SEALED",
+            taskId: "00000000-0000-4000-8000-000000000083",
+            taskState: "IN_PROGRESS",
+            taskVersion: "3",
+            executionException: null,
+            timeline: [
+              { sequence: 1, type: "TASK_CREATED", occurredAt: "2026-11-14T09:45:00Z", stateCode: "GENERATED" },
+              { sequence: 2, type: "EXECUTION_STARTED", occurredAt: "2026-11-14T09:55:00Z", stateCode: "IN_PROGRESS" }
+            ],
+            digest: "6".repeat(64),
+            kernel: { module: "dongzhou_organization_task_trace", state: "SEALED" }
+          }
+        });
       }
       else if (/\/organization\/player-contributions\/[0-9a-f-]+\/dossier$/i.test(pathName)) {
         body = { dossier: {
@@ -325,12 +354,21 @@ async function openReady(page) {
     await online.waitForSelector("#officeCareerFeedback >> text=等待你处理", { timeout: 15000 });
     await online.click("#officeCareerAccept");
     await online.waitForSelector("#officeCareerFeedback >> text=开始执行", { timeout: 15000 });
+    await online.waitForSelector('#officeCareerStatus [data-task-id="00000000-0000-4000-8000-000000000083"]', { timeout: 15000 });
     await online.fill("#officeCareerResult", "北路桥梁冲毁，军粮车队无法通行");
+    await online.click("#officeCareerException");
+    await online.waitForSelector("#officeCareerFeedback >> text=请先在权威差事状态中选定", { timeout: 15000 });
+    if (careerActions.at(-1)?.action !== "accept") throw new Error("Ambiguous blocker report was sent before selecting a task");
+    await online.click('#officeCareerStatus [data-office-career-select-task-id="00000000-0000-4000-8000-000000000081"]');
+    await online.waitForSelector('#officeCareerStatus [data-task-id="00000000-0000-4000-8000-000000000081"].selected >> text=当前差事', { timeout: 15000 });
     await online.click("#officeCareerException");
     await online.waitForSelector("#officeCareerFeedback >> text=差事暂停", { timeout: 15000 });
     await online.waitForSelector('#officeCareerStatus [data-exception-state="ACCEPTED"][data-trace-state="SEALED"] >> text=改走西驿道', { timeout: 15000 });
     await online.waitForSelector("#officeCareerStatus >> text=拆分车队，经西驿道绕行并补派斥候护送", { timeout: 15000 });
     await online.waitForSelector("#officeCareerStatus >> text=行迹封印 8888888888", { timeout: 15000 });
+    await online.click('#officeCareerStatus [data-office-career-trace-task-id="00000000-0000-4000-8000-000000000081"]');
+    await online.waitForSelector("#officeCareerStatus >> text=1 · 立案", { timeout: 15000 });
+    await online.waitForSelector("#officeCareerStatus >> text=4 · 复行", { timeout: 15000 });
     await online.locator("#officeCareerStatus").scrollIntoViewIfNeeded();
     await online.screenshot({ path: path.join(OUT, "desktop-career-recovery.png"), fullPage: false });
     await online.fill("#officeCareerResult", "核清军粮三十车，账册已封存");
@@ -353,7 +391,9 @@ async function openReady(page) {
     await online.setViewportSize({ width: 1440, height: 900 });
     if (careerActions.map((entry) => entry.action).join(",") !== "options,request,inbox,accept,exception,result") throw new Error(`Unexpected player career sequence: ${JSON.stringify(careerActions)}`);
     if (!careerActions.find((entry) => entry.action === "exception")?.message.includes("北路桥梁冲毁")) throw new Error("Player blocker summary was not sent to the manager");
+    if (!careerActions.find((entry) => entry.action === "exception")?.message.includes("《核验军粮账册》")) throw new Error("Player blocker report did not bind the selected task");
     if (!careerActions.at(-1).message.includes("核清军粮三十车，账册已封存")) throw new Error("Player result summary was not sent to the manager");
+    if (!careerActions.at(-1).message.includes("《核验军粮账册》")) throw new Error("Player result report did not bind the selected task");
     await online.click("#officeMembershipLeave");
     await online.waitForSelector("#officeMembershipLeaveConfirm:not([hidden])", { timeout: 15000 });
     await online.click("#officeMembershipLeaveConfirm");

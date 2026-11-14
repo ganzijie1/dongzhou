@@ -13,7 +13,7 @@ try {
 }
 
 const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
-const timeout = Number(process.env.DONGZHOU_CAREER_TIMEOUT_MS || 240000);
+const timeout = Number(process.env.DONGZHOU_CAREER_TIMEOUT_MS || 360000);
 const installation = process.env.DONGZHOU_CAREER_INSTALLATION || crypto.randomUUID();
 const outputDir = path.resolve(__dirname, "../output/integration-validation");
 const reportPath = path.join(outputDir, "live-player-career-exception-browser.json");
@@ -200,6 +200,18 @@ async function releaseMembership(page) {
     );
     const resumedReply = (await page.locator(`#officeCareerStatus [data-task-id="${resumedTask.taskId}"]`).textContent()).trim();
     assert.match(resumedReply, /已按方案恢复/, resumedReply);
+    const selectedTaskButton = page.locator(`[data-office-career-select-task-id="${resumedTask.taskId}"]`);
+    assert.equal(await selectedTaskButton.getAttribute("aria-pressed"), "true", "The only actionable task was not selected automatically");
+    assert.match((await selectedTaskButton.textContent()).trim(), /当前差事/);
+    await page.click(`[data-office-career-trace-task-id="${resumedTask.taskId}"]`);
+    await page.waitForFunction(
+      (taskId) => {
+        const text = document.querySelector(`#officeCareerStatus [data-task-id="${taskId}"]`)?.textContent || "";
+        return text.includes("报阻") && text.includes("复行");
+      },
+      resumedTask.taskId,
+      { timeout },
+    );
 
     const resultSummary = "已核清军府粮册与入库数目，账目相符，封存复核记录。";
     await page.fill("#officeCareerResult", resultSummary);
