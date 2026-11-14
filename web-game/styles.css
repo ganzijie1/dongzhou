@@ -3787,6 +3787,12 @@ button:focus-visible {
 .office-task-ledger .success small { color: #9eb27a; }
 .office-task-ledger .failed small { color: #bd786d; }
 .office-task-ledger .censured small { color: #d29a72; }
+#officeContributions .office-contribution-entry { grid-template-columns: minmax(120px, .65fr) minmax(90px, .5fr) minmax(150px, 1fr) auto; align-items: center; }
+.office-contribution-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.office-contribution-dossier { grid-column: 1 / -1; display: grid; gap: 4px; padding: 10px 12px; border-left: 2px solid #9e8246; background: rgba(158, 130, 70, .08); color: #b9b19d; line-height: 1.65; }
+.office-contribution-dossier strong { color: #d9cfb5; }
+.office-contribution-dossier small { color: #777970; overflow-wrap: anywhere; }
+.office-contribution-dossier.error { border-left-color: #9b574f; color: #bd786d; }
 .office-knowledge { grid-column: 1 / -1; }
 .office-knowledge-form { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 18px; }
 .office-adviser { margin-top: 18px; padding: 16px 0; border-top: 1px solid rgba(196, 172, 111, .2); }
@@ -3903,6 +3909,8 @@ button:focus-visible {
   .office-codex-detail { padding: 16px 4px; }
   .office-task-ledger li { grid-template-columns: minmax(0, 1fr) auto; gap: 5px 12px; }
   .office-task-ledger li > small { grid-column: 1 / -1; }
+  #officeContributions .office-contribution-entry { grid-template-columns: minmax(0, 1fr) auto; }
+  .office-contribution-actions { grid-column: 1 / -1; justify-content: flex-start; }
 }
 .office-npc-state { margin: 10px 0 14px; padding: 10px 12px; border: 1px solid rgba(174, 146, 69, .28); background: rgba(8, 14, 10, .72); }
 .office-scheduled-duty { display: grid; grid-template-columns: minmax(0, 1fr) 40px; gap: 12px; align-items: center; margin: 10px 0 14px; padding: 10px 12px; border: 1px solid rgba(174, 146, 69, .28); background: rgba(8, 14, 10, .72); }

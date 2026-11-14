@@ -115,6 +115,7 @@
   let officeSelectedPublicNotice = null;
   let officeContributions = [];
   let officeSelectedContribution = null;
+  const officeContributionDossiers = new Map();
 
   const canvas = $("#battleCanvas");
   const ctx = canvas.getContext("2d");
@@ -2083,11 +2084,39 @@
   function renderOfficeContributions() {
     const panel = $("#officeContributions");
     if (!panel) return;
+    const eventLabels = {
+      TASK_COMPLETED: "差事告成",
+      TASK_PARTIALLY_COMPLETED: "差事部分告成",
+      "virtual_task.success": "差事告成",
+      REVIEW_BYPASS_PENALTY: "越级审议惩处",
+      MEMBER_DEPARTURE_CONTRIBUTION_CLEARED: "离任功绩结清"
+    };
+    const traceLabels = {
+      TASK_CREATED: "立案", RECOMMENDATION_COMPLETED: "荐人", CONFIRMATION_OPENED: "请确认",
+      MESSAGE_SENT: "传令", MESSAGE_SEND_FAILED: "传令受阻", REPLY_RECEIVED: "回覆",
+      CONFIRMATION_RESOLVED: "已确认", EXECUTION_STARTED: "开工", SUBMISSION_RECORDED: "复命",
+      LIGHTWEIGHT_CHECK_COMPLETED: "核验", SUPPLEMENT_REQUESTED: "补件",
+      EXECUTION_EXCEPTION_REPORTED: "报阻", EXECUTION_EXCEPTION_RESOLVED: "复行",
+      DERIVED_TASK_INTENT_CREATED: "拟定续办", DERIVED_TASK_CREATED: "续办立案",
+      DERIVED_TASK_SKIPPED: "无需续办",
+      TASK_FINALIZED: "定案", SETTLEMENT_RECORDED: "结算", TASK_INVALIDATED: "作废"
+    };
     panel.innerHTML = officeContributions.length
       ? officeContributions.map((entry) => {
         const selected = entry.entryId === officeSelectedContribution?.entryId;
         const sign = Number(entry.amount) > 0 ? "+" : "";
-        return `<li class="${selected ? "selected" : ""}"><strong>${escapeHtml(entry.eventCode)}</strong><span>${sign}${Number(entry.amount)} · ${escapeHtml(entry.sourceRef)}</span><small>账本版本 ${Number(entry.entryVersion)} · 内核印记 ${escapeHtml(String(entry.digest || "").slice(0, 12))}</small><button class="large-button" type="button" data-contribution-id="${escapeHtml(entry.entryId)}">${selected ? "已取为公议" : "取为公议"}</button></li>`;
+        const canTrace = /^(?:organization-task|virtual_task):[0-9a-f-]{36}$/i.test(String(entry.sourceRef || ""));
+        const dossier = officeContributionDossiers.get(entry.entryId);
+        const trace = dossier?.taskTrace;
+        const steps = Array.isArray(trace?.timeline) ? trace.timeline.slice(-6).map((item) => traceLabels[item.type] || item.stateCode || item.type).join(" → ") : "";
+        const detail = dossier?.state === "LOADING"
+          ? '<div class="office-contribution-dossier">正在调阅原始差事行迹…</div>'
+          : dossier?.state === "ERROR"
+            ? `<div class="office-contribution-dossier error">卷宗暂不可用：${escapeHtml(dossier.message)}</div>`
+            : dossier
+              ? `<div class="office-contribution-dossier"><strong>功绩卷宗已封印</strong><span>${escapeHtml(steps)}</span><small>任务 ${escapeHtml(dossier.taskId)} · ${escapeHtml(dossier.taskState)} · 卷宗印记 ${escapeHtml(String(dossier.digest || "").slice(0, 12))}</small></div>`
+              : "";
+        return `<li class="office-contribution-entry${selected ? " selected" : ""}"><strong>${escapeHtml(eventLabels[entry.eventCode] || entry.eventCode)}</strong><span>${sign}${Number(entry.amount)} · ${canTrace ? "组织差事" : escapeHtml(entry.sourceRef)}</span><small>账本版本 ${Number(entry.entryVersion)} · 内核印记 ${escapeHtml(String(entry.digest || "").slice(0, 12))}</small><div class="office-contribution-actions"><button class="large-button" type="button" data-contribution-dossier-id="${escapeHtml(entry.entryId)}" ${canTrace ? "" : "disabled"} aria-expanded="${dossier ? "true" : "false"}">${dossier ? "收起卷宗" : canTrace ? "查阅卷宗" : "无卷宗"}</button><button class="large-button" type="button" data-contribution-id="${escapeHtml(entry.entryId)}">${selected ? "已取为公议" : "取为公议"}</button></div>${detail}</li>`;
       }).join("")
       : '<li class="empty">该属官尚无功绩账目</li>';
   }
@@ -2099,6 +2128,9 @@
       const response = await integration.organizationMemberContributions(heroId);
       if (response.heroId !== heroId || !Array.isArray(response.entries)) throw new Error("功绩簿身份不匹配");
       officeContributions = response.entries;
+      for (const entryId of officeContributionDossiers.keys()) {
+        if (!officeContributions.some((entry) => entry.entryId === entryId)) officeContributionDossiers.delete(entryId);
+      }
       if (!officeContributions.some((entry) => entry.entryId === officeSelectedContribution?.entryId && entry.digest === officeSelectedContribution?.digest)) officeSelectedContribution = null;
     } catch (error) {
       officeContributions = [];
@@ -2115,6 +2147,27 @@
     officeSelectedContribution = officeSelectedContribution?.entryId === entryId ? null : contribution;
     renderOfficeContributions();
     renderOfficeCouncil();
+  }
+
+  async function toggleOfficeContributionDossier(entryId) {
+    const contribution = officeContributions.find((entry) => entry.entryId === entryId && entry.heroId === $("#officeMemberSelect").value);
+    if (!contribution || !/^(?:organization-task|virtual_task):[0-9a-f-]{36}$/i.test(String(contribution.sourceRef || ""))) return;
+    if (officeContributionDossiers.has(entryId)) {
+      officeContributionDossiers.delete(entryId);
+      renderOfficeContributions();
+      return;
+    }
+    officeContributionDossiers.set(entryId, { state: "LOADING" });
+    renderOfficeContributions();
+    try {
+      const response = await integration.organizationContributionDossier(contribution.heroId, entryId);
+      const dossier = response.dossier;
+      if (dossier?.entryId !== entryId || dossier?.heroId !== contribution.heroId || dossier?.contribution?.digest !== contribution.digest || dossier?.kernel?.module !== "dongzhou_organization_contribution_dossier" || dossier?.kernel?.state !== "SEALED") throw new Error("卷宗身份或封印不匹配");
+      officeContributionDossiers.set(entryId, dossier);
+    } catch (error) {
+      officeContributionDossiers.set(entryId, { state: "ERROR", message: error.message });
+    }
+    renderOfficeContributions();
   }
 
   function selectOfficeMemory(memoryId) {
@@ -4886,14 +4939,14 @@
     $("#campaignOfficeCloseButton").addEventListener("click", () => setCampaignOffice(false));
     $("#campaignOfficeBackdrop").addEventListener("click", (event) => { if (event.target === event.currentTarget) setCampaignOffice(false); });
     $("#officeTaskType").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOrganizationPanel(); refreshOfficeNpcAssignment(); });
-    $("#officeMemberSelect").addEventListener("change", () => { $("#officeUseCouncil").checked = false; officeMemoryView = []; officeSelectedMemory = null; officeSelectedPublicNotice = null; officeContributions = []; officeSelectedContribution = null; renderOrganizationPanel(); renderOfficePublicNotices(); renderOfficeContributions(); refreshOfficeContributions().catch(() => {}); refreshOfficeNpcState(); });
+    $("#officeMemberSelect").addEventListener("change", () => { $("#officeUseCouncil").checked = false; officeMemoryView = []; officeSelectedMemory = null; officeSelectedPublicNotice = null; officeContributions = []; officeSelectedContribution = null; officeContributionDossiers.clear(); renderOrganizationPanel(); renderOfficePublicNotices(); renderOfficeContributions(); refreshOfficeContributions().catch(() => {}); refreshOfficeNpcState(); });
     $("#officeSupportMemberSelect").addEventListener("change", renderOfficeMandateApproval);
     $("#officeSupportMemberSelect").addEventListener("change", renderOfficeMandateApproval);
     $("#officeCorrespondenceRefresh").addEventListener("click", () => refreshOfficeCorrespondence());
     $("#officePublicNoticesRefresh").addEventListener("click", refreshOfficePublicNotices);
     $("#officePublicNotices").addEventListener("click", (event) => { const button = event.target.closest("[data-public-notice-id]"); if (button) selectOfficePublicNotice(button.dataset.publicNoticeId); });
     $("#officeContributionsRefresh").addEventListener("click", refreshOfficeContributions);
-    $("#officeContributions").addEventListener("click", (event) => { const button = event.target.closest("[data-contribution-id]"); if (button) selectOfficeContribution(button.dataset.contributionId); });
+    $("#officeContributions").addEventListener("click", (event) => { const dossierButton = event.target.closest("[data-contribution-dossier-id]"); if (dossierButton) { toggleOfficeContributionDossier(dossierButton.dataset.contributionDossierId); return; } const button = event.target.closest("[data-contribution-id]"); if (button) selectOfficeContribution(button.dataset.contributionId); });
     $("#officeInventoryRefresh").addEventListener("click", refreshOfficeInventory);
     $("#officeScheduledDutyRefresh").addEventListener("click", refreshOfficeScheduledDuty);
     $("#officeLogisticsBriefing").addEventListener("click", requestOfficeLogisticsBriefing);

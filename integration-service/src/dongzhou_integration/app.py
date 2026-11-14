@@ -908,6 +908,82 @@ class OrganizationTaskTraceModule(Module):
         }
 
 
+class OrganizationContributionDossierModule(Module):
+    name = "dongzhou_organization_contribution_dossier"
+    version = "1.0.0"
+    dependencies = (
+        OrganizationContributionLedgerModule.name,
+        OrganizationTaskTraceModule.name,
+    )
+
+    @staticmethod
+    def seal(
+        contribution: dict[str, Any], task_trace: dict[str, Any]
+    ) -> dict[str, Any]:
+        contribution_kernel = contribution.get("kernel")
+        task_kernel = task_trace.get("kernel")
+        task_id = str(task_trace.get("taskId") or "")
+        if (
+            not isinstance(contribution_kernel, dict)
+            or contribution_kernel.get("module")
+            != OrganizationContributionLedgerModule.name
+            or contribution_kernel.get("state") != "SEALED"
+            or not isinstance(task_kernel, dict)
+            or task_kernel.get("module") != OrganizationTaskTraceModule.name
+            or task_kernel.get("state") != "SEALED"
+            or str(contribution.get("sourceRef") or "") not in {
+                f"organization-task:{task_id}",
+                f"virtual_task:{task_id}",
+            }
+        ):
+            raise ValueError("organization contribution dossier provenance is invalid")
+        UUID(task_id)
+        if not any(
+            item.get("type") == "TASK_FINALIZED"
+            for item in task_trace.get("timeline", [])
+            if isinstance(item, dict)
+        ):
+            raise ValueError("organization contribution dossier task is not finalized")
+        trace = {
+            "organizationId": str(contribution.get("organizationId") or ""),
+            "memberId": str(contribution.get("memberId") or ""),
+            "heroId": str(contribution.get("heroId") or ""),
+            "entryId": str(contribution.get("entryId") or ""),
+            "eventCode": str(contribution.get("eventCode") or ""),
+            "amount": contribution.get("amount"),
+            "taskId": task_id,
+            "taskState": str(task_trace.get("taskState") or ""),
+            "contribution": contribution,
+            "taskTrace": task_trace,
+        }
+        if (
+            any(
+                not str(trace.get(key) or "").strip()
+                for key in (
+                    "organizationId", "memberId", "heroId", "entryId",
+                    "eventCode", "taskState",
+                )
+            )
+            or isinstance(trace["amount"], bool)
+            or not isinstance(trace["amount"], int)
+            or trace["amount"] == 0
+            or trace["organizationId"] != task_trace.get("organizationId")
+        ):
+            raise ValueError("organization contribution dossier is incomplete")
+        UUID(trace["entryId"])
+        return {
+            "state": "SEALED",
+            **trace,
+            "digest": _canonical_digest(trace),
+            "kernel": {
+                "module": OrganizationContributionDossierModule.name,
+                "moduleVersion": OrganizationContributionDossierModule.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "SEALED",
+            },
+        }
+
+
 class OrganizationTaskTopologyModule(Module):
     name = "dongzhou_organization_task_topology"
     version = "1.0.0"
@@ -3770,6 +3846,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     npc_review_relationship = NpcReviewRelationshipModule()
     npc_collaboration_relationship = NpcCollaborationRelationshipModule()
     organization_task_trace = OrganizationTaskTraceModule()
+    organization_contribution_dossier = OrganizationContributionDossierModule()
     organization_task_topology = OrganizationTaskTopologyModule()
     logistics_briefing = LogisticsBriefingModule()
     npc_commendation = NpcCommendationModule()
@@ -3800,6 +3877,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             LoadedModule(module=npc_recollection, required=True, original_index=11),
             LoadedModule(module=npc_public_notice, required=True, original_index=12),
             LoadedModule(module=organization_contribution_ledger, required=True, original_index=13),
+            LoadedModule(module=organization_contribution_dossier, required=True, original_index=14),
         ]
     )
     router = APIRouter(prefix="/api/dongzhou/v1")
@@ -3821,7 +3899,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     async def current_contribution_receipt(
         hero_id: str,
         entry_id: str,
-        digest: str,
+        digest: str | None = None,
     ) -> dict[str, Any] | None:
         member_id = settings.orgflow_hero_members.get(hero_id)
         if not member_id:
@@ -3849,7 +3927,8 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 (
                     item
                     for item in page["entries"]
-                    if item.get("entryId") == entry_id and item.get("digest") == digest
+                    if item.get("entryId") == entry_id
+                    and (digest is None or item.get("digest") == digest)
                 ),
                 None,
             )
@@ -7413,6 +7492,72 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "Organization contribution history is invalid.",
                 status_code=502,
             ) from error
+
+    @router.get(
+        "/organization/members/{hero_id}/contributions/{entry_id}/dossier"
+    )
+    async def read_organization_contribution_dossier(
+        hero_id: str,
+        entry_id: UUID,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        del player_id
+        try:
+            contribution = await current_contribution_receipt(
+                hero_id, str(entry_id)
+            )
+            if contribution is None:
+                raise ApiError(
+                    "organization_contribution_not_found",
+                    "The selected contribution entry is no longer available.",
+                    status_code=404,
+                )
+            source_match = re.fullmatch(
+                r"(?:organization-task|virtual_task):([0-9a-fA-F-]{36})",
+                str(contribution.get("sourceRef") or ""),
+            )
+            if source_match is None:
+                raise ApiError(
+                    "organization_contribution_source_unsupported",
+                    "This contribution entry does not refer to an organization task.",
+                    status_code=422,
+                )
+            task_id = str(UUID(source_match.group(1)))
+            trace_response = await upstreams.get_virtual_task_trace(
+                settings.orgflow_org_id, task_id
+            )
+            trace_snapshot = (
+                trace_response.get("data", trace_response)
+                if isinstance(trace_response, dict)
+                else None
+            )
+            task_trace = organization_task_trace.seal(
+                _organization_task_trace_view(
+                    trace_snapshot,
+                    task_id=task_id,
+                    organization_id=settings.orgflow_org_id,
+                )
+            )
+            return {
+                "dossier": organization_contribution_dossier.seal(
+                    contribution, task_trace
+                )
+            }
+        except ApiError:
+            raise
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "organization_contribution_dossier_unavailable",
+                "The contribution dossier is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        except (TypeError, ValueError) as error:
+            raise ApiError(
+                "organization_contribution_dossier_invalid",
+                "The contribution dossier failed provenance verification.",
+                status_code=502,
+            ) from error
+
     @router.get("/organization/player-tasks")
     async def read_organization_player_tasks(
         player_id: UUID = Depends(player),
