@@ -46,7 +46,7 @@ const guideReceipt = (actionId, state, digest) => ({
   const context = await browser.newContext({ viewport: { width: 1100, height: 850 } });
   const model = {
     cloud: {}, version: 0, questionId: "", actionId: "", decisions: [], reads: 0,
-    cancellations: [], errors: [], unexpected: [],
+    cancellations: [], errors: [], unexpected: [], guideAvailable: true, routeRequests: 0,
   };
   await context.route("**/*", async (route) => {
     const request = route.request();
@@ -88,6 +88,23 @@ const guideReceipt = (actionId, state, digest) => ({
     else if (pathname.endsWith("/organization/public-notices")) body = { notices: [] };
     else if (pathname.includes("/organization/members/") && pathname.endsWith("/contributions")) body = { heroId: "ZuoRu", memberId: "member", account: { accountVersion: 1, accountBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 }, entries: [], nextBeforeVersion: null };
     else if (pathname.endsWith("/knowledge/codex")) body = { results: [] };
+    else if (pathname.endsWith("/knowledge/routes")) {
+      model.routeRequests += 1;
+      body = {
+        mode: "connected", found: true, routeId: "campaign_progression_900001_900002",
+        provisionCost: 2, moraleDelta: 0, label: "奉诏直进",
+        options: [
+          { method: "campaign_progression", routeId: "campaign_progression_900001_900002", label: "奉诏直进", provisionCost: 2, moraleDelta: 0 },
+          { method: "fixed_point", routeId: "fixed_point_900001_900002", label: "经官道驿行", provisionCost: 4, moraleDelta: 1 },
+          { method: "npc_dialog", routeId: "npc_dialog_900001_900002", label: "请乡民引路", provisionCost: 3, moraleDelta: 2, guideName: "东郊乡民" },
+        ],
+        knowledgeWitnesses: {
+          from: { knowledgeIds: ["stage-01"], digest: "4".repeat(64) },
+          to: { knowledgeIds: ["stage-02"], digest: "5".repeat(64) },
+        },
+        receipt: { digest: "6".repeat(64), attestation: "7".repeat(64), kernel: { state: "SEALED" } },
+      };
+    }
     else if (pathname.includes("/assignments/")) body = { assignment: { heroId: "ZuoRu", npcId: "42", runtimeState: "READY", planId: "plan-browser", generationId: "generation-browser", eventId: "event-supply", transactionId: 9100103, name: "转运军粮", type: "军务", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "calm", intensity: 0, affectionCount: 0, relationshipCount: 0 } } };
     else if (pathname.endsWith("/schedule")) body = { schedule: { data: { schedules: [] } } };
     else if (pathname.endsWith("/state")) body = { knownNpcIds: {}, emotion: { data: {} }, affection: { data: { items: [], total: 0 } }, relationships: { data: { items: [], total: 0 } } };
@@ -111,7 +128,9 @@ const guideReceipt = (actionId, state, digest) => ({
       body = {
         state: "ANSWERED", questionId: model.questionId, taskId: model.questionId,
         chatId: "dongzhou-adviser-browser", answer: "前方已有属官可为你引路。", intentType: "location",
-        guide: { available: true, sessionId: "guide-browser-session", status: "AVAILABLE", started: false },
+        guide: model.guideAvailable
+          ? { available: true, sessionId: "guide-browser-session", status: "AVAILABLE", started: false }
+          : { available: false, sessionId: "", status: "UNAVAILABLE", started: false },
         guideIgnored: false,
       };
     } else {
@@ -158,9 +177,28 @@ const guideReceipt = (actionId, state, digest) => ({
       return { left: box.left, right: box.right, width: innerWidth, scrollWidth: document.documentElement.scrollWidth };
     });
     assert(bounds.left >= 0 && bounds.right <= bounds.width + 1 && bounds.scrollWidth <= bounds.width + 1);
+
+    model.guideAvailable = false;
+    model.cloud.completed = ["01"];
+    model.cloud.lastStage = "01";
+    await page.evaluate(() => localStorage.removeItem("dongzhou-adviser-question-v1"));
+    await page.setViewportSize({ width: 1100, height: 850 });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.waitForSelector("#app:not([hidden])", { timeout: 45000 });
+    assert.equal(await page.locator("#focusStageButton").getAttribute("data-stage-id"), "02");
+    await page.click("#campaignOfficeButton");
+    await page.fill("#officeAdviserQuestion", "下一处军令在哪里？");
+    await page.click("#officeAdviserAsk");
+    await page.waitForSelector("[data-adviser-route]:not([hidden]):not([disabled])", { timeout: 10000 });
+    assert.match(await page.locator("#officeAdviserGuideStatus").innerText(), /史料核验/);
+    await page.click("[data-adviser-route]");
+    await page.waitForFunction(() => document.querySelector("#campaignOfficeBackdrop")?.hidden === true);
+    await page.waitForSelector('#focusRouteOptions:not([hidden]) [data-route-method="npc_dialog"]', { timeout: 10000 });
+    assert.equal(await page.locator("#focusRouteOptions [data-route-method]").count(), 3);
+    assert(model.routeRequests >= 1);
     assert.deepEqual(model.errors, []);
     assert.deepEqual(model.unexpected, []);
-    console.log(JSON.stringify({ result: "PASS", guideAccepted: true, guideRunning: true, guideCancelled: true, restoredAfterReload: true, mobile320NoOverflow: true }));
+    console.log(JSON.stringify({ result: "PASS", guideAccepted: true, guideRunning: true, guideCancelled: true, restoredAfterReload: true, mobile320NoOverflow: true, unavailableGuideRouteHandoff: true, routeOptions: 3 }));
   } finally {
     await context.close();
     await browser.close();

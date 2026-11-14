@@ -3047,6 +3047,26 @@
   let officeAdviserTimer = null;
   let officeAdviserInFlight = false;
 
+  function adviserRouteHandoff(journal = integration.pendingAdviserQuestion()) {
+    const result = journal?.result;
+    if (result?.state !== "ANSWERED" || result.intentType !== "location" || result.guide?.available) return null;
+    const current = officeStage();
+    if (!current) return null;
+    const completed = new Set(profile.completed || []);
+    const target = Number(current.index) > 1
+      ? current
+      : completed.has(current.id) ? campaign?.stages?.[Number(current.index)] : campaign?.stages?.[1];
+    if (!target) return null;
+    const available = systems.isStageUnlocked(target, profile, campaign.stages) && Number(target.index) > 1;
+    return {
+      target,
+      available,
+      status: available
+        ? `实体引路暂不可用，可按史料核验前往“${target.battleTitle}”的行军路线。`
+        : "实体引路暂不可用；完成当前战役后即可核验下一程行军路线。"
+    };
+  }
+
   function renderOfficeAdviser() {
     const journal = integration.pendingAdviserQuestion();
     const result = journal?.result;
@@ -3070,6 +3090,7 @@
     const guideResult = journal?.guideCancellation?.result || journal?.guideDecision?.result;
     const guideReceipt = guideResult?.guide;
     const guideState = guideResult?.state || (result?.guide?.available ? "AVAILABLE" : "");
+    const routeHandoff = adviserRouteHandoff(journal);
     const guideLabels = {
       AVAILABLE: "军师提出引路方案，等待你的决定。",
       ACCEPTED: "已采纳引路，正在等待属官启程。",
@@ -3079,10 +3100,10 @@
       REJECTED: "本次引路方案已暂缓。",
       CANCELLED: "已停止本次引路。"
     };
-    guidePanel.hidden = !guideState;
+    guidePanel.hidden = !guideState && !routeHandoff;
     guideStatus.textContent = guideState
       ? `${guideLabels[guideState] || guideState}${guideReceipt?.digest ? ` · 印记 ${String(guideReceipt.digest).slice(0, 12)}` : ""}`
-      : "";
+      : routeHandoff?.status || "";
     guidePanel.querySelectorAll("[data-adviser-guide]").forEach((button) => {
       button.hidden = guideState !== "AVAILABLE" || Boolean(journal?.guideDecision);
       button.disabled = officeAdviserInFlight;
@@ -3090,6 +3111,26 @@
     const cancelButton = guidePanel.querySelector("[data-adviser-guide-cancel]");
     cancelButton.hidden = !["ACCEPTED", "RUNNING"].includes(guideState);
     cancelButton.disabled = officeAdviserInFlight;
+    const routeButton = guidePanel.querySelector("[data-adviser-route]");
+    routeButton.hidden = !routeHandoff || Boolean(guideState);
+    routeButton.disabled = officeAdviserInFlight || !routeHandoff?.available;
+    routeButton.textContent = routeHandoff?.available ? "查看行军路线" : "完成本战后查看路线";
+  }
+
+  function openAdviserCampaignRoute() {
+    const handoff = adviserRouteHandoff();
+    if (!handoff?.available) return;
+    const saved = readBattleSave();
+    setCampaignOffice(false);
+    renderCampaignFocus(
+      saved?.stageId === handoff.target.id ? saved : null,
+      new Set(profile.completed || []),
+      handoff.target
+    );
+    requestAnimationFrame(() => {
+      $("#focusRouteProof").scrollIntoView({ behavior: "smooth", block: "center" });
+      $("#focusRouteOptions").querySelector("button")?.focus();
+    });
   }
 
   async function refreshOfficeAdviser() {
@@ -5105,6 +5146,7 @@
       const decision = event.target.closest("[data-adviser-guide]");
       if (decision) { decideOfficeAdviserGuide(decision.dataset.adviserGuide); return; }
       if (event.target.closest("[data-adviser-guide-cancel]")) cancelOfficeAdviserGuide();
+      if (event.target.closest("[data-adviser-route]")) openAdviserCampaignRoute();
     });
     $("#officeStageKnowledgeButton").addEventListener("click", loadOfficeStageKnowledge);
     $("#officeCommendButton").addEventListener("click", commendOfficeNpc);

@@ -65,7 +65,11 @@ const questions = [
       }
     }
     if (!journal?.result?.guide?.available) {
-      assert.equal(await page.locator("#officeAdviserGuide").isHidden(), true);
+      assert.equal(await page.locator("#officeAdviserGuide").isHidden(), false);
+      assert.equal(await page.locator('[data-adviser-guide="ACCEPT"]').isHidden(), true);
+      assert.equal(await page.locator("[data-adviser-route]").isHidden(), false);
+      const routeAvailable = await page.locator("[data-adviser-route]").isEnabled();
+      assert.match(await page.locator("#officeAdviserGuideStatus").innerText(), /实体引路暂不可用/);
       assert.deepEqual(errors, []);
       fs.mkdirSync(path.dirname(output), { recursive: true });
       await page.locator(".office-adviser").screenshot({ path: output });
@@ -75,6 +79,8 @@ const questions = [
         guideAvailable: false,
         lifecycleExercised: false,
         reason: "AINPC core public-map fixed-NPC contract did not offer a guide",
+        knowledgeRouteHandoff: true,
+        routeAvailable,
         attempts,
         screenshot: output,
       }));
