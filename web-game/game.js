@@ -108,6 +108,7 @@
   let officeCareerStatusItems = [];
   let officeQuizInFlight = false;
   let officeQuizTimer = null;
+  let officeQuizVerification = null;
 
   const canvas = $("#battleCanvas");
   const ctx = canvas.getContext("2d");
@@ -1044,6 +1045,11 @@
         : "";
       $("#officeQuizPrompt").textContent = latest ? `正解：${latest.correctAnswer}` : "";
       $("#officeQuizOptions").innerHTML = "";
+      $("#officeQuizVerify").hidden = !latest;
+      $("#officeQuizVerify").disabled = officeQuizInFlight;
+      $("#officeQuizSealStatus").textContent = officeQuizVerification && officeQuizVerification.questionId === latest?.questionId
+        ? `内核验真 · ${officeQuizVerification.kernel.module} ${officeQuizVerification.kernel.moduleVersion} · ${officeQuizVerification.digest.slice(0, 12)}`
+        : "";
       return;
     }
     const question = pending.question;
@@ -1055,12 +1061,15 @@
     ).join("");
     $("#officeQuizStatus").textContent = remaining > 0 ? `余 ${remaining} 秒 · 答中 10 分` : "已到时 · 交卷记 0 分";
     $("#officeQuizSource").textContent = `内核题印 ${String(question.receipt?.digest || "").slice(0, 12)}`;
+    $("#officeQuizVerify").hidden = true;
+    $("#officeQuizSealStatus").textContent = "";
     if (!$("#campaignOfficeBackdrop").hidden) officeQuizTimer = setTimeout(renderOfficeQuiz, 1000);
   }
 
   async function startOfficeQuiz() {
     if (officeQuizInFlight || profile.knowledgeQuiz?.pending) return;
     officeQuizInFlight = true;
+    officeQuizVerification = null;
     renderOfficeQuiz();
     try {
       const response = await integration.startKnowledgeQuiz(officeStage().id, crypto.randomUUID());
@@ -1069,6 +1078,26 @@
       await integration.persist(profile);
     } catch (error) {
       showNotice(error.message === "knowledge_quiz_requires_online" ? "史官问对需连接史库" : error.message);
+    } finally {
+      officeQuizInFlight = false;
+      renderOfficeQuiz();
+    }
+  }
+
+  async function verifyOfficeQuizSeal() {
+    const latest = systems.normalizeKnowledgeQuiz(profile.knowledgeQuiz).history.at(-1);
+    if (officeQuizInFlight || !latest?.questionId) return;
+    officeQuizInFlight = true;
+    renderOfficeQuiz();
+    try {
+      const verification = await integration.verifyKnowledgeQuizSeal(latest.questionId);
+      if (!verification?.verified || verification.digest !== latest.receipt?.digest) {
+        throw new Error("问对封印与本地记录不一致");
+      }
+      officeQuizVerification = verification;
+      showNotice("内核验印通过");
+    } catch (error) {
+      showNotice(error.message);
     } finally {
       officeQuizInFlight = false;
       renderOfficeQuiz();
@@ -4738,6 +4767,7 @@
     });
     $("#officeStageKnowledgeButton").addEventListener("click", loadOfficeStageKnowledge);
     $("#officeQuizStart").addEventListener("click", startOfficeQuiz);
+    $("#officeQuizVerify").addEventListener("click", verifyOfficeQuizSeal);
     $("#officeQuizOptions").addEventListener("click", (event) => {
       const button = event.target.closest("[data-quiz-answer]");
       if (button) answerOfficeQuiz(Number(button.dataset.quizAnswer));

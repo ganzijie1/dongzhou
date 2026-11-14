@@ -4609,6 +4609,46 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             raise ApiError("knowledge_quiz_already_answered", "History question was already answered.", status_code=409)
         return response
 
+    @router.get("/knowledge/quiz/{question_id}/seal")
+    async def verify_knowledge_quiz_seal(
+        question_id: UUID,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        record = await store.read_request(player_id, question_id, "knowledge_quiz")
+        if record is None:
+            raise ApiError("knowledge_quiz_not_found", "History question not found.", status_code=404)
+        if record.get("state") != "ANSWERED" or not isinstance(record.get("response"), dict):
+            raise ApiError("knowledge_quiz_not_answered", "History question has not been answered.", status_code=409)
+
+        internal = record.get("request") or {}
+        response = record["response"]
+        try:
+            question = KnowledgeTournamentModule.seal_question(
+                {key: internal[key] for key in ("id", "stageId", "knowledgeId", "title", "prompt", "options", "correctIndex", "deadlineAt")}
+            )
+            expected = KnowledgeTournamentModule.seal_result(
+                str(question["question"]["receipt"]["digest"]),
+                int(response["selectedIndex"]),
+                int(internal["correctIndex"]),
+                str(response["state"]),
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            raise ApiError("knowledge_quiz_seal_invalid", "History seal cannot be reconstructed.", status_code=409) from error
+
+        signed_fields = ("state", "selectedIndex", "correctIndex", "correct", "score", "receipt")
+        if any(response.get(key) != expected.get(key) for key in signed_fields):
+            raise ApiError("knowledge_quiz_seal_invalid", "History seal does not match the authoritative record.", status_code=409)
+        receipt = expected["receipt"]
+        return {
+            "verified": True,
+            "questionId": str(question_id),
+            "stageId": str(internal["stageId"]),
+            "knowledgeId": str(internal["knowledgeId"]),
+            "score": expected["score"],
+            "digest": receipt["digest"],
+            "kernel": receipt["kernel"],
+        }
+
     @router.post("/knowledge/routes")
     async def campaign_route(
         request: CampaignRouteRequest, player_id: UUID = Depends(player)

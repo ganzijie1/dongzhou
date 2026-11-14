@@ -257,6 +257,8 @@ def test_knowledge_quiz_hides_answer_and_is_idempotent_and_player_scoped(tmp_pat
         assert question["receipt"]["kernel"]["module"] == "dongzhou_knowledge_tournament"
         correct_index = question["options"].index("杜伯")
         answer_path = f"{path}/{request_id}/answer"
+        seal_path = f"{path}/{request_id}/seal"
+        assert client.get(seal_path).status_code == 409
         answer = client.post(answer_path, json={
             "action_id": started.json()["action"]["actionId"],
             "answer_index": correct_index,
@@ -265,6 +267,17 @@ def test_knowledge_quiz_hides_answer_and_is_idempotent_and_player_scoped(tmp_pat
         assert answer.json()["score"] == 10
         assert answer.json()["correctAnswer"] == "杜伯"
         assert answer.json()["receipt"]["kernel"]["state"] == "SEALED"
+        seal = client.get(seal_path)
+        assert seal.status_code == 200
+        assert seal.json() == {
+            "verified": True,
+            "questionId": str(request_id),
+            "stageId": "01",
+            "knowledgeId": "dongzhou_stage_001",
+            "score": 10,
+            "digest": answer.json()["receipt"]["digest"],
+            "kernel": answer.json()["receipt"]["kernel"],
+        }
         replay = client.post(answer_path, json={
             "action_id": started.json()["action"]["actionId"],
             "answer_index": correct_index,
@@ -282,6 +295,7 @@ def test_knowledge_quiz_hides_answer_and_is_idempotent_and_player_scoped(tmp_pat
 
         client.cookies.clear()
         assert client.post("/api/dongzhou/v1/sessions/guest", json={"installation_id": str(uuid4())}).status_code == 200
+        assert client.get(seal_path).status_code == 404
         assert client.post(answer_path, json={
             "action_id": started.json()["action"]["actionId"],
             "answer_index": correct_index,

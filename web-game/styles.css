@@ -3804,6 +3804,10 @@ button:focus-visible {
 .office-quiz-heading > div { display: grid; gap: 4px; }
 .office-quiz-heading span, #officeQuizSource { color: #b99344; font-size: 9px; }
 .office-quiz-heading strong { color: #ded2b3; font: 500 17px/1.2 var(--font-display); }
+.office-quiz-seal { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.office-quiz-seal small { min-width: 0; overflow-wrap: anywhere; }
+.office-quiz-seal .large-button { flex: 0 0 auto; min-height: 32px; padding: 6px 12px; }
+#officeQuizSealStatus { display: block; min-height: 1.5em; color: #8ea77d; font-size: 10px; overflow-wrap: anywhere; }
 #officeQuizStatus { margin: 10px 0 0; color: #8f9289; font-size: 11px; }
 #officeQuizPrompt { margin: 16px 0 10px; color: #e4dcc5; font-size: 13px; line-height: 1.65; }
 #officeQuizOptions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }

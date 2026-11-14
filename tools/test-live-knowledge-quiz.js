@@ -62,6 +62,19 @@ const executablePath = [
     await page.waitForFunction(() => document.querySelector("#officeQuizStatus").textContent.includes("累计 10 分"));
     assert.match(await page.locator("#officeQuizStatus").innerText(), /本题 10 分 · 累计 10 分/);
 
+    const sealResponsePromise = page.waitForResponse((response) =>
+      response.url().includes(`/knowledge/quiz/${started.question.id}/seal`) && response.request().method() === "GET"
+    );
+    await page.click("#officeQuizVerify");
+    const sealResponse = await sealResponsePromise;
+    assert.equal(sealResponse.status(), 200);
+    const seal = await sealResponse.json();
+    assert.equal(seal.verified, true);
+    assert.equal(seal.digest, result.receipt.digest);
+    assert.equal(seal.kernel.module, "dongzhou_knowledge_tournament");
+    await page.waitForFunction(() => document.querySelector("#officeQuizSealStatus").textContent.includes("内核验真"));
+    assert.match(await page.locator("#officeQuizSealStatus").innerText(), /dongzhou_knowledge_tournament/);
+
     const screenshot = path.resolve(__dirname, "../output/integration-validation/knowledge-quiz-live.png");
     const mobileScreenshot = path.resolve(__dirname, "../output/integration-validation/knowledge-quiz-mobile-live.png");
     fs.mkdirSync(path.dirname(screenshot), { recursive: true });
