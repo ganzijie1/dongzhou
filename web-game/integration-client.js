@@ -236,6 +236,12 @@
     }
     throw new Error("慰勉仍在送达，请稍后重试");
   }
+  function recallNpc(heroId, input) {
+    return request(`/npcs/${encodeURIComponent(heroId)}/recollections`, {
+      method: "POST",
+      body: JSON.stringify(input)
+    });
+  }
   function npcState(heroId) { return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/state`); }
   function npcCorrespondence(heroId, limit = 20) { return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/correspondence?limit=${encodeURIComponent(limit)}`); }
   async function sendNpcMessage(heroId, content) {
@@ -670,5 +676,5 @@
     return result;
   }
 
-  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, verifyKnowledgeQuizSeal, pendingAdviserQuestion, askAdviser, adviserQuestion, feedbackAdviser, syncNpcs, setNpcInteractionPreference, commendNpc, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationPlayerTasks, organizationInventory, organizationScheduledDuties, organizationLogisticsBriefing, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, verifyKnowledgeQuizSeal, pendingAdviserQuestion, askAdviser, adviserQuestion, feedbackAdviser, syncNpcs, setNpcInteractionPreference, commendNpc, recallNpc, npcState, npcCorrespondence, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationPlayerTasks, organizationInventory, organizationScheduledDuties, organizationLogisticsBriefing, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
 });

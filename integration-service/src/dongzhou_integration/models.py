@@ -249,6 +249,11 @@ class NpcCommendationRequest(StrictModel):
     knowledge_id: str = Field(min_length=1, max_length=256)
 
 
+class NpcRecollectionRequest(StrictModel):
+    stage_id: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_.:-]+$")
+    knowledge_id: str = Field(min_length=1, max_length=256)
+
+
 class NpcDecisionOption(StrictModel):
     index: int = Field(ge=0, le=20)
     text: str = Field(min_length=1, max_length=500)

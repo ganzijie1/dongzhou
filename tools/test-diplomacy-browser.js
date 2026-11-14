@@ -88,8 +88,11 @@ const BASE_ORIGIN = new URL(BASE_URL).origin;
     await page.waitForSelector("#officeAllianceLedger >> text=生效");
     await page.click("#officeBetrayButton");
     await page.waitForSelector("#officeAllianceLedger >> text=背盟待战");
-    const state = await page.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization);
-    assert.equal(state.schemaVersion, 14);
+    const { state, schemaVersion } = await page.evaluate(() => ({
+      state: JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization,
+      schemaVersion: window.DongzhouOrganizationPlay.SCHEMA_VERSION
+    }));
+    assert.equal(state.schemaVersion, schemaVersion);
     assert.equal(state.selectedSources["01"].tier, "史实骨架");
     assert.equal(state.diplomacy.lobbying.length, 1);
     assert.equal(state.diplomacy.alliances[0].status, "broken");

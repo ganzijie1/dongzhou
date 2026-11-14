@@ -687,6 +687,39 @@ class Upstreams:
         except UpstreamUnavailable:
             return {"available": False, "items": []}
 
+    async def query_npc_memories(
+        self,
+        npc_id: int,
+        *,
+        source_type: str,
+        limit: int = 20,
+    ) -> list[dict[str, Any]]:
+        response = await self._json(
+            "POST",
+            f"{self.settings.ainpc_url}/api/v1/short-term-memory/query",
+            token=self.settings.ainpc_token,
+            payload={
+                "game_server_id": str(self.settings.ainpc_game_server_id),
+                "npc_id": str(npc_id),
+                "source_type": source_type,
+                "limit": limit,
+                "descending": True,
+            },
+        )
+        data = response.get("data")
+        items = data.get("items") if isinstance(data, dict) else None
+        if (
+            response.get("code") != 200
+            or not isinstance(items, list)
+            or not all(isinstance(item, dict) for item in items)
+        ):
+            raise UpstreamUnavailable(
+                "AINPC returned an invalid memory query response.",
+                error_code="ainpc_memory_query_invalid",
+                response_payload=response,
+            )
+        return items
+
     async def npc_memories(self, npc_id: int, limit: int = 20) -> dict[str, Any]:
         response = await self._json(
             "POST",

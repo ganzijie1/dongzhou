@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 17;
+  const SCHEMA_VERSION = 18;
   const TASK_TYPES = {
     supply: { name: "转运军粮", office: "司徒", duration: 1, cost: 8, base: 72, reward: { provisions: 24 } },
     drill: { name: "整训军阵", office: "司马", duration: 1, cost: 6, base: 68, reward: { attack: 0.08 } },
@@ -56,6 +56,7 @@
       inventoryRequisitionIds: [],
       logisticsBriefings: [],
       commendations: [],
+      recollections: [],
       history: []
     };
   }
@@ -133,6 +134,9 @@
         : [],
       commendations: Array.isArray(source.commendations)
         ? source.commendations.filter((entry) => entry && typeof entry.eventId === "string").slice(-60).map(copy)
+        : [],
+      recollections: Array.isArray(source.recollections)
+        ? source.recollections.filter((entry) => entry && typeof entry.recollectionId === "string").slice(-60).map(copy)
         : [],
       history: Array.isArray(source.history) ? source.history.slice(-40).map((entry) => ({ ...entry })) : []
     };
@@ -258,6 +262,28 @@
       state.history = state.history.slice(-40);
     }
     return { state, commendation: copy(previous || receipt), replayed: Boolean(previous) };
+  }
+
+  function recordRecollection(rawState, receipt) {
+    const state = normalizeState(rawState);
+    const requiredText = ["heroId", "stageId", "knowledgeId", "memoryId", "memoryContent"];
+    if (!receipt || receipt.kernel?.module !== "dongzhou_npc_recollection" || receipt.kernel?.state !== "SEALED"
+      || !/^[0-9a-f]{64}$/.test(String(receipt.digest || ""))
+      || !/^[0-9a-f]{64}$/.test(String(receipt.memoryDigest || ""))
+      || !String(receipt.recollectionId || "").startsWith("npc-recollection:")
+      || requiredText.some((key) => !String(receipt[key] || "").trim())
+      || !["dialogue_choice", "system_message"].includes(receipt.memoryType)
+      || !["knowledge_dialogue", "latest_system_message"].includes(receipt.matchMode)) {
+      throw new Error("问忆回执未通过内核校验");
+    }
+    const previous = state.recollections.find((entry) => entry.recollectionId === receipt.recollectionId);
+    if (previous && previous.digest !== receipt.digest) throw new Error("同一问忆事件出现冲突回执");
+    if (!previous) {
+      state.recollections = [...state.recollections, copy(receipt)].slice(-60);
+      state.history.push({ month: state.month, type: "recollection", text: `${receipt.heroId}据史忆起：${receipt.memoryContent.slice(0, 48)}` });
+      state.history = state.history.slice(-40);
+    }
+    return { state, recollection: copy(previous || receipt), replayed: Boolean(previous) };
   }
 
   function recordMandate(rawState, input) {
@@ -965,5 +991,5 @@
     return state;
   }
 
-  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordThought, recordLogisticsBriefing, recordCommendation, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, recordInventoryRequisition, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, recordRemoteRoster, hash };
+  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordThought, recordLogisticsBriefing, recordCommendation, recordRecollection, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, recordInventoryRequisition, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, recordRemoteRoster, hash };
 });

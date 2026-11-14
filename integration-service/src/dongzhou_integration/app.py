@@ -27,7 +27,7 @@ from .assignments import (
     select_assignment,
     task_duty,
 )
-from .models import AdviserFeedbackRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcCommendationRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
+from .models import AdviserFeedbackRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcCommendationRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcRecollectionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
@@ -532,6 +532,34 @@ class NpcCommendationModule(Module):
             "kernel": {
                 "module": cls.name,
                 "moduleVersion": cls.version,
+                "state": "SEALED",
+            },
+        }
+
+
+class NpcRecollectionModule(Module):
+    name = "dongzhou_npc_recollection"
+    version = "1.0.0"
+
+    @classmethod
+    def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
+        required = (
+            "recollectionId", "playerId", "heroId", "npcId", "stageId",
+            "knowledgeId", "knowledgeTitle", "memoryId", "memoryType",
+            "memoryTimestamp", "memoryContent", "memoryDigest", "matchMode",
+        )
+        if any(not str(trace.get(key) or "").strip() for key in required):
+            raise ValueError("NPC recollection trace is incomplete")
+        if not re.fullmatch(r"[0-9a-f]{64}", str(trace["memoryDigest"])):
+            raise ValueError("NPC recollection memory digest is invalid")
+        digest = _canonical_digest(trace)
+        return {
+            **trace,
+            "digest": digest,
+            "kernel": {
+                "module": cls.name,
+                "moduleVersion": cls.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
                 "state": "SEALED",
             },
         }
@@ -3571,6 +3599,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     organization_task_topology = OrganizationTaskTopologyModule()
     logistics_briefing = LogisticsBriefingModule()
     npc_commendation = NpcCommendationModule()
+    npc_recollection = NpcRecollectionModule()
     kernel = Kernel(
         [
             LoadedModule(module=module, required=True, original_index=0),
@@ -3592,6 +3621,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             ),
             LoadedModule(module=logistics_briefing, required=True, original_index=9),
             LoadedModule(module=npc_commendation, required=True, original_index=10),
+            LoadedModule(module=npc_recollection, required=True, original_index=11),
         ]
     )
     router = APIRouter(prefix="/api/dongzhou/v1")
@@ -4765,6 +4795,115 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "affectionDelta": 2,
         }
         return {"state": "COMPLETED", "replayed": not created, "commendation": npc_commendation.seal(trace)}
+
+    @router.post("/npcs/{hero_id}/recollections")
+    async def recall_npc_history(
+        hero_id: str,
+        request: NpcRecollectionRequest,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        if hero_id not in settings.orgflow_hero_members:
+            raise ApiError("npc_not_in_organization", "The selected officer is not in the organization roster.", status_code=404)
+        try:
+            entries = await upstreams.stage_knowledge(request.stage_id)
+            knowledge_records = []
+            for item in entries:
+                if not isinstance(item, dict):
+                    continue
+                candidate = item.get("aku") or item.get("data") or item
+                if isinstance(candidate, dict):
+                    knowledge_records.append(candidate)
+            raw_knowledge = next(
+                (
+                    item
+                    for item in knowledge_records
+                    if str(item.get("id") or item.get("aku_id") or "") == request.knowledge_id
+                ),
+                None,
+            )
+            if not isinstance(raw_knowledge, dict):
+                raise ApiError("npc_recollection_knowledge_invalid", "The selected history is not published for this stage.", status_code=409)
+            roster_response = await upstreams.organization_roster(settings.orgflow_org_id)
+            roster = _organization_roster_view(roster_response.get("data"), settings)
+        except UpstreamUnavailable as error:
+            raise ApiError("npc_recollection_upstream_unavailable", "History or organization roster is temporarily unavailable.", status_code=503) from error
+        except ValueError as error:
+            raise ApiError("npc_recollection_roster_invalid", "The organization roster response is invalid.", status_code=502) from error
+        if roster.get("organization", {}).get("state") != "ACTIVE" or not any(
+            member.get("heroId") == hero_id for member in roster.get("members", [])
+        ):
+            raise ApiError("npc_not_in_organization", "The selected officer is not active in the organization roster.", status_code=409)
+
+        source_details = raw_knowledge.get("sourceDetails") or raw_knowledge.get("sources") or []
+        source = source_details[0] if isinstance(source_details, list) and source_details else {}
+        source_work = str(source.get("work") or source.get("name") or "本回史录") if isinstance(source, dict) else str(source)
+        knowledge_title = str(raw_knowledge.get("name") or raw_knowledge.get("title") or request.knowledge_id)
+        npc_id = str(stable_npc_id(settings.ainpc_game_server_id, hero_id))
+        try:
+            dialogue_memories = await upstreams.query_npc_memories(
+                int(npc_id), source_type="dialogue_choice", limit=50
+            )
+        except UpstreamUnavailable as error:
+            raise ApiError("npc_recollection_memory_unavailable", "Officer memories are temporarily unavailable.", status_code=503) from error
+
+        match_tokens = [
+            value.casefold()
+            for value in (request.knowledge_id, knowledge_title, source_work)
+            if value.strip()
+        ]
+        selected_memory = next(
+            (
+                item
+                for item in dialogue_memories
+                if any(token in str(item.get("content") or "").casefold() for token in match_tokens)
+            ),
+            None,
+        )
+        match_mode = "knowledge_dialogue"
+        if selected_memory is None:
+            try:
+                system_memories = await upstreams.query_npc_memories(
+                    int(npc_id), source_type="system_message", limit=20
+                )
+            except UpstreamUnavailable as error:
+                raise ApiError("npc_recollection_memory_unavailable", "Officer memories are temporarily unavailable.", status_code=503) from error
+            selected_memory = system_memories[0] if system_memories else None
+            match_mode = "latest_system_message"
+        if not isinstance(selected_memory, dict):
+            raise ApiError("npc_recollection_not_found", "The selected officer has no authoritative memory to recall.", status_code=404)
+
+        memory_id = str(selected_memory.get("idempotency_key") or selected_memory.get("idempotencyKey") or "").strip()
+        memory_type = str(selected_memory.get("source_type") or selected_memory.get("sourceType") or "").strip()
+        memory_timestamp = str(selected_memory.get("timestamp") or "").strip()
+        memory_content = str(selected_memory.get("content") or "").strip()[:4000]
+        if not memory_id or memory_type not in {"dialogue_choice", "system_message"} or not memory_timestamp or not memory_content:
+            raise ApiError("npc_recollection_memory_invalid", "AINPC returned an invalid officer memory.", status_code=502)
+        memory_digest = _canonical_digest({
+            "id": memory_id,
+            "type": memory_type,
+            "timestamp": memory_timestamp,
+            "content": memory_content,
+        })
+        recollection_identity = hashlib.sha256(
+            f"{player_id}\n{request.stage_id}\n{hero_id}\n{request.knowledge_id}\n{memory_digest}\ndongzhou-npc-recollection-v1".encode("utf-8")
+        ).hexdigest()
+        trace = {
+            "recollectionId": "npc-recollection:" + recollection_identity,
+            "playerId": str(stable_player_id(settings.ainpc_game_server_id, player_id)),
+            "heroId": hero_id,
+            "npcId": npc_id,
+            "stageId": request.stage_id,
+            "knowledgeId": request.knowledge_id,
+            "knowledgeTitle": knowledge_title,
+            "sourceWork": source_work,
+            "memoryId": memory_id,
+            "memoryType": memory_type,
+            "memoryTimestamp": memory_timestamp,
+            "memoryContent": memory_content,
+            "memoryDigest": memory_digest,
+            "matchMode": match_mode,
+        }
+        return {"state": "COMPLETED", "recollection": npc_recollection.seal(trace)}
 
     @router.post("/knowledge/routes")
     async def campaign_route(

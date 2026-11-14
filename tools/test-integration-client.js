@@ -32,6 +32,7 @@ let npcMessageAttempts = 0;
 const npcMessageIds = [];
 let npcScheduleAttempts = 0;
 let npcAssignmentAttempts = 0;
+let npcRecollectionInput = null;
 let organizationReadAttempts = 0;
 let organizationReviewInput = null;
 let inventoryRequisitionAttempts = 0;
@@ -150,6 +151,10 @@ global.fetch = async (url, options = {}) => {
   else if (url.endsWith("/npcs/interaction-preference")) {
     npcInteractionPreferenceInput = body;
     response = { enabled: body.enabled, source: "dongzhou-player-settings", updatedAt: "2026-11-11T12:00:00Z" };
+  }
+  else if (/\/npcs\/[^/]+\/recollections$/.test(url)) {
+    npcRecollectionInput = body;
+    response = { state: "COMPLETED", recollection: { recollectionId: "npc-recollection:" + "2".repeat(64), digest: "4".repeat(64) } };
   }
   else if (url.endsWith("/court/mandates")) {
     mandateAttempts += 1;
@@ -288,6 +293,9 @@ const client = require("../web-game/integration-client.js");
   const interactionPreference = await client.setNpcInteractionPreference(false);
   assert.strictEqual(interactionPreference.enabled, false);
   assert.deepStrictEqual(npcInteractionPreferenceInput, { enabled: false });
+  const recollection = await client.recallNpc("DuBo", { stage_id: "01", knowledge_id: "dongzhou_stage_001" });
+  assert.strictEqual(recollection.state, "COMPLETED");
+  assert.deepStrictEqual(npcRecollectionInput, { stage_id: "01", knowledge_id: "dongzhou_stage_001" });
   await client.npcState("DuBo");
   const correspondence = await client.npcCorrespondence("DuBo", 12);
   await client.npcSchedule("DuBo");

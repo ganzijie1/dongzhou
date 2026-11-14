@@ -23,6 +23,14 @@ class PublishedKnowledge:
 
     def __init__(self):
         self.events = []
+        self.memory_queries = []
+        self.memory_items = [{
+            "idempotency_key": "memory-dongzhou-stage-001",
+            "source_type": "dialogue_choice",
+            "fact_kind": "event",
+            "timestamp": "0771-01-01T14:00:00",
+            "content": "旧议曾引 dongzhou_stage_001 与《史记·周本纪》筹划东郊之战。",
+        }]
 
     async def health(self):
         return {name: {"online": True} for name in ("orgFlow", "aiNpc", "knowledge")}
@@ -104,6 +112,10 @@ class PublishedKnowledge:
     async def send_game_event(self, kind, payload):
         self.events.append((kind, payload))
         return {"data": True}
+
+    async def query_npc_memories(self, npc_id, *, source_type, limit=20):
+        self.memory_queries.append((npc_id, source_type, limit))
+        return [item for item in self.memory_items if item["source_type"] == source_type]
 
 
 def test_published_knowledge_requires_session_and_codex_is_player_scoped(tmp_path):
@@ -359,3 +371,44 @@ def test_history_commendation_is_roster_bound_sealed_and_idempotent(tmp_path):
         assert len(upstreams.events) == 1
         assert client.post(path, json={**body, "knowledge_id": "missing"}).status_code == 409
         assert client.post("/api/dongzhou/v1/npcs/Unknown/commendations", json=body).status_code == 404
+
+
+def test_history_recollection_uses_authoritative_memory_and_seals_receipt(tmp_path):
+    with patch.dict("os.environ", {
+        "DONGZHOU_ENV": "test",
+        "DONGZHOU_WEB_ROOT": str(tmp_path),
+        "DONGZHOU_DATABASE_PATH": str(tmp_path / "save.db"),
+        "DONGZHOU_ORGFLOW_ORG_ID": "00000000-0000-4000-8000-000000000100",
+        "DONGZHOU_ORGFLOW_HERO_MEMBERS": "DuBo=00000000-0000-4000-8000-000000000101",
+    }, clear=True):
+        settings = Settings.from_env()
+    upstreams = PublishedKnowledge()
+    with TestClient(build_application(settings, upstreams=upstreams)) as client:
+        assert client.post("/api/dongzhou/v1/sessions/guest", json={"installation_id": str(uuid4())}).status_code == 200
+        path = "/api/dongzhou/v1/npcs/DuBo/recollections"
+        body = {"stage_id": "01", "knowledge_id": "dongzhou_stage_001"}
+        response = client.post(path, json=body)
+        assert response.status_code == 200
+        result = response.json()
+        receipt = result["recollection"]
+        assert result["state"] == "COMPLETED"
+        assert receipt["heroId"] == "DuBo"
+        assert receipt["memoryId"] == "memory-dongzhou-stage-001"
+        assert receipt["memoryType"] == "dialogue_choice"
+        assert receipt["matchMode"] == "knowledge_dialogue"
+        assert len(receipt["memoryDigest"]) == 64
+        assert len(receipt["digest"]) == 64
+        assert receipt["kernel"]["module"] == "dongzhou_npc_recollection"
+        assert receipt["kernel"]["moduleVersion"] == "1.0.0"
+        assert receipt["kernel"]["state"] == "SEALED"
+        assert upstreams.memory_queries == [(int(receipt["npcId"]), "dialogue_choice", 50)]
+
+        replay = client.post(path, json=body)
+        assert replay.status_code == 200
+        assert replay.json()["recollection"]["digest"] == receipt["digest"]
+        upstreams.memory_items = []
+        missing = client.post(path, json=body)
+        assert missing.status_code == 404
+        assert missing.json()["error"]["code"] == "npc_recollection_not_found"
+        assert client.post(path, json={**body, "knowledge_id": "missing"}).status_code == 409
+        assert client.post("/api/dongzhou/v1/npcs/Unknown/recollections", json=body).status_code == 404

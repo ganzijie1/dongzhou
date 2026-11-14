@@ -110,6 +110,7 @@
   let officeQuizTimer = null;
   let officeQuizVerification = null;
   let officeCommendationInFlight = false;
+  let officeRecollectionInFlight = false;
 
   const canvas = $("#battleCanvas");
   const ctx = canvas.getContext("2d");
@@ -1156,6 +1157,35 @@
     }
   }
 
+  async function recallOfficeNpc() {
+    const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
+    const evidence = currentOfficeEvidence();
+    if (officeRecollectionInFlight || !member) return;
+    if (!evidence?.knowledge?.id) {
+      showNotice("请先查阅本回史料并选定出处");
+      return;
+    }
+    officeRecollectionInFlight = true;
+    renderOrganizationPanel();
+    try {
+      const response = await integration.recallNpc(member.id, {
+        stage_id: String(officeStage().id),
+        knowledge_id: evidence.knowledge.id
+      });
+      if (response?.state !== "COMPLETED" || !response.recollection) throw new Error("属官尚未忆起可核验旧事");
+      const recorded = organization.recordRecollection(profile.organization, response.recollection);
+      profile.organization = recorded.state;
+      writeJson(PROFILE_KEY, profile);
+      await integration.persist(profile);
+      showNotice(recorded.replayed ? "问忆回执已恢复" : `${member.name}已据史忆起一段旧事`);
+    } catch (error) {
+      showNotice(error.message);
+    } finally {
+      officeRecollectionInFlight = false;
+      renderOrganizationPanel();
+    }
+  }
+
   function saveOrganization(next) {
     profile.organization = organization.normalizeState(next);
     writeJson(PROFILE_KEY, profile);
@@ -1606,10 +1636,16 @@
     const selectedHeroId = $("#officeMemberSelect").value;
     const currentStageId = String(officeStage()?.id || "");
     const latestCommendation = [...org.commendations].reverse().find((entry) => entry.heroId === selectedHeroId && entry.stageId === currentStageId);
+    const selectedKnowledgeId = currentOfficeEvidence()?.knowledge?.id;
+    const latestRecollection = [...org.recollections].reverse().find((entry) => entry.heroId === selectedHeroId && entry.stageId === currentStageId && entry.knowledgeId === selectedKnowledgeId);
     $("#officeCommendButton").disabled = officeCommendationInFlight || integration.isOffline();
     $("#officeCommendationResult").textContent = latestCommendation
       ? `已据《${latestCommendation.knowledgeTitle}》慰勉 ${displayName(latestCommendation.heroId)} · 感激 +${Number(latestCommendation.affectionDelta)} · 印记 ${String(latestCommendation.digest).slice(0, 12)}`
       : "选定本回出处后，可慰勉当前在职属官；每关每人只结算一次。";
+    $("#officeRecollectionButton").disabled = officeRecollectionInFlight || integration.isOffline();
+    $("#officeRecollectionResult").textContent = latestRecollection
+      ? `${latestRecollection.memoryType === "dialogue_choice" ? "旧议" : "战报"}：${latestRecollection.memoryContent.slice(0, 90)} · 印记 ${String(latestRecollection.digest).slice(0, 12)}`
+      : "选定本回出处后，可请当前属官据史追忆可核验旧事。";
     renderOfficeMandateApproval();
     renderOfficeSettlementReview();
   }
@@ -4805,6 +4841,7 @@
     });
     $("#officeStageKnowledgeButton").addEventListener("click", loadOfficeStageKnowledge);
     $("#officeCommendButton").addEventListener("click", commendOfficeNpc);
+    $("#officeRecollectionButton").addEventListener("click", recallOfficeNpc);
     $("#officeQuizStart").addEventListener("click", startOfficeQuiz);
     $("#officeQuizVerify").addEventListener("click", verifyOfficeQuizSeal);
     $("#officeQuizOptions").addEventListener("click", (event) => {
