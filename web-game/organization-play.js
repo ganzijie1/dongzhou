@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 16;
+  const SCHEMA_VERSION = 17;
   const TASK_TYPES = {
     supply: { name: "转运军粮", office: "司徒", duration: 1, cost: 8, base: 72, reward: { provisions: 24 } },
     drill: { name: "整训军阵", office: "司马", duration: 1, cost: 6, base: 68, reward: { attack: 0.08 } },
@@ -55,6 +55,7 @@
       inventoryRequisitions: [],
       inventoryRequisitionIds: [],
       logisticsBriefings: [],
+      commendations: [],
       history: []
     };
   }
@@ -129,6 +130,9 @@
       ].filter((value) => typeof value === "string" && value))],
       logisticsBriefings: Array.isArray(source.logisticsBriefings)
         ? source.logisticsBriefings.filter((entry) => entry && typeof entry.requestId === "string").slice(-30).map(copy)
+        : [],
+      commendations: Array.isArray(source.commendations)
+        ? source.commendations.filter((entry) => entry && typeof entry.eventId === "string").slice(-60).map(copy)
         : [],
       history: Array.isArray(source.history) ? source.history.slice(-40).map((entry) => ({ ...entry })) : []
     };
@@ -237,6 +241,23 @@
       }].slice(-40);
     }
     return { state, briefing: copy(previous || receipt) };
+  }
+
+  function recordCommendation(rawState, receipt) {
+    const state = normalizeState(rawState);
+    if (!receipt || receipt.kernel?.module !== "dongzhou_npc_commendation" || receipt.kernel?.state !== "SEALED"
+      || !/^[0-9a-f]{64}$/.test(String(receipt.digest || "")) || !String(receipt.eventId || "").startsWith("npc-commendation:")
+      || receipt.affectionType !== "appreciation" || Number(receipt.affectionDelta) !== 2) {
+      throw new Error("慰勉回执未通过内核校验");
+    }
+    const previous = state.commendations.find((entry) => entry.eventId === receipt.eventId);
+    if (previous && previous.digest !== receipt.digest) throw new Error("同一慰勉事件出现冲突回执");
+    if (!previous) {
+      state.commendations = [...state.commendations, copy(receipt)].slice(-60);
+      state.history.push({ month: state.month, type: "commendation", text: `据《${receipt.knowledgeTitle}》慰勉${receipt.heroId}，感激 +2` });
+      state.history = state.history.slice(-40);
+    }
+    return { state, commendation: copy(previous || receipt), replayed: Boolean(previous) };
   }
 
   function recordMandate(rawState, input) {
@@ -944,5 +965,5 @@
     return state;
   }
 
-  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordThought, recordLogisticsBriefing, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, recordInventoryRequisition, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, recordRemoteRoster, hash };
+  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordThought, recordLogisticsBriefing, recordCommendation, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, recordInventoryRequisition, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, recordRemoteRoster, hash };
 });

@@ -109,6 +109,7 @@
   let officeQuizInFlight = false;
   let officeQuizTimer = null;
   let officeQuizVerification = null;
+  let officeCommendationInFlight = false;
 
   const canvas = $("#battleCanvas");
   const ctx = canvas.getContext("2d");
@@ -1125,6 +1126,36 @@
     }
   }
 
+  async function commendOfficeNpc() {
+    const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
+    const evidence = currentOfficeEvidence();
+    if (officeCommendationInFlight || !member) return;
+    if (!evidence?.knowledge?.id) {
+      showNotice("请先查阅本回史料并选定出处");
+      return;
+    }
+    officeCommendationInFlight = true;
+    renderOrganizationPanel();
+    try {
+      const response = await integration.commendNpc(member.id, {
+        stage_id: String(officeStage().id),
+        knowledge_id: evidence.knowledge.id
+      });
+      if (response?.state !== "COMPLETED" || !response.commendation) throw new Error("慰勉尚未完成");
+      const recorded = organization.recordCommendation(profile.organization, response.commendation);
+      profile.organization = recorded.state;
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+      await integration.persist(profile);
+      await refreshOfficeNpcState();
+      showNotice(response.replayed ? "本回慰勉回执已恢复" : `${member.name}已受慰勉，感激 +2`);
+    } catch (error) {
+      showNotice(error.message);
+    } finally {
+      officeCommendationInFlight = false;
+      renderOrganizationPanel();
+    }
+  }
+
   function saveOrganization(next) {
     profile.organization = organization.normalizeState(next);
     writeJson(PROFILE_KEY, profile);
@@ -1572,6 +1603,13 @@
     document.querySelectorAll(".office-decision-option").forEach((input, index) => { if (!input.value) input.value = decisionDefaults[index]; });
     renderOfficeDiplomacyStatus();
     renderOfficeQuiz();
+    const selectedHeroId = $("#officeMemberSelect").value;
+    const currentStageId = String(officeStage()?.id || "");
+    const latestCommendation = [...org.commendations].reverse().find((entry) => entry.heroId === selectedHeroId && entry.stageId === currentStageId);
+    $("#officeCommendButton").disabled = officeCommendationInFlight || integration.isOffline();
+    $("#officeCommendationResult").textContent = latestCommendation
+      ? `已据《${latestCommendation.knowledgeTitle}》慰勉 ${displayName(latestCommendation.heroId)} · 感激 +${Number(latestCommendation.affectionDelta)} · 印记 ${String(latestCommendation.digest).slice(0, 12)}`
+      : "选定本回出处后，可慰勉当前在职属官；每关每人只结算一次。";
     renderOfficeMandateApproval();
     renderOfficeSettlementReview();
   }
@@ -4766,6 +4804,7 @@
       if (button) submitOfficeAdviserFeedback(button.dataset.adviserRating);
     });
     $("#officeStageKnowledgeButton").addEventListener("click", loadOfficeStageKnowledge);
+    $("#officeCommendButton").addEventListener("click", commendOfficeNpc);
     $("#officeQuizStart").addEventListener("click", startOfficeQuiz);
     $("#officeQuizVerify").addEventListener("click", verifyOfficeQuizSeal);
     $("#officeQuizOptions").addEventListener("click", (event) => {

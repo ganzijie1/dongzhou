@@ -21,6 +21,9 @@ class PublishedKnowledge:
         "provision_cost": 2,
     }
 
+    def __init__(self):
+        self.events = []
+
     async def health(self):
         return {name: {"online": True} for name in ("orgFlow", "aiNpc", "knowledge")}
 
@@ -81,6 +84,26 @@ class PublishedKnowledge:
                 }],
             }],
         }
+
+    async def organization_roster(self, organization_id):
+        return {"data": {
+            "name": "Dongzhou Court", "state": "ACTIVE", "hierarchy_version": 1,
+            "growth_contribution_points": 0,
+            "positions": [{
+                "position_slot_id": "officer", "position_display_name": "史官",
+                "role_display_name": "officer", "level_key": "L1",
+            }],
+            "members": [{
+                "member_id": "00000000-0000-4000-8000-000000000101",
+                "position_slot_id": "officer", "direct_manager_member_id": None,
+                "contribution_balance": 0, "contribution_lifetime_earned": 0,
+                "contribution_lifetime_spent": 0,
+            }],
+        }}
+
+    async def send_game_event(self, kind, payload):
+        self.events.append((kind, payload))
+        return {"data": True}
 
 
 def test_published_knowledge_requires_session_and_codex_is_player_scoped(tmp_path):
@@ -300,3 +323,39 @@ def test_knowledge_quiz_hides_answer_and_is_idempotent_and_player_scoped(tmp_pat
             "action_id": started.json()["action"]["actionId"],
             "answer_index": correct_index,
         }).status_code == 404
+
+
+def test_history_commendation_is_roster_bound_sealed_and_idempotent(tmp_path):
+    with patch.dict("os.environ", {
+        "DONGZHOU_ENV": "test",
+        "DONGZHOU_WEB_ROOT": str(tmp_path),
+        "DONGZHOU_DATABASE_PATH": str(tmp_path / "save.db"),
+        "DONGZHOU_ORGFLOW_ORG_ID": "00000000-0000-4000-8000-000000000100",
+        "DONGZHOU_ORGFLOW_HERO_MEMBERS": "DuBo=00000000-0000-4000-8000-000000000101",
+    }, clear=True):
+        settings = Settings.from_env()
+    upstreams = PublishedKnowledge()
+    with TestClient(build_application(settings, upstreams=upstreams)) as client:
+        assert client.post("/api/dongzhou/v1/sessions/guest", json={"installation_id": str(uuid4())}).status_code == 200
+        path = "/api/dongzhou/v1/npcs/DuBo/commendations"
+        body = {"stage_id": "01", "knowledge_id": "dongzhou_stage_001"}
+        response = client.post(path, json=body)
+        assert response.status_code == 200
+        result = response.json()
+        assert result["state"] == "COMPLETED"
+        assert result["replayed"] is False
+        assert result["commendation"]["affectionType"] == "appreciation"
+        assert result["commendation"]["affectionDelta"] == 2
+        assert result["commendation"]["kernel"] == {
+            "module": "dongzhou_npc_commendation",
+            "moduleVersion": "1.0.0",
+            "state": "SEALED",
+        }
+        assert len(upstreams.events) == 1
+        replay = client.post(path, json=body)
+        assert replay.status_code == 200
+        assert replay.json()["replayed"] is True
+        assert replay.json()["commendation"]["digest"] == result["commendation"]["digest"]
+        assert len(upstreams.events) == 1
+        assert client.post(path, json={**body, "knowledge_id": "missing"}).status_code == 409
+        assert client.post("/api/dongzhou/v1/npcs/Unknown/commendations", json=body).status_code == 404

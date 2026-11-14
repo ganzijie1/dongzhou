@@ -405,4 +405,15 @@ const correspondenceCouncil = play.recordCouncil(selectedCorrespondence.state, {
 assert.strictEqual(correspondenceCouncil.council.correspondence.messageId, "message-1");
 assert.throws(() => play.recordMandate(correspondenceCouncil.state, { id: "bad-mandate", stageId: "01", heroId: "ZuoRu", taskType: "intelligence", evidence: { id: "source-1", source: correspondenceState.selectedSources["01"] }, council: { requestId: "council-correspondence", text: "North", correspondence: { ...correspondenceCouncil.council.correspondence, digest: "e".repeat(64) } }, correspondence: correspondenceCouncil.council.correspondence, assignment: { heroId: "ZuoRu", planId: "plan", eventId: "event" }, kernel: { state: "READY" }, digest: "a".repeat(64), state: "ISSUED" }), /耳报来源无效/);
 
+const commendation = {
+  eventId: "npc-commendation:" + "1".repeat(64), playerId: "player-1", heroId: "ZuoRu", npcId: "npc-1",
+  stageId: "01", knowledgeId: "source-1", knowledgeTitle: "第一回", sourceWork: "Chronicle",
+  affectionType: "appreciation", affectionDelta: 2, digest: "2".repeat(64),
+  kernel: { module: "dongzhou_npc_commendation", moduleVersion: "1.0.0", state: "SEALED" }
+};
+const commended = play.recordCommendation(correspondenceCouncil.state, commendation);
+assert.strictEqual(commended.state.commendations.length, 1);
+assert.strictEqual(play.recordCommendation(commended.state, commendation).state.commendations.length, 1);
+assert.throws(() => play.recordCommendation(commended.state, { ...commendation, digest: "bad" }), /内核校验/);
+
 console.log(JSON.stringify({ result: "PASS", tasks: state.tasks.length, members: state.members.length, knowledge: state.knowledge.length, longCampaignOrders: issuedIds.size, retainedUnspentRewards: beforeReplay, legacyMigration: "PASS", correspondence: "PASS" }));

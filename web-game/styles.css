@@ -3808,6 +3808,9 @@ button:focus-visible {
 .office-quiz-seal small { min-width: 0; overflow-wrap: anywhere; }
 .office-quiz-seal .large-button { flex: 0 0 auto; min-height: 32px; padding: 6px 12px; }
 #officeQuizSealStatus { display: block; min-height: 1.5em; color: #8ea77d; font-size: 10px; overflow-wrap: anywhere; }
+.office-knowledge-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.office-knowledge-actions .large-button { flex: 0 0 auto; }
+.office-commendation { margin-top: 4px; }
 #officeQuizStatus { margin: 10px 0 0; color: #8f9289; font-size: 11px; }
 #officeQuizPrompt { margin: 16px 0 10px; color: #e4dcc5; font-size: 13px; line-height: 1.65; }
 #officeQuizOptions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }

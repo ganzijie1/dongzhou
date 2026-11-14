@@ -27,7 +27,7 @@ from .assignments import (
     select_assignment,
     task_duty,
 )
-from .models import AdviserFeedbackRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
+from .models import AdviserFeedbackRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcCommendationRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMessageRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
@@ -507,6 +507,32 @@ class KnowledgeTournamentModule(Module):
                     "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
                     "state": "SEALED",
                 },
+            },
+        }
+
+
+class NpcCommendationModule(Module):
+    name = "dongzhou_npc_commendation"
+    version = "1.0.0"
+
+    @classmethod
+    def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
+        required = (
+            "eventId", "playerId", "heroId", "npcId", "stageId",
+            "knowledgeId", "knowledgeTitle", "affectionType", "affectionDelta",
+        )
+        if any(not str(trace.get(key) or "").strip() for key in required[:-1]):
+            raise ValueError("NPC commendation trace is incomplete")
+        if trace.get("affectionType") != "appreciation" or trace.get("affectionDelta") != 2:
+            raise ValueError("NPC commendation affection effect is invalid")
+        digest = _canonical_digest(trace)
+        return {
+            **trace,
+            "digest": digest,
+            "kernel": {
+                "module": cls.name,
+                "moduleVersion": cls.version,
+                "state": "SEALED",
             },
         }
 
@@ -3544,6 +3570,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     organization_task_trace = OrganizationTaskTraceModule()
     organization_task_topology = OrganizationTaskTopologyModule()
     logistics_briefing = LogisticsBriefingModule()
+    npc_commendation = NpcCommendationModule()
     kernel = Kernel(
         [
             LoadedModule(module=module, required=True, original_index=0),
@@ -3564,6 +3591,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 original_index=8,
             ),
             LoadedModule(module=logistics_briefing, required=True, original_index=9),
+            LoadedModule(module=npc_commendation, required=True, original_index=10),
         ]
     )
     router = APIRouter(prefix="/api/dongzhou/v1")
@@ -4648,6 +4676,95 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "digest": receipt["digest"],
             "kernel": receipt["kernel"],
         }
+
+    @router.post("/npcs/{hero_id}/commendations")
+    async def commend_npc_from_history(
+        hero_id: str,
+        request: NpcCommendationRequest,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        if hero_id not in settings.orgflow_hero_members:
+            raise ApiError("npc_not_in_organization", "The selected officer is not in the organization roster.", status_code=404)
+        try:
+            entries = await upstreams.stage_knowledge(request.stage_id)
+            knowledge_records = []
+            for item in entries:
+                if not isinstance(item, dict):
+                    continue
+                candidate = item.get("aku") or item.get("data") or item
+                if isinstance(candidate, dict):
+                    knowledge_records.append(candidate)
+            raw_knowledge = next(
+                (
+                    item
+                    for item in knowledge_records
+                    if str(item.get("id") or item.get("aku_id") or "") == request.knowledge_id
+                ),
+                None,
+            )
+            if not isinstance(raw_knowledge, dict):
+                raise ApiError("npc_commendation_knowledge_invalid", "The selected history is not published for this stage.", status_code=409)
+            roster_response = await upstreams.organization_roster(settings.orgflow_org_id)
+            roster = _organization_roster_view(roster_response.get("data"), settings)
+        except UpstreamUnavailable as error:
+            raise ApiError("npc_commendation_upstream_unavailable", "History or organization roster is temporarily unavailable.", status_code=503) from error
+        except ValueError as error:
+            raise ApiError("npc_commendation_roster_invalid", "The organization roster response is invalid.", status_code=502) from error
+        if roster.get("organization", {}).get("state") != "ACTIVE" or not any(
+            member.get("heroId") == hero_id for member in roster.get("members", [])
+        ):
+            raise ApiError("npc_not_in_organization", "The selected officer is not active in the organization roster.", status_code=409)
+
+        source_details = raw_knowledge.get("sourceDetails") or raw_knowledge.get("sources") or []
+        source = source_details[0] if isinstance(source_details, list) and source_details else {}
+        source_work = str(source.get("work") or source.get("name") or "本回史录") if isinstance(source, dict) else str(source)
+        knowledge_title = str(raw_knowledge.get("name") or raw_knowledge.get("title") or request.knowledge_id)
+        identity = hashlib.sha256(
+            f"{player_id}\n{request.stage_id}\n{hero_id}\ndongzhou-npc-commendation-v1".encode("utf-8")
+        ).hexdigest()
+        event_id = "npc-commendation:" + identity
+        npc_id = str(stable_npc_id(settings.ainpc_game_server_id, hero_id))
+        player_target_id = str(stable_player_id(settings.ainpc_game_server_id, player_id))
+        payload = {
+            "settlement_effect_id": "dongzhou-commendation-affection:" + identity,
+            "game_server_id": str(settings.ainpc_game_server_id),
+            "npc_id": npc_id,
+            "target_id": player_target_id,
+            "changes": [{
+                "affection_type": "appreciation",
+                "delta": 2.0,
+                "reason": f"player commended the officer using published history {request.knowledge_id}",
+                "confidence": 1.0,
+            }],
+            "related_event_id": event_id,
+        }
+        try:
+            created = await store.enqueue_game_event(event_id, "NPC_AFFECTION_SETTLEMENT", payload)
+        except VersionConflict as error:
+            raise ApiError("npc_commendation_conflict", "This officer was already commended with different evidence for the stage.", status_code=409) from error
+
+        status = await store.game_event_status(event_id)
+        for _ in range(12):
+            if status and status.get("state") == "DELIVERED":
+                break
+            await asyncio.sleep(0.1)
+            status = await store.game_event_status(event_id)
+        if not status or status.get("state") != "DELIVERED":
+            return {"state": "PENDING", "eventId": event_id, "retryAfterMs": 300, "replayed": not created}
+
+        trace = {
+            "eventId": event_id,
+            "playerId": player_target_id,
+            "heroId": hero_id,
+            "npcId": npc_id,
+            "stageId": request.stage_id,
+            "knowledgeId": request.knowledge_id,
+            "knowledgeTitle": knowledge_title,
+            "sourceWork": source_work,
+            "affectionType": "appreciation",
+            "affectionDelta": 2,
+        }
+        return {"state": "COMPLETED", "replayed": not created, "commendation": npc_commendation.seal(trace)}
 
     @router.post("/knowledge/routes")
     async def campaign_route(
