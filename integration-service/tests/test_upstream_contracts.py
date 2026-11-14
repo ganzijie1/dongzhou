@@ -214,6 +214,141 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(dossier["kernel"]["module"], "dongzhou_organization_contribution_dossier")
         self.assertRegex(dossier["digest"], r"^[0-9a-f]{64}$")
 
+    async def test_player_contribution_routes_bind_current_membership_and_dossier(self) -> None:
+        member_id = "00000000-0000-4000-8000-000000000021"
+        entry_id = "00000000-0000-4000-8000-000000000022"
+        task_id = "00000000-0000-4000-8000-000000000023"
+
+        class PlayerContributionUpstreams:
+            expected_player = "pending"
+            requested_members: list[str] = []
+
+            async def health(self):
+                return {"orgFlow": {"online": True}, "aiNpc": {"online": True}, "knowledge": {"online": True}}
+
+            async def organization_roster(self, organization_id: str):
+                return {"data": {
+                    "organization_id": organization_id,
+                    "name": "Dongzhou Commandery",
+                    "state": "ACTIVE",
+                    "hierarchy_version": 7,
+                    "growth_contribution_points": 20,
+                    "positions": [{
+                        "position_slot_id": "00000000-0000-0000-0000-000000000003",
+                        "position_display_name": "行人",
+                        "role_display_name": "属官",
+                        "level_key": "staff",
+                        "state": "OCCUPIED",
+                    }],
+                    "members": [{
+                        "member_id": member_id,
+                        "subject_type": "PLAYER",
+                        "subject_id": self.expected_player,
+                        "position_slot_id": "00000000-0000-0000-0000-000000000003",
+                        "direct_manager_member_id": None,
+                        "contribution_balance": 20,
+                        "contribution_lifetime_earned": 20,
+                        "contribution_lifetime_spent": 0,
+                    }],
+                }}
+
+            async def organization_member_contributions(self, organization_id: str, requested_member_id: str, **kwargs):
+                self.requested_members.append(requested_member_id)
+                assert requested_member_id == member_id
+                assert kwargs in ({"limit": 50}, {"before_version": None, "limit": 100})
+                return {"data": {
+                    "account": {
+                        "organization_id": organization_id,
+                        "member_id": requested_member_id,
+                        "balance": 20,
+                        "lifetime_earned": 20,
+                        "lifetime_spent": 0,
+                        "version": 2,
+                    },
+                    "entries": [{
+                        "entry_id": entry_id,
+                        "account_version": 2,
+                        "amount": 20,
+                        "balance_after": 20,
+                        "lifetime_earned_after": 20,
+                        "lifetime_spent_after": 0,
+                        "event_code": "TASK_COMPLETED",
+                        "source_ref": f"organization-task:{task_id}",
+                        "violation_id": None,
+                        "rule_set_id": "organization.default",
+                        "rule_set_version": 1,
+                    }],
+                    "next_before_version": None,
+                }}
+
+            async def get_virtual_task_trace(self, organization_id: str, requested_task_id: str):
+                assert requested_task_id == task_id
+                return {"data": {
+                    "task": {
+                        "task_id": requested_task_id,
+                        "organization_id": organization_id,
+                        "state": "SUCCEEDED",
+                        "version": "3",
+                        "supplement_count": 0,
+                        "execution_exception": None,
+                    },
+                    "confirmations": [],
+                    "timeline": [{
+                        "sequence_no": "1",
+                        "occurred_at": "2026-11-14T10:00:00Z",
+                        "entry_type": "TASK_FINALIZED",
+                        "reference_id": requested_task_id,
+                        "case_id": None,
+                        "state_code": "SUCCEEDED",
+                        "reason_code": None,
+                    }],
+                }}
+
+            async def close(self):
+                return None
+
+        with TemporaryDirectory() as directory:
+            configured = settings(Path(directory) / "gateway.sqlite3")
+            upstreams = PlayerContributionUpstreams()
+            application = build_application(configured, upstreams=upstreams)
+            with TestClient(application) as client:
+                session = client.post(
+                    "/api/dongzhou/v1/sessions/guest",
+                    json={"installation_id": str(uuid4())},
+                )
+                upstreams.expected_player = str(stable_player_id(
+                    configured.ainpc_game_server_id,
+                    UUID(session.json()["playerId"]),
+                ))
+                page = client.get("/api/dongzhou/v1/organization/player-contributions")
+                dossier_response = client.get(
+                    f"/api/dongzhou/v1/organization/player-contributions/{entry_id}/dossier"
+                )
+                client.post(
+                    "/api/dongzhou/v1/sessions/guest",
+                    json={"installation_id": str(uuid4())},
+                )
+                unrelated_response = client.get(
+                    "/api/dongzhou/v1/organization/player-contributions"
+                )
+
+        self.assertEqual(page.status_code, 200, page.text)
+        self.assertEqual(page.json()["heroId"], "PLAYER")
+        self.assertEqual(page.json()["entries"][0]["entryId"], entry_id)
+        self.assertEqual(page.json()["entries"][0]["kernel"]["state"], "SEALED")
+        self.assertEqual(dossier_response.status_code, 200, dossier_response.text)
+        dossier = dossier_response.json()["dossier"]
+        self.assertEqual(dossier["heroId"], "PLAYER")
+        self.assertEqual(dossier["taskId"], task_id)
+        self.assertEqual(dossier["contribution"]["digest"], page.json()["entries"][0]["digest"])
+        self.assertEqual(dossier["kernel"]["module"], "dongzhou_organization_contribution_dossier")
+        self.assertEqual(upstreams.requested_members, [member_id, member_id])
+        self.assertEqual(unrelated_response.status_code, 404)
+        self.assertEqual(
+            unrelated_response.json()["error"]["code"],
+            "organization_player_membership_not_found",
+        )
+
     async def test_roster_route_exposes_mapped_heroes_and_current_player_only(self) -> None:
         class RosterUpstreams:
             player_subject_id = "pending"

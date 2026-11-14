@@ -183,6 +183,50 @@ async function openReady(page) {
           }
         }], hasMore: false };
       }
+      else if (/\/organization\/player-contributions\/[0-9a-f-]+\/dossier$/i.test(pathName)) {
+        body = { dossier: {
+          state: "SEALED",
+          organizationId: "org-e2e",
+          memberId: "player-member-e2e",
+          heroId: "PLAYER",
+          entryId: "00000000-0000-4000-8000-000000000091",
+          eventCode: "TASK_COMPLETED",
+          amount: 20,
+          taskId: "00000000-0000-4000-8000-000000000081",
+          taskState: "SUCCEEDED",
+          contribution: { digest: "9".repeat(64) },
+          taskTrace: { timeline: [{ type: "TASK_CREATED" }, { type: "EXECUTION_STARTED" }, { type: "TASK_FINALIZED" }, { type: "SETTLEMENT_RECORDED" }] },
+          digest: "7".repeat(64),
+          kernel: { module: "dongzhou_organization_contribution_dossier", state: "SEALED" }
+        } };
+      }
+      else if (pathName.endsWith("/organization/player-contributions")) {
+        const settled = careerAction === "result";
+        body = {
+          heroId: "PLAYER",
+          memberId: "player-member-e2e",
+          account: { accountVersion: settled ? 2 : 1, accountBalance: settled ? 20 : 0, lifetimeEarned: settled ? 20 : 0, lifetimeSpent: 0 },
+          entries: settled ? [{
+            organizationId: "org-e2e",
+            memberId: "player-member-e2e",
+            heroId: "PLAYER",
+            entryId: "00000000-0000-4000-8000-000000000091",
+            entryVersion: 2,
+            amount: 20,
+            balanceAfter: 20,
+            lifetimeEarnedAfter: 20,
+            lifetimeSpentAfter: 0,
+            eventCode: "TASK_COMPLETED",
+            sourceRef: "organization-task:00000000-0000-4000-8000-000000000081",
+            violationId: null,
+            ruleSetId: "organization.default",
+            ruleSetVersion: 1,
+            digest: "9".repeat(64),
+            kernel: { module: "dongzhou_organization_contribution_ledger", state: "SEALED" }
+          }] : [],
+          nextBeforeVersion: null
+        };
+      }
       else if (pathName.endsWith("/knowledge/search")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回·东郊索命", summary: "杜伯进谏", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }] }] };
       else if (pathName.endsWith("/knowledge/stages/01")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回·已发布本回史料", summary: "杜伯进谏", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }] }] };
       else if (pathName.endsWith("/npcs/sync")) {
@@ -292,6 +336,21 @@ async function openReady(page) {
     await online.fill("#officeCareerResult", "核清军粮三十车，账册已封存");
     await online.click("#officeCareerResultForm button[type=submit]");
     await online.waitForSelector("#officeCareerFeedback >> text=贡献已经结算", { timeout: 15000 });
+    await online.waitForSelector("#officeCareerContributions >> text=差事告成", { timeout: 15000 });
+    await online.waitForSelector("#officeCareerContributions >> text=内核印记 999999999999", { timeout: 15000 });
+    const playerDossierButton = online.locator('#officeCareerContributions [data-player-contribution-dossier-id="00000000-0000-4000-8000-000000000091"]');
+    if (await playerDossierButton.count() !== 1) throw new Error(`Player contribution dossier control is missing: ${await online.locator("#officeCareerContributions").innerHTML()}`);
+    await playerDossierButton.click();
+    await online.waitForSelector("#officeCareerContributions >> text=个人功绩卷宗已封印", { timeout: 15000 });
+    await online.waitForSelector("#officeCareerContributions >> text=立案 → 开工 → 定案 → 结算", { timeout: 15000 });
+    await online.locator("#officeCareerContributions").scrollIntoViewIfNeeded();
+    await online.screenshot({ path: path.join(OUT, "desktop-career-contribution.png"), fullPage: false });
+    await online.setViewportSize({ width: 390, height: 844 });
+    await online.locator("#officeCareerContributions").scrollIntoViewIfNeeded();
+    const careerMobileLayout = await online.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth }));
+    if (careerMobileLayout.scrollWidth > careerMobileLayout.width + 1) throw new Error(`Mobile player contribution ledger overflows viewport: ${JSON.stringify(careerMobileLayout)}`);
+    await online.screenshot({ path: path.join(OUT, "mobile-career-contribution.png"), fullPage: false });
+    await online.setViewportSize({ width: 1440, height: 900 });
     if (careerActions.map((entry) => entry.action).join(",") !== "options,request,inbox,accept,exception,result") throw new Error(`Unexpected player career sequence: ${JSON.stringify(careerActions)}`);
     if (!careerActions.find((entry) => entry.action === "exception")?.message.includes("北路桥梁冲毁")) throw new Error("Player blocker summary was not sent to the manager");
     if (!careerActions.at(-1).message.includes("核清军粮三十车，账册已封存")) throw new Error("Player result summary was not sent to the manager");

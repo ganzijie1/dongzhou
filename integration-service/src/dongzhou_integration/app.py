@@ -1535,6 +1535,27 @@ def _organization_roster_view(
     }
 
 
+def _organization_player_member_id(
+    snapshot: Any,
+    *,
+    player_subject_id: str,
+) -> str:
+    if not isinstance(snapshot, dict) or not isinstance(snapshot.get("members"), list):
+        raise ValueError("roster snapshot is incomplete")
+    matches = [
+        member
+        for member in snapshot["members"]
+        if isinstance(member, dict)
+        and member.get("subject_type") == "PLAYER"
+        and str(member.get("subject_id") or "") == player_subject_id
+    ]
+    if len(matches) != 1:
+        raise ValueError("player organization membership is not unique")
+    member_id = str(matches[0].get("member_id") or "")
+    UUID(member_id)
+    return member_id
+
+
 def _organization_contribution_view(
     snapshot: Any,
     settings: Settings,
@@ -4219,18 +4240,13 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         else None
     )
 
-    async def current_contribution_receipt(
+    async def current_member_contribution_receipt(
+        *,
         hero_id: str,
+        member_id: str,
         entry_id: str,
         digest: str | None = None,
     ) -> dict[str, Any] | None:
-        member_id = settings.orgflow_hero_members.get(hero_id)
-        if not member_id:
-            return None
-        roster_response = await upstreams.organization_roster(settings.orgflow_org_id)
-        roster = _organization_roster_view(roster_response.get("data"), settings)
-        if not any(item.get("heroId") == hero_id for item in roster["members"]):
-            return None
         before_version: int | None = None
         while True:
             response = await upstreams.organization_member_contributions(
@@ -4261,6 +4277,51 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             if next_before_version is None:
                 return None
             before_version = next_before_version
+
+    async def current_contribution_receipt(
+        hero_id: str,
+        entry_id: str,
+        digest: str | None = None,
+    ) -> dict[str, Any] | None:
+        member_id = settings.orgflow_hero_members.get(hero_id)
+        if not member_id:
+            return None
+        roster_response = await upstreams.organization_roster(settings.orgflow_org_id)
+        roster = _organization_roster_view(roster_response.get("data"), settings)
+        if not any(item.get("heroId") == hero_id for item in roster["members"]):
+            return None
+        return await current_member_contribution_receipt(
+            hero_id=hero_id,
+            member_id=member_id,
+            entry_id=entry_id,
+            digest=digest,
+        )
+
+    async def current_player_member_id(player_id: UUID) -> str:
+        player_subject_id = str(
+            stable_player_id(settings.ainpc_game_server_id, player_id)
+        )
+        roster_response = await upstreams.organization_roster(settings.orgflow_org_id)
+        roster_snapshot = (
+            roster_response.get("data")
+            if isinstance(roster_response, dict)
+            else None
+        )
+        roster = _organization_roster_view(
+            roster_snapshot,
+            settings,
+            player_subject_id=player_subject_id,
+        )
+        if roster["playerMembership"] is None:
+            raise ApiError(
+                "organization_player_membership_not_found",
+                "The current player is not an active organization member.",
+                status_code=404,
+            )
+        return _organization_player_member_id(
+            roster_snapshot,
+            player_subject_id=player_subject_id,
+        )
 
     async def current_contribution_dossier(
         contribution: dict[str, Any],
@@ -8437,6 +8498,86 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             raise ApiError(
                 "organization_player_tasks_contract_invalid",
                 "Player organization task state is invalid.",
+                status_code=502,
+            ) from error
+
+    @router.get("/organization/player-contributions")
+    async def read_organization_player_contributions(
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        try:
+            member_id = await current_player_member_id(player_id)
+            response = await upstreams.organization_member_contributions(
+                settings.orgflow_org_id,
+                member_id,
+                limit=50,
+            )
+            return _organization_contribution_view(
+                response.get("data") if isinstance(response, dict) else None,
+                settings,
+                hero_id="PLAYER",
+                member_id=member_id,
+                ledger=organization_contribution_ledger,
+            )
+        except ApiError:
+            raise
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "organization_player_contributions_unavailable",
+                "Player contribution history is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        except (TypeError, ValueError) as error:
+            raise ApiError(
+                "organization_player_contributions_contract_invalid",
+                "Player contribution history is invalid.",
+                status_code=502,
+            ) from error
+
+    @router.get(
+        "/organization/player-contributions/{entry_id}/dossier"
+    )
+    async def read_organization_player_contribution_dossier(
+        entry_id: UUID,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        try:
+            member_id = await current_player_member_id(player_id)
+            contribution = await current_member_contribution_receipt(
+                hero_id="PLAYER",
+                member_id=member_id,
+                entry_id=str(entry_id),
+            )
+            if contribution is None:
+                raise ApiError(
+                    "organization_player_contribution_not_found",
+                    "The selected player contribution is no longer available.",
+                    status_code=404,
+                )
+            if not re.fullmatch(
+                r"(?:organization-task|virtual_task):[0-9a-fA-F-]{36}",
+                str(contribution.get("sourceRef") or ""),
+            ):
+                raise ApiError(
+                    "organization_player_contribution_source_unsupported",
+                    "This player contribution does not refer to an organization task.",
+                    status_code=422,
+                )
+            return {
+                "dossier": await current_contribution_dossier(contribution)
+            }
+        except ApiError:
+            raise
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "organization_player_contribution_dossier_unavailable",
+                "The player contribution dossier is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        except (TypeError, ValueError) as error:
+            raise ApiError(
+                "organization_player_contribution_dossier_invalid",
+                "The player contribution dossier failed provenance verification.",
                 status_code=502,
             ) from error
 

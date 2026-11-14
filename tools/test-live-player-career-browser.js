@@ -41,6 +41,22 @@ async function readPlayerTasks(page) {
   });
 }
 
+async function readPlayerContributions(page) {
+  return page.evaluate(async () => {
+    const response = await fetch("/api/dongzhou/v1/organization/player-contributions", { cache: "no-store", credentials: "same-origin" });
+    if (!response.ok) throw new Error(`player contributions failed: ${response.status} ${await response.text()}`);
+    return response.json();
+  });
+}
+
+async function readPlayerContributionDossier(page, entryId) {
+  return page.evaluate(async (id) => {
+    const response = await fetch(`/api/dongzhou/v1/organization/player-contributions/${encodeURIComponent(id)}/dossier`, { cache: "no-store", credentials: "same-origin" });
+    if (!response.ok) throw new Error(`player contribution dossier failed: ${response.status} ${await response.text()}`);
+    return response.json();
+  }, entryId);
+}
+
 async function waitForRoster(page, predicate, label) {
   const deadline = Date.now() + timeout;
   let roster = null;
@@ -202,6 +218,35 @@ async function releaseMembership(page) {
       startingContribution,
       { timeout },
     );
+
+    let contributionPage = null;
+    let contribution = null;
+    const contributionDeadline = Date.now() + timeout;
+    while (Date.now() < contributionDeadline) {
+      contributionPage = await readPlayerContributions(page);
+      contribution = (contributionPage.entries || []).find((entry) =>
+        Number(entry.amount) > 0
+        && String(entry.sourceRef || "").endsWith(`:${resumedTask.taskId}`)
+      ) || null;
+      if (contribution) break;
+      await page.waitForTimeout(1000);
+    }
+    assert(contribution, `Settled player contribution did not enter the authoritative ledger: ${JSON.stringify(contributionPage)}`);
+    assert.equal(contribution.heroId, "PLAYER");
+    assert.equal(contribution.kernel?.module, "dongzhou_organization_contribution_ledger");
+    assert.equal(contribution.kernel?.state, "SEALED");
+    const dossierResponse = await readPlayerContributionDossier(page, contribution.entryId);
+    const dossier = dossierResponse.dossier;
+    assert.equal(dossier?.heroId, "PLAYER");
+    assert.equal(dossier?.taskId, resumedTask.taskId);
+    assert.equal(dossier?.contribution?.digest, contribution.digest);
+    assert.equal(dossier?.kernel?.module, "dongzhou_organization_contribution_dossier");
+    assert.equal(dossier?.kernel?.state, "SEALED");
+
+    await page.click("#officeCareerContributionsRefresh");
+    await page.waitForSelector(`[data-player-contribution-id="${contribution.entryId}"]`, { timeout });
+    await page.click(`[data-player-contribution-dossier-id="${contribution.entryId}"]`);
+    await page.waitForSelector("#officeCareerContributions >> text=个人功绩卷宗已封印", { timeout });
     fs.mkdirSync(outputDir, { recursive: true });
     await page.locator("#officeCareer").screenshot({ path: screenshotPath });
     assert.deepEqual(pageErrors, []);
@@ -214,6 +259,8 @@ async function releaseMembership(page) {
       managerHeroId: admitted.playerMembership.directManagerHeroId,
       contributionBefore: startingContribution,
       contributionAfter: Number(settled.playerMembership.contributionBalance),
+      contribution: { entryId: contribution.entryId, amount: contribution.amount, digest: contribution.digest },
+      contributionDossier: { taskId: dossier.taskId, digest: dossier.digest },
       resumedTask,
       replies: { optionsReply, requestReply, inboxReply, acceptReply, exceptionReply, resumedReply, resultReply },
       screenshot: screenshotPath,

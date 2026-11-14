@@ -106,6 +106,10 @@
   let officeCareerBusy = false;
   let officeCareerStatusBusy = false;
   let officeCareerStatusItems = [];
+  let officeCareerContributionBusy = false;
+  let officeCareerContributionAccount = null;
+  let officeCareerContributions = [];
+  const officeCareerContributionDossiers = new Map();
   let officeQuizInFlight = false;
   let officeQuizTimer = null;
   let officeQuizVerification = null;
@@ -1752,8 +1756,13 @@
     if (!panel) return;
     panel.hidden = !membership;
     if (!membership) return;
-    $("#officeCareerAccount").textContent = `可用贡献 ${Number(membership.contributionBalance || 0)} · 累计功绩 ${Number(membership.lifetimeEarned || 0)}`;
-    panel.querySelectorAll("button, input").forEach((control) => { control.disabled = officeCareerBusy || officeCareerStatusBusy; });
+    const account = officeCareerContributionAccount || {
+      accountBalance: membership.contributionBalance,
+      lifetimeEarned: membership.lifetimeEarned,
+      lifetimeSpent: membership.lifetimeSpent
+    };
+    $("#officeCareerAccount").textContent = `可用贡献 ${Number(account.accountBalance || 0)} · 累计功绩 ${Number(account.lifetimeEarned || 0)} · 已用 ${Number(account.lifetimeSpent || 0)}`;
+    panel.querySelectorAll("button, input").forEach((control) => { control.disabled = officeCareerBusy || officeCareerStatusBusy || officeCareerContributionBusy; });
     const taskStates = {
       GENERATED: "待派发", ASSIGNMENT_CONFIRMATION_PENDING: "待确认派发", MEMBER_RESPONSE_PENDING: "待接受",
       MODIFICATION_CONFIRMATION_PENDING: "变更待确认", IN_PROGRESS: "执行中", SUBMISSION_PENDING: "复命待审核",
@@ -1778,6 +1787,96 @@
         : trace?.state === "UNAVAILABLE" ? " · 权威行迹暂不可用" : "";
       return `<li data-task-id="${escapeHtml(task.taskId)}" data-task-state="${escapeHtml(task.state)}" data-exception-state="${escapeHtml(exception?.state || "")}" data-trace-state="${escapeHtml(trace?.state || "")}"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(taskStates[task.state] || task.state)}${exceptionLabel}</span><small>版本 ${Number(task.version || 0)} · ${escapeHtml(task.updatedAt || "未记录时间")}${planDetail}${traceDetail}</small></li>`;
     }).join("") || '<li class="empty">尚无权威差事状态</li>';
+    renderOfficeCareerContributions();
+  }
+
+  function renderOfficeCareerContributions() {
+    const panel = $("#officeCareerContributions");
+    if (!panel) return;
+    const eventLabels = {
+      TASK_COMPLETED: "差事告成",
+      TASK_PARTIALLY_COMPLETED: "差事部分告成",
+      "virtual_task.success": "差事告成",
+      REVIEW_BYPASS_PENALTY: "越级审议惩处",
+      MEMBER_DEPARTURE_CONTRIBUTION_CLEARED: "离任功绩结清"
+    };
+    const traceLabels = {
+      TASK_CREATED: "立案", CONFIRMATION_OPENED: "请确认", CONFIRMATION_RESOLVED: "已确认",
+      EXECUTION_STARTED: "开工", SUBMISSION_RECORDED: "复命", SUPPLEMENT_REQUESTED: "补件",
+      EXECUTION_EXCEPTION_REPORTED: "报阻", EXECUTION_EXCEPTION_RESOLVED: "复行",
+      TASK_FINALIZED: "定案", SETTLEMENT_RECORDED: "结算", TASK_INVALIDATED: "作废"
+    };
+    const rendered = officeCareerContributions.length
+      ? officeCareerContributions.map((entry) => {
+        const sign = Number(entry.amount) > 0 ? "+" : "";
+        const canTrace = /^(?:organization-task|virtual_task):[0-9a-f-]{36}$/i.test(String(entry.sourceRef || ""));
+        const dossier = officeCareerContributionDossiers.get(entry.entryId);
+        const steps = Array.isArray(dossier?.taskTrace?.timeline)
+          ? dossier.taskTrace.timeline.slice(-6).map((item) => traceLabels[item.type] || item.stateCode || item.type).join(" → ")
+          : "";
+        const detail = dossier?.state === "LOADING"
+          ? '<div class="office-career-dossier">正在调阅原始差事行迹…</div>'
+          : dossier?.state === "ERROR"
+            ? `<div class="office-career-dossier error">卷宗暂不可用：${escapeHtml(dossier.message)}</div>`
+            : dossier
+              ? `<div class="office-career-dossier"><strong>个人功绩卷宗已封印</strong><span>${escapeHtml(steps)}</span><small>任务 ${escapeHtml(dossier.taskId)} · ${escapeHtml(dossier.taskState)} · 卷宗印记 ${escapeHtml(String(dossier.digest || "").slice(0, 12))}</small></div>`
+              : "";
+        return `<li data-player-contribution-id="${escapeHtml(entry.entryId)}"><strong>${escapeHtml(eventLabels[entry.eventCode] || entry.eventCode)}</strong><span>${sign}${Number(entry.amount)}</span><small>结余 ${Number(entry.balanceAfter)} · 账本版本 ${Number(entry.entryVersion)} · 内核印记 ${escapeHtml(String(entry.digest || "").slice(0, 12))}</small><button class="office-career-dossier-button large-button" type="button" data-player-contribution-dossier-id="${escapeHtml(entry.entryId)}" ${canTrace && !officeCareerContributionBusy ? "" : "disabled"} aria-expanded="${dossier ? "true" : "false"}">${dossier ? "收起卷宗" : canTrace ? "查阅卷宗" : "无卷宗"}</button>${detail}</li>`;
+      }).join("")
+      : '<li class="empty">尚无个人功绩账目</li>';
+    panel.innerHTML = rendered;
+  }
+
+  async function refreshOfficeCareerContributions({ quiet = false } = {}) {
+    const membership = profile.organization.remoteRoster?.playerMembership;
+    if (integration.isOffline() || officeCareerContributionBusy || !membership) {
+      if (!membership) {
+        officeCareerContributionAccount = null;
+        officeCareerContributions = [];
+        officeCareerContributionDossiers.clear();
+        renderOfficeCareerContributions();
+      }
+      return null;
+    }
+    officeCareerContributionBusy = true;
+    renderOfficeCareer();
+    try {
+      const response = await integration.organizationPlayerContributions();
+      if (response.heroId !== "PLAYER" || !Array.isArray(response.entries) || !response.account) throw new Error("个人功绩簿身份不匹配");
+      officeCareerContributionAccount = response.account;
+      officeCareerContributions = response.entries;
+      for (const entryId of officeCareerContributionDossiers.keys()) {
+        if (!officeCareerContributions.some((entry) => entry.entryId === entryId)) officeCareerContributionDossiers.delete(entryId);
+      }
+      return response;
+    } catch (error) {
+      if (!quiet) $("#officeCareerFeedback").textContent = error.message || "个人功绩暂不可用。";
+      return null;
+    } finally {
+      officeCareerContributionBusy = false;
+      renderOfficeCareer();
+    }
+  }
+
+  async function toggleOfficeCareerContributionDossier(entryId) {
+    const contribution = officeCareerContributions.find((entry) => entry.entryId === entryId && entry.heroId === "PLAYER");
+    if (!contribution || !/^(?:organization-task|virtual_task):[0-9a-f-]{36}$/i.test(String(contribution.sourceRef || ""))) return;
+    if (officeCareerContributionDossiers.has(entryId)) {
+      officeCareerContributionDossiers.delete(entryId);
+      renderOfficeCareerContributions();
+      return;
+    }
+    officeCareerContributionDossiers.set(entryId, { state: "LOADING" });
+    renderOfficeCareerContributions();
+    try {
+      const response = await integration.organizationPlayerContributionDossier(entryId);
+      const dossier = response.dossier;
+      if (dossier?.entryId !== entryId || dossier?.heroId !== "PLAYER" || dossier?.contribution?.digest !== contribution.digest || dossier?.kernel?.module !== "dongzhou_organization_contribution_dossier" || dossier?.kernel?.state !== "SEALED") throw new Error("个人卷宗身份或封印不匹配");
+      officeCareerContributionDossiers.set(entryId, dossier);
+    } catch (error) {
+      officeCareerContributionDossiers.set(entryId, { state: "ERROR", message: error.message });
+    }
+    renderOfficeCareerContributions();
   }
 
   async function refreshOfficeCareerStatus({ quiet = false } = {}) {
@@ -1785,7 +1884,10 @@
     officeCareerStatusBusy = true;
     renderOfficeCareer();
     try {
-      const response = await integration.organizationPlayerTasks();
+      const [response] = await Promise.all([
+        integration.organizationPlayerTasks(),
+        refreshOfficeCareerContributions({ quiet: true })
+      ]);
       officeCareerStatusItems = Array.isArray(response.items) ? response.items : [];
       return response;
     } catch (error) {
@@ -5150,6 +5252,8 @@
     $("#officeCareerRequestForm").addEventListener("submit", submitOfficeCareerRequest);
     $("#officeCareerInbox").addEventListener("click", () => requestOfficeCareer("inbox"));
     $("#officeCareerStatusRefresh").addEventListener("click", () => refreshOfficeCareerStatus());
+    $("#officeCareerContributionsRefresh").addEventListener("click", () => refreshOfficeCareerContributions());
+    $("#officeCareerContributions").addEventListener("click", (event) => { const button = event.target.closest("[data-player-contribution-dossier-id]"); if (button) toggleOfficeCareerContributionDossier(button.dataset.playerContributionDossierId); });
     $("#officeCareerAccept").addEventListener("click", () => requestOfficeCareer("accept"));
     $("#officeCareerException").addEventListener("click", reportOfficeCareerException);
     $("#officeCareerResultForm").addEventListener("submit", submitOfficeCareerResult);
