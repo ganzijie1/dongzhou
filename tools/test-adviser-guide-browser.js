@@ -167,6 +167,7 @@ const guideReceipt = (actionId, state, digest) => ({
     }, scheduledTaskId);
     assert.equal(scheduledTasks.length, 1);
     assert.equal(scheduledTasks[0].cost, 0);
+    assert.equal(scheduledTasks[0].stageId, "");
     assert.equal(scheduledTasks[0].organizationTrace.kernel.module, "dongzhou_organization_task_trace");
     await page.fill("#officeAdviserQuestion", "下一处军令在哪里？");
     await page.click("#officeAdviserAsk");

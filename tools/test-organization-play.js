@@ -23,9 +23,15 @@ const adoptedDuty = play.adoptScheduledDuty(state, scheduledDuty);
 assert.equal(adoptedDuty.adopted, true);
 assert.equal(adoptedDuty.task.remoteResult, scheduledTaskId);
 assert.equal(adoptedDuty.task.cost, 0);
+assert.equal(adoptedDuty.task.stageId, "");
 assert.equal(play.adoptScheduledDuty(adoptedDuty.state, scheduledDuty).adopted, false);
 assert.equal(adoptedDuty.state.tasks.filter((task) => task.remoteResult === scheduledTaskId).length, 1);
 assert.throws(() => play.adoptScheduledDuty(state, { ...scheduledDuty, latestTrigger: { ...scheduledDuty.latestTrigger, task_id: "other" } }), /任务号/);
+const completedScheduledDuty = play.reconcileRemoteTasks(adoptedDuty.state, [{ task_id: scheduledTaskId, state: "SUCCEEDED", final_result: "SUCCESS", version: "3" }], { advanceMonth: false });
+const scheduledSupport = play.consumeSupport(completedScheduledDuty, "02");
+assert.equal(scheduledSupport.support.recon, 1);
+assert.equal(scheduledSupport.support.sources.includes("东周朝廷月例察访"), true);
+assert.equal(play.consumeSupport(scheduledSupport.state, "03").support.recon, 0);
 
 let created = play.createTask(state, { type: "drill", assigneeId: "DuBo", stageId: "01", stageTitle: "东郊索命", knowledgeId: "dongzhou_stage_001" });
 assert.strictEqual(created.task.status, "active");

@@ -458,8 +458,8 @@
       assigneeId: member.id,
       assigneeName: member.name,
       office: member.office,
-      stageId: "court-monthly-intelligence",
-      stageTitle: "东周朝廷月例察访",
+      stageId: "",
+      stageTitle: "下一场战事",
       knowledgeId: null,
       council: null,
       mandate: null,
@@ -476,6 +476,7 @@
       remoteFinalResult: active.finalResult || null,
       scheduledDuty: {
         ruleId: String(duty.ruleId || ""),
+        scopeStageId: "court-monthly-intelligence",
         triggerState: String(duty.latestTrigger?.state || ""),
         triggerFailureCode: String(duty.latestTrigger?.failure_code || ""),
       },
