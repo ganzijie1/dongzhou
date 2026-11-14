@@ -435,6 +435,57 @@
     return { state, task };
   }
 
+  function adoptScheduledDuty(rawState, duty) {
+    const state = normalizeState(rawState);
+    const active = duty?.activeTask;
+    const taskId = String(active?.taskId || "").trim();
+    const workerHeroId = String(duty?.workerHeroId || "").trim();
+    if (!taskId || active?.adopted !== true) return { state, task: null, adopted: false };
+    if (duty?.state !== "ACTIVE" || duty?.taskCode !== "dongzhou.intelligence") throw new Error("自动差事规则无效");
+    if (String(duty?.latestTrigger?.task_id || "") !== taskId) throw new Error("自动差事任务号与触发记录不匹配");
+    const member = state.members.find((entry) => entry.id === workerHeroId);
+    if (!member) throw new Error("自动差事责任人不在当前官署名册中");
+    const previous = state.tasks.find((entry) => String(entry.remoteResult || "") === taskId);
+    if (previous) {
+      if (previous.scheduledDuty?.ruleId !== String(duty.ruleId || "") || previous.assigneeId !== workerHeroId) throw new Error("自动差事本地记录冲突");
+      return { state, task: copy(previous), adopted: false };
+    }
+    const definition = TASK_TYPES.intelligence;
+    const task = {
+      id: `scheduled:${taskId}`,
+      type: "intelligence",
+      name: String(active.title || "月例察访"),
+      assigneeId: member.id,
+      assigneeName: member.name,
+      office: member.office,
+      stageId: "court-monthly-intelligence",
+      stageTitle: "东周朝廷月例察访",
+      knowledgeId: null,
+      council: null,
+      mandate: null,
+      operation: null,
+      startedMonth: state.month,
+      dueMonth: state.month + definition.duration,
+      status: "active",
+      supportNpcOutcomes: [],
+      cost: 0,
+      remoteResult: taskId,
+      remoteState: String(active.state || "UNKNOWN"),
+      remoteVersion: null,
+      remoteMirrored: true,
+      remoteFinalResult: active.finalResult || null,
+      scheduledDuty: {
+        ruleId: String(duty.ruleId || ""),
+        triggerState: String(duty.latestTrigger?.state || ""),
+        triggerFailureCode: String(duty.latestTrigger?.failure_code || ""),
+      },
+    };
+    state.tasks.push(task);
+    member.fatigue = clamp(member.fatigue + 8, 0, 100);
+    state.history.push({ month: state.month, tone: "order", text: `${member.name}的“${task.name}”已纳入官署差事账。` });
+    return { state, task: copy(task), adopted: true };
+  }
+
   function recordLobbying(rawState, input) {
     const state = normalizeState(rawState);
     const id = String(input?.id || "").trim();
@@ -1027,5 +1078,5 @@
     return state;
   }
 
-  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordThought, recordLogisticsBriefing, recordCommendation, recordRecollection, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, recordInventoryRequisition, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, recordRemoteRoster, hash };
+  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordThought, recordLogisticsBriefing, recordCommendation, recordRecollection, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, adoptScheduledDuty, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, recordInventoryRequisition, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, recordRemoteRoster, hash };
 });

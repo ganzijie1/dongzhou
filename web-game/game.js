@@ -1477,6 +1477,19 @@
     renderOfficeScheduledDuty();
     try {
       officeScheduledDutyView = await integration.organizationScheduledDuties();
+      const adopted = organization.adoptScheduledDuty(profile.organization, officeScheduledDutyView);
+      if (adopted.task) {
+        let next = adopted.state;
+        try {
+          const response = await integration.organizationTask(adopted.task.remoteResult);
+          next = organization.reconcileRemoteTasks(next, [organizationTaskSnapshot(response)], { advanceMonth: false });
+        } catch (_) {
+          // Keep the adopted authoritative task visible while a transient trace read recovers.
+        }
+        if (adopted.adopted || JSON.stringify(next) !== JSON.stringify(profile.organization)) {
+          await commitOrganizationState(next);
+        }
+      }
     } catch (_) {
       officeScheduledDutyView = { error: true };
     }

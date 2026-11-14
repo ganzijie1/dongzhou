@@ -12,6 +12,21 @@ const stage = {
 let state = play.syncMembers(null, stage, (id) => ({ DuBo: "杜伯", ZuoRu: "左儒" }[id]));
 assert.deepStrictEqual(state.members.map((member) => member.name), ["杜伯", "左儒"]);
 
+const scheduledTaskId = "00000000-0000-4000-8000-000000000099";
+const scheduledDuty = {
+  ruleId: "00000000-0000-4000-8000-000000000098", state: "ACTIVE",
+  taskCode: "dongzhou.intelligence", workerHeroId: "ZuoRu",
+  latestTrigger: { state: "SKIPPED", failure_code: "duplicate_active_task", task_id: scheduledTaskId },
+  activeTask: { taskId: scheduledTaskId, title: "东周朝廷月例察访", state: "IN_PROGRESS", finalResult: null, adopted: true }
+};
+const adoptedDuty = play.adoptScheduledDuty(state, scheduledDuty);
+assert.equal(adoptedDuty.adopted, true);
+assert.equal(adoptedDuty.task.remoteResult, scheduledTaskId);
+assert.equal(adoptedDuty.task.cost, 0);
+assert.equal(play.adoptScheduledDuty(adoptedDuty.state, scheduledDuty).adopted, false);
+assert.equal(adoptedDuty.state.tasks.filter((task) => task.remoteResult === scheduledTaskId).length, 1);
+assert.throws(() => play.adoptScheduledDuty(state, { ...scheduledDuty, latestTrigger: { ...scheduledDuty.latestTrigger, task_id: "other" } }), /任务号/);
+
 let created = play.createTask(state, { type: "drill", assigneeId: "DuBo", stageId: "01", stageTitle: "东郊索命", knowledgeId: "dongzhou_stage_001" });
 assert.strictEqual(created.task.status, "active");
 state = play.advanceMonth(created.state);

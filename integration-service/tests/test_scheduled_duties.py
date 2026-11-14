@@ -91,6 +91,33 @@ class ScheduledDutyUpstreams:
             }
         }
 
+    async def get_virtual_task_trace(self, organization_id, task_id):
+        assert task_id == self.active_task_id
+        return {
+            "data": {
+                "task": {
+                    "task_id": task_id,
+                    "organization_id": organization_id,
+                    "state": "IN_PROGRESS",
+                    "version": "2",
+                    "supplement_count": 0,
+                    "execution_exception": None,
+                },
+                "confirmations": [],
+                "timeline": [
+                    {
+                        "sequence_no": "1",
+                        "occurred_at": "2026-11-13T09:00:00Z",
+                        "entry_type": "TASK_CREATED",
+                        "reference_id": task_id,
+                        "case_id": None,
+                        "state_code": "GENERATED",
+                        "reason_code": None,
+                    }
+                ],
+            }
+        }
+
     async def npc_schedule(self, npc_id):
         is_worker = str(npc_id) == "5445994056112890376"
         return {
@@ -147,6 +174,9 @@ def test_scheduled_duty_is_registered_once_and_returned(tmp_path):
         assert session.status_code == 200
         first = client.get(route)
         second = client.get(route)
+        task = client.get(
+            "/api/dongzhou/v1/organization/tasks/" + upstreams.active_task_id
+        )
 
     assert first.status_code == 200
     assert first.json()["state"] == "ACTIVE"
@@ -159,7 +189,13 @@ def test_scheduled_duty_is_registered_once_and_returned(tmp_path):
         "state": "IN_PROGRESS",
         "finalResult": None,
         "updatedAt": "2026-11-13T10:00:00Z",
+        "adopted": True,
     }
+    assert task.status_code == 200
+    assert task.json()["assigneeHeroId"] == "ZuoRu"
+    assert task.json()["organizationTrace"]["kernel"]["module"] == (
+        "dongzhou_organization_task_trace"
+    )
     assert second.json()["ruleId"] == first.json()["ruleId"]
     assert len(upstreams.create_calls) == 1
     assert len(upstreams.status_calls) == 1

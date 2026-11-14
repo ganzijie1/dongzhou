@@ -18,6 +18,7 @@ const executablePath = [
   "C:/Program Files/Google/Chrome/Application/chrome.exe",
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
 ].find((entry) => fs.existsSync(entry));
+const scheduledTaskId = "00000000-0000-4000-8000-000000000199";
 
 const guideReceipt = (actionId, state, digest) => ({
   actionId,
@@ -46,7 +47,7 @@ const guideReceipt = (actionId, state, digest) => ({
   const context = await browser.newContext({ viewport: { width: 1100, height: 850 } });
   const model = {
     cloud: {}, version: 0, questionId: "", actionId: "", decisions: [], reads: 0,
-    cancellations: [], errors: [], unexpected: [], guideAvailable: true, routeRequests: 0,
+    cancellations: [], errors: [], unexpected: [], guideAvailable: true, routeRequests: 0, scheduledTaskReads: 0,
   };
   await context.route("**/*", async (route) => {
     const request = route.request();
@@ -84,7 +85,20 @@ const guideReceipt = (actionId, state, digest) => ({
     else if (pathname.endsWith("/npcs/interaction-preference")) body = { enabled: true, source: "test" };
     else if (pathname.endsWith("/organization/roster")) body = { organization: { id: "test", name: "东周军府", state: "ACTIVE", growthContribution: 0 }, members: [] };
     else if (pathname.endsWith("/organization/inventory")) body = { organizationId: "test", gameServerId: "91001", revision: 1, accounts: [] };
-    else if (pathname.endsWith("/organization/scheduled-duties")) body = { state: "ACTIVE", rules: [], triggers: [], tasks: [] };
+    else if (pathname.endsWith("/organization/scheduled-duties")) body = {
+      ruleId: "00000000-0000-4000-8000-000000000198", state: "ACTIVE", frequency: "DAILY",
+      triggerMinute: 780, managerHeroId: "DuBo", workerHeroId: "ZuoRu", taskCode: "dongzhou.intelligence",
+      latestTrigger: { state: "SKIPPED", failure_code: "duplicate_active_task", task_id: scheduledTaskId },
+      activeTask: { taskId: scheduledTaskId, title: "东周朝廷月例察访", state: "IN_PROGRESS", finalResult: null, updatedAt: "2026-11-14T10:00:00Z", adopted: true },
+    };
+    else if (pathname.endsWith(`/organization/tasks/${scheduledTaskId}`)) {
+      model.scheduledTaskReads += 1;
+      body = {
+        taskId: scheduledTaskId, assigneeHeroId: "ZuoRu",
+        organizationTrace: { state: "SEALED", digest: "8".repeat(64), timeline: [{ sequence: 1, type: "TASK_CREATED", stateCode: "GENERATED" }], activeConfirmations: [], kernel: { module: "dongzhou_organization_task_trace", state: "SEALED" } },
+        result: { data: { task_id: scheduledTaskId, state: "IN_PROGRESS", execution_started_game_time: 24306616800, final_result: null, version: "2" } },
+      };
+    }
     else if (pathname.endsWith("/organization/public-notices")) body = { notices: [] };
     else if (pathname.includes("/organization/members/") && pathname.endsWith("/contributions")) body = { heroId: "ZuoRu", memberId: "member", account: { accountVersion: 1, accountBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 }, entries: [], nextBeforeVersion: null };
     else if (pathname.endsWith("/knowledge/codex")) body = { results: [] };
@@ -146,6 +160,14 @@ const guideReceipt = (actionId, state, digest) => ({
     await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
     await page.waitForSelector("#app:not([hidden])", { timeout: 45000 });
     await page.click("#campaignOfficeButton");
+    await page.waitForFunction(() => document.querySelector("#officeTaskLedger")?.textContent.includes("东周朝廷月例察访"), null, { timeout: 10000 });
+    const scheduledTasks = await page.evaluate((taskId) => {
+      const profile = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2"));
+      return profile.organization.tasks.filter((task) => task.remoteResult === taskId);
+    }, scheduledTaskId);
+    assert.equal(scheduledTasks.length, 1);
+    assert.equal(scheduledTasks[0].cost, 0);
+    assert.equal(scheduledTasks[0].organizationTrace.kernel.module, "dongzhou_organization_task_trace");
     await page.fill("#officeAdviserQuestion", "下一处军令在哪里？");
     await page.click("#officeAdviserAsk");
     await page.waitForSelector('[data-adviser-guide="ACCEPT"]:not([hidden])', { timeout: 10000 });
@@ -198,7 +220,8 @@ const guideReceipt = (actionId, state, digest) => ({
     assert(model.routeRequests >= 1);
     assert.deepEqual(model.errors, []);
     assert.deepEqual(model.unexpected, []);
-    console.log(JSON.stringify({ result: "PASS", guideAccepted: true, guideRunning: true, guideCancelled: true, restoredAfterReload: true, mobile320NoOverflow: true, unavailableGuideRouteHandoff: true, routeOptions: 3 }));
+    assert(model.scheduledTaskReads >= 1);
+    console.log(JSON.stringify({ result: "PASS", guideAccepted: true, guideRunning: true, guideCancelled: true, restoredAfterReload: true, mobile320NoOverflow: true, unavailableGuideRouteHandoff: true, routeOptions: 3, scheduledDutyAdopted: true }));
   } finally {
     await context.close();
     await browser.close();

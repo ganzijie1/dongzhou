@@ -8229,7 +8229,6 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     async def read_organization_scheduled_duties(
         player_id: UUID = Depends(player),
     ) -> dict[str, Any]:
-        del player_id
         if not settings.orgflow_org_id or not settings.orgflow_hero_members:
             raise ApiError(
                 "organization_not_configured",
@@ -8472,6 +8471,24 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                         ),
                         "updatedAt": str(task.get("updated_at") or ""),
                     }
+                    await store.register_derived_external_request(
+                        player_id,
+                        latest_task_id,
+                        "organization_task",
+                        {
+                            "task_type": "intelligence",
+                            "assignee_hero_id": worker_hero_id,
+                            "stage_id": "court-monthly-intelligence",
+                            "stage_title": "东周朝廷月例察访",
+                            "brief": "Authoritative scheduled Dongzhou court intelligence duty.",
+                            "parameters": {
+                                "resource_units": 0,
+                                "assignee_name": "左儒",
+                            },
+                            "scheduled_rule_id": str(rule_id),
+                        },
+                    )
+                    active_task["adopted"] = True
                 except UpstreamUnavailable:
                     active_task = {
                         "taskId": latest_task_id,
@@ -8501,7 +8518,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "Organization scheduled duties are temporarily unavailable.",
                 status_code=503,
             ) from error
-        except (AttributeError, TypeError, ValueError) as error:
+        except (AttributeError, TypeError, ValueError, VersionConflict) as error:
             raise ApiError(
                 "organization_scheduled_duties_contract_invalid",
                 "Organization scheduled duty response is invalid.",
