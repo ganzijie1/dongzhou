@@ -635,7 +635,7 @@ def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -
             assert collaboration["supportAssignment"]["heroId"] == "QinXiangGong"
             assert collaboration["factor"] > 0
             assert collaboration["score"] == round(50 + collaboration["factor"] * 5)
-            assert drafted.json()["mandate"]["kernel"]["moduleVersion"] == "1.12.0"
+            assert drafted.json()["mandate"]["kernel"]["moduleVersion"] == "1.13.0"
 
             mandate = approve_mandate(client, drafted)
             scheduled = client.post(
@@ -838,7 +838,7 @@ def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -
             assert invalid.status_code == 422
 
 
-def test_council_memory_is_recalled_verified_and_sealed_into_mandate() -> None:
+def test_council_memory_and_public_notice_are_verified_and_sealed_into_mandate() -> None:
     with TemporaryDirectory() as directory:
         upstreams = MandateUpstreams()
         upstreams.roster_members = [{
@@ -846,11 +846,28 @@ def test_council_memory_is_recalled_verified_and_sealed_into_mandate() -> None:
             "position_slot_id": "00000000-0000-0000-0000-000000000003",
             "state": "ACTIVE",
         }]
-        app = build_application(
-            configured(Path(directory) / "gateway.sqlite3"), upstreams=upstreams
-        )
+        settings = configured(Path(directory) / "gateway.sqlite3")
+        store = Store(settings.database_path)
+        asyncio.run(store.start())
+        asyncio.run(store.upsert_npc_directory(settings.game_server_id, [
+            {"heroId": "ZuoRu", "name": "左儒", "npcId": ZUORU_NPC_ID}
+        ]))
+        asyncio.run(store.mark_npc_ready(
+            settings.game_server_id, ZUORU_NPC_ID, "round-zuoru", None, None, "startup-1"
+        ))
+        app = build_application(settings, store=store, upstreams=upstreams)
         with TestClient(app) as client:
             start_session(client)
+            published = client.post(
+                "/api/v2/NDLLMSendPublicMessage",
+                json={
+                    "aiId": ZUORU_NPC_ID,
+                    "message": "东郊军粮已至，诸官依令整备。",
+                    "loginRequestId": "round-zuoru",
+                },
+            )
+            assert published.status_code == 200, published.text
+            notice = asyncio.run(store.list_public_messages(settings.game_server_id))[0]
             first_council_id, _ = complete_council(client)
             first_record = client.post(
                 "/api/dongzhou/v1/npcs/ZuoRu/decisions",
@@ -889,6 +906,7 @@ def test_council_memory_is_recalled_verified_and_sealed_into_mandate() -> None:
                     "question": (
                         "再议东郊部署。\n选证：《史记·周本纪》｜史实骨架"
                         f"\n记忆印记：{memory['digest'][:12]}\n旧事：{memory['content']}"
+                        f"\n告示印记：{notice['digest'][:12]}\n公议：{notice['message']}"
                     ),
                     "options": [
                         {"index": 0, "text": "固守军粮"},
@@ -897,10 +915,13 @@ def test_council_memory_is_recalled_verified_and_sealed_into_mandate() -> None:
                     "topic": "court_decision",
                     "memory_idempotency_key": memory["idempotencyKey"],
                     "memory_digest": memory["digest"],
+                    "public_notice_id": notice["messageId"],
+                    "public_notice_digest": notice["digest"],
                 },
             )
             assert recalled.status_code == 200, recalled.text
             assert recalled.json()["memoryReceipt"]["digest"] == memory["digest"]
+            assert recalled.json()["publicNoticeReceipt"]["digest"] == notice["digest"]
 
             draft = client.post(
                 "/api/dongzhou/v1/court/mandates",
@@ -910,7 +931,9 @@ def test_council_memory_is_recalled_verified_and_sealed_into_mandate() -> None:
             mandate = draft.json()["mandate"]
             assert mandate["memory"]["digest"] == memory["digest"]
             assert mandate["council"]["memory"]["idempotencyKey"] == memory["idempotencyKey"]
-            assert mandate["kernel"]["moduleVersion"] == "1.12.0"
+            assert mandate["publicNotice"]["digest"] == notice["digest"]
+            assert mandate["council"]["publicNotice"]["messageId"] == notice["messageId"]
+            assert mandate["kernel"]["moduleVersion"] == "1.13.0"
 
 
 def test_ainpc_correspondence_is_recomputed_and_sealed() -> None:
@@ -1681,7 +1704,7 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert review["state"] == "REQUIRES_ACTION"
             assert review["review"]["settlementId"] == settlement_id
             assert review["review"]["closureDigest"] == closure["digest"]
-            assert review["review"]["kernel"]["moduleVersion"] == "1.12.0"
+            assert review["review"]["kernel"]["moduleVersion"] == "1.13.0"
             wrong_action = client.post(
                 f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
                 json={"action_id": str(uuid4()), "decision": "ACCEPT"},
@@ -1724,7 +1747,7 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert growth_reward["contributionPoints"] == 100
             assert growth_reward["accountVersion"] == 1
             assert growth_reward["closureDigest"] == closure["digest"]
-            assert growth_reward["kernel"]["moduleVersion"] == "1.12.0"
+            assert growth_reward["kernel"]["moduleVersion"] == "1.13.0"
             assert len(growth_reward["digest"]) == 64
             assert upstreams.growth_credits == [(
                 "00000000-0000-0000-0000-000000000001",

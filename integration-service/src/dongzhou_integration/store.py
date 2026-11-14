@@ -239,6 +239,15 @@ class Store:
                 ).fetchall()
         return [{**json.loads(row["payload"]), "publishedAt": row["published_at"]} for row in rows]
 
+    async def read_public_message(self, game_server_id: str, message_id: str) -> dict[str, Any] | None:
+        async with self._lock:
+            with self._connection() as db:
+                row = db.execute(
+                    "SELECT payload,published_at FROM npc_public_messages WHERE game_server_id=? AND message_id=?",
+                    (game_server_id, message_id),
+                ).fetchone()
+        return None if row is None else {**json.loads(row["payload"]), "publishedAt": row["published_at"]}
+
     async def clear_npc_runtime(self, game_server_id: str, npc_ids: list[str]) -> None:
         if not npc_ids:
             return

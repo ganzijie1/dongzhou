@@ -315,7 +315,7 @@ class RuntimeModule(Module):
 
 class MandateWorkflowModule(Module):
     name = "dongzhou_mandate_workflow"
-    version = "1.12.0"
+    version = "1.13.0"
     dependencies = (RuntimeModule.name,)
 
     @staticmethod
@@ -5760,6 +5760,29 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             if previous and previous.get("state") == "PENDING":
                 raise ApiError("request_in_progress", "The same NPC decision is still being processed.", status_code=409)
             return {"replayed": True, **(previous or {})}
+        public_notice_receipt: dict[str, Any] | None = None
+        if request.public_notice_id and request.public_notice_digest:
+            public_notice_receipt = await store.read_public_message(
+                settings.game_server_id, request.public_notice_id
+            )
+            try:
+                roster_response = await upstreams.organization_roster(settings.orgflow_org_id)
+                roster = _organization_roster_view(roster_response.get("data"), settings)
+            except UpstreamUnavailable as error:
+                await store.finish_request(player_id, request.client_request_id, "RETRYABLE", {"state": "RETRYABLE"}, str(error))
+                raise ApiError("organization_roster_unavailable", "Organization roster is temporarily unavailable.", status_code=503) from error
+            active = any(member.get("heroId") == hero_id for member in roster.get("members", []))
+            if (
+                not isinstance(public_notice_receipt, dict)
+                or public_notice_receipt.get("heroId") != hero_id
+                or public_notice_receipt.get("digest") != request.public_notice_digest
+                or public_notice_receipt.get("kernel", {}).get("module") != NpcPublicNoticeModule.name
+                or public_notice_receipt.get("kernel", {}).get("state") != "SEALED"
+                or request.public_notice_digest[:12] not in request.question
+                or not active
+            ):
+                await store.finish_request(player_id, request.client_request_id, "REJECTED", {"state": "REJECTED"}, "npc_public_notice_unverified")
+                raise ApiError("npc_public_notice_unverified", "The council public notice is no longer verifiable.", status_code=422)
         memory_receipt: dict[str, Any] | None = None
         if request.memory_idempotency_key and request.memory_digest:
             try:
@@ -5970,6 +5993,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "decision": result,
             "dialogueReceipt": dialogue_receipt,
             **({"memoryReceipt": memory_receipt} if memory_receipt else {}),
+            **({"publicNoticeReceipt": public_notice_receipt} if public_notice_receipt else {}),
         }
         await store.finish_request(player_id, request.client_request_id, "COMPLETED", response)
         return response
@@ -6232,6 +6256,32 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     "The council did not retain a verified AINPC memory reference.",
                     status_code=422,
                 )
+
+        selected_public_notice = (
+            council_response.get("publicNoticeReceipt")
+            if isinstance(council_response, dict)
+            else None
+        )
+        if selected_public_notice is not None:
+            current_notice = await store.read_public_message(
+                settings.game_server_id,
+                str(selected_public_notice.get("messageId") or ""),
+            )
+            try:
+                roster_response = await upstreams.organization_roster(settings.orgflow_org_id)
+                current_roster = _organization_roster_view(roster_response.get("data"), settings)
+            except UpstreamUnavailable as error:
+                await store.finish_request(player_id, request.client_request_id, "RETRYABLE", {"state": "RETRYABLE"}, str(error))
+                raise ApiError("organization_roster_unavailable", "Organization roster is temporarily unavailable.", status_code=503) from error
+            if (
+                not isinstance(current_notice, dict)
+                or current_notice.get("heroId") != request.hero_id
+                or current_notice.get("digest") != selected_public_notice.get("digest")
+                or str(selected_public_notice.get("digest") or "")[:12] not in str(council_request.get("question") or "")
+                or not any(member.get("heroId") == request.hero_id for member in current_roster.get("members", []))
+            ):
+                await store.finish_request(player_id, request.client_request_id, "REJECTED", {"state": "REJECTED"}, "court_public_notice_unverified")
+                raise ApiError("court_public_notice_unverified", "The mandate public notice is no longer verifiable.", status_code=422)
 
         thought_receipt: dict[str, Any] | None = None
         if request.thought_request_id is not None and request.thought_digest is not None:
@@ -6682,6 +6732,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "text": str(selected_option.get("text") or ""),
                 "dialogueReceipt": dialogue_receipt,
                 **({"memory": selected_memory} if selected_memory else {}),
+                **({"publicNotice": selected_public_notice} if selected_public_notice else {}),
                 **(
                     {"knowledgeMastery": knowledge_mastery}
                     if knowledge_mastery is not None
@@ -6711,6 +6762,9 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         if selected_memory is not None:
             trace["memory"] = selected_memory
             trace["council"]["memory"] = selected_memory
+        if selected_public_notice is not None:
+            trace["publicNotice"] = selected_public_notice
+            trace["council"]["publicNotice"] = selected_public_notice
         if request.operation is not None:
             trace["operation"] = request.operation.model_dump(mode="json")
         # Canonical JSON keeps the seal stable across retries and process restarts.

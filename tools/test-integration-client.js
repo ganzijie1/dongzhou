@@ -18,6 +18,7 @@ let failNextSave = false;
 let conflictNextSave = false;
 let decisionAttempts = 0;
 const decisionIds = [];
+const decisionBodies = [];
 let mandateAttempts = 0;
 let mandateResumeAttempts = 0;
 let mandateScheduleAttempts = 0;
@@ -202,6 +203,7 @@ global.fetch = async (url, options = {}) => {
   } else if (url.includes("/decisions")) {
     decisionAttempts += 1;
     decisionIds.push(body.client_request_id);
+    decisionBodies.push(body);
     if (decisionAttempts === 1) {
       status = 503;
       response = { error: { message: "decision unavailable" } };
@@ -315,9 +317,12 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(npcScheduleAttempts, 2);
   assert.strictEqual(npcAssignmentAttempts, 2);
   assert.strictEqual(assignment.assignment.eventId, "event-supply");
-  await assert.rejects(() => client.npcDecision("DuBo", "test", ["one", "two"]), /decision unavailable/);
-  await client.npcDecision("DuBo", "test", ["one", "two"]);
+  const selectedNotice = { messageId: "npc-public:" + "1".repeat(64), digest: "a".repeat(64) };
+  await assert.rejects(() => client.npcDecision("DuBo", "test", ["one", "two"], "01", null, selectedNotice), /decision unavailable/);
+  await client.npcDecision("DuBo", "test", ["one", "two"], "01", null, selectedNotice);
   assert.strictEqual(decisionIds[0], decisionIds[1]);
+  assert.strictEqual(decisionBodies[1].public_notice_id, selectedNotice.messageId);
+  assert.strictEqual(decisionBodies[1].public_notice_digest, selectedNotice.digest);
   const mandateInput = { stage_id: "01", stage_title: "东郊索命", hero_id: "DuBo", knowledge_id: "dongzhou_stage_001", evidence_source_index: 0, schedule_plan_id: "plan-1", schedule_event_id: "event-supply", council_request_id: decisionIds[1], decision_index: 0, task_type: "supply" };
   await assert.rejects(() => client.createCourtMandate(mandateInput), /retry mandate/);
   const mandate = await client.createCourtMandate(mandateInput);
