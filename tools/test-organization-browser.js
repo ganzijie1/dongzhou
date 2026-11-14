@@ -381,6 +381,8 @@ async function openReady(page) {
     await playerDossierButton.click();
     await online.waitForSelector("#officeCareerContributions >> text=个人功绩卷宗已封印", { timeout: 15000 });
     await online.waitForSelector("#officeCareerContributions >> text=立案 → 开工 → 定案 → 结算", { timeout: 15000 });
+    await online.click('[data-player-contribution-verify-id="00000000-0000-4000-8000-000000000091"]');
+    await online.waitForSelector("#officeCareerContributions >> text=验印通过 · 777777777777", { timeout: 15000 });
     await online.locator("#officeCareerContributions").scrollIntoViewIfNeeded();
     await online.screenshot({ path: path.join(OUT, "desktop-career-contribution.png"), fullPage: false });
     await online.setViewportSize({ width: 390, height: 844 });

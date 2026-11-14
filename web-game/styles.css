@@ -3794,6 +3794,10 @@ button:focus-visible {
 .office-career-dossier { grid-column: 1 / -1; display: grid; gap: 3px; padding-top: 6px; border-top: 1px dotted rgba(174, 146, 69, .24); color: #85887f; font-size: 9px; overflow-wrap: anywhere; }
 .office-career-dossier strong { color: #b4a77e; font-size: 10px; }
 .office-career-dossier.error { color: #b67267; }
+.office-dossier-verification { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+.office-dossier-verification .large-button { min-height: 28px; padding: 4px 10px; font-size: 10px; }
+.office-dossier-verification small { color: #9eb27a; }
+.office-dossier-verification small.error { color: #bd786d; }
 .office-members > div { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; padding: 11px 12px; background: #101510; }
 .office-members strong { color: #e3d8bb; font-size: 13px; }
 .office-members span { color: #b99344; font-size: 11px; }

@@ -71,6 +71,17 @@ const executablePath = [
     assert.match(text, /功绩卷宗已封印/);
     assert.match(text, /定案/);
     assert(text.includes(dossier.digest.slice(0, 12)));
+
+    const [verificationResponse] = await Promise.all([
+      page.waitForResponse((response) => {
+        const pathname = new URL(response.url()).pathname;
+        return response.request().method() === "GET"
+          && pathname.endsWith(`/organization/members/ZuoRu/contributions/${contribution.entryId}/dossier`);
+      }, { timeout: 45000 }),
+      page.click(`[data-contribution-verify-id="${contribution.entryId}"]`),
+    ]);
+    assert.equal(verificationResponse.status(), 200, await verificationResponse.text());
+    await panel.getByText(`验印通过 · ${dossier.digest.slice(0, 12)}`).waitFor({ timeout: 45000 });
     assert.deepEqual(errors, []);
 
     fs.mkdirSync(path.dirname(output), { recursive: true });
@@ -84,6 +95,7 @@ const executablePath = [
       taskState: dossier.taskState,
       timelineEntries: dossier.taskTrace.timeline.length,
       dossierDigest: dossier.digest,
+      activelyVerified: true,
       screenshot: output,
     }));
   } finally {

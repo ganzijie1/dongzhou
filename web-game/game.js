@@ -112,6 +112,7 @@
   let officeCareerContributionAccount = null;
   let officeCareerContributions = [];
   const officeCareerContributionDossiers = new Map();
+  const officeCareerContributionVerifications = new Map();
   let officeQuizInFlight = false;
   let officeQuizTimer = null;
   let officeQuizVerification = null;
@@ -122,6 +123,7 @@
   let officeContributions = [];
   let officeSelectedContribution = null;
   const officeContributionDossiers = new Map();
+  const officeContributionVerifications = new Map();
 
   const canvas = $("#battleCanvas");
   const ctx = canvas.getContext("2d");
@@ -1834,6 +1836,7 @@
         const sign = Number(entry.amount) > 0 ? "+" : "";
         const canTrace = /^(?:organization-task|virtual_task):[0-9a-f-]{36}$/i.test(String(entry.sourceRef || ""));
         const dossier = officeCareerContributionDossiers.get(entry.entryId);
+        const verification = officeCareerContributionVerifications.get(entry.entryId);
         const steps = Array.isArray(dossier?.taskTrace?.timeline)
           ? dossier.taskTrace.timeline.slice(-6).map((item) => traceLabels[item.type] || item.stateCode || item.type).join(" → ")
           : "";
@@ -1842,7 +1845,7 @@
           : dossier?.state === "ERROR"
             ? `<div class="office-career-dossier error">卷宗暂不可用：${escapeHtml(dossier.message)}</div>`
             : dossier
-              ? `<div class="office-career-dossier"><strong>个人功绩卷宗已封印</strong><span>${escapeHtml(steps)}</span><small>任务 ${escapeHtml(dossier.taskId)} · ${escapeHtml(dossier.taskState)} · 卷宗印记 ${escapeHtml(String(dossier.digest || "").slice(0, 12))}</small></div>`
+              ? `<div class="office-career-dossier"><strong>个人功绩卷宗已封印</strong><span>${escapeHtml(steps)}</span><small>任务 ${escapeHtml(dossier.taskId)} · ${escapeHtml(dossier.taskState)} · 卷宗印记 ${escapeHtml(String(dossier.digest || "").slice(0, 12))}</small><div class="office-dossier-verification"><button class="large-button" type="button" data-player-contribution-verify-id="${escapeHtml(entry.entryId)}" ${verification?.state === "VERIFYING" ? "disabled" : ""}>${verification?.state === "VERIFYING" ? "验印中" : "验印"}</button><small class="${verification?.state === "ERROR" ? "error" : ""}" aria-live="polite">${verification?.state === "VERIFIED" ? `验印通过 · ${escapeHtml(String(verification.digest).slice(0, 12))}` : verification?.state === "ERROR" ? `验印失败 · ${escapeHtml(verification.message)}` : "重新读取权威实账并核对封印"}</small></div></div>`
               : "";
         return `<li data-player-contribution-id="${escapeHtml(entry.entryId)}"><strong>${escapeHtml(eventLabels[entry.eventCode] || entry.eventCode)}</strong><span>${sign}${Number(entry.amount)}</span><small>结余 ${Number(entry.balanceAfter)} · 账本版本 ${Number(entry.entryVersion)} · 内核印记 ${escapeHtml(String(entry.digest || "").slice(0, 12))}</small><button class="office-career-dossier-button large-button" type="button" data-player-contribution-dossier-id="${escapeHtml(entry.entryId)}" ${canTrace && !officeCareerContributionBusy ? "" : "disabled"} aria-expanded="${dossier ? "true" : "false"}">${dossier ? "收起卷宗" : canTrace ? "查阅卷宗" : "无卷宗"}</button>${detail}</li>`;
       }).join("")
@@ -1857,6 +1860,7 @@
         officeCareerContributionAccount = null;
         officeCareerContributions = [];
         officeCareerContributionDossiers.clear();
+        officeCareerContributionVerifications.clear();
         renderOfficeCareerContributions();
       }
       return null;
@@ -1870,6 +1874,9 @@
       officeCareerContributions = response.entries;
       for (const entryId of officeCareerContributionDossiers.keys()) {
         if (!officeCareerContributions.some((entry) => entry.entryId === entryId)) officeCareerContributionDossiers.delete(entryId);
+      }
+      for (const entryId of officeCareerContributionVerifications.keys()) {
+        if (!officeCareerContributions.some((entry) => entry.entryId === entryId)) officeCareerContributionVerifications.delete(entryId);
       }
       return response;
     } catch (error) {
@@ -1898,6 +1905,25 @@
       officeCareerContributionDossiers.set(entryId, dossier);
     } catch (error) {
       officeCareerContributionDossiers.set(entryId, { state: "ERROR", message: error.message });
+    }
+    renderOfficeCareerContributions();
+  }
+
+  async function verifyOfficeCareerContributionDossier(entryId) {
+    const contribution = officeCareerContributions.find((entry) => entry.entryId === entryId && entry.heroId === "PLAYER");
+    const current = officeCareerContributionDossiers.get(entryId);
+    if (!contribution || current?.state !== "SEALED") return;
+    officeCareerContributionVerifications.set(entryId, { state: "VERIFYING" });
+    renderOfficeCareerContributions();
+    try {
+      const response = await integration.organizationPlayerContributionDossier(entryId);
+      const dossier = response.dossier;
+      if (dossier?.entryId !== entryId || dossier?.heroId !== "PLAYER" || dossier?.contribution?.digest !== contribution.digest || dossier?.digest !== current.digest || dossier?.kernel?.module !== "dongzhou_organization_contribution_dossier" || dossier?.kernel?.state !== "SEALED") throw new Error("权威卷宗与当前封印不一致");
+      officeCareerContributionDossiers.set(entryId, dossier);
+      officeCareerContributionVerifications.set(entryId, { state: "VERIFIED", digest: dossier.digest });
+      showNotice("个人功绩卷宗验印通过");
+    } catch (error) {
+      officeCareerContributionVerifications.set(entryId, { state: "ERROR", message: error.message });
     }
     renderOfficeCareerContributions();
   }
@@ -2324,6 +2350,7 @@
         const sign = Number(entry.amount) > 0 ? "+" : "";
         const canTrace = /^(?:organization-task|virtual_task):[0-9a-f-]{36}$/i.test(String(entry.sourceRef || ""));
         const dossier = officeContributionDossiers.get(entry.entryId);
+        const verification = officeContributionVerifications.get(entry.entryId);
         const meritCommendation = [...(profile.organization?.commendations || [])].reverse().find((item) => item.entryId === entry.entryId && item.heroId === entry.heroId && item.kernel?.module === "dongzhou_npc_merit_commendation");
         const trace = dossier?.taskTrace;
         const steps = Array.isArray(trace?.timeline) ? trace.timeline.slice(-6).map((item) => traceLabels[item.type] || item.stateCode || item.type).join(" → ") : "";
@@ -2332,7 +2359,7 @@
           : dossier?.state === "ERROR"
             ? `<div class="office-contribution-dossier error">卷宗暂不可用：${escapeHtml(dossier.message)}</div>`
             : dossier
-              ? `<div class="office-contribution-dossier"><strong>功绩卷宗已封印</strong><span>${escapeHtml(steps)}</span><small>任务 ${escapeHtml(dossier.taskId)} · ${escapeHtml(dossier.taskState)} · 卷宗印记 ${escapeHtml(String(dossier.digest || "").slice(0, 12))}</small></div>`
+              ? `<div class="office-contribution-dossier"><strong>功绩卷宗已封印</strong><span>${escapeHtml(steps)}</span><small>任务 ${escapeHtml(dossier.taskId)} · ${escapeHtml(dossier.taskState)} · 卷宗印记 ${escapeHtml(String(dossier.digest || "").slice(0, 12))}</small><div class="office-dossier-verification"><button class="large-button" type="button" data-contribution-verify-id="${escapeHtml(entry.entryId)}" ${verification?.state === "VERIFYING" ? "disabled" : ""}>${verification?.state === "VERIFYING" ? "验印中" : "验印"}</button><small class="${verification?.state === "ERROR" ? "error" : ""}" aria-live="polite">${verification?.state === "VERIFIED" ? `验印通过 · ${escapeHtml(String(verification.digest).slice(0, 12))}` : verification?.state === "ERROR" ? `验印失败 · ${escapeHtml(verification.message)}` : "重新读取权威实账并核对封印"}</small></div></div>`
               : "";
         return `<li class="office-contribution-entry${selected ? " selected" : ""}"><strong>${escapeHtml(eventLabels[entry.eventCode] || entry.eventCode)}</strong><span>${sign}${Number(entry.amount)} · ${canTrace ? "组织差事" : escapeHtml(entry.sourceRef)}</span><small>账本版本 ${Number(entry.entryVersion)} · 内核印记 ${escapeHtml(String(entry.digest || "").slice(0, 12))}</small><div class="office-contribution-actions"><button class="large-button" type="button" data-contribution-dossier-id="${escapeHtml(entry.entryId)}" ${canTrace ? "" : "disabled"} aria-expanded="${dossier ? "true" : "false"}">${dossier ? "收起卷宗" : canTrace ? "查阅卷宗" : "无卷宗"}</button>${dossier?.state === "SEALED" && Number(entry.amount) > 0 ? `<button class="large-button" type="button" data-merit-commendation-id="${escapeHtml(entry.entryId)}" ${officeCommendationInFlight || meritCommendation ? "disabled" : ""}>${meritCommendation ? "已据功慰勉" : "据功慰勉"}</button>` : ""}<button class="large-button" type="button" data-contribution-id="${escapeHtml(entry.entryId)}">${selected ? "已取为公议" : "取为公议"}</button></div>${detail}</li>`;
       }).join("")
@@ -2348,6 +2375,9 @@
       officeContributions = response.entries;
       for (const entryId of officeContributionDossiers.keys()) {
         if (!officeContributions.some((entry) => entry.entryId === entryId)) officeContributionDossiers.delete(entryId);
+      }
+      for (const entryId of officeContributionVerifications.keys()) {
+        if (!officeContributions.some((entry) => entry.entryId === entryId)) officeContributionVerifications.delete(entryId);
       }
       if (!officeContributions.some((entry) => entry.entryId === officeSelectedContribution?.entryId && entry.digest === officeSelectedContribution?.digest)) officeSelectedContribution = null;
     } catch (error) {
@@ -2384,6 +2414,25 @@
       officeContributionDossiers.set(entryId, dossier);
     } catch (error) {
       officeContributionDossiers.set(entryId, { state: "ERROR", message: error.message });
+    }
+    renderOfficeContributions();
+  }
+
+  async function verifyOfficeContributionDossier(entryId) {
+    const contribution = officeContributions.find((entry) => entry.entryId === entryId && entry.heroId === $("#officeMemberSelect").value);
+    const current = officeContributionDossiers.get(entryId);
+    if (!contribution || current?.state !== "SEALED") return;
+    officeContributionVerifications.set(entryId, { state: "VERIFYING" });
+    renderOfficeContributions();
+    try {
+      const response = await integration.organizationContributionDossier(contribution.heroId, entryId);
+      const dossier = response.dossier;
+      if (dossier?.entryId !== entryId || dossier?.heroId !== contribution.heroId || dossier?.contribution?.digest !== contribution.digest || dossier?.digest !== current.digest || dossier?.kernel?.module !== "dongzhou_organization_contribution_dossier" || dossier?.kernel?.state !== "SEALED") throw new Error("权威卷宗与当前封印不一致");
+      officeContributionDossiers.set(entryId, dossier);
+      officeContributionVerifications.set(entryId, { state: "VERIFIED", digest: dossier.digest });
+      showNotice("属官功绩卷宗验印通过");
+    } catch (error) {
+      officeContributionVerifications.set(entryId, { state: "ERROR", message: error.message });
     }
     renderOfficeContributions();
   }
@@ -5284,14 +5333,14 @@
     $("#campaignOfficeCloseButton").addEventListener("click", () => setCampaignOffice(false));
     $("#campaignOfficeBackdrop").addEventListener("click", (event) => { if (event.target === event.currentTarget) setCampaignOffice(false); });
     $("#officeTaskType").addEventListener("change", () => { $("#officeUseCouncil").checked = false; renderOrganizationPanel(); refreshOfficeNpcAssignment(); });
-    $("#officeMemberSelect").addEventListener("change", () => { $("#officeUseCouncil").checked = false; officeMemoryView = []; officeSelectedMemory = null; officeSelectedPublicNotice = null; officeContributions = []; officeSelectedContribution = null; officeContributionDossiers.clear(); renderOrganizationPanel(); renderOfficePublicNotices(); renderOfficeContributions(); refreshOfficeContributions().catch(() => {}); refreshOfficeNpcState(); });
+    $("#officeMemberSelect").addEventListener("change", () => { $("#officeUseCouncil").checked = false; officeMemoryView = []; officeSelectedMemory = null; officeSelectedPublicNotice = null; officeContributions = []; officeSelectedContribution = null; officeContributionDossiers.clear(); officeContributionVerifications.clear(); renderOrganizationPanel(); renderOfficePublicNotices(); renderOfficeContributions(); refreshOfficeContributions().catch(() => {}); refreshOfficeNpcState(); });
     $("#officeSupportMemberSelect").addEventListener("change", renderOfficeMandateApproval);
     $("#officeSupportMemberSelect").addEventListener("change", renderOfficeMandateApproval);
     $("#officeCorrespondenceRefresh").addEventListener("click", () => refreshOfficeCorrespondence());
     $("#officePublicNoticesRefresh").addEventListener("click", refreshOfficePublicNotices);
     $("#officePublicNotices").addEventListener("click", (event) => { const button = event.target.closest("[data-public-notice-id]"); if (button) selectOfficePublicNotice(button.dataset.publicNoticeId); });
     $("#officeContributionsRefresh").addEventListener("click", refreshOfficeContributions);
-    $("#officeContributions").addEventListener("click", (event) => { const meritButton = event.target.closest("[data-merit-commendation-id]"); if (meritButton) { commendOfficeNpcForMerit(meritButton.dataset.meritCommendationId); return; } const dossierButton = event.target.closest("[data-contribution-dossier-id]"); if (dossierButton) { toggleOfficeContributionDossier(dossierButton.dataset.contributionDossierId); return; } const button = event.target.closest("[data-contribution-id]"); if (button) selectOfficeContribution(button.dataset.contributionId); });
+    $("#officeContributions").addEventListener("click", (event) => { const verifyButton = event.target.closest("[data-contribution-verify-id]"); if (verifyButton) { verifyOfficeContributionDossier(verifyButton.dataset.contributionVerifyId); return; } const meritButton = event.target.closest("[data-merit-commendation-id]"); if (meritButton) { commendOfficeNpcForMerit(meritButton.dataset.meritCommendationId); return; } const dossierButton = event.target.closest("[data-contribution-dossier-id]"); if (dossierButton) { toggleOfficeContributionDossier(dossierButton.dataset.contributionDossierId); return; } const button = event.target.closest("[data-contribution-id]"); if (button) selectOfficeContribution(button.dataset.contributionId); });
     $("#officeInventoryRefresh").addEventListener("click", refreshOfficeInventory);
     $("#officeScheduledDutyRefresh").addEventListener("click", refreshOfficeScheduledDuty);
     $("#officeLogisticsBriefing").addEventListener("click", requestOfficeLogisticsBriefing);
@@ -5307,7 +5356,7 @@
     $("#officeCareerStatusRefresh").addEventListener("click", () => refreshOfficeCareerStatus());
     $("#officeCareerStatus").addEventListener("click", handleOfficeCareerStatusAction);
     $("#officeCareerContributionsRefresh").addEventListener("click", () => refreshOfficeCareerContributions());
-    $("#officeCareerContributions").addEventListener("click", (event) => { const button = event.target.closest("[data-player-contribution-dossier-id]"); if (button) toggleOfficeCareerContributionDossier(button.dataset.playerContributionDossierId); });
+    $("#officeCareerContributions").addEventListener("click", (event) => { const verifyButton = event.target.closest("[data-player-contribution-verify-id]"); if (verifyButton) { verifyOfficeCareerContributionDossier(verifyButton.dataset.playerContributionVerifyId); return; } const button = event.target.closest("[data-player-contribution-dossier-id]"); if (button) toggleOfficeCareerContributionDossier(button.dataset.playerContributionDossierId); });
     $("#officeCareerAccept").addEventListener("click", () => requestOfficeCareer("accept"));
     $("#officeCareerException").addEventListener("click", reportOfficeCareerException);
     $("#officeCareerResultForm").addEventListener("submit", submitOfficeCareerResult);
