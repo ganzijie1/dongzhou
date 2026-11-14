@@ -1,6 +1,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 let chromium;
@@ -33,6 +34,9 @@ const executablePath = [process.env.DONGZHOU_CHROMIUM_EXECUTABLE, "C:/Program Fi
     await page.selectOption("#officeMemberSelect", "ZuoRu");
     await page.waitForFunction((expected) => document.querySelector("#officePublicNotices")?.textContent.includes(expected), message, { timeout: 30000 });
     const notices = await page.evaluate(async () => (await fetch("/api/dongzhou/v1/organization/public-notices")).json());
+    const currentRoundDigest = crypto.createHash("sha256").update(loginRequestId).digest("hex");
+    assert.ok(notices.notices.length > 0);
+    assert.ok(notices.notices.every((entry) => entry.loginRoundDigest === currentRoundDigest), "stale login-round notice remained visible");
     const notice = notices.notices.find((entry) => entry.message === message);
     assert.ok(notice);
     assert.equal(notice.heroId, "ZuoRu");
@@ -73,6 +77,6 @@ const executablePath = [process.env.DONGZHOU_CHROMIUM_EXECUTABLE, "C:/Program Fi
     assert.ok(layout.panelWidth <= layout.viewport, JSON.stringify(layout));
     await page.locator("#officePublicNotices").screenshot({ path: mobileScreenshot });
     assert.deepEqual(errors, []);
-    console.log(JSON.stringify({ result: "PASS", messageId: notice.messageId, digest: notice.digest, councilId: council.id, screenshot, councilScreenshot, mobileScreenshot }));
+    console.log(JSON.stringify({ result: "PASS", messageId: notice.messageId, digest: notice.digest, loginRoundDigest: currentRoundDigest, visibleNoticeCount: notices.notices.length, councilId: council.id, screenshot, councilScreenshot, mobileScreenshot }));
   } finally { await browser.close(); }
 })().catch((error) => { console.error(error); process.exitCode = 1; });

@@ -965,6 +965,17 @@ def _canonical_digest(value: dict[str, Any]) -> str:
     ).hexdigest()
 
 
+def _public_notice_matches_runtime(
+    notice: dict[str, Any] | None, runtime: dict[str, Any] | None
+) -> bool:
+    if not isinstance(notice, dict) or not isinstance(runtime, dict):
+        return False
+    login_request_id = str(runtime.get("loginRequestId") or "")
+    return bool(login_request_id) and notice.get("loginRoundDigest") == hashlib.sha256(
+        login_request_id.encode("utf-8")
+    ).hexdigest()
+
+
 def _repair_utf8_mojibake(value: Any) -> str:
     text = str(value or "")
     for _ in range(5):
@@ -4970,7 +4981,16 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             if str(member.get("state") or "ACTIVE") == "ACTIVE"
         }
         notices = await store.list_public_messages(settings.game_server_id, limit=30)
-        return {"notices": [notice for notice in notices if notice.get("heroId") in active_heroes]}
+        runtimes = await asyncio.gather(*(
+            store.read_npc_runtime(settings.game_server_id, str(notice.get("npcId") or ""))
+            for notice in notices
+        ))
+        return {"notices": [
+            notice
+            for notice, runtime in zip(notices, runtimes, strict=True)
+            if notice.get("heroId") in active_heroes
+            and _public_notice_matches_runtime(notice, runtime)
+        ]}
 
     @router.post("/knowledge/routes")
     async def campaign_route(
@@ -5765,6 +5785,9 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             public_notice_receipt = await store.read_public_message(
                 settings.game_server_id, request.public_notice_id
             )
+            notice_runtime = await store.read_npc_runtime(
+                settings.game_server_id, str(public_notice_receipt.get("npcId") or "")
+            ) if isinstance(public_notice_receipt, dict) else None
             try:
                 roster_response = await upstreams.organization_roster(settings.orgflow_org_id)
                 roster = _organization_roster_view(roster_response.get("data"), settings)
@@ -5778,6 +5801,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 or public_notice_receipt.get("digest") != request.public_notice_digest
                 or public_notice_receipt.get("kernel", {}).get("module") != NpcPublicNoticeModule.name
                 or public_notice_receipt.get("kernel", {}).get("state") != "SEALED"
+                or not _public_notice_matches_runtime(public_notice_receipt, notice_runtime)
                 or request.public_notice_digest[:12] not in request.question
                 or not active
             ):
@@ -6267,6 +6291,9 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 settings.game_server_id,
                 str(selected_public_notice.get("messageId") or ""),
             )
+            notice_runtime = await store.read_npc_runtime(
+                settings.game_server_id, str(current_notice.get("npcId") or "")
+            ) if isinstance(current_notice, dict) else None
             try:
                 roster_response = await upstreams.organization_roster(settings.orgflow_org_id)
                 current_roster = _organization_roster_view(roster_response.get("data"), settings)
@@ -6277,6 +6304,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 not isinstance(current_notice, dict)
                 or current_notice.get("heroId") != request.hero_id
                 or current_notice.get("digest") != selected_public_notice.get("digest")
+                or not _public_notice_matches_runtime(current_notice, notice_runtime)
                 or str(selected_public_notice.get("digest") or "")[:12] not in str(council_request.get("question") or "")
                 or not any(member.get("heroId") == request.hero_id for member in current_roster.get("members", []))
             ):

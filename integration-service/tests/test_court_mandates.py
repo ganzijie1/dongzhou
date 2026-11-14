@@ -923,6 +923,19 @@ def test_council_memory_and_public_notice_are_verified_and_sealed_into_mandate()
             assert recalled.json()["memoryReceipt"]["digest"] == memory["digest"]
             assert recalled.json()["publicNoticeReceipt"]["digest"] == notice["digest"]
 
+            asyncio.run(store.mark_npc_ready(
+                settings.game_server_id, ZUORU_NPC_ID, "round-replaced", None, None, "startup-2"
+            ))
+            expired_draft = client.post(
+                "/api/dongzhou/v1/court/mandates",
+                json=mandate_body(second_council_id),
+            )
+            assert expired_draft.status_code == 422, expired_draft.text
+            assert expired_draft.json()["error"]["code"] == "court_public_notice_unverified"
+            asyncio.run(store.mark_npc_ready(
+                settings.game_server_id, ZUORU_NPC_ID, "round-zuoru", None, None, "startup-1"
+            ))
+
             draft = client.post(
                 "/api/dongzhou/v1/court/mandates",
                 json=mandate_body(second_council_id),

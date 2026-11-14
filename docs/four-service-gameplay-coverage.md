@@ -19,7 +19,7 @@
 
 月例察访在登记规则前会先核验司马与司徒的 AINPC 日程。排班服务暂不可用时，网关返回可重试的 `503 / ainpc_schedule_unavailable`，契约响应损坏时返回 `502 / ainpc_schedule_contract_invalid`，不再泄漏为无语义的服务器 `500`；服务恢复后同一入口可正常返回 `ACTIVE` 规则并继续派差。
 
-AINPC 事件公聊现由东周正式实现 `NDLLMSendPublicMessage` 游戏服契约。回调必须匹配 NPC 当前 `loginRequestId`，旧轮次不会落账；NPC 还必须存在于东周注册目录。正文、人物和登录轮次摘要以稳定消息号幂等写入 SQLite，再由 NexusKernel `dongzhou_npc_public_notice 1.0.0` 封印。官署“官署告示”查询会重新读取 orgFlow 权威名册，仅展示当前在职属官，离职、未知或身份过期的发言不能进入页面。玩家可把当前属官的告示“取为公议”：AINPC 军议前重新核对消息摘要与在职身份，NexusKernel `dongzhou_mandate_workflow 1.13.0` 签令前再次读取同一告示与 orgFlow 名册，并把告示回执同时封入军议、军令和后续组织差事，切换官员、告示或史证后旧军议不会复用。
+AINPC 事件公聊现由东周正式实现 `NDLLMSendPublicMessage` 游戏服契约。回调必须匹配 NPC 当前 `loginRequestId`，旧轮次不会落账；NPC 还必须存在于东周注册目录。正文、人物和登录轮次摘要以稳定消息号幂等写入 SQLite，再由 NexusKernel `dongzhou_npc_public_notice 1.0.0` 封印。官署“官署告示”查询会重新读取 orgFlow 权威名册与 AINPC 当前登录轮次，仅展示当前在职且轮次摘要仍有效的属官公告；离职、未知、离线或已重登录属官的旧号令不能进入页面。玩家可把当前属官的告示“取为公议”：AINPC 军议前重新核对消息摘要、登录轮次与在职身份，NexusKernel `dongzhou_mandate_workflow 1.13.0` 签令前再次读取同一告示、当前轮次与 orgFlow 名册，并把告示回执同时封入军议、军令和后续组织差事；页面打开后若 NPC 重登录，旧公议也不能继续签令，切换官员、告示或史证后旧军议不会复用。
 
 无可执行待办时，AINPC 现在无论生成快照是否位于核心地图，都直接采用固定 `SleepTree`，不再退回模型并因旧目录中的运行态 `Reborn` 被过滤而形成空链。东周网关严格实现 `ValidateBTParams / ExecuteBehavior`：仅接受参数合法且网关已确认就绪的 `SleepTree` 与 `Reborn`，休息按声明时长持有同一物理 UID，结束后才回调。回调复合身份、物理 UID 与到期时间进入 SQLite outbox，网关重启不丢失；同 UID 同载荷只复用，冲突载荷返回 409。真实干净重启验收中 12 名 NPC 各生成并下发一条休息链，验收窗口内预检失败、空链、模型配置失败和提前完成均为 0。
 
@@ -79,12 +79,12 @@ AINPC 事件公聊现由东周正式实现 `NDLLMSendPublicMessage` 游戏服契
 - `live-relationship-growth-complete107.json`：真实玩家接纳左儒成功复命后，AINPC 重要事件、长期记忆和 `appreciation +6` 三项均送达；NexusKernel 生成关系封印 `ca9f6793...74249`，重放不重复加点，官署任务簿显示“感激+6”和封印摘要。
 - `live-adviser-complete108.json`：真实 Chromium 提交“本关史料中的关键人物是谁”，知识仓已发布 AKU 随玩家状态进入 AINPC；加载提示和最终答案经 AIFirewall 过滤后由游戏服回调，两次均为 `filter_degraded=false`，页面显示周宣王、杜伯、左儒及史事情由，并成功提交“准确”评价。最近一次完整复验任务为 `1fcce851-19f7-4b8b-bc1f-7b45e4742607`。
 - `history-recollection-live.png`、`history-recollection-mobile-live.png`：真实 Chromium 选定第一回 AKU 后向左儒问忆，命中 AINPC 正式 `dialogue_choice`，由 NexusKernel 封印、自动取为军议旧事并写入云档；随后实际提交的 AINPC 军议保存了与问忆完全一致的记忆摘要，重复问忆仍保留一条稳定回执，桌面端与 320px 移动端无横向溢出。
-- `npc-public-notice-live.png`、`npc-public-notice-council-live.png`、`npc-public-notice-mobile-live.png`：左儒使用当前真实登录轮次调用 AINPC 公聊游戏服契约，东周幂等落账并由 NexusKernel 封印；新访客经 orgFlow 在职名册过滤后回读同一正文与印记，并将该稳定消息号选入 AINPC 公议，保存的军议账本保留同一告示摘要；桌面端和 320px 移动端无横向溢出。
+- `npc-public-notice-live.png`、`npc-public-notice-council-live.png`、`npc-public-notice-mobile-live.png`：左儒使用当前真实登录轮次调用 AINPC 公聊游戏服契约，东周幂等落账并由 NexusKernel 封印；新访客经 orgFlow 在职名册与 AINPC 当前轮次双重过滤后只回读仍有效的正文与印记，并将该稳定消息号选入 AINPC 公议，保存的军议账本保留同一告示摘要；桌面端和 320px 移动端无横向溢出。
 - `live-route-battle-memory129.json`：真实向导路线及第一、第二回 AKU 经 NexusKernel 验签后进入第二回战报，实际参战属官的 AINPC 记忆和官署战报均回读到同一路线与双史料封印。
 
 ## 当前验证基线
 
-- 网关完整回归：`130 passed`，另有 `22 subtests passed`；史识凭据覆盖正确封存、主动验印、据史慰勉、据史问忆、摘要篡改、跨玩家/关卡/史料隔离和 orgFlow 参数传递；公聊覆盖当前/过期登录轮次、幂等落账、内核封印、在职过滤，以及告示进入公议并二次验印封入军令，月例排班上游不可用的可重试错误映射亦有回归保护。
+- 网关完整回归：`130 passed`，另有 `22 subtests passed`；史识凭据覆盖正确封存、主动验印、据史慰勉、据史问忆、摘要篡改、跨玩家/关卡/史料隔离和 orgFlow 参数传递；公聊覆盖当前/过期登录轮次、重登录后旧告示隐藏、幂等落账、内核封印、在职过滤，以及告示进入公议后若轮次变化则拒绝签令，月例排班上游不可用的可重试错误映射亦有回归保护。
 - 前端：集成客户端、组织玩法、战斗系统、官署浏览器、军议浏览器和外交浏览器全部通过。
 - 真实冒烟：四项能力在线；独立访客存档往返、版本冲突和玩家隔离通过；172/172 关已发布史料且每关在线返回明确标注的《东周列国志》文学底本边界，171/171 组连续行军均具备战役推进、定点和 NPC 对话三种路线；左儒计划为 90 天、450 项东周事务。长期计划按 AINPC 契约只列可执行待办，休息由非活跃时段的运行时强制休息机制接管。
 - 权威名册：12/12 NPC 状态与 90 天计划通过；真实浏览器逐席显示心境、关系、性情、动机与日程，杜伯可调阅但不可向自己派单。

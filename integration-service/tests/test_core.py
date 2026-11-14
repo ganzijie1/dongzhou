@@ -1985,6 +1985,15 @@ class AuthenticationRouteTests(unittest.TestCase):
                 visible = client.get("/api/dongzhou/v1/organization/public-notices")
                 self.assertEqual(visible.status_code, 200, visible.text)
                 self.assertEqual(visible.json()["notices"][0]["message"], "军粮已至。")
+                changed = client.post("/api/v1/ainpc/login-ready", json={
+                    "gameServerId": settings.game_server_id,
+                    "aiId": "42",
+                    "loginRequestId": "round-43",
+                })
+                self.assertEqual(changed.status_code, 200)
+                expired = client.get("/api/dongzhou/v1/organization/public-notices")
+                self.assertEqual(expired.status_code, 200, expired.text)
+                self.assertEqual(expired.json()["notices"], [])
 
 
 class StoreTests(unittest.IsolatedAsyncioTestCase):
