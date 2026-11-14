@@ -104,6 +104,8 @@
   let officeMembershipLeavePending = false;
   let officeMembershipBusy = false;
   let officeCareerBusy = false;
+  let officeCareerStatusBusy = false;
+  let officeCareerStatusItems = [];
   let officeQuizInFlight = false;
   let officeQuizTimer = null;
 
@@ -1589,7 +1591,36 @@
     panel.hidden = !membership;
     if (!membership) return;
     $("#officeCareerAccount").textContent = `可用贡献 ${Number(membership.contributionBalance || 0)} · 累计功绩 ${Number(membership.lifetimeEarned || 0)}`;
-    panel.querySelectorAll("button, input").forEach((control) => { control.disabled = officeCareerBusy; });
+    panel.querySelectorAll("button, input").forEach((control) => { control.disabled = officeCareerBusy || officeCareerStatusBusy; });
+    const taskStates = {
+      GENERATED: "待派发", ASSIGNMENT_CONFIRMATION_PENDING: "待确认派发", MEMBER_RESPONSE_PENDING: "待接受",
+      MODIFICATION_CONFIRMATION_PENDING: "变更待确认", IN_PROGRESS: "执行中", SUBMISSION_PENDING: "复命待审核",
+      RESULT_CONFIRMATION_PENDING: "成果待确认", SUPPLEMENT_PENDING: "待补充", SUCCEEDED: "已办成",
+      PARTIALLY_COMPLETED: "部分办成", FAILED: "未办成", REJECTED: "已驳回", CANCELLED: "已撤销", INVALIDATED: "已失效"
+    };
+    const exceptionStates = { OPEN: "异常待裁", ACCEPTED: "已按方案恢复", REJECTED: "异常已驳回", TERMINATED: "异常已终止", INVALIDATED: "异常已失效" };
+    $("#officeCareerStatus").innerHTML = officeCareerStatusItems.map((task) => {
+      const exception = task.executionException;
+      const exceptionLabel = exception?.state ? ` · ${exceptionStates[exception.state] || exception.state}${exception.selectedPlanId ? `（${escapeHtml(exception.selectedPlanId)}）` : ""}` : "";
+      return `<li data-task-id="${escapeHtml(task.taskId)}" data-task-state="${escapeHtml(task.state)}" data-exception-state="${escapeHtml(exception?.state || "")}"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(taskStates[task.state] || task.state)}${exceptionLabel}</span><small>版本 ${Number(task.version || 0)} · ${escapeHtml(task.updatedAt || "未记录时间")}</small></li>`;
+    }).join("") || '<li class="empty">尚无权威差事状态</li>';
+  }
+
+  async function refreshOfficeCareerStatus({ quiet = false } = {}) {
+    if (integration.isOffline() || officeCareerStatusBusy || !profile.organization.remoteRoster?.playerMembership) return null;
+    officeCareerStatusBusy = true;
+    renderOfficeCareer();
+    try {
+      const response = await integration.organizationPlayerTasks();
+      officeCareerStatusItems = Array.isArray(response.items) ? response.items : [];
+      return response;
+    } catch (error) {
+      if (!quiet) $("#officeCareerFeedback").textContent = error.message || "权威差事状态暂不可用。";
+      return null;
+    } finally {
+      officeCareerStatusBusy = false;
+      renderOfficeCareer();
+    }
   }
 
   async function requestOfficeCareer(action, detail = "") {
@@ -1621,6 +1652,7 @@
       }
       const roster = await integration.organizationRoster();
       profile.organization = organization.recordRemoteRoster(profile.organization, roster, displayName);
+      await refreshOfficeCareerStatus({ quiet: true });
       $("#officeCareerFeedback").textContent = reply?.content || "军府已受理，权威回信稍后可在府中书问查看。";
       if (action === "request" && detail) $("#officeCareerTaskName").value = "";
       if ((action === "result" || action === "exception") && detail) $("#officeCareerResult").value = "";
@@ -4677,6 +4709,7 @@
     $("#officeCareerOptions").addEventListener("click", () => requestOfficeCareer("options"));
     $("#officeCareerRequestForm").addEventListener("submit", submitOfficeCareerRequest);
     $("#officeCareerInbox").addEventListener("click", () => requestOfficeCareer("inbox"));
+    $("#officeCareerStatusRefresh").addEventListener("click", () => refreshOfficeCareerStatus());
     $("#officeCareerAccept").addEventListener("click", () => requestOfficeCareer("accept"));
     $("#officeCareerException").addEventListener("click", reportOfficeCareerException);
     $("#officeCareerResultForm").addEventListener("submit", submitOfficeCareerResult);

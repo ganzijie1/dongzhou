@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 
 from dongzhou_integration.app import build_application
 from dongzhou_integration.config import Settings
-from dongzhou_integration.security import stable_player_id
+from dongzhou_integration.security import stable_npc_id, stable_player_id
 from dongzhou_integration.upstreams import UpstreamUnavailable, Upstreams
 
 
@@ -30,6 +30,7 @@ def settings(path: Path) -> Settings:
         ainpc_game_server_id=91001, knowledge_url="http://knowledge", knowledge_token="knowledge-token",
         offline_knowledge_enabled=False, knowledge_file=path,
         ainpc_task_token="task-token",
+        orgflow_ainpc_tools_token="tools-token",
     )
 
 
@@ -156,6 +157,70 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("ffffffff-ffff", response.text)
         self.assertNotIn("unrelated-player", response.text)
 
+    async def test_player_task_status_route_exposes_scoped_authoritative_state(self) -> None:
+        task_id = str(uuid4())
+
+        class PlayerTaskUpstreams:
+            expected_player = "pending"
+
+            async def health(self):
+                return {"orgFlow": {"online": True}, "aiNpc": {"online": True}, "knowledge": {"online": True}}
+
+            async def organization_player_task_statuses(self, *, npc_id: str, player_subject_id: str):
+                assert npc_id == str(stable_npc_id(91001, "DuBo"))
+                assert player_subject_id == self.expected_player
+                return {
+                    "result_code": "organization_ainpc_virtual_task_pending_actions_listed",
+                    "task_statuses_included": True,
+                    "task_status_has_more": False,
+                    "task_status_items": [{
+                        "task_id": task_id,
+                        "organization_id": "00000000-0000-0000-0000-000000000001",
+                        "task_title": "核验军粮簿册",
+                        "task_state": "IN_PROGRESS",
+                        "task_version": 7,
+                        "updated_at": "2026-11-14T10:00:00Z",
+                        "responsible_subject_type": "PLAYER",
+                        "responsible_subject_id": player_subject_id,
+                        "manager_subject_type": "NPC",
+                        "manager_subject_id": npc_id,
+                        "execution_exception_state": "ACCEPTED",
+                        "execution_exception_selected_plan_id": "reroute-north-road",
+                    }],
+                }
+
+            async def close(self):
+                return None
+
+        with TemporaryDirectory() as directory:
+            configured = settings(Path(directory) / "gateway.sqlite3")
+            upstreams = PlayerTaskUpstreams()
+            application = build_application(configured, upstreams=upstreams)
+            with TestClient(application) as client:
+                session = client.post(
+                    "/api/dongzhou/v1/sessions/guest",
+                    json={"installation_id": str(uuid4())},
+                )
+                upstreams.expected_player = str(stable_player_id(
+                    configured.ainpc_game_server_id,
+                    UUID(session.json()["playerId"]),
+                ))
+                response = client.get("/api/dongzhou/v1/organization/player-tasks")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "items": [{
+                "taskId": task_id,
+                "title": "核验军粮簿册",
+                "state": "IN_PROGRESS",
+                "version": 7,
+                "updatedAt": "2026-11-14T10:00:00Z",
+                "executionException": {"state": "ACCEPTED", "selectedPlanId": "reroute-north-road"},
+            }],
+            "hasMore": False,
+        })
+        self.assertNotIn(upstreams.expected_player, response.text)
+
     async def test_campaign_route_uses_formal_map_transition_contract(self) -> None:
         seen: list[httpx.Request] = []
 
@@ -175,6 +240,34 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
             "max_depth": 1,
             "methods": ["campaign_progression"],
         })
+
+    async def test_player_task_status_transport_uses_dedicated_tools_bearer(self) -> None:
+        seen: list[httpx.Request] = []
+        player_subject_id = str(uuid4())
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen.append(request)
+            return httpx.Response(200, json={
+                "result_code": "organization_ainpc_virtual_task_pending_actions_listed",
+                "task_statuses_included": True,
+                "task_status_has_more": False,
+                "task_status_items": [],
+            })
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            result = await Upstreams(settings(Path("unused")), client).organization_player_task_statuses(
+                npc_id="12345",
+                player_subject_id=player_subject_id,
+            )
+
+        self.assertTrue(result["task_statuses_included"])
+        self.assertEqual(seen[0].url.path, "/internal/v1/organization-ainpc-tools/virtual-task-pending-actions")
+        self.assertEqual(seen[0].headers["Authorization"], "Bearer tools-token")
+        payload = json.loads(seen[0].content)
+        self.assertEqual(payload["npc_id"], "12345")
+        self.assertEqual(payload["counterparty_subject_id"], player_subject_id)
+        self.assertIs(payload["include_task_statuses"], True)
+        self.assertIs(payload["review_after_submission"], False)
 
     async def test_schedule_interruption_uses_formal_ainpc_contract(self) -> None:
         seen: list[httpx.Request] = []

@@ -33,6 +33,14 @@ async function readRoster(page) {
   });
 }
 
+async function readPlayerTasks(page) {
+  return page.evaluate(async () => {
+    const response = await fetch("/api/dongzhou/v1/organization/player-tasks", { cache: "no-store", credentials: "same-origin" });
+    if (!response.ok) throw new Error(`player tasks failed: ${response.status} ${await response.text()}`);
+    return response.json();
+  });
+}
+
 async function waitForRoster(page, predicate, label) {
   const deadline = Date.now() + timeout;
   let roster = null;
@@ -158,14 +166,24 @@ async function releaseMembership(page) {
     const exceptionReply = await careerAction(page, "#officeCareerException", "Task exception");
     assert.match(exceptionReply, /异常|受阻|暂停|方案|处置|登记/, exceptionReply);
 
-    let resumedReply = "";
+    let resumedTask = null;
     const resumeDeadline = Date.now() + timeout;
     while (Date.now() < resumeDeadline) {
-      resumedReply = await careerRefresh(page, "#officeCareerInbox", "Task exception resolution");
-      if (/已按.*裁定方案恢复执行|已按上级裁定方案恢复执行/.test(resumedReply)) break;
-      await page.waitForTimeout(2000);
+      const status = await readPlayerTasks(page);
+      resumedTask = (status.items || []).find((task) => task.executionException?.state === "ACCEPTED") || null;
+      if (resumedTask) break;
+      await page.waitForTimeout(1000);
     }
-    assert.match(resumedReply, /已按.*裁定方案恢复执行|已按上级裁定方案恢复执行/, resumedReply);
+    assert(resumedTask, "Authoritative task state did not resume after exception adjudication");
+    assert(resumedTask.executionException.selectedPlanId, "Resumed exception lacks the selected plan");
+    await page.click("#officeCareerStatusRefresh");
+    await page.waitForFunction(
+      (taskId) => document.querySelector(`#officeCareerStatus [data-task-id="${taskId}"][data-exception-state="ACCEPTED"]`),
+      resumedTask.taskId,
+      { timeout },
+    );
+    const resumedReply = (await page.locator(`#officeCareerStatus [data-task-id="${resumedTask.taskId}"]`).textContent()).trim();
+    assert.match(resumedReply, /已按方案恢复/, resumedReply);
 
     const resultSummary = "已核清军府粮册与入库数目，账目相符，封存复核记录。";
     await page.fill("#officeCareerResult", resultSummary);
@@ -196,6 +214,7 @@ async function releaseMembership(page) {
       managerHeroId: admitted.playerMembership.directManagerHeroId,
       contributionBefore: startingContribution,
       contributionAfter: Number(settled.playerMembership.contributionBalance),
+      resumedTask,
       replies: { optionsReply, requestReply, inboxReply, acceptReply, exceptionReply, resumedReply, resultReply },
       screenshot: screenshotPath,
     };

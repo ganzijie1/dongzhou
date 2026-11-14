@@ -1371,6 +1371,35 @@ class Upstreams:
             content=b"",
         )
 
+    async def organization_player_task_statuses(
+        self,
+        *,
+        npc_id: str,
+        player_subject_id: str,
+    ) -> dict[str, Any]:
+        path = "/internal/v1/organization-ainpc-tools/virtual-task-pending-actions"
+        request_id = f"dongzhou-career-status:{player_subject_id}"
+        payload = {
+            "schema_version": "organization.ainpc-tools.virtual-task-pending-actions.v3",
+            "request_id": request_id,
+            "game_server_id": str(self.settings.ainpc_game_server_id),
+            "npc_id": npc_id,
+            "counterparty_subject_type": "PLAYER",
+            "counterparty_subject_id": player_subject_id,
+            "conversation_id": f"dongzhou-career:{player_subject_id}",
+            "source_message_id": request_id,
+            "include_task_statuses": True,
+            "review_after_submission": False,
+            "include_direct_npc_result_reviews": False,
+            "source_received_at": "1970-01-01T00:00:00Z",
+        }
+        return await self._json(
+            "POST",
+            f"{self.settings.orgflow_url}{path}",
+            token=self.settings.orgflow_ainpc_tools_token,
+            payload=payload,
+        )
+
     async def organization_inventory(self, organization_id: str) -> dict[str, Any]:
         path = f"/internal/v1/organization-administration/organizations/{organization_id}/inventory"
         return await self._json(

@@ -1232,6 +1232,88 @@ def _organization_roster_view(
     }
 
 
+def _organization_player_tasks_view(
+    snapshot: Any,
+    settings: Settings,
+    *,
+    manager_npc_id: str,
+    player_subject_id: str,
+) -> dict[str, Any]:
+    if (
+        not isinstance(snapshot, dict)
+        or snapshot.get("result_code")
+        != "organization_ainpc_virtual_task_pending_actions_listed"
+        or snapshot.get("task_statuses_included") is not True
+        or not isinstance(snapshot.get("task_status_has_more"), bool)
+        or not isinstance(snapshot.get("task_status_items"), list)
+    ):
+        raise ValueError("player task status snapshot is invalid")
+    items: list[dict[str, Any]] = []
+    allowed_states = {
+        "GENERATED",
+        "ASSIGNMENT_CONFIRMATION_PENDING",
+        "MEMBER_RESPONSE_PENDING",
+        "MODIFICATION_CONFIRMATION_PENDING",
+        "IN_PROGRESS",
+        "SUBMISSION_PENDING",
+        "RESULT_CONFIRMATION_PENDING",
+        "SUPPLEMENT_PENDING",
+        "SUCCEEDED",
+        "PARTIALLY_COMPLETED",
+        "FAILED",
+        "REJECTED",
+        "CANCELLED",
+        "INVALIDATED",
+    }
+    allowed_exception_states = {"OPEN", "ACCEPTED", "REJECTED", "TERMINATED", "INVALIDATED"}
+    seen: set[str] = set()
+    for raw in snapshot["task_status_items"]:
+        if not isinstance(raw, dict):
+            raise ValueError("player task status item is invalid")
+        task_id = str(raw.get("task_id") or "")
+        organization_id = str(raw.get("organization_id") or "")
+        task_state = str(raw.get("task_state") or "")
+        task_title = str(raw.get("task_title") or "").strip()
+        version = raw.get("task_version")
+        parties = {
+            (str(raw.get("responsible_subject_type") or ""), str(raw.get("responsible_subject_id") or "")),
+            (str(raw.get("manager_subject_type") or ""), str(raw.get("manager_subject_id") or "")),
+        }
+        exception_state = str(raw.get("execution_exception_state") or "") or None
+        selected_plan_id = str(raw.get("execution_exception_selected_plan_id") or "") or None
+        if (
+            task_id in seen
+            or organization_id != settings.orgflow_org_id
+            or task_state not in allowed_states
+            or not task_title
+            or isinstance(version, bool)
+            or not isinstance(version, int)
+            or version < 1
+            or parties != {("NPC", manager_npc_id), ("PLAYER", player_subject_id)}
+            or (exception_state is not None and exception_state not in allowed_exception_states)
+            or ((exception_state == "ACCEPTED") != (selected_plan_id is not None))
+        ):
+            raise ValueError("player task status item violates its authority scope")
+        UUID(task_id)
+        UUID(organization_id)
+        seen.add(task_id)
+        items.append(
+            {
+                "taskId": task_id,
+                "title": task_title[:1000],
+                "state": task_state,
+                "version": version,
+                "updatedAt": str(raw.get("updated_at") or ""),
+                "executionException": (
+                    {"state": exception_state, "selectedPlanId": selected_plan_id}
+                    if exception_state is not None
+                    else None
+                ),
+            }
+        )
+    return {"items": items, "hasMore": snapshot["task_status_has_more"]}
+
+
 def _organization_inventory_view(snapshot: Any, settings: Settings) -> dict[str, Any]:
     if not isinstance(snapshot, dict):
         raise ValueError("inventory snapshot must be an object")
@@ -6578,6 +6660,44 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             raise ApiError(
                 "organization_roster_contract_invalid",
                 "Organization roster response is invalid.",
+                status_code=502,
+            ) from error
+
+    @router.get("/organization/player-tasks")
+    async def read_organization_player_tasks(
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        if not settings.orgflow_org_id or "DuBo" not in settings.orgflow_hero_members:
+            raise ApiError(
+                "organization_not_configured",
+                "Organization integration is not configured.",
+                status_code=503,
+            )
+        manager_npc_id = str(stable_npc_id(settings.ainpc_game_server_id, "DuBo"))
+        player_subject_id = str(
+            stable_player_id(settings.ainpc_game_server_id, player_id)
+        )
+        try:
+            response = await upstreams.organization_player_task_statuses(
+                npc_id=manager_npc_id,
+                player_subject_id=player_subject_id,
+            )
+            return _organization_player_tasks_view(
+                response,
+                settings,
+                manager_npc_id=manager_npc_id,
+                player_subject_id=player_subject_id,
+            )
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "organization_player_tasks_unavailable",
+                "Player organization task state is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        except (TypeError, ValueError) as error:
+            raise ApiError(
+                "organization_player_tasks_contract_invalid",
+                "Player organization task state is invalid.",
                 status_code=502,
             ) from error
 

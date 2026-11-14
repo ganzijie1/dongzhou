@@ -1072,6 +1072,7 @@ class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
             "DONGZHOU_ORGFLOW_HMAC_SECRET": "o" * 32,
             "DONGZHOU_AINPC_TOKEN": "a" * 32,
             "DONGZHOU_AINPC_TASK_TOKEN": "t" * 32,
+            "DONGZHOU_ORGFLOW_AINPC_TOOLS_TOKEN": "u" * 32,
             "DONGZHOU_KNOWLEDGE_TOKEN": "k" * 32,
             "DONGZHOU_ORGFLOW_ORG_ID": "00000000-0000-4000-8000-000000000001",
             "DONGZHOU_ORGFLOW_MANAGER_MEMBER_ID": "00000000-0000-4000-8000-000000000004",
@@ -1099,6 +1100,7 @@ class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
             ({"DONGZHOU_OFFLINE_KNOWLEDGE": "1"}, "OFFLINE_KNOWLEDGE"),
             ({"DONGZHOU_AINPC_GAME_SERVER_ID": "91002"}, "must match"),
             ({"DONGZHOU_AINPC_TOKEN": ""}, "AINPC_TOKEN"),
+            ({"DONGZHOU_ORGFLOW_AINPC_TOOLS_TOKEN": ""}, "ORGFLOW_AINPC_TOOLS_TOKEN"),
             ({"DONGZHOU_KNOWLEDGE_TOKEN": ""}, "KNOWLEDGE_TOKEN"),
             ({"DONGZHOU_KNOWLEDGE_URL": "http://user:secret@knowledge"}, "absolute HTTP"),
         ):

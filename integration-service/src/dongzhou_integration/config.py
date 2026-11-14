@@ -55,6 +55,7 @@ class Settings:
     offline_knowledge_enabled: bool
     knowledge_file: Path
     ainpc_task_token: str = ""
+    orgflow_ainpc_tools_token: str = ""
     upstream_timeout_seconds: float = 30.0
 
     @classmethod
@@ -177,6 +178,11 @@ class Settings:
                 _required_secret("DONGZHOU_AINPC_TASK_TOKEN")
                 if environment == "production"
                 else os.getenv("DONGZHOU_AINPC_TASK_TOKEN", "").strip()
+            ),
+            orgflow_ainpc_tools_token=(
+                _required_secret("DONGZHOU_ORGFLOW_AINPC_TOOLS_TOKEN")
+                if environment == "production"
+                else os.getenv("DONGZHOU_ORGFLOW_AINPC_TOOLS_TOKEN", "").strip()
             ),
             upstream_timeout_seconds=upstream_timeout_seconds,
         )
