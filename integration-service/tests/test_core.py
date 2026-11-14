@@ -3107,6 +3107,81 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
                 organization_id=organization_id,
             )
 
+    def test_organization_task_trace_seals_recovery_plan_details(self) -> None:
+        task_id = str(uuid4())
+        organization_id = str(uuid4())
+        exception_id = str(uuid4())
+        snapshot = {
+            "task": {
+                "task_id": task_id,
+                "organization_id": organization_id,
+                "state": "IN_PROGRESS",
+                "version": "8",
+                "supplement_count": 0,
+                "execution_exception": {
+                    "exception_id": exception_id,
+                    "task_id": task_id,
+                    "organization_id": organization_id,
+                    "exception_code": "road_destroyed",
+                    "summary": "北路桥梁冲毁，军粮车队无法通行。",
+                    "plans": [{
+                        "plan_id": "reroute-west-post-road",
+                        "title": "改走西驿道",
+                        "description": "拆分车队，经西驿道绕行并补派斥候护送。",
+                    }],
+                    "default_plan_id": "reroute-west-post-road",
+                    "state": "ACCEPTED",
+                    "selected_plan_id": "reroute-west-post-road",
+                    "resolution_source": "NPC_CONFIRMATION",
+                    "resumed_game_time": "24306616800",
+                    "resolved_at": "2026-11-14T10:05:00Z",
+                    "version": "2",
+                },
+            },
+            "confirmations": [],
+            "timeline": [{
+                "sequence_no": "1",
+                "occurred_at": "2026-11-14T10:00:00Z",
+                "entry_type": "EXECUTION_EXCEPTION_REPORTED",
+                "reference_id": exception_id,
+                "case_id": None,
+                "state_code": "OPEN",
+                "reason_code": "road_destroyed",
+            }, {
+                "sequence_no": "2",
+                "occurred_at": "2026-11-14T10:05:00Z",
+                "entry_type": "EXECUTION_EXCEPTION_RESOLVED",
+                "reference_id": exception_id,
+                "case_id": None,
+                "state_code": "ACCEPTED",
+                "reason_code": None,
+            }],
+        }
+        receipt = OrganizationTaskTraceModule.seal(
+            _organization_task_trace_view(
+                snapshot,
+                task_id=task_id,
+                organization_id=organization_id,
+            )
+        )
+        exception = receipt["executionException"]
+        self.assertEqual(exception["plans"][0]["title"], "改走西驿道")
+        self.assertEqual(
+            exception["plans"][0]["description"],
+            "拆分车队，经西驿道绕行并补派斥候护送。",
+        )
+        self.assertEqual(exception["resolutionSource"], "NPC_CONFIRMATION")
+        self.assertEqual(exception["resumedGameTime"], "24306616800")
+        self.assertEqual(receipt["kernel"]["state"], "SEALED")
+
+        snapshot["task"]["execution_exception"]["default_plan_id"] = "forged-plan"
+        with self.assertRaisesRegex(ValueError, "incomplete"):
+            _organization_task_trace_view(
+                snapshot,
+                task_id=task_id,
+                organization_id=organization_id,
+            )
+
     async def test_startup_backfills_missing_npc_memory_once(self) -> None:
         task_id = str(uuid4())
         outcome = {

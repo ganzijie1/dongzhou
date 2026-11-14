@@ -1762,9 +1762,21 @@
     };
     const exceptionStates = { OPEN: "异常待裁", ACCEPTED: "已按方案恢复", REJECTED: "异常已驳回", TERMINATED: "异常已终止", INVALIDATED: "异常已失效" };
     $("#officeCareerStatus").innerHTML = officeCareerStatusItems.map((task) => {
-      const exception = task.executionException;
-      const exceptionLabel = exception?.state ? ` · ${exceptionStates[exception.state] || exception.state}${exception.selectedPlanId ? `（${escapeHtml(exception.selectedPlanId)}）` : ""}` : "";
-      return `<li data-task-id="${escapeHtml(task.taskId)}" data-task-state="${escapeHtml(task.state)}" data-exception-state="${escapeHtml(exception?.state || "")}"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(taskStates[task.state] || task.state)}${exceptionLabel}</span><small>版本 ${Number(task.version || 0)} · ${escapeHtml(task.updatedAt || "未记录时间")}</small></li>`;
+      const trace = task.organizationTrace;
+      const exception = trace?.state === "SEALED" ? trace.executionException : task.executionException;
+      const selectedPlan = exception?.plans?.find((plan) => plan.id === exception.selectedPlanId)
+        || exception?.plans?.find((plan) => plan.id === exception.defaultPlanId)
+        || null;
+      const exceptionLabel = exception?.state
+        ? ` · ${exceptionStates[exception.state] || exception.state}${selectedPlan ? `（${escapeHtml(selectedPlan.title)}）` : exception.selectedPlanId ? `（${escapeHtml(exception.selectedPlanId)}）` : ""}`
+        : "";
+      const planDetail = selectedPlan
+        ? ` · 处置：${escapeHtml(String(selectedPlan.description || "").slice(0, 160))}`
+        : exception?.state === "OPEN" ? ` · 受阻：${escapeHtml(String(exception.summary || exception.code || "待裁").slice(0, 160))}` : "";
+      const traceDetail = trace?.state === "SEALED"
+        ? ` · 行迹封印 ${escapeHtml(String(trace.digest || "").slice(0, 10))}`
+        : trace?.state === "UNAVAILABLE" ? " · 权威行迹暂不可用" : "";
+      return `<li data-task-id="${escapeHtml(task.taskId)}" data-task-state="${escapeHtml(task.state)}" data-exception-state="${escapeHtml(exception?.state || "")}" data-trace-state="${escapeHtml(trace?.state || "")}"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(taskStates[task.state] || task.state)}${exceptionLabel}</span><small>版本 ${Number(task.version || 0)} · ${escapeHtml(task.updatedAt || "未记录时间")}${planDetail}${traceDetail}</small></li>`;
     }).join("") || '<li class="empty">尚无权威差事状态</li>';
   }
 

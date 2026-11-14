@@ -368,6 +368,57 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                     }],
                 }
 
+            async def get_virtual_task_trace(self, organization_id: str, requested_task_id: str):
+                assert organization_id == "00000000-0000-0000-0000-000000000001"
+                assert requested_task_id == task_id
+                exception_id = "00000000-0000-4000-8000-000000000071"
+                return {"data": {
+                    "task": {
+                        "task_id": requested_task_id,
+                        "organization_id": organization_id,
+                        "state": "IN_PROGRESS",
+                        "version": "8",
+                        "supplement_count": 0,
+                        "execution_exception": {
+                            "exception_id": exception_id,
+                            "task_id": requested_task_id,
+                            "organization_id": organization_id,
+                            "exception_code": "road_destroyed",
+                            "summary": "北路桥梁冲毁，军粮车队无法通行。",
+                            "plans": [{
+                                "plan_id": "reroute-north-road",
+                                "title": "改走西驿道",
+                                "description": "拆分车队，经西驿道绕行并补派斥候护送。",
+                            }],
+                            "default_plan_id": "reroute-north-road",
+                            "state": "ACCEPTED",
+                            "selected_plan_id": "reroute-north-road",
+                            "resolution_source": "NPC_CONFIRMATION",
+                            "resumed_game_time": "24306616800",
+                            "resolved_at": "2026-11-14T10:05:00Z",
+                            "version": "2",
+                        },
+                    },
+                    "confirmations": [],
+                    "timeline": [{
+                        "sequence_no": "1",
+                        "occurred_at": "2026-11-14T10:00:00Z",
+                        "entry_type": "EXECUTION_EXCEPTION_REPORTED",
+                        "reference_id": exception_id,
+                        "case_id": None,
+                        "state_code": "OPEN",
+                        "reason_code": "road_destroyed",
+                    }, {
+                        "sequence_no": "2",
+                        "occurred_at": "2026-11-14T10:05:00Z",
+                        "entry_type": "EXECUTION_EXCEPTION_RESOLVED",
+                        "reference_id": exception_id,
+                        "case_id": None,
+                        "state_code": "ACCEPTED",
+                        "reason_code": None,
+                    }],
+                }}
+
             async def close(self):
                 return None
 
@@ -392,12 +443,33 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                 "taskId": task_id,
                 "title": "核验军粮簿册",
                 "state": "IN_PROGRESS",
-                "version": 7,
+                "version": 8,
                 "updatedAt": "2026-11-14T10:00:00Z",
-                "executionException": {"state": "ACCEPTED", "selectedPlanId": "reroute-north-road"},
+                "executionException": {
+                    "exceptionId": "00000000-0000-4000-8000-000000000071",
+                    "code": "road_destroyed",
+                    "summary": "北路桥梁冲毁，军粮车队无法通行。",
+                    "state": "ACCEPTED",
+                    "defaultPlanId": "reroute-north-road",
+                    "selectedPlanId": "reroute-north-road",
+                    "plans": [{
+                        "id": "reroute-north-road",
+                        "title": "改走西驿道",
+                        "description": "拆分车队，经西驿道绕行并补派斥候护送。",
+                    }],
+                    "resolutionSource": "NPC_CONFIRMATION",
+                    "resumedGameTime": "24306616800",
+                    "resolvedAt": "2026-11-14T10:05:00Z",
+                    "version": 2,
+                },
+                "organizationTrace": response.json()["items"][0]["organizationTrace"],
             }],
             "hasMore": False,
         })
+        trace = response.json()["items"][0]["organizationTrace"]
+        self.assertEqual(trace["state"], "SEALED")
+        self.assertEqual(trace["kernel"]["module"], "dongzhou_organization_task_trace")
+        self.assertEqual(trace["executionException"]["plans"][0]["title"], "改走西驿道")
         self.assertNotIn(upstreams.expected_player, response.text)
 
     async def test_campaign_route_uses_formal_map_transition_contract(self) -> None:

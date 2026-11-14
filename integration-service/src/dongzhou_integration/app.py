@@ -1899,28 +1899,99 @@ def _organization_task_trace_view(
             or str(raw_exception.get("organization_id") or "") != organization_id
         ):
             raise ValueError("organization task execution exception is invalid")
-        plans = raw_exception.get("plans")
-        if not isinstance(plans, list) or not plans:
+        raw_plans = raw_exception.get("plans")
+        if not isinstance(raw_plans, list) or not 1 <= len(raw_plans) <= 10:
             raise ValueError("organization task execution exception plans are invalid")
-        execution_exception = {
-            "exceptionId": str(raw_exception.get("exception_id") or ""),
-            "code": str(raw_exception.get("exception_code") or ""),
-            "summary": str(raw_exception.get("summary") or "")[:500],
-            "state": str(raw_exception.get("state") or ""),
-            "defaultPlanId": str(raw_exception.get("default_plan_id") or ""),
-            "selectedPlanId": str(raw_exception.get("selected_plan_id") or "") or None,
-            "plans": [
+        plans: list[dict[str, str]] = []
+        plan_ids: set[str] = set()
+        for raw_plan in raw_plans:
+            if not isinstance(raw_plan, dict):
+                raise ValueError("organization task execution exception plan is invalid")
+            plan_id = str(raw_plan.get("plan_id") or "")
+            title = str(raw_plan.get("title") or "").strip()
+            description = str(raw_plan.get("description") or "").strip()
+            if (
+                not plan_id
+                or plan_id in plan_ids
+                or not title
+                or not description
+                or len(title) > 200
+                or len(description) > 2_000
+            ):
+                raise ValueError("organization task execution exception plan is invalid")
+            plan_ids.add(plan_id)
+            plans.append(
                 {
-                    "id": str(plan.get("plan_id") or ""),
-                    "title": str(plan.get("title") or "")[:200],
+                    "id": plan_id,
+                    "title": title,
+                    "description": description,
                 }
-                for plan in plans
-                if isinstance(plan, dict)
-            ],
+            )
+        exception_id = str(raw_exception.get("exception_id") or "")
+        exception_code = str(raw_exception.get("exception_code") or "")
+        summary = str(raw_exception.get("summary") or "").strip()
+        exception_state = str(raw_exception.get("state") or "")
+        default_plan_id = str(raw_exception.get("default_plan_id") or "")
+        selected_plan_id = str(raw_exception.get("selected_plan_id") or "") or None
+        resolution_source = str(raw_exception.get("resolution_source") or "") or None
+        resumed_game_time = raw_exception.get("resumed_game_time")
+        resolved_at = str(raw_exception.get("resolved_at") or "") or None
+        exception_version = raw_exception.get("version")
+        try:
+            normalized_exception_version = int(exception_version)
+        except (TypeError, ValueError) as error:
+            raise ValueError(
+                "organization task execution exception is incomplete"
+            ) from error
+        allowed_exception_states = {
+            "OPEN",
+            "ACCEPTED",
+            "REJECTED",
+            "TERMINATED",
+            "INVALIDATED",
         }
-        if not execution_exception["exceptionId"] or not execution_exception["plans"]:
+        allowed_resolution_sources = {
+            "PLAYER_CONFIRMATION",
+            "NPC_CONFIRMATION",
+            "AI_TIMEOUT",
+            "RULE_FALLBACK",
+            "SYSTEM_RULE",
+        }
+        if (
+            not exception_id
+            or not exception_code
+            or not summary
+            or exception_state not in allowed_exception_states
+            or default_plan_id not in plan_ids
+            or (selected_plan_id is not None and selected_plan_id not in plan_ids)
+            or (exception_state == "ACCEPTED") != (selected_plan_id is not None)
+            or (exception_state == "OPEN") != (resolution_source is None)
+            or (
+                resolution_source is not None
+                and resolution_source not in allowed_resolution_sources
+            )
+            or (exception_state == "ACCEPTED") != (resumed_game_time is not None)
+            or (exception_state == "OPEN") != (resolved_at is None)
+            or isinstance(exception_version, bool)
+            or normalized_exception_version < 1
+        ):
             raise ValueError("organization task execution exception is incomplete")
-        UUID(execution_exception["exceptionId"])
+        UUID(exception_id)
+        execution_exception = {
+            "exceptionId": exception_id,
+            "code": exception_code,
+            "summary": summary[:500],
+            "state": exception_state,
+            "defaultPlanId": default_plan_id,
+            "selectedPlanId": selected_plan_id,
+            "plans": plans,
+            "resolutionSource": resolution_source,
+            "resumedGameTime": (
+                str(resumed_game_time) if resumed_game_time is not None else None
+            ),
+            "resolvedAt": resolved_at,
+            "version": normalized_exception_version,
+        }
     supplement_count = task.get("supplement_count")
     if (
         isinstance(supplement_count, bool)
@@ -8319,12 +8390,43 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 npc_id=manager_npc_id,
                 player_subject_id=player_subject_id,
             )
-            return _organization_player_tasks_view(
+            result = _organization_player_tasks_view(
                 response,
                 settings,
                 manager_npc_id=manager_npc_id,
                 player_subject_id=player_subject_id,
             )
+            async def load_trace(item: dict[str, Any]) -> dict[str, Any]:
+                try:
+                    trace_response = await upstreams.get_virtual_task_trace(
+                        settings.orgflow_org_id,
+                        item["taskId"],
+                    )
+                except UpstreamUnavailable:
+                    return {"state": "UNAVAILABLE"}
+                trace_snapshot = (
+                    trace_response.get("data", trace_response)
+                    if isinstance(trace_response, dict)
+                    else None
+                )
+                trace = _organization_task_trace_view(
+                    trace_snapshot,
+                    task_id=item["taskId"],
+                    organization_id=settings.orgflow_org_id,
+                )
+                return organization_task_trace.seal(trace)
+
+            traces = await asyncio.gather(
+                *(load_trace(item) for item in result["items"])
+            )
+            for item, trace in zip(result["items"], traces, strict=True):
+                item["organizationTrace"] = trace
+                if trace.get("state") != "SEALED":
+                    continue
+                item["state"] = trace["taskState"]
+                item["version"] = int(trace["taskVersion"])
+                item["executionException"] = trace["executionException"]
+            return result
         except UpstreamUnavailable as error:
             raise ApiError(
                 "organization_player_tasks_unavailable",

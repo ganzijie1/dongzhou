@@ -143,6 +143,46 @@ async function openReady(page) {
       }
       else if (pathName.endsWith("/integration/status")) body = { mode: "connected", organizationId: "org-e2e", services: { nexusKernel: { online: true, mode: "embedded", version: "0.2.0", requiredModuleCount: 17, operationalModuleCount: 17, unavailableModules: [] }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } } };
       else if (pathName.endsWith("/organization/roster")) body = { organization: { name: "东周军府", state: "ACTIVE", hierarchyVersion: membershipJoined ? 8 : 7, growthContribution: 245 }, members: [{ heroId: "DuBo", office: "司马", role: "军府主官", level: "manager", directManagerHeroId: null, contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 }, { heroId: "ZuoRu", office: "行人", role: "军府属官", level: "officer", directManagerHeroId: "DuBo", contributionBalance: 31, lifetimeEarned: 42, lifetimeSpent: 11 }], playerMembership: membershipJoined ? { office: "officer_12", role: "court_officer", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 } : null, openPositions: membershipJoined ? [] : [{ office: "officer_12", role: "court_officer", level: "staff" }] };
+      else if (pathName.endsWith("/organization/player-tasks")) {
+        const hasException = careerAction === "exception";
+        body = !careerAction ? { items: [], hasMore: false } : { items: [{
+          taskId: "00000000-0000-4000-8000-000000000081",
+          title: "核验军粮账册",
+          state: careerAction === "result" ? "SUCCEEDED" : "IN_PROGRESS",
+          version: hasException ? 8 : 7,
+          updatedAt: "2026-11-14T10:05:00Z",
+          executionException: hasException ? {
+            exceptionId: "00000000-0000-4000-8000-000000000082",
+            code: "road_destroyed",
+            summary: "北路桥梁冲毁，军粮车队无法通行。",
+            state: "ACCEPTED",
+            defaultPlanId: "reroute-west-post-road",
+            selectedPlanId: "reroute-west-post-road",
+            plans: [{ id: "reroute-west-post-road", title: "改走西驿道", description: "拆分车队，经西驿道绕行并补派斥候护送。" }],
+            resolutionSource: "NPC_CONFIRMATION",
+            resumedGameTime: "24306616800",
+            resolvedAt: "2026-11-14T10:05:00Z",
+            version: 2
+          } : null,
+          organizationTrace: {
+            state: "SEALED",
+            taskId: "00000000-0000-4000-8000-000000000081",
+            taskState: careerAction === "result" ? "SUCCEEDED" : "IN_PROGRESS",
+            taskVersion: hasException ? "8" : "7",
+            executionException: hasException ? {
+              exceptionId: "00000000-0000-4000-8000-000000000082",
+              code: "road_destroyed",
+              summary: "北路桥梁冲毁，军粮车队无法通行。",
+              state: "ACCEPTED",
+              defaultPlanId: "reroute-west-post-road",
+              selectedPlanId: "reroute-west-post-road",
+              plans: [{ id: "reroute-west-post-road", title: "改走西驿道", description: "拆分车队，经西驿道绕行并补派斥候护送。" }]
+            } : null,
+            digest: "8".repeat(64),
+            kernel: { module: "dongzhou_organization_task_trace", state: "SEALED" }
+          }
+        }], hasMore: false };
+      }
       else if (pathName.endsWith("/knowledge/search")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回·东郊索命", summary: "杜伯进谏", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }] }] };
       else if (pathName.endsWith("/knowledge/stages/01")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回·已发布本回史料", summary: "杜伯进谏", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }] }] };
       else if (pathName.endsWith("/npcs/sync")) {
@@ -244,6 +284,11 @@ async function openReady(page) {
     await online.fill("#officeCareerResult", "北路桥梁冲毁，军粮车队无法通行");
     await online.click("#officeCareerException");
     await online.waitForSelector("#officeCareerFeedback >> text=差事暂停", { timeout: 15000 });
+    await online.waitForSelector('#officeCareerStatus [data-exception-state="ACCEPTED"][data-trace-state="SEALED"] >> text=改走西驿道', { timeout: 15000 });
+    await online.waitForSelector("#officeCareerStatus >> text=拆分车队，经西驿道绕行并补派斥候护送", { timeout: 15000 });
+    await online.waitForSelector("#officeCareerStatus >> text=行迹封印 8888888888", { timeout: 15000 });
+    await online.locator("#officeCareerStatus").scrollIntoViewIfNeeded();
+    await online.screenshot({ path: path.join(OUT, "desktop-career-recovery.png"), fullPage: false });
     await online.fill("#officeCareerResult", "核清军粮三十车，账册已封存");
     await online.click("#officeCareerResultForm button[type=submit]");
     await online.waitForSelector("#officeCareerFeedback >> text=贡献已经结算", { timeout: 15000 });
