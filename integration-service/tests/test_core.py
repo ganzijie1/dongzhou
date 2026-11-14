@@ -558,6 +558,92 @@ class OrganizationOutcomeTests(unittest.TestCase):
         self.assertEqual(receipt["verifiedParticipants"], ["DuBo", "SiTu", "ZuoRu"])
         self.assertEqual(receipt["rejectedSupport"], [])
 
+    def test_battle_receipt_accepts_global_scheduled_support_once(self) -> None:
+        player_id = UUID("00000000-0000-4000-8000-000000000123")
+        task_id = "scheduled:00000000-0000-4000-8000-000000000456"
+        task = {
+            "id": task_id,
+            "stageId": "",
+            "assigneeId": "ZuoRu",
+            "scheduledDuty": {
+                "ruleId": "00000000-0000-4000-8000-000000000789",
+                "scopeStageId": "court-monthly-intelligence",
+            },
+        }
+        previous = {
+            "organization": {
+                "members": [{"id": "ZuoRu", "name": "Zuo Ru"}],
+                "councils": [],
+                "mandates": [],
+                "tasks": [task],
+                "pendingSupport": [{
+                    "id": task_id,
+                    "stageId": "",
+                    "memberId": "ZuoRu",
+                    "source": "Monthly intelligence",
+                    "recon": 1,
+                }],
+                "battleReports": [],
+            }
+        }
+        submitted = json.loads(json.dumps(previous))
+        submitted["organization"]["pendingSupport"] = []
+        submitted["organization"]["battleReports"] = [{
+            "id": "battle:scheduled:first",
+            "stageId": "02",
+            "won": True,
+            "turns": 3,
+            "ownLosses": 0,
+            "councils": [],
+            "mandates": [],
+            "support": {
+                "orders": [{"id": task_id, "memberId": "ZuoRu"}],
+            },
+        }]
+        attestations = {
+            "councils": set(),
+            "mandates": set(),
+            "orders": {task_id},
+            "globalOrders": {task_id},
+            "mandateCollaborators": {},
+        }
+        sealed = _seal_battle_reports(
+            player_id,
+            previous,
+            submitted,
+            attestations,
+        )
+        receipt = sealed["organization"]["battleReports"][0]["kernelReceipt"]
+        self.assertEqual(receipt["verifiedParticipants"], ["ZuoRu"])
+        self.assertEqual(receipt["verifiedSupport"]["orders"], [{
+            "id": task_id,
+            "heroId": "ZuoRu",
+            "scope": "next_battle",
+        }])
+
+        replayed = json.loads(json.dumps(sealed))
+        replayed["organization"]["battleReports"].append({
+            "id": "battle:scheduled:second",
+            "stageId": "03",
+            "won": True,
+            "turns": 2,
+            "ownLosses": 0,
+            "councils": [],
+            "mandates": [],
+            "support": {
+                "orders": [{"id": task_id, "memberId": "ZuoRu"}],
+            },
+        })
+        with self.assertRaisesRegex(
+            BattleReceiptConflict, "battle_order_already_consumed"
+        ):
+            _seal_battle_reports(
+                player_id,
+                sealed,
+                replayed,
+                attestations,
+            )
+
     def test_organization_supervision_links_use_only_synced_direct_reports(self) -> None:
         links = _organization_supervision_links(
             {"members": [
@@ -2230,6 +2316,71 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(attested["mandates"], {mandate_id})
         self.assertEqual(attested["mandateCollaborators"], {mandate_id: "SiTu"})
         self.assertEqual(attested["orders"], {"local-order-1"})
+
+    async def test_battle_support_attests_scheduled_duty_for_next_battle(self) -> None:
+        player_id = await self.store.get_or_create_player(uuid4())
+        remote_task_id = str(uuid4())
+        rule_id = str(uuid4())
+        closure = {"state": "SEALED", "digest": "c" * 64}
+        await self.store.register_derived_external_request(
+            player_id,
+            remote_task_id,
+            "organization_task",
+            {
+                "task_type": "intelligence",
+                "assignee_hero_id": "ZuoRu",
+                "stage_id": "court-monthly-intelligence",
+                "stage_title": "Monthly intelligence",
+                "brief": "Authoritative scheduled Dongzhou court intelligence duty.",
+                "parameters": {"resource_units": 0, "assignee_name": "Zuo Ru"},
+                "scheduled_rule_id": rule_id,
+            },
+        )
+        await self.store.cache_external_request_result(
+            player_id,
+            remote_task_id,
+            "organization_task",
+            "terminal",
+            {
+                "settlement": {"result": "SUCCESS"},
+                "closureReceipt": closure,
+            },
+        )
+        local_task_id = f"scheduled:{remote_task_id}"
+        previous = {
+            "organization": {
+                "tasks": [{
+                    "id": local_task_id,
+                    "stageId": "",
+                    "assigneeId": "ZuoRu",
+                    "remoteResult": remote_task_id,
+                    "closureReceipt": closure,
+                    "scheduledDuty": {
+                        "ruleId": rule_id,
+                        "scopeStageId": "court-monthly-intelligence",
+                    },
+                }]
+            }
+        }
+        submitted = {
+            "organization": {
+                "battleReports": [{
+                    "stageId": "02",
+                    "support": {"orders": [{
+                        "id": local_task_id,
+                        "memberId": "ZuoRu",
+                    }]},
+                }]
+            }
+        }
+        attested = await _battle_support_attestations(
+            self.store,
+            player_id,
+            previous,
+            submitted,
+        )
+        self.assertEqual(attested["orders"], {local_task_id})
+        self.assertEqual(attested["globalOrders"], {local_task_id})
 
     async def test_explicit_redelivery_requeues_same_completed_game_event(self) -> None:
         payload = {"taskId": "stable-task", "topic": "stable-topic"}

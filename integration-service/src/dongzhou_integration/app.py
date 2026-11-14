@@ -2991,14 +2991,26 @@ async def _battle_support_attestations(
     organization = submitted_payload.get("organization")
     previous_organization = previous_payload.get("organization")
     if not isinstance(organization, dict) or not isinstance(previous_organization, dict):
-        return {"councils": set(), "mandates": set(), "orders": set(), "mandateCollaborators": {}}
+        return {
+            "councils": set(),
+            "mandates": set(),
+            "orders": set(),
+            "globalOrders": set(),
+            "mandateCollaborators": {},
+        }
 
     reports = organization.get("battleReports")
     if not isinstance(reports, list):
-        return {"councils": set(), "mandates": set(), "orders": set(), "mandateCollaborators": {}}
+        return {
+            "councils": set(),
+            "mandates": set(),
+            "orders": set(),
+            "globalOrders": set(),
+            "mandateCollaborators": {},
+        }
     councils: dict[str, tuple[str, str]] = {}
     mandates: dict[str, tuple[str, str]] = {}
-    orders: dict[str, str] = {}
+    orders: dict[str, tuple[str, str]] = {}
     for report in reports[-40:]:
         if not isinstance(report, dict):
             continue
@@ -3022,12 +3034,16 @@ async def _battle_support_attestations(
         support_orders = support.get("orders")
         for order in support_orders if isinstance(support_orders, list) else []:
             if isinstance(order, dict) and order.get("id") and order.get("memberId"):
-                orders[str(order["id"])] = str(order["memberId"])
+                orders[str(order["id"])] = (
+                    str(order["memberId"]),
+                    str(report.get("stageId") or ""),
+                )
 
     attested: dict[str, Any] = {
         "councils": set(),
         "mandates": set(),
         "orders": set(),
+        "globalOrders": set(),
         "mandateCollaborators": {},
     }
     previous_councils = {
@@ -3110,7 +3126,7 @@ async def _battle_support_attestations(
         for task in previous_organization.get("tasks", [])
         if isinstance(task, dict) and task.get("id")
     }
-    for order_id, hero_id in orders.items():
+    for order_id, (hero_id, battle_stage_id) in orders.items():
         task = previous_tasks.get(order_id)
         remote_id = str(task.get("remoteResult") or "") if task else ""
         if not task or not remote_id:
@@ -3124,18 +3140,45 @@ async def _battle_support_attestations(
         settlement = terminal.get("settlement") if isinstance(terminal, dict) else None
         closure = terminal.get("closureReceipt") if isinstance(terminal, dict) else None
         task_closure = task.get("closureReceipt")
+        original_stage_id = (
+            str(original.get("stage_id") or "")
+            if isinstance(original, dict)
+            else ""
+        )
+        local_stage_id = str(task.get("stageId") or "") if isinstance(task, dict) else ""
+        scheduled = task.get("scheduledDuty") if isinstance(task, dict) else None
+        global_scheduled_support = (
+            isinstance(original, dict)
+            and isinstance(scheduled, dict)
+            and original.get("task_type") == "intelligence"
+            and original_stage_id == "court-monthly-intelligence"
+            and local_stage_id == ""
+            and str(original.get("scheduled_rule_id") or "")
+            == str(scheduled.get("ruleId") or "")
+            and str(scheduled.get("scopeStageId") or "") == original_stage_id
+            and bool(battle_stage_id)
+        )
+        stage_matches = (
+            global_scheduled_support
+            or (
+                original_stage_id == local_stage_id
+                and local_stage_id == battle_stage_id
+            )
+        )
         if (
             isinstance(original, dict)
             and isinstance(settlement, dict)
             and isinstance(closure, dict)
             and isinstance(task_closure, dict)
             and str(original.get("assignee_hero_id") or "") == hero_id
-            and str(original.get("stage_id") or "") == str(task.get("stageId") or "")
+            and stage_matches
             and settlement.get("result") in {"SUCCESS", "PARTIAL"}
             and closure.get("state") == "SEALED"
             and closure.get("digest") == task_closure.get("digest")
         ):
             attested["orders"].add(order_id)
+            if global_scheduled_support:
+                attested["globalOrders"].add(order_id)
     return attested
 
 
@@ -3187,6 +3230,13 @@ def _seal_battle_reports(
         str(entry.get("id")): entry
         for entry in previous_organization.get("pendingSupport", [])
         if isinstance(entry, dict) and entry.get("id")
+    }
+    consumed_order_ids = {
+        str(order.get("id") or "")
+        for previous_report in previous_reports.values()
+        if isinstance(previous_report.get("kernelReceipt"), dict)
+        for order in previous_report["kernelReceipt"].get("verifiedSupport", {}).get("orders", [])
+        if isinstance(order, dict) and order.get("id")
     }
 
     for report in reports[-40:]:
@@ -3351,6 +3401,8 @@ def _seal_battle_reports(
                 raise BattleReceiptConflict("battle_order_reference_invalid")
             order_id = str(order.get("id") or "")
             hero_id = str(order.get("memberId") or "")
+            if order_id in consumed_order_ids:
+                raise BattleReceiptConflict("battle_order_already_consumed")
             support_entry = eligible_support.get(order_id)
             task = previous_tasks.get(order_id)
             server_attested = (
@@ -3366,9 +3418,22 @@ def _seal_battle_reports(
             )
             if hero_id != expected_hero:
                 raise BattleReceiptConflict("battle_order_reference_invalid")
+            global_order = (
+                attestations is not None
+                and order_id in attestations.get("globalOrders", set())
+            )
+            task_stage_id = str((task or {}).get("stageId") or "")
+            scheduled = (task or {}).get("scheduledDuty")
+            valid_stage = task_stage_id == stage_id or (
+                global_order
+                and task_stage_id == ""
+                and isinstance(scheduled, dict)
+                and str(scheduled.get("scopeStageId") or "")
+                == "court-monthly-intelligence"
+            )
             if hero_id and (
                 not task
-                or str(task.get("stageId") or "") != stage_id
+                or not valid_stage
                 or str(task.get("assigneeId") or "") != hero_id
                 or hero_id not in previous_members
             ):
@@ -3384,7 +3449,12 @@ def _seal_battle_reports(
                     "reason": "server_attestation_missing",
                 })
                 continue
-            verified_orders.append({"id": order_id, "heroId": hero_id})
+            verified_orders.append({
+                "id": order_id,
+                "heroId": hero_id,
+                **({"scope": "next_battle"} if global_order else {}),
+            })
+            consumed_order_ids.add(order_id)
             if hero_id:
                 participants.add(hero_id)
 
