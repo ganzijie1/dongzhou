@@ -179,7 +179,8 @@ assert.throws(() => play.recordRemoteRoster(state, { organization: { growthContr
 let remote = play.createTask(state, { type: "supply", assigneeId: "ZuoRu", stageId: "01", stageTitle: "东郊索命" });
 remote.task.remoteResult = "00000000-0000-0000-0000-000000000010";
 assert.strictEqual(play.remoteTaskReadyForAdvance({ state: "MEMBER_RESPONSE_PENDING", execution_started_game_time: null }), false);
-assert.strictEqual(play.remoteTaskReadyForAdvance({ state: "IN_PROGRESS", execution_started_game_time: 24306616800 }), true);
+assert.strictEqual(play.remoteTaskReadyForAdvance({ state: "IN_PROGRESS", execution_started_game_time: 24306616800 }), false);
+assert.strictEqual(play.remoteTaskReadyForAdvance({ state: "SUBMISSION_PENDING", execution_started_game_time: 24306616800 }), true);
 const observed = play.reconcileRemoteTasks(remote.state, [{
   task_id: remote.task.remoteResult, state: "MEMBER_RESPONSE_PENDING", execution_started_game_time: null, version: "2"
 }], { advanceMonth: false });

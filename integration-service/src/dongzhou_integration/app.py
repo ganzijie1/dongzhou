@@ -2645,13 +2645,22 @@ def _derived_follow_ups(
         "PARTIAL": "partial_follow_up",
         "FAILURE": "failure_remediation",
     }.get(final_result)
-    expected_defaults = {
-        "assignee_hero_id": "unassigned",
-        "assignee_name": "Unassigned",
-        "resource_units": 0,
-        "stage_id": "unknown",
-        "stage_title": "Unknown stage",
-    }
+    expected_defaults = (
+        {
+            "assignee_hero_id": "unassigned",
+            "assignee_name": "Unassigned",
+            "resource_units": 0,
+            "stage_id": "unknown",
+            "stage_title": "Unknown stage",
+        },
+        {
+            "assignee_hero_id": "unassigned",
+            "assignee_name": "待定",
+            "resource_units": 0,
+            "stage_id": "unknown",
+            "stage_title": "未知战役",
+        },
+    )
     follow_ups: list[dict[str, Any]] = []
     for derivation in derivations:
         if not isinstance(derivation, dict):
@@ -2668,7 +2677,7 @@ def _derived_follow_ups(
             or derivation.get("target_position_selector") != "SAME_POSITION"
             or derivation.get("parameter_strategy") != "TARGET_DEFAULTS"
             or derivation.get("target_position_slot_id") != snapshot.get("position_slot_id")
-            or derivation.get("target_default_parameters") != expected_defaults
+            or derivation.get("target_default_parameters") not in expected_defaults
         ):
             raise ValueError("organization_derivation_invalid")
         target_code = str(derivation.get("target_task_code") or "")

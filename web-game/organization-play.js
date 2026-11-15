@@ -656,7 +656,8 @@
       if (!snapshot.settlement) return true;
       return ["ACCEPTED", "CENSURED"].includes(snapshot.review?.state);
     }
-    return snapshot.execution_started_game_time !== null
+    return snapshot.state !== "IN_PROGRESS"
+      && snapshot.execution_started_game_time !== null
       && snapshot.execution_started_game_time !== undefined;
   }
 

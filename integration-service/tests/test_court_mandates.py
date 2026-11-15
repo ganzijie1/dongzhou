@@ -13,7 +13,11 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from dongzhou_integration.app import _composite_authoritative_settlement, build_application
+from dongzhou_integration.app import (
+    _composite_authoritative_settlement,
+    _derived_follow_ups,
+    build_application,
+)
 from dongzhou_integration.config import Settings
 from dongzhou_integration.security import stable_npc_id, stable_player_id
 from dongzhou_integration.store import Store
@@ -21,6 +25,65 @@ from dongzhou_integration.store import Store
 MANAGER_NPC_ID = str(stable_npc_id(91001, "DuBo"))
 ZUORU_NPC_ID = str(stable_npc_id(91001, "ZuoRu"))
 QIN_NPC_ID = str(stable_npc_id(91001, "QinXiangGong"))
+
+
+def test_derived_follow_up_accepts_localized_authoritative_defaults() -> None:
+    task_id = str(uuid4())
+    intent_id = str(uuid4())
+    derived_task_id = str(uuid4())
+    position_id = str(uuid4())
+    result = _derived_follow_ups(
+        task_id,
+        {
+            "task_type": "supply",
+            "stage_id": "01",
+            "stage_title": "Dongzhou stage 01",
+            "assignee_hero_id": "ZuoRu",
+        },
+        {
+            "final_result": "SUCCESS",
+            "position_slot_id": position_id,
+            "derivations": [
+                {
+                    "intent_id": intent_id,
+                    "predecessor_task_id": task_id,
+                    "root_task_id": task_id,
+                    "planned_task_id": derived_task_id,
+                    "created_task_id": derived_task_id,
+                    "rule_id": "dongzhou_supply_success_follow_up",
+                    "source": "FOLLOW_UP",
+                    "target_task_code": "dongzhou.patrol",
+                    "target_position_selector": "SAME_POSITION",
+                    "target_position_slot_id": position_id,
+                    "parameter_strategy": "TARGET_DEFAULTS",
+                    "target_default_parameters": {
+                        "assignee_hero_id": "unassigned",
+                        "assignee_name": "待定",
+                        "resource_units": 0,
+                        "stage_id": "unknown",
+                        "stage_title": "未知战役",
+                    },
+                    "generation_depth": 1,
+                    "trigger_result": "SUCCESS",
+                    "state": "CREATED",
+                }
+            ],
+        },
+    )
+
+    assert result == [
+        {
+            "intentId": intent_id,
+            "taskId": derived_task_id,
+            "state": "CREATED",
+            "source": "FOLLOW_UP",
+            "taskType": "patrol",
+            "ruleId": "dongzhou_supply_success_follow_up",
+            "stageId": "01",
+            "stageTitle": "Dongzhou stage 01",
+            "assigneeHeroId": "ZuoRu",
+        }
+    ]
 
 
 def test_composite_settlement_uses_parent_aggregate_result() -> None:
