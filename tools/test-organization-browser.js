@@ -349,6 +349,7 @@ async function openReady(page) {
       else if (pathName.endsWith("/court/mandates")) {
         mandateAttempts += 1;
         const input = request.postDataJSON();
+        if (input.schedule_plan_id !== "plan-e2e") throw new Error("Nexus mandate did not retain the authoritative AINPC schedule plan ID");
         body = { state: "ISSUED", mandate: { id: `dongzhou:player-e2e:${input.client_request_id}`, stageId: input.stage_id, stageTitle: "东郊索命", heroId: input.hero_id, taskType: input.task_type, evidence: { id: input.knowledge_id, name: "第一回·已发布本回史料", summary: "杜伯进谏", source: { index: input.evidence_source_index, work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" } }, evidenceFit: { taskType: input.task_type, factor: 2, band: "weak", signals: [{ kind: "sourceTier", label: "史实骨架", factor: 2 }] }, council: { requestId: input.council_request_id, index: input.decision_index, text: "整军强攻，争取先机" }, assignment: { heroId: input.hero_id, npcId: "42", runtimeState: "READY", planId: input.schedule_plan_id, generationId: "generation-e2e", eventId: input.schedule_event_id, transactionId: 9100103, name: "转运军粮", type: "军需", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "resolute", intensity: 72, affectionCount: 2, relationshipCount: 3 }, readiness: { score: 82, band: "steady", factors: { runtime: 6, duty: 7.2, emotion: 0, support: 7 } } }, kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "READY" }, digest: "b".repeat(64), state: "ISSUED" } };
         body.mandate.assignment.personality = { available: true, profileId: "profile-zuoru", traits: { stubborn: 79, smooth: 48 }, dominantTraits: ["stubborn", "smooth"], fit: { available: true, score: 56, band: "steady", factor: 1.2, signals: [{ trait: "stubborn", value: 79, effect: 6.3 }] } };
         body.mandate.assignment.motivation = { available: true, motives: [{ name: "情报核验", score: 35 }], revision: 2, updatedAt: "2026-11-10T08:01:52.476000", threshold: 80, fit: { available: true, score: 50, band: "neutral", factor: 0, signals: [] } };
@@ -485,6 +486,8 @@ async function openReady(page) {
     await online.waitForSelector("#officeNpcState >> text=正在当值 · 巡核军粮 · 第2/3步 · 等待游服回报", { timeout: 15000 });
     await online.waitForSelector("#officeNpcSchedule >> text=今日实况", { timeout: 15000 });
     await online.waitForSelector("#officeNpcSchedule >> text=当下：休息 · 稍后：检阅军阵、议定军令", { timeout: 15000 });
+    await online.waitForSelector("#officeNpcSchedule >> text=日程已由属官确认", { timeout: 15000 });
+    if (/\bplan-e2e\b/i.test(await online.locator("#officeNpcSchedule").innerText())) throw new Error("Internal AINPC schedule plan ID leaked into the player UI");
     await online.waitForSelector("#officeNpcState >> text=你", { timeout: 15000 });
     await online.waitForSelector("#officeNpcState >> text=杜伯", { timeout: 15000 });
     if (/未具名人物/.test(await online.locator("#officeNpcState").innerText())) throw new Error("Unattributed historical player leaked into the NPC relationship ledger");
@@ -494,6 +497,8 @@ async function openReady(page) {
     if (npcStateMobileLayout.scrollWidth > npcStateMobileLayout.width + 1) throw new Error(`Mobile NPC execution status overflows viewport: ${JSON.stringify(npcStateMobileLayout)}`);
     await online.setViewportSize({ width: 1440, height: 900 });
     await online.waitForSelector("#officeNpcAssignment >> text=胜任 82/100", { timeout: 15000 });
+    await online.waitForSelector("#officeNpcAssignment >> text=日程已核验", { timeout: 15000 });
+    if (/\bplan-e2e\b/i.test(await online.locator("#officeNpcAssignment").innerText())) throw new Error("Internal assignment plan ID leaked into the player UI");
     await online.waitForSelector("#officeNpcAssignment >> text=情绪 坚决 72", { timeout: 15000 });
     if (/\bresolute\b/i.test(await online.locator("#officeNpcAssignment").innerText())) throw new Error("Internal assignment emotion enum leaked into the player UI");
     await online.waitForSelector("#officeNpcAssignment >> text=适岗 56/100", { timeout: 15000 });

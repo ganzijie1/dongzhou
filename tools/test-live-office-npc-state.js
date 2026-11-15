@@ -67,10 +67,12 @@ const executablePath = [
     await page.waitForSelector('#campaignOfficeBackdrop:not([hidden])');
     await page.waitForSelector('#officeNpcState strong', { timeout: 45000 });
     await page.waitForSelector('#officeNpcSchedule strong', { timeout: 90000 });
+    await page.waitForSelector('#officeNpcAssignment strong', { timeout: 90000 });
     await page.waitForSelector('#officeNpcMemories .office-memory-item', { timeout: 45000 });
 
     const stateText = await page.locator('#officeNpcState').innerText();
     const scheduleText = await page.locator('#officeNpcSchedule').innerText();
+    const assignmentText = await page.locator('#officeNpcAssignment').innerText();
     const memoryText = await page.locator('#officeNpcMemories').innerText();
     const emotionEnums = /\b(?:joy|anger|fear|sadness|curiosity|peace|irritation|surprise|shame|calm|resolute)\b/i;
     const memorySourceEnums = /\b(?:dialogue_choice|system_message|task\.settlement|event_report|chat_event)\b/i;
@@ -79,6 +81,11 @@ const executablePath = [
     assert(stateText.trim().length > 0 && scheduleText.trim().length > 0);
     assert(!emotionEnums.test(stateText), `Internal NPC emotion enum leaked into state UI: ${stateText}`);
     assert(!memorySourceEnums.test(memoryText), `Internal NPC memory source enum leaked into memory UI: ${memoryText}`);
+    assert(!/\bdongzhou_stage_\d+\b/i.test(memoryText), `Internal knowledge ID leaked into memory UI: ${memoryText}`);
+    assert(!/\bschedule-plan-[a-z0-9-]+\b/i.test(scheduleText), `Internal schedule plan ID leaked into schedule UI: ${scheduleText}`);
+    assert(!/\bschedule-plan-[a-z0-9-]+\b/i.test(assignmentText), `Internal schedule plan ID leaked into assignment UI: ${assignmentText}`);
+    assert.match(scheduleText, /日程已由属官确认/);
+    assert.match(assignmentText, /日程已核验/);
     assert.match(stateText, /执行/);
     assert.match(stateText, /正在当值|当前无执行中的事务|执行暂停/);
     assert(!/未具名人物/.test(stateText));
