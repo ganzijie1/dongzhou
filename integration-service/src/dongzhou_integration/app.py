@@ -8932,6 +8932,36 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             rule = item.get("rule")
             if not isinstance(rule, dict):
                 raise ValueError("scheduled rule item is invalid")
+            template = rule.get("template")
+            parameters = rule.get("parameters")
+            if (
+                str(rule.get("rule_id") or "") != str(rule_id)
+                or str(rule.get("game_server_id") or "")
+                != str(settings.game_server_id)
+                or str(rule.get("organization_id") or "")
+                != settings.orgflow_org_id
+                or str(rule.get("manager_member_id") or "")
+                != settings.orgflow_hero_members[manager_hero_id]
+                or str(rule.get("worker_member_id") or "")
+                != settings.orgflow_hero_members[worker_hero_id]
+                or str(rule.get("manager_npc_id") or "") != manager_npc_id
+                or str(rule.get("worker_npc_id") or "") != worker_npc_id
+                or str(rule.get("state") or "") not in {"ACTIVE", "DISABLED"}
+                or int(rule.get("version") or 0) < 1
+                or str(rule.get("frequency") or "") != "DAILY"
+                or int(rule.get("trigger_minute", -1)) != 780
+                or not isinstance(template, dict)
+                or str(template.get("task_code") or "")
+                != "dongzhou.intelligence"
+                or not isinstance(parameters, dict)
+                or str(parameters.get("stage_id") or "")
+                != "court-monthly-intelligence"
+                or str(parameters.get("assignee_hero_id") or "")
+                != worker_hero_id
+                or not str(parameters.get("stage_title") or "").strip()
+            ):
+                raise ValueError("scheduled duty rule identity is invalid")
+            duty_title = str(parameters["stage_title"]).strip()[:200]
             latest = item.get("latest_trigger")
             active_task = None
             latest_task_id = (
@@ -8964,7 +8994,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                         )
                     active_task = {
                         "taskId": latest_task_id,
-                        "title": str(task.get("title") or "月例察访"),
+                        "title": duty_title,
                         "state": str(task.get("state") or "UNKNOWN"),
                         "finalResult": (
                             str(task["final_result"])
@@ -9013,11 +9043,8 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "triggerMinute": int(rule.get("trigger_minute", 780)),
                 "managerHeroId": manager_hero_id,
                 "workerHeroId": worker_hero_id,
-                "taskCode": str(
-                    rule.get("template", {}).get("task_code")
-                    if isinstance(rule.get("template"), dict)
-                    else "dongzhou.intelligence"
-                ),
+                "taskCode": str(template["task_code"]),
+                "dutyTitle": duty_title,
                 "latestTrigger": latest if isinstance(latest, dict) else None,
                 "activeTask": active_task,
             }

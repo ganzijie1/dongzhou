@@ -59,11 +59,18 @@ class ScheduledDutyUpstreams:
         self.create_calls.append(payload)
         rule = {
             "rule_id": payload["rule_id"],
+            "game_server_id": str(payload["game_server_id"]),
+            "organization_id": "596354f7-c343-5c78-958d-757a9e58fde6",
+            "manager_member_id": "bb531833-924f-5a59-a148-5d33e3fbface",
+            "manager_npc_id": payload["manager_npc_id"],
+            "worker_member_id": "e3419e13-7498-5a6b-9259-a2c30aeb5a19",
+            "worker_npc_id": payload["worker_npc_id"],
             "state": "ACTIVE",
             "version": 1,
             "frequency": payload["frequency"],
             "trigger_minute": payload["trigger_minute"],
             "template": {"task_code": payload["task_code"]},
+            "parameters": payload["parameters"],
         }
         self.rules.append(rule)
         return {"data": {"rule": rule}}
@@ -84,7 +91,7 @@ class ScheduledDutyUpstreams:
                 "task_id": task_id,
                 "organization_id": organization_id,
                 "task_code": "dongzhou.intelligence",
-                "title": "东周朝廷月例察访",
+                "title": "Intelligence mission",
                 "state": "IN_PROGRESS",
                 "responsible_member_id": "e3419e13-7498-5a6b-9259-a2c30aeb5a19",
                 "final_result": None,
