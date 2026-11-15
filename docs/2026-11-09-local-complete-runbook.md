@@ -3,7 +3,7 @@
 ## 入口与交付包
 
 - 游戏入口：`http://127.0.0.1:8780/`
-- 东周网关镜像：`dongzhou-integration:20261115-runtime-schedule217`
+- 东周网关镜像：`dongzhou-integration:20261115-ui-localization218`
 - AINPC 镜像：Global 使用 `ainpc-app:v20261115-dongzhou-player-exception-title187-global`，Gateway 使用 `ainpc-app:v20261114-dongzhou-local-player-exception-contract89`，六个 Business 角色使用 `ainpc-app:v20261115-dongzhou-position-display208-business`
 - orgFlow API/Worker 镜像：`org-flow-engine:dongzhou-position-display206`
 - H5 完整包：`output/2026-11-15-dongzhou-integrated-h5-four-service-complete.zip`

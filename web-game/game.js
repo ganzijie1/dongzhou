@@ -2293,6 +2293,28 @@
     return ({ love: "亲爱", respect: "敬重", trust: "信赖", friendship: "亲善", hatred: "仇恨", disgust: "厌恶", fear: "畏惧" })[String(type || "").toLowerCase()] || "牵挂";
   }
 
+  const OFFICE_EMOTION_LABELS = {
+    joy: "喜悦", anger: "愤怒", fear: "畏惧", sadness: "哀伤",
+    curiosity: "好奇", peace: "安宁", irritation: "烦躁", surprise: "惊讶",
+    shame: "羞惭", calm: "平静", resolute: "坚决"
+  };
+
+  function officeEmotionText(value) {
+    return OFFICE_EMOTION_LABELS[String(value || "calm").toLowerCase()] || "心绪未明";
+  }
+
+  const OFFICE_MEMORY_SOURCE_LABELS = {
+    dialogue_choice: "军议裁断",
+    system_message: "属官记事",
+    "task.settlement": "差事结案",
+    event_report: "事件回报",
+    chat_event: "府中书问"
+  };
+
+  function officeMemorySourceText(value) {
+    return OFFICE_MEMORY_SOURCE_LABELS[String(value || "").toLowerCase()] || "属官旧事";
+  }
+
   function officeRelationshipText(item) {
     if (item.title) return item.title;
     return ({ superior_subordinate: "上下级", family: "亲族", friend: "友朋", rival: "对手", organization: "同僚" })[item.relation_sub || item.relation_type] || "往来";
@@ -2319,7 +2341,7 @@
       const isSelected = selected?.messageId === message.messageId && selected?.heroId === member.id;
       const peerName = officeCanonicalMemberName(message.speakerId === message.npcId ? message.targetName : message.speakerName);
       const speakerName = message.speakerId === message.npcId ? member.name : officeCanonicalMemberName(message.speakerName);
-      return `<div class="office-correspondence-item${isSelected ? " selected" : ""}"><strong>${escapeHtml(speakerName || member.name)}</strong><button class="large-button" type="button" data-correspondence-id="${escapeHtml(message.messageId)}">${isSelected ? "已取用" : "取为线索"}</button><span>${escapeHtml(message.content)}</span><small>${escapeHtml(peerName || "府中属官")} · ${escapeHtml(message.emotion || "calm")} · 印记 ${escapeHtml(String(message.digest || "").slice(0, 10))}</small></div>`;
+      return `<div class="office-correspondence-item${isSelected ? " selected" : ""}"><strong>${escapeHtml(speakerName || member.name)}</strong><button class="large-button" type="button" data-correspondence-id="${escapeHtml(message.messageId)}">${isSelected ? "已取用" : "取为线索"}</button><span>${escapeHtml(message.content)}</span><small>${escapeHtml(peerName || "府中属官")} · ${escapeHtml(officeEmotionText(message.emotion))} · 印记 ${escapeHtml(String(message.digest || "").slice(0, 10))}</small></div>`;
     }).join("") || "<p>尚未收到与该属官有关的府中耳报。</p>";
   }
 
@@ -2406,7 +2428,7 @@
       const affection = state.affection?.data || state.affection || {};
       const relationships = state.relationships?.data || state.relationships || {};
       const dominant = emotion.dominant || {};
-      panel.innerHTML = `<strong>${escapeHtml(member.name)} · ${escapeHtml(member.office)}</strong><dl><div><dt>心境</dt><dd>${escapeHtml(dominant.emotion_type || "calm")} ${Math.round(Number(dominant.intensity || 0))}</dd></div><div><dt>牵挂</dt><dd>${Number(affection.total || affection.items?.length || 0)}</dd></div><div><dt>人际</dt><dd>${Number(relationships.total || relationships.items?.length || 0)}</dd></div></dl>${officeNpcRelations(state, affection, relationships)}`;
+      panel.innerHTML = `<strong>${escapeHtml(member.name)} · ${escapeHtml(member.office)}</strong><dl><div><dt>心境</dt><dd>${escapeHtml(officeEmotionText(dominant.emotion_type))} ${Math.round(Number(dominant.intensity || 0))}</dd></div><div><dt>牵挂</dt><dd>${Number(affection.total || affection.items?.length || 0)}</dd></div><div><dt>人际</dt><dd>${Number(relationships.total || relationships.items?.length || 0)}</dd></div></dl>${officeNpcRelations(state, affection, relationships)}`;
       const personality = state.personality || { available: false };
       panel.querySelector("dl")?.insertAdjacentHTML("beforeend", `<div><dt>性情</dt><dd>${escapeHtml(officePersonalityText(personality))}</dd></div>`);
       const motivation = state.motivation || { available: false };
@@ -2449,7 +2471,7 @@
     if (integration.isOffline()) { panel.innerHTML = "<p>离线演算不调阅属官旧事。</p>"; return; }
     panel.innerHTML = `<div class="office-memory-heading"><strong>${escapeHtml(member?.name || "属官")}旧事</strong><small>可取一事作为本回军议依据</small></div>${officeMemoryView.slice(0, 6).map((memory) => {
       const selected = memory.idempotencyKey === officeSelectedMemory?.idempotencyKey;
-      return `<div class="office-memory-item${selected ? " selected" : ""}"><span>${escapeHtml(memory.content)}</span><button class="large-button" type="button" data-memory-id="${escapeHtml(memory.idempotencyKey)}">${selected ? "已取用" : "取为旧事"}</button><small>${escapeHtml(memory.sourceType || "旧事")} · 印记 ${escapeHtml(String(memory.digest || "").slice(0, 10))}</small></div>`;
+      return `<div class="office-memory-item${selected ? " selected" : ""}"><span>${escapeHtml(memory.content)}</span><button class="large-button" type="button" data-memory-id="${escapeHtml(memory.idempotencyKey)}">${selected ? "已取用" : "取为旧事"}</button><small>${escapeHtml(officeMemorySourceText(memory.sourceType))} · 印记 ${escapeHtml(String(memory.digest || "").slice(0, 10))}</small></div>`;
     }).join("") || "<p>尚无可引用旧事；完成一次军议后将由属官记取。</p>"}`;
   }
 
@@ -2699,7 +2721,7 @@
       const readinessBand = { steady: "从容", watch: "审慎", strained: "吃紧" }[assignment.readiness?.band] || "待评";
       const readinessText = Number.isFinite(readiness) ? ` · 胜任 ${readiness}/100 · ${readinessBand}` : "";
       const state = assignment.state || {};
-      panel.innerHTML = `<strong>本关当值</strong><span>${escapeHtml(assignment.date || "近日")} · ${escapeHtml(assignment.name || taskType)}${assignment.timeSlot ? ` · ${escapeHtml(assignment.timeSlot)}` : ""}</span><small>日程 ${escapeHtml(String(assignment.planId).slice(0, 18))} · 重要度 ${Number(assignment.importance || 0)}${readinessText}</small><small class="office-npc-readiness">情绪 ${escapeHtml(state.emotion || "calm")} ${Number(state.intensity || 0)} · 关系 ${Number(state.relationshipCount || 0)} · 好感 ${Number(state.affectionCount || 0)}</small>`;
+      panel.innerHTML = `<strong>本关当值</strong><span>${escapeHtml(assignment.date || "近日")} · ${escapeHtml(assignment.name || taskType)}${assignment.timeSlot ? ` · ${escapeHtml(assignment.timeSlot)}` : ""}</span><small>日程 ${escapeHtml(String(assignment.planId).slice(0, 18))} · 重要度 ${Number(assignment.importance || 0)}${readinessText}</small><small class="office-npc-readiness">情绪 ${escapeHtml(officeEmotionText(state.emotion))} ${Number(state.intensity || 0)} · 关系 ${Number(state.relationshipCount || 0)} · 好感 ${Number(state.affectionCount || 0)}</small>`;
       const fit = Number(assignment.personality?.fit?.score);
       const fitBand = { strong: "相合", steady: "可任", strained: "相冲" }[assignment.personality?.fit?.band] || "待评";
       const fitText = assignment.personality?.fit?.available === true && Number.isFinite(fit) ? `适岗 ${fit}/100 · ${fitBand}` : "适岗未建档";

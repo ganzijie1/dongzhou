@@ -71,9 +71,14 @@ const executablePath = [
 
     const stateText = await page.locator('#officeNpcState').innerText();
     const scheduleText = await page.locator('#officeNpcSchedule').innerText();
+    const memoryText = await page.locator('#officeNpcMemories').innerText();
+    const emotionEnums = /\b(?:joy|anger|fear|sadness|curiosity|peace|irritation|surprise|shame|calm|resolute)\b/i;
+    const memorySourceEnums = /\b(?:dialogue_choice|system_message|task\.settlement|event_report|chat_event)\b/i;
     assert(!/temporarily unavailable|正在恢复|暂不可用/i.test(stateText));
     assert(!/temporarily unavailable|正在恢复|暂不可用/i.test(scheduleText));
     assert(stateText.trim().length > 0 && scheduleText.trim().length > 0);
+    assert(!emotionEnums.test(stateText), `Internal NPC emotion enum leaked into state UI: ${stateText}`);
+    assert(!memorySourceEnums.test(memoryText), `Internal NPC memory source enum leaked into memory UI: ${memoryText}`);
     assert.match(stateText, /执行/);
     assert.match(stateText, /正在当值|当前无执行中的事务|执行暂停/);
     assert(!/未具名人物/.test(stateText));
