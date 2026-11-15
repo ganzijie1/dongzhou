@@ -143,7 +143,7 @@ async function openReady(page) {
         body = { version: ++saveVersion, payload };
       }
       else if (pathName.endsWith("/integration/status")) body = { mode: "connected", organizationId: "org-e2e", services: { nexusKernel: { online: true, mode: "embedded", version: "0.2.0", requiredModuleCount: 17, operationalModuleCount: 17, unavailableModules: [] }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } } };
-      else if (pathName.endsWith("/organization/roster")) body = { organization: { name: "东周军府", state: "ACTIVE", hierarchyVersion: membershipJoined ? 8 : 7, growthContribution: 245 }, members: [{ heroId: "DuBo", office: "司马", role: "军府主官", level: "manager", directManagerHeroId: null, contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 }, { heroId: "ZuoRu", office: "行人", role: "军府属官", level: "officer", directManagerHeroId: "DuBo", contributionBalance: 31, lifetimeEarned: 42, lifetimeSpent: 11 }], playerMembership: membershipJoined ? { office: "officer_12", role: "court_officer", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 } : null, openPositions: membershipJoined ? [] : [{ office: "officer_12", role: "court_officer", level: "staff" }] };
+      else if (pathName.endsWith("/organization/roster")) body = { organization: { name: "东周军府", state: "ACTIVE", hierarchyVersion: membershipJoined ? 8 : 7, growthContribution: 245 }, members: [{ heroId: "DuBo", office: "军府主官", role: "军府主官", level: "manager", directManagerHeroId: null, contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 }, { heroId: "ZuoRu", office: "军府属官·第1席", role: "军府属官", level: "officer", directManagerHeroId: "DuBo", contributionBalance: 31, lifetimeEarned: 42, lifetimeSpent: 11 }], playerMembership: membershipJoined ? { office: "军府属官·第12席", role: "军府属官", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 } : null, openPositions: membershipJoined ? [] : [{ office: "军府属官·第12席", role: "军府属官", level: "staff" }] };
       else if (pathName.endsWith("/organization/player-tasks")) {
         const hasException = careerAction === "exception";
         body = !careerAction ? { items: [], hasMore: false } : { items: [{
@@ -273,6 +273,9 @@ async function openReady(page) {
         const input = request.postDataJSON();
         const message = String(input.content || "");
         membershipAction = message.includes("加入组织申请") ? "join" : message.includes("退出东周") ? "confirmLeave" : null;
+        if (membershipAction === "join" && !message.includes("「军府属官·第12席」岗位")) {
+          throw new Error(`Membership request did not bind the formal position name: ${message}`);
+        }
         careerAction = message.includes("可以领取的组织任务") ? "options"
           : message.includes("申请领取组织任务：") ? "request"
           : message.includes("任务和待办事项") ? "inbox"

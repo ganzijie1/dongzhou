@@ -53,6 +53,8 @@ AINPC 事件公聊现由东周正式实现 `NDLLMSendPublicMessage` 游戏服契
 
 玩家本人仕途是独立的权威闭环：先由 orgFlow 写入 `officer_12` 仕籍，再通过 AINPC 与直属杜伯查询本人岗位目录、按名称申请、调阅待办、接受、申请改令、拒绝和复命；回应按钮会先自动同步 AINPC 待办，再用所选任务名绑定写操作，避免页面已读到 orgFlow 新任务但 AINPC 尚未建立会话上下文的竞态。改令提交后，页面会自动请杜伯裁定；orgFlow 向 AINPC 提供修改前后参数与原/拟议总时长，杜伯的决定再由 orgFlow 原子落账。浏览器只展示 AINPC 回信和 orgFlow 名册回读，不自行创建任务、改变状态或增加贡献。2026-11-15 真实验收中，`演练阵法`（`0e67784b...7446`）把总时长改为三日后经杜伯 `approve` 进入 `IN_PROGRESS`，封印摘要为 `d6b1db85...514e`；独立的 `巡察营垒`（`a0d18e35...6bdd`）拒绝后进入 `REJECTED`，封印摘要为 `59f2d420...3018`。
 
+请仕入口现在只使用 orgFlow 权威空缺返回的正式职位名。`officer_12` 仍是服务端内部席位键，但页面、玩家申请和杜伯回信统一显示“军府属官·第12席”，不会把内部键暴露给玩家。按钮会发送带正式职位名的明确交易命令，AINPC V2 将该句式路由到加入申请而不是只查询空缺，最终成员身份仍以 orgFlow 名册回读为准。真实无拦截 Chromium 已完成申请、入仕、显示直属杜伯、辞仕和席位释放，测试结束后权威空缺恢复为“军府属官·第12席”。
+
 史官问对把 knowledge-jizhan 的知识竞赛规则落入当前战役。网关从本回已发布 AKU 的结构化人物录选取正确项，从其他关卡人物录选择三个干扰项；题面经 NexusKernel 生成稳定动作号和 SHA-256 题印，正确索引只保存在玩家隔离的服务端请求账本。题目限时 30 秒，答中 10 分，逾时或答错为 0 分；刷新可恢复未答题，同一题重复交卷只回放原结果，换答案或跨玩家交卷均拒绝。
 
 答中后的问对结果会成为下一次同关军议的“史识凭据”。网关在签令前重新核验玩家、关卡、AKU、10 分结果摘要与 NexusKernel `SEALED` 回执，并要求 AINPC 军议问题携带同一史识印记；通过后由 `dongzhou_mandate_workflow 1.11.0` 封存并传给 orgFlowEngine，任务成功率增加 `3` 点。答错、跨玩家、跨关卡、错配史料、摘要篡改或只在前端构造字段均为零加成并拒绝伪造凭据；旧存档和未参加问对的军令保持兼容。
@@ -71,6 +73,7 @@ AINPC 事件公聊现由东周正式实现 `NDLLMSendPublicMessage` 游戏服契
 - `live-authoritative-settlement.png`：贡献、功绩、结案摘要、NPC 事件和长期经历一致。
 - `live-diplomacy-acceptance-20261110-formal-diplomacy-complete17.json`：知识、军议、外交军令、游说、盟约门禁和云档恢复。
 - `live-player-career-browser.json`：玩家请仕、可领目录、按名称领差、待办、受命、复命、直属审核和贡献 `0 -> 100`。
+- `live-membership-browser.json`、`live-membership-joined.png`、`live-membership-released.png`：玩家以正式职位名申请“军府属官·第12席”，orgFlow 权威名册确认入仕与直属杜伯，随后辞仕并释放同一席位。
 - `live-mandate-schedule-complete77.png`：真实史料、军议、Nexus 签发、AINPC 日程中断、orgFlow 派差、复命审核、库存奖励、云档与战斗承接。
 - `live-office-npc-state-complete80.png`：层级升级后真实人物状态、关系与 90 日当值均恢复为可读，最终状态和日程请求为 `200`，页面无“暂不可用”。
 - `live-battle-memory-complete81.json`：独立玩家的真实军议经 NexusKernel 封存后形成繻葛之战胜报；AINPC 重要事件、长期系统消息和短期记忆归档均完成，云档重载后官署战报及周幽王的“告捷”经历同时可见。
@@ -92,7 +95,7 @@ AINPC 事件公聊现由东周正式实现 `NDLLMSendPublicMessage` 游戏服契
 - 前端：集成客户端、组织玩法、战斗系统、官署浏览器、军议浏览器和外交浏览器全部通过。
 - 真实冒烟：四项能力在线；独立访客存档往返、版本冲突和玩家隔离通过；172/172 关已发布史料且每关在线返回明确标注的《东周列国志》文学底本边界，171/171 组连续行军均具备战役推进、定点和 NPC 对话三种路线；左儒计划为 90 天、450 项东周事务。长期计划按 AINPC 契约只列可执行待办，休息由非活跃时段的运行时强制休息机制接管。
 - 权威名册：12/12 NPC 状态与 90 天计划通过；真实浏览器逐席显示心境、关系、性情、动机与日程，杜伯可调阅但不可向自己派单。
-- 玩家仕途：真实浏览器无拦截确认五个权威任务名均以完整中文显示，并完成 `officer_12` 入仕、`输送粮秣` 受命、重大受阻登记、杜伯裁定恢复、复命审核、贡献档案封存；贡献余额从 `0` 增至 `100`。另一独立玩家真实完成 `演练阵法` 三日总时长改令，杜伯读取真实修改上下文并审核通过，任务进入 `IN_PROGRESS`；同一玩家随后拒绝 `巡察营垒`，任务进入 `REJECTED`。两项均取得 NexusKernel 封印，桌面及 390px 移动端无溢出。两次测试结束均辞仕并释放席位，证据为 `live-player-career-exception-browser.json`、`live-player-task-response-browser.json`、`live-player-task-response-browser.png` 与 `live-player-task-response-mobile.png`。
+- 玩家仕途：真实浏览器无拦截确认正式岗位名和五个权威任务名均以完整中文显示；请仕申请发送“军府属官·第12席”而非内部 `officer_12`，并完成权威入仕、直属杜伯回读、辞仕和席位释放。后续完成 `输送粮秣` 受命、重大受阻登记、杜伯裁定恢复、复命审核、贡献档案封存，贡献余额从 `0` 增至 `100`。另一独立玩家真实完成 `演练阵法` 三日总时长改令，杜伯读取真实修改上下文并审核通过，任务进入 `IN_PROGRESS`；同一玩家随后拒绝 `巡察营垒`，任务进入 `REJECTED`。两项均取得 NexusKernel 封印，桌面及 390px 移动端无溢出。测试结束均辞仕并释放席位，证据为 `live-membership-browser.json`、`live-player-career-exception-browser.json`、`live-player-task-response-browser.json`、`live-player-task-response-browser.png` 与 `live-player-task-response-mobile.png`。
 - 军需调拨：真实浏览器无拦截证明草案阶段零扣款、NexusKernel 签发后公共库藏 `60 -> 40`、军粮 `100 -> 112`、驳回零扣款；云档重载保持一致，同一请求回放不重复扣领。
 - 属官进言：真实左儒进言返回 `COMPLETED / hasThought=true`，重要度多次实测为 `72-78`，动机路由为 `delayed`；真实 Chromium 完成进言、军议选中、Nexus 草案封存同一摘要和玩家驳回，未派发 orgFlow 差事；320px 长文自动换行且无横向溢出，证据为 `live-spontaneous-thought-mobile.png`。
 - 军令入程：真实 Chromium 无拦截只发出 1 次日程中断请求，AINPC 正式日程 owner 返回并落下可校验回执，随后 orgFlow 任务 `SUCCESS`、玩家收纳复命、公共库藏 `40 -> 140`、军粮奖励、云档重载和战斗承接全部通过；证据为 `live-mandate-schedule-complete77.png`。
@@ -104,6 +107,8 @@ AINPC 事件公聊现由东周正式实现 `NDLLMSendPublicMessage` 游戏服契
 - 版本交付：东周父仓库只固定 `ganzijie1` GitHub 的四个子模块提交；内网 GitLab 不作为推送目标。当前 AINPC 为 `7e3d1198`，orgFlowEngine 为 `a05ef26`，knowledge-jizhan 为 `7b8b0378`，NexusKernel 为 `beda977d`。AINPC 的生产私聊已切换到 LoongEQ `guidance/v1` 与 `eq-abilities-v2`，并在画像缺失时调用正式幂等 `/ensure`，不再把永久缺档当正常状态。耐久私聊恢复现会在最终出站边界剔除非当前双方、重复 ID、当前消息副本和未来时间的历史项；镜像 `v20261114-dongzhou-local-eq-history-contract87` 部署后，6 次真实旧片段均通过请求体校验，只到达已知的外部 `503 guidance_profile_storage_unavailable` 降级，未再出现 body-level `422`。真实书问任务 `playerchat-4643eac3374c36fe422a4c2b4bc3020a` 完成回信且 API、Worker 和网关健康；由于 LoongEQ 外部画像存储仍不可用，该验收只证明显式降级和聊天连续性，不能宣称 EQ 策略已应用。已完成组织会话的精确旧回执现在返回“终止重试”而不改写历史证据；新镜像部署后，5 条积压的 11 月 8 日 `npc-task-*` 回执各以 `terminal=true` 排空一次，并在随后恢复周期停止重放。人物画像现已剔除品质 owner 的内部 `value_order` 字段；杜伯、郑庄公和虢石父的实时查询均返回 12 维性格、15 维品质及 `code=200`，不再显示状态暂不可用。玩家受阻与复命消息允许在固定命令句和“受阻情况/完成情况”之间携带任务标题，AINPC 三条正式路由均可准确识别；orgFlow 对 AINPC 已完成回执执行精确终态对账，并为功绩簿提供签名成员贡献历史。
 
 补充版本说明：本轮增量提交为 AINPC `389437326`、orgFlowEngine `88bf6b7`；knowledge-jizhan 与 NexusKernel 无代码变更。以上短号覆盖前述版本交付长段中的旧基线短号。
+
+正式岗位名增量提交为 AINPC `46537b199`、orgFlowEngine `c2b8aca`；knowledge-jizhan 与 NexusKernel 本轮无代码变更。
 
 ## orgFlow 追办与补救
 

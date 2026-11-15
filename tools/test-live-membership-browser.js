@@ -15,7 +15,7 @@ try {
 const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
 const timeout = Number(process.env.DONGZHOU_MEMBERSHIP_TIMEOUT_MS || 180000);
 const applyViaMessage = process.env.DONGZHOU_MEMBERSHIP_APPLY_VIA_MESSAGE === "1";
-const applyMessage = "我明确要求你现在提交我的加入组织申请：应聘东周朝廷军府属官岗位。";
+const applyMessage = "我明确要求你现在提交我的加入组织申请：应聘东周朝廷「军府属官·第12席」岗位。";
 const installation = process.env.DONGZHOU_MEMBERSHIP_INSTALLATION || crypto.randomUUID();
 const cleanupOnly = process.env.DONGZHOU_MEMBERSHIP_CLEANUP_ONLY === "1";
 const outputDir = path.resolve(__dirname, "../output/integration-validation");
@@ -116,7 +116,12 @@ async function requestLeave(page) {
       return;
     }
     const body = await response.json();
-    messageTasks.push({ status: response.status(), state: body.state, taskId: body.taskId });
+    messageTasks.push({
+      status: response.status(),
+      state: body.state,
+      taskId: body.taskId,
+      content: String(response.request().postDataJSON()?.content || ""),
+    });
   });
 
   try {
@@ -139,13 +144,13 @@ async function requestLeave(page) {
           }
           current = await waitForRoster(page, (roster) => !roster.playerMembership, "Cleanup membership release");
         }
-        assert(current.openPositions.some((position) => position.office === "officer_12"), "Cleanup did not release officer_12");
+        assert(current.openPositions.some((position) => position.office === "军府属官·第12席"), "Cleanup did not release the reserved court position");
       }
       console.log(JSON.stringify({ result: "PASS", mode: "cleanup", installation, membershipReleased: true }));
       return;
     }
     assert.equal(initial.playerMembership, null, "Fresh acceptance player unexpectedly already has a court membership");
-    assert(initial.openPositions.some((position) => position.office === "officer_12"), "Reserved court position officer_12 is not open");
+    assert(initial.openPositions.some((position) => position.office === "军府属官·第12席"), "Reserved court position is not exposed with its formal name");
     await page.waitForFunction(() => !document.querySelector("#officeMembershipApply")?.disabled, null, { timeout: 45000 });
 
     if (applyViaMessage) {
@@ -157,7 +162,7 @@ async function requestLeave(page) {
     }
     const admitted = await waitForRoster(page, (roster) => Boolean(roster.playerMembership), "Player membership");
     joined = true;
-    assert.equal(admitted.playerMembership.office, "officer_12");
+    assert.equal(admitted.playerMembership.office, "军府属官·第12席");
     assert.equal(admitted.playerMembership.directManagerHeroId, "DuBo");
     assert(Number.isSafeInteger(admitted.playerMembership.contributionBalance));
     await page.waitForFunction(() => document.querySelector("#officeMembershipState")?.textContent.includes("已入仕"), null, { timeout: 45000 });
@@ -169,12 +174,13 @@ async function requestLeave(page) {
     await page.click("#officeMembershipLeaveConfirm");
     const released = await waitForRoster(page, (roster) => !roster.playerMembership, "Released membership");
     joined = false;
-    assert(released.openPositions.some((position) => position.office === "officer_12"), "Reserved court position was not released");
+    assert(released.openPositions.some((position) => position.office === "军府属官·第12席"), "Reserved court position was not released");
     await page.waitForFunction(() => document.querySelector("#officeMembershipState")?.textContent.includes("尚未入仕"), null, { timeout: 45000 });
     await page.locator(".office-membership").screenshot({ path: releasedScreenshot });
 
     assert.equal(messageTasks.length, 2, JSON.stringify(messageTasks));
     assert(messageTasks.every((entry) => entry.status === 200 && entry.state === "ACCEPTED"), JSON.stringify(messageTasks));
+    assert(messageTasks[0].content.includes("「军府属官·第12席」岗位"), JSON.stringify(messageTasks));
     assert.deepEqual(pageErrors, []);
     const report = {
       result: "PASS",

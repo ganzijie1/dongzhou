@@ -2112,8 +2112,10 @@
       renderOfficeMembership();
       return;
     }
+    const vacancy = profile.organization.remoteRoster?.openPositions?.[0];
+    const vacancyName = officeMembershipPosition(vacancy?.office, "军府属官");
     const content = {
-      join: "我明确要求你现在提交我的加入组织申请：应聘东周朝廷军府属官岗位。",
+      join: `我明确要求你现在提交我的加入组织申请：应聘东周朝廷「${vacancyName}」岗位。`,
       confirmLeave: "我要退出东周朝廷。"
     }[action];
     if (!content) return;
