@@ -1,11 +1,13 @@
 """Read-only delivery check: no login, save write, order, clock or model call."""
 import argparse
 import hashlib
+import http.client
 import json
 from pathlib import Path
 import subprocess
 import urllib.error
 import urllib.request
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 DEPENDENCIES = ['deploy-server-1', 'deploy-mongo-1', 'deploy-qdrant-1',
@@ -23,17 +25,63 @@ def load_manifest(path: Path) -> dict:
         raise ValueError('delivery manifest has no containers')
     if not isinstance(package, dict) or not package.get('path') or not package.get('sha256'):
         raise ValueError('delivery manifest has no package contract')
+    source_files = package.get('sourceFiles')
+    if not isinstance(source_files, dict) or not source_files:
+        raise ValueError('delivery manifest package has no source-file contract')
+    for source, archive_name in source_files.items():
+        if not isinstance(source, str) or not source or not isinstance(archive_name, str) or not archive_name:
+            raise ValueError('delivery manifest contains an invalid package source-file contract')
     for name, contract in containers.items():
         if not name or not isinstance(contract, dict) or not contract.get('image'):
             raise ValueError('delivery manifest contains an invalid container contract')
     return manifest
 
 
-def root_path(relative: str) -> Path:
-    candidate = (ROOT / relative).resolve()
-    if candidate != ROOT and ROOT not in candidate.parents:
+def root_path(relative: str, root: Path = ROOT) -> Path:
+    resolved_root = root.resolve()
+    candidate = (resolved_root / relative).resolve()
+    if candidate != resolved_root and resolved_root not in candidate.parents:
         raise ValueError('delivery manifest path escapes repository root')
     return candidate
+
+
+def sha256_stream(stream) -> str:
+    hasher = hashlib.sha256()
+    for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+        hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def check_package_sources(package: Path, source_files: dict[str, str], root: Path = ROOT) -> list[dict]:
+    checks = []
+    if not package.exists():
+        return [{'package': package.name, 'passed': False, 'error': 'missing_package'}]
+    try:
+        with zipfile.ZipFile(package) as archive:
+            names = set(archive.namelist())
+            for source_name, archive_name in source_files.items():
+                source = root_path(source_name, root)
+                candidate_names = (archive_name, f'./{archive_name}')
+                packaged_name = next((name for name in candidate_names if name in names), None)
+                source_digest = None
+                packaged_digest = None
+                if source.is_file():
+                    with source.open('rb') as stream:
+                        source_digest = sha256_stream(stream)
+                if packaged_name:
+                    with archive.open(packaged_name) as stream:
+                        packaged_digest = sha256_stream(stream)
+                checks.append({
+                    'source': source_name,
+                    'archive': archive_name,
+                    'sourceSha256': source_digest,
+                    'packageSha256': packaged_digest,
+                    'passed': bool(source_digest) and source_digest == packaged_digest,
+                })
+    except (OSError, zipfile.BadZipFile):
+        return [{'package': package.name, 'passed': False, 'error': 'invalid_zip'}]
+    return checks
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -72,7 +120,7 @@ def main():
         except urllib.error.HTTPError as error:
             status = error.code
             error.close()
-        except (urllib.error.URLError, TimeoutError):
+        except (urllib.error.URLError, TimeoutError, http.client.HTTPException, ConnectionError):
             status = 'unavailable'
         checks.append({'path': path, 'status': status, 'passed': status == expected})
     required_capabilities = manifest.get('requiredCapabilities', [])
@@ -90,11 +138,13 @@ def main():
     digest = None
     if package.exists():
         with package.open('rb') as stream:
-            hasher = hashlib.sha256()
-            for chunk in iter(lambda: stream.read(1024 * 1024), b''):
-                hasher.update(chunk)
-            digest = hasher.hexdigest()
+            digest = sha256_stream(stream)
     checks.append({'package': package.name, 'sha256': digest, 'passed': digest == manifest['package']['sha256']})
+    source_checks = check_package_sources(package, manifest['package']['sourceFiles'])
+    checks.append({
+        'packageSources': source_checks,
+        'passed': bool(source_checks) and all(item['passed'] for item in source_checks),
+    })
     fulltext_report = root_path(str(manifest['fulltextReport']))
     fulltext_verified = False
     if fulltext_report.exists():

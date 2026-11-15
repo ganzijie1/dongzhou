@@ -3,11 +3,11 @@
 ## 入口与交付包
 
 - 游戏入口：`http://127.0.0.1:8780/`
-- 东周网关镜像：`dongzhou-integration:20261113-local-complete105`
-- AINPC 八角色镜像：`ainpc-app:v20261113-dongzhou-local-complete72`
-- orgFlow API/Worker 镜像：`org-flow-engine:dongzhou-local-complete88`
-- H5 完整包：`output/2026-11-12-dongzhou-integrated-h5-complete74.zip`
-- H5 SHA256：`CD1F24A0CCD0D351041C8B357A60626EBC39FAEF77A575DC24C29CBA89163E05`
+- 东周网关镜像：`dongzhou-integration:20261115-runtime-schedule217`
+- AINPC 镜像：Global 使用 `ainpc-app:v20261115-dongzhou-player-exception-title187-global`，Gateway 使用 `ainpc-app:v20261114-dongzhou-local-player-exception-contract89`，六个 Business 角色使用 `ainpc-app:v20261115-dongzhou-position-display208-business`
+- orgFlow API/Worker 镜像：`org-flow-engine:dongzhou-position-display206`
+- H5 完整包：`output/2026-11-15-dongzhou-integrated-h5-four-service-complete.zip`
+- H5 SHA256：`026F0CEBD95C2EACE77A7ED9C77B5440817E4177B1068B6AD609002B6D3E6347`
 
 东周入口、AINPC 网关和 AINPC Mongo 分别只监听 `127.0.0.1:8780`、`127.0.0.1:9130` 和 `127.0.0.1:27117`。Docker Desktop 已登记为当前 Windows 用户登录后自动启动；各长期容器使用 `unless-stopped`。
 

@@ -53,8 +53,16 @@
     "knowledge"
   ],
   "package": {
-    "path": "output/2026-11-12-dongzhou-integrated-h5-complete74.zip",
-    "sha256": "cd1f24a0ccd0d351041c8b357a60626ebc39faef77a575dc24c29cba89163e05"
+    "path": "output/2026-11-15-dongzhou-integrated-h5-four-service-complete.zip",
+    "sha256": "026f0cebd95c2eace77a7ed9c77b5440817e4177b1068b6ad609002b6d3e6347",
+    "sourceFiles": {
+      "web-game/index.html": "index.html",
+      "web-game/styles.css": "styles.css",
+      "web-game/game.js": "game.js",
+      "web-game/game-systems.js": "game-systems.js",
+      "web-game/organization-play.js": "organization-play.js",
+      "web-game/integration-client.js": "integration-client.js"
+    }
   },
   "fulltextReport": "output/integration-validation/fulltext-browser-restored.json"
 }
