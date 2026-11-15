@@ -62,13 +62,32 @@
       "web-game/game-systems.js": "game-systems.js",
       "web-game/organization-play.js": "organization-play.js",
       "web-game/integration-client.js": "integration-client.js",
+      "web-game/runtime.js": "runtime.js",
+      "web-game/pcgrl.js": "pcgrl.js",
+      "web-game/map-elites.js": "map-elites.js",
+      "web-game/README.md": "README.md",
       "web-game/audio/dialogue-manifest.json": "audio/dialogue-manifest.json",
       "web-game/audio/context-music-manifest.json": "audio/context-music-manifest.json"
     },
     "sourceTrees": {
       "web-game/scenario": "scenario",
-      "web-game/assets": "assets"
-    }
+      "web-game/assets": "assets",
+      "web-game/vendor": "vendor"
+    },
+    "manifestFileSets": [
+      {
+        "manifest": "web-game/audio/dialogue-manifest.json",
+        "sourceRoot": "web-game",
+        "items": "entries",
+        "archivePrefix": "audio/dialogue"
+      },
+      {
+        "manifest": "web-game/audio/context-music-manifest.json",
+        "sourceRoot": "web-game",
+        "items": "cues",
+        "archivePrefix": "audio/context-music"
+      }
+    ]
   },
   "fulltextReport": "output/integration-validation/fulltext-browser-restored.json"
 }

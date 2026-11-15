@@ -37,6 +37,17 @@ def load_manifest(path: Path) -> dict:
     for source, archive_name in source_trees.items():
         if not isinstance(source, str) or not source or not valid_archive_path(archive_name):
             raise ValueError('delivery manifest contains an invalid package source-tree contract')
+    manifest_file_sets = package.get('manifestFileSets')
+    if not isinstance(manifest_file_sets, list) or not manifest_file_sets:
+        raise ValueError('delivery manifest package has no manifest-file-set contract')
+    for contract in manifest_file_sets:
+        if not isinstance(contract, dict):
+            raise ValueError('delivery manifest contains an invalid manifest-file-set contract')
+        required = ('manifest', 'sourceRoot', 'items', 'archivePrefix')
+        if not all(isinstance(contract.get(key), str) and contract[key] for key in required):
+            raise ValueError('delivery manifest contains an incomplete manifest-file-set contract')
+        if not valid_archive_path(contract['archivePrefix']):
+            raise ValueError('delivery manifest contains an invalid manifest-file-set archive prefix')
     for name, contract in containers.items():
         if not name or not isinstance(contract, dict) or not contract.get('image'):
             raise ValueError('delivery manifest contains an invalid container contract')
@@ -70,6 +81,7 @@ def check_package_sources(
     source_files: dict[str, str],
     root: Path = ROOT,
     source_trees: dict[str, str] | None = None,
+    manifest_file_sets: list[dict] | None = None,
 ) -> list[dict]:
     checks = []
     if not package.exists():
@@ -127,6 +139,56 @@ def check_package_sources(
                     'files': len(expected),
                     'mismatches': mismatches,
                     'passed': source_tree.is_dir() and not mismatches,
+                })
+            for contract in manifest_file_sets or []:
+                manifest_path = root_path(contract['manifest'], root)
+                source_root = root_path(contract['sourceRoot'], root)
+                archive_prefix = contract['archivePrefix'].rstrip('/') + '/'
+                mismatches = []
+                expected = set()
+                try:
+                    manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+                    items = manifest.get(contract['items'])
+                    if not isinstance(items, list):
+                        raise ValueError('manifest item collection is not a list')
+                    for item in items:
+                        relative = item.get('file') if isinstance(item, dict) else None
+                        declared = item.get('sha256') if isinstance(item, dict) else None
+                        if not valid_archive_path(relative) or not isinstance(declared, str) or len(declared) != 64:
+                            mismatches.append('invalid:manifest-entry')
+                            continue
+                        if relative in expected:
+                            mismatches.append(f'duplicate:{relative}')
+                            continue
+                        expected.add(relative)
+                        source = root_path(str(PurePosixPath(contract['sourceRoot']) / relative), root)
+                        packaged_name = normalized_names.get(relative)
+                        if not source.is_file():
+                            mismatches.append(f'missing-source:{relative}')
+                            continue
+                        if not packaged_name:
+                            mismatches.append(f'missing-package:{relative}')
+                            continue
+                        with source.open('rb') as source_stream, archive.open(packaged_name) as package_stream:
+                            source_digest = sha256_stream(source_stream)
+                            package_digest = sha256_stream(package_stream)
+                        if source_digest != declared.lower():
+                            mismatches.append(f'source-hash:{relative}')
+                        if package_digest != declared.lower():
+                            mismatches.append(f'package-hash:{relative}')
+                except (OSError, json.JSONDecodeError, ValueError):
+                    mismatches.append('invalid:manifest')
+                packaged = {
+                    name for name in normalized_names
+                    if name.startswith(archive_prefix) and not name.endswith('/')
+                }
+                mismatches.extend(f'extra:{name}' for name in sorted(packaged - expected))
+                checks.append({
+                    'manifestFileSet': contract['manifest'],
+                    'files': len(expected),
+                    'mismatchCount': len(mismatches),
+                    'mismatches': mismatches[:20],
+                    'passed': source_root.is_dir() and not mismatches,
                 })
     except (OSError, zipfile.BadZipFile):
         return [{'package': package.name, 'passed': False, 'error': 'invalid_zip'}]
@@ -194,6 +256,7 @@ def main():
         package,
         manifest['package']['sourceFiles'],
         source_trees=manifest['package']['sourceTrees'],
+        manifest_file_sets=manifest['package']['manifestFileSets'],
     )
     checks.append({
         'packageSources': source_checks,
