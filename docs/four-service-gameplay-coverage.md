@@ -23,6 +23,8 @@ AINPC 好感与关系中的目标身份也由网关做当前会话映射。当�
 
 官署“内核在线”状态以 NexusKernel 当前注册的全部必需玩法模块为准，不再只抽查军令、问对、路线、任务轨迹和军需模块。18 个模块中任一项离开 `ready/degraded` 可运行状态，集成状态立即返回离线、完整模块状态与不可用名单；官署状态条同时显示实际可运行数量，例如 `内核 18/18`。
 
+完成性审计以正式玩家边界而不是仓库中的全部 HTTP 路由为准。knowledge-jizhan 的玩家检索、玩家 AKU 批量读取、已发布关卡知识和地图迁移查询均有东周调用与玩家入口；AINPC 的注册/上线、行为目录、人物状态、私聊/公聊、AI Helper、日程规划/执行/中断、组织事务、短期记忆、急报、自主念头和战报均进入对应闭环，`fact` 只是 `short_term_memory` 的兼容 HTTP 门面，不重复计算为新玩法；orgFlowEngine 的正式岗位、名册、贡献、库存、定时规则和虚拟任务由 AINPC tools 或签名管理接口承接，默认关闭的旧任务冲突选择、旧审核/申诉、组织治理后台、导入和调试路由不冒充玩家能力；AINPC 的监控、日志、EQ 管理、缓存、用量分析和影子知识维护同样属于运维面。NexusKernel 门禁逐项覆盖 `dongzhou_runtime`、`dongzhou_mandate_workflow`、`dongzhou_knowledge_tournament`、`dongzhou_npc_commendation`、`dongzhou_npc_recollection`、`dongzhou_npc_public_notice`、`dongzhou_organization_contribution_ledger`、`dongzhou_campaign_route`、`dongzhou_npc_settlement`、`dongzhou_npc_review_relationship`、`dongzhou_npc_collaboration_relationship`、`dongzhou_organization_task_trace`、`dongzhou_organization_contribution_dossier`、`dongzhou_npc_merit_commendation`、`dongzhou_adviser_guide`、`dongzhou_organization_task_topology`、`dongzhou_logistics_briefing` 和 `dongzhou_organization_scheduled_duty`，不能以其中任意子集通过代替全量健康。
+
 推进月令会由 AINPC 协调 orgFlow 的月例察访规则。若左儒已有同类非终态任务，orgFlow 以确定顺序选出权威任务并把任务号写入 `SKIPPED / duplicate_active_task` 触发记录；东周再通过签名管理接口反查组织、任务类型和责任人，官署直接展示任务标题、当前状态与最终结果。历史触发在迁移时只按同一严格条件回填，无法追溯的记录明确标为引用不可用，不会猜测绑定。
 
 玩家可在官署主动停办或恢复月例察访。浏览器为未确认请求保留同一请求号，断线重试不会重复改版；网关每次重新读取稳定规则号、组织、游戏服、杜伯/左儒的成员号与 NPC 号、任务码、频率、关卡参数和当前版本，orgFlow 只接受期望版本一致的状态变化。NexusKernel `dongzhou_organization_scheduled_duty 1.0.0` 封存变更前后状态和版本；状态未变化时封存同版无操作，真实变化必须严格递增一版。官署标题取自同一权威规则的 `stage_title`，不泄漏通用模板的英文内部标题。停办不撤销已经派出的权威任务，页面继续显示其标题和办理状态。月例任务已归属其他玩家时，新会话只读显示并标记为不可收养，不抢占原所有者，也不再把正常的多会话查看误报为 502。
@@ -33,7 +35,7 @@ AINPC 好感与关系中的目标身份也由网关做当前会话映射。当�
 
 AINPC 事件公聊现由东周正式实现 `NDLLMSendPublicMessage` 游戏服契约。回调必须匹配 NPC 当前 `loginRequestId`，旧轮次不会落账；NPC 还必须存在于东周注册目录。正文、人物和登录轮次摘要以稳定消息号幂等写入 SQLite，再由 NexusKernel `dongzhou_npc_public_notice 1.0.0` 封印。官署“官署告示”查询会重新读取 orgFlow 权威名册与 AINPC 当前登录轮次，仅展示当前在职且轮次摘要仍有效的属官公告；离职、未知、离线或已重登录属官的旧号令不能进入页面。玩家可把当前属官的告示“取为公议”：AINPC 军议前重新核对消息摘要、登录轮次与在职身份，NexusKernel `dongzhou_mandate_workflow 1.13.0` 签令前再次读取同一告示、当前轮次与 orgFlow 名册，并把告示回执同时封入军议、军令和后续组织差事；页面打开后若 NPC 重登录，旧公议也不能继续签令，切换官员、告示或史证后旧军议不会复用。
 
-无可执行待办时，AINPC 现在无论生成快照是否位于核心地图，都直接采用固定 `SleepTree`，不再退回模型并因旧目录中的运行态 `Reborn` 被过滤而形成空链。东周网关严格实现 `ValidateBTParams / ExecuteBehavior`：仅接受参数合法且网关已确认就绪的 `SleepTree` 与 `Reborn`，休息按声明时长持有同一物理 UID，结束后才回调。回调复合身份、物理 UID 与到期时间进入 SQLite outbox，网关重启不丢失；同 UID 同载荷只复用，冲突载荷返回 409。真实干净重启验收中 12 名 NPC 各生成并下发一条休息链，验收窗口内预检失败、空链、模型配置失败和提前完成均为 0。
+无可执行待办时，AINPC 现在无论生成快照是否位于核心地图，都直接采用固定 `SleepTree`，不再退回模型并因旧目录中的运行态 `Reborn` 被过滤而形成空链。东周网关严格实现 `ValidateBTParams / ExecuteBehavior`：只接受参数合法且网关已确认就绪的 `SleepTree`、`Reborn` 与东周专用 `DongzhouDutyTree`；其中当值树还必须通过下一段所述的事务编号与名称复合身份校验。休息和当值按声明时长持有同一物理 UID，结束后才回调。回调复合身份、物理 UID 与到期时间进入 SQLite outbox，网关重启不丢失；同 UID 同载荷只复用，冲突载荷返回 409。真实干净重启验收中 12 名 NPC 各生成并下发一条休息链，验收窗口内预检失败、空链、模型配置失败和提前完成均为 0。
 
 其余 11 类日常当值不再落入旧游戏原子动作。AINPC 通过东周专用 `transaction2actions` 与默认链目录，把朝会、军阵、军粮、巡营、军情、外交、史策、军令、城防、募兵和祭告统一下发为无可伪造参数的 `DongzhouDutyTree`；事务编号、名称、计划号与行为链号由不可变执行上下文携带。网关启动后用 SQLite outbox 调用正式目录同步接口，追加该动作但不清理其他游戏目录；执行时严格复核 `9100101..9100111` 的编号和名称，按计划时长到期才回调。真实合同验收中 `9100104 / 巡察营垒` 在 3 秒后形成 `DELIVERED` 记录且回调一次，故意改名为“转运军粮”则返回 `422 / dongzhou_duty_identity_invalid`。
 
