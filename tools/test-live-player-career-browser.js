@@ -24,6 +24,9 @@ const executablePath = [
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
 ].find((entry) => entry && fs.existsSync(entry));
 const diagnostics = {};
+const authoritativeTaskNames = ["列国出使", "演练阵法", "查访军情", "巡察营垒", "输送粮秣"];
+const retiredEnglishTaskNames = ["Diplomatic mission", "Army drill", "Intelligence mission", "Camp patrol", "Supply transport"];
+const preferredTaskName = "输送粮秣";
 
 async function readRoster(page) {
   return page.evaluate(async () => {
@@ -154,15 +157,24 @@ async function releaseMembership(page) {
       if (/任务|差事|申请|领取/.test(optionsReply)) break;
       await page.waitForTimeout(1500);
     }
+    diagnostics.optionsReply = optionsReply;
     assert.match(optionsReply, /任务|差事|申请|领取/, optionsReply);
+    for (const taskName of authoritativeTaskNames) {
+      assert.match(optionsReply, new RegExp(taskName), `Missing authoritative Chinese task name ${taskName}: ${optionsReply}`);
+    }
+    for (const taskName of retiredEnglishTaskNames) {
+      assert.doesNotMatch(optionsReply, new RegExp(taskName, "i"), `Retired English task name leaked into options: ${optionsReply}`);
+    }
     const structuredTaskName = optionsReply.match(/(?:^|\s)1\.\s*[^｜\n]*｜([^（｜\n]+)(?:（[^）]+）)?/)?.[1]?.trim();
     const naturalTaskName = [...optionsReply.matchAll(/([\u4e00-\u9fff]{2,12}任务)/g)]
       .map((match) => match[1])
       .find((name) => !/(几个|组织|岗位|申请|领取|可供)/.test(name));
-    const firstTaskName = structuredTaskName || naturalTaskName;
+    const firstTaskName = optionsReply.includes(preferredTaskName)
+      ? preferredTaskName
+      : authoritativeTaskNames.find((name) => optionsReply.includes(name)) || structuredTaskName || naturalTaskName;
     assert(firstTaskName, `Could not extract the first authoritative task name: ${optionsReply}`);
     assert.notEqual(firstTaskName, "组织任务", `Extracted a generic task name: ${optionsReply}`);
-    diagnostics.optionsReply = optionsReply;
+    assert(authoritativeTaskNames.includes(firstTaskName), `Extracted a non-authoritative task name ${firstTaskName}: ${optionsReply}`);
     diagnostics.structuredTaskName = structuredTaskName || null;
     diagnostics.naturalTaskName = naturalTaskName || null;
     diagnostics.firstTaskName = firstTaskName;
@@ -191,6 +203,7 @@ async function releaseMembership(page) {
       await page.waitForTimeout(1000);
     }
     assert(resumedTask, "Authoritative task state did not resume after exception adjudication");
+    assert.equal(resumedTask.title, firstTaskName, "The resumed task title drifted from the requested Chinese title");
     assert(resumedTask.executionException.selectedPlanId, "Resumed exception lacks the selected plan");
     await page.click("#officeCareerStatusRefresh");
     await page.waitForFunction(
@@ -279,6 +292,9 @@ async function releaseMembership(page) {
     };
     fs.writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
     console.log(JSON.stringify(report));
+  } catch (error) {
+    console.error(JSON.stringify({ result: "FAIL_EARLY", errorType: error.name, message: error.message, diagnostics }));
+    throw error;
   } finally {
     if (joined) {
       try {
