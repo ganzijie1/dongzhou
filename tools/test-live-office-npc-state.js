@@ -46,6 +46,7 @@ const executablePath = [
     assert.equal(stateResponse.status(), 200);
     const stateBody = await stateResponse.json();
     assert.equal(stateBody.knownNpcIds[stateBody.heroId], stateBody.npcId);
+    assert.match(String(stateBody.aiPlayerId || ''), /^\d+$/);
     assert.equal(stateBody.execution?.available, true);
     assert.equal(typeof stateBody.execution?.running, 'boolean');
     assert(!/[ÃÂ]|ä¼/.test(String(stateBody.execution?.scheduleName || '')));
@@ -63,6 +64,7 @@ const executablePath = [
     assert(stateText.trim().length > 0 && scheduleText.trim().length > 0);
     assert.match(stateText, /执行/);
     assert.match(stateText, /正在当值|当前无执行中的事务|执行暂停/);
+    assert(!/未具名人物/.test(stateText));
     assert(scheduleStatuses.some((entry) => entry.method === 'GET' && entry.status === 200));
     const relationshipItems = stateBody.relationships?.data?.items || stateBody.relationships?.items || [];
     if (relationshipItems.length) {

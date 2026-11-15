@@ -1069,7 +1069,11 @@ def test_council_memory_and_public_notice_are_verified_and_sealed_into_mandate()
 
             state = client.get("/api/dongzhou/v1/npcs/ZuoRu/state")
             assert state.status_code == 200
-            memory = state.json()["memories"]["items"][0]
+            state_body = state.json()
+            assert state_body["aiPlayerId"] == str(
+                stable_player_id(settings.ainpc_game_server_id, UUID(state_body["playerId"]))
+            )
+            memory = state_body["memories"]["items"][0]
             assert memory["idempotencyKey"] == first_record["dialogueReceipt"]["memoryArchive"]["idempotencyKey"]
             assert len(memory["digest"]) == 64
 

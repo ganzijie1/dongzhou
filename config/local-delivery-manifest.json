@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "containers": {
     "dongzhou-integration-gateway-1": {
-      "image": "dongzhou-integration:20261115-npc-execution-status215",
+      "image": "dongzhou-integration:20261115-player-relationship-identity216",
       "healthRequired": true
     },
     "ainpc-v2-global-dev": {

@@ -6387,6 +6387,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     @router.get("/npcs/{hero_id}/state")
     async def read_npc_state(hero_id: str, player_id: UUID = Depends(player)) -> dict[str, Any]:
         npc_id = stable_npc_id(settings.ainpc_game_server_id, hero_id)
+        ai_player_id = stable_player_id(settings.ainpc_game_server_id, player_id)
         try:
             state = await upstreams.npc_state(npc_id)
         except UpstreamUnavailable as error:
@@ -6407,6 +6408,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "playerId": str(player_id),
             "heroId": hero_id,
             "npcId": str(npc_id),
+            "aiPlayerId": str(ai_player_id),
             "knownNpcIds": known_npc_ids,
             "runtime": runtime or {"state": "INITIALIZING"},
             **state,

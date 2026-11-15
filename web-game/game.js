@@ -2278,8 +2278,9 @@
   let officeKnownNpcIds = {};
 
   function officeNpcPeerName(state, targetId) {
+    if (String(state.aiPlayerId || "") === String(targetId)) return "你";
     const heroId = Object.entries(state.knownNpcIds || {}).find(([, npcId]) => String(npcId) === String(targetId))?.[0];
-    return profile.organization.members.find((member) => member.id === heroId)?.name || "未具名人物";
+    return profile.organization.members.find((member) => member.id === heroId)?.name || null;
   }
 
   function officeCanonicalMemberName(name) {
@@ -2300,10 +2301,12 @@
   function officeNpcRelations(state, affection, relationships) {
     const rows = [];
     for (const item of Array.isArray(affection.items) ? affection.items : []) {
-      rows.push(`<li><strong>${escapeHtml(officeNpcPeerName(state, item.target_id))}</strong><span>${escapeHtml(officeAffectionText(item.dominant_affection_type))} ${Math.round(Number(item.max_value || 0))}</span></li>`);
+      const peerName = officeNpcPeerName(state, item.target_id);
+      if (peerName) rows.push(`<li><strong>${escapeHtml(peerName)}</strong><span>${escapeHtml(officeAffectionText(item.dominant_affection_type))} ${Math.round(Number(item.max_value || 0))}</span></li>`);
     }
     for (const item of Array.isArray(relationships.items) ? relationships.items.filter((entry) => entry?.is_active !== false) : []) {
-      rows.push(`<li><strong>${escapeHtml(officeNpcPeerName(state, item.target_id))}</strong><span>${escapeHtml(officeRelationshipText(item))}${item.is_bilateral ? " · 相互" : ""}</span></li>`);
+      const peerName = officeNpcPeerName(state, item.target_id);
+      if (peerName) rows.push(`<li><strong>${escapeHtml(peerName)}</strong><span>${escapeHtml(officeRelationshipText(item))}${item.is_bilateral ? " · 相互" : ""}</span></li>`);
     }
     return rows.length ? `<div class="office-npc-relations"><span>人情簿</span><ul>${rows.slice(0, 8).join("")}</ul></div>` : "";
   }
