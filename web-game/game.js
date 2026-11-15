@@ -1772,8 +1772,25 @@
     const selectedTask = officeCareerStatusItems.find((task) => task.taskId === officeCareerSelectedTaskId) || null;
     const responseForm = $("#officeCareerResponseForm");
     const resultForm = $("#officeCareerResultForm");
+    const supplementConfirmation = selectedTask?.organizationTrace?.state === "SEALED"
+      ? selectedTask.organizationTrace.activeConfirmations?.find((confirmation) =>
+        confirmation.type === "TASK_SUPPLEMENT_REQUEST"
+        && confirmation.state === "WAITING_CONFIRMATION"
+        && confirmation.recipientType === "PLAYER"
+        && confirmation.allowedActions?.includes("submit_supplement"))
+      : null;
+    const supplementReady = selectedTask?.state === "SUPPLEMENT_PENDING" && Boolean(supplementConfirmation);
     if (responseForm) responseForm.hidden = selectedTask?.state !== "MEMBER_RESPONSE_PENDING";
-    if (resultForm) resultForm.hidden = !["IN_PROGRESS", "SUPPLEMENT_PENDING"].includes(selectedTask?.state);
+    if (resultForm) resultForm.hidden = selectedTask?.state !== "IN_PROGRESS" && !supplementReady;
+    const resultInput = $("#officeCareerResult");
+    const resultSubmit = $("#officeCareerResultSubmit");
+    const exceptionButton = $("#officeCareerException");
+    if (resultInput) {
+      resultInput.setAttribute("aria-label", supplementReady ? "补呈差事成果" : "差事进展或完成情况");
+      resultInput.placeholder = supplementReady ? "按退回要求填写补充成果" : "填写受阻情况或完成成果";
+    }
+    if (resultSubmit) resultSubmit.textContent = supplementReady ? "提交补呈" : "复命";
+    if (exceptionButton) exceptionButton.hidden = supplementReady;
     $("#officeCareerAccount").textContent = `可用贡献 ${Number(account.accountBalance || 0)} · 累计功绩 ${Number(account.lifetimeEarned || 0)} · 已用 ${Number(account.lifetimeSpent || 0)}`;
     panel.querySelectorAll("button, input").forEach((control) => { control.disabled = officeCareerBusy || officeCareerStatusBusy || officeCareerContributionBusy; });
     const taskStates = {
@@ -1966,7 +1983,7 @@
   async function requestOfficeCareer(action, detail = "") {
     if (integration.isOffline() || officeCareerBusy || !profile.organization.remoteRoster?.playerMembership) return;
     const selectedTask = officeCareerStatusItems.find((task) => task.taskId === officeCareerSelectedTaskId) || null;
-    if (["accept", "reject", "modify", "review", "result", "exception"].includes(action) && !selectedTask) {
+    if (["accept", "reject", "modify", "review", "result", "supplement", "exception"].includes(action) && !selectedTask) {
       $("#officeCareerFeedback").textContent = "请先在权威差事状态中选定本次要汇报的差事。";
       return;
     }
@@ -1977,6 +1994,23 @@
     if (action === "review" && selectedTask.state !== "MODIFICATION_CONFIRMATION_PENDING") {
       $("#officeCareerFeedback").textContent = "只有等待上级确认的改令申请可以请杜伯裁定。";
       return;
+    }
+    if (["result", "exception"].includes(action) && selectedTask.state !== "IN_PROGRESS") {
+      $("#officeCareerFeedback").textContent = "只有执行中的差事可以复命或报告受阻。";
+      return;
+    }
+    if (action === "supplement") {
+      const confirmation = selectedTask.organizationTrace?.state === "SEALED"
+        ? selectedTask.organizationTrace.activeConfirmations?.find((item) =>
+          item.type === "TASK_SUPPLEMENT_REQUEST"
+          && item.state === "WAITING_CONFIRMATION"
+          && item.recipientType === "PLAYER"
+          && item.allowedActions?.includes("submit_supplement"))
+        : null;
+      if (selectedTask.state !== "SUPPLEMENT_PENDING" || !confirmation) {
+        $("#officeCareerFeedback").textContent = "补件确认尚未形成权威行迹，请刷新状态后再提交。";
+        return;
+      }
     }
     if (action === "modify" && !detail.trim()) {
       $("#officeCareerFeedback").textContent = "请填写需要调整的目标、时限或交付要求。";
@@ -1991,10 +2025,11 @@
       modify: "我申请调整你刚才下发给我的组织任务。",
       review: "请立即审核我对已下发组织任务提出的参数修改申请。",
       exception: "我在执行当前组织任务时遇到重大异常，请立即按任务冻结规则登记受阻并列出处置方案。",
-      result: "我已完成当前组织任务，请审核我的完成成果。"
+      result: "我已完成当前组织任务，请审核我的完成成果。",
+      supplement: "我按退回要求提交当前组织任务的补充成果，请登记为本次补呈并继续审核。"
     };
-    const content = action === "result" || action === "exception"
-      ? `${commands[action]}我明确汇报的差事是《${selectedTask.title}》。${action === "result" ? "完成情况" : "受阻情况"}：${detail}`
+    const content = ["result", "supplement", "exception"].includes(action)
+      ? `${commands[action]}我明确汇报的差事是《${selectedTask.title}》。${action === "result" ? "完成情况" : action === "supplement" ? "补呈内容" : "受阻情况"}：${detail}`
       : action === "review"
         ? `${commands.review}我明确请求裁定的差事是《${selectedTask.title}》。请按权威任务流程立即作出决定。`
       : ["accept", "reject", "modify"].includes(action)
@@ -2003,7 +2038,7 @@
     if (!content) return;
     officeCareerBusy = true;
     renderOfficeCareer();
-    $("#officeCareerFeedback").textContent = ({ options: "正在向杜伯查询可领差事……", request: "领差申请已送杜伯，等待派发……", inbox: "正在调阅我的任务待办……", accept: "受命回执已送杜伯……", reject: "拒绝回执已送杜伯……", modify: "改令申请已送杜伯，等待裁定……", review: "正在请杜伯裁定改令……", exception: "受阻报告已送杜伯，等待冻结方案裁定……", result: "复命已送杜伯，等待审核与贡献结算……" })[action];
+    $("#officeCareerFeedback").textContent = ({ options: "正在向杜伯查询可领差事……", request: "领差申请已送杜伯，等待派发……", inbox: "正在调阅我的任务待办……", accept: "受命回执已送杜伯……", reject: "拒绝回执已送杜伯……", modify: "改令申请已送杜伯，等待裁定……", review: "正在请杜伯裁定改令……", exception: "受阻报告已送杜伯，等待冻结方案裁定……", result: "复命已送杜伯，等待审核与贡献结算……", supplement: "补呈已送杜伯，等待权威行迹登记与复核……" })[action];
     try {
       await syncOfficeNpcs(profile.organization.members.filter((member) => member.id === "DuBo"));
       const sendAndWaitForReply = async (message) => {
@@ -2034,7 +2069,7 @@
       }
       $("#officeCareerFeedback").textContent = reply?.content || "军府已受理，权威回信稍后可在府中书问查看。";
       if (action === "request" && detail) $("#officeCareerTaskName").value = "";
-      if ((action === "result" || action === "exception") && detail) $("#officeCareerResult").value = "";
+      if (["result", "supplement", "exception"].includes(action) && detail) $("#officeCareerResult").value = "";
       if (["accept", "reject", "modify"].includes(action)) $("#officeCareerResponseDetail").value = "";
       localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
       renderOrganizationPanel();
@@ -2051,7 +2086,8 @@
     event.preventDefault();
     const summary = $("#officeCareerResult").value.trim();
     if (!summary) return;
-    requestOfficeCareer("result", summary);
+    const selectedTask = officeCareerStatusItems.find((task) => task.taskId === officeCareerSelectedTaskId) || null;
+    requestOfficeCareer(selectedTask?.state === "SUPPLEMENT_PENDING" ? "supplement" : "result", summary);
   }
 
   function submitOfficeCareerResponse(event) {

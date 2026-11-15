@@ -149,7 +149,7 @@ async function openReady(page) {
         body = !careerAction ? { items: [], hasMore: false } : { items: [{
           taskId: "00000000-0000-4000-8000-000000000081",
           title: "核验军粮账册",
-          state: careerAction === "result" ? "SUCCEEDED" : careerAction === "reject" ? "REJECTED" : ["accept", "exception"].includes(careerAction) ? "IN_PROGRESS" : "MEMBER_RESPONSE_PENDING",
+          state: careerAction === "supplement" ? "SUCCEEDED" : careerAction === "result" ? "SUPPLEMENT_PENDING" : careerAction === "reject" ? "REJECTED" : ["accept", "exception"].includes(careerAction) ? "IN_PROGRESS" : "MEMBER_RESPONSE_PENDING",
           version: hasException ? 8 : 7,
           updatedAt: "2026-11-14T10:05:00Z",
           executionException: hasException ? {
@@ -168,8 +168,15 @@ async function openReady(page) {
           organizationTrace: {
             state: "SEALED",
             taskId: "00000000-0000-4000-8000-000000000081",
-            taskState: careerAction === "result" ? "SUCCEEDED" : careerAction === "reject" ? "REJECTED" : ["accept", "exception"].includes(careerAction) ? "IN_PROGRESS" : "MEMBER_RESPONSE_PENDING",
+            taskState: careerAction === "supplement" ? "SUCCEEDED" : careerAction === "result" ? "SUPPLEMENT_PENDING" : careerAction === "reject" ? "REJECTED" : ["accept", "exception"].includes(careerAction) ? "IN_PROGRESS" : "MEMBER_RESPONSE_PENDING",
             taskVersion: hasException ? "8" : "7",
+            activeConfirmations: careerAction === "result" ? [{
+              caseId: "00000000-0000-4000-8000-000000000084",
+              type: "TASK_SUPPLEMENT_REQUEST",
+              state: "WAITING_CONFIRMATION",
+              recipientType: "PLAYER",
+              allowedActions: ["submit_supplement"]
+            }] : [],
             executionException: hasException ? {
               exceptionId: "00000000-0000-4000-8000-000000000082",
               code: "road_destroyed",
@@ -182,6 +189,10 @@ async function openReady(page) {
             timeline: [
               { sequence: 1, type: "TASK_CREATED", occurredAt: "2026-11-14T09:40:00Z", stateCode: "GENERATED" },
               { sequence: 2, type: "EXECUTION_STARTED", occurredAt: "2026-11-14T09:50:00Z", stateCode: "IN_PROGRESS" },
+              ...(careerAction === "result" ? [
+                { sequence: 3, type: "SUBMISSION_RECORDED", occurredAt: "2026-11-14T10:02:00Z", stateCode: "SUBMISSION_PENDING" },
+                { sequence: 4, type: "SUPPLEMENT_REQUESTED", occurredAt: "2026-11-14T10:03:00Z", stateCode: "SUPPLEMENT_PENDING" }
+              ] : []),
               ...(hasException ? [
                 { sequence: 3, type: "EXECUTION_EXCEPTION_REPORTED", occurredAt: "2026-11-14T10:00:00Z", stateCode: "OPEN" },
                 { sequence: 4, type: "EXECUTION_EXCEPTION_RESOLVED", occurredAt: "2026-11-14T10:05:00Z", stateCode: "ACCEPTED" }
@@ -191,7 +202,7 @@ async function openReady(page) {
             kernel: { module: "dongzhou_organization_task_trace", state: "SEALED" }
           }
         }], hasMore: false };
-        if (["accept", "exception", "result"].includes(careerAction)) body.items.push({
+        if (["accept", "exception", "result", "supplement"].includes(careerAction)) body.items.push({
           taskId: "00000000-0000-4000-8000-000000000083",
           title: "巡核西仓封识",
           state: "IN_PROGRESS",
@@ -283,10 +294,11 @@ async function openReady(page) {
           : message.includes("拒绝你刚才下发") ? "reject"
           : message.includes("接受你刚才下发") ? "accept"
           : message.includes("重大异常") ? "exception"
+          : message.includes("按退回要求提交当前组织任务的补充成果") ? "supplement"
           : message.includes("完成当前组织任务") ? "result"
           : null;
         if (careerAction) careerActions.push({ action: careerAction, message });
-        if (careerAction === "result") careerSettled = true;
+        if (careerAction === "supplement") careerSettled = true;
         if (membershipAction === "join") membershipJoined = true;
         if (membershipAction === "confirmLeave") membershipJoined = false;
         npcMessageTaskId = `playerchat-${input.client_request_id}`;
@@ -302,7 +314,8 @@ async function openReady(page) {
           reject: "已记录拒绝，核验军粮账册将另行安排。",
           accept: "已记录受命，核验军粮账册开始执行。",
           exception: "受阻已经登记，差事暂停；请从冻结方案中等待直属裁定。",
-          result: "复命已收纳，贡献已经结算。"
+          result: "复命已核验，尚缺西仓封识清单，请按退回要求补呈。",
+          supplement: "补呈已收纳，复核通过，贡献已经结算。"
         };
         const reply = membershipAction === "join" ? "准你入仕，列入军府属官。" : membershipAction === "confirmLeave" ? "辞仕已办结。" : careerReplies[careerAction] || "北路军粮已经入仓。";
         body = { npcId: "42", messages: npcMessageTaskId && npcCorrespondenceReads > 1 ? [{ messageId: `npc-reply-${npcCorrespondenceReads}`, taskId: npcMessageTaskId, speakerId: "42", speakerName: membershipAction ? "杜伯" : "左儒", targetId: "99", targetName: "主君", targetType: "PLAYER", content: reply, emotion: "calm", digest: "d".repeat(64) }] : [] };
@@ -381,6 +394,12 @@ async function openReady(page) {
     await online.screenshot({ path: path.join(OUT, "desktop-career-recovery.png"), fullPage: false });
     await online.fill("#officeCareerResult", "核清军粮三十车，账册已封存");
     await online.click("#officeCareerResultForm button[type=submit]");
+    await online.waitForSelector("#officeCareerFeedback >> text=请按退回要求补呈", { timeout: 15000 });
+    await online.waitForSelector("#officeCareerResultSubmit >> text=提交补呈", { timeout: 15000 });
+    if (!(await online.locator("#officeCareerException").isHidden())) throw new Error("Supplement form still exposes the execution blocker action");
+    if (await online.locator("#officeCareerResult").getAttribute("aria-label") !== "补呈差事成果") throw new Error("Supplement input lacks its authoritative purpose label");
+    await online.fill("#officeCareerResult", "补齐西仓封识清单十二项，并附经手人复核记录");
+    await online.click("#officeCareerResultSubmit");
     await online.waitForSelector("#officeCareerFeedback >> text=贡献已经结算", { timeout: 15000 });
     await online.waitForSelector("#officeCareerContributions >> text=差事告成", { timeout: 15000 });
     await online.waitForSelector("#officeCareerContributions >> text=内核印记 999999999999", { timeout: 15000 });
@@ -407,7 +426,7 @@ async function openReady(page) {
     if (careerMobileLayout.scrollWidth > careerMobileLayout.width + 1) throw new Error(`Mobile player contribution ledger overflows viewport: ${JSON.stringify(careerMobileLayout)}`);
     await online.screenshot({ path: path.join(OUT, "mobile-career-contribution.png"), fullPage: false });
     await online.setViewportSize({ width: 1440, height: 900 });
-    if (careerActions.map((entry) => entry.action).join(",") !== "options,request,inbox,inbox,modify,inbox,accept,exception,result,request,inbox,reject") throw new Error(`Unexpected player career sequence: ${JSON.stringify(careerActions)}`);
+    if (careerActions.map((entry) => entry.action).join(",") !== "options,request,inbox,inbox,modify,inbox,accept,exception,result,supplement,request,inbox,reject") throw new Error(`Unexpected player career sequence: ${JSON.stringify(careerActions)}`);
     if (!careerActions.find((entry) => entry.action === "modify")?.message.includes("将交付时限顺延一日，并增加西仓封识清单")) throw new Error("Task modification detail was not sent to the manager");
     if (!careerActions.find((entry) => entry.action === "modify")?.message.includes("《核验军粮账册》")) throw new Error("Task modification did not bind the selected task");
     if (!careerActions.find((entry) => entry.action === "reject")?.message.includes("当前粮道已封，请另派属官承办")) throw new Error("Task rejection reason was not sent to the manager");
@@ -416,6 +435,8 @@ async function openReady(page) {
     if (!careerActions.find((entry) => entry.action === "exception")?.message.includes("《核验军粮账册》")) throw new Error("Player blocker report did not bind the selected task");
     if (!careerActions.find((entry) => entry.action === "result")?.message.includes("核清军粮三十车，账册已封存")) throw new Error("Player result summary was not sent to the manager");
     if (!careerActions.find((entry) => entry.action === "result")?.message.includes("《核验军粮账册》")) throw new Error("Player result report did not bind the selected task");
+    if (!careerActions.find((entry) => entry.action === "supplement")?.message.includes("补齐西仓封识清单十二项")) throw new Error("Player supplement detail was not sent to the manager");
+    if (!careerActions.find((entry) => entry.action === "supplement")?.message.includes("《核验军粮账册》")) throw new Error("Player supplement did not bind the selected task");
     await online.click("#officeMembershipLeave");
     await online.waitForSelector("#officeMembershipLeaveConfirm:not([hidden])", { timeout: 15000 });
     await online.click("#officeMembershipLeaveConfirm");
