@@ -224,6 +224,23 @@ class MandateUpstreams:
                 "updatedAt": "2026-11-10T08:01:52.476000",
                 "threshold": 80.0,
             },
+            "execution": {
+                "available": True,
+                "running": True,
+                "paused": False,
+                "waitingForReport": True,
+                "executionId": "execution-zuoru",
+                "phase": "WAITING_FOR_REPORT",
+                "scheduleId": "schedule-1",
+                "scheduleName": "巡核军粮",
+                "scheduleDate": "0776-05-04",
+                "actionChainId": "chain-1",
+                "currentActionUid": "action-2",
+                "currentActionId": "2",
+                "currentActionIndex": 1,
+                "totalActions": 3,
+                "updatedAt": "2026-11-15T08:00:00Z",
+            },
             "memories": await self.npc_memories(npc_id),
         }
 

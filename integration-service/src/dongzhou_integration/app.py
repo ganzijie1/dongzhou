@@ -6396,6 +6396,12 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             known_hero_id: str(stable_npc_id(settings.ainpc_game_server_id, known_hero_id))
             for known_hero_id in settings.orgflow_hero_members
         }
+        execution = state.get("execution")
+        if isinstance(execution, dict) and execution.get("scheduleName"):
+            state["execution"] = {
+                **execution,
+                "scheduleName": _repair_utf8_mojibake(execution["scheduleName"])[:120],
+            }
         memories = state.pop("memories", {"available": False, "items": []})
         return {
             "playerId": str(player_id),

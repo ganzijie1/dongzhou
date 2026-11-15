@@ -736,6 +736,67 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(state["affection"]["items"][0]["target_id"], "player-1")
         self.assertEqual(state["relationships"], {"items": []})
 
+    async def test_npc_execution_status_exposes_only_player_safe_fields(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            self.assertEqual(
+                request.url.path,
+                "/api/v1/schedule-execution/executor/91001/42/status",
+            )
+            return httpx.Response(200, json={
+                "code": 200,
+                "data": {
+                    "game_server_id": "91001",
+                    "npc_id": "42",
+                    "current_login_request_id": "private-login",
+                    "current_game_server_session_id": "private-session",
+                    "execution_id": "execution-1",
+                    "phase": "WAITING_FOR_REPORT",
+                    "is_running": True,
+                    "is_paused": False,
+                    "waiting_for_report": True,
+                    "current_schedule_id": "schedule-1",
+                    "current_schedule_name": "巡核军粮",
+                    "schedule_date": "0776-05-04",
+                    "action_chain_id": "chain-1",
+                    "current_action_uid": "action-2",
+                    "current_action_id": 2,
+                    "logical_action_index": 1,
+                    "cumulative_total_actions": 3,
+                    "terminal_event_payload": {"error": "private failure"},
+                    "pending_operation": {"operation_id": "private-operation"},
+                    "error_message": "private error",
+                    "updated_at": "2026-11-15T08:00:00Z",
+                },
+            })
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            status = await Upstreams(settings(Path("unused")), client).npc_execution_status(42)
+
+        self.assertEqual(status["scheduleName"], "巡核军粮")
+        self.assertEqual(status["currentActionIndex"], 1)
+        self.assertEqual(status["totalActions"], 3)
+        self.assertTrue(status["waitingForReport"])
+        serialized = json.dumps(status, ensure_ascii=False)
+        self.assertNotIn("private", serialized)
+        self.assertNotIn("terminal", serialized)
+        self.assertNotIn("session", serialized)
+
+    async def test_npc_execution_status_rejects_cross_actor_identity(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={
+                "code": 200,
+                "data": {
+                    "game_server_id": "91001",
+                    "npc_id": "43",
+                    "is_running": False,
+                },
+            })
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            upstreams = Upstreams(settings(Path("unused")), client)
+            with self.assertRaisesRegex(UpstreamUnavailable, "invalid schedule execution status"):
+                await upstreams.npc_execution_status(42)
+
     async def test_online_npc_ids_uses_complete_runtime_snapshot(self) -> None:
         seen: list[httpx.Request] = []
 

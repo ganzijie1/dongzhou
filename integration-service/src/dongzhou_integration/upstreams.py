@@ -737,7 +737,7 @@ class Upstreams:
     async def npc_state(self, npc_id: int) -> dict[str, Any]:
         base = self.settings.ainpc_url
         server = self.settings.ainpc_game_server_id
-        emotion, affection, relationships, personality, motivation, quality, memories = await asyncio.gather(
+        emotion, affection, relationships, personality, motivation, quality, memories, execution = await asyncio.gather(
             self.optional_npc_emotion(npc_id),
             self._json("GET", f"{base}/api/v1/affection/targets/{server}/{npc_id}", token=self.settings.ainpc_token),
             self._json("GET", f"{base}/api/v1/relationship/all/{server}/{npc_id}", token=self.settings.ainpc_token),
@@ -745,6 +745,7 @@ class Upstreams:
             self.optional_npc_motivation(npc_id),
             self.optional_npc_quality(npc_id),
             self.optional_npc_memories(npc_id),
+            self.optional_npc_execution_status(npc_id),
         )
         return {
             "emotion": emotion,
@@ -754,6 +755,76 @@ class Upstreams:
             "motivation": motivation,
             "quality": quality,
             "memories": memories,
+            "execution": execution,
+        }
+
+    async def optional_npc_execution_status(self, npc_id: int) -> dict[str, Any]:
+        try:
+            return await self.npc_execution_status(npc_id)
+        except UpstreamUnavailable:
+            return {"available": False, "running": False}
+
+    async def npc_execution_status(self, npc_id: int) -> dict[str, Any]:
+        server = self.settings.ainpc_game_server_id
+        response = await self._json(
+            "GET",
+            f"{self.settings.ainpc_url}/api/v1/schedule-execution/executor/{server}/{npc_id}/status",
+            token=self.settings.ainpc_token,
+        )
+        data = response.get("data")
+        if (
+            response.get("code") not in (0, 200, "0", "200")
+            or not isinstance(data, dict)
+            or str(data.get("game_server_id") or "") != str(server)
+            or str(data.get("npc_id") or "") != str(npc_id)
+            or not isinstance(data.get("is_running"), bool)
+            or ("is_paused" in data and not isinstance(data.get("is_paused"), bool))
+            or ("waiting_for_report" in data and not isinstance(data.get("waiting_for_report"), bool))
+        ):
+            raise UpstreamUnavailable(
+                "AINPC returned an invalid schedule execution status.",
+                error_code="ainpc_execution_status_invalid",
+                response_payload=response,
+            )
+
+        def text_value(key: str, limit: int) -> str | None:
+            value = data.get(key)
+            if value is None or value == "":
+                return None
+            if not isinstance(value, (str, int)) or isinstance(value, bool):
+                raise UpstreamUnavailable(
+                    "AINPC returned an invalid schedule execution status.",
+                    error_code="ainpc_execution_status_invalid",
+                    response_payload=response,
+                )
+            return str(value)[:limit]
+
+        def count_value(*keys: str) -> int:
+            value = next((data.get(key) for key in keys if data.get(key) is not None), 0)
+            if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+                raise UpstreamUnavailable(
+                    "AINPC returned an invalid schedule execution status.",
+                    error_code="ainpc_execution_status_invalid",
+                    response_payload=response,
+                )
+            return value
+
+        return {
+            "available": True,
+            "running": data["is_running"],
+            "paused": data.get("is_paused") is True,
+            "waitingForReport": data.get("waiting_for_report") is True,
+            "executionId": text_value("execution_id", 128),
+            "phase": text_value("phase", 64),
+            "scheduleId": text_value("current_schedule_id", 128) or text_value("schedule_id", 128),
+            "scheduleName": text_value("current_schedule_name", 120),
+            "scheduleDate": text_value("schedule_date", 32),
+            "actionChainId": text_value("action_chain_id", 128),
+            "currentActionUid": text_value("current_action_uid", 128),
+            "currentActionId": text_value("current_action_id", 128),
+            "currentActionIndex": count_value("current_action_index", "logical_action_index"),
+            "totalActions": count_value("total_actions", "cumulative_total_actions"),
+            "updatedAt": text_value("updated_at", 64),
         }
 
     async def optional_npc_memories(self, npc_id: int) -> dict[str, Any]:

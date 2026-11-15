@@ -295,7 +295,7 @@ async function openReady(page) {
       else if (/\/npcs\/[^/]+\/state$/.test(pathName)) {
         npcStateAttempts += 1;
         if (npcStateAttempts <= 6) return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "npc_unavailable", message: "NPC state is temporarily unavailable." } }) });
-        body = { emotion: { data: { dominant: { emotion_type: "resolute", intensity: 72 } } }, affection: { data: { total: 2 } }, relationships: { data: { total: 3 } }, personality: { available: true, profileId: "profile-zuoru", traits: { stubborn: 79, smooth: 48 }, dominantTraits: ["stubborn", "smooth"], templateSource: "identity", backgroundNote: "fixed profile", updatedAt: "2026-11-07T21:56:40.288000" }, motivation: { available: true, motives: [{ name: "情报核验", score: 35 }], revision: 2, updatedAt: "2026-11-10T08:01:52.476000", threshold: 80 } };
+        body = { emotion: { data: { dominant: { emotion_type: "resolute", intensity: 72 } } }, affection: { data: { total: 2 } }, relationships: { data: { total: 3 } }, personality: { available: true, profileId: "profile-zuoru", traits: { stubborn: 79, smooth: 48 }, dominantTraits: ["stubborn", "smooth"], templateSource: "identity", backgroundNote: "fixed profile", updatedAt: "2026-11-07T21:56:40.288000" }, motivation: { available: true, motives: [{ name: "情报核验", score: 35 }], revision: 2, updatedAt: "2026-11-10T08:01:52.476000", threshold: 80 }, execution: { available: true, running: true, paused: false, waitingForReport: true, scheduleName: "巡核军粮", currentActionIndex: 1, totalActions: 3 } };
       }
       else if (/\/npcs\/[^/]+\/messages$/.test(pathName)) {
         const input = request.postDataJSON();
@@ -481,7 +481,12 @@ async function openReady(page) {
     await online.waitForSelector("#officeNpcState >> text=resolute", { timeout: 15000 });
     await online.waitForSelector("#officeNpcState >> text=情报核验 35", { timeout: 15000 });
     await online.waitForSelector("#officeNpcState >> text=固执 79", { timeout: 15000 });
+    await online.waitForSelector("#officeNpcState >> text=正在当值 · 巡核军粮 · 第2/3步 · 等待游服回报", { timeout: 15000 });
     if (await online.locator("#officeNpcState dt", { hasText: "性情" }).count() !== 1) throw new Error("NPC personality was rendered more than once");
+    await online.setViewportSize({ width: 390, height: 844 });
+    const npcStateMobileLayout = await online.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth }));
+    if (npcStateMobileLayout.scrollWidth > npcStateMobileLayout.width + 1) throw new Error(`Mobile NPC execution status overflows viewport: ${JSON.stringify(npcStateMobileLayout)}`);
+    await online.setViewportSize({ width: 1440, height: 900 });
     await online.waitForSelector("#officeNpcAssignment >> text=胜任 82/100", { timeout: 15000 });
     await online.waitForSelector("#officeNpcAssignment >> text=适岗 56/100", { timeout: 15000 });
     await online.waitForSelector("#officeNpcAssignment >> text=意愿 50/100", { timeout: 15000 });

@@ -2410,6 +2410,7 @@
       panel.querySelector("dl")?.insertAdjacentHTML("beforeend", `<div><dt>动机</dt><dd>${escapeHtml(officeMotivationText(motivation))}</dd></div>`);
       const quality = state.quality || { available: false };
       panel.querySelector("dl")?.insertAdjacentHTML("beforeend", `<div><dt>品质</dt><dd>${escapeHtml(officeQualityText(quality))}</dd></div>`);
+      panel.querySelector("dl")?.insertAdjacentHTML("beforeend", `<div><dt>执行</dt><dd>${escapeHtml(officeExecutionText(state.execution))}</dd></div>`);
       officeMemoryView = Array.isArray(state.memories?.items) ? state.memories.items : [];
       if (!officeMemoryView.some((item) => item.idempotencyKey === officeSelectedMemory?.idempotencyKey)) officeSelectedMemory = null;
       renderOfficeNpcMemories(member);
@@ -2423,6 +2424,20 @@
       renderOfficeNpcMemories(member);
       scheduleOfficeNpcRefresh(member.id);
     }
+  }
+
+  function officeExecutionText(execution) {
+    if (execution?.available !== true) return "执行状态暂不可用";
+    if (execution.paused) return "执行暂停";
+    if (!execution.running) return "当前无执行中的事务";
+    const schedule = String(execution.scheduleName || "当前事务");
+    const total = Number(execution.totalActions);
+    const index = Number(execution.currentActionIndex);
+    const progress = Number.isInteger(total) && total > 0 && Number.isInteger(index)
+      ? ` · 第${Math.min(index + 1, total)}/${total}步`
+      : "";
+    const waiting = execution.waitingForReport ? " · 等待游服回报" : "";
+    return `正在当值 · ${schedule}${progress}${waiting}`;
   }
 
   function renderOfficeNpcMemories(member) {
