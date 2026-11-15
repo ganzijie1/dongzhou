@@ -61,7 +61,13 @@
       "web-game/game.js": "game.js",
       "web-game/game-systems.js": "game-systems.js",
       "web-game/organization-play.js": "organization-play.js",
-      "web-game/integration-client.js": "integration-client.js"
+      "web-game/integration-client.js": "integration-client.js",
+      "web-game/audio/dialogue-manifest.json": "audio/dialogue-manifest.json",
+      "web-game/audio/context-music-manifest.json": "audio/context-music-manifest.json"
+    },
+    "sourceTrees": {
+      "web-game/scenario": "scenario",
+      "web-game/assets": "assets"
     }
   },
   "fulltextReport": "output/integration-validation/fulltext-browser-restored.json"

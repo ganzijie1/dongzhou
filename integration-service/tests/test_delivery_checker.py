@@ -26,3 +26,30 @@ def test_package_source_contract_detects_stale_gameplay_file(tmp_path: Path) -> 
     stale = CHECKER.check_package_sources(package, contract, tmp_path)
     assert stale[0]["passed"] is False
     assert stale[0]["sourceSha256"] != stale[0]["packageSha256"]
+
+
+def test_package_source_tree_detects_changed_and_extra_scenario_files(tmp_path: Path) -> None:
+    scenario = tmp_path / "web-game" / "scenario"
+    scenario.mkdir(parents=True)
+    stage = scenario / "stage.json"
+    stage.write_text('{"stage": 1}', encoding="utf-8")
+    package = tmp_path / "dongzhou.zip"
+    with zipfile.ZipFile(package, "w") as archive:
+        archive.writestr("scenario/stage.json", stage.read_bytes())
+
+    contract = {"web-game/scenario": "scenario"}
+    current = CHECKER.check_package_sources(package, {}, tmp_path, contract)
+    assert current[0]["passed"] is True
+    assert current[0]["files"] == 1
+
+    stage.write_text('{"stage": 2}', encoding="utf-8")
+    changed = CHECKER.check_package_sources(package, {}, tmp_path, contract)
+    assert changed[0]["passed"] is False
+    assert changed[0]["mismatches"] == ["hash:scenario/stage.json"]
+
+    stage.write_text('{"stage": 1}', encoding="utf-8")
+    with zipfile.ZipFile(package, "a") as archive:
+        archive.writestr("scenario/removed-stage.json", b"stale")
+    extra = CHECKER.check_package_sources(package, {}, tmp_path, contract)
+    assert extra[0]["passed"] is False
+    assert extra[0]["mismatches"] == ["extra:scenario/removed-stage.json"]
