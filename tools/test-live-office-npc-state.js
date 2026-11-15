@@ -12,8 +12,8 @@ try {
 }
 
 const root = path.resolve(__dirname, '..');
-const output = path.join(root, 'output', 'integration-validation', 'npc-execution-status-live.png');
-const mobileOutput = path.join(root, 'output', 'integration-validation', 'npc-execution-status-mobile-live.png');
+const output = path.join(root, 'output', 'integration-validation', 'npc-runtime-schedule-live.png');
+const mobileOutput = path.join(root, 'output', 'integration-validation', 'npc-runtime-schedule-mobile-live.png');
 const executablePath = [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
@@ -41,8 +41,13 @@ const executablePath = [
     await page.goto('http://127.0.0.1:8780/', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#app:not([hidden])', { timeout: 45000 });
     const stateResponsePromise = page.waitForResponse((response) => /\/npcs\/[^/]+\/state$/.test(new URL(response.url()).pathname));
+    const scheduleResponsePromise = page.waitForResponse((response) => (
+      /\/npcs\/[^/]+\/schedule$/.test(new URL(response.url()).pathname)
+      && response.request().method() === 'GET'
+    ));
     await page.click('#campaignOfficeButton');
     const stateResponse = await stateResponsePromise;
+    const scheduleResponse = await scheduleResponsePromise;
     assert.equal(stateResponse.status(), 200);
     const stateBody = await stateResponse.json();
     assert.equal(stateBody.knownNpcIds[stateBody.heroId], stateBody.npcId);
@@ -52,6 +57,13 @@ const executablePath = [
     assert(!/[ÃÂ]|ä¼/.test(String(stateBody.execution?.scheduleName || '')));
     const leakedExecution = JSON.stringify(stateBody.execution);
     assert(!/loginRequest|session|terminal|pendingOperation|errorMessage/i.test(leakedExecution));
+    assert.equal(scheduleResponse.status(), 200);
+    const scheduleBody = await scheduleResponse.json();
+    assert.equal(scheduleBody.runtime?.available, true);
+    assert.equal(scheduleBody.runtime?.online, true);
+    assert(Array.isArray(scheduleBody.runtime?.pending));
+    const leakedRuntime = JSON.stringify(scheduleBody.runtime);
+    assert(!/debug|dataSources|mongo|agents|loongmemory|extraData|errorTypes/i.test(leakedRuntime));
     await page.waitForSelector('#campaignOfficeBackdrop:not([hidden])');
     await page.waitForSelector('#officeNpcState strong', { timeout: 45000 });
     await page.waitForSelector('#officeNpcSchedule strong', { timeout: 90000 });
@@ -65,6 +77,9 @@ const executablePath = [
     assert.match(stateText, /执行/);
     assert.match(stateText, /正在当值|当前无执行中的事务|执行暂停/);
     assert(!/未具名人物/.test(stateText));
+    assert.match(scheduleText, /今日实况/);
+    assert.match(scheduleText, /当下：/);
+    if (scheduleBody.runtime.pending.length) assert.match(scheduleText, /稍后：/);
     assert(scheduleStatuses.some((entry) => entry.method === 'GET' && entry.status === 200));
     const relationshipItems = stateBody.relationships?.data?.items || stateBody.relationships?.items || [];
     if (relationshipItems.length) {
@@ -85,7 +100,11 @@ const executablePath = [
     await statePanel.scrollIntoViewIfNeeded();
     const stateOverflow = await statePanel.evaluate((element) => element.scrollWidth > element.clientWidth + 1);
     assert.equal(stateOverflow, false);
-    await statePanel.screenshot({ path: mobileOutput });
+    const schedulePanel = page.locator('.office-npc-schedule');
+    await schedulePanel.scrollIntoViewIfNeeded();
+    const scheduleOverflow = await schedulePanel.evaluate((element) => element.scrollWidth > element.clientWidth + 1);
+    assert.equal(scheduleOverflow, false);
+    await schedulePanel.screenshot({ path: mobileOutput });
     const memoryPanel = page.locator('#officeNpcMemories');
     await memoryPanel.scrollIntoViewIfNeeded();
     const memoryOverflow = await memoryPanel.evaluate((element) => element.scrollWidth > element.clientWidth + 1);

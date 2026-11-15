@@ -1151,6 +1151,114 @@ class Upstreams:
             payload={"game_server_id": str(self.settings.ainpc_game_server_id), "npc_id": str(npc_id)},
         )
 
+    async def optional_npc_schedule_overview(self, npc_id: int) -> dict[str, Any]:
+        try:
+            return await self.npc_schedule_overview(npc_id)
+        except UpstreamUnavailable:
+            return {"available": False}
+
+    async def npc_schedule_overview(self, npc_id: int) -> dict[str, Any]:
+        server = self.settings.ainpc_game_server_id
+        response = await self._json(
+            "GET",
+            f"{self.settings.ainpc_url}/api/v1/schedule-orchestration/overview/{server}/{npc_id}",
+            token=self.settings.ainpc_token,
+            params={"include_persisted": "true"},
+        )
+        data = response.get("data")
+        runtime = data.get("runtime") if isinstance(data, dict) else None
+        counts = runtime.get("counts") if isinstance(runtime, dict) else None
+        if (
+            response.get("code") not in (0, 200, "0", "200")
+            or not isinstance(data, dict)
+            or str(data.get("game_server_id") or "") != str(server)
+            or str(data.get("npc_id") or "") != str(npc_id)
+            or not isinstance(data.get("degraded"), bool)
+            or not isinstance(runtime, dict)
+            or not isinstance(runtime.get("loaded"), bool)
+            or not isinstance(runtime.get("online"), bool)
+            or not isinstance(runtime.get("pending"), list)
+            or not isinstance(runtime.get("suspended"), list)
+            or not isinstance(counts, dict)
+        ):
+            raise UpstreamUnavailable(
+                "AINPC returned an invalid schedule overview.",
+                error_code="ainpc_schedule_overview_invalid",
+                response_payload=response,
+            )
+
+        def invalid(message: str) -> UpstreamUnavailable:
+            return UpstreamUnavailable(
+                message,
+                error_code="ainpc_schedule_overview_invalid",
+                response_payload=response,
+            )
+
+        def text_value(value: Any, limit: int) -> str | None:
+            if value is None or value == "":
+                return None
+            if not isinstance(value, (str, int)) or isinstance(value, bool):
+                raise invalid("AINPC returned an invalid schedule overview.")
+            return str(value)[:limit]
+
+        def count_value(key: str) -> int:
+            value = counts.get(key, 0)
+            if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+                raise invalid("AINPC returned an invalid schedule overview count.")
+            return value
+
+        def schedule_item(value: Any) -> dict[str, Any]:
+            if not isinstance(value, dict):
+                raise invalid("AINPC returned an invalid schedule overview item.")
+            if value.get("game_server_id") not in (None, "", str(server), server):
+                raise invalid("AINPC returned a cross-server schedule overview item.")
+            if value.get("npc_id") not in (None, "", str(npc_id), npc_id):
+                raise invalid("AINPC returned a cross-actor schedule overview item.")
+            duration = value.get("duration_minutes", 0)
+            importance = value.get("importance", 0)
+            if not isinstance(duration, int) or isinstance(duration, bool) or duration < 0:
+                raise invalid("AINPC schedule duration is invalid.")
+            if not isinstance(importance, (int, float)) or isinstance(importance, bool) or not math.isfinite(float(importance)):
+                raise invalid("AINPC schedule importance is invalid.")
+            return {
+                "id": text_value(value.get("id") or value.get("todo_id"), 160),
+                "name": text_value(value.get("name"), 120),
+                "type": text_value(value.get("type"), 80),
+                "status": text_value(value.get("status"), 40),
+                "transactionId": text_value(value.get("transaction_id"), 80),
+                "scheduleDate": text_value(value.get("schedule_date"), 32),
+                "startTime": text_value(value.get("start_time") or value.get("started_at"), 48),
+                "endTime": text_value(value.get("end_time"), 48),
+                "durationMinutes": duration,
+                "importance": round(float(importance), 2),
+            }
+
+        running = runtime.get("running")
+        active_window = data.get("effective_active_time")
+        if active_window is not None and not isinstance(active_window, dict):
+            raise invalid("AINPC returned an invalid active time window.")
+        return {
+            "available": True,
+            "degraded": data["degraded"],
+            "loaded": runtime["loaded"],
+            "online": runtime["online"],
+            "currentGameTime": text_value(data.get("current_game_time"), 48),
+            "activeWindow": {
+                "status": text_value(active_window.get("status"), 40),
+                "start": text_value(active_window.get("window_start"), 48),
+                "end": text_value(active_window.get("window_end"), 48),
+            } if active_window else None,
+            "running": schedule_item(running) if running is not None else None,
+            "pending": [schedule_item(item) for item in runtime["pending"][:5]],
+            "suspended": [schedule_item(item) for item in runtime["suspended"][:5]],
+            "counts": {
+                "pending": count_value("pending"),
+                "suspended": count_value("suspended"),
+                "completed": count_value("completed"),
+                "discarded": count_value("discarded"),
+            },
+        }
+
     async def generate_npc_schedule(self, npc_id: int, force_regenerate: bool) -> dict[str, Any]:
         return await self._json(
             "POST",

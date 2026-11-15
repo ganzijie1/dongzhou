@@ -6518,10 +6518,31 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     async def read_npc_schedule(hero_id: str, player_id: UUID = Depends(player)) -> dict[str, Any]:
         npc_id = stable_npc_id(settings.ainpc_game_server_id, hero_id)
         try:
-            result = await upstreams.npc_schedule(npc_id)
+            result, runtime = await asyncio.gather(
+                upstreams.npc_schedule(npc_id),
+                upstreams.optional_npc_schedule_overview(npc_id),
+            )
         except UpstreamUnavailable as error:
             raise ApiError("ainpc_schedule_unavailable", "NPC schedule is temporarily unavailable.", status_code=503) from error
-        return {"playerId": str(player_id), "heroId": hero_id, "npcId": str(npc_id), "schedule": result}
+        if runtime.get("available") is True:
+            items = [
+                runtime.get("running"),
+                *(runtime.get("pending") or []),
+                *(runtime.get("suspended") or []),
+            ]
+            for item in items:
+                if isinstance(item, dict):
+                    if item.get("name"):
+                        item["name"] = _repair_utf8_mojibake(item["name"])[:120]
+                    if item.get("type"):
+                        item["type"] = _repair_utf8_mojibake(item["type"])[:80]
+        return {
+            "playerId": str(player_id),
+            "heroId": hero_id,
+            "npcId": str(npc_id),
+            "schedule": result,
+            "runtime": runtime,
+        }
 
     @router.post("/npcs/{hero_id}/schedule")
     async def generate_npc_schedule(request: NpcScheduleGenerateRequest, hero_id: str, player_id: UUID = Depends(player)) -> dict[str, Any]:

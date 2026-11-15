@@ -274,6 +274,24 @@ class MandateUpstreams:
             },
         }
 
+    async def optional_npc_schedule_overview(self, npc_id):
+        return {
+            "available": True,
+            "degraded": False,
+            "loaded": True,
+            "online": True,
+            "currentGameTime": "0772-10-22T14:00:00",
+            "activeWindow": {
+                "status": "active",
+                "start": "0772-10-22T14:00:00",
+                "end": "0772-10-22T22:00:00",
+            },
+            "running": {"id": "running-1", "name": "休息", "type": "休息"},
+            "pending": [{"id": "pending-1", "name": "检阅军阵", "type": "军事"}],
+            "suspended": [],
+            "counts": {"pending": 1, "suspended": 0, "completed": 0, "discarded": 0},
+        }
+
     async def append_npc_schedule_duty(self, npc_id, *, date, activity):
         assert npc_id > 0
         assert date == "0772-10-22"
@@ -1076,6 +1094,11 @@ def test_council_memory_and_public_notice_are_verified_and_sealed_into_mandate()
             memory = state_body["memories"]["items"][0]
             assert memory["idempotencyKey"] == first_record["dialogueReceipt"]["memoryArchive"]["idempotencyKey"]
             assert len(memory["digest"]) == 64
+
+            schedule = client.get("/api/dongzhou/v1/npcs/ZuoRu/schedule")
+            assert schedule.status_code == 200
+            assert schedule.json()["runtime"]["running"]["name"] == "休息"
+            assert schedule.json()["runtime"]["pending"][0]["name"] == "检阅军阵"
 
             recollection = client.post(
                 "/api/dongzhou/v1/npcs/ZuoRu/recollections",

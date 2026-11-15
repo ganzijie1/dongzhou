@@ -2621,9 +2621,19 @@
       const day = days[0] || null;
       const lastDay = days.at(-1) || null;
       const events = Array.isArray(day?.events) ? day.events.slice(0, 5).map((event) => event.name).filter(Boolean) : [];
-      panel.innerHTML = days.length
-        ? `<strong>${days.length} 日当值</strong><span>${escapeHtml(day.date || plan.start_date || "近日")} 至 ${escapeHtml(lastDay?.date || plan.end_date || "未定")}</span><small>${events.length ? `首日：${escapeHtml(events.join("、"))}` : "首日尚无定事"} · 计划 ${escapeHtml(String(plan.plan_id || plan.generation_id || "未具名").slice(0, 24))}</small>`
-        : "尚无已定日程";
+      const runtime = response.runtime || { available: false };
+      const pending = Array.isArray(runtime.pending) ? runtime.pending.map((item) => item?.name).filter(Boolean).slice(0, 3) : [];
+      const running = runtime.running?.name || "当前无执行事务";
+      const windowStart = String(runtime.activeWindow?.start || "").slice(11, 16);
+      const windowEnd = String(runtime.activeWindow?.end || "").slice(11, 16);
+      const window = windowStart && windowEnd ? `${windowStart}-${windowEnd}` : "时窗未定";
+      const runtimeHtml = runtime.available === true
+        ? `<strong>今日实况</strong><span>${runtime.online ? "在线" : "离线"} · ${escapeHtml(window)}</span><small>当下：${escapeHtml(running)}${pending.length ? ` · 稍后：${escapeHtml(pending.join("、"))}` : " · 今日暂无后续待办"}${Number(runtime.counts?.suspended || 0) ? ` · 挂起 ${Number(runtime.counts.suspended)}` : ""}</small>`
+        : `<strong>今日实况</strong><span>运行队列暂不可用</span>`;
+      const planHtml = days.length
+        ? `<strong>${days.length} 日计划</strong><span>${escapeHtml(day.date || plan.start_date || "近日")} 至 ${escapeHtml(lastDay?.date || plan.end_date || "未定")}</span><small>${events.length ? `首日：${escapeHtml(events.join("、"))}` : "首日尚无定事"} · 计划 ${escapeHtml(String(plan.plan_id || plan.generation_id || "未具名").slice(0, 24))}</small>`
+        : `<strong>远期计划</strong><span>尚无已定日程</span>`;
+      panel.innerHTML = runtimeHtml + planHtml;
       await refreshOfficeNpcAssignment(member, requestSerial);
     } catch (error) {
       if (requestSerial && !isCurrentOfficeNpcRequest(requestSerial, member.id)) return;

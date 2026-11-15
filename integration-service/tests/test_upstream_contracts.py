@@ -797,6 +797,101 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaisesRegex(UpstreamUnavailable, "invalid schedule execution status"):
                 await upstreams.npc_execution_status(42)
 
+    async def test_npc_schedule_overview_exposes_only_player_safe_queue_fields(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            self.assertEqual(
+                request.url.path,
+                "/api/v1/schedule-orchestration/overview/91001/42",
+            )
+            self.assertEqual(request.url.params["include_persisted"], "true")
+            return httpx.Response(200, json={
+                "code": 200,
+                "data": {
+                    "game_server_id": "91001",
+                    "npc_id": "42",
+                    "current_game_time": "0776-05-04T14:00:00",
+                    "degraded": False,
+                    "debug_actions_enabled": True,
+                    "data_sources": {"mongo": {"error_types": ["private"]}},
+                    "effective_active_time": {
+                        "status": "active",
+                        "window_start": "0776-05-04T14:00:00",
+                        "window_end": "0776-05-04T22:00:00",
+                        "source": "private-debug-source",
+                    },
+                    "runtime": {
+                        "loaded": True,
+                        "online": True,
+                        "agents": {"schedule_monitor": "private"},
+                        "running": {
+                            "id": "running-1",
+                            "name": "休息",
+                            "type": "休息",
+                            "status": "running",
+                            "duration_minutes": 60,
+                            "importance": 0,
+                            "loongmemory_activity": {"activity_id": "private"},
+                        },
+                        "pending": [{
+                            "id": "pending-1",
+                            "name": "检阅军阵",
+                            "type": "军事",
+                            "status": "pending",
+                            "transaction_id": "9100102",
+                            "duration_minutes": 90,
+                            "importance": 90,
+                            "game_server_id": "91001",
+                            "npc_id": "42",
+                            "extra_data": {"private": True},
+                        }],
+                        "suspended": [],
+                        "counts": {"pending": 1, "suspended": 0, "completed": 2, "discarded": 0},
+                    },
+                },
+            })
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            overview = await Upstreams(settings(Path("unused")), client).npc_schedule_overview(42)
+
+        self.assertEqual(overview["running"]["name"], "休息")
+        self.assertEqual(overview["pending"][0]["transactionId"], "9100102")
+        self.assertEqual(overview["counts"]["completed"], 2)
+        serialized = json.dumps(overview, ensure_ascii=False)
+        self.assertNotIn("private", serialized)
+        self.assertNotIn("debug", serialized)
+        self.assertNotIn("loongmemory", serialized)
+        self.assertNotIn("extra_data", serialized)
+
+    async def test_npc_schedule_overview_rejects_cross_actor_queue_item(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={
+                "code": 200,
+                "data": {
+                    "game_server_id": "91001",
+                    "npc_id": "42",
+                    "degraded": False,
+                    "runtime": {
+                        "loaded": True,
+                        "online": True,
+                        "running": None,
+                        "pending": [{
+                            "id": "pending-1",
+                            "name": "wrong actor",
+                            "npc_id": "43",
+                            "duration_minutes": 1,
+                            "importance": 1,
+                        }],
+                        "suspended": [],
+                        "counts": {"pending": 1, "suspended": 0, "completed": 0, "discarded": 0},
+                    },
+                },
+            })
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            upstreams = Upstreams(settings(Path("unused")), client)
+            with self.assertRaisesRegex(UpstreamUnavailable, "cross-actor"):
+                await upstreams.npc_schedule_overview(42)
+
     async def test_online_npc_ids_uses_complete_runtime_snapshot(self) -> None:
         seen: list[httpx.Request] = []
 
