@@ -18,6 +18,7 @@ from nexus_kernel.kernel import ModuleState
 
 from dongzhou_integration.app import (
     BattleDebriefModule,
+    _battle_debrief_remote_task_ids,
     _battle_memory_history,
     _battle_memory_idempotency_key,
     _battle_report_digest_matches,
@@ -962,6 +963,25 @@ class OrganizationOutcomeTests(unittest.TestCase):
 
 
 class BattleDebriefModuleTests(unittest.TestCase):
+    def test_maps_verified_local_orders_to_remote_task_traces(self) -> None:
+        first = str(uuid4())
+        second = str(uuid4())
+        organization = {
+            "tasks": [
+                {"id": "local-1", "remoteResult": first},
+                {"id": "local-2", "remoteResult": second},
+            ]
+        }
+
+        self.assertEqual(
+            _battle_debrief_remote_task_ids(
+                organization, [{"id": "local-2"}, {"id": "local-1"}]
+            ),
+            [second, first],
+        )
+        with self.assertRaisesRegex(ValueError, "remote_trace_missing"):
+            _battle_debrief_remote_task_ids(organization, [{"id": "missing"}])
+
     def test_seals_all_four_authoritative_sources(self) -> None:
         task_id = str(uuid4())
         organization_id = str(uuid4())

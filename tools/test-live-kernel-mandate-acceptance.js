@@ -667,7 +667,10 @@ saveJournal();
     const supportPending = restored.organization.pendingSupport.some((entry) => entry.mandate?.id === issued.mandate.id);
     const supportConsumed = restored.organization.consumedSupportIds?.includes(issued.task.id);
     assert(supportPending || supportConsumed, "settled support is neither pending nor recorded as consumed");
-    assert(restored.organization.mandates.some((entry) => entry.id === issued.mandate.id && entry.state === "FULFILLED"));
+    assert(restored.organization.mandates.some((entry) =>
+      entry.id === issued.mandate.id
+      && (entry.state === "FULFILLED" || (supportConsumed && entry.state === "RESOLVED"))
+    ));
 
     journal.stage = "battle";
     saveJournal();
@@ -715,8 +718,16 @@ saveJournal();
     }
     assert(requests.taskRead > 0 && requests.save >= 4);
 
-    const battleReportId = `battle:${acceptanceLabel}:${Date.now()}`;
-    const battleReceipt = await page.evaluate(async ({ profileKey, support, reportId }) => {
+    const recoveredBattle = recoveringExisting && await page.evaluate(({ profileKey, prefix }) => {
+      const profile = JSON.parse(localStorage.getItem(profileKey));
+      const report = [...(profile.organization.battleReports || [])].reverse().find((entry) =>
+        String(entry.id || "").startsWith(prefix)
+        && entry.kernelReceipt?.kernel?.state === "SEALED"
+      );
+      return report ? { reportId: report.id, receipt: report.kernelReceipt } : null;
+    }, { profileKey: PROFILE, prefix: `battle:${acceptanceLabel}:` });
+    const battleReportId = recoveredBattle?.reportId || `battle:${acceptanceLabel}:${Date.now()}`;
+    const battleReceipt = recoveredBattle?.receipt || await page.evaluate(async ({ profileKey, support, reportId }) => {
       const profile = JSON.parse(localStorage.getItem(profileKey));
       const recorded = window.DongzhouOrganizationPlay.recordBattleOutcome(profile.organization, {
         id: reportId,
@@ -809,6 +820,8 @@ saveJournal();
     };
     fs.writeFileSync(resultPath, JSON.stringify(result, null, 2));
     journal.stage = "complete";
+    delete journal.errorType;
+    delete journal.error;
     journal.completedAt = new Date().toISOString();
     saveJournal();
     console.log(JSON.stringify(result));

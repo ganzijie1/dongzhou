@@ -3199,6 +3199,28 @@ def _battle_report_digest_matches(
     return expected == _digest_json(legacy_signature)
 
 
+def _battle_debrief_remote_task_ids(
+    organization: dict[str, Any], orders: list[Any]
+) -> list[str]:
+    saved_tasks = organization.get("tasks")
+    tasks_by_local_id = {
+        str(task.get("id") or ""): task
+        for task in saved_tasks
+        if isinstance(task, dict) and task.get("id")
+    } if isinstance(saved_tasks, list) else {}
+    remote_task_ids: list[str] = []
+    for order in orders:
+        local_task_id = str(order.get("id") or "") if isinstance(order, dict) else ""
+        local_task = tasks_by_local_id.get(local_task_id)
+        remote_task_id = str((local_task or {}).get("remoteResult") or "")
+        try:
+            UUID(remote_task_id)
+        except ValueError:
+            raise ValueError("organization_order_remote_trace_missing") from None
+        remote_task_ids.append(remote_task_id)
+    return remote_task_ids
+
+
 def _battle_memory_idempotency_key(
     game_server_id: int,
     npc_id: int,
@@ -5792,6 +5814,14 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "A four-service debrief requires verified organization support and participants.",
                 status_code=409,
             )
+        try:
+            remote_task_ids = _battle_debrief_remote_task_ids(organization, orders)
+        except ValueError:
+            raise ApiError(
+                "battle_debrief_organization_trace_missing",
+                "A verified organization order has no remote task trace.",
+                status_code=409,
+            ) from None
 
         stage_id = str(receipt.get("stageId") or "")
         stage_title = stage_titles.get(stage_id, stage_id)
@@ -5902,9 +5932,9 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             trace_responses = await asyncio.gather(
                 *(
                     upstreams.get_virtual_task_trace(
-                        settings.orgflow_org_id, str(order.get("id") or "")
+                        settings.orgflow_org_id, remote_task_id
                     )
-                    for order in orders
+                    for remote_task_id in remote_task_ids
                 )
             )
         except UpstreamUnavailable as error:
@@ -5915,14 +5945,15 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             ) from error
         task_traces: list[dict[str, Any]] = []
         try:
-            for order, response in zip(orders, trace_responses, strict=True):
-                task_id = str(order.get("id") or "")
+            for remote_task_id, response in zip(
+                remote_task_ids, trace_responses, strict=True
+            ):
                 snapshot = response.get("data", response) if isinstance(response, dict) else None
                 task_traces.append(
                     organization_task_trace.seal(
                         _organization_task_trace_view(
                             snapshot,
-                            task_id=task_id,
+                            task_id=remote_task_id,
                             organization_id=settings.orgflow_org_id,
                         )
                     )

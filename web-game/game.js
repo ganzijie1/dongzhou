@@ -3473,15 +3473,19 @@
 
   let officeTaskRefreshSerial = 0;
 
-  async function refreshOfficeTaskSnapshots() {
-    const serial = ++officeTaskRefreshSerial;
-    const tasks = profile.organization.tasks.filter((task) => task.remoteResult && (
+  function officeTaskNeedsRemoteRefresh(task) {
+    return task.remoteResult && (
       task.status === "active"
       || task.npcOutcome?.state === "PENDING"
       || task.supportNpcOutcomes?.some((outcome) => outcome?.state === "PENDING")
       || task.collaborationRelationship?.state === "PENDING"
       || ["QUEUED", "PENDING"].includes(task.npcConsequence?.state)
-    ));
+    );
+  }
+
+  async function refreshOfficeTaskSnapshots() {
+    const serial = ++officeTaskRefreshSerial;
+    const tasks = profile.organization.tasks.filter(officeTaskNeedsRemoteRefresh);
     if (!tasks.length || integration.isOffline() || !profile.organization.backend.orgFlow) return;
     const snapshots = await readOrganizationTaskSnapshots(tasks);
     if (serial !== officeTaskRefreshSerial) return;
@@ -3515,7 +3519,7 @@
         showNotice(error.message + "，月令未推进。");
         return;
       }
-      const tasks = profile.organization.tasks.filter((task) => task.status === "active" && task.remoteResult);
+      const tasks = profile.organization.tasks.filter(officeTaskNeedsRemoteRefresh);
       try {
         const initialSnapshots = await readOrganizationTaskSnapshots(tasks);
         const snapshots = await waitForOrganizationTasksToStart(tasks, initialSnapshots);
