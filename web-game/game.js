@@ -1808,13 +1808,13 @@
       const traceDetail = trace?.state === "SEALED"
         ? ` · 行迹封印 ${escapeHtml(String(trace.digest || "").slice(0, 10))}`
         : trace?.state === "UNAVAILABLE" ? " · 权威行迹暂不可用" : "";
-      const actionable = ["MEMBER_RESPONSE_PENDING", "IN_PROGRESS", "SUPPLEMENT_PENDING"].includes(task.state) && exception?.state !== "OPEN";
+      const actionable = ["MEMBER_RESPONSE_PENDING", "MODIFICATION_CONFIRMATION_PENDING", "IN_PROGRESS", "SUPPLEMENT_PENDING"].includes(task.state) && exception?.state !== "OPEN";
       const selected = actionable && officeCareerSelectedTaskId === task.taskId;
       const expanded = trace?.state === "SEALED" && officeCareerExpandedTaskIds.has(task.taskId);
       const timeline = expanded
         ? `<ol class="office-career-trace">${(trace.timeline || []).map((item) => `<li><span>${Number(item.sequence)} · ${escapeHtml(traceLabels[item.type] || item.type)}</span><strong>${escapeHtml(item.stateCode || "已记录")}</strong><small>${escapeHtml(String(item.occurredAt || "").replace("T", " ").replace("Z", " UTC"))}</small></li>`).join("")}</ol>`
         : "";
-      const controls = `<div class="office-career-task-actions">${actionable ? `<button class="large-button${selected ? " primary" : ""}" type="button" data-office-career-select-task-id="${escapeHtml(task.taskId)}" aria-pressed="${selected ? "true" : "false"}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>${selected ? "当前差事" : "选为当前"}</button>` : ""}${trace?.state === "SEALED" ? `<button class="large-button" type="button" data-office-career-trace-task-id="${escapeHtml(task.taskId)}" aria-expanded="${expanded ? "true" : "false"}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>${expanded ? "收起履历" : "查看履历"}</button>` : ""}</div>`;
+      const controls = `<div class="office-career-task-actions">${actionable ? `<button class="large-button${selected ? " primary" : ""}" type="button" data-office-career-select-task-id="${escapeHtml(task.taskId)}" aria-pressed="${selected ? "true" : "false"}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>${selected ? "当前差事" : "选为当前"}</button>` : ""}${task.state === "MODIFICATION_CONFIRMATION_PENDING" ? `<button class="large-button primary" type="button" data-office-career-review-task-id="${escapeHtml(task.taskId)}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>请杜伯裁定</button>` : ""}${trace?.state === "SEALED" ? `<button class="large-button" type="button" data-office-career-trace-task-id="${escapeHtml(task.taskId)}" aria-expanded="${expanded ? "true" : "false"}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>${expanded ? "收起履历" : "查看履历"}</button>` : ""}</div>`;
       return `<li class="${selected ? "selected" : ""}" data-task-id="${escapeHtml(task.taskId)}" data-task-state="${escapeHtml(task.state)}" data-exception-state="${escapeHtml(exception?.state || "")}" data-trace-state="${escapeHtml(trace?.state || "")}"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(taskStates[task.state] || task.state)}${exceptionLabel}</span><small>版本 ${Number(task.version || 0)} · ${escapeHtml(task.updatedAt || "未记录时间")}${planDetail}${traceDetail}</small>${controls}${timeline}</li>`;
     }).join("") || '<li class="empty">尚无权威差事状态</li>';
     renderOfficeCareerContributions();
@@ -1945,7 +1945,7 @@
       officeCareerStatusItems = Array.isArray(response.items) ? response.items : [];
       const actionable = officeCareerStatusItems.filter((task) => {
         const exception = task.organizationTrace?.state === "SEALED" ? task.organizationTrace.executionException : task.executionException;
-        return ["MEMBER_RESPONSE_PENDING", "IN_PROGRESS", "SUPPLEMENT_PENDING"].includes(task.state) && exception?.state !== "OPEN";
+        return ["MEMBER_RESPONSE_PENDING", "MODIFICATION_CONFIRMATION_PENDING", "IN_PROGRESS", "SUPPLEMENT_PENDING"].includes(task.state) && exception?.state !== "OPEN";
       });
       if (!actionable.some((task) => task.taskId === officeCareerSelectedTaskId)) {
         officeCareerSelectedTaskId = actionable.length === 1 ? actionable[0].taskId : null;
@@ -1966,12 +1966,16 @@
   async function requestOfficeCareer(action, detail = "") {
     if (integration.isOffline() || officeCareerBusy || !profile.organization.remoteRoster?.playerMembership) return;
     const selectedTask = officeCareerStatusItems.find((task) => task.taskId === officeCareerSelectedTaskId) || null;
-    if (["accept", "reject", "modify", "result", "exception"].includes(action) && !selectedTask) {
+    if (["accept", "reject", "modify", "review", "result", "exception"].includes(action) && !selectedTask) {
       $("#officeCareerFeedback").textContent = "请先在权威差事状态中选定本次要汇报的差事。";
       return;
     }
     if (["accept", "reject", "modify"].includes(action) && selectedTask.state !== "MEMBER_RESPONSE_PENDING") {
       $("#officeCareerFeedback").textContent = "只有待接受的差事可以接受、申请改令或拒绝。";
+      return;
+    }
+    if (action === "review" && selectedTask.state !== "MODIFICATION_CONFIRMATION_PENDING") {
+      $("#officeCareerFeedback").textContent = "只有等待上级确认的改令申请可以请杜伯裁定。";
       return;
     }
     if (action === "modify" && !detail.trim()) {
@@ -1985,18 +1989,21 @@
       accept: "我接受你刚才下发给我的组织任务。",
       reject: "我拒绝你刚才下发给我的组织任务。",
       modify: "我申请调整你刚才下发给我的组织任务。",
+      review: "请立即审核我对已下发组织任务提出的参数修改申请。",
       exception: "我在执行当前组织任务时遇到重大异常，请立即按任务冻结规则登记受阻并列出处置方案。",
       result: "我已完成当前组织任务，请审核我的完成成果。"
     };
     const content = action === "result" || action === "exception"
       ? `${commands[action]}我明确汇报的差事是《${selectedTask.title}》。${action === "result" ? "完成情况" : "受阻情况"}：${detail}`
+      : action === "review"
+        ? `${commands.review}我明确请求裁定的差事是《${selectedTask.title}》。请按权威任务流程立即作出决定。`
       : ["accept", "reject", "modify"].includes(action)
         ? `${commands[action]}我明确回应的差事是《${selectedTask.title}》。${action === "modify" ? `调整内容：${detail}` : action === "reject" && detail ? `拒绝理由：${detail}` : "请按权威任务流程立即登记。"}`
       : commands[action];
     if (!content) return;
     officeCareerBusy = true;
     renderOfficeCareer();
-    $("#officeCareerFeedback").textContent = ({ options: "正在向杜伯查询可领差事……", request: "领差申请已送杜伯，等待派发……", inbox: "正在调阅我的任务待办……", accept: "受命回执已送杜伯……", reject: "拒绝回执已送杜伯……", modify: "改令申请已送杜伯，等待裁定……", exception: "受阻报告已送杜伯，等待冻结方案裁定……", result: "复命已送杜伯，等待审核与贡献结算……" })[action];
+    $("#officeCareerFeedback").textContent = ({ options: "正在向杜伯查询可领差事……", request: "领差申请已送杜伯，等待派发……", inbox: "正在调阅我的任务待办……", accept: "受命回执已送杜伯……", reject: "拒绝回执已送杜伯……", modify: "改令申请已送杜伯，等待裁定……", review: "正在请杜伯裁定改令……", exception: "受阻报告已送杜伯，等待冻结方案裁定……", result: "复命已送杜伯，等待审核与贡献结算……" })[action];
     try {
       await syncOfficeNpcs(profile.organization.members.filter((member) => member.id === "DuBo"));
       const sendAndWaitForReply = async (message) => {
@@ -2009,13 +2016,22 @@
         }
         return null;
       };
-      if (["accept", "reject", "modify"].includes(action)) {
+      if (["accept", "reject", "modify", "review"].includes(action)) {
         await sendAndWaitForReply(commands.inbox);
       }
-      const reply = await sendAndWaitForReply(content);
+      let reply = await sendAndWaitForReply(content);
       const roster = await integration.organizationRoster();
       profile.organization = organization.recordRemoteRoster(profile.organization, roster, displayName);
       await refreshOfficeCareerStatus({ quiet: true });
+      if (action === "modify") {
+        const awaitingReview = officeCareerStatusItems.find((task) => task.taskId === selectedTask.taskId && task.state === "MODIFICATION_CONFIRMATION_PENDING");
+        if (awaitingReview) {
+          $("#officeCareerFeedback").textContent = "改令申请已登记，正在请杜伯裁定……";
+          const reviewContent = `${commands.review}我明确请求裁定的差事是《${selectedTask.title}》。请按权威任务流程立即作出决定。`;
+          reply = await sendAndWaitForReply(reviewContent) || reply;
+          await refreshOfficeCareerStatus({ quiet: true });
+        }
+      }
       $("#officeCareerFeedback").textContent = reply?.content || "军府已受理，权威回信稍后可在府中书问查看。";
       if (action === "request" && detail) $("#officeCareerTaskName").value = "";
       if ((action === "result" || action === "exception") && detail) $("#officeCareerResult").value = "";
@@ -2061,6 +2077,12 @@
   }
 
   function handleOfficeCareerStatusAction(event) {
+    const reviewButton = event.target.closest("[data-office-career-review-task-id]");
+    if (reviewButton) {
+      officeCareerSelectedTaskId = reviewButton.dataset.officeCareerReviewTaskId;
+      requestOfficeCareer("review");
+      return;
+    }
     const selectButton = event.target.closest("[data-office-career-select-task-id]");
     if (selectButton) {
       officeCareerSelectedTaskId = selectButton.dataset.officeCareerSelectTaskId;

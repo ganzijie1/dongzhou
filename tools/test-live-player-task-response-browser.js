@@ -125,12 +125,12 @@ async function releaseMembership(page) {
     const modified = await waitFor(
       page,
       readTasks,
-      (result) => result.items?.some((task) => task.taskId === taskId && task.state === "MODIFICATION_CONFIRMATION_PENDING"),
-      "Modification request",
+      (result) => result.items?.some((task) => task.taskId === taskId && task.state !== "MODIFICATION_CONFIRMATION_PENDING" && task.state !== "MEMBER_RESPONSE_PENDING"),
+      "Manager modification decision",
     );
     const modifiedTask = modified.items.find((task) => task.taskId === taskId);
     console.error(`[player-task-response] First task: ${modifiedTask.state}`);
-    assert.equal(modifiedTask.state, "MODIFICATION_CONFIRMATION_PENDING", `Unexpected post-modification state: ${modifiedTask.state}`);
+    assert.equal(modifiedTask.state, "IN_PROGRESS", `Unexpected post-modification state: ${modifiedTask.state}`);
     assert.equal(modifiedTask.organizationTrace?.state, "SEALED", "Modified task trace is not sealed");
     assert.match(modifiedTask.organizationTrace?.digest || "", /^[0-9a-f]{64}$/);
 
@@ -146,7 +146,7 @@ async function releaseMembership(page) {
     const rejectedTaskId = secondPending.items.find((task) => task.title === "巡察营垒").taskId;
     console.error(`[player-task-response] Second task: ${rejectedTaskId}`);
     await page.click("#officeCareerStatusRefresh");
-    await page.click(`[data-task-id="${rejectedTaskId}"]`);
+    await page.click(`[data-office-career-select-task-id="${rejectedTaskId}"]`);
     await page.waitForSelector(`[data-task-id="${rejectedTaskId}"].selected`, { timeout });
     const rejection = "当前军阵器械未齐，请另派属官承办";
     await page.fill("#officeCareerResponseDetail", rejection);
@@ -175,7 +175,7 @@ async function releaseMembership(page) {
 
     const report = {
       result: "PASS",
-      mode: "real-ainpc-orgflow-player-task-modify-reject-browser",
+      mode: "real-ainpc-orgflow-player-task-modify-review-reject-browser",
       installation,
       modifiedTaskId: taskId,
       rejectedTaskId,
