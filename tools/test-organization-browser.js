@@ -177,6 +177,12 @@ async function openReady(page) {
               recipientType: "PLAYER",
               allowedActions: ["submit_supplement"]
             }] : [],
+            supplementRequest: careerAction === "result" ? {
+              reviewCaseId: "00000000-0000-4000-8000-000000000085",
+              supplementCaseId: "00000000-0000-4000-8000-000000000084",
+              reasonCode: "other",
+              reasonDetail: "请补齐西仓封识清单十二项。"
+            } : null,
             executionException: hasException ? {
               exceptionId: "00000000-0000-4000-8000-000000000082",
               code: "road_destroyed",
@@ -396,6 +402,7 @@ async function openReady(page) {
     await online.click("#officeCareerResultForm button[type=submit]");
     await online.waitForSelector("#officeCareerFeedback >> text=请按退回要求补呈", { timeout: 15000 });
     await online.waitForSelector("#officeCareerResultSubmit >> text=提交补呈", { timeout: 15000 });
+    await online.waitForSelector("#officeCareerSupplementRequirement >> text=退回要求：请补齐西仓封识清单十二项。", { timeout: 15000 });
     if (!(await online.locator("#officeCareerException").isHidden())) throw new Error("Supplement form still exposes the execution blocker action");
     if (await online.locator("#officeCareerResult").getAttribute("aria-label") !== "补呈差事成果") throw new Error("Supplement input lacks its authoritative purpose label");
     await online.fill("#officeCareerResult", "补齐西仓封识清单十二项，并附经手人复核记录");

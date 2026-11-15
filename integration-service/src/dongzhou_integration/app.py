@@ -1876,6 +1876,7 @@ def _organization_task_trace_view(
         "INVALIDATED",
     }
     confirmations: list[dict[str, Any]] = []
+    supplement_decisions: list[dict[str, Any]] = []
     for raw in raw_confirmations:
         if (
             not isinstance(raw, dict)
@@ -1911,6 +1912,51 @@ def _organization_task_trace_view(
                 "finalAction": str(raw.get("final_action") or "") or None,
             }
         )
+        if (
+            case_type == "TASK_RESULT_CONFIRMATION"
+            and case_state == "ENDED"
+            and str(raw.get("final_action") or "").lower()
+            == "return_for_supplement"
+        ):
+            replies = raw.get("replies") or []
+            if not isinstance(replies, list):
+                raise ValueError("organization task confirmation replies are invalid")
+            accepted = [
+                reply
+                for reply in replies
+                if isinstance(reply, dict)
+                and str(reply.get("state") or "") == "ACCEPTED"
+                and str(reply.get("parsed_action") or "").lower()
+                == "return_for_supplement"
+            ]
+            if len(accepted) != 1:
+                raise ValueError("organization task supplement decision is invalid")
+            arguments = accepted[0].get("action_arguments")
+            if not isinstance(arguments, dict):
+                raise ValueError("organization task supplement reason is invalid")
+            reason_code = str(arguments.get("reason_code") or "").lower()
+            reason_detail = str(arguments.get("reason_detail") or "").strip() or None
+            allowed_reasons = {
+                "missing_core_requirement_response",
+                "missing_required_conclusion",
+                "content_contradiction",
+                "unfinished_content_not_explained",
+                "content_not_aligned_with_task",
+                "other",
+            }
+            if (
+                reason_code not in allowed_reasons
+                or (reason_code == "other") != (reason_detail is not None)
+                or (reason_detail is not None and len(reason_detail) > 500)
+            ):
+                raise ValueError("organization task supplement reason is invalid")
+            supplement_decisions.append(
+                {
+                    "reviewCaseId": case_id,
+                    "reasonCode": reason_code,
+                    "reasonDetail": reason_detail,
+                }
+            )
     raw_exception = task.get("execution_exception")
     execution_exception = None
     if raw_exception is not None:
@@ -2022,6 +2068,22 @@ def _organization_task_trace_view(
         or not str(task.get("version") or "")
     ):
         raise ValueError("organization task supplement count is invalid")
+    active_supplements = [
+        item
+        for item in confirmations
+        if item["type"] == "TASK_SUPPLEMENT_REQUEST"
+        and item["state"] not in {"ENDED", "INVALIDATED"}
+        and item["recipientType"] == "PLAYER"
+        and "submit_supplement" in item["allowedActions"]
+    ]
+    supplement_request = None
+    if str(task.get("state") or "") == "SUPPLEMENT_PENDING":
+        if len(active_supplements) != 1 or len(supplement_decisions) != supplement_count:
+            raise ValueError("organization task supplement provenance is invalid")
+        supplement_request = {
+            **supplement_decisions[-1],
+            "supplementCaseId": active_supplements[0]["caseId"],
+        }
     return {
         "taskId": task_id,
         "organizationId": organization_id,
@@ -2033,6 +2095,7 @@ def _organization_task_trace_view(
             for item in confirmations
             if item["state"] not in {"ENDED", "INVALIDATED"}
         ],
+        "supplementRequest": supplement_request,
         "executionException": execution_exception,
         "timeline": timeline,
     }

@@ -3062,6 +3062,7 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
                         "deadline_at": "2026-11-13T01:00:00Z",
                         "final_action": None,
                         "messages": [{"body_snapshot": "must not escape"}],
+                        "replies": [],
                     }
                 ],
                 "timeline": [
@@ -3093,6 +3094,7 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(receipt["supplementCount"], 1)
         self.assertEqual(receipt["activeConfirmations"][0]["type"], "TASK_RESULT_CONFIRMATION")
         self.assertNotIn("messages", receipt["activeConfirmations"][0])
+        self.assertIsNone(receipt["supplementRequest"])
         self.assertEqual(receipt["kernel"]["module"], "dongzhou_organization_task_trace")
         with self.assertRaisesRegex(ValueError, "ownership"):
             _organization_task_trace_view(
@@ -3106,6 +3108,83 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
                 task_id=task_id,
                 organization_id=organization_id,
             )
+
+    def test_organization_task_trace_seals_only_authoritative_supplement_reason(self) -> None:
+        task_id = str(uuid4())
+        organization_id = str(uuid4())
+        review_case_id = str(uuid4())
+        supplement_case_id = str(uuid4())
+        trace = _organization_task_trace_view(
+            {
+                "task": {
+                    "task_id": task_id,
+                    "organization_id": organization_id,
+                    "state": "SUPPLEMENT_PENDING",
+                    "version": "8",
+                    "supplement_count": 1,
+                    "execution_exception": None,
+                },
+                "confirmations": [
+                    {
+                        "case_id": review_case_id,
+                        "business_id": task_id,
+                        "organization_id": organization_id,
+                        "case_type": "TASK_RESULT_CONFIRMATION",
+                        "state": "ENDED",
+                        "recipient_subject_type": "NPC",
+                        "allowed_actions": ["return_for_supplement", "success"],
+                        "deadline_at": "2026-11-13T01:00:00Z",
+                        "final_action": "return_for_supplement",
+                        "messages": [{"body_snapshot": "private result must not escape"}],
+                        "replies": [{
+                            "state": "ACCEPTED",
+                            "parsed_action": "return_for_supplement",
+                            "body_snapshot": "private reply must not escape",
+                            "action_arguments": {
+                                "reason_code": "other",
+                                "reason_detail": "请补齐西仓封识清单。",
+                                "ignored_private_field": "must not escape",
+                            },
+                        }],
+                    },
+                    {
+                        "case_id": supplement_case_id,
+                        "business_id": task_id,
+                        "organization_id": organization_id,
+                        "case_type": "TASK_SUPPLEMENT_REQUEST",
+                        "state": "WAITING_CONFIRMATION",
+                        "recipient_subject_type": "PLAYER",
+                        "allowed_actions": ["submit_supplement"],
+                        "deadline_at": "2026-11-13T02:00:00Z",
+                        "final_action": None,
+                        "messages": [{"body_snapshot": "private prompt must not escape"}],
+                        "replies": [],
+                    },
+                ],
+                "timeline": [{
+                    "sequence_no": "1",
+                    "occurred_at": "2026-11-13T00:00:00Z",
+                    "entry_type": "TASK_CREATED",
+                    "reference_id": task_id,
+                    "case_id": None,
+                    "state_code": "GENERATED",
+                    "reason_code": None,
+                }],
+            },
+            task_id=task_id,
+            organization_id=organization_id,
+        )
+        receipt = OrganizationTaskTraceModule.seal(trace)
+        self.assertEqual(receipt["supplementRequest"], {
+            "reviewCaseId": review_case_id,
+            "reasonCode": "other",
+            "reasonDetail": "请补齐西仓封识清单。",
+            "supplementCaseId": supplement_case_id,
+        })
+        encoded = json.dumps(receipt, ensure_ascii=False)
+        self.assertNotIn("private result", encoded)
+        self.assertNotIn("private reply", encoded)
+        self.assertNotIn("ignored_private_field", encoded)
 
     def test_organization_task_trace_seals_recovery_plan_details(self) -> None:
         task_id = str(uuid4())

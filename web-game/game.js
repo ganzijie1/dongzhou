@@ -1780,6 +1780,14 @@
         && confirmation.allowedActions?.includes("submit_supplement"))
       : null;
     const supplementReady = selectedTask?.state === "SUPPLEMENT_PENDING" && Boolean(supplementConfirmation);
+    const supplementReasonLabels = {
+      missing_core_requirement_response: "核心要求尚未逐项说明",
+      missing_required_conclusion: "缺少必要结论",
+      content_contradiction: "成果内容存在矛盾",
+      unfinished_content_not_explained: "未说明尚未完成的内容",
+      content_not_aligned_with_task: "成果与差事目标不符",
+      other: "主管另有补充要求"
+    };
     if (responseForm) responseForm.hidden = selectedTask?.state !== "MEMBER_RESPONSE_PENDING";
     if (resultForm) resultForm.hidden = selectedTask?.state !== "IN_PROGRESS" && !supplementReady;
     const resultInput = $("#officeCareerResult");
@@ -1791,6 +1799,14 @@
     }
     if (resultSubmit) resultSubmit.textContent = supplementReady ? "提交补呈" : "复命";
     if (exceptionButton) exceptionButton.hidden = supplementReady;
+    const supplementRequirement = $("#officeCareerSupplementRequirement");
+    if (supplementRequirement) {
+      const request = supplementReady ? selectedTask.organizationTrace.supplementRequest : null;
+      supplementRequirement.hidden = !request;
+      supplementRequirement.textContent = request
+        ? `退回要求：${request.reasonDetail || supplementReasonLabels[request.reasonCode] || request.reasonCode}`
+        : "";
+    }
     $("#officeCareerAccount").textContent = `可用贡献 ${Number(account.accountBalance || 0)} · 累计功绩 ${Number(account.lifetimeEarned || 0)} · 已用 ${Number(account.lifetimeSpent || 0)}`;
     panel.querySelectorAll("button, input").forEach((control) => { control.disabled = officeCareerBusy || officeCareerStatusBusy || officeCareerContributionBusy; });
     const taskStates = {
