@@ -15,6 +15,7 @@
   const NPC_THOUGHT_PENDING_PREFIX = "dongzhou-pending-npc-thought-v1:";
   const MANDATE_SCHEDULE_PENDING_PREFIX = "dongzhou-pending-mandate-schedule-v1:";
   const INVENTORY_REQUISITION_PENDING_KEY = "dongzhou-pending-inventory-requisition-v1";
+  const SCHEDULED_DUTY_STATUS_PENDING_KEY = "dongzhou-pending-scheduled-duty-status-v1";
   const LOGISTICS_BRIEFING_PENDING_PREFIX = "dongzhou-pending-logistics-briefing-v1:";
   const ADVISER_QUESTION_KEY = "dongzhou-adviser-question-v1";
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
@@ -525,6 +526,26 @@
   function organizationPlayerContributionDossier(entryId) { return requestWithTransientRetry(`/organization/player-contributions/${encodeURIComponent(entryId)}/dossier`); }
   function organizationInventory() { return requestWithTransientRetry("/organization/inventory"); }
   function organizationScheduledDuties() { return requestWithTransientRetry("/organization/scheduled-duties"); }
+  async function setOrganizationScheduledDutyEnabled(enabled) {
+    const saved = read(SCHEDULED_DUTY_STATUS_PENDING_KEY, null);
+    const pending = saved?.enabled === Boolean(enabled)
+      ? saved
+      : { client_request_id: root.crypto.randomUUID(), enabled: Boolean(enabled) };
+    write(SCHEDULED_DUTY_STATUS_PENDING_KEY, pending);
+    try {
+      const result = await request("/organization/scheduled-duties/status", {
+        method: "POST",
+        body: JSON.stringify(pending)
+      });
+      root.localStorage.removeItem(SCHEDULED_DUTY_STATUS_PENDING_KEY);
+      return result;
+    } catch (error) {
+      if ([400, 422].includes(error.status)) {
+        root.localStorage.removeItem(SCHEDULED_DUTY_STATUS_PENDING_KEY);
+      }
+      throw error;
+    }
+  }
   async function organizationLogisticsBriefing(heroId, input) {
     const pendingKey = LOGISTICS_BRIEFING_PENDING_PREFIX + [heroId, input.stage_id].join(":");
     const saved = read(pendingKey, null);
@@ -741,5 +762,5 @@
     return result;
   }
 
-  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, verifyKnowledgeQuizSeal, pendingAdviserQuestion, askAdviser, adviserQuestion, feedbackAdviser, decideAdviserGuide, adviserGuide, cancelAdviserGuide, syncNpcs, setNpcInteractionPreference, commendNpc, commendMeritNpc, recallNpc, npcState, npcCorrespondence, organizationPublicNotices, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationMemberContributions, organizationContributionDossier, organizationPlayerTasks, organizationPlayerContributions, organizationPlayerContributionDossier, organizationInventory, organizationScheduledDuties, organizationLogisticsBriefing, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, knowledgeCodex, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, verifyKnowledgeQuizSeal, pendingAdviserQuestion, askAdviser, adviserQuestion, feedbackAdviser, decideAdviserGuide, adviserGuide, cancelAdviserGuide, syncNpcs, setNpcInteractionPreference, commendNpc, commendMeritNpc, recallNpc, npcState, npcCorrespondence, organizationPublicNotices, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationMemberContributions, organizationContributionDossier, organizationPlayerTasks, organizationPlayerContributions, organizationPlayerContributionDossier, organizationInventory, organizationScheduledDuties, setOrganizationScheduledDutyEnabled, organizationLogisticsBriefing, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
 });

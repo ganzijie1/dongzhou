@@ -127,6 +127,9 @@ async function openReady(page) {
     let orderAttempts = 0;
     let mandateAttempts = 0;
     let organizationTaskReads = 0;
+    let scheduledDutyState = "ACTIVE";
+    let scheduledDutyVersion = 1;
+    const scheduledDutyActions = [];
     let savedRemoteTask = false;
     let releaseOrder;
     const orderGate = new Promise((resolve) => { releaseOrder = resolve; });
@@ -142,8 +145,16 @@ async function openReady(page) {
         if (payload.organization?.tasks?.some((task) => task.remoteResult)) savedRemoteTask = true;
         body = { version: ++saveVersion, payload };
       }
-      else if (pathName.endsWith("/integration/status")) body = { mode: "connected", organizationId: "org-e2e", services: { nexusKernel: { online: true, mode: "embedded", version: "0.2.0", requiredModuleCount: 17, operationalModuleCount: 17, unavailableModules: [] }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } } };
+      else if (pathName.endsWith("/integration/status")) body = { mode: "connected", organizationId: "org-e2e", services: { nexusKernel: { online: true, mode: "embedded", version: "0.2.0", requiredModuleCount: 18, operationalModuleCount: 18, unavailableModules: [] }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } } };
       else if (pathName.endsWith("/organization/roster")) body = { organization: { name: "东周军府", state: "ACTIVE", hierarchyVersion: membershipJoined ? 8 : 7, growthContribution: 245 }, members: [{ heroId: "DuBo", office: "军府主官", role: "军府主官", level: "manager", directManagerHeroId: null, contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 }, { heroId: "ZuoRu", office: "军府属官·第1席", role: "军府属官", level: "officer", directManagerHeroId: "DuBo", contributionBalance: 31, lifetimeEarned: 42, lifetimeSpent: 11 }], playerMembership: membershipJoined ? { office: "军府属官·第12席", role: "军府属官", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 } : null, openPositions: membershipJoined ? [] : [{ office: "军府属官·第12席", role: "军府属官", level: "staff" }] };
+      else if (pathName.endsWith("/organization/scheduled-duties/status")) {
+        const input = request.postDataJSON();
+        scheduledDutyState = input.enabled ? "ACTIVE" : "DISABLED";
+        scheduledDutyVersion += 1;
+        scheduledDutyActions.push(input);
+        body = { state: scheduledDutyState, version: scheduledDutyVersion, activeTask: { taskId: "00000000-0000-4000-8000-000000000099", title: "东周朝廷月例察访", state: "IN_PROGRESS" }, receipt: { digest: "5".repeat(64), kernel: { module: "dongzhou_organization_scheduled_duty", state: "SEALED" } } };
+      }
+      else if (pathName.endsWith("/organization/scheduled-duties")) body = { ruleId: "00000000-0000-4000-8000-000000000098", state: scheduledDutyState, version: scheduledDutyVersion, frequency: "DAILY", triggerMinute: 780, managerHeroId: "DuBo", workerHeroId: "ZuoRu", taskCode: "dongzhou.intelligence", latestTrigger: { state: "SKIPPED", failure_code: "duplicate_active_task", task_id: "00000000-0000-4000-8000-000000000099" }, activeTask: { taskId: "00000000-0000-4000-8000-000000000099", title: "东周朝廷月例察访", state: "IN_PROGRESS", adopted: false } };
       else if (pathName.endsWith("/organization/player-tasks")) {
         const hasException = careerAction === "exception";
         body = !careerAction ? { items: [], hasMore: false } : { items: [{
@@ -367,8 +378,16 @@ async function openReady(page) {
     await online.goto(onlineUrl.toString(), { waitUntil: "domcontentloaded" });
     await online.waitForSelector("#app:not([hidden])", { timeout: 45000 });
     await online.click("#campaignOfficeButton");
-    await online.waitForSelector("#officeServiceStatus >> text=内核 17/17通达", { timeout: 15000 });
+    await online.waitForSelector("#officeServiceStatus >> text=内核 18/18通达", { timeout: 15000 });
     await online.waitForSelector("#officeMembers >> text=官署实账");
+    await online.waitForSelector("#officeScheduledDutyStatus >> text=已有同类差事在办", { timeout: 15000 });
+    await online.click("#officeScheduledDutyToggle");
+    await online.waitForSelector("#officeScheduledDutyStatus >> text=月例已停办", { timeout: 15000 });
+    await online.waitForSelector("#officeScheduledDutyStatus >> text=Nexus封印 555555555555", { timeout: 15000 });
+    if (!(await online.locator("#officeScheduledDutyStatus").innerText()).includes("已派差事仍照常办理")) throw new Error("Disabling the monthly duty hid the already dispatched task");
+    await online.click("#officeScheduledDutyToggle");
+    await online.waitForSelector("#officeScheduledDutyToggle >> text=停办月例", { timeout: 15000 });
+    if (scheduledDutyActions.map((entry) => entry.enabled).join(",") !== "false,true") throw new Error(`Unexpected monthly duty actions: ${JSON.stringify(scheduledDutyActions)}`);
     await online.waitForFunction(() => !document.querySelector("#officeMembershipApply").disabled && /1 席可申请/.test(document.querySelector("#officeMembershipDetail").textContent));
     await online.click("#officeMembershipApply");
     await online.waitForSelector("#officeMembershipState >> text=已入仕", { timeout: 15000 });

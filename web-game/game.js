@@ -99,6 +99,7 @@
   let officeSelectedMemory = null;
   let officeInventoryView = null;
   let officeScheduledDutyView = null;
+  let officeScheduledDutyBusy = false;
   let officeInventoryRequisitionBusy = false;
   let officeLogisticsBriefingBusy = false;
   let officeMembershipLeavePending = false;
@@ -1443,8 +1444,12 @@
   function renderOfficeScheduledDuty() {
     const status = $("#officeScheduledDutyStatus");
     const refresh = $("#officeScheduledDutyRefresh");
-    if (!status || !refresh) return;
-    refresh.disabled = Boolean(officeScheduledDutyView?.loading);
+    const toggle = $("#officeScheduledDutyToggle");
+    if (!status || !refresh || !toggle) return;
+    const unavailable = integration.isOffline() || Boolean(officeScheduledDutyView?.loading) || officeScheduledDutyBusy;
+    refresh.disabled = unavailable;
+    toggle.disabled = unavailable || !officeScheduledDutyView || Boolean(officeScheduledDutyView?.error);
+    toggle.textContent = officeScheduledDutyView?.state === "DISABLED" ? "恢复月例" : "停办月例";
     if (integration.isOffline()) {
       status.textContent = "离线演练不派发自动差事";
       return;
@@ -1460,6 +1465,11 @@
     const latest = officeScheduledDutyView?.latestTrigger;
     if (!officeScheduledDutyView) {
       status.textContent = "等待调阅定时簿";
+    } else if (officeScheduledDutyView.state === "DISABLED") {
+      const activeTask = officeScheduledDutyView.activeTask;
+      status.textContent = activeTask?.taskId
+        ? `月例已停办 · 已派差事仍照常办理 · ${activeTask.title || "权威在办任务"}`
+        : "月例已停办 · 恢复后才会继续按月派发";
     } else if (!latest) {
       status.textContent = "规则已立，推进月令后由杜伯自动派左儒察访";
     } else {
@@ -1473,6 +1483,8 @@
         : "";
       status.textContent = `${duplicateActive ? "" : "本期"}${state}${task}${activeTaskText}`;
     }
+    const digest = officeScheduledDutyView?.receipt?.digest;
+    if (digest) status.textContent += ` · Nexus封印 ${String(digest).slice(0, 12)}`;
   }
 
   async function refreshOfficeScheduledDuty() {
@@ -1485,7 +1497,9 @@
     renderOfficeScheduledDuty();
     try {
       officeScheduledDutyView = await integration.organizationScheduledDuties();
-      const adopted = organization.adoptScheduledDuty(profile.organization, officeScheduledDutyView);
+      const adopted = officeScheduledDutyView.state === "ACTIVE"
+        ? organization.adoptScheduledDuty(profile.organization, officeScheduledDutyView)
+        : { state: profile.organization, task: null, adopted: false };
       if (adopted.task) {
         let next = adopted.state;
         try {
@@ -1502,6 +1516,23 @@
       officeScheduledDutyView = { error: true };
     }
     renderOfficeScheduledDuty();
+  }
+
+  async function toggleOfficeScheduledDuty() {
+    if (officeScheduledDutyBusy || integration.isOffline() || !officeScheduledDutyView) return;
+    officeScheduledDutyBusy = true;
+    renderOfficeScheduledDuty();
+    try {
+      const enabled = officeScheduledDutyView.state === "DISABLED";
+      const response = await integration.setOrganizationScheduledDutyEnabled(enabled);
+      await refreshOfficeScheduledDuty();
+      officeScheduledDutyView = { ...officeScheduledDutyView, receipt: response.receipt };
+    } catch (_) {
+      officeScheduledDutyView = { ...officeScheduledDutyView, error: true };
+    } finally {
+      officeScheduledDutyBusy = false;
+      renderOfficeScheduledDuty();
+    }
   }
 
   async function requestOfficeLogisticsBriefing() {
@@ -5465,6 +5496,7 @@
     $("#officeContributions").addEventListener("click", (event) => { const verifyButton = event.target.closest("[data-contribution-verify-id]"); if (verifyButton) { verifyOfficeContributionDossier(verifyButton.dataset.contributionVerifyId); return; } const meritButton = event.target.closest("[data-merit-commendation-id]"); if (meritButton) { commendOfficeNpcForMerit(meritButton.dataset.meritCommendationId); return; } const dossierButton = event.target.closest("[data-contribution-dossier-id]"); if (dossierButton) { toggleOfficeContributionDossier(dossierButton.dataset.contributionDossierId); return; } const button = event.target.closest("[data-contribution-id]"); if (button) selectOfficeContribution(button.dataset.contributionId); });
     $("#officeInventoryRefresh").addEventListener("click", refreshOfficeInventory);
     $("#officeScheduledDutyRefresh").addEventListener("click", refreshOfficeScheduledDuty);
+    $("#officeScheduledDutyToggle").addEventListener("click", toggleOfficeScheduledDuty);
     $("#officeLogisticsBriefing").addEventListener("click", requestOfficeLogisticsBriefing);
     $("#officeInventoryRequisition").addEventListener("click", requisitionOfficeInventory);
     $("#officeInventoryApprove").addEventListener("click", () => decideOfficeInventoryRequisition("APPROVE"));

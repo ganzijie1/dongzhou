@@ -28,7 +28,7 @@ from .assignments import (
     select_assignment,
     task_duty,
 )
-from .models import AdviserFeedbackRequest, AdviserGuideCancelRequest, AdviserGuideDecisionRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcPublicMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcCommendationRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMeritCommendationRequest, NpcMessageRequest, NpcRecollectionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
+from .models import AdviserFeedbackRequest, AdviserGuideCancelRequest, AdviserGuideDecisionRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcPublicMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcCommendationRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMeritCommendationRequest, NpcMessageRequest, NpcRecollectionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationScheduledDutyStatusRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
@@ -1136,6 +1136,51 @@ class LogisticsBriefingModule(Module):
             "kernel": {
                 "module": LogisticsBriefingModule.name,
                 "moduleVersion": LogisticsBriefingModule.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "SEALED",
+            },
+        }
+
+
+class OrganizationScheduledDutyModule(Module):
+    name = "dongzhou_organization_scheduled_duty"
+    version = "1.0.0"
+    dependencies = (RuntimeModule.name,)
+
+    @staticmethod
+    def seal(trace: dict[str, Any]) -> dict[str, Any]:
+        UUID(str(trace.get("playerRequestId") or ""))
+        UUID(str(trace.get("ruleId") or ""))
+        UUID(str(trace.get("organizationId") or ""))
+        active_task_id = trace.get("activeTaskId")
+        if active_task_id is not None:
+            UUID(str(active_task_id))
+        previous_state = str(trace.get("previousState") or "")
+        resulting_state = str(trace.get("resultingState") or "")
+        desired_state = str(trace.get("desiredState") or "")
+        previous_version = int(trace.get("previousVersion") or 0)
+        resulting_version = int(trace.get("resultingVersion") or 0)
+        expected_version = (
+            previous_version if previous_state == desired_state else previous_version + 1
+        )
+        if (
+            previous_state not in {"ACTIVE", "DISABLED"}
+            or resulting_state != desired_state
+            or desired_state not in {"ACTIVE", "DISABLED"}
+            or previous_version < 1
+            or resulting_version != expected_version
+            or trace.get("managerHeroId") != "DuBo"
+            or trace.get("workerHeroId") != "ZuoRu"
+            or trace.get("taskCode") != "dongzhou.intelligence"
+        ):
+            raise ValueError("organization scheduled duty trace is invalid")
+        digest = _canonical_digest(trace)
+        return {
+            **trace,
+            "digest": digest,
+            "kernel": {
+                "module": OrganizationScheduledDutyModule.name,
+                "moduleVersion": OrganizationScheduledDutyModule.version,
                 "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
                 "state": "SEALED",
             },
@@ -4252,6 +4297,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     organization_contribution_dossier = OrganizationContributionDossierModule()
     organization_task_topology = OrganizationTaskTopologyModule()
     logistics_briefing = LogisticsBriefingModule()
+    organization_scheduled_duty = OrganizationScheduledDutyModule()
     npc_commendation = NpcCommendationModule()
     npc_merit_commendation = NpcMeritCommendationModule()
     adviser_guide = AdviserGuideModule()
@@ -4285,6 +4331,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             LoadedModule(module=organization_contribution_dossier, required=True, original_index=14),
             LoadedModule(module=npc_merit_commendation, required=True, original_index=15),
             LoadedModule(module=adviser_guide, required=True, original_index=16),
+            LoadedModule(
+                module=organization_scheduled_duty,
+                required=True,
+                original_index=17,
+            ),
         ]
     )
     router = APIRouter(prefix="/api/dongzhou/v1")
@@ -4452,6 +4503,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         route_state = module_state(CampaignRouteModule)
         logistics_state = module_state(LogisticsBriefingModule)
         task_trace_state = module_state(OrganizationTaskTraceModule)
+        scheduled_duty_state = module_state(OrganizationScheduledDutyModule)
         return {
             **external,
             "nexusKernel": {
@@ -4473,6 +4525,8 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "organizationTaskTraceState": task_trace_state,
                 "logisticsBriefingModule": LogisticsBriefingModule.name,
                 "logisticsBriefingState": logistics_state,
+                "organizationScheduledDutyModule": OrganizationScheduledDutyModule.name,
+                "organizationScheduledDutyState": scheduled_duty_state,
             },
         }
 
@@ -8919,24 +8973,30 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                         ),
                         "updatedAt": str(task.get("updated_at") or ""),
                     }
-                    await store.register_derived_external_request(
-                        player_id,
-                        latest_task_id,
-                        "organization_task",
-                        {
-                            "task_type": "intelligence",
-                            "assignee_hero_id": worker_hero_id,
-                            "stage_id": "court-monthly-intelligence",
-                            "stage_title": "东周朝廷月例察访",
-                            "brief": "Authoritative scheduled Dongzhou court intelligence duty.",
-                            "parameters": {
-                                "resource_units": 0,
-                                "assignee_name": "左儒",
+                    try:
+                        await store.register_derived_external_request(
+                            player_id,
+                            latest_task_id,
+                            "organization_task",
+                            {
+                                "task_type": "intelligence",
+                                "assignee_hero_id": worker_hero_id,
+                                "stage_id": "court-monthly-intelligence",
+                                "stage_title": "东周朝廷月例察访",
+                                "brief": "Authoritative scheduled Dongzhou court intelligence duty.",
+                                "parameters": {
+                                    "resource_units": 0,
+                                    "assignee_name": "左儒",
+                                },
+                                "scheduled_rule_id": str(rule_id),
                             },
-                            "scheduled_rule_id": str(rule_id),
-                        },
-                    )
-                    active_task["adopted"] = True
+                        )
+                    except VersionConflict as error:
+                        if str(error) != "derived_request_owner_conflict":
+                            raise
+                        active_task["adopted"] = False
+                    else:
+                        active_task["adopted"] = True
                 except UpstreamUnavailable:
                     active_task = {
                         "taskId": latest_task_id,
@@ -8948,6 +9008,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             return {
                 "ruleId": str(rule_id),
                 "state": str(rule.get("state") or "UNKNOWN"),
+                "version": int(rule.get("version", 1)),
                 "frequency": str(rule.get("frequency") or "DAILY"),
                 "triggerMinute": int(rule.get("trigger_minute", 780)),
                 "managerHeroId": manager_hero_id,
@@ -8972,6 +9033,157 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "Organization scheduled duty response is invalid.",
                 status_code=502,
             ) from error
+
+    @router.post("/organization/scheduled-duties/status")
+    async def update_organization_scheduled_duty_status(
+        request: OrganizationScheduledDutyStatusRequest,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        desired_state = "ACTIVE" if request.enabled else "DISABLED"
+        payload = {"enabled": request.enabled}
+        try:
+            should_process, previous = await store.begin_request(
+                player_id,
+                request.client_request_id,
+                "organization_scheduled_duty_status",
+                payload,
+            )
+        except VersionConflict as error:
+            raise ApiError(
+                "organization_scheduled_duty_status_conflict",
+                "This monthly duty request ID was already used with different input.",
+                status_code=409,
+            ) from error
+        if not should_process:
+            if previous and previous.get("state") == "PENDING":
+                raise ApiError(
+                    "organization_scheduled_duty_status_in_progress",
+                    "This monthly duty status change is still in progress.",
+                    status_code=409,
+                )
+            return {**(previous or {}), "replayed": True}
+
+        try:
+            current = await read_organization_scheduled_duties(player_id)
+            rule_id = str(current.get("ruleId") or "")
+            previous_state = str(current.get("state") or "")
+            previous_version = int(current.get("version") or 0)
+            if (
+                UUID(rule_id)
+                != uuid5(
+                    NAMESPACE_URL,
+                    f"dongzhou:{settings.game_server_id}:scheduled-duty:monthly-intelligence:v2",
+                )
+                or previous_state not in {"ACTIVE", "DISABLED"}
+                or previous_version < 1
+                or current.get("managerHeroId") != "DuBo"
+                or current.get("workerHeroId") != "ZuoRu"
+                or current.get("taskCode") != "dongzhou.intelligence"
+            ):
+                raise ValueError("monthly duty rule identity is invalid")
+
+            resulting_state = previous_state
+            resulting_version = previous_version
+            if previous_state != desired_state:
+                response = await upstreams.update_organization_scheduled_task_rule_status(
+                    {
+                        "schema_version": "organization.scheduled-task-rule-status.v1",
+                        "request_id": f"dongzhou-scheduled-status-{request.client_request_id}",
+                        "idempotency_key": (
+                            f"dongzhou-scheduled-duty-status:{player_id}:"
+                            f"{request.client_request_id}"
+                        ),
+                        "rule_id": rule_id,
+                        "expected_version": previous_version,
+                        "status": desired_state,
+                    }
+                )
+                data = response.get("data") if isinstance(response, dict) else None
+                rule = data.get("rule") if isinstance(data, dict) else None
+                if not isinstance(rule, dict):
+                    raise ValueError("scheduled duty status response has no rule")
+                resulting_state = str(rule.get("state") or "")
+                resulting_version = int(rule.get("version") or 0)
+                if (
+                    str(rule.get("rule_id") or "") != rule_id
+                    or resulting_state != desired_state
+                    or resulting_version != previous_version + 1
+                ):
+                    raise ValueError("scheduled duty status response is inconsistent")
+
+            active_task = current.get("activeTask")
+            receipt = organization_scheduled_duty.seal(
+                {
+                    "playerRequestId": str(request.client_request_id),
+                    "ruleId": rule_id,
+                    "organizationId": settings.orgflow_org_id,
+                    "gameServerId": settings.game_server_id,
+                    "managerHeroId": "DuBo",
+                    "workerHeroId": "ZuoRu",
+                    "taskCode": "dongzhou.intelligence",
+                    "previousState": previous_state,
+                    "previousVersion": previous_version,
+                    "desiredState": desired_state,
+                    "resultingState": resulting_state,
+                    "resultingVersion": resulting_version,
+                    "activeTaskId": (
+                        str(active_task.get("taskId"))
+                        if isinstance(active_task, dict) and active_task.get("taskId")
+                        else None
+                    ),
+                }
+            )
+            result = {
+                "state": resulting_state,
+                "version": resulting_version,
+                "activeTask": active_task,
+                "receipt": receipt,
+                "replayed": False,
+            }
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "COMPLETED",
+                result,
+                external_id=rule_id,
+            )
+            return result
+        except ApiError:
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "RETRYABLE",
+                {"state": "RETRYABLE"},
+                error="organization_scheduled_duty_status_read_failed",
+            )
+            raise
+        except UpstreamUnavailable as error:
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "RETRYABLE",
+                {"state": "RETRYABLE"},
+                error="organization_scheduled_duties_unavailable",
+            )
+            raise ApiError(
+                "organization_scheduled_duties_unavailable",
+                "Organization scheduled duties are temporarily unavailable.",
+                status_code=503,
+            ) from error
+        except (AttributeError, TypeError, ValueError) as error:
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "RETRYABLE",
+                {"state": "RETRYABLE"},
+                error="organization_scheduled_duty_status_contract_invalid",
+            )
+            raise ApiError(
+                "organization_scheduled_duty_status_contract_invalid",
+                "Organization scheduled duty status response is invalid.",
+                status_code=502,
+            ) from error
+
     @router.post("/organization/logistics-briefings/{hero_id}")
     async def create_logistics_briefing(
         hero_id: str,

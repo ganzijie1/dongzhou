@@ -60,6 +60,7 @@ class ScheduledDutyUpstreams:
         rule = {
             "rule_id": payload["rule_id"],
             "state": "ACTIVE",
+            "version": 1,
             "frequency": payload["frequency"],
             "trigger_minute": payload["trigger_minute"],
             "template": {"task_code": payload["task_code"]},
@@ -177,6 +178,32 @@ def test_scheduled_duty_is_registered_once_and_returned(tmp_path):
         task = client.get(
             "/api/dongzhou/v1/organization/tasks/" + upstreams.active_task_id
         )
+        already_enabled = client.post(
+            route + "/status",
+            json={"client_request_id": str(uuid4()), "enabled": True},
+        )
+        disable_id = str(uuid4())
+        disabled = client.post(
+            route + "/status",
+            json={"client_request_id": disable_id, "enabled": False},
+        )
+        replayed = client.post(
+            route + "/status",
+            json={"client_request_id": disable_id, "enabled": False},
+        )
+        conflict = client.post(
+            route + "/status",
+            json={"client_request_id": disable_id, "enabled": True},
+        )
+        enabled = client.post(
+            route + "/status",
+            json={"client_request_id": str(uuid4()), "enabled": True},
+        )
+        other_session = client.post(
+            "/api/dongzhou/v1/sessions/guest",
+            json={"installation_id": str(uuid4())},
+        )
+        other_view = client.get(route)
 
     assert first.status_code == 200
     assert first.json()["state"] == "ACTIVE"
@@ -198,8 +225,37 @@ def test_scheduled_duty_is_registered_once_and_returned(tmp_path):
     )
     assert second.json()["ruleId"] == first.json()["ruleId"]
     assert len(upstreams.create_calls) == 1
-    assert len(upstreams.status_calls) == 1
     assert upstreams.status_calls[0]["status"] == "DISABLED"
+    assert already_enabled.status_code == 200
+    assert already_enabled.json()["state"] == "ACTIVE"
+    assert already_enabled.json()["version"] == 1
+    assert already_enabled.json()["receipt"]["previousVersion"] == 1
+    assert already_enabled.json()["receipt"]["resultingVersion"] == 1
+    assert disabled.status_code == 200
+    assert disabled.json()["state"] == "DISABLED"
+    assert disabled.json()["version"] == 2
+    assert disabled.json()["activeTask"]["taskId"] == upstreams.active_task_id
+    assert disabled.json()["receipt"]["kernel"]["module"] == (
+        "dongzhou_organization_scheduled_duty"
+    )
+    assert disabled.json()["receipt"]["previousVersion"] == 1
+    assert disabled.json()["receipt"]["resultingVersion"] == 2
+    assert replayed.status_code == 200
+    assert replayed.json()["replayed"] is True
+    assert replayed.json()["receipt"]["digest"] == disabled.json()["receipt"]["digest"]
+    assert conflict.status_code == 409
+    assert enabled.status_code == 200
+    assert enabled.json()["state"] == "ACTIVE"
+    assert enabled.json()["version"] == 3
+    assert other_session.status_code == 200
+    assert other_view.status_code == 200
+    assert other_view.json()["activeTask"]["taskId"] == upstreams.active_task_id
+    assert other_view.json()["activeTask"]["adopted"] is False
+    assert len(upstreams.status_calls) == 3
+    assert upstreams.status_calls[1]["expected_version"] == 1
+    assert upstreams.status_calls[1]["status"] == "DISABLED"
+    assert upstreams.status_calls[2]["expected_version"] == 2
+    assert upstreams.status_calls[2]["status"] == "ACTIVE"
     assert len(upstreams.schedule_append_calls) == 1
     assert upstreams.schedule_append_calls[0][2]["time_slot"] == "14:00-14:45"
     assert upstreams.create_calls[0]["parameters"]["assignee_hero_id"] == "ZuoRu"

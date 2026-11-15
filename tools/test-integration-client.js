@@ -39,6 +39,8 @@ let organizationReviewInput = null;
 let inventoryRequisitionAttempts = 0;
 let inventoryRequisitionResumeAttempts = 0;
 let inventoryRequisitionInput = null;
+let scheduledDutyStatusAttempts = 0;
+const scheduledDutyStatusInputs = [];
 let campaignRouteAttempts = 0;
 let knowledgeSearchInput = null;
 let knowledgeCodexRequests = 0;
@@ -143,6 +145,16 @@ global.fetch = async (url, options = {}) => {
   }
   else if (url.endsWith("/organization/inventory")) {
     response = { organizationId: "court", gameServerId: "91001", revision: 7, accounts: [{ resourceKey: "task.execution", balance: 128, version: 3 }] };
+  }
+  else if (url.endsWith("/organization/scheduled-duties/status")) {
+    scheduledDutyStatusAttempts += 1;
+    scheduledDutyStatusInputs.push(body);
+    if (scheduledDutyStatusAttempts === 1) {
+      status = 503;
+      response = { error: { code: "organization_scheduled_duties_unavailable", message: "retry monthly duty" } };
+    } else {
+      response = { state: body.enabled ? "ACTIVE" : "DISABLED", version: 2, receipt: { digest: "9".repeat(64), kernel: { module: "dongzhou_organization_scheduled_duty", state: "SEALED" } } };
+    }
   }
   else if (url.endsWith("/organization/inventory/requisitions")) {
     inventoryRequisitionAttempts += 1;
@@ -311,6 +323,11 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(notices.notices[0].message, "军令已布。");
   const inventory = await client.organizationInventory();
   assert.strictEqual(inventory.accounts[0].balance, 128);
+  await assert.rejects(() => client.setOrganizationScheduledDutyEnabled(false), /retry monthly duty/);
+  const disabledDuty = await client.setOrganizationScheduledDutyEnabled(false);
+  assert.strictEqual(disabledDuty.state, "DISABLED");
+  assert.strictEqual(scheduledDutyStatusInputs[0].client_request_id, scheduledDutyStatusInputs[1].client_request_id);
+  assert.strictEqual([...values.keys()].includes("dongzhou-pending-scheduled-duty-status-v1"), false);
   assert.strictEqual(inventory.revision, 7);
   const requisition = await client.requisitionOrganizationInventory({ units: 20, stage_id: "01" });
   assert.strictEqual(requisition.state, "REQUIRES_ACTION");

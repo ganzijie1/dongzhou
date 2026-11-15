@@ -1814,9 +1814,9 @@ class AuthenticationRouteTests(unittest.TestCase):
                 self.assertTrue(nexus["online"])
                 self.assertEqual(nexus["mode"], "embedded")
                 self.assertRegex(nexus["version"], r"^\d+\.\d+\.\d+")
-                self.assertEqual(nexus["requiredModuleCount"], 17)
-                self.assertEqual(nexus["operationalModuleCount"], 17)
-                self.assertEqual(len(nexus["moduleStates"]), 17)
+                self.assertEqual(nexus["requiredModuleCount"], 18)
+                self.assertEqual(nexus["operationalModuleCount"], 18)
+                self.assertEqual(len(nexus["moduleStates"]), 18)
                 self.assertEqual(nexus["unavailableModules"], [])
 
                 merit_module = next(
@@ -1829,7 +1829,7 @@ class AuthenticationRouteTests(unittest.TestCase):
                 self.assertEqual(degraded.status_code, 200)
                 degraded_nexus = degraded.json()["services"]["nexusKernel"]
                 self.assertFalse(degraded_nexus["online"])
-                self.assertEqual(degraded_nexus["operationalModuleCount"], 16)
+                self.assertEqual(degraded_nexus["operationalModuleCount"], 17)
                 self.assertEqual(
                     degraded_nexus["unavailableModules"],
                     ["dongzhou_npc_merit_commendation"],
