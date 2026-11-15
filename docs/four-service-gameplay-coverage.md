@@ -103,6 +103,8 @@ AINPC 事件公聊现由东周正式实现 `NDLLMSendPublicMessage` 游戏服契
 - 本地交付：网关、AINPC、orgFlow 和九个依赖容器均符合镜像、健康与 `unless-stopped` 约束；完整 H5 包哈希通过；检查过程业务写入为 0。
 - 版本交付：东周父仓库只固定 `ganzijie1` GitHub 的四个子模块提交；内网 GitLab 不作为推送目标。当前 AINPC 为 `7e3d1198`，orgFlowEngine 为 `a05ef26`，knowledge-jizhan 为 `7b8b0378`，NexusKernel 为 `beda977d`。AINPC 的生产私聊已切换到 LoongEQ `guidance/v1` 与 `eq-abilities-v2`，并在画像缺失时调用正式幂等 `/ensure`，不再把永久缺档当正常状态。耐久私聊恢复现会在最终出站边界剔除非当前双方、重复 ID、当前消息副本和未来时间的历史项；镜像 `v20261114-dongzhou-local-eq-history-contract87` 部署后，6 次真实旧片段均通过请求体校验，只到达已知的外部 `503 guidance_profile_storage_unavailable` 降级，未再出现 body-level `422`。真实书问任务 `playerchat-4643eac3374c36fe422a4c2b4bc3020a` 完成回信且 API、Worker 和网关健康；由于 LoongEQ 外部画像存储仍不可用，该验收只证明显式降级和聊天连续性，不能宣称 EQ 策略已应用。已完成组织会话的精确旧回执现在返回“终止重试”而不改写历史证据；新镜像部署后，5 条积压的 11 月 8 日 `npc-task-*` 回执各以 `terminal=true` 排空一次，并在随后恢复周期停止重放。人物画像现已剔除品质 owner 的内部 `value_order` 字段；杜伯、郑庄公和虢石父的实时查询均返回 12 维性格、15 维品质及 `code=200`，不再显示状态暂不可用。玩家受阻与复命消息允许在固定命令句和“受阻情况/完成情况”之间携带任务标题，AINPC 三条正式路由均可准确识别；orgFlow 对 AINPC 已完成回执执行精确终态对账，并为功绩簿提供签名成员贡献历史。
 
+补充版本说明：本轮增量提交为 AINPC `389437326`、orgFlowEngine `88bf6b7`；knowledge-jizhan 与 NexusKernel 无代码变更。以上短号覆盖前述版本交付长段中的旧基线短号。
+
 ## orgFlow 追办与补救
 
 orgFlow 东周目录 v4 已为外交、操练、谍报、巡察和军需五类差事配置权威派生规则。成功结案生成追办，部分完成生成追办，失败生成补救；派生深度限定为一层。东周服务端复核前序任务、根任务、触发结果、规则号、岗位与确定性任务号，再把已创建子任务登记给原玩家。子任务继承章节和岗位席位、成本为 0；席位责任人变化时按 orgFlow 当前实账同步，并按普通差事继续结案。真实父任务到子任务链路见 `test-live-orgflow-followup.js`、`live-orgflow-followup-complete86.json`、`live-orgflow-followup-lineage-complete86.json` 和同名 PNG。
