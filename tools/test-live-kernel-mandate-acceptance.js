@@ -202,13 +202,42 @@ saveJournal();
       throw new Error(`Mandate draft did not open: ${JSON.stringify(diagnostic)}`);
     }
     assert.equal(requests.order, 0, "Draft mandate must not create an organization order before player approval");
+    await page.evaluate(() => {
+      window.__dongzhouAcceptanceNotices = [];
+      const notice = document.querySelector("#floatingNotice");
+      if (!notice) return;
+      const capture = () => {
+        const text = notice.textContent?.trim();
+        if (text) window.__dongzhouAcceptanceNotices.push(text);
+      };
+      new MutationObserver(capture).observe(notice, {
+        childList: true,
+        characterData: true,
+        subtree: true,
+      });
+      capture();
+    });
     const orderResponsePromise = page.waitForResponse(
       (response) => new URL(response.url()).pathname.endsWith("/organization/tasks")
         && response.request().method() === "POST",
-      { timeout: 240000 }
+      { timeout: 60000 }
     );
     await page.click("#officeMandateApproveButton");
-    const orderResponse = await orderResponsePromise;
+    const orderResponse = await orderResponsePromise.catch(async (error) => {
+      const diagnostic = await page.evaluate(() => ({
+        notice: document.querySelector("#floatingNotice")?.textContent || "",
+        approveDisabled: document.querySelector("#officeMandateApproveButton")?.disabled,
+        approvalHidden: document.querySelector("#officeMandateApproval")?.hidden,
+        notices: window.__dongzhouAcceptanceNotices || [],
+      }));
+      throw new Error(
+        `Organization task request did not start: ${JSON.stringify({
+          ...diagnostic,
+          pageErrors,
+          cause: error.message,
+        })}`
+      );
+    });
     if (!orderResponse.ok()) {
       const body = await orderResponse.json().catch(() => ({}));
       throw new Error(`Organization task creation failed (${orderResponse.status()}): ${JSON.stringify(body)}`);
@@ -228,7 +257,7 @@ saveJournal();
       return organization.councils.find((entry) => entry.id === requestId);
     }, { key: PROFILE, requestId: issued.mandate.council.requestId });
     assert(council, "The sealed mandate council is missing from the saved ledger");
-    assert.equal(issued.mandate.kernel.state, "READY");
+    assert.equal(issued.mandate.kernel.state, "ISSUED");
     assert.match(issued.mandate.digest, /^[0-9a-f]{64}$/);
     assert.equal(issued.mandate.evidence.id, council.knowledgeId);
     assert.deepEqual(issued.mandate.evidence.source, {
@@ -686,6 +715,7 @@ saveJournal();
     }
     assert(requests.taskRead > 0 && requests.save >= 4);
 
+    const battleReportId = `battle:${acceptanceLabel}:${Date.now()}`;
     const battleReceipt = await page.evaluate(async ({ profileKey, support, reportId }) => {
       const profile = JSON.parse(localStorage.getItem(profileKey));
       const recorded = window.DongzhouOrganizationPlay.recordBattleOutcome(profile.organization, {
@@ -705,16 +735,47 @@ saveJournal();
     }, {
       profileKey: PROFILE,
       support: battle.battle.organizationSupport,
-      reportId: `battle:${acceptanceLabel}:${Date.now()}`,
+      reportId: battleReportId,
     });
     assert.equal(battleReceipt?.kernel?.state, "SEALED", "NexusKernel did not seal the live collaboration battle report");
     assert(battleReceipt.verifiedParticipants.includes("ZuoRu"));
     if (supportHeroId) assert(battleReceipt.verifiedParticipants.includes(supportHeroId));
+    let battleDebrief = null;
+    const debriefDeadline = Date.now() + 180000;
+    while (Date.now() < debriefDeadline) {
+      const checked = await page.evaluate(async (reportId) => {
+        const response = await fetch(`/api/dongzhou/v1/battle-reports/${encodeURIComponent(reportId)}/debrief`);
+        const body = await response.json().catch(() => ({}));
+        return { status: response.status, body: body.data || body };
+      }, battleReportId);
+      if (checked.status === 200) {
+        battleDebrief = checked.body;
+        break;
+      }
+      if (![409, 503].includes(checked.status)) {
+        throw new Error(`battle_debrief_failed:${checked.status}:${JSON.stringify(checked.body)}`);
+      }
+      await page.waitForTimeout(3000);
+    }
+    assert(battleDebrief, "Four-service battle debrief did not become ready");
+    assert.equal(battleDebrief.kernel?.module, "dongzhou_battle_debrief");
+    assert.equal(battleDebrief.kernel?.state, "SEALED");
+    assert.equal(battleDebrief.reportId, battleReportId);
+    assert(battleDebrief.knowledge?.some((entry) => entry.id === "dongzhou_stage_001"));
+    assert(battleDebrief.participants?.some((entry) => entry.heroId === "ZuoRu"));
+    assert(battleDebrief.organizationTasks?.length > 0);
+    assert(battleDebrief.organizationTasks.every((trace) => trace.kernel?.module === "dongzhou_organization_task_trace"));
 
     const result = {
       result: "PASS",
       mode: "real-services-browser-no-interception",
-      chain: ["knowledge", "npcCouncil", "emergencyAssessment", "nexusMandate", "organizationTask", "battleSupport"],
+      chain: ["knowledge", "npcCouncil", "emergencyAssessment", "nexusMandate", "organizationTask", "battleSupport", "battleDebrief"],
+      battleDebrief: {
+        digest: battleDebrief.digest,
+        knowledge: battleDebrief.knowledge.length,
+        participants: battleDebrief.participants.length,
+        organizationTasks: battleDebrief.organizationTasks.length,
+      },
       emergency: {
         urgent: issued.mandate.emergency.urgent,
         score: issued.mandate.emergency.score,

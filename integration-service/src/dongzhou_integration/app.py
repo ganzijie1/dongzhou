@@ -1187,6 +1187,83 @@ class OrganizationScheduledDutyModule(Module):
         }
 
 
+class BattleDebriefModule(Module):
+    name = "dongzhou_battle_debrief"
+    version = "1.0.0"
+    dependencies = (
+        RuntimeModule.name,
+        OrganizationTaskTraceModule.name,
+    )
+
+    @classmethod
+    def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
+        knowledge = trace.get("knowledge")
+        participants = trace.get("participants")
+        organization_tasks = trace.get("organizationTasks")
+        outcome = trace.get("outcome")
+        if (
+            any(
+                not str(trace.get(key) or "").strip()
+                for key in (
+                    "reportId",
+                    "reportDigest",
+                    "battleReceiptDigest",
+                    "stageId",
+                    "stageTitle",
+                )
+            )
+            or not isinstance(outcome, dict)
+            or not isinstance(outcome.get("won"), bool)
+            or not isinstance(knowledge, list)
+            or not knowledge
+            or not isinstance(participants, list)
+            or not participants
+            or not isinstance(organization_tasks, list)
+            or not organization_tasks
+        ):
+            raise ValueError("battle debrief trace is incomplete")
+        if any(
+            not isinstance(item, dict)
+            or not str(item.get("id") or "")
+            or not re.fullmatch(r"[0-9a-f]{64}", str(item.get("digest") or ""))
+            for item in knowledge
+        ):
+            raise ValueError("battle debrief knowledge is invalid")
+        if any(
+            not isinstance(item, dict)
+            or not str(item.get("heroId") or "")
+            or not str(item.get("npcId") or "")
+            or not isinstance(item.get("memory"), dict)
+            or not re.fullmatch(
+                r"[0-9a-f]{64}", str(item["memory"].get("digest") or "")
+            )
+            for item in participants
+        ):
+            raise ValueError("battle debrief participant memory is invalid")
+        if any(
+            not isinstance(item, dict)
+            or item.get("kernel", {}).get("module")
+            != OrganizationTaskTraceModule.name
+            or item.get("kernel", {}).get("state") != "SEALED"
+            for item in organization_tasks
+        ):
+            raise ValueError("battle debrief organization trace is invalid")
+        if not re.fullmatch(r"[0-9a-f]{64}", str(trace["reportDigest"])) or not re.fullmatch(
+            r"[0-9a-f]{64}", str(trace["battleReceiptDigest"])
+        ):
+            raise ValueError("battle debrief receipt digest is invalid")
+        return {
+            **trace,
+            "digest": _canonical_digest(trace),
+            "kernel": {
+                "module": cls.name,
+                "moduleVersion": cls.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "SEALED",
+            },
+        }
+
+
 def _correspondence_evidence(message: dict[str, Any]) -> dict[str, Any]:
     evidence = {
         "messageId": str(message.get("messageId") or ""),
@@ -1271,6 +1348,19 @@ def _npc_memory_items(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
         and str(item.get("content") or "")
     ]
     return [receipt for receipt in receipts if "???" not in receipt["content"]]
+
+
+async def _battle_memory_history(upstreams: Any, npc_id: int) -> list[dict[str, Any]]:
+    """Read durable battle memories without depending on the recent-memory window."""
+
+    try:
+        items = await upstreams.query_npc_memories(
+            npc_id, source_type="system_message", limit=500
+        )
+        return _npc_memory_items({"items": items})
+    except UpstreamUnavailable:
+        # Older AINPC deployments may not expose the typed query yet.
+        return _npc_memory_items(await upstreams.npc_memories(npc_id, limit=100))
 
 
 def _council_source_record_id(
@@ -3086,6 +3176,36 @@ def _battle_report_signature(report: dict[str, Any]) -> dict[str, Any]:
     return signature
 
 
+def _battle_report_digest_matches(
+    report: dict[str, Any], receipt: dict[str, Any]
+) -> bool:
+    expected = str(receipt.get("reportDigest") or "")
+    if expected == _digest_json(_battle_report_signature(report)):
+        return True
+    verified_support = receipt.get("verifiedSupport")
+    if not isinstance(verified_support, dict) or "effect" in verified_support:
+        return False
+    legacy_signature = _battle_report_signature(report)
+    legacy_signature.pop("supportEffects", None)
+    return expected == _digest_json(legacy_signature)
+
+
+def _battle_memory_idempotency_key(
+    game_server_id: int,
+    npc_id: int,
+    player_id: UUID,
+    report_id: str,
+    hero_id: str,
+) -> str:
+    identity_digest = hashlib.sha256(
+        f"{player_id}\n{report_id}\n{hero_id}".encode("utf-8")
+    ).hexdigest()
+    message_id = "dongzhou-battle:" + identity_digest[:48]
+    return hashlib.sha1(
+        f"{game_server_id}|{npc_id}|system_message|mid:{message_id}".encode("utf-8")
+    ).hexdigest()
+
+
 def _organization_task_support_effect(
     task_type: Any,
     final_result: Any,
@@ -4279,8 +4399,14 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     upstreams = upstreams or Upstreams(settings)
     campaign_path = settings.web_root / "scenario" / "campaign.json"
     route_required_stages: set[str] = set()
+    stage_titles: dict[str, str] = {}
     if campaign_path.is_file():
         campaign_catalog = json.loads(campaign_path.read_text(encoding="utf-8"))
+        stage_titles = {
+            str(stage.get("id")): str(stage.get("battleTitle") or stage.get("title") or stage.get("id"))
+            for stage in campaign_catalog.get("stages", [])
+            if isinstance(stage, dict) and stage.get("id")
+        }
         route_required_stages = {
             str(stage.get("id"))
             for stage in campaign_catalog.get("stages", [])
@@ -4298,6 +4424,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     organization_task_topology = OrganizationTaskTopologyModule()
     logistics_briefing = LogisticsBriefingModule()
     organization_scheduled_duty = OrganizationScheduledDutyModule()
+    battle_debrief = BattleDebriefModule()
     npc_commendation = NpcCommendationModule()
     npc_merit_commendation = NpcMeritCommendationModule()
     adviser_guide = AdviserGuideModule()
@@ -4335,6 +4462,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 module=organization_scheduled_duty,
                 required=True,
                 original_index=17,
+            ),
+            LoadedModule(
+                module=battle_debrief,
+                required=True,
+                original_index=18,
             ),
         ]
     )
@@ -5593,6 +5725,230 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             raise ApiError(str(error), "Organization month must advance exactly one step at a time.", status_code=409) from error
         except BattleReceiptConflict as error:
             raise ApiError(str(error), "Battle support provenance is invalid or the sealed report changed.", status_code=409) from error
+
+    @router.get("/battle-reports/{report_id}/debrief")
+    async def read_battle_debrief(
+        report_id: str, player_id: UUID = Depends(player)
+    ) -> dict[str, Any]:
+        try:
+            saved = await store.read_save(player_id)
+        except KeyError as error:
+            raise ApiError(
+                "player_not_found", "Player does not exist.", status_code=404
+            ) from error
+        organization = saved.get("payload", {}).get("organization")
+        reports = organization.get("battleReports") if isinstance(organization, dict) else None
+        report = next(
+            (
+                item
+                for item in reports or []
+                if isinstance(item, dict) and str(item.get("id") or "") == report_id
+            ),
+            None,
+        )
+        if report is None:
+            raise ApiError(
+                "battle_report_not_found",
+                "Battle report does not belong to this player.",
+                status_code=404,
+            )
+        receipt = report.get("kernelReceipt")
+        receipt_trace = (
+            {key: value for key, value in receipt.items() if key != "digest"}
+            if isinstance(receipt, dict)
+            else None
+        )
+        report_digest = str(receipt.get("reportDigest") or "") if isinstance(receipt, dict) else ""
+        if (
+            not isinstance(receipt_trace, dict)
+            or receipt.get("digest") != _digest_json(receipt_trace)
+            or not _battle_report_digest_matches(report, receipt)
+            or receipt.get("kernel", {}).get("state") != "SEALED"
+        ):
+            raise ApiError(
+                "battle_report_unsealed",
+                "Battle report has not passed kernel verification.",
+                status_code=409,
+            )
+        verified_support = receipt.get("verifiedSupport")
+        orders = (
+            verified_support.get("orders")
+            if isinstance(verified_support, dict)
+            else None
+        )
+        participants = receipt.get("verifiedParticipants")
+        if not isinstance(orders, list) or not orders or not isinstance(participants, list) or not participants:
+            raise ApiError(
+                "battle_debrief_requires_four_services",
+                "A four-service debrief requires verified organization support and participants.",
+                status_code=409,
+            )
+
+        stage_id = str(receipt.get("stageId") or "")
+        stage_title = stage_titles.get(stage_id, stage_id)
+        try:
+            knowledge_entries = await upstreams.stage_knowledge(stage_id)
+        except (UpstreamUnavailable, OSError, ValueError) as error:
+            raise ApiError(
+                "battle_debrief_knowledge_unavailable",
+                "Published battle knowledge is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        knowledge: list[dict[str, Any]] = []
+        for item in knowledge_entries:
+            if not isinstance(item, dict):
+                continue
+            evidence = {
+                "id": str(item.get("id") or item.get("aku_id") or ""),
+                "title": _repair_utf8_mojibake(
+                    item.get("name") or item.get("title") or stage_title
+                )[:200],
+                "summary": _repair_utf8_mojibake(
+                    item.get("summary") or item.get("objective") or item.get("content")
+                )[:600],
+                "sources": [
+                    {
+                        "work": str(source.get("work") or "")[:200],
+                        "tier": str(source.get("tier") or "")[:100],
+                        "scope": str(source.get("scope") or "")[:300],
+                    }
+                    for source in item.get("sourceDetails", [])
+                    if isinstance(source, dict) and source.get("work")
+                ][:8],
+            }
+            if evidence["id"]:
+                evidence["digest"] = _canonical_digest(evidence)
+                knowledge.append(evidence)
+        if not knowledge:
+            raise ApiError(
+                "battle_debrief_knowledge_missing",
+                "No published knowledge is available for this battle.",
+                status_code=409,
+            )
+
+        knowledge_ids = {item["id"] for item in knowledge}
+        report_stage_title = _repair_utf8_mojibake(report.get("stageTitle"))
+        memory_titles = {
+            title for title in (stage_title, report_stage_title) if title
+        }
+        participant_evidence: list[dict[str, Any]] = []
+        try:
+            memory_snapshots = await asyncio.gather(
+                *(
+                    _battle_memory_history(
+                        upstreams,
+                        stable_npc_id(settings.ainpc_game_server_id, str(hero_id)),
+                    )
+                    for hero_id in participants
+                )
+            )
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "battle_debrief_memory_unavailable",
+                "Participant memories are temporarily unavailable.",
+                status_code=503,
+            ) from error
+        for hero_id, memories in zip(participants, memory_snapshots, strict=True):
+            npc_id = stable_npc_id(
+                settings.ainpc_game_server_id, str(hero_id)
+            )
+            expected_memory_key = _battle_memory_idempotency_key(
+                settings.ainpc_game_server_id,
+                npc_id,
+                player_id,
+                report_id,
+                str(hero_id),
+            )
+            memory = next(
+                (
+                    item
+                    for item in memories
+                    if item.get("idempotencyKey") == expected_memory_key
+                    or any(
+                        title in str(item.get("content") or "")
+                        for title in memory_titles
+                    )
+                    or any(
+                        knowledge_id in str(item.get("content") or "")
+                        for knowledge_id in knowledge_ids
+                    )
+                ),
+                None,
+            )
+            if memory is None:
+                raise ApiError(
+                    "battle_debrief_memory_pending",
+                    "A participant battle memory has not arrived yet.",
+                    status_code=409,
+                )
+            participant_evidence.append(
+                {
+                    "heroId": str(hero_id),
+                    "npcId": str(npc_id),
+                    "memory": memory,
+                }
+            )
+
+        try:
+            trace_responses = await asyncio.gather(
+                *(
+                    upstreams.get_virtual_task_trace(
+                        settings.orgflow_org_id, str(order.get("id") or "")
+                    )
+                    for order in orders
+                )
+            )
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "battle_debrief_organization_unavailable",
+                "Organization task history is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        task_traces: list[dict[str, Any]] = []
+        try:
+            for order, response in zip(orders, trace_responses, strict=True):
+                task_id = str(order.get("id") or "")
+                snapshot = response.get("data", response) if isinstance(response, dict) else None
+                task_traces.append(
+                    organization_task_trace.seal(
+                        _organization_task_trace_view(
+                            snapshot,
+                            task_id=task_id,
+                            organization_id=settings.orgflow_org_id,
+                        )
+                    )
+                )
+        except (TypeError, ValueError) as error:
+            raise ApiError(
+                "battle_debrief_organization_invalid",
+                "Organization task history is invalid.",
+                status_code=502,
+            ) from error
+
+        trace = {
+            "reportId": report_id,
+            "reportDigest": report_digest,
+            "battleReceiptDigest": str(receipt.get("digest") or ""),
+            "stageId": stage_id,
+            "stageTitle": stage_title,
+            "outcome": {
+                "won": receipt.get("won"),
+                "turns": receipt.get("turns"),
+                "ownLosses": receipt.get("ownLosses"),
+                "terminalReason": str(receipt.get("terminalReason") or ""),
+            },
+            "knowledge": knowledge,
+            "participants": participant_evidence,
+            "organizationTasks": task_traces,
+        }
+        try:
+            return battle_debrief.seal(trace)
+        except (TypeError, ValueError) as error:
+            raise ApiError(
+                "battle_debrief_invalid",
+                "Battle debrief evidence could not be sealed.",
+                status_code=502,
+            ) from error
 
     @router.post("/knowledge/search")
     async def search_knowledge(request: KnowledgeSearchRequest, player_id: UUID = Depends(player)) -> dict[str, Any]:

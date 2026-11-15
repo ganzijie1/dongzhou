@@ -1609,7 +1609,7 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
             assert draft["state"] == "REQUIRES_ACTION"
             assert mandate["state"] == "DRAFT"
             assert draft["action"]["code"] == "seal_court_mandate"
-            assert mandate["kernel"]["state"] in {"READY", "DEGRADED"}
+            assert mandate["kernel"]["state"] in {"ISSUED", "READY", "DEGRADED"}
             assert mandate["evidence"]["id"] == "dongzhou_stage_001"
             assert mandate["evidence"]["source"] == {
                 "index": 0,

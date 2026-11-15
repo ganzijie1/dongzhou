@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "containers": {
     "dongzhou-integration-gateway-1": {
-      "image": "dongzhou-integration:20261115-ui-contract219",
+      "image": "dongzhou-integration:20261115-battle-debrief221",
       "healthRequired": true
     },
     "ainpc-v2-global-dev": {
@@ -54,7 +54,7 @@
   ],
   "package": {
     "path": "output/2026-11-15-dongzhou-integrated-h5-four-service-complete.zip",
-    "sha256": "3f4662e9a62dc7177dd7f24b19f806cf99411d2ceb7bf36decec5ee3ba9b5d62",
+    "sha256": "b6b17d3dbbd6cde091c961b060faedb4c5da4970dadf4490deceb03406e95284",
     "sourceFiles": {
       "web-game/index.html": "index.html",
       "web-game/styles.css": "styles.css",

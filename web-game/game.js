@@ -119,6 +119,8 @@
   let officeQuizVerification = null;
   let officeCommendationInFlight = false;
   let officeRecollectionInFlight = false;
+  let officeBattleDebriefInFlight = false;
+  let officeBattleDebriefView = null;
   let officePublicNotices = [];
   let officeSelectedPublicNotice = null;
   let officeContributions = [];
@@ -1718,6 +1720,21 @@
         `<li><strong>\u5185\u6838\u6218\u679c\u5370\u8bb0</strong><span>${escapeHtml(sealedBattleReport.stageTitle || sealedBattleReport.stageId)} \u00b7 ${escapeHtml(String(sealedBattleReport.kernelReceipt.digest || "").slice(0, 12))} \u00b7 ${escapeHtml(String(sealedBattleReport.kernelReceipt.kernel.moduleVersion || ""))} \u00b7 ${verifiedCount}\u4eba\u8ba4\u8bc1${verifiedNames ? `（${escapeHtml(verifiedNames)}）` : ""}${rejectedCount ? ` \u00b7 ${rejectedCount}\u9879\u672a\u8ba4\u8bc1` : ""}${routeLabel}</span></li>`
       );
     }
+    const debriefReport = [...org.battleReports].reverse().find((report) =>
+      report?.kernelReceipt?.kernel?.state === "SEALED"
+      && report.kernelReceipt.verifiedParticipants?.length
+      && report.kernelReceipt.verifiedSupport?.orders?.length
+    );
+    const debriefButton = $("#officeBattleDebriefButton");
+    debriefButton.dataset.reportId = debriefReport?.id || "";
+    debriefButton.disabled = officeBattleDebriefInFlight || integration.isOffline() || !debriefReport;
+    debriefButton.textContent = officeBattleDebriefInFlight ? "复核中" : "论功复盘";
+    if (!debriefReport || officeBattleDebriefView?.reportId !== debriefReport.id) {
+      if (!officeBattleDebriefInFlight) officeBattleDebriefView = null;
+      $("#officeBattleDebrief").hidden = true;
+    } else {
+      renderOfficeBattleDebrief();
+    }
     const selectedTask = organization.TASK_TYPES[$("#officeTaskType").value] || organization.TASK_TYPES.supply;
     const leaderSelected = !integration.isOffline() && org.backend.orgFlow && $("#officeMemberSelect").value === "DuBo";
     $("#officeIssueButton").disabled = officeOrderInFlight || leaderSelected;
@@ -1746,6 +1763,49 @@
       : "选定本回出处后，可请当前属官据史追忆可核验旧事。";
     renderOfficeMandateApproval();
     renderOfficeSettlementReview();
+  }
+
+  function renderOfficeBattleDebrief() {
+    const panel = $("#officeBattleDebrief");
+    const debrief = officeBattleDebriefView;
+    if (!debrief) {
+      panel.hidden = true;
+      panel.replaceChildren();
+      return;
+    }
+    const outcome = debrief.outcome || {};
+    const knowledge = (debrief.knowledge || []).map((entry) => {
+      const works = (entry.sources || []).map((source) => source.work).filter(Boolean).join("、");
+      return `<li><strong>${escapeHtml(entry.title || "本关史料")}</strong><span>${escapeHtml(entry.summary || "已由史官核验")}</span>${works ? `<small>${escapeHtml(works)}</small>` : ""}</li>`;
+    }).join("");
+    const participants = (debrief.participants || []).map((entry) =>
+      `<li><strong>${escapeHtml(displayName(entry.heroId))}</strong><span>${escapeHtml(officeNarrativeText(entry.memory?.content || "战后回忆已归档"))}</span><small>人物记忆已验印 ${escapeHtml(String(entry.memory?.digest || "").slice(0, 10))}</small></li>`
+    ).join("");
+    const taskCount = Number(debrief.organizationTasks?.length || 0);
+    const taskSteps = (debrief.organizationTasks || []).reduce((sum, trace) => sum + Number(trace.timeline?.length || 0), 0);
+    panel.innerHTML = `<header><div><span>${outcome.won ? "战役告捷" : "战局失利"}</span><h4>${escapeHtml(debrief.stageTitle || "战后复盘")}</h4></div><strong>内核印记 ${escapeHtml(String(debrief.digest || "").slice(0, 12))}</strong></header><dl><div><dt>用时</dt><dd>${Number(outcome.turns || 0)} 回合</dd></div><div><dt>折损</dt><dd>${Number(outcome.ownLosses || 0)} 部</dd></div><div><dt>军务行迹</dt><dd>${taskCount} 卷 / ${taskSteps} 步</dd></div></dl><section><h5>史证复核</h5><ol>${knowledge}</ol></section><section><h5>参战者回忆</h5><ol>${participants}</ol></section>`;
+    panel.hidden = false;
+  }
+
+  async function requestOfficeBattleDebrief() {
+    const reportId = $("#officeBattleDebriefButton").dataset.reportId;
+    if (!reportId || officeBattleDebriefInFlight || integration.isOffline()) return;
+    officeBattleDebriefInFlight = true;
+    renderOrganizationPanel();
+    try {
+      officeBattleDebriefView = await integration.battleDebrief(reportId);
+      renderOrganizationPanel();
+    } catch (error) {
+      const message = error.code === "battle_debrief_memory_pending"
+        ? "参战者战后回忆仍在归档，请稍后再复盘。"
+        : error.code === "battle_debrief_requires_four_services"
+          ? "这份战报尚未汇集完整的军府差事与参战者凭据。"
+          : "战后复盘暂不可用，请稍后重试。";
+      showNotice(message);
+    } finally {
+      officeBattleDebriefInFlight = false;
+      renderOrganizationPanel();
+    }
   }
 
   function officeMembershipPosition(value, fallback = "军府属官") {
@@ -3132,6 +3192,9 @@
     $("#officeMandateApproveButton").textContent = issued ? "下达" : "签发";
     $("#officeMandateRejectButton").hidden = issued;
     $("#officeMandateReviseButton").hidden = issued;
+    $("#officeMandateApproveButton").disabled = officeOrderInFlight;
+    $("#officeMandateRejectButton").disabled = officeOrderInFlight;
+    $("#officeMandateReviseButton").disabled = officeOrderInFlight;
   }
 
   function renderOfficeSettlementReview() {
@@ -3390,6 +3453,7 @@
       officeOrderInFlight = false;
       const leaderSelected = !integration.isOffline() && profile.organization.backend.orgFlow && $("#officeMemberSelect").value === "DuBo";
       $("#officeIssueButton").disabled = leaderSelected;
+      renderOfficeMandateApproval();
     }
   }
 
@@ -5606,6 +5670,7 @@
     $("#officeStageKnowledgeButton").addEventListener("click", loadOfficeStageKnowledge);
     $("#officeCommendButton").addEventListener("click", commendOfficeNpc);
     $("#officeRecollectionButton").addEventListener("click", recallOfficeNpc);
+    $("#officeBattleDebriefButton").addEventListener("click", requestOfficeBattleDebrief);
     $("#officeQuizStart").addEventListener("click", startOfficeQuiz);
     $("#officeQuizVerify").addEventListener("click", verifyOfficeQuizSeal);
     $("#officeQuizOptions").addEventListener("click", (event) => {

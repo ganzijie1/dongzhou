@@ -17,6 +17,10 @@ from pydantic import ValidationError
 from nexus_kernel.kernel import ModuleState
 
 from dongzhou_integration.app import (
+    BattleDebriefModule,
+    _battle_memory_history,
+    _battle_memory_idempotency_key,
+    _battle_report_digest_matches,
     BattleReceiptConflict,
     CampaignRouteModule,
     NpcCollaborationRelationshipModule,
@@ -957,6 +961,185 @@ class OrganizationOutcomeTests(unittest.TestCase):
             )
 
 
+class BattleDebriefModuleTests(unittest.TestCase):
+    def test_seals_all_four_authoritative_sources(self) -> None:
+        task_id = str(uuid4())
+        organization_id = str(uuid4())
+        task_trace = OrganizationTaskTraceModule.seal(
+            {
+                "taskId": task_id,
+                "organizationId": organization_id,
+                "taskState": "SUCCEEDED",
+                "taskVersion": "3",
+                "supplementCount": 0,
+                "activeConfirmations": [],
+                "executionException": None,
+                "timeline": [
+                    {
+                        "sequence": 1,
+                        "type": "TASK_FINALIZED",
+                        "occurredAt": "2026-11-15T00:00:00Z",
+                        "referenceId": task_id,
+                        "caseId": None,
+                        "stateCode": "SUCCEEDED",
+                        "reasonCode": None,
+                    }
+                ],
+            }
+        )
+        trace = {
+            "reportId": "battle:01:test",
+            "reportDigest": "1" * 64,
+            "battleReceiptDigest": "2" * 64,
+            "stageId": "01",
+            "stageTitle": "东郊索命",
+            "outcome": {
+                "won": True,
+                "turns": 7,
+                "ownLosses": 1,
+                "terminalReason": "victory",
+            },
+            "knowledge": [
+                {
+                    "id": "dongzhou_stage_001",
+                    "title": "第一回史料",
+                    "summary": "史证",
+                    "sources": [],
+                    "digest": "3" * 64,
+                }
+            ],
+            "participants": [
+                {
+                    "heroId": "ZuoRu",
+                    "npcId": "42",
+                    "memory": {
+                        "idempotencyKey": "battle-memory",
+                        "sourceType": "system_message",
+                        "factKind": "event",
+                        "timestamp": "0771-01-01 12:00:00",
+                        "content": "东郊索命告捷",
+                        "digest": "4" * 64,
+                    },
+                }
+            ],
+            "organizationTasks": [task_trace],
+        }
+        receipt = BattleDebriefModule.seal(trace)
+        self.assertEqual(receipt["kernel"]["module"], "dongzhou_battle_debrief")
+        self.assertEqual(receipt["kernel"]["state"], "SEALED")
+        self.assertEqual(len(receipt["digest"]), 64)
+        with self.assertRaisesRegex(ValueError, "participant memory"):
+            BattleDebriefModule.seal({**trace, "participants": [{"heroId": "ZuoRu"}]})
+        with self.assertRaisesRegex(ValueError, "organization trace"):
+            BattleDebriefModule.seal({**trace, "organizationTasks": [{}]})
+
+
+class BattleMemoryHistoryTests(unittest.IsolatedAsyncioTestCase):
+    async def test_uses_typed_history_instead_of_recent_window(self) -> None:
+        class FakeUpstreams:
+            async def query_npc_memories(self, npc_id, *, source_type, limit=20):
+                self.query = (npc_id, source_type, limit)
+                return [
+                    {
+                        "idempotency_key": "old-battle-memory",
+                        "source_type": "system_message",
+                        "fact_kind": "event",
+                        "timestamp": "0771-01-01 12:00:00",
+                        "content": "东郊索命告捷",
+                    }
+                ]
+
+            async def npc_memories(self, npc_id, limit=20):
+                raise AssertionError("recent memory must not replace durable history")
+
+        upstreams = FakeUpstreams()
+        memories = await _battle_memory_history(upstreams, 42)
+        self.assertEqual(upstreams.query, (42, "system_message", 500))
+        self.assertEqual(memories[0]["idempotencyKey"], "old-battle-memory")
+
+    async def test_falls_back_for_legacy_ainpc(self) -> None:
+        class FakeUpstreams:
+            async def query_npc_memories(self, npc_id, *, source_type, limit=20):
+                raise UpstreamUnavailable("typed query unavailable")
+
+            async def npc_memories(self, npc_id, limit=20):
+                self.recent = (npc_id, limit)
+                return {
+                    "items": [
+                        {
+                            "idempotency_key": "recent-battle-memory",
+                            "source_type": "system_message",
+                            "content": "东郊索命告捷",
+                        }
+                    ]
+                }
+
+        upstreams = FakeUpstreams()
+        memories = await _battle_memory_history(upstreams, 43)
+        self.assertEqual(upstreams.recent, (43, 100))
+        self.assertEqual(memories[0]["idempotencyKey"], "recent-battle-memory")
+
+
+class BattleReportDigestCompatibilityTests(unittest.TestCase):
+    def test_accepts_legacy_receipt_without_support_effect_attestation(self) -> None:
+        report = {
+            "id": "battle:legacy",
+            "stageId": "01",
+            "won": True,
+            "turns": 2,
+            "ownLosses": 0,
+            "terminalReason": "victory",
+            "month": 1,
+            "support": {"provisions": 12, "orders": []},
+            "councils": [],
+            "mandates": [],
+        }
+        legacy_signature = {
+            "reportId": "battle:legacy",
+            "stageId": "01",
+            "won": True,
+            "turns": 2,
+            "ownLosses": 0,
+            "terminalReason": "victory",
+            "month": 1,
+            "councils": [],
+            "mandates": [],
+            "orders": [],
+        }
+        receipt = {
+            "reportDigest": hashlib.sha256(
+                json.dumps(
+                    legacy_signature,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ).encode("utf-8")
+            ).hexdigest(),
+            "verifiedSupport": {"orders": []},
+        }
+        self.assertTrue(_battle_report_digest_matches(report, receipt))
+        receipt["verifiedSupport"]["effect"] = {"provisions": 12}
+        self.assertFalse(_battle_report_digest_matches(report, receipt))
+
+    def test_battle_memory_key_matches_ainpc_fact_contract(self) -> None:
+        player_id = UUID("00000000-0000-4000-8000-000000000123")
+        identity = hashlib.sha256(
+            f"{player_id}\nbattle:01:example\nZuoRu".encode("utf-8")
+        ).hexdigest()
+        expected = hashlib.sha1(
+            (
+                "128|42|system_message|mid:dongzhou-battle:"
+                + identity[:48]
+            ).encode("utf-8")
+        ).hexdigest()
+        self.assertEqual(
+            _battle_memory_idempotency_key(
+                128, 42, player_id, "battle:01:example", "ZuoRu"
+            ),
+            expected,
+        )
+
+
 class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
     async def test_restart_reconciles_persisted_npc_directory(self) -> None:
         with TemporaryDirectory() as directory, patch.dict(
@@ -1814,9 +1997,9 @@ class AuthenticationRouteTests(unittest.TestCase):
                 self.assertTrue(nexus["online"])
                 self.assertEqual(nexus["mode"], "embedded")
                 self.assertRegex(nexus["version"], r"^\d+\.\d+\.\d+")
-                self.assertEqual(nexus["requiredModuleCount"], 18)
-                self.assertEqual(nexus["operationalModuleCount"], 18)
-                self.assertEqual(len(nexus["moduleStates"]), 18)
+                self.assertEqual(nexus["requiredModuleCount"], 19)
+                self.assertEqual(nexus["operationalModuleCount"], 19)
+                self.assertEqual(len(nexus["moduleStates"]), 19)
                 self.assertEqual(nexus["unavailableModules"], [])
 
                 merit_module = next(
@@ -1829,7 +2012,7 @@ class AuthenticationRouteTests(unittest.TestCase):
                 self.assertEqual(degraded.status_code, 200)
                 degraded_nexus = degraded.json()["services"]["nexusKernel"]
                 self.assertFalse(degraded_nexus["online"])
-                self.assertEqual(degraded_nexus["operationalModuleCount"], 17)
+                self.assertEqual(degraded_nexus["operationalModuleCount"], 18)
                 self.assertEqual(
                     degraded_nexus["unavailableModules"],
                     ["dongzhou_npc_merit_commendation"],

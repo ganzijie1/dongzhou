@@ -44,6 +44,7 @@ const scheduledDutyStatusInputs = [];
 let campaignRouteAttempts = 0;
 let knowledgeSearchInput = null;
 let knowledgeCodexRequests = 0;
+let battleDebriefRequests = 0;
 let adviserQuestionInput = null;
 let adviserStatusReads = 0;
 let adviserFeedbackInput = null;
@@ -112,6 +113,10 @@ global.fetch = async (url, options = {}) => {
   else if (url.endsWith("/knowledge/codex")) {
     knowledgeCodexRequests += 1;
     response = { results: [{ id: "dongzhou_stage_001", stageId: "01", name: "第一回·东郊索命" }] };
+  }
+  else if (/\/battle-reports\/[^/]+\/debrief$/.test(url)) {
+    battleDebriefRequests += 1;
+    response = { reportId: decodeURIComponent(url.split("/").at(-2)), state: "SEALED", digest: "7".repeat(64), kernel: { module: "dongzhou_battle_debrief", state: "SEALED" } };
   }
   else if (url.endsWith("/adviser/questions") && options.method === "POST") {
     adviserQuestionInput = body;
@@ -294,6 +299,10 @@ const client = require("../web-game/integration-client.js");
   const codex = await client.knowledgeCodex();
   assert.strictEqual(codex.results[0].name, "第一回·东郊索命");
   assert.strictEqual(knowledgeCodexRequests, 1);
+  const debrief = await client.battleDebrief("battle:01:test");
+  assert.strictEqual(debrief.reportId, "battle:01:test");
+  assert.strictEqual(debrief.kernel.module, "dongzhou_battle_debrief");
+  assert.strictEqual(battleDebriefRequests, 1);
   const adviser = await client.askAdviser({ question: "key people?", stage_id: "01", stage_title: "stage one", stage_index: 1 });
   assert.strictEqual(adviser.state, "PROCESSING");
   assert.match(adviserQuestionInput.client_request_id, /^[0-9a-f-]{36}$/);

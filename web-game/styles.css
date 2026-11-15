@@ -3901,6 +3901,27 @@ button:focus-visible {
 .office-battle-archive li { padding: 12px; border: 1px solid rgba(196, 172, 111, .16); }
 .office-battle-archive strong { display: block; color: #ded2b3; font-size: 12px; }
 .office-battle-archive span { display: block; margin-top: 5px; color: #8f9289; font-size: 11px; line-height: 1.55; }
+.office-battle-debrief { margin-top: 16px; padding: 16px 0; border-top: 1px solid rgba(196, 172, 111, .24); border-bottom: 1px solid rgba(196, 172, 111, .16); }
+.office-battle-debrief header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.office-battle-debrief header span, .office-battle-debrief header strong { color: #a99561; font-size: 10px; }
+.office-battle-debrief h4 { margin: 4px 0 0; color: #e2d6b5; font: 600 18px/1.3 var(--font-display); }
+.office-battle-debrief dl { margin: 14px 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.office-battle-debrief dl div { padding: 9px 10px; background: #11130f; }
+.office-battle-debrief dt { color: #777b72; font-size: 9px; }
+.office-battle-debrief dd { margin: 4px 0 0; color: #d7cba9; font-size: 12px; }
+.office-battle-debrief section + section { margin-top: 14px; }
+.office-battle-debrief h5 { margin: 0 0 7px; color: #b8a676; font-size: 11px; }
+.office-battle-debrief ol { margin: 0; padding: 0; display: grid; gap: 6px; list-style: none; }
+.office-battle-debrief li { padding: 9px 0; border-bottom: 1px solid rgba(196, 172, 111, .1); }
+.office-battle-debrief li strong, .office-battle-debrief li span, .office-battle-debrief li small { display: block; }
+.office-battle-debrief li strong { color: #d8ceb2; font-size: 11px; }
+.office-battle-debrief li span { margin-top: 4px; color: #9b9d94; font-size: 11px; line-height: 1.6; }
+.office-battle-debrief li small { margin-top: 4px; color: #777b72; font-size: 9px; }
+
+@media (max-width: 600px) {
+  .office-battle-debrief header { display: grid; }
+  .office-battle-debrief dl { grid-template-columns: 1fr; }
+}
 
 @media (max-width: 820px) {
   .campaign-office-drawer { width: 100%; max-height: 94vh; }
