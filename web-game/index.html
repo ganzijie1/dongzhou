@@ -270,7 +270,6 @@
                 <button id="officeCareerOptions" class="large-button" type="button">查看可领差事</button>
                 <button id="officeCareerInbox" class="large-button" type="button">查看我的待办</button>
                 <button id="officeCareerStatusRefresh" class="large-button" type="button">刷新状态</button>
-                <button id="officeCareerAccept" class="large-button primary" type="button">接受差事</button>
               </div>
               <form id="officeCareerRequestForm" class="office-career-result">
                 <input id="officeCareerTaskName" maxlength="200" required aria-label="申请差事名称" placeholder="填写目录中的差事名称">
@@ -279,6 +278,10 @@
               <form id="officeCareerResultForm" class="office-career-result">
                 <input id="officeCareerResult" maxlength="1000" required aria-label="差事进展或完成情况" placeholder="填写受阻情况或完成成果">
                 <div class="office-career-result-actions"><button id="officeCareerException" class="large-button" type="button">报告受阻</button><button class="large-button primary" type="submit">复命</button></div>
+              </form>
+              <form id="officeCareerResponseForm" class="office-career-result">
+                <input id="officeCareerResponseDetail" maxlength="1000" aria-label="领差回应或改令内容" placeholder="改令填目标值（如总时限改为三日）；拒绝填理由">
+                <div class="office-career-result-actions"><button id="officeCareerReject" class="large-button danger" type="button">拒绝差事</button><button id="officeCareerModify" class="large-button" type="button">申请改令</button><button id="officeCareerAccept" class="large-button primary" type="submit">接受差事</button></div>
               </form>
               <p id="officeCareerFeedback" aria-live="polite">可先查看当前岗位的可领差事。</p>
               <ol id="officeCareerStatus" class="office-career-status" aria-live="polite"><li class="empty">尚无权威差事状态</li></ol>
@@ -432,6 +435,6 @@
     <script src="game-systems.js?v=20261105-10"></script>
   <script src="organization-play.js?v=20261114-27"></script>
   <script src="integration-client.js?v=20261114-27"></script>
-  <script src="game.js?v=20261114-27"></script>
+  <script src="game.js?v=20261115-30"></script>
   </body>
 </html>

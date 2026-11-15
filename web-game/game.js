@@ -1769,6 +1769,11 @@
       lifetimeEarned: membership.lifetimeEarned,
       lifetimeSpent: membership.lifetimeSpent
     };
+    const selectedTask = officeCareerStatusItems.find((task) => task.taskId === officeCareerSelectedTaskId) || null;
+    const responseForm = $("#officeCareerResponseForm");
+    const resultForm = $("#officeCareerResultForm");
+    if (responseForm) responseForm.hidden = selectedTask?.state !== "MEMBER_RESPONSE_PENDING";
+    if (resultForm) resultForm.hidden = !["IN_PROGRESS", "SUPPLEMENT_PENDING"].includes(selectedTask?.state);
     $("#officeCareerAccount").textContent = `可用贡献 ${Number(account.accountBalance || 0)} · 累计功绩 ${Number(account.lifetimeEarned || 0)} · 已用 ${Number(account.lifetimeSpent || 0)}`;
     panel.querySelectorAll("button, input").forEach((control) => { control.disabled = officeCareerBusy || officeCareerStatusBusy || officeCareerContributionBusy; });
     const taskStates = {
@@ -1803,7 +1808,7 @@
       const traceDetail = trace?.state === "SEALED"
         ? ` · 行迹封印 ${escapeHtml(String(trace.digest || "").slice(0, 10))}`
         : trace?.state === "UNAVAILABLE" ? " · 权威行迹暂不可用" : "";
-      const actionable = ["IN_PROGRESS", "SUPPLEMENT_PENDING"].includes(task.state) && exception?.state !== "OPEN";
+      const actionable = ["MEMBER_RESPONSE_PENDING", "IN_PROGRESS", "SUPPLEMENT_PENDING"].includes(task.state) && exception?.state !== "OPEN";
       const selected = actionable && officeCareerSelectedTaskId === task.taskId;
       const expanded = trace?.state === "SEALED" && officeCareerExpandedTaskIds.has(task.taskId);
       const timeline = expanded
@@ -1940,7 +1945,7 @@
       officeCareerStatusItems = Array.isArray(response.items) ? response.items : [];
       const actionable = officeCareerStatusItems.filter((task) => {
         const exception = task.organizationTrace?.state === "SEALED" ? task.organizationTrace.executionException : task.executionException;
-        return ["IN_PROGRESS", "SUPPLEMENT_PENDING"].includes(task.state) && exception?.state !== "OPEN";
+        return ["MEMBER_RESPONSE_PENDING", "IN_PROGRESS", "SUPPLEMENT_PENDING"].includes(task.state) && exception?.state !== "OPEN";
       });
       if (!actionable.some((task) => task.taskId === officeCareerSelectedTaskId)) {
         officeCareerSelectedTaskId = actionable.length === 1 ? actionable[0].taskId : null;
@@ -1961,8 +1966,16 @@
   async function requestOfficeCareer(action, detail = "") {
     if (integration.isOffline() || officeCareerBusy || !profile.organization.remoteRoster?.playerMembership) return;
     const selectedTask = officeCareerStatusItems.find((task) => task.taskId === officeCareerSelectedTaskId) || null;
-    if ((action === "result" || action === "exception") && !selectedTask) {
+    if (["accept", "reject", "modify", "result", "exception"].includes(action) && !selectedTask) {
       $("#officeCareerFeedback").textContent = "请先在权威差事状态中选定本次要汇报的差事。";
+      return;
+    }
+    if (["accept", "reject", "modify"].includes(action) && selectedTask.state !== "MEMBER_RESPONSE_PENDING") {
+      $("#officeCareerFeedback").textContent = "只有待接受的差事可以接受、申请改令或拒绝。";
+      return;
+    }
+    if (action === "modify" && !detail.trim()) {
+      $("#officeCareerFeedback").textContent = "请填写需要调整的目标、时限或交付要求。";
       return;
     }
     const commands = {
@@ -1970,32 +1983,43 @@
       request: `【东周玩家领差】我申请领取组织任务：${detail}。我接受该任务的默认参数、时限和交付要求，请现在创建并派发给我，不需要补充询问。`,
       inbox: "请列出你与我之间已经下发、已经领取的组织任务和待办事项。",
       accept: "我接受你刚才下发给我的组织任务。",
+      reject: "我拒绝你刚才下发给我的组织任务。",
+      modify: "我申请调整你刚才下发给我的组织任务。",
       exception: "我在执行当前组织任务时遇到重大异常，请立即按任务冻结规则登记受阻并列出处置方案。",
       result: "我已完成当前组织任务，请审核我的完成成果。"
     };
     const content = action === "result" || action === "exception"
       ? `${commands[action]}我明确汇报的差事是《${selectedTask.title}》。${action === "result" ? "完成情况" : "受阻情况"}：${detail}`
+      : ["accept", "reject", "modify"].includes(action)
+        ? `${commands[action]}我明确回应的差事是《${selectedTask.title}》。${action === "modify" ? `调整内容：${detail}` : action === "reject" && detail ? `拒绝理由：${detail}` : "请按权威任务流程立即登记。"}`
       : commands[action];
     if (!content) return;
     officeCareerBusy = true;
     renderOfficeCareer();
-    $("#officeCareerFeedback").textContent = ({ options: "正在向杜伯查询可领差事……", request: "领差申请已送杜伯，等待派发……", inbox: "正在调阅我的任务待办……", accept: "受命回执已送杜伯……", exception: "受阻报告已送杜伯，等待冻结方案裁定……", result: "复命已送杜伯，等待审核与贡献结算……" })[action];
+    $("#officeCareerFeedback").textContent = ({ options: "正在向杜伯查询可领差事……", request: "领差申请已送杜伯，等待派发……", inbox: "正在调阅我的任务待办……", accept: "受命回执已送杜伯……", reject: "拒绝回执已送杜伯……", modify: "改令申请已送杜伯，等待裁定……", exception: "受阻报告已送杜伯，等待冻结方案裁定……", result: "复命已送杜伯，等待审核与贡献结算……" })[action];
     try {
       await syncOfficeNpcs(profile.organization.members.filter((member) => member.id === "DuBo"));
-      const accepted = await integration.sendNpcMessage("DuBo", content);
-      let reply = null;
-      for (let attempt = 0; attempt < 90; attempt += 1) {
-        if (attempt) await sleep(1000);
-        const messages = await integration.npcCorrespondence("DuBo", 20).catch(() => ({ messages: [] }));
-        reply = (messages.messages || []).find((message) => message.taskId === accepted.taskId) || null;
-        if (reply) break;
+      const sendAndWaitForReply = async (message) => {
+        const accepted = await integration.sendNpcMessage("DuBo", message);
+        for (let attempt = 0; attempt < 90; attempt += 1) {
+          if (attempt) await sleep(1000);
+          const messages = await integration.npcCorrespondence("DuBo", 20).catch(() => ({ messages: [] }));
+          const reply = (messages.messages || []).find((entry) => entry.taskId === accepted.taskId) || null;
+          if (reply) return reply;
+        }
+        return null;
+      };
+      if (["accept", "reject", "modify"].includes(action)) {
+        await sendAndWaitForReply(commands.inbox);
       }
+      const reply = await sendAndWaitForReply(content);
       const roster = await integration.organizationRoster();
       profile.organization = organization.recordRemoteRoster(profile.organization, roster, displayName);
       await refreshOfficeCareerStatus({ quiet: true });
       $("#officeCareerFeedback").textContent = reply?.content || "军府已受理，权威回信稍后可在府中书问查看。";
       if (action === "request" && detail) $("#officeCareerTaskName").value = "";
       if ((action === "result" || action === "exception") && detail) $("#officeCareerResult").value = "";
+      if (["accept", "reject", "modify"].includes(action)) $("#officeCareerResponseDetail").value = "";
       localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
       renderOrganizationPanel();
       if ($("#officeMemberSelect").value === "DuBo") await refreshOfficeCorrespondence(profile.organization.members.find((member) => member.id === "DuBo"));
@@ -2012,6 +2036,19 @@
     const summary = $("#officeCareerResult").value.trim();
     if (!summary) return;
     requestOfficeCareer("result", summary);
+  }
+
+  function submitOfficeCareerResponse(event) {
+    event.preventDefault();
+    requestOfficeCareer("accept");
+  }
+
+  function modifyOfficeCareerTask() {
+    requestOfficeCareer("modify", $("#officeCareerResponseDetail").value.trim());
+  }
+
+  function rejectOfficeCareerTask() {
+    requestOfficeCareer("reject", $("#officeCareerResponseDetail").value.trim());
   }
 
   function reportOfficeCareerException() {
@@ -5357,7 +5394,9 @@
     $("#officeCareerStatus").addEventListener("click", handleOfficeCareerStatusAction);
     $("#officeCareerContributionsRefresh").addEventListener("click", () => refreshOfficeCareerContributions());
     $("#officeCareerContributions").addEventListener("click", (event) => { const verifyButton = event.target.closest("[data-player-contribution-verify-id]"); if (verifyButton) { verifyOfficeCareerContributionDossier(verifyButton.dataset.playerContributionVerifyId); return; } const button = event.target.closest("[data-player-contribution-dossier-id]"); if (button) toggleOfficeCareerContributionDossier(button.dataset.playerContributionDossierId); });
-    $("#officeCareerAccept").addEventListener("click", () => requestOfficeCareer("accept"));
+    $("#officeCareerResponseForm").addEventListener("submit", submitOfficeCareerResponse);
+    $("#officeCareerModify").addEventListener("click", modifyOfficeCareerTask);
+    $("#officeCareerReject").addEventListener("click", rejectOfficeCareerTask);
     $("#officeCareerException").addEventListener("click", reportOfficeCareerException);
     $("#officeCareerResultForm").addEventListener("submit", submitOfficeCareerResult);
     $("#officeMessageForm").addEventListener("submit", sendOfficeNpcMessage);
