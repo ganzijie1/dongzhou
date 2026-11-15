@@ -987,7 +987,20 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                 return httpx.Response(200, json={"data": {"channels": {
                     "vector": [{"id": "player_full_1", "score": 0.9, "normalized_score": 1.0}, {"id": "dongzhou_stage_005", "score": 0.8, "normalized_score": 0.8}],
                     "bm25": [{"id": "dongzhou_stage_006", "score": 7.0, "normalized_score": 0.7}],
-                    "graph": [{"id": "dongzhou_stage_005", "score": 1.0, "normalized_score": 1.0}],
+                    "graph": [{
+                        "id": "dongzhou_stage_005",
+                        "score": 1.0,
+                        "normalized_score": 1.0,
+                        "graph_path": {
+                            "seed_id": "dongzhou_stage_006",
+                            "hops": 1,
+                            "nodes": [
+                                {"id": "dongzhou_stage_006", "name": "周郑交质"},
+                                {"id": "dongzhou_stage_005", "name": "郑伯克段"},
+                            ],
+                            "relations": ["DEPENDS_ON"],
+                        },
+                    }],
                 }}})
             self.assertEqual(request.url.path, "/api/v1/player/aku/batch_get")
             payload = json.loads(request.content)
@@ -1022,6 +1035,15 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(items[0]["retrieval"]["strongestChannel"], "graph")
         self.assertTrue(items[0]["retrieval"]["graphRelated"])
         self.assertEqual([item["channel"] for item in items[0]["retrieval"]["channels"]], ["vector", "graph"])
+        self.assertEqual(items[0]["retrieval"]["channels"][1]["graphPath"], {
+            "seedId": "dongzhou_stage_006",
+            "hops": 1,
+            "nodes": [
+                {"id": "dongzhou_stage_006", "name": "周郑交质"},
+                {"id": "dongzhou_stage_005", "name": "郑伯克段"},
+            ],
+            "relations": ["DEPENDS_ON"],
+        })
         self.assertEqual(seen_batch_ids, ["dongzhou_stage_005", "player_full_1", "dongzhou_stage_006"])
 
     async def test_http_business_error_preserves_contract_payload(self) -> None:

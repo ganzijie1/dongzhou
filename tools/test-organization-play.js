@@ -46,8 +46,9 @@ assert.ok(consumed.support.attack >= 0.05);
 assert.strictEqual(consumed.state.pendingSupport.some((entry) => entry.id === "forced"), false);
 assert.deepStrictEqual(play.consumeSupport(consumed.state, "01").support.sources, []);
 
-state = play.recordKnowledge(consumed.state, { id: "dongzhou_stage_001", name: "第一回", summary: "东郊索命", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }, { work: "《东周列国志》第一回", tier: "文学演绎", scope: "杜伯索命", url: "https://zh.wikisource.org/zh-hans/东周列国志/第001回" }] });
+state = play.recordKnowledge(consumed.state, { id: "dongzhou_stage_001", name: "第一回", summary: "东郊索命", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }, { work: "《东周列国志》第一回", tier: "文学演绎", scope: "杜伯索命", url: "https://zh.wikisource.org/zh-hans/东周列国志/第001回" }], retrieval: { aggregateScore: 0.55, strongestChannel: "graph", graphRelated: true, channels: [{ channel: "graph", score: 1, normalizedScore: 1, rank: 1, graphPath: { seedId: "dongzhou_stage_002", hops: 1, nodes: [{ id: "dongzhou_stage_002", name: "烽火戏诸侯" }, { id: "dongzhou_stage_001", name: "东郊索命" }], relations: ["DEPENDS_ON"] } }] } });
 assert.strictEqual(state.knowledge[0].stageId, "01");
+assert.deepStrictEqual(state.knowledge[0].retrieval.channels[0].graphPath, { seedId: "dongzhou_stage_002", hops: 1, nodes: [{ id: "dongzhou_stage_002", name: "烽火戏诸侯" }, { id: "dongzhou_stage_001", name: "东郊索命" }], relations: ["DEPENDS_ON"] });
 assert.throws(() => play.recordCouncil(state, { id: "council-unsealed", stageId: "01", memberId: "ZuoRu", knowledgeId: "dongzhou_stage_001", question: "如何部署", options: ["守", "攻"], index: 0 }), /选定军议依据/);
 const selectedEvidence = play.selectEvidence(state, { stageId: "01", knowledgeId: "dongzhou_stage_001", sourceIndex: 0 });
 state = selectedEvidence.state;

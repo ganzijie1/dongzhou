@@ -3542,8 +3542,17 @@
 
   function knowledgeRetrievalText(entry) {
     const labels = { graph: "图谱牵连", entity: "实体命中", bm25: "原文命中", vector: "文义相近", category: "同类史料", schedule_tag: "时序相合" };
+    const relationLabels = { BELONGS_TO: "归属关联", DEPENDS_ON: "前置关联", LEVEL_OF: "层级关联", HAS_CHILD: "上下级关联" };
     const channels = Array.isArray(entry?.retrieval?.channels) ? entry.retrieval.channels : [];
-    return channels.map((item) => `${labels[item.channel] || item.channel} ${Math.round(Number(item.normalizedScore || 0) * 100)}%`).join(" · ") || "本回目录";
+    const summary = channels.map((item) => `${labels[item.channel] || item.channel} ${Math.round(Number(item.normalizedScore || 0) * 100)}%`).join(" · ") || "本回目录";
+    const path = channels.find((item) => item.channel === "graph" && Array.isArray(item.graphPath?.nodes))?.graphPath;
+    if (!path || path.nodes.length !== Number(path.hops) + 1 || path.relations.length !== Number(path.hops)) return summary;
+    const trail = path.nodes.map((node, index) => {
+      const name = String(node.name || node.id || "未名史料");
+      if (!index) return name;
+      return `${relationLabels[path.relations[index - 1]] || "史脉关联"} → ${name}`;
+    }).join(" → ");
+    return `${summary} · 牵连路径：${trail}`;
   }
 
   function safeKnowledgeUrl(value) {

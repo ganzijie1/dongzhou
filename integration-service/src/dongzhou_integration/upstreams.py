@@ -20,6 +20,35 @@ class UpstreamUnavailable(RuntimeError):
         self.response_payload = response_payload
 
 
+def _knowledge_graph_path(item: dict[str, Any]) -> dict[str, Any] | None:
+    raw = item.get("graph_path")
+    if not isinstance(raw, dict):
+        return None
+    raw_nodes = raw.get("nodes")
+    raw_relations = raw.get("relations")
+    if not isinstance(raw_nodes, list) or not isinstance(raw_relations, list):
+        return None
+    nodes = [
+        {"id": str(node.get("id") or ""), "name": str(node.get("name") or "")}
+        for node in raw_nodes[:8]
+        if isinstance(node, dict) and str(node.get("id") or "")
+    ]
+    relations = [str(relation) for relation in raw_relations[:7] if str(relation)]
+    hops = raw.get("hops")
+    if (
+        not isinstance(hops, int)
+        or isinstance(hops, bool)
+        or hops < 1
+        or len(nodes) != hops + 1
+        or len(relations) != hops
+    ):
+        return None
+    seed_id = str(raw.get("seed_id") or nodes[0]["id"])
+    if seed_id != nodes[0]["id"]:
+        return None
+    return {"seedId": seed_id, "hops": hops, "nodes": nodes, "relations": relations}
+
+
 class Upstreams:
     def __init__(self, settings: Settings, client: httpx.AsyncClient | None = None) -> None:
         self.settings = settings
@@ -439,12 +468,16 @@ class Upstreams:
                     score = float(raw_score) if isinstance(raw_score, (int, float)) and not isinstance(raw_score, bool) and math.isfinite(float(raw_score)) else 0.0
                     normalized = float(raw_normalized) if isinstance(raw_normalized, (int, float)) and not isinstance(raw_normalized, bool) and math.isfinite(float(raw_normalized)) else 0.0
                     normalized = max(0.0, min(1.0, normalized))
-                    provenance.setdefault(identifier, []).append({
+                    trace = {
                         "channel": channel,
                         "score": round(score, 6),
                         "normalizedScore": round(normalized, 6),
                         "rank": rank,
-                    })
+                    }
+                    graph_path = _knowledge_graph_path(item) if channel == "graph" else None
+                    if graph_path is not None:
+                        trace["graphPath"] = graph_path
+                    provenance.setdefault(identifier, []).append(trace)
                     aggregates[identifier] = aggregates.get(identifier, 0.0) + normalized * weight
             ids = sorted(provenance, key=lambda identifier: (-aggregates.get(identifier, 0.0), identifier))
             if not ids:

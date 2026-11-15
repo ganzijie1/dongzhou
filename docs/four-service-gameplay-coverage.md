@@ -110,6 +110,8 @@ AINPC 事件公聊现由东周正式实现 `NDLLMSendPublicMessage` 游戏服契
 
 正式岗位名增量提交为 AINPC `46537b199`、orgFlowEngine `c2b8aca`；knowledge-jizhan 与 NexusKernel 本轮无代码变更。
 
+图谱路径增量把 knowledge-jizhan 的 graph 召回从“只有命中分数”补成可核验的最短路径证据。知识服务现在返回确定性选择的起点、完整节点、关系类型和跳数，并为路径节点批量补全 AKU 名称；东周只接受节点数等于跳数加一、关系数等于跳数且起点一致的路径。合格路径随六路召回进入 SHA-256 搜索回执、玩家简册、选证和后续军议/军令证据，页面以“牵连路径”直接展示史料之间的归属、前置、层级或上下级关联。真实查询返回 10/10 条带路径的 graph 结果；真实 Chromium 搜索“郑伯克段 周郑交质”取得 6 条已发布东周史料并展示一跳 `DEPENDS_ON` 路径，桌面和 390px 视口均通过，证据为 `graph-path-live.png`、`graph-path-mobile-live.png` 与 `fulltext-browser-restored.json`。
+
 ## orgFlow 追办与补救
 
 orgFlow 东周目录 v4 已为外交、操练、谍报、巡察和军需五类差事配置权威派生规则。成功结案生成追办，部分完成生成追办，失败生成补救；派生深度限定为一层。东周服务端复核前序任务、根任务、触发结果、规则号、岗位与确定性任务号，再把已创建子任务登记给原玩家。子任务继承章节和岗位席位、成本为 0；席位责任人变化时按 orgFlow 当前实账同步，并按普通差事继续结案。真实父任务到子任务链路见 `test-live-orgflow-followup.js`、`live-orgflow-followup-complete86.json`、`live-orgflow-followup-lineage-complete86.json` 和同名 PNG。

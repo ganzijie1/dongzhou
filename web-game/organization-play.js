@@ -972,9 +972,18 @@
     const state = normalizeState(rawState);
     if (!entry?.id) return state;
     const sources = Array.isArray(entry.sourceDetails) ? entry.sourceDetails : [];
-    const channels = Array.isArray(entry.retrieval?.channels) ? entry.retrieval.channels.filter((item) => item && ["vector", "bm25", "entity", "category", "schedule_tag", "graph"].includes(item.channel)).slice(0, 6).map((item) => ({
-      channel: item.channel, score: Number(item.score || 0), normalizedScore: clamp(item.normalizedScore, 0, 1), rank: Math.max(1, Math.trunc(Number(item.rank || 1)))
-    })) : [];
+    const channels = Array.isArray(entry.retrieval?.channels) ? entry.retrieval.channels.filter((item) => item && ["vector", "bm25", "entity", "category", "schedule_tag", "graph"].includes(item.channel)).slice(0, 6).map((item) => {
+      const nodes = Array.isArray(item.graphPath?.nodes) ? item.graphPath.nodes.slice(0, 8).filter((node) => node?.id).map((node) => ({ id: String(node.id), name: String(node.name || "") })) : [];
+      const relations = Array.isArray(item.graphPath?.relations) ? item.graphPath.relations.slice(0, 7).map(String).filter(Boolean) : [];
+      const hops = Math.max(0, Math.trunc(Number(item.graphPath?.hops || 0)));
+      const graphPath = item.channel === "graph" && hops > 0 && nodes.length === hops + 1 && relations.length === hops && String(item.graphPath?.seedId || "") === nodes[0].id
+        ? { seedId: nodes[0].id, hops, nodes, relations }
+        : null;
+      return {
+        channel: item.channel, score: Number(item.score || 0), normalizedScore: clamp(item.normalizedScore, 0, 1), rank: Math.max(1, Math.trunc(Number(item.rank || 1))),
+        ...(graphPath ? { graphPath } : {})
+      };
+    }) : [];
     const retrieval = channels.length ? {
       aggregateScore: clamp(entry.retrieval?.aggregateScore, 0, 1), strongestChannel: String(entry.retrieval?.strongestChannel || ""),
       graphRelated: Boolean(entry.retrieval?.graphRelated), channels
