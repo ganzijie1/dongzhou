@@ -1216,6 +1216,35 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(caught.exception.error_code, "organization_task_conflict")
         self.assertEqual(caught.exception.response_payload["error"]["message"], "already active")
 
+    async def test_virtual_task_preserves_direct_recipient_contract(self) -> None:
+        seen: list[dict[str, object]] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen.append(json.loads(request.content))
+            return httpx.Response(200, json={"data": {"accepted": True}})
+
+        payload = {
+            "source": "ORGANIZATION_EVENT",
+            "source_event_id": "stable-direct-recipient",
+            "manager_member_id": "7a000000-0000-4000-8000-000000000001",
+            "target_position_slot_id": "7a000000-0000-4000-8000-000000000002",
+            "direct_responsible_member_id": "7a000000-0000-4000-8000-000000000003",
+            "expected_recipient_subject_type": "NPC",
+            "expected_recipient_subject_id": "hero-guan-zhong",
+            "task_code": "court_mandate",
+            "expected_hierarchy_version": 1,
+            "parameters": {},
+            "brief": "Direct court mandate",
+            "unsupported_field": "must be removed",
+        }
+        with TemporaryDirectory() as directory:
+            async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+                await Upstreams(settings(Path(directory) / "db"), client).trigger_virtual_task(
+                    "org-id", payload
+                )
+
+        self.assertEqual(seen, [{key: value for key, value in payload.items() if key != "unsupported_field"}])
+
     async def test_formal_orgflow_and_ainpc_paths(self) -> None:
         seen: list[httpx.Request] = []
 

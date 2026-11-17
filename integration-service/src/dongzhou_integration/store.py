@@ -1097,6 +1097,33 @@ class Store:
             "externalId": row["external_id"],
         }
 
+    async def read_latest_request_in_states(
+        self,
+        player_id: UUID,
+        kind: str,
+        states: tuple[str, ...],
+    ) -> dict[str, Any] | None:
+        if not states:
+            raise ValueError("states must not be empty")
+        placeholders = ",".join("?" for _ in states)
+        async with self._lock:
+            with self._connection() as db:
+                row = db.execute(
+                    "SELECT state,request_payload,response_payload,external_id "
+                    "FROM requests WHERE player_id=? AND kind=? "
+                    f"AND state IN ({placeholders}) "
+                    "ORDER BY updated_at DESC,created_at DESC,request_id DESC LIMIT 1",
+                    (str(player_id), kind, *states),
+                ).fetchone()
+        if row is None:
+            return None
+        return {
+            "state": row["state"],
+            "request": json.loads(row["request_payload"]),
+            "response": json.loads(row["response_payload"]) if row["response_payload"] else None,
+            "externalId": row["external_id"],
+        }
+
     async def find_request(self, request_id: UUID, kind: str) -> dict[str, Any] | None:
         async with self._lock:
             with self._connection() as db:

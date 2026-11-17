@@ -1809,6 +1809,18 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
             assert replayed_schedule.json()["scheduleReceipt"] == schedule_receipt
             assert len(upstreams.interruptions) == 1
 
+            recovered_schedule = client.post(
+                f"/api/dongzhou/v1/court/mandates/{mandate['id']}/schedule",
+                json={
+                    "client_request_id": str(uuid4()),
+                    "mandate_digest": mandate["digest"],
+                },
+            )
+            assert recovered_schedule.status_code == 200
+            assert recovered_schedule.json()["replayed"] is True
+            assert recovered_schedule.json()["scheduleReceipt"] == schedule_receipt
+            assert len(upstreams.interruptions) == 1
+
             wrong_schedule_seal = client.post(
                 f"/api/dongzhou/v1/court/mandates/{mandate['id']}/schedule",
                 json={
@@ -1840,6 +1852,28 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
             )
             assert rejected.status_code == 422
             assert rejected.json()["error"]["code"] == "court_mandate_mismatch"
+
+
+def test_pending_mandate_can_be_recovered_after_browser_reload() -> None:
+    with TemporaryDirectory() as directory:
+        upstreams = MandateUpstreams()
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=upstreams
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            council_id, _ = complete_council(client)
+            body = mandate_body(council_id)
+            drafted = client.post("/api/dongzhou/v1/court/mandates", json=body)
+            assert drafted.status_code == 200, drafted.text
+
+            recovered = client.get("/api/dongzhou/v1/court/mandates/pending")
+
+            assert recovered.status_code == 200, recovered.text
+            pending = recovered.json()["pending"]
+            assert pending["input"]["client_request_id"] == body["client_request_id"]
+            assert pending["input"]["task_type"] == body["task_type"]
+            assert pending["result"] == drafted.json()
 
 
 def test_graph_search_receipt_is_sealed_into_council_and_mandate() -> None:

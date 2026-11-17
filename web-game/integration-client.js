@@ -99,6 +99,7 @@
     if (offline) return { profile: localProfile, connected: false, offline: true };
     await ensureSession();
     try {
+      await recoverPendingCourtMandate();
       const remote = await request("/save");
       saveVersion = remote.version;
       if (remote.payload && Object.keys(remote.payload).length) {
@@ -314,6 +315,12 @@
     const operation = input.operation ? JSON.stringify(input.operation) : "";
     const context = [input.stage_id, input.hero_id, input.support_hero_id || "", input.knowledge_id, input.evidence_source_index, input.council_request_id, input.task_type, input.schedule_plan_id, input.schedule_event_id, input.correspondence_message_id || "", input.correspondence_digest || "", input.thought_request_id || "", input.thought_digest || "", operation].join(":");
     return MANDATE_PENDING_PREFIX + context;
+  }
+  async function recoverPendingCourtMandate() {
+    const response = await request("/court/mandates/pending");
+    const pending = response?.pending;
+    if (!pending?.input || !["REQUIRES_ACTION", "ISSUED"].includes(pending.result?.state)) return;
+    write(mandatePendingKey(pending.input), pending);
   }
   async function createCourtMandate(input) {
     const pendingKey = mandatePendingKey(input);

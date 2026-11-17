@@ -1565,6 +1565,22 @@ class Upstreams:
 
     async def trigger_virtual_task(self, organization_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         path = f"/internal/v1/organization-administration/organizations/{organization_id}/virtual-task-triggers"
+        accepted_fields = {
+            "source",
+            "source_event_id",
+            "manager_member_id",
+            "target_position_slot_id",
+            "direct_responsible_member_id",
+            "expected_recipient_subject_type",
+            "expected_recipient_subject_id",
+            "task_code",
+            "expected_hierarchy_version",
+            "parameters",
+            "brief",
+        }
+        contract_payload = {
+            key: value for key, value in payload.items() if key in accepted_fields
+        }
 
         async def submit(candidate: dict[str, Any]) -> dict[str, Any]:
             body = json.dumps(candidate, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode()
@@ -1576,14 +1592,20 @@ class Upstreams:
             )
 
         try:
-            return await submit(payload)
+            return await submit(contract_payload)
         except UpstreamUnavailable as error:
             if error.error_code != "organization_virtual_task_parameters_invalid":
                 raise
-            parameters = payload.get("parameters")
+            parameters = contract_payload.get("parameters")
             if not isinstance(parameters, dict):
                 raise
-            compatible = dict(payload)
+            compatible = dict(contract_payload)
+            for field in (
+                "direct_responsible_member_id",
+                "expected_recipient_subject_type",
+                "expected_recipient_subject_id",
+            ):
+                compatible.pop(field, None)
             compatible["parameters"] = {
                 "assignee_hero_id": "unassigned",
                 "assignee_name": "Unassigned",
@@ -1592,7 +1614,7 @@ class Upstreams:
                 "stage_title": "Unknown stage",
             }
             context = json.dumps(parameters, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
-            compatible["brief"] = f"{str(payload.get('brief') or '').strip()} [Dongzhou context: {context}]".strip()
+            compatible["brief"] = f"{str(contract_payload.get('brief') or '').strip()} [Dongzhou context: {context}]".strip()
             return await submit(compatible)
 
     async def trigger_composite_virtual_task(

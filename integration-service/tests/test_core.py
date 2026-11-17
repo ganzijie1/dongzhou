@@ -1395,6 +1395,9 @@ class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
         payload = {
             "source": "ORGANIZATION_EVENT",
             "source_event_id": str(uuid4()),
+            "direct_responsible_member_id": str(uuid4()),
+            "expected_recipient_subject_type": "NPC",
+            "expected_recipient_subject_id": "npc-worker",
             "parameters": {
                 "assignee_hero_id": "ZuoRu",
                 "assignee_name": "Zuo Ru",
@@ -1410,6 +1413,15 @@ class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
             await client.aclose()
         self.assertIn("task_id", result["data"])
         self.assertEqual(len(observed), 2)
+        self.assertEqual(
+            observed[0]["direct_responsible_member_id"],
+            payload["direct_responsible_member_id"],
+        )
+        self.assertEqual(observed[0]["expected_recipient_subject_type"], "NPC")
+        self.assertEqual(observed[0]["expected_recipient_subject_id"], "npc-worker")
+        self.assertNotIn("direct_responsible_member_id", observed[1])
+        self.assertNotIn("expected_recipient_subject_type", observed[1])
+        self.assertNotIn("expected_recipient_subject_id", observed[1])
         self.assertEqual(observed[1]["parameters"]["assignee_hero_id"], "unassigned")
         self.assertIn('"assignee_hero_id":"ZuoRu"', observed[1]["brief"])
 

@@ -7728,6 +7728,24 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         await store.finish_request(player_id, request.client_request_id, "COMPLETED", response)
         return response
 
+    @router.get("/court/mandates/pending")
+    async def pending_court_mandate(
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        record = await store.read_latest_request_in_states(
+            player_id,
+            "court_mandate",
+            ("REQUIRES_ACTION", "ISSUED"),
+        )
+        if record is None:
+            return {"pending": None}
+        return {
+            "pending": {
+                "input": record["request"],
+                "result": record["response"],
+            }
+        }
+
     @router.post("/court/mandates")
     async def issue_court_mandate(
         request: CourtMandateRequest, player_id: UUID = Depends(player)
@@ -8715,6 +8733,26 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=422,
             )
 
+        event_id = f"dongzhou-mandate-{request.mandate_digest[:32]}"
+        completed_schedule = await store.read_external_request_record(
+            player_id, event_id, "court_mandate_schedule"
+        )
+        if completed_schedule and completed_schedule.get("state") == "COMPLETED":
+            completed_request = completed_schedule.get("request")
+            completed_response = completed_schedule.get("response")
+            if (
+                isinstance(completed_request, dict)
+                and completed_request.get("mandateId") == mandate_id
+                and completed_request.get("mandate_digest") == request.mandate_digest
+                and isinstance(completed_response, dict)
+            ):
+                return {"replayed": True, **completed_response}
+            raise ApiError(
+                "court_mandate_schedule_conflict",
+                "The mandate schedule identity is already bound to different input.",
+                status_code=409,
+            )
+
         request_body = request.model_dump(mode="json")
         try:
             created, existing = await store.begin_request(
@@ -8814,7 +8852,6 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             receipt["digest"] = _canonical_digest(receipt)
             return receipt
 
-        event_id = f"dongzhou-mandate-{request.mandate_digest[:32]}"
         try:
             receipt = await apply_schedule_interruption(
                 hero_id=str(mandate.get("heroId") or ""),

@@ -89,9 +89,41 @@ saveJournal();
         saveJournal();
       }
     }
-    const recoveringExisting = resume && Boolean(journal.remoteTask && journal.mandateId);
+    let recoveringExisting = resume && Boolean(journal.remoteTask && journal.mandateId);
     let council;
     let issued;
+
+    if (!recoveringExisting && await page.locator("#officeMandateApproval").isVisible()) {
+      const pendingMandateId = await page.evaluate(() =>
+        window.DongzhouIntegration.pendingCourtMandate()?.result?.mandate?.id || null
+      );
+      assert(pendingMandateId, "Recovered mandate approval is missing its durable mandate ID");
+      journal.stage = "recovered-pending-mandate";
+      saveJournal();
+      await page.click("#officeMandateApproveButton");
+      await page.waitForFunction(({ key, mandateId }) => {
+        const organization = JSON.parse(localStorage.getItem(key)).organization;
+        return organization.tasks.some((task) =>
+          task.remoteResult && task.mandate?.id === mandateId
+        );
+      }, { key: PROFILE, mandateId: pendingMandateId }, { timeout: 240000 });
+      ({ council, issued } = await page.evaluate(({ key, mandateId }) => {
+        const organization = JSON.parse(localStorage.getItem(key)).organization;
+        const task = organization.tasks.find((entry) =>
+          entry.remoteResult && entry.mandate?.id === mandateId
+        );
+        const mandate = organization.mandates.find((entry) => entry.id === mandateId);
+        const matchingCouncil = organization.councils.find((entry) =>
+          entry.id === mandate?.council?.requestId
+        );
+        return { council: matchingCouncil, issued: { task, mandate } };
+      }, { key: PROFILE, mandateId: pendingMandateId }));
+      assert(issued.task && issued.mandate && council, "Recovered pending mandate did not create a durable task");
+      journal.remoteTask = issued.task.remoteResult;
+      journal.mandateId = issued.mandate.id;
+      saveJournal();
+      recoveringExisting = true;
+    }
 
     if (!recoveringExisting) {
     journal.stage = "knowledge";
