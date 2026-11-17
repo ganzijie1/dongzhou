@@ -146,6 +146,7 @@ async function openReady(page) {
         body = { version: ++saveVersion, payload };
       }
       else if (pathName.endsWith("/integration/status")) body = { mode: "connected", organizationId: "org-e2e", services: { nexusKernel: { online: true, mode: "embedded", version: "0.2.0", requiredModuleCount: 19, operationalModuleCount: 19, unavailableModules: [] }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } } };
+      else if (pathName.endsWith("/court/mandates/pending")) body = { pending: null };
       else if (pathName.endsWith("/organization/roster")) body = { organization: { name: "东周军府", state: "ACTIVE", hierarchyVersion: membershipJoined ? 8 : 7, growthContribution: 245 }, members: [{ heroId: "DuBo", office: "军府主官", role: "军府主官", level: "manager", directManagerHeroId: null, contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 }, { heroId: "ZuoRu", office: "军府属官·第1席", role: "军府属官", level: "officer", directManagerHeroId: "DuBo", contributionBalance: 31, lifetimeEarned: 42, lifetimeSpent: 11 }], playerMembership: membershipJoined ? { office: "军府属官·第12席", role: "军府属官", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 } : null, openPositions: membershipJoined ? [] : [{ office: "军府属官·第12席", role: "军府属官", level: "staff" }] };
       else if (pathName.endsWith("/organization/scheduled-duties/status")) {
         const input = request.postDataJSON();
@@ -377,7 +378,7 @@ async function openReady(page) {
     const onlineUrl = new URL(BASE_URL);
     onlineUrl.search = "";
     await online.goto(onlineUrl.toString(), { waitUntil: "domcontentloaded" });
-    await online.waitForSelector("#app:not([hidden])", { timeout: 45000 });
+    await online.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
     await online.click("#campaignOfficeButton");
     await online.waitForSelector("#officeServiceStatus >> text=内核 19/19通达", { timeout: 15000 });
     await online.waitForSelector("#officeMembers >> text=官署实账");

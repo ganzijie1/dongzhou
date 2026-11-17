@@ -28,6 +28,39 @@ class ScheduleAcceptanceTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "non-Dongzhou"):
             module.validate_dongzhou_schedule(self.schedule)
 
+    def test_bound_dongzhou_temporary_schedule_passes(self):
+        event = self.schedule["data"]["schedules"][0]["events"][0]
+        event.update(
+            id="temp_event:" + "a" * 64,
+            todo_id="temp_event:" + "a" * 64,
+            transaction_id=10003,
+            type="temp",
+            transaction_type="temp",
+            extra_data={
+                "source": "event_report",
+                "event_id": "dongzhou-mandate-abc",
+                "stage_id": "01",
+            },
+        )
+
+        result = module.validate_dongzhou_schedule(self.schedule)
+
+        self.assertEqual(result["temporaryTransactionIds"], [10003])
+
+    def test_unbound_temporary_schedule_fails(self):
+        event = self.schedule["data"]["schedules"][0]["events"][0]
+        event.update(
+            id="temp_event:" + "a" * 64,
+            todo_id="temp_event:" + "a" * 64,
+            transaction_id=10003,
+            type="temp",
+            transaction_type="temp",
+            extra_data={"source": "event_report", "event_id": "other-game-event"},
+        )
+
+        with self.assertRaisesRegex(AssertionError, "unbound temporary"):
+            module.validate_dongzhou_schedule(self.schedule)
+
     def test_other_game_text_fails_even_with_correct_ids(self):
         for field in ("description", "reward_desc"):
             with self.subTest(field=field):

@@ -29,6 +29,7 @@ def validate_dongzhou_schedule(schedule: dict) -> dict:
     assert dates == [first_date + timedelta(days=offset) for offset in range(90)], "schedule dates are not 90 consecutive days"
     assert dates[-1] == end_date, "schedule end date does not match its days"
     transaction_ids = set()
+    temporary_transaction_ids = set()
     event_ids = set()
     event_count = 0
     for day in days:
@@ -42,7 +43,21 @@ def validate_dongzhou_schedule(schedule: dict) -> dict:
             event_ids.add(event_id)
             assert type(event.get("duration_minutes")) is int and event["duration_minutes"] > 0, "schedule event has no valid duration"
             identifier = event.get("transaction_id")
-            assert type(identifier) is int and 9100101 <= identifier <= 9100112, "schedule contains non-Dongzhou transaction IDs"
+            assert type(identifier) is int, "schedule contains non-Dongzhou transaction IDs"
+            if 10001 <= identifier <= 10009:
+                extra = event.get("extra_data")
+                assert (
+                    event.get("type") == "temp"
+                    and event.get("transaction_type") == "temp"
+                    and event_id.startswith("temp_event:")
+                    and isinstance(extra, dict)
+                    and extra.get("source") == "event_report"
+                    and isinstance(extra.get("event_id"), str)
+                    and extra["event_id"].startswith("dongzhou-")
+                ), "schedule contains an unbound temporary transaction"
+                temporary_transaction_ids.add(identifier)
+            else:
+                assert 9100101 <= identifier <= 9100112, "schedule contains non-Dongzhou transaction IDs"
             transaction_ids.add(identifier)
             event_count += 1
     text = json.dumps(data, ensure_ascii=False)
@@ -55,7 +70,9 @@ def validate_dongzhou_schedule(schedule: dict) -> dict:
     )
     assert not any(re.search(pattern, text) for pattern in foreign_game_patterns), "schedule contains another game's content"
     return {"hero": "ZuoRu", "days": len(days), "events": event_count,
-            "transactionIds": sorted(transaction_ids), "dongzhouContentVerified": True}
+            "transactionIds": sorted(transaction_ids),
+            "temporaryTransactionIds": sorted(temporary_transaction_ids),
+            "dongzhouContentVerified": True}
 
 
 def main() -> int:

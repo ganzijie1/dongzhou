@@ -20,6 +20,17 @@ const executablePath = [
 ].find((entry) => fs.existsSync(entry));
 const scheduledTaskId = "00000000-0000-4000-8000-000000000199";
 
+async function waitForCampaign(page, model) {
+  await page.waitForFunction(() => (
+    !document.querySelector("#campaignScreen")?.hidden
+    || document.querySelector("#loadingScreen")?.classList.contains("failed")
+  ), null, { timeout: 45000 });
+  if (await page.locator("#campaignScreen").getAttribute("hidden") !== null) {
+    const loadingText = await page.locator("#loadingText").textContent();
+    throw new Error(JSON.stringify({ loadingText, pageErrors: model.errors, unexpected: model.unexpected }));
+  }
+}
+
 const guideReceipt = (actionId, state, digest) => ({
   actionId,
   questionId: "00000000-0000-4000-8000-000000000101",
@@ -81,6 +92,7 @@ const guideReceipt = (actionId, state, digest) => ({
       }
       body = { version: model.version, payload: model.cloud };
     } else if (pathname.endsWith("/integration/status")) body = { mode: "connected", organizationId: "test", services: { nexusKernel: { online: true }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } } };
+    else if (pathname.endsWith("/court/mandates/pending")) body = { pending: null };
     else if (pathname.endsWith("/npcs/sync")) body = { ready: true, npcs: [] };
     else if (pathname.endsWith("/npcs/interaction-preference")) body = { enabled: true, source: "test" };
     else if (pathname.endsWith("/organization/roster")) body = { organization: { id: "test", name: "东周军府", state: "ACTIVE", growthContribution: 0 }, members: [] };
@@ -158,7 +170,7 @@ const guideReceipt = (actionId, state, digest) => ({
   page.on("pageerror", (error) => model.errors.push(error.message));
   try {
     await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
-    await page.waitForSelector("#app:not([hidden])", { timeout: 45000 });
+    await waitForCampaign(page, model);
     await page.click("#campaignOfficeButton");
     await page.waitForFunction(() => document.querySelector("#officeTaskLedger")?.textContent.includes("东周朝廷月例察访"), null, { timeout: 10000 });
     const scheduledTasks = await page.evaluate((taskId) => {
@@ -191,7 +203,7 @@ const guideReceipt = (actionId, state, digest) => ({
     assert.equal(journal.guideDecision.result.guide.kernel.module, "dongzhou_adviser_guide");
 
     await page.reload({ waitUntil: "domcontentloaded" });
-    await page.waitForSelector("#app:not([hidden])", { timeout: 45000 });
+    await waitForCampaign(page, model);
     await page.click("#campaignOfficeButton");
     await page.waitForFunction(() => document.querySelector("#officeAdviserGuideStatus")?.textContent.includes("已停止本次引路"));
     await page.setViewportSize({ width: 320, height: 700 });
@@ -207,7 +219,7 @@ const guideReceipt = (actionId, state, digest) => ({
     await page.evaluate(() => localStorage.removeItem("dongzhou-adviser-question-v1"));
     await page.setViewportSize({ width: 1100, height: 850 });
     await page.reload({ waitUntil: "domcontentloaded" });
-    await page.waitForSelector("#app:not([hidden])", { timeout: 45000 });
+    await waitForCampaign(page, model);
     assert.equal(await page.locator("#focusStageButton").getAttribute("data-stage-id"), "02");
     await page.click("#campaignOfficeButton");
     await page.fill("#officeAdviserQuestion", "下一处军令在哪里？");

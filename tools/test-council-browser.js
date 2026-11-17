@@ -43,6 +43,7 @@ async function setup(browser) {
       }
       body={version:model.version,payload:clone(model.cloud)};
     } else if(p.endsWith('/integration/status')) body={mode:'connected',organizationId:'test',services:{nexusKernel:{online:true},orgFlow:{online:true},aiNpc:{online:true},knowledge:{online:true}}};
+    else if(p.endsWith('/court/mandates/pending')) body={pending:null};
     else if(p.endsWith('/npcs/interaction-preference')) body={enabled:req.postDataJSON().enabled,source:'dongzhou-player-settings',updatedAt:'2026-11-11T12:00:00Z'};
     else if(p.endsWith('/npcs/ZuoRu/merit-commendations')) {model.meritCommendations.push(req.postDataJSON());body={state:'COMPLETED',replayed:model.meritCommendations.length>1,commendation:clone(MERIT_COMMENDATION)};}
     else if(p.endsWith('/organization/roster')) body={organization:{id:'test',name:'东周军府',state:'ACTIVE',growthContribution:0},members:[]};
@@ -82,7 +83,7 @@ async function setup(browser) {
   });
   const page=await context.newPage();page.on('pageerror',e=>model.errors.push(e.message));
   await page.goto(BASE_URL,{waitUntil:'domcontentloaded'});
-  await page.waitForSelector('#app:not([hidden])',{timeout:45000});
+  await page.waitForSelector('#campaignScreen:not([hidden])',{timeout:45000});
   await page.click('#campaignOfficeButton');
   const members=await page.locator('#officeMemberSelect option').evaluateAll(rows=>rows.map(r=>r.value).filter(Boolean));
   const member=members.find(id=>id!=='DuBo');assert(member);

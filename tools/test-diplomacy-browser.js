@@ -40,6 +40,7 @@ const BASE_ORIGIN = new URL(BASE_URL).origin;
     else if (pathname.endsWith("/save") && request.method() === "GET") body = { version, payload: cloud };
     else if (pathname.endsWith("/save") && request.method() === "PUT") { cloud = request.postDataJSON().payload; body = { version: ++version, payload: cloud }; }
     else if (pathname.endsWith("/integration/status")) body = { services: { nexusKernel: { online: true }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } }, organizationId: "court-test" };
+    else if (pathname.endsWith("/court/mandates/pending")) body = { pending: null };
     else if (pathname.endsWith("/npcs/interaction-preference")) body = { enabled: request.postDataJSON().enabled, source: "dongzhou-player-settings", updatedAt: "2026-11-11T12:00:00Z" };
     else if (pathname.endsWith("/organization/roster")) body = { organization: { id: "court-test", name: "东周军府", state: "ACTIVE", growthContribution: 0 }, members: [] };
     else if (pathname.includes("/knowledge/stages/")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回史料", summary: "诸侯合纵可御强敌", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败与周宣王晚年", url: "https://ctext.org/shiji/zhou-ben-ji" }, { work: "《东周列国志》第一回", tier: "文学演绎", scope: "杜伯、左儒化厉索命", url: "https://zh.wikisource.org/zh-hans/东周列国志/第001回" }] }] };
@@ -68,7 +69,7 @@ const BASE_ORIGIN = new URL(BASE_URL).origin;
   });
   try {
     await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
-    await page.waitForSelector("#app:not([hidden])", { timeout: 45000 });
+    await page.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
     await page.click("#campaignOfficeButton");
     await page.click("#officeStageKnowledgeButton");
     await page.waitForSelector("#officeKnowledgeResults >> text=第一回史料");

@@ -13,7 +13,7 @@ const PROFILE = "dongzhou-h5-profile-v2";
 const BATTLE = "dongzhou-h5-battle-v2";
 async function ready(page) {
   await page.goto(url.href, { waitUntil: "domcontentloaded" });
-  await page.waitForSelector("#app:not([hidden])", { timeout: 45000 });
+  await page.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
 }
 async function snapshot(page) {
   return page.evaluate(({ PROFILE, BATTLE }) => ({ profile: JSON.parse(localStorage.getItem(PROFILE)), battle: JSON.parse(localStorage.getItem(BATTLE)) }), { PROFILE, BATTLE });
@@ -124,12 +124,13 @@ async function begin(page) {
         else if (failSaves) { status = 503; body = { error: { message: "injected cloud save unavailable" } }; failedPuts++; signalFailedPut(); }
         else { cloud = request.postDataJSON().payload; body = { version: ++version, payload: cloud }; }
       } else if (pathname.endsWith("/integration/status")) body = { services: {} };
+      else if (pathname.endsWith("/court/mandates/pending")) body = { pending: null };
       else { status = 503; body = { error: { message: "Test denies all unmocked API calls" } }; }
       await route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
     };
     await online.route("**/api/**", handleApi);
     await online.goto(onlineUrl.href, { waitUntil: "domcontentloaded" });
-    await online.waitForSelector("#app:not([hidden])");
+    await online.waitForSelector("#campaignScreen:not([hidden])");
     failSaves = true;
     await begin(online);
     await failedPut;
