@@ -99,6 +99,26 @@ def main() -> int:
             return True
         check("guest_session", guest)
 
+        def organization_inventory():
+            body = request("GET", "/api/dongzhou/v1/organization/inventory")
+            assert body.get("organizationId"), "organization inventory has no organization identity"
+            assert str(body.get("gameServerId")) == "91001", "organization inventory crossed game-server boundary"
+            assert type(body.get("revision")) is int and body["revision"] > 0, "organization inventory has no valid revision"
+            accounts = body.get("accounts")
+            assert isinstance(accounts, list), "organization inventory accounts are invalid"
+            resource_keys = []
+            for account in accounts:
+                assert isinstance(account, dict), "organization inventory account is invalid"
+                resource_key = account.get("resourceKey")
+                assert isinstance(resource_key, str) and resource_key.strip(), "organization inventory account has no resource key"
+                assert type(account.get("balance")) is int and account["balance"] >= 0, "organization inventory account has an invalid balance"
+                assert type(account.get("version")) is int and account["version"] > 0, "organization inventory account has an invalid version"
+                resource_keys.append(resource_key)
+            assert len(resource_keys) == len(set(resource_keys)), "organization inventory repeats a resource account"
+            return {"revision": body["revision"], "accounts": len(accounts), "resourceKeys": resource_keys}
+
+        check("organization_inventory", organization_inventory)
+
         def save_roundtrip():
             path = "/api/dongzhou/v1/save"
             previous = request("GET", path)

@@ -1594,6 +1594,7 @@ def _organization_roster_view(
         for position in positions
         if isinstance(position, dict) and position.get("position_slot_id")
     }
+    display_text = lambda value: _repair_utf8_mojibake(str(value or ""))
     sanitized_members: list[dict[str, Any]] = []
     player_membership: dict[str, Any] | None = None
     for member in members:
@@ -1621,8 +1622,8 @@ def _organization_roster_view(
             raise ValueError("roster contribution account is invalid")
         if is_player:
             player_membership = {
-                "office": str(position.get("position_display_name") or ""),
-                "role": str(position.get("role_display_name") or ""),
+                "office": display_text(position.get("position_display_name")),
+                "role": display_text(position.get("role_display_name")),
                 "level": str(position.get("level_key") or ""),
                 "directManagerHeroId": manager_hero_id,
                 **values,
@@ -1631,8 +1632,8 @@ def _organization_roster_view(
         sanitized_members.append(
             {
                 "heroId": hero_id,
-                "office": str(position.get("position_display_name") or ""),
-                "role": str(position.get("role_display_name") or ""),
+                "office": display_text(position.get("position_display_name")),
+                "role": display_text(position.get("role_display_name")),
                 "level": str(position.get("level_key") or ""),
                 "directManagerHeroId": manager_hero_id,
                 **values,
@@ -1649,7 +1650,7 @@ def _organization_roster_view(
         raise ValueError("roster organization account is invalid")
     return {
         "organization": {
-            "name": str(snapshot.get("name") or ""),
+            "name": display_text(snapshot.get("name")),
             "state": str(snapshot.get("state") or ""),
             "hierarchyVersion": hierarchy_version,
             "growthContribution": growth,
@@ -1658,8 +1659,8 @@ def _organization_roster_view(
         "playerMembership": player_membership,
         "openPositions": [
             {
-                "office": str(position.get("position_display_name") or ""),
-                "role": str(position.get("role_display_name") or ""),
+                "office": display_text(position.get("position_display_name")),
+                "role": display_text(position.get("role_display_name")),
                 "level": str(position.get("level_key") or ""),
             }
             for position in positions
@@ -2366,18 +2367,32 @@ def _organization_inventory_requisition_view(
 
 
 def _organization_supervision_links(
-    roster: dict[str, Any], mapped_npcs: list[dict[str, str]], organization_id: str,
+    roster: dict[str, Any],
+    mapped_npcs: list[dict[str, str]],
+    organization_id: str,
+    managed_hero_ids: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     npc_by_hero = {npc["heroId"]: npc["npcId"] for npc in mapped_npcs}
-    links: list[dict[str, str]] = []
-    for member in roster.get("members", []):
-        if not isinstance(member, dict):
+    roster_by_hero = {
+        str(member.get("heroId") or ""): member
+        for member in roster.get("members", [])
+        if isinstance(member, dict) and member.get("heroId")
+    }
+    managed = managed_hero_ids if managed_hero_ids is not None else set(roster_by_hero)
+    links: list[dict[str, Any]] = []
+    for hero_id, subordinate_npc_id in npc_by_hero.items():
+        if hero_id not in managed:
             continue
-        hero_id = str(member.get("heroId") or "")
-        manager_hero_id = str(member.get("directManagerHeroId") or "")
-        subordinate_npc_id = npc_by_hero.get(hero_id)
+        member = roster_by_hero.get(hero_id)
+        # A configured official who disappeared from the authoritative roster has
+        # left office. Send an explicit null manager so AINPC removes stale links.
+        manager_hero_id = (
+            str(member.get("directManagerHeroId") or "")
+            if member is not None
+            else ""
+        )
         manager_npc_id = npc_by_hero.get(manager_hero_id)
-        if not subordinate_npc_id or (manager_npc_id is not None and subordinate_npc_id == manager_npc_id):
+        if manager_npc_id is not None and subordinate_npc_id == manager_npc_id:
             continue
         links.append({
             "heroId": hero_id,
@@ -2396,7 +2411,12 @@ async def _sync_organization_supervision(
         return []
     roster_response = await upstreams.organization_roster(settings.orgflow_org_id)
     roster = _organization_roster_view(roster_response.get("data"), settings)
-    links = _organization_supervision_links(roster, mapped_npcs, settings.orgflow_org_id)
+    links = _organization_supervision_links(
+        roster,
+        mapped_npcs,
+        settings.orgflow_org_id,
+        set(settings.orgflow_hero_members),
+    )
     receipts = await asyncio.gather(*(
         upstreams.ensure_organization_supervision(
             subordinate_npc_id=link["subordinateNpcId"],
@@ -9286,7 +9306,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         }
         try:
             response = await upstreams.query_organization_scheduled_task_rules(query)
-            data = response.get("data") if isinstance(response, dict) else None
+            data = (
+                response.get("data", response)
+                if isinstance(response, dict)
+                else None
+            )
             rules = data.get("rules") if isinstance(data, dict) else None
             if not isinstance(rules, list):
                 raise ValueError("scheduled rule query response must contain rules")
@@ -9349,7 +9373,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                         },
                     }
                 )
-                created_data = created.get("data") if isinstance(created, dict) else None
+                created_data = (
+                    created.get("data", created)
+                    if isinstance(created, dict)
+                    else None
+                )
                 rule = created_data.get("rule") if isinstance(created_data, dict) else None
                 if not isinstance(rule, dict):
                     raise ValueError("scheduled rule create response must contain a rule")
@@ -9550,7 +9578,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                         "status": desired_state,
                     }
                 )
-                data = response.get("data") if isinstance(response, dict) else None
+                data = (
+                    response.get("data", response)
+                    if isinstance(response, dict)
+                    else None
+                )
                 rule = data.get("rule") if isinstance(data, dict) else None
                 if not isinstance(rule, dict):
                     raise ValueError("scheduled duty status response has no rule")

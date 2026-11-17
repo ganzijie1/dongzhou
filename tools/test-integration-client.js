@@ -57,6 +57,12 @@ let storedProfile = {};
 let saveAttempts = 0;
 let sealNextBattleSave = false;
 let saveCommittedEvents = 0;
+let npcSyncInput = null;
+let npcCommendationInput = null;
+let npcMeritCommendationInput = null;
+let npcScheduleGenerationInput = null;
+let npcThoughtInput = null;
+let logisticsBriefingInput = null;
 global.CustomEvent = class CustomEvent {
   constructor(type, options = {}) { this.type = type; this.detail = options.detail; }
 };
@@ -99,6 +105,7 @@ global.fetch = async (url, options = {}) => {
     }
   }
   else if (url.endsWith("/save")) response = { version: saveVersion, payload: storedProfile };
+  else if (url.endsWith("/integration/status")) response = { mode: "connected", services: { aiNpc: { online: true } } };
   else if (url.endsWith("/knowledge/routes")) {
     campaignRouteAttempts += 1;
     if (campaignRouteAttempts === 1) {
@@ -114,6 +121,10 @@ global.fetch = async (url, options = {}) => {
     knowledgeCodexRequests += 1;
     response = { results: [{ id: "dongzhou_stage_001", stageId: "01", name: "第一回·东郊索命" }] };
   }
+  else if (url.endsWith("/knowledge/stages/01")) response = { mode: "connected", results: [{ id: "dongzhou_stage_001", stageId: "01" }] };
+  else if (url.endsWith("/knowledge/quiz")) response = { state: "READY", question: { id: "quiz-1" }, action: { actionId: "quiz-action-1" } };
+  else if (url.endsWith("/knowledge/quiz/quiz-1/answer")) response = { state: "COMPLETED", questionId: "quiz-1", selectedIndex: body.answer_index, correct: true };
+  else if (url.endsWith("/knowledge/quiz/quiz-1/seal")) response = { state: "SEALED", questionId: "quiz-1", digest: "e".repeat(64) };
   else if (/\/battle-reports\/[^/]+\/debrief$/.test(url)) {
     battleDebriefRequests += 1;
     response = { reportId: decodeURIComponent(url.split("/").at(-2)), state: "SEALED", digest: "7".repeat(64), kernel: { module: "dongzhou_battle_debrief", state: "SEALED" } };
@@ -151,6 +162,11 @@ global.fetch = async (url, options = {}) => {
   else if (url.endsWith("/organization/inventory")) {
     response = { organizationId: "court", gameServerId: "91001", revision: 7, accounts: [{ resourceKey: "task.execution", balance: 128, version: 3 }] };
   }
+  else if (url.endsWith("/organization/player-tasks")) response = { membership: { state: "ACTIVE" }, tasks: [{ taskId: "player-task-1" }] };
+  else if (url.endsWith("/organization/player-contributions")) response = { entries: [{ entryId: "player-entry-1", amount: 20 }] };
+  else if (url.endsWith("/organization/player-contributions/player-entry-1/dossier")) response = { dossier: { entryId: "player-entry-1", state: "SEALED" } };
+  else if (url.endsWith("/organization/members/DuBo/contributions")) response = { heroId: "DuBo", entries: [{ entryId: "entry-1", amount: 20 }] };
+  else if (url.endsWith("/organization/members/DuBo/contributions/entry-1/dossier")) response = { dossier: { heroId: "DuBo", entryId: "entry-1", state: "SEALED" } };
   else if (url.endsWith("/organization/scheduled-duties/status")) {
     scheduledDutyStatusAttempts += 1;
     scheduledDutyStatusInputs.push(body);
@@ -160,6 +176,11 @@ global.fetch = async (url, options = {}) => {
     } else {
       response = { state: body.enabled ? "ACTIVE" : "DISABLED", version: 2, receipt: { digest: "9".repeat(64), kernel: { module: "dongzhou_organization_scheduled_duty", state: "SEALED" } } };
     }
+  }
+  else if (url.endsWith("/organization/scheduled-duties")) response = { state: "ACTIVE", activeTask: { taskId: "monthly-task-1" } };
+  else if (url.endsWith("/organization/logistics-briefings/DuBo")) {
+    logisticsBriefingInput = body;
+    response = { state: "COMPLETED", briefing: { requestId: body.client_request_id, digest: "f".repeat(64) } };
   }
   else if (url.endsWith("/organization/inventory/requisitions")) {
     inventoryRequisitionAttempts += 1;
@@ -187,6 +208,18 @@ global.fetch = async (url, options = {}) => {
   else if (url.endsWith("/npcs/interaction-preference")) {
     npcInteractionPreferenceInput = body;
     response = { enabled: body.enabled, source: "dongzhou-player-settings", updatedAt: "2026-11-11T12:00:00Z" };
+  }
+  else if (url.endsWith("/npcs/sync")) {
+    npcSyncInput = body;
+    response = { ready: true, npcs: body.npcs };
+  }
+  else if (url.endsWith("/npcs/DuBo/commendations")) {
+    npcCommendationInput = body;
+    response = { state: "COMPLETED", commendation: { heroId: "DuBo", digest: "1".repeat(64) } };
+  }
+  else if (url.endsWith("/npcs/DuBo/merit-commendations")) {
+    npcMeritCommendationInput = body;
+    response = { state: "COMPLETED", commendation: { heroId: "DuBo", digest: "2".repeat(64) } };
   }
   else if (/\/npcs\/[^/]+\/recollections$/.test(url)) {
     npcRecollectionInput = body;
@@ -262,6 +295,12 @@ global.fetch = async (url, options = {}) => {
       status = 503;
       response = { error: { code: "schedule_unavailable", message: "temporarily unavailable" } };
     } else response = { schedule: { data: { schedules: [] } } };
+  } else if (url.endsWith("/npcs/DuBo/schedule") && options.method === "POST") {
+    npcScheduleGenerationInput = body;
+    response = { code: 200, data: { plan_id: "plan-generated-1" } };
+  } else if (url.endsWith("/npcs/DuBo/thoughts")) {
+    npcThoughtInput = body;
+    response = { state: "COMPLETED", thought: { hasThought: true }, digest: "3".repeat(64) };
   } else if (/\/npcs\/[^/]+\/assignments\/[^/?]+\?stage_id=/.test(url)) {
     npcAssignmentAttempts += 1;
     if (npcAssignmentAttempts === 1) {
@@ -277,6 +316,8 @@ const client = require("../web-game/integration-client.js");
 (async () => {
   const initialized = await client.initialize({ completed: [] });
   assert.strictEqual(initialized.connected, true);
+  const integrationStatus = await client.status();
+  assert.strictEqual(integrationStatus.services.aiNpc.online, true);
   await client.persist({ completed: ["01"] });
   expireNextSave = true;
   await client.persist({ completed: ["01", "renewed"] });
@@ -299,6 +340,14 @@ const client = require("../web-game/integration-client.js");
   const codex = await client.knowledgeCodex();
   assert.strictEqual(codex.results[0].name, "第一回·东郊索命");
   assert.strictEqual(knowledgeCodexRequests, 1);
+  const stageKnowledge = await client.stageKnowledge("01");
+  assert.strictEqual(stageKnowledge.results[0].stageId, "01");
+  const quiz = await client.startKnowledgeQuiz("01", "quiz-request-1");
+  assert.strictEqual(quiz.question.id, "quiz-1");
+  const quizAnswer = await client.answerKnowledgeQuiz("quiz-1", "quiz-action-1", 2);
+  assert.strictEqual(quizAnswer.selectedIndex, 2);
+  const quizSeal = await client.verifyKnowledgeQuizSeal("quiz-1");
+  assert.strictEqual(quizSeal.digest, "e".repeat(64));
   const debrief = await client.battleDebrief("battle:01:test");
   assert.strictEqual(debrief.reportId, "battle:01:test");
   assert.strictEqual(debrief.kernel.module, "dongzhou_battle_debrief");
@@ -328,10 +377,25 @@ const client = require("../web-game/integration-client.js");
   const roster = await client.organizationRoster();
   assert.strictEqual(roster.organization.growthContribution, 245);
   assert.strictEqual(roster.members[0].heroId, "DuBo");
+  const memberContributions = await client.organizationMemberContributions("DuBo");
+  assert.strictEqual(memberContributions.entries[0].entryId, "entry-1");
+  const memberDossier = await client.organizationContributionDossier("DuBo", "entry-1");
+  assert.strictEqual(memberDossier.dossier.state, "SEALED");
+  const playerTasks = await client.organizationPlayerTasks();
+  assert.strictEqual(playerTasks.tasks[0].taskId, "player-task-1");
+  const playerContributions = await client.organizationPlayerContributions();
+  assert.strictEqual(playerContributions.entries[0].amount, 20);
+  const playerDossier = await client.organizationPlayerContributionDossier("player-entry-1");
+  assert.strictEqual(playerDossier.dossier.entryId, "player-entry-1");
   const notices = await client.organizationPublicNotices();
   assert.strictEqual(notices.notices[0].message, "军令已布。");
   const inventory = await client.organizationInventory();
   assert.strictEqual(inventory.accounts[0].balance, 128);
+  const scheduledDuties = await client.organizationScheduledDuties();
+  assert.strictEqual(scheduledDuties.activeTask.taskId, "monthly-task-1");
+  const logistics = await client.organizationLogisticsBriefing("DuBo", { stage_id: "01", stage_title: "东郊索命" });
+  assert.strictEqual(logistics.state, "COMPLETED");
+  assert.match(logisticsBriefingInput.client_request_id, /^[0-9a-f-]{36}$/);
   await assert.rejects(() => client.setOrganizationScheduledDutyEnabled(false), /retry monthly duty/);
   const disabledDuty = await client.setOrganizationScheduledDutyEnabled(false);
   assert.strictEqual(disabledDuty.state, "DISABLED");
@@ -352,12 +416,24 @@ const client = require("../web-game/integration-client.js");
   const interactionPreference = await client.setNpcInteractionPreference(false);
   assert.strictEqual(interactionPreference.enabled, false);
   assert.deepStrictEqual(npcInteractionPreferenceInput, { enabled: false });
+  const syncedNpcs = await client.syncNpcs([{ heroId: "DuBo", name: "杜伯" }]);
+  assert.strictEqual(syncedNpcs.ready, true);
+  assert.deepStrictEqual(npcSyncInput, { npcs: [{ hero_id: "DuBo", name: "杜伯" }] });
+  const commendation = await client.commendNpc("DuBo", { stage_id: "01", knowledge_id: "dongzhou_stage_001" });
+  assert.strictEqual(commendation.state, "COMPLETED");
+  assert.strictEqual(npcCommendationInput.knowledge_id, "dongzhou_stage_001");
+  const meritCommendation = await client.commendMeritNpc("DuBo", { contribution_entry_id: "entry-1" });
+  assert.strictEqual(meritCommendation.state, "COMPLETED");
+  assert.strictEqual(npcMeritCommendationInput.contribution_entry_id, "entry-1");
   const recollection = await client.recallNpc("DuBo", { stage_id: "01", knowledge_id: "dongzhou_stage_001" });
   assert.strictEqual(recollection.state, "COMPLETED");
   assert.deepStrictEqual(npcRecollectionInput, { stage_id: "01", knowledge_id: "dongzhou_stage_001" });
   await client.npcState("DuBo");
   const correspondence = await client.npcCorrespondence("DuBo", 12);
   await client.npcSchedule("DuBo");
+  const generatedSchedule = await client.generateNpcSchedule("DuBo");
+  assert.strictEqual(generatedSchedule.plan_id, "plan-generated-1");
+  assert.deepStrictEqual(npcScheduleGenerationInput, { force_regenerate: false });
   const assignment = await client.npcAssignment("DuBo", "supply", "01");
   assert.strictEqual(npcStateAttempts, 2);
   assert.strictEqual(npcCorrespondenceAttempts, 1);
@@ -369,6 +445,9 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(npcScheduleAttempts, 2);
   assert.strictEqual(npcAssignmentAttempts, 2);
   assert.strictEqual(assignment.assignment.eventId, "event-supply");
+  const thought = await client.npcThought("DuBo", { stage_id: "01", knowledge_id: "dongzhou_stage_001", evidence_source_index: 0, task_type: "supply" });
+  assert.strictEqual(thought.thought.hasThought, true);
+  assert.match(npcThoughtInput.client_request_id, /^[0-9a-f-]{36}$/);
   const selectedNotice = { messageId: "npc-public:" + "1".repeat(64), digest: "a".repeat(64) };
   await assert.rejects(() => client.npcDecision("DuBo", "test", ["one", "two"], "01", null, selectedNotice), /decision unavailable/);
   await client.npcDecision("DuBo", "test", ["one", "two"], "01", null, selectedNotice);

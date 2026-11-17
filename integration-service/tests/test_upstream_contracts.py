@@ -1378,6 +1378,9 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
             await upstreams.get_virtual_task_trace("org-id", "task-id")
             await upstreams.organization_roster("org-id")
             await upstreams.organization_inventory("org-id")
+            await upstreams.query_organization_scheduled_task_rules({"game_server_id": "91001"})
+            await upstreams.register_organization_scheduled_task_rule({"game_server_id": "91001"})
+            await upstreams.update_organization_scheduled_task_rule_status({"game_server_id": "91001"})
             await upstreams.adjust_organization_inventory(
                 "org-id",
                 {
@@ -1547,6 +1550,15 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("/internal/v1/organization-administration/organizations/org-id/virtual-tasks/task-id/trace", paths)
         self.assertIn("/internal/v1/organization-administration/organizations/org-id/roster", paths)
         self.assertIn("/internal/v1/organization-administration/organizations/org-id/inventory", paths)
+        scheduled_paths = {
+            "/internal/v1/organization-ainpc-tools/scheduled-task-rules/query",
+            "/internal/v1/organization-ainpc-tools/scheduled-task-rules",
+            "/internal/v1/organization-ainpc-tools/scheduled-task-rule-statuses",
+        }
+        self.assertTrue(scheduled_paths.issubset(paths))
+        for request in seen:
+            if request.url.path in scheduled_paths:
+                self.assertEqual(request.headers.get("authorization"), "Bearer tools-token")
         adjustment_request = next(
             request for request in seen
             if request.url.path.endswith("/inventory-adjustments")
@@ -1605,8 +1617,14 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
             "enabled": False,
             "source": "dongzhou-player-settings",
         })
-        org_requests = [request for request in seen if request.url.host == "org"]
-        bearer_requests = [request for request in seen if request.url.host != "org"]
+        org_requests = [
+            request for request in seen
+            if request.url.host == "org" and request.url.path not in scheduled_paths
+        ]
+        bearer_requests = [
+            request for request in seen
+            if request.url.host != "org" or request.url.path in scheduled_paths
+        ]
         self.assertTrue(all(request.headers.get("x-org-service-signature") for request in org_requests))
         self.assertTrue(all(request.headers.get("authorization", "").startswith("Bearer ") for request in bearer_requests))
 

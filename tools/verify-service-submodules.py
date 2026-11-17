@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import configparser
+import os
 import subprocess
 from pathlib import Path
 
@@ -21,11 +22,25 @@ def git(*args: str, cwd: Path = ROOT) -> str:
         capture_output=True,
         text=True,
         encoding="utf-8",
+        env={**os.environ, "GIT_NO_LAZY_FETCH": "1"},
         check=False,
     )
     if result.returncode != 0:
         raise RuntimeError(result.stderr.strip() or result.stdout.strip())
     return result.stdout.strip()
+
+
+def git_succeeds(*args: str, cwd: Path = ROOT) -> bool:
+    result = subprocess.run(
+        ["git", *args],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env={**os.environ, "GIT_NO_LAZY_FETCH": "1"},
+        check=False,
+    )
+    return result.returncode == 0
 
 
 def main() -> None:
@@ -57,6 +72,16 @@ def main() -> None:
             failures.append(
                 f"{relative_path}: checked out {actual_commit[:12]}, expected {pinned_commit[:12]}"
             )
+        if git(
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=all",
+            cwd=directory,
+        ):
+            failures.append(
+                f"{relative_path}: contains uncommitted changes; the parent gitlink "
+                "does not reproduce this workspace"
+            )
         origin = git("remote", "get-url", "origin", cwd=directory)
         if origin != expected_url:
             failures.append(f"{relative_path}: origin is not the sanitized GitHub repository")
@@ -69,10 +94,16 @@ def main() -> None:
         except RuntimeError:
             failures.append(f"{relative_path}: origin/dev-gzj is not available")
         else:
-            if branch_commit != pinned_commit:
+            if branch_commit != pinned_commit and not git_succeeds(
+                "merge-base",
+                "--is-ancestor",
+                pinned_commit,
+                branch_commit,
+                cwd=directory,
+            ):
                 failures.append(
-                    f"{relative_path}: pinned {pinned_commit[:12]}, "
-                    f"origin/dev-gzj is {branch_commit[:12]}"
+                    f"{relative_path}: pinned {pinned_commit[:12]} is not on "
+                    f"origin/dev-gzj ({branch_commit[:12]})"
                 )
 
     if failures:

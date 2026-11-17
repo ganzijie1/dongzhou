@@ -8,6 +8,9 @@ const CAMPAIGN_PATH = path.join(ROOT, "web-game", "scenario", "campaign.json");
 const WEB_OUTPUT = path.join(ROOT, "web-game", "scenario", "dongzhou-knowledge.json");
 const KNOWLEDGE_ROOT = process.env.DONGZHOU_KNOWLEDGE_REPO || path.resolve(ROOT, "..", "knowledge-jizhan");
 const AKU_OUTPUT = path.join(KNOWLEDGE_ROOT, "AI使用的知识库", "V3", "dongzhou");
+const GRAPH_OUTPUT = path.join(path.dirname(AKU_OUTPUT), "graph_indexes", "map_transition");
+const NODE_OUTPUT = path.join(GRAPH_OUTPUT, "map_transition_nodes_v3.csv");
+const ROUTE_OUTPUT = path.join(GRAPH_OUTPUT, "map_transition_routes_v3.csv");
 const campaign = JSON.parse(fs.readFileSync(CAMPAIGN_PATH, "utf8"));
 
 function list(value) {
@@ -73,4 +76,73 @@ for (const entry of entries) {
   fs.writeFileSync(file, `${JSON.stringify(aku, null, 2)}\n`, "utf8");
 }
 
-console.log(JSON.stringify({ stages: entries.length, webOutput: WEB_OUTPUT, akuOutput: AKU_OUTPUT }, null, 2));
+function csvCell(value) {
+  const text = String(value);
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function replaceGeneratedRows(file, header, generated, shouldRemove) {
+  const current = fs.existsSync(file) ? fs.readFileSync(file, "utf8").replace(/^\uFEFF/, "") : `${header}\n`;
+  const lines = current.split(/\r?\n/).filter(Boolean);
+  const preserved = lines.filter((line, index) => index === 0 || !shouldRemove(line));
+  fs.writeFileSync(file, `${[...preserved, ...generated].join("\n")}\n`, "utf8");
+}
+
+fs.mkdirSync(GRAPH_OUTPUT, { recursive: true });
+replaceGeneratedRows(
+  NODE_OUTPUT,
+  "map_id,name",
+  entries.map((entry) => `${900000 + entry.index},${csvCell(entry.name)}`),
+  (line) => {
+    const id = Number(line.split(",", 1)[0]);
+    return id >= 900001 && id <= 900000 + entries.length;
+  }
+);
+
+const routeRows = [];
+for (let index = 0; index < entries.length - 1; index += 1) {
+  const from = entries[index];
+  const to = entries[index + 1];
+  const fromMap = 900000 + from.index;
+  const toMap = 900000 + to.index;
+  const guideName = to.people[0] || "行军向导";
+  const routes = [
+    [
+      `campaign_progression_${fromMap}_${toMap}`,
+      "campaign_progression",
+      {
+        from_stage_id: from.stageId,
+        to_stage_id: to.stageId,
+        requires_completed_stage_id: from.stageId,
+        provision_cost: 2
+      }
+    ],
+    [`fixed_point_${fromMap}_${toMap}`, "fixed_point", { x: to.index * 10, y: 10 }],
+    [
+      `npc_dialog_${fromMap}_${toMap}`,
+      "npc_dialog",
+      {
+        npc: { id: toMap * 100 + 1, name: guideName, x: from.index, y: 1 },
+        dialog_path: [{ prompt: `如何前往${to.name}`, selected_option: "请引路" }],
+        target: { x: to.index * 10, y: 10 }
+      }
+    ]
+  ];
+  for (const [routeId, method, detail] of routes) {
+    routeRows.push([routeId, fromMap, toMap, method, JSON.stringify(detail)].map(csvCell).join(","));
+  }
+}
+replaceGeneratedRows(
+  ROUTE_OUTPUT,
+  "route_id,from_map_id,to_map_id,method,detail_json",
+  routeRows,
+  (line) => {
+    const match = /^(campaign_progression|fixed_point|npc_dialog)_(900\d{3})_(900\d{3}),/.exec(line);
+    if (!match) return false;
+    const fromMap = Number(match[2]);
+    const toMap = Number(match[3]);
+    return fromMap >= 900001 && toMap === fromMap + 1 && toMap <= 900000 + entries.length;
+  }
+);
+
+console.log(JSON.stringify({ stages: entries.length, routes: routeRows.length, webOutput: WEB_OUTPUT, akuOutput: AKU_OUTPUT, graphOutput: GRAPH_OUTPUT }, null, 2));

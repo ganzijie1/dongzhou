@@ -693,6 +693,34 @@ class OrganizationOutcomeTests(unittest.TestCase):
             "sourceEventId": "orgflow:court-1:supervision:ZuoRu:DuBo",
         }])
 
+    def test_organization_supervision_links_clear_departed_managed_officials(self) -> None:
+        links = _organization_supervision_links(
+            {"members": [
+                {"heroId": "DuBo", "directManagerHeroId": None},
+            ]},
+            [
+                {"heroId": "DuBo", "name": "Du Bo", "npcId": "10"},
+                {"heroId": "ZuoRu", "name": "Zuo Ru", "npcId": "20"},
+                {"heroId": "BattleGuest", "name": "Guest", "npcId": "30"},
+            ],
+            "court-1",
+            {"DuBo", "ZuoRu"},
+        )
+
+        self.assertEqual(links, [{
+            "heroId": "DuBo",
+            "managerHeroId": "",
+            "subordinateNpcId": "10",
+            "managerNpcId": None,
+            "sourceEventId": "orgflow:court-1:supervision:DuBo:none",
+        }, {
+            "heroId": "ZuoRu",
+            "managerHeroId": "",
+            "subordinateNpcId": "20",
+            "managerNpcId": None,
+            "sourceEventId": "orgflow:court-1:supervision:ZuoRu:none",
+        }])
+
     def test_evidence_fit_rewards_task_relevant_source_and_council_choice(self) -> None:
         fit = _evidence_task_fit(
             "diplomacy",
@@ -1236,7 +1264,7 @@ class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
                 "DONGZHOU_DATABASE_PATH": str(Path(directory) / "gateway.sqlite3"),
                 "DONGZHOU_ORGFLOW_ORG_ID": "00000000-0000-4000-8000-000000000100",
                 "DONGZHOU_ORGFLOW_MANAGER_MEMBER_ID": "00000000-0000-4000-8000-000000000101",
-                "DONGZHOU_ORGFLOW_HERO_MEMBERS": "DuBo=00000000-0000-4000-8000-000000000101,ZuoRu=00000000-0000-4000-8000-000000000102",
+                "DONGZHOU_ORGFLOW_HERO_MEMBERS": "DuBo=00000000-0000-4000-8000-000000000101,ZuoRu=00000000-0000-4000-8000-000000000102,QinXiangGong=00000000-0000-4000-8000-000000000103",
             },
             clear=True,
         ):
@@ -1245,7 +1273,16 @@ class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
             await store.start()
             du_bo = {"heroId": "DuBo", "name": "Du Bo", "npcId": "10"}
             zuo_ru = {"heroId": "ZuoRu", "name": "Zuo Ru", "npcId": "20"}
-            await store.upsert_npc_directory(settings.game_server_id, [du_bo, zuo_ru])
+            departed = {
+                "heroId": "QinXiangGong", "name": "Qin Xiang Gong", "npcId": "30"
+            }
+            battle_guest = {
+                "heroId": "BattleGuest", "name": "Battle Guest", "npcId": "40"
+            }
+            await store.upsert_npc_directory(
+                settings.game_server_id,
+                [du_bo, zuo_ru, departed, battle_guest],
+            )
             manager_member = settings.orgflow_hero_members["DuBo"]
             subordinate_member = settings.orgflow_hero_members["ZuoRu"]
             roster = {
@@ -1262,7 +1299,9 @@ class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
                     ],
                 }
             }
-            upstreams = _NpcRecoveryUpstreams(online_ids={"10", "20"}, roster=roster)
+            upstreams = _NpcRecoveryUpstreams(
+                online_ids={"10", "20", "30", "40"}, roster=roster
+            )
 
             await RuntimeModule(store, upstreams, settings)._reconcile_npcs_once()
 
@@ -1276,6 +1315,10 @@ class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
             {
                 "subordinate_npc_id": "20", "manager_npc_id": "10",
                 "source_event_id": f"orgflow:{settings.orgflow_org_id}:supervision:ZuoRu:DuBo",
+            },
+            {
+                "subordinate_npc_id": "30", "manager_npc_id": None,
+                "source_event_id": f"orgflow:{settings.orgflow_org_id}:supervision:QinXiangGong:none",
             },
         ])
 
