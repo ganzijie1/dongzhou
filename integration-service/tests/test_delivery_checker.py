@@ -2,6 +2,7 @@ from importlib.util import module_from_spec, spec_from_file_location
 import hashlib
 import json
 from pathlib import Path
+import time
 import zipfile
 
 
@@ -10,6 +11,18 @@ SPEC = spec_from_file_location("check_local_delivery", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
 CHECKER = module_from_spec(SPEC)
 SPEC.loader.exec_module(CHECKER)
+
+
+def _append_package_file(package: Path, name: str, content: bytes) -> None:
+    for attempt in range(20):
+        try:
+            with zipfile.ZipFile(package, "a") as archive:
+                archive.writestr(name, content)
+            return
+        except PermissionError:
+            if attempt == 19:
+                raise
+            time.sleep(0.05)
 
 
 def test_package_source_contract_detects_stale_gameplay_file(tmp_path: Path) -> None:
@@ -50,8 +63,7 @@ def test_package_source_tree_detects_changed_and_extra_scenario_files(tmp_path: 
     assert changed[0]["mismatches"] == ["hash:scenario/stage.json"]
 
     stage.write_text('{"stage": 1}', encoding="utf-8")
-    with zipfile.ZipFile(package, "a") as archive:
-        archive.writestr("scenario/removed-stage.json", b"stale")
+    _append_package_file(package, "scenario/removed-stage.json", b"stale")
     extra = CHECKER.check_package_sources(package, {}, tmp_path, contract)
     assert extra[0]["passed"] is False
     assert extra[0]["mismatches"] == ["extra:scenario/removed-stage.json"]
@@ -88,8 +100,7 @@ def test_manifest_file_set_verifies_declared_source_and_package_hashes(tmp_path:
     assert changed[0]["mismatches"] == ["source-hash:audio/dialogue/line.ogg"]
 
     clip.write_bytes(b"voice")
-    with zipfile.ZipFile(package, "a") as archive:
-        archive.writestr("audio/dialogue/stale.ogg", b"stale")
+    _append_package_file(package, "audio/dialogue/stale.ogg", b"stale")
     extra = CHECKER.check_package_sources(package, {}, tmp_path, manifest_file_sets=contract)
     assert extra[0]["passed"] is False
     assert extra[0]["mismatches"] == ["extra:audio/dialogue/stale.ogg"]
