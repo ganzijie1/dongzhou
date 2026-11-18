@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "scope": "current-executable-gameplay-evidence",
+  "evidence": {
+    "crossServiceContracts": [
+      "integration-service/tests/test_player_route_coverage.py",
+      "integration-service/tests/test_upstream_contracts.py",
+      "integration-service/tests/test_court_mandates.py",
+      "integration-service/tests/test_scheduled_duties.py"
+    ],
+    "browserWorkflows": [
+      "tools/test-adviser-guide-browser.js",
+      "tools/test-battle-debrief-browser.js",
+      "tools/test-campaign-route-browser.js",
+      "tools/test-council-browser.js",
+      "tools/test-diplomacy-browser.js",
+      "tools/test-nexus-mandate-approval-browser.js",
+      "tools/test-organization-battle-transaction.js",
+      "tools/test-organization-browser.js"
+    ],
+    "liveWorkflows": [
+      "tools/test-live-adviser.js",
+      "tools/test-live-battle-memory.js",
+      "tools/test-live-campaign-route-acceptance.js",
+      "tools/test-live-contribution-dossier.js",
+      "tools/test-live-correspondence-acceptance.js",
+      "tools/test-live-history-commendation.js",
+      "tools/test-live-history-recollection.js",
+      "tools/test-live-inventory-requisition.js",
+      "tools/test-live-kernel-mandate-acceptance.js",
+      "tools/test-live-knowledge-quiz.js",
+      "tools/test-live-membership-browser.js",
+      "tools/test-live-motivation-loop.js",
+      "tools/test-live-office-npc-state.js",
+      "tools/test-live-orgflow-followup.js",
+      "tools/test-live-player-career-browser.js",
+      "tools/test-live-player-task-response-browser.js",
+      "tools/test-live-public-notice.js",
+      "tools/test-live-quality-loop.js",
+      "tools/test-live-schedule-browser.js",
+      "tools/test-live-settlement-acceptance.js",
+      "tools/test-live-spontaneous-thought.js"
+    ],
+    "readOnlyAcceptance": [
+      "tools/verify-live-integration.py",
+      "tools/verify-github-service-pins.py"
+    ]
+  }
+}

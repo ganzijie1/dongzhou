@@ -17,6 +17,10 @@ REQUEST_CALL = re.compile(
 )
 TEMPLATE_EXPRESSION = re.compile(r"\$\{.*?\}")
 PATH_PARAMETER = re.compile(r"\{[^{}]+\}")
+REQUEST_METHOD = re.compile(
+    r'^\s*,\s*\{\s*method\s*:\s*["\']([A-Z]+)["\']',
+    re.DOTALL,
+)
 
 
 def _shape(path: str) -> str:
@@ -25,9 +29,9 @@ def _shape(path: str) -> str:
     return PATH_PARAMETER.sub("{}", path)
 
 
-def _gateway_player_routes() -> set[str]:
+def _gateway_player_routes() -> set[tuple[str, str]]:
     tree = ast.parse(APP_SOURCE.read_text(encoding="utf-8"), filename=str(APP_SOURCE))
-    routes: set[str] = set()
+    routes: set[tuple[str, str]] = set()
     for node in ast.walk(tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
@@ -44,16 +48,21 @@ def _gateway_player_routes() -> set[str]:
                 continue
             path = decorator.args[0]
             if isinstance(path, ast.Constant) and isinstance(path.value, str):
-                routes.add(_shape(path.value))
+                routes.add((function.attr.upper(), _shape(path.value)))
     return routes
 
 
-def _client_routes(source: str) -> set[str]:
-    return {
-        _shape(match.group(2))
-        for match in REQUEST_CALL.finditer(source)
-        if match.group(2).startswith("/")
-    }
+def _client_routes(source: str) -> set[tuple[str, str]]:
+    routes: set[tuple[str, str]] = set()
+    for match in REQUEST_CALL.finditer(source):
+        path = match.group(2)
+        if not path.startswith("/"):
+            continue
+        options = source[match.end() : match.end() + 256]
+        declared = REQUEST_METHOD.match(options)
+        method = declared.group(1) if declared else "GET"
+        routes.add((method, _shape(path)))
+    return routes
 
 
 def _exported_client_methods(source: str) -> set[str]:
@@ -66,7 +75,7 @@ def _exported_client_methods(source: str) -> set[str]:
     }
 
 
-def test_every_gateway_player_route_has_a_browser_client_call() -> None:
+def test_every_gateway_player_route_has_a_matching_browser_http_call() -> None:
     client = CLIENT_SOURCE.read_text(encoding="utf-8")
     gateway_routes = _gateway_player_routes()
     client_routes = _client_routes(client)
