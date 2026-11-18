@@ -13,6 +13,7 @@ try {
 }
 
 const root = path.resolve(__dirname, '..');
+const url = process.env.DONGZHOU_TEST_URL || 'http://127.0.0.1:8780/';
 const evidencePath = path.join(root, 'output', 'integration-validation', 'live-battle-receipt-complete85.json');
 const screenshotPath = path.join(root, 'output', 'integration-validation', 'live-battle-receipt-complete85.png');
 const installationId = randomUUID();
@@ -44,7 +45,7 @@ function sha256(value) {
 
   try {
     console.log(JSON.stringify({ stage: 'startup', installationId }));
-    await page.goto('http://127.0.0.1:8780/', { waitUntil: 'domcontentloaded' });
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#app:not([hidden])', { timeout: 120000 });
 
     const result = await page.evaluate(async ({ reportId }) => {
@@ -177,11 +178,11 @@ function sha256(value) {
     await page.selectOption('#officeMemberSelect', result.hero.id);
     await page.waitForFunction((intensity) => {
       const text = document.querySelector('#officeNpcState')?.innerText || '';
-      return text.includes(`joy ${intensity}`);
+      return text.includes(`喜悦 ${intensity}`);
     }, persistedIntensity, { timeout: 60000 });
     const stateText = await page.locator('#officeNpcState').innerText();
     const archiveText = await page.locator('#officeBattleArchive').innerText();
-    assert(stateText.includes(`joy ${persistedIntensity}`));
+    assert(stateText.includes(`喜悦 ${persistedIntensity}`));
     assert(archiveText.includes('内核战果印记'));
     assert(archiveText.includes(result.receipt.digest.slice(0, 12)));
     assert.equal(errors.length, 0);
@@ -199,7 +200,7 @@ function sha256(value) {
       emotion: matchedEmotion,
       cloudStateHeroId: stateBody.heroId,
       saveResponses,
-      officeRendered: stateText.includes(`joy ${persistedIntensity}`),
+      officeRendered: stateText.includes(`喜悦 ${persistedIntensity}`),
       receiptRendered: archiveText.includes(result.receipt.digest.slice(0, 12)),
       screenshot: screenshotPath,
     };

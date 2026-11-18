@@ -19,6 +19,22 @@
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const pointKey = (x, y) => `${x},${y}`;
 
+  const OFFICE_ROSTER_IDS = Object.freeze([
+    "DuBo", "ZuoRu", "ZhouXuanWang", "YinJiFu", "ZhaoHu", "RoyalGuard",
+    "ZhouYouWang", "GuoShiFu", "ZhengHuanGong", "ZhengWuGong", "ZhengZhuangGong", "GongZiCheng3"
+  ]);
+
+  function syncOfficeMembers(rawState, stage) {
+    const rosterStage = {
+      stage: { deploy: { unselectables: OFFICE_ROSTER_IDS.map((hero) => ({ hero })), selectables: [] } }
+    };
+    return organization.syncMembers(
+      organization.syncMembers(rawState, rosterStage, displayName),
+      stage,
+      displayName
+    );
+  }
+
   const KNOWN_NAMES = {
     DuBo: "杜伯", ZuoRu: "左儒", ZhouXuanWang: "周宣王", YinJiFu: "尹吉甫", ZhaoHu: "召虎",
     RoyalGuard: "王城卫士", ZhouYouWang: "周幽王", GuoShiFu: "虢石父", ZhengHuanGong: "郑桓公", ZhengWuGong: "郑武公", ZhengZhuangGong: "郑庄公",
@@ -778,7 +794,7 @@
           100
         );
       }
-      profile.organization = organization.syncMembers(profile.organization, record, displayName);
+      profile.organization = syncOfficeMembers(profile.organization, record);
       const prepared = organization.consumeSupport(profile.organization, record.id);
       profile.organization = prepared.state;
       state.organizationSupport = prepared.support;
@@ -1019,11 +1035,9 @@
       refreshOfficePublicNotices().catch(() => {});
       refreshOfficeContributions().catch(() => {});
       const manager = profile.organization.members.find((member) => member.id === "DuBo");
-      const otherMembers = profile.organization.members.filter((member) => member.id !== "DuBo");
       syncOfficeNpcs(manager ? [manager] : [])
         .then(() => {
           warmCurrentOfficeNpcSchedules();
-          return syncOfficeNpcs(otherMembers);
         })
         .catch(() => {});
       refreshOfficeNpcState();
@@ -1567,7 +1581,7 @@
   function renderOrganizationPanel() {
     if (!organization || !campaign) return;
     const record = officeStage();
-    profile.organization = organization.syncMembers(profile.organization, record, displayName);
+    profile.organization = syncOfficeMembers(profile.organization, record);
     const org = profile.organization;
     $("#officeMonth").textContent = `${org.month} 月`;
     $("#officeInfluence").textContent = org.influence;
@@ -2148,20 +2162,56 @@
     $("#officeCareerFeedback").textContent = ({ options: "正在向杜伯查询可领差事……", request: "领差申请已送杜伯，等待派发……", inbox: "正在调阅我的任务待办……", accept: "受命回执已送杜伯……", reject: "拒绝回执已送杜伯……", modify: "改令申请已送杜伯，等待裁定……", review: "正在请杜伯裁定改令……", exception: "受阻报告已送杜伯，等待冻结方案裁定……", result: "复命已送杜伯，等待审核与贡献结算……", supplement: "补呈已送杜伯，等待权威行迹登记与复核……" })[action];
     try {
       await syncOfficeNpcs(profile.organization.members.filter((member) => member.id === "DuBo"));
-      const sendAndWaitForReply = async (message) => {
-        const accepted = await integration.sendNpcMessage("DuBo", message);
-        for (let attempt = 0; attempt < 90; attempt += 1) {
+      const replyMatchesAction = (entry, expectedAction) => {
+        const content = String(entry?.content || "");
+        if (
+          !content
+          || /^\u3010\u4efb\u52a1\u4e8b\u9879(?:\u5f00\u59cb|\u7ed3\u675f)\u3011/.test(content)
+          || /\u52a0\u5165\u7533\u8bf7|\u540c\u610f\u4f60\u7684\u52a0\u5165|\u52a0\u5165\u7ec4\u7ec7\u7533\u8bf7|\u5e94\u8058[^\n]{0,40}\u5c97\u4f4d/.test(content)
+        ) return false;
+        const patterns = {
+          options: /\u4efb\u52a1|\u5dee\u4e8b|\u53ef\u9886|\u51fa\u4f7f|\u7ec3\u5175|\u67e5\u8bbf|\u5de1\u5bdf|\u8f6c\u8fd0/,
+          request: /\u4efb\u52a1|\u5dee\u4e8b|\u6d3e\u53d1|\u53d7\u7406|\u7533\u8bf7/,
+          inbox: /\u4efb\u52a1|\u5dee\u4e8b|\u5f85\u529e|\u5904\u7406/,
+          accept: /\u4efb\u52a1|\u53d7\u547d|\u6267\u884c|\u63a5\u53d7|\u4ea4\u7ed9\u4f60|\u5b8c\u6210\u540e/,
+          reject: /\u4efb\u52a1|\u62d2\u7edd|\u9a73\u56de|\u4e0d\u63a5|\u91cd\u65b0\u5b89\u6392/,
+          modify: /\u4efb\u52a1|\u6539\u4ee4|\u8c03\u6574|\u88c1\u5b9a/,
+          review: /\u4efb\u52a1|\u6539\u4ee4|\u88c1\u5b9a|\u5ba1\u6838/,
+          exception: /\u4efb\u52a1|\u53d7\u963b|\u5f02\u5e38|\u51bb\u7ed3|\u88c1\u5b9a/,
+          result: /\u4efb\u52a1|\u590d\u547d|\u7ed3\u679c|\u5ba1\u6838|\u8d21\u732e/,
+          supplement: /\u4efb\u52a1|\u8865\u5448|\u590d\u6838|\u884c\u8ff9/
+        };
+        return (patterns[expectedAction] || /\u4efb\u52a1|\u5dee\u4e8b/).test(content);
+      };
+      const sendAndWaitForReply = async (message, expectedAction) => {
+        const correspondenceWithin = (limit, waitMs) => Promise.race([
+          integration.npcCorrespondence("DuBo", limit),
+          sleep(waitMs).then(() => ({ messages: [] }))
+        ]).catch(() => ({ messages: [] }));
+        const before = await correspondenceWithin(50, 3000);
+        const previousMessageIds = new Set((before.messages || []).map((entry) => entry.messageId).filter(Boolean));
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        let accepted;
+        try {
+          accepted = await integration.sendNpcMessage("DuBo", message, { signal: controller.signal });
+        } catch (error) {
+          if (error?.name === "AbortError") return null;
+          throw error;
+        } finally {
+          clearTimeout(timeoutId);
+        }
+        for (let attempt = 0; attempt < 5; attempt += 1) {
           if (attempt) await sleep(1000);
-          const messages = await integration.npcCorrespondence("DuBo", 20).catch(() => ({ messages: [] }));
-          const reply = (messages.messages || []).find((entry) => entry.taskId === accepted.taskId) || null;
+          const messages = await correspondenceWithin(20, 3000);
+          const reply = (messages.messages || []).find((entry) => entry.taskId === accepted.taskId && replyMatchesAction(entry, expectedAction))
+            || (messages.messages || []).find((entry) => entry.messageId && !previousMessageIds.has(entry.messageId) && replyMatchesAction(entry, expectedAction))
+            || null;
           if (reply) return reply;
         }
         return null;
       };
-      if (["accept", "reject", "modify", "review"].includes(action)) {
-        await sendAndWaitForReply(commands.inbox);
-      }
-      let reply = await sendAndWaitForReply(content);
+      let reply = await sendAndWaitForReply(content, action);
       const roster = await integration.organizationRoster();
       profile.organization = organization.recordRemoteRoster(profile.organization, roster, displayName);
       await refreshOfficeCareerStatus({ quiet: true });
@@ -2170,7 +2220,7 @@
         if (awaitingReview) {
           $("#officeCareerFeedback").textContent = "改令申请已登记，正在请杜伯裁定……";
           const reviewContent = `${commands.review}我明确请求裁定的差事是《${selectedTask.title}》。请按权威任务流程立即作出决定。`;
-          reply = await sendAndWaitForReply(reviewContent) || reply;
+          reply = await sendAndWaitForReply(reviewContent, "review") || reply;
           await refreshOfficeCareerStatus({ quiet: true });
         }
       }
@@ -2257,9 +2307,10 @@
     }
     const vacancy = profile.organization.remoteRoster?.openPositions?.[0];
     const vacancyName = officeMembershipPosition(vacancy?.office, "军府属官");
+    const membershipName = officeMembershipPosition(profile.organization.remoteRoster?.playerMembership?.office, "军府属官");
     const content = {
       join: `我明确要求你现在提交我的加入组织申请：应聘东周朝廷「${vacancyName}」岗位。`,
-      confirmLeave: "我要退出东周朝廷。"
+      confirmLeave: `我确认退出「${membershipName}」岗位。`
     }[action];
     if (!content) return;
     officeMembershipBusy = true;
@@ -2267,18 +2318,22 @@
     $("#officeMembershipFeedback").textContent = action === "join" ? "请仕书已送杜伯，等待裁定……" : action === "leave" ? "请辞已送杜伯，等待确认……" : "辞仕确认已送杜伯，等待实账回读……";
     try {
       await syncOfficeNpcs(profile.organization.members.filter((member) => member.id === "DuBo"));
-      const accepted = await integration.sendNpcMessage("DuBo", content);
       let reply = null;
-      for (let attempt = 0; attempt < 180; attempt += 1) {
-        if (attempt) await sleep(1000);
-        const [messages, roster] = await Promise.all([
-          integration.npcCorrespondence("DuBo", 12).catch(() => ({ messages: [] })),
-          integration.organizationRoster()
-        ]);
-        profile.organization = organization.recordRemoteRoster(profile.organization, roster, displayName);
-        reply = (messages.messages || []).find((message) => message.taskId === accepted.taskId) || reply;
-        const joined = Boolean(profile.organization.remoteRoster?.playerMembership);
-        if ((action === "join" && joined) || (action === "confirmLeave" && !joined)) break;
+      const messagesToSend = [content];
+      for (let messageIndex = 0; messageIndex < messagesToSend.length; messageIndex += 1) {
+        await integration.sendNpcMessage("DuBo", messagesToSend[messageIndex]);
+        const isFinalMessage = messageIndex === messagesToSend.length - 1;
+        if (!isFinalMessage) {
+          await sleep(5000);
+          continue;
+        }
+        for (let attempt = 0; attempt < 180; attempt += 1) {
+          if (attempt) await sleep(1000);
+          const roster = await integration.organizationRoster();
+          profile.organization = organization.recordRemoteRoster(profile.organization, roster, displayName);
+          const joined = Boolean(profile.organization.remoteRoster?.playerMembership);
+          if ((isFinalMessage && action === "join" && joined) || (isFinalMessage && action === "confirmLeave" && !joined)) break;
+        }
       }
       const joined = Boolean(profile.organization.remoteRoster?.playerMembership);
       if (action === "join" && joined) {
@@ -2496,7 +2551,8 @@
       const affection = state.affection?.data || state.affection || {};
       const relationships = state.relationships?.data || state.relationships || {};
       const dominant = emotion.dominant || {};
-      panel.innerHTML = `<strong>${escapeHtml(member.name)} · ${escapeHtml(member.office)}</strong><dl><div><dt>心境</dt><dd>${escapeHtml(officeEmotionText(dominant.emotion_type))} ${Math.round(Number(dominant.intensity || 0))}</dd></div><div><dt>牵挂</dt><dd>${Number(affection.total || affection.items?.length || 0)}</dd></div><div><dt>人际</dt><dd>${Number(relationships.total || relationships.items?.length || 0)}</dd></div></dl>${officeNpcRelations(state, affection, relationships)}`;
+      const memories = Array.isArray(state.memories?.items) ? state.memories.items : [];
+      panel.innerHTML = `<strong>${escapeHtml(member.name)} · ${escapeHtml(member.office)}</strong><dl><div><dt>心境</dt><dd>${escapeHtml(officeEmotionText(dominant.emotion_type))} ${Math.round(Number(dominant.intensity || 0))}</dd></div><div><dt>牵挂</dt><dd>${Number(affection.total || affection.items?.length || 0)}</dd></div><div><dt>人际</dt><dd>${Number(relationships.total || relationships.items?.length || 0)}</dd></div><div><dt>记忆</dt><dd>${memories.length}</dd></div></dl>${officeNpcRelations(state, affection, relationships)}`;
       const personality = state.personality || { available: false };
       panel.querySelector("dl")?.insertAdjacentHTML("beforeend", `<div><dt>性情</dt><dd>${escapeHtml(officePersonalityText(personality))}</dd></div>`);
       const motivation = state.motivation || { available: false };
@@ -2504,7 +2560,7 @@
       const quality = state.quality || { available: false };
       panel.querySelector("dl")?.insertAdjacentHTML("beforeend", `<div><dt>品质</dt><dd>${escapeHtml(officeQualityText(quality))}</dd></div>`);
       panel.querySelector("dl")?.insertAdjacentHTML("beforeend", `<div><dt>执行</dt><dd>${escapeHtml(officeExecutionText(state.execution))}</dd></div>`);
-      officeMemoryView = Array.isArray(state.memories?.items) ? state.memories.items : [];
+      officeMemoryView = memories;
       if (!officeMemoryView.some((item) => item.idempotencyKey === officeSelectedMemory?.idempotencyKey)) officeSelectedMemory = null;
       renderOfficeNpcMemories(member);
       await refreshOfficeCorrespondence(member, serial);
@@ -2620,7 +2676,8 @@
 
   async function refreshOfficeContributions() {
     const heroId = $("#officeMemberSelect").value;
-    if (integration.isOffline() || !heroId) { officeContributions = []; officeSelectedContribution = null; renderOfficeContributions(); return; }
+    const isAuthoritativeMember = profile.organization.remoteRoster?.members?.some((member) => member.heroId === heroId);
+    if (integration.isOffline() || !heroId || !isAuthoritativeMember) { officeContributions = []; officeSelectedContribution = null; renderOfficeContributions(); return; }
     try {
       const response = await integration.organizationMemberContributions(heroId);
       if (response.heroId !== heroId || !Array.isArray(response.entries)) throw new Error("功绩簿身份不匹配");

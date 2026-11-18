@@ -19,7 +19,7 @@ TASK_DUTIES = {
         "type": "军需",
         "description": "核定粮道并组织军粮车队按期送达前线",
         "importance": 90,
-        "duration_minutes": 90,
+        "duration_minutes": 60,
     },
     "drill": {
         "transaction_id": 9100102,
@@ -51,7 +51,7 @@ TASK_DUTIES = {
         "type": "外交",
         "description": "准备国书礼仪与盟约条件并出使诸侯",
         "importance": 85,
-        "duration_minutes": 120,
+        "duration_minutes": 30,
     },
 }
 

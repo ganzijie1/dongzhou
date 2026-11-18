@@ -1,6 +1,7 @@
 'use strict';
 // Use only the dedicated existing acceptance account; no new order or clock change.
 const fs=require('fs'),path=require('path'),assert=require('assert/strict');
+const url=process.env.DONGZHOU_TEST_URL||'http://127.0.0.1:8780/';
 let chromium;
 try {({chromium}=require(path.resolve(__dirname,'../output/playwright-runtime/node_modules/playwright')));}
 catch (_) {({chromium}=require('playwright'));}
@@ -20,7 +21,7 @@ const executablePath=['C:/Program Files/Google/Chrome/Application/chrome.exe','C
    if(u==='/api/dongzhou/v1/save' && r.request().method()==='PUT')writes.push(r.status());
    if(u.startsWith('/api/dongzhou/v1/organization/tasks/'))taskReads.push(r.status());
   });
-  const ready=async()=>{await page.goto('http://127.0.0.1:8780/',{waitUntil:'domcontentloaded'});await page.waitForSelector('#app:not([hidden])',{timeout:45000});};
+  const ready=async()=>{await page.goto(url,{waitUntil:'domcontentloaded'});await page.waitForSelector('#app:not([hidden])',{timeout:45000});};
   const read=()=>page.evaluate(({PROFILE,BATTLE})=>({profile:JSON.parse(localStorage.getItem(PROFILE)),battle:JSON.parse(localStorage.getItem(BATTLE))}),{PROFILE,BATTLE});
   await ready();
   const initial=await read();

@@ -7,11 +7,28 @@ from dongzhou_integration.assignments import (
     personality_task_fit,
     quality_task_fit,
     select_assignment,
+    task_duty,
 )
 
 
 def schedule(*days):
     return {"code": 200, "data": {"plan_id": "plan", "generation_id": "gen", "schedules": list(days)}}
+
+
+def test_task_duties_match_ainpc_transaction_duration_contracts() -> None:
+    assert {
+        task_type: (
+            task_duty(task_type)["transaction_id"],
+            task_duty(task_type)["duration_minutes"],
+        )
+        for task_type in ("supply", "drill", "patrol", "intelligence", "diplomacy")
+    } == {
+        "supply": (9100103, 60),
+        "drill": (9100102, 60),
+        "patrol": (9100104, 60),
+        "intelligence": (9100105, 45),
+        "diplomacy": (9100106, 30),
+    }
 
 
 def test_selects_matching_duty_nearest_stage_range() -> None:

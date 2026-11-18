@@ -13,6 +13,7 @@ try {
 }
 
 const root = path.resolve(__dirname, '..');
+const url = process.env.DONGZHOU_TEST_URL || 'http://127.0.0.1:8780/';
 const evidencePath = path.join(root, 'output', 'integration-validation', 'live-route-battle-memory129.json');
 const screenshotPath = path.join(root, 'output', 'integration-validation', 'live-route-battle-memory129.png');
 const installationId = randomUUID();
@@ -41,7 +42,7 @@ const executablePath = [
 
   try {
     console.log(JSON.stringify({ stage: 'startup', installationId }));
-    await page.goto('http://127.0.0.1:8780/', { waitUntil: 'domcontentloaded' });
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#app:not([hidden])', { timeout: 120000 });
     console.log(JSON.stringify({ stage: 'record-battle' }));
     const result = await page.evaluate(async ({ reportId }) => {

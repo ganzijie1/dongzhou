@@ -1052,7 +1052,7 @@
     const existingByHero = new Map(state.members.map((member) => [member.id, member]));
     const internalOffice = /^(?:commander|court_officer|officer_\d+)$/i;
     const taskOffices = ["司马", "司徒", "司寇", "行人", "上卿"];
-    state.members = normalized.map((account, index) => {
+    const remoteMembers = normalized.map((account, index) => {
       const existing = existingByHero.get(account.heroId);
       const slot = /^officer_(\d+)$/i.exec(account.office);
       const mappedOffice = account.level === "owner" || account.role === "commander" || account.office === "commander"
@@ -1073,6 +1073,12 @@
         merit: account.lifetimeEarned
       }, index);
     });
+    const remoteByHero = new Map(remoteMembers.map((member) => [member.id, member]));
+    const retainedIds = new Set(state.members.map((member) => member.id));
+    state.members = [
+      ...state.members.map((member) => remoteByHero.get(member.id) || member),
+      ...remoteMembers.filter((member) => !retainedIds.has(member.id)),
+    ].slice(0, 12);
     state.contribution = growth;
     if (String(organization.name || "").trim()) state.name = String(organization.name).trim();
     state.remoteRoster = {

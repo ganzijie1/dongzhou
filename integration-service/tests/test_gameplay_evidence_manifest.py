@@ -67,3 +67,7 @@ def test_current_gameplay_evidence_is_present_and_tracked() -> None:
         == simulation_scripts
     )
     assert external_scripts <= live_scripts | simulation_scripts
+
+    for item in live_scripts:
+        source = (ROOT / item).read_text(encoding="utf-8")
+        assert "DONGZHOU_TEST_URL" in source, f"{item} cannot target the active live deployment"

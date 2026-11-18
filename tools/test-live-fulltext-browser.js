@@ -1,13 +1,19 @@
 'use strict';
 const assert=require('assert/strict'),fs=require('fs'),path=require('path');
-const {chromium}=require('playwright');
+let chromium;
+try {
+ ({chromium}=require(path.resolve(__dirname,'../output/playwright-runtime/node_modules/playwright')));
+} catch (_) {
+ ({chromium}=require('playwright'));
+}
+const url=process.env.DONGZHOU_TEST_URL||'http://127.0.0.1:8780/';
 const executablePath=['C:/Program Files/Google/Chrome/Application/chrome.exe','C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(fs.existsSync);
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath});
  try {
   const page=await browser.newPage();
   const errors=[];page.on('pageerror',()=>errors.push(true));
-  await page.goto('http://127.0.0.1:8780/',{waitUntil:'domcontentloaded'});
+  await page.goto(url,{waitUntil:'domcontentloaded'});
   await page.waitForSelector('#app:not([hidden])',{timeout:45000});
   await page.click('#campaignOfficeButton');
   await page.fill('#officeKnowledgeQuery','郑伯克段 周郑交质');
@@ -37,6 +43,6 @@ const executablePath=['C:/Program Files/Google/Chrome/Application/chrome.exe','C
   const result={result:'PASS',mode:'live-no-api-interception',status:response.status(),resultsCount:data.results.length,publishedDongzhouOnly:true,graphPath:{hops:graphPath.hops,nodes:graphPath.nodes.map(node=>node.name||node.id),relations:graphPath.relations},displayed:true,codexRecorded:true,mobileNoOverflow:true};
   fs.writeFileSync(path.join(root,'fulltext-browser-restored.json'),JSON.stringify(result,null,2));
   console.log(JSON.stringify(result));
- }catch(e){console.error(JSON.stringify({result:'FAIL',errorType:e.name,details:'redacted'}));process.exitCode=1;}
+ }catch(e){console.error(JSON.stringify({result:'FAIL',errorType:e.name,message:e.message,stack:e.stack}));process.exitCode=1;}
  finally{await browser.close();}
 })();

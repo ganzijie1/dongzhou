@@ -146,7 +146,7 @@ class _NpcPreferenceUpstreams(_HealthyUpstreams):
 
 
 class _NpcRecoveryUpstreams(_HealthyUpstreams):
-    def __init__(self, online_ids=(), roster=None, *, roster_unavailable=False) -> None:
+    def __init__(self, online_ids=(), roster=None, *, roster_unavailable=False, online_failures=0) -> None:
         self.registrations: list[list[dict[str, str]]] = []
         self.activations: list[tuple[list[dict[str, str]], str, str]] = []
         self.online_ids = set(online_ids)
@@ -158,8 +158,12 @@ class _NpcRecoveryUpstreams(_HealthyUpstreams):
         }
         self.supervision: list[dict[str, object]] = []
         self.roster_unavailable = roster_unavailable
+        self.online_failures = online_failures
 
     async def online_npc_ids(self):
+        if self.online_failures > 0:
+            self.online_failures -= 1
+            raise UpstreamUnavailable("AINPC is restarting")
         return set(self.online_ids)
 
     async def register_npcs(self, npcs):
@@ -1824,6 +1828,72 @@ class AuthenticationRouteTests(unittest.TestCase):
             {"state": "UNAVAILABLE", "retryable": True},
         )
         self.assertEqual(len(upstreams.activations), 1)
+
+    def test_npc_sync_retries_transient_ainpc_recovery(self) -> None:
+        with TemporaryDirectory() as directory, patch.dict(
+            "os.environ",
+            {
+                "DONGZHOU_ENV": "development",
+                "DONGZHOU_WEB_ROOT": directory,
+                "DONGZHOU_PUBLIC_ORIGIN": "http://testserver",
+                "DONGZHOU_DATABASE_PATH": str(Path(directory) / "gateway.sqlite3"),
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            upstreams = _NpcRecoveryUpstreams(online_failures=2)
+            application = build_application(
+                settings,
+                store=Store(settings.database_path),
+                upstreams=upstreams,
+            )
+
+            with TestClient(application) as client:
+                client.post(
+                    "/api/dongzhou/v1/sessions/guest",
+                    json={"installation_id": str(uuid4())},
+                )
+                response = client.post(
+                    "/api/dongzhou/v1/npcs/sync",
+                    json={"npcs": [{"hero_id": "DuBo", "name": "Du Bo"}]},
+                )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(upstreams.online_failures, 0)
+        self.assertEqual(len(upstreams.activations), 1)
+
+    def test_npc_sync_replays_online_callback_when_snapshot_stays_unavailable(self) -> None:
+        with TemporaryDirectory() as directory, patch.dict(
+            "os.environ",
+            {
+                "DONGZHOU_ENV": "development",
+                "DONGZHOU_WEB_ROOT": directory,
+                "DONGZHOU_PUBLIC_ORIGIN": "http://testserver",
+                "DONGZHOU_DATABASE_PATH": str(Path(directory) / "gateway.sqlite3"),
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            upstreams = _NpcRecoveryUpstreams(online_failures=100)
+            application = build_application(
+                settings,
+                store=Store(settings.database_path),
+                upstreams=upstreams,
+            )
+
+            with TestClient(application) as client:
+                client.post(
+                    "/api/dongzhou/v1/sessions/guest",
+                    json={"installation_id": str(uuid4())},
+                )
+                response = client.post(
+                    "/api/dongzhou/v1/npcs/sync",
+                    json={"npcs": [{"hero_id": "DuBo", "name": "Du Bo"}]},
+                )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(upstreams.activations), 1)
+        self.assertEqual(upstreams.activations[0][0][0]["heroId"], "DuBo")
 
     def test_ainpc_relogin_contract_replays_only_the_requested_static_shard(self) -> None:
         with TemporaryDirectory() as directory, patch.dict(

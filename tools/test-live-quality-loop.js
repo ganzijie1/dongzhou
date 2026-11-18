@@ -16,6 +16,7 @@ const executablePath = [
   "C:/Program Files/Google/Chrome/Application/chrome.exe",
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
 ].find(fs.existsSync);
+const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
 
 (async () => {
   const browser = await chromium.launch({ headless: true, executablePath });
@@ -23,7 +24,7 @@ const executablePath = [
     const page = await browser.newPage({ viewport: { width: 1365, height: 900 } });
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
-    await page.goto("http://127.0.0.1:8780/", { waitUntil: "domcontentloaded" });
+    await page.goto(url, { waitUntil: "domcontentloaded" });
     await page.waitForSelector("#app:not([hidden])", { timeout: 45000 });
     await page.click("#campaignOfficeButton");
     await page.waitForSelector("#campaignOfficeBackdrop:not([hidden])", { timeout: 30000 });

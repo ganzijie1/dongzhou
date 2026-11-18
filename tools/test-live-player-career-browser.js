@@ -24,9 +24,9 @@ const executablePath = [
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
 ].find((entry) => entry && fs.existsSync(entry));
 const diagnostics = {};
-const authoritativeTaskNames = ["列国出使", "演练阵法", "查访军情", "巡察营垒", "输送粮秣"];
+const authoritativeTaskNames = ["奉使诸侯", "整军演练", "月例察访", "巡察疆界", "筹措军需"];
 const retiredEnglishTaskNames = ["Diplomatic mission", "Army drill", "Intelligence mission", "Camp patrol", "Supply transport"];
-const preferredTaskName = "输送粮秣";
+const preferredTaskName = "筹措军需";
 
 async function readRoster(page) {
   return page.evaluate(async () => {

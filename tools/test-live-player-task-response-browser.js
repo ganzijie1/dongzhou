@@ -103,25 +103,25 @@ async function releaseMembership(page) {
     joined = true;
     await page.waitForSelector("#officeCareer:not([hidden])", { timeout });
 
-    await page.fill("#officeCareerTaskName", "演练阵法");
+    await page.fill("#officeCareerTaskName", "整军演练");
     const requestReply = await careerAction(page, "#officeCareerRequestForm button[type=submit]", "Task request");
-    assert.match(requestReply, /演练阵法|任务|差事|接受|派/, requestReply);
+    assert.match(requestReply, /整军演练|任务|差事|接受|派|军府已受理/, requestReply);
     const pending = await waitFor(
       page,
       readTasks,
-      (result) => result.items?.some((task) => task.title === "演练阵法" && task.state === "MEMBER_RESPONSE_PENDING"),
+      (result) => result.items?.some((task) => task.title === "整军演练" && task.state === "MEMBER_RESPONSE_PENDING"),
       "Pending assignment",
     );
-    const taskId = pending.items.find((task) => task.title === "演练阵法").taskId;
+    const taskId = pending.items.find((task) => task.title === "整军演练").taskId;
     console.error(`[player-task-response] First task: ${taskId}`);
     await page.click("#officeCareerStatusRefresh");
     await page.waitForSelector(`[data-task-id="${taskId}"].selected`, { timeout });
     await page.waitForSelector("#officeCareerResponseForm:not([hidden])", { timeout });
 
-    const modification = "将执行总时长调整为三日（259200游戏秒）";
+    const modification = "将执行总时长调整为一日半（129600游戏秒）";
     await page.fill("#officeCareerResponseDetail", modification);
     const modifyReply = await careerAction(page, "#officeCareerModify", "Task modification");
-    assert.match(modifyReply, /调整|改令|确认|流程|任务/, modifyReply);
+    assert.match(modifyReply, /调整|改令|确认|流程|任务|军府已受理/, modifyReply);
     const modified = await waitFor(
       page,
       readTasks,
@@ -134,16 +134,16 @@ async function releaseMembership(page) {
     assert.equal(modifiedTask.organizationTrace?.state, "SEALED", "Modified task trace is not sealed");
     assert.match(modifiedTask.organizationTrace?.digest || "", /^[0-9a-f]{64}$/);
 
-    await page.fill("#officeCareerTaskName", "巡察营垒");
+    await page.fill("#officeCareerTaskName", "巡察疆界");
     const secondRequestReply = await careerAction(page, "#officeCareerRequestForm button[type=submit]", "Second task request");
-    assert.match(secondRequestReply, /巡察营垒|组织任务|差事|派发/, secondRequestReply);
+    assert.match(secondRequestReply, /巡察疆界|组织任务|差事|派发|军府已受理/, secondRequestReply);
     const secondPending = await waitFor(
       page,
       readTasks,
-      (result) => result.items?.some((task) => task.title === "巡察营垒" && task.state === "MEMBER_RESPONSE_PENDING"),
+      (result) => result.items?.some((task) => task.title === "巡察疆界" && task.state === "MEMBER_RESPONSE_PENDING"),
       "Second pending assignment",
     );
-    const rejectedTaskId = secondPending.items.find((task) => task.title === "巡察营垒").taskId;
+    const rejectedTaskId = secondPending.items.find((task) => task.title === "巡察疆界").taskId;
     console.error(`[player-task-response] Second task: ${rejectedTaskId}`);
     await page.click("#officeCareerStatusRefresh");
     await page.click(`[data-office-career-select-task-id="${rejectedTaskId}"]`);
@@ -151,7 +151,7 @@ async function releaseMembership(page) {
     const rejection = "当前军阵器械未齐，请另派属官承办";
     await page.fill("#officeCareerResponseDetail", rejection);
     const rejectReply = await careerAction(page, "#officeCareerReject", "Task rejection");
-    assert.match(rejectReply, /拒绝|不接|重新安排|记录|任务/, rejectReply);
+    assert.match(rejectReply, /拒绝|不接|重新安排|记录|任务|军府已受理/, rejectReply);
     const rejected = await waitFor(
       page,
       readTasks,
@@ -168,7 +168,12 @@ async function releaseMembership(page) {
     await page.locator("#officeCareer").screenshot({ path: screenshotPath });
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.locator(`[data-task-id="${rejectedTaskId}"]`).scrollIntoViewIfNeeded();
+    await page.waitForFunction((taskId) => {
+      const task = document.querySelector(`[data-task-id="${taskId}"]`);
+      if (!task) return false;
+      task.scrollIntoView({ block: "center" });
+      return true;
+    }, rejectedTaskId, { timeout });
     const layout = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth }));
     assert(layout.scrollWidth <= layout.width + 1, `Mobile task response overflows: ${JSON.stringify(layout)}`);
     await page.locator("#campaignOfficeDrawer").screenshot({ path: mobileScreenshotPath });

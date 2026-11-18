@@ -12,6 +12,7 @@ try {
 }
 
 const root = path.resolve(__dirname, '..');
+const url = process.env.DONGZHOU_TEST_URL || 'http://127.0.0.1:8780/';
 const output = path.join(root, 'output', 'integration-validation', 'npc-runtime-schedule-live.png');
 const mobileOutput = path.join(root, 'output', 'integration-validation', 'npc-runtime-schedule-mobile-live.png');
 const executablePath = [
@@ -38,7 +39,7 @@ const executablePath = [
   });
 
   try {
-    await page.goto('http://127.0.0.1:8780/', { waitUntil: 'domcontentloaded' });
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#app:not([hidden])', { timeout: 45000 });
     const stateResponsePromise = page.waitForResponse((response) => /\/npcs\/[^/]+\/state$/.test(new URL(response.url()).pathname));
     const scheduleResponsePromise = page.waitForResponse((response) => (

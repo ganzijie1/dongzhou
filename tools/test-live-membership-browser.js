@@ -34,7 +34,11 @@ async function readRoster(page) {
       cache: "no-store",
       credentials: "same-origin",
     });
-    if (!response.ok) throw new Error(`roster failed: ${response.status} ${await response.text()}`);
+    if (!response.ok) {
+      const error = new Error(`roster failed: ${response.status} ${await response.text()}`);
+      error.status = response.status;
+      throw error;
+    }
     return response.json();
   });
 }
@@ -42,11 +46,21 @@ async function readRoster(page) {
 async function waitForRoster(page, predicate, label) {
   const deadline = Date.now() + timeout;
   let roster = null;
+  let transientError = null;
   while (Date.now() < deadline) {
-    roster = await readRoster(page);
+    try {
+      roster = await readRoster(page);
+      transientError = null;
+    } catch (error) {
+      if (!/roster failed: 5\d\d\b/.test(error.message)) throw error;
+      transientError = error;
+      await page.waitForTimeout(2000);
+      continue;
+    }
     if (predicate(roster)) return roster;
     await page.waitForTimeout(2000);
   }
+  if (transientError && roster === null) throw transientError;
   throw new Error(`${label} did not become authoritative within ${timeout}ms: ${JSON.stringify(roster)}`);
 }
 
@@ -126,10 +140,10 @@ async function requestLeave(page) {
 
   try {
     await openOffice(page);
-    const initial = await readRoster(page);
+    const initial = await waitForRoster(page, () => true, "Initial roster");
     if (cleanupOnly) {
       if (initial.playerMembership) {
-        const pendingConfirmation = await sendDirectMessage(page, "确认退出");
+        const pendingConfirmation = await sendDirectMessage(page, `我确认退出「${initial.playerMembership.office}」岗位。`);
         await waitForMessageReply(page, pendingConfirmation.taskId);
         let current = await readRoster(page);
         if (current.playerMembership) {
@@ -169,6 +183,10 @@ async function requestLeave(page) {
     fs.mkdirSync(outputDir, { recursive: true });
     await page.locator(".office-membership").screenshot({ path: joinedScreenshot });
 
+    await page.waitForFunction(() => {
+      const button = document.querySelector("#officeMembershipLeave");
+      return button && !button.hidden && !button.disabled;
+    }, null, { timeout: 210000 });
     await page.click("#officeMembershipLeave");
     await page.waitForFunction(() => !document.querySelector("#officeMembershipLeaveConfirm")?.hidden, null, { timeout: 60000 });
     await page.click("#officeMembershipLeaveConfirm");
@@ -181,6 +199,7 @@ async function requestLeave(page) {
     assert.equal(messageTasks.length, 2, JSON.stringify(messageTasks));
     assert(messageTasks.every((entry) => entry.status === 200 && entry.state === "ACCEPTED"), JSON.stringify(messageTasks));
     assert(messageTasks[0].content.includes("「军府属官·第12席」岗位"), JSON.stringify(messageTasks));
+    assert(messageTasks[1].content.includes("军府属官·第12席"), JSON.stringify(messageTasks));
     assert.deepEqual(pageErrors, []);
     const report = {
       result: "PASS",

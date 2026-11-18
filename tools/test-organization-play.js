@@ -171,7 +171,8 @@ const internalOfficeState = play.recordRemoteRoster({ ...state, members: state.m
   ]
 }, (id) => ({ ZuoRu: "左儒", ZhouYouWang: "周幽王" }[id] || id));
 assert.strictEqual(internalOfficeState.members.find((member) => member.id === "ZuoRu").office, "司马");
-assert.deepStrictEqual(internalOfficeState.members.map((member) => member.name), ["左儒", "周幽王"]);
+assert.strictEqual(internalOfficeState.members.find((member) => member.id === "ZuoRu").name, "左儒");
+assert.strictEqual(internalOfficeState.members.find((member) => member.id === "ZhouYouWang").name, "周幽王");
 assert.strictEqual(internalOfficeState.members.find((member) => member.id === "ZhouYouWang").office, "司徒");
 assert.strictEqual(internalOfficeState.members.find((member) => member.id === "ZhouYouWang").merit, 14);
 assert.throws(() => play.recordRemoteRoster(state, { organization: { growthContribution: 1 }, members: [{ heroId: "ZuoRu", contributionBalance: 0, lifetimeEarned: 1.5, lifetimeSpent: 0 }] }), /功绩无效/);

@@ -43,6 +43,24 @@ def test_derived_follow_up_accepts_localized_authoritative_defaults() -> None:
         {
             "final_result": "SUCCESS",
             "position_slot_id": position_id,
+            "template_snapshot": {
+                "derived_task_rules": [
+                    {
+                        "rule_id": "dongzhou_supply_success_follow_up",
+                        "source": "FOLLOW_UP",
+                        "target_task_code": "dongzhou.patrol",
+                        "target_position_selector": "SAME_POSITION",
+                        "parameter_strategy": "TARGET_DEFAULTS",
+                        "target_default_parameters": {
+                            "assignee_hero_id": "unassigned",
+                            "assignee_name": "未定",
+                            "resource_units": 0,
+                            "stage_id": "bootstrap",
+                            "stage_title": "东周官署",
+                        },
+                    }
+                ]
+            },
             "derivations": [
                 {
                     "intent_id": intent_id,
@@ -58,10 +76,10 @@ def test_derived_follow_up_accepts_localized_authoritative_defaults() -> None:
                     "parameter_strategy": "TARGET_DEFAULTS",
                     "target_default_parameters": {
                         "assignee_hero_id": "unassigned",
-                        "assignee_name": "待定",
+                        "assignee_name": "未定",
                         "resource_units": 0,
-                        "stage_id": "unknown",
-                        "stage_title": "未知战役",
+                        "stage_id": "bootstrap",
+                        "stage_title": "东周官署",
                     },
                     "generation_depth": 1,
                     "trigger_result": "SUCCESS",
@@ -1154,6 +1172,7 @@ def test_council_memory_and_public_notice_are_verified_and_sealed_into_mandate()
             assert state_body["aiPlayerId"] == str(
                 stable_player_id(settings.ainpc_game_server_id, UUID(state_body["playerId"]))
             )
+            assert state_body["knownNpcIds"]["ZuoRu"] == state_body["npcId"]
             memory = state_body["memories"]["items"][0]
             assert memory["idempotencyKey"] == first_record["dialogueReceipt"]["memoryArchive"]["idempotencyKey"]
             assert len(memory["digest"]) == 64
@@ -2211,6 +2230,7 @@ def test_censured_settlement_records_ainpc_affection_and_memory_once() -> None:
                 "final_result": "FAILURE",
                 "contribution_eligible": True,
                 "responsible_member_id": "00000000-0000-0000-0000-000000000004",
+                "position_slot_id": "00000000-0000-0000-0000-000000000003",
                 "version": "3",
                 "settlement": {
                     "settlement_id": settlement_id,
@@ -2225,6 +2245,22 @@ def test_censured_settlement_records_ainpc_affection_and_memory_once() -> None:
                     "settled_game_time": "0772-10-22 14:00:00",
                     "settled_clock_epoch": "dongzhou-v1",
                     "settled_at": "2026-11-12T00:00:00Z",
+                },
+                "template_snapshot": {
+                    "derived_task_rules": [{
+                        "rule_id": "dongzhou_drill_failure_remediation",
+                        "source": "REMEDIATION",
+                        "target_task_code": "dongzhou.supply",
+                        "target_position_selector": "SAME_POSITION",
+                        "parameter_strategy": "TARGET_DEFAULTS",
+                        "target_default_parameters": {
+                            "assignee_hero_id": "unassigned",
+                            "assignee_name": "未定",
+                            "resource_units": 0,
+                            "stage_id": "bootstrap",
+                            "stage_title": "东周官署",
+                        },
+                    }],
                 },
                 "derivations": [],
             }
@@ -2361,6 +2397,22 @@ def test_failure_task_registers_authoritative_remediation() -> None:
                     "settled_clock_epoch": "dongzhou-v1",
                     "settled_at": "2026-11-12T00:00:00Z",
                 },
+                "template_snapshot": {
+                    "derived_task_rules": [{
+                        "rule_id": "dongzhou_drill_failure_remediation",
+                        "source": "REMEDIATION",
+                        "target_task_code": "dongzhou.supply",
+                        "target_position_selector": "SAME_POSITION",
+                        "parameter_strategy": "TARGET_DEFAULTS",
+                        "target_default_parameters": {
+                            "assignee_hero_id": "unassigned",
+                            "assignee_name": "Unassigned",
+                            "resource_units": 0,
+                            "stage_id": "unknown",
+                            "stage_title": "Unknown stage",
+                        },
+                    }],
+                },
                 "derivations": [{
                     "intent_id": intent_id,
                     "predecessor_task_id": task_id,
@@ -2408,6 +2460,7 @@ def test_failure_task_registers_authoritative_remediation() -> None:
                 "contribution_eligible": True,
                 "responsible_member_id": "00000000-0000-0000-0000-000000000006",
                 "version": "1",
+                "template_snapshot": {"derived_task_rules": []},
                 "derivations": [],
                 "settlement": {
                     "settlement_id": str(uuid4()),

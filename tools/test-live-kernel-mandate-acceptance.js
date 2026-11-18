@@ -165,6 +165,20 @@ saveJournal();
       assert.equal(knowledgeMastery.receipt?.kernel?.state, "SEALED");
     }
 
+    const resumedCouncil = resume ? await page.evaluate((key) => {
+      const councils = JSON.parse(localStorage.getItem(key)).organization.councils;
+      return [...councils].reverse().find((entry) =>
+        entry.memberId === "ZuoRu"
+        && String(entry.stageId) === "01"
+        && entry.dialogueReceipt?.state === "RECORDED"
+      ) || null;
+    }, PROFILE) : null;
+    if (resumedCouncil) {
+      council = resumedCouncil;
+      journal.councilId = council.id;
+      journal.stage = "recovered-council";
+      saveJournal();
+    } else {
     journal.stage = "npc-council";
     saveJournal();
     const councilCountBefore = await page.evaluate((key) =>
@@ -209,6 +223,10 @@ saveJournal();
       assert.match(council.question, new RegExp(`史识印记：${knowledgeMastery.receipt.digest.slice(0, 12)}`));
     }
 
+    journal.councilId = council.id;
+    saveJournal();
+    }
+
     await page.selectOption("#officeTaskType", "supply");
     if (supportHeroId) await page.selectOption("#officeSupportMemberSelect", supportHeroId);
     await page.locator("#officeUseCouncil").check();
@@ -226,11 +244,13 @@ saveJournal();
     if (!mandateApprovalVisible) {
       const diagnostic = await page.evaluate(() => ({
         notice: document.querySelector("#notice")?.textContent || "",
+        floatingNotice: document.querySelector("#floatingNotice")?.textContent || "",
         hint: document.querySelector("#officeCouncilHint")?.textContent || "",
         issueDisabled: document.querySelector("#officeIssueButton")?.disabled,
         taskType: document.querySelector("#officeTaskType")?.value,
         useCouncil: document.querySelector("#officeUseCouncil")?.checked
       }));
+      diagnostic.requests = requests;
       throw new Error(`Mandate draft did not open: ${JSON.stringify(diagnostic)}`);
     }
     assert.equal(requests.order, 0, "Draft mandate must not create an organization order before player approval");

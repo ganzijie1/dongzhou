@@ -2665,22 +2665,14 @@ def _derived_follow_ups(
         "PARTIAL": "partial_follow_up",
         "FAILURE": "failure_remediation",
     }.get(final_result)
-    expected_defaults = (
-        {
-            "assignee_hero_id": "unassigned",
-            "assignee_name": "Unassigned",
-            "resource_units": 0,
-            "stage_id": "unknown",
-            "stage_title": "Unknown stage",
-        },
-        {
-            "assignee_hero_id": "unassigned",
-            "assignee_name": "待定",
-            "resource_units": 0,
-            "stage_id": "unknown",
-            "stage_title": "未知战役",
-        },
+    template_snapshot = snapshot.get("template_snapshot")
+    derived_rules = (
+        template_snapshot.get("derived_task_rules")
+        if isinstance(template_snapshot, dict)
+        else None
     )
+    if not isinstance(derived_rules, list) or len(derived_rules) > 16:
+        raise ValueError("organization_derivation_rules_invalid")
     follow_ups: list[dict[str, Any]] = []
     for derivation in derivations:
         if not isinstance(derivation, dict):
@@ -2697,7 +2689,6 @@ def _derived_follow_ups(
             or derivation.get("target_position_selector") != "SAME_POSITION"
             or derivation.get("parameter_strategy") != "TARGET_DEFAULTS"
             or derivation.get("target_position_slot_id") != snapshot.get("position_slot_id")
-            or derivation.get("target_default_parameters") not in expected_defaults
         ):
             raise ValueError("organization_derivation_invalid")
         target_code = str(derivation.get("target_task_code") or "")
@@ -2705,6 +2696,25 @@ def _derived_follow_ups(
         expected_rule = f"dongzhou_{source_task_type}_{expected_rule_suffix}"
         if task_type != expected_target or derivation.get("rule_id") != expected_rule:
             raise ValueError("organization_derivation_target_invalid")
+        sealed_rule = next(
+            (
+                rule
+                for rule in derived_rules
+                if isinstance(rule, dict) and rule.get("rule_id") == expected_rule
+            ),
+            None,
+        )
+        if (
+            not isinstance(sealed_rule, dict)
+            or sealed_rule.get("source") != expected_source
+            or sealed_rule.get("target_task_code") != target_code
+            or sealed_rule.get("target_position_selector") != "SAME_POSITION"
+            or sealed_rule.get("parameter_strategy") != "TARGET_DEFAULTS"
+            or not isinstance(sealed_rule.get("target_default_parameters"), dict)
+            or derivation.get("target_default_parameters")
+            != sealed_rule["target_default_parameters"]
+        ):
+            raise ValueError("organization_derivation_rule_snapshot_invalid")
         state = str(derivation["state"])
         intent_id = str(derivation.get("intent_id") or "")
         planned_task_id = str(derivation.get("planned_task_id") or "")
@@ -6751,18 +6761,30 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             npc for npc in mapped
             if npc["npcId"] not in existing or existing[npc["npcId"]]["name"] != npc["name"]
         ]
-        try:
-            online_ids = await upstreams.online_npc_ids()
-            pending = [npc for npc in mapped if npc["npcId"] not in online_ids]
-            result = await upstreams.register_npcs(changed) if changed else {"code": 200, "state": "UNCHANGED"}
-            activation: list[dict[str, Any]] = []
-            if pending:
-                clock = await store.read_game_clock()
-                activation = await upstreams.set_npcs_online(
-                    pending, str(clock["virtualTime"]), f"dongzhou-{player_id.hex}"
-                )
-        except UpstreamUnavailable as error:
-            raise ApiError("ainpc_unavailable", "NPC service is temporarily unavailable.", status_code=503) from error
+        for attempt in range(3):
+            try:
+                try:
+                    online_ids = await upstreams.online_npc_ids()
+                except UpstreamUnavailable:
+                    if attempt < 2:
+                        raise
+                    # The cluster-wide online snapshot may be briefly incomplete
+                    # while AINPC is busy. Online callbacks are idempotent, so
+                    # replay this shard instead of making directory sync fail.
+                    online_ids = set()
+                pending = [npc for npc in mapped if npc["npcId"] not in online_ids]
+                result = await upstreams.register_npcs(changed) if changed else {"code": 200, "state": "UNCHANGED"}
+                activation: list[dict[str, Any]] = []
+                if pending:
+                    clock = await store.read_game_clock()
+                    activation = await upstreams.set_npcs_online(
+                        pending, str(clock["virtualTime"]), f"dongzhou-{player_id.hex}"
+                    )
+                break
+            except UpstreamUnavailable as error:
+                if attempt == 2:
+                    raise ApiError("ainpc_unavailable", "NPC service is temporarily unavailable.", status_code=503) from error
+                await asyncio.sleep(0.2 * (attempt + 1))
         try:
             relationship_sync: list[dict[str, Any]] | dict[str, Any] = (
                 await _sync_organization_supervision(upstreams, settings, mapped)
@@ -6813,6 +6835,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             known_hero_id: str(stable_npc_id(settings.ainpc_game_server_id, known_hero_id))
             for known_hero_id in settings.orgflow_hero_members
         }
+        known_npc_ids[hero_id] = str(npc_id)
         execution = state.get("execution")
         if isinstance(execution, dict) and execution.get("scheduleName"):
             state["execution"] = {

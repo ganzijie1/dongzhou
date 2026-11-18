@@ -21,6 +21,7 @@ const executablePath = [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
 ].find((candidate) => candidate && fs.existsSync(candidate));
+const failureContext = { currentOption: null };
 
 function businessOk(value) {
   return value && [0, 200, '0', '200'].includes(value.code);
@@ -41,7 +42,9 @@ function heroPath(response, suffix) {
   page.on('response', (response) => {
     const pathname = new URL(response.url()).pathname;
     if (pathname.includes('/api/dongzhou/v1/') && response.status() >= 400) {
-      failedResponses.push({ pathname, status: response.status() });
+      const failure = { pathname, status: response.status() };
+      failedResponses.push(failure);
+      response.text().then((body) => { failure.body = body.slice(0, 500); }).catch(() => {});
     }
   });
 
@@ -60,6 +63,7 @@ function heroPath(response, suffix) {
 
     const members = [];
     for (const option of options) {
+      failureContext.currentOption = option;
       const current = await page.locator('#officeMemberSelect').inputValue();
       if (current !== option.heroId) {
         const stateResponsePromise = page.waitForResponse(
@@ -71,17 +75,24 @@ function heroPath(response, suffix) {
         assert.equal(stateResponse.status(), 200);
       }
 
-      await page.waitForFunction(
+      try {
+        await page.waitForFunction(
         ({ heroId }) => {
           if (document.querySelector('#officeMemberSelect')?.value !== heroId) return false;
           const state = document.querySelector('#officeNpcState')?.textContent || '';
           const schedule = document.querySelector('#officeNpcSchedule')?.textContent || '';
-          return /心境/.test(state) && /性情/.test(state) && /动机/.test(state)
-            && /90 日当值/.test(schedule) && !/正在|恢复|不可用/.test(`${state}${schedule}`);
+          return /心境/.test(state) && /记忆/.test(state) && /性情/.test(state) && /动机/.test(state)
+            && /90 日计划/.test(schedule) && !/恢复|不可用/.test(`${state}${schedule}`);
         },
         { heroId: option.heroId },
         { timeout: 60000 }
-      );
+        );
+      } catch (error) {
+        failureContext.stateText = await page.locator('#officeNpcState').innerText().catch(() => '');
+        failureContext.scheduleText = await page.locator('#officeNpcSchedule').innerText().catch(() => '');
+        failureContext.failedResponses = failedResponses.slice();
+        throw error;
+      }
 
       const stateText = await page.locator('#officeNpcState').innerText();
       const scheduleText = await page.locator('#officeNpcSchedule').innerText();
@@ -107,7 +118,7 @@ function heroPath(response, suffix) {
         label: option.label,
         personalityVisible: stateText.includes('性情'),
         motivationVisible: stateText.includes('动机'),
-        scheduleVisible: scheduleText.includes('90 日当值'),
+        scheduleVisible: scheduleText.includes('90 日计划'),
       });
     }
 
@@ -130,6 +141,6 @@ function heroPath(response, suffix) {
     await browser.close();
   }
 })().catch((error) => {
-  console.error(JSON.stringify({ result: 'FAIL', errorType: error.name, message: error.message }));
+  console.error(JSON.stringify({ result: 'FAIL', errorType: error.name, message: error.message, stack: error.stack, ...failureContext }));
   process.exitCode = 1;
 });

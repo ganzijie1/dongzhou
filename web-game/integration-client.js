@@ -262,7 +262,7 @@
   function npcState(heroId) { return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/state`); }
   function npcCorrespondence(heroId, limit = 20) { return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/correspondence?limit=${encodeURIComponent(limit)}`); }
   function organizationPublicNotices() { return requestWithTransientRetry("/organization/public-notices"); }
-  async function sendNpcMessage(heroId, content) {
+  async function sendNpcMessage(heroId, content, options = {}) {
     const pendingKey = NPC_MESSAGE_PENDING_PREFIX + heroId;
     const saved = read(pendingKey, null);
     const pending = saved?.content === content
@@ -272,7 +272,8 @@
     try {
       const result = await request(`/npcs/${encodeURIComponent(heroId)}/messages`, {
         method: "POST",
-        body: JSON.stringify(pending)
+        body: JSON.stringify(pending),
+        ...(options.signal ? { signal: options.signal } : {})
       });
       root.localStorage.removeItem(pendingKey);
       return result;

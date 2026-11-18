@@ -15,12 +15,13 @@ const executablePath = [
   "C:/Program Files/Google/Chrome/Application/chrome.exe",
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
 ].find(fs.existsSync);
+const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
 
 (async () => {
   const browser = await chromium.launch({ headless: true, executablePath });
   try {
     const page = await browser.newPage({ viewport: { width: 1365, height: 900 } });
-    await page.goto("http://127.0.0.1:8780/", { waitUntil: "domcontentloaded" });
+    await page.goto(url, { waitUntil: "domcontentloaded" });
     await page.waitForSelector("#app:not([hidden])", { timeout: 45000 });
     const result = await page.evaluate(async () => {
       const taskTypes = ["supply", "drill", "patrol", "intelligence", "diplomacy"];

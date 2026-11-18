@@ -134,6 +134,17 @@ def test_every_exported_browser_client_method_is_used_by_the_game() -> None:
     assert unused == set()
 
 
+def test_career_reply_matcher_accepts_authoritative_task_action_phrases() -> None:
+    game = GAME_SOURCE.read_text(encoding="utf-8")
+
+    assert r"\u4ea4\u7ed9\u4f60|\u5b8c\u6210\u540e" in game
+    assert r"\u4e0d\u63a5|\u91cd\u65b0\u5b89\u6392" in game
+    assert (
+        r"^\u3010\u4efb\u52a1\u4e8b\u9879(?:\u5f00\u59cb|\u7ed3\u675f)\u3011"
+        in game
+    )
+
+
 def test_every_public_upstream_method_is_used_or_an_explicit_contract_probe() -> None:
     app_source = ROOT / "integration-service" / "src" / "dongzhou_integration" / "app.py"
     public = _public_upstream_methods()
