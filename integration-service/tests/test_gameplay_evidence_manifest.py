@@ -17,11 +17,21 @@ def test_current_gameplay_evidence_is_present_and_tracked() -> None:
     assert set(groups) == {
         "crossServiceContracts",
         "browserWorkflows",
+        "simulationWorkflows",
         "liveWorkflows",
+        "externalInputWorkflows",
         "readOnlyAcceptance",
     }
 
-    entries = [item for values in groups.values() for item in values]
+    external = groups["externalInputWorkflows"]
+    assert isinstance(external, dict) and external
+    assert all(isinstance(reason, str) and reason for reason in external.values())
+    entries = [
+        item
+        for name, values in groups.items()
+        if name != "externalInputWorkflows"
+        for item in values
+    ] + list(external)
     assert len(entries) == len(set(entries))
     assert all((ROOT / item).is_file() for item in entries)
 
@@ -33,3 +43,27 @@ def test_current_gameplay_evidence_is_present_and_tracked() -> None:
         encoding="utf-8",
     )
     assert tracked.returncode == 0, tracked.stderr
+
+    live_scripts = {
+        path.relative_to(ROOT).as_posix()
+        for path in (ROOT / "tools").glob("test-live-*.js")
+    }
+    browser_scripts = {
+        path.relative_to(ROOT).as_posix()
+        for path in (ROOT / "tools").glob("test-*-browser.js")
+        if not path.name.startswith("test-live-")
+    } | {"tools/test-organization-battle-transaction.js"}
+    simulation_scripts = {
+        path.relative_to(ROOT).as_posix()
+        for path in (ROOT / "tools").glob("test-*.js")
+    } - live_scripts - browser_scripts
+
+    external_scripts = set(external)
+    assert set(groups["liveWorkflows"]) | (external_scripts & live_scripts) == live_scripts
+    assert set(groups["browserWorkflows"]) == browser_scripts
+    assert (
+        set(groups["simulationWorkflows"])
+        | (external_scripts & simulation_scripts)
+        == simulation_scripts
+    )
+    assert external_scripts <= live_scripts | simulation_scripts
