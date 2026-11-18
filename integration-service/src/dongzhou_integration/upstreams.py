@@ -682,16 +682,6 @@ class Upstreams:
             payload={"game_server_id": str(self.settings.ainpc_game_server_id), "npc_id": str(npc_id), "request_id": request_id},
         )
 
-    async def request_npc_relogins(self, npcs: list[tuple[int, str]]) -> list[dict[str, Any]]:
-        semaphore = asyncio.Semaphore(8)
-
-        async def relogin(npc_id: int, request_id: str) -> dict[str, Any]:
-            async with semaphore:
-                receipt = await self.request_npc_relogin(npc_id, request_id)
-                return {"npcId": str(npc_id), "receipt": receipt}
-
-        return list(await asyncio.gather(*(relogin(npc_id, request_id) for npc_id, request_id in npcs)))
-
     async def online_npc_ids(self) -> set[str]:
         attempts = 3
         for attempt in range(attempts):

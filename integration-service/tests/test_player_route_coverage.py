@@ -9,6 +9,12 @@ ROOT = Path(__file__).resolve().parents[2]
 APP_SOURCE = ROOT / "integration-service" / "src" / "dongzhou_integration" / "app.py"
 CLIENT_SOURCE = ROOT / "web-game" / "integration-client.js"
 GAME_SOURCE = ROOT / "web-game" / "game.js"
+UPSTREAM_SOURCE = (
+    ROOT / "integration-service" / "src" / "dongzhou_integration" / "upstreams.py"
+)
+UPSTREAM_CONTRACT_TEST = (
+    ROOT / "integration-service" / "tests" / "test_upstream_contracts.py"
+)
 
 HTTP_METHODS = {"get", "post", "put", "patch", "delete"}
 REQUEST_CALL = re.compile(
@@ -21,6 +27,7 @@ REQUEST_METHOD = re.compile(
     r'^\s*,\s*\{\s*method\s*:\s*["\']([A-Z]+)["\']',
     re.DOTALL,
 )
+CONTRACT_ONLY_UPSTREAM_METHODS = {"request_npc_relogin"}
 
 
 def _shape(path: str) -> str:
@@ -75,6 +82,35 @@ def _exported_client_methods(source: str) -> set[str]:
     }
 
 
+def _public_upstream_methods() -> set[str]:
+    tree = ast.parse(
+        UPSTREAM_SOURCE.read_text(encoding="utf-8"), filename=str(UPSTREAM_SOURCE)
+    )
+    upstreams = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "Upstreams"
+    )
+    return {
+        node.name
+        for node in upstreams.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and not node.name.startswith("_")
+    }
+
+
+def _called_attribute_names(*sources: Path) -> set[str]:
+    called: set[str] = set()
+    for source in sources:
+        tree = ast.parse(source.read_text(encoding="utf-8"), filename=str(source))
+        called.update(
+            node.func.attr
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+        )
+    return called
+
+
 def test_every_gateway_player_route_has_a_matching_browser_http_call() -> None:
     client = CLIENT_SOURCE.read_text(encoding="utf-8")
     gateway_routes = _gateway_player_routes()
@@ -96,3 +132,17 @@ def test_every_exported_browser_client_method_is_used_by_the_game() -> None:
 
     assert len(exported) >= 50
     assert unused == set()
+
+
+def test_every_public_upstream_method_is_used_or_an_explicit_contract_probe() -> None:
+    app_source = ROOT / "integration-service" / "src" / "dongzhou_integration" / "app.py"
+    public = _public_upstream_methods()
+    called = _called_attribute_names(app_source, UPSTREAM_SOURCE)
+
+    assert len(public) >= 50
+    assert public - called == CONTRACT_ONLY_UPSTREAM_METHODS
+    contract_test = UPSTREAM_CONTRACT_TEST.read_text(encoding="utf-8")
+    assert all(
+        f"upstreams.{method}(" in contract_test
+        for method in CONTRACT_ONLY_UPSTREAM_METHODS
+    )
