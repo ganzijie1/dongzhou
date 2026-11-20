@@ -63,13 +63,13 @@ class Store:
     def __init__(self, path: Path) -> None:
         self.path = path
         self._lock = asyncio.Lock()
+        self._npc_runtime_cache: dict[tuple[str, str], dict[str, Any]] = {}
 
     @contextmanager
     def _connection(self) -> Iterator[sqlite3.Connection]:
         connection = sqlite3.connect(self.path, timeout=10)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys=ON")
-        connection.execute("PRAGMA journal_mode=WAL")
         try:
             yield connection
             connection.commit()
@@ -83,6 +83,9 @@ class Store:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         async with self._lock:
             with self._connection() as db:
+                # WAL mode persists with the database. Reapplying it for every
+                # hot-path read takes a schema lock and can stall the event loop.
+                db.execute("PRAGMA journal_mode=WAL")
                 db.executescript("""
                 CREATE TABLE IF NOT EXISTS players (
                   id TEXT PRIMARY KEY, installation_id TEXT NOT NULL UNIQUE,
@@ -175,6 +178,21 @@ class Store:
                     "INSERT OR IGNORE INTO player_game_clock(player_id, month) "
                     "SELECT id, 1 FROM players"
                 )
+                runtime_rows = db.execute(
+                    "SELECT game_server_id,npc_id,login_request_id,instance_id,"
+                    "instance_count,startup_id,ready_at FROM npc_runtime"
+                ).fetchall()
+                self._npc_runtime_cache = {
+                    (row["game_server_id"], row["npc_id"]): {
+                        "state": "READY",
+                        "loginRequestId": row["login_request_id"],
+                        "instanceId": row["instance_id"],
+                        "instanceCount": row["instance_count"],
+                        "startupId": row["startup_id"],
+                        "readyAt": row["ready_at"],
+                    }
+                    for row in runtime_rows
+                }
 
     async def mark_npc_ready(
         self,
@@ -185,34 +203,28 @@ class Store:
         instance_count: int | None,
         startup_id: str | None,
     ) -> None:
+        ready_at = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
         async with self._lock:
             with self._connection() as db:
                 db.execute(
-                    "INSERT INTO npc_runtime(game_server_id,npc_id,login_request_id,instance_id,instance_count,startup_id) "
-                    "VALUES (?,?,?,?,?,?) ON CONFLICT(game_server_id,npc_id) DO UPDATE SET "
+                    "INSERT INTO npc_runtime(game_server_id,npc_id,login_request_id,instance_id,instance_count,startup_id,ready_at) "
+                    "VALUES (?,?,?,?,?,?,?) ON CONFLICT(game_server_id,npc_id) DO UPDATE SET "
                     "login_request_id=excluded.login_request_id,instance_id=excluded.instance_id,"
-                    "instance_count=excluded.instance_count,startup_id=excluded.startup_id,ready_at=CURRENT_TIMESTAMP",
-                    (game_server_id, npc_id, login_request_id, instance_id, instance_count, startup_id),
+                    "instance_count=excluded.instance_count,startup_id=excluded.startup_id,ready_at=excluded.ready_at",
+                    (game_server_id, npc_id, login_request_id, instance_id, instance_count, startup_id, ready_at),
                 )
+            self._npc_runtime_cache[(game_server_id, npc_id)] = {
+                "state": "READY",
+                "loginRequestId": login_request_id,
+                "instanceId": instance_id,
+                "instanceCount": instance_count,
+                "startupId": startup_id,
+                "readyAt": ready_at,
+            }
 
     async def read_npc_runtime(self, game_server_id: str, npc_id: str) -> dict[str, Any] | None:
-        async with self._lock:
-            with self._connection() as db:
-                row = db.execute(
-                    "SELECT login_request_id,instance_id,instance_count,startup_id,ready_at "
-                    "FROM npc_runtime WHERE game_server_id=? AND npc_id=?",
-                    (game_server_id, npc_id),
-                ).fetchone()
-        if row is None:
-            return None
-        return {
-            "state": "READY",
-            "loginRequestId": row["login_request_id"],
-            "instanceId": row["instance_id"],
-            "instanceCount": row["instance_count"],
-            "startupId": row["startup_id"],
-            "readyAt": row["ready_at"],
-        }
+        runtime = self._npc_runtime_cache.get((game_server_id, npc_id))
+        return dict(runtime) if runtime is not None else None
 
     async def record_public_message(self, message_id: str, game_server_id: str, npc_id: str, payload: dict[str, Any]) -> bool:
         encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
@@ -670,8 +682,13 @@ class Store:
         async with self._lock:
             with self._connection() as db:
                 rows = db.execute(
-                    "SELECT chat_id,task_id,start_payload FROM private_chat_sessions "
-                    "WHERE game_server_id=? ORDER BY created_at,task_id",
+                    "SELECT sessions.chat_id,sessions.task_id,sessions.start_payload,"
+                    "(SELECT messages.payload FROM private_chat_messages AS messages "
+                    "WHERE messages.game_server_id=sessions.game_server_id "
+                    "AND messages.chat_id=sessions.chat_id AND messages.task_id=sessions.task_id "
+                    "ORDER BY messages.delivered_at DESC,messages.message_id DESC LIMIT 1) AS last_payload "
+                    "FROM private_chat_sessions AS sessions "
+                    "WHERE sessions.game_server_id=? ORDER BY sessions.created_at,sessions.task_id",
                     (game_server_id,),
                 ).fetchall()
                 sessions_by_chat: dict[str, dict[str, Any]] = {}
@@ -697,15 +714,9 @@ class Store:
                     )
                     if peer is None:
                         continue
-                    last = db.execute(
-                        "SELECT payload FROM private_chat_messages "
-                        "WHERE game_server_id=? AND chat_id=? AND task_id=? "
-                        "ORDER BY delivered_at DESC,message_id DESC LIMIT 1",
-                        (game_server_id, row["chat_id"], row["task_id"]),
-                    ).fetchone()
                     terminal = False
-                    if last is not None:
-                        payload = json.loads(last["payload"])
+                    if row["last_payload"] is not None:
+                        payload = json.loads(row["last_payload"])
                         data = payload.get("data") or {}
                         message = data.get("message") or {}
                         terminal = data.get("isFinish") is True or message.get("isStopped") is True

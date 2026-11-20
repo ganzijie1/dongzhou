@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import contextmanager
 import json
 import hashlib
 import hmac
 from pathlib import Path
+import sqlite3
 from tempfile import TemporaryDirectory
 import time
 import unittest
@@ -1499,6 +1501,82 @@ class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
         expected = hmac.new(b"o" * 32, material, hashlib.sha256).hexdigest()
         self.assertEqual(headers["X-Org-Service-Signature"], expected)
         self.assertEqual(len(headers["X-Org-Service-Nonce"]), 64)
+
+
+class StoreRuntimeQueryTests(unittest.TestCase):
+    def test_npc_runtime_reads_use_the_persisted_startup_cache(self) -> None:
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "runtime.sqlite3"
+            store = Store(path)
+            asyncio.run(store.start())
+            asyncio.run(store.mark_npc_ready("91001", "101", "login-1", 0, 1, "startup-1"))
+
+            with patch.object(store, "_connection", side_effect=AssertionError("unexpected database read")):
+                runtime = asyncio.run(store.read_npc_runtime("91001", "101"))
+                self.assertEqual(runtime["loginRequestId"], "login-1")
+                self.assertIsNone(asyncio.run(store.read_npc_runtime("91001", "missing")))
+
+            restarted = Store(path)
+            asyncio.run(restarted.start())
+            persisted = asyncio.run(restarted.read_npc_runtime("91001", "101"))
+            self.assertEqual(persisted, runtime)
+
+    def test_private_chat_runtime_state_uses_one_bounded_select(self) -> None:
+        with TemporaryDirectory() as directory:
+            store = Store(Path(directory) / "runtime.sqlite3")
+            asyncio.run(store.start())
+            for index in range(20):
+                chat_id = f"101_{200 + index}"
+                task_id = f"task-{index}"
+                asyncio.run(store.register_private_chat({
+                    "gameServerId": "91001",
+                    "npcId": "101",
+                    "chatId": chat_id,
+                    "taskId": task_id,
+                    "topic": "court duty",
+                    "participants": [
+                        {"id": "101", "type": "NPC"},
+                        {"id": str(200 + index), "type": "PLAYER"},
+                    ],
+                }))
+                asyncio.run(store.record_private_message({
+                    "gameServerId": "91001",
+                    "aiId": "101",
+                    "chatId": chat_id,
+                    "taskId": task_id,
+                    "data": {
+                        "message": {"id": f"message-{index}", "speakerId": "101"},
+                        "isFinish": index % 2 == 0,
+                    },
+                }))
+
+            statements: list[str] = []
+
+            @contextmanager
+            def traced_connection():
+                connection = sqlite3.connect(store.path, timeout=10)
+                connection.row_factory = sqlite3.Row
+                connection.execute("PRAGMA foreign_keys=ON")
+                connection.set_trace_callback(statements.append)
+                try:
+                    yield connection
+                    connection.commit()
+                except BaseException:
+                    connection.rollback()
+                    raise
+                finally:
+                    connection.close()
+
+            with patch.object(store, "_connection", traced_connection):
+                result = asyncio.run(store.private_chat_runtime_state("91001", "101"))
+
+            selects = [statement for statement in statements if statement.lstrip().upper().startswith("SELECT")]
+            self.assertEqual(len(selects), 1, selects)
+            self.assertEqual(len(result["sessions"]), 20)
+            self.assertEqual(
+                {session["phase"] for session in result["sessions"]},
+                {"active", "finished"},
+            )
 
 
 class AuthenticationRouteTests(unittest.TestCase):
