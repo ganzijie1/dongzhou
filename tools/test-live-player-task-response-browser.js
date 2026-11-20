@@ -41,15 +41,28 @@ async function readTasks(page) {
   return getJson(page, "/api/dongzhou/v1/organization/player-tasks");
 }
 
+function isRetryableReadError(error) {
+  const message = String(error?.message || error);
+  return /(?:failed:\s*(?:429|502|503|504)\b|failed to fetch|networkerror|econnreset|socket hang up)/i.test(message);
+}
+
 async function waitFor(page, reader, predicate, label) {
   const deadline = Date.now() + timeout;
   let value = null;
+  let lastError = null;
   while (Date.now() < deadline) {
-    value = await reader(page);
-    if (predicate(value)) return value;
+    try {
+      value = await reader(page);
+      lastError = null;
+      if (predicate(value)) return value;
+    } catch (error) {
+      if (!isRetryableReadError(error)) throw error;
+      lastError = error;
+    }
     await page.waitForTimeout(2000);
   }
-  throw new Error(`${label} did not become authoritative: ${JSON.stringify(value)}`);
+  const detail = lastError ? lastError.message : JSON.stringify(value);
+  throw new Error(`${label} did not become authoritative: ${detail}`);
 }
 
 async function careerAction(page, selector, label) {

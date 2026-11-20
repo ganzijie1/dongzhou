@@ -291,6 +291,7 @@ class Store:
             with self._connection() as db:
                 rows = db.execute(
                     "SELECT directory.npc_id,directory.npc_name,directory.hero_id,"
+                    "runtime.login_request_id,"
                     "CASE WHEN runtime.npc_id IS NULL THEN 0 ELSE 1 END AS is_online "
                     "FROM npc_directory AS directory LEFT JOIN npc_runtime AS runtime "
                     "ON runtime.game_server_id=directory.game_server_id "
@@ -300,16 +301,19 @@ class Store:
                     + "ORDER BY directory.npc_id",
                     (game_server_id,),
                 ).fetchall()
-        return [
-            {
+        result = []
+        for row in rows:
+            npc = {
                 "id": row["npc_id"],
                 "name": row["npc_name"],
                 "heroId": row["hero_id"],
                 "serverId": game_server_id,
                 "isOnline": int(row["is_online"]),
             }
-            for row in rows
-        ]
+            if row["login_request_id"]:
+                npc["loginRequestId"] = row["login_request_id"]
+            result.append(npc)
+        return result
 
     async def enqueue_game_event(
         self,

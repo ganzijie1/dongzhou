@@ -975,6 +975,27 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(attempts, 3)
 
+    async def test_actor_recovery_replays_persisted_login_request_id(self) -> None:
+        payloads: list[dict[str, object]] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            payloads.append(json.loads(request.content))
+            return httpx.Response(200, json={"code": 200, "message": "accepted"})
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            upstreams = Upstreams(settings(Path("unused")), client)
+            await upstreams.set_npcs_online(
+                [{
+                    "npcId": "42",
+                    "name": "Du Bo",
+                    "loginRequestId": "persisted-login-42",
+                }],
+                "0771-01-01 14:00:00",
+                "new-recovery-round",
+            )
+
+        self.assertEqual(payloads[0]["loginRequestId"], "persisted-login-42")
+
     def test_failed_decision_is_retryable_with_same_request_id(self) -> None:
         attempts = []
 

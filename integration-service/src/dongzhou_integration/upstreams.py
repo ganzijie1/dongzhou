@@ -665,7 +665,8 @@ class Upstreams:
                         "gameTime": game_time,
                         "gameServerId": str(self.settings.ainpc_game_server_id),
                         "state": 1,
-                        "loginRequestId": f"{login_round}-{npc['npcId']}",
+                        "loginRequestId": npc.get("loginRequestId")
+                        or f"{login_round}-{npc['npcId']}",
                     },
                 )
                 if receipt.get("code") not in (0, 200, "0", "200"):

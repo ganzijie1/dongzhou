@@ -280,18 +280,16 @@ class RuntimeModule(Module):
                     await self.store.finish_game_event(event["eventId"])
 
     async def _reconcile_npcs(self) -> None:
-        force_relogin = True
         while True:
             try:
-                await self._reconcile_npcs_once(force_relogin=force_relogin)
+                await self._reconcile_npcs_once()
             except Exception:
                 await asyncio.sleep(5)
                 continue
-            force_relogin = False
             await asyncio.sleep(30)
 
 
-    async def _reconcile_npcs_once(self, *, force_relogin: bool = False) -> None:
+    async def _reconcile_npcs_once(self) -> None:
         login_round = "dongzhou-recovery-" + datetime.now(UTC).strftime(
             "%Y%m%dT%H%M%S%fZ"
         )
@@ -306,18 +304,30 @@ class RuntimeModule(Module):
                 "heroId": str(row["heroId"]),
                 "name": str(row["name"]),
                 "npcId": str(row["id"]),
+                **(
+                    {"loginRequestId": str(row["loginRequestId"])}
+                    if row.get("loginRequestId")
+                    else {}
+                ),
             }
             for row in rows
         ]
         online_ids = await self.upstreams.online_npc_ids()
         missing = [npc for npc in npcs if npc["npcId"] not in online_ids]
-        pending = npcs if force_relogin else missing
         if missing:
-            await self.upstreams.register_npcs(missing)
-        if pending:
+            await self.upstreams.register_npcs(
+                [
+                    {
+                        "heroId": npc["heroId"],
+                        "name": npc["name"],
+                        "npcId": npc["npcId"],
+                    }
+                    for npc in missing
+                ]
+            )
             clock = await self.store.read_game_clock()
             await self.upstreams.set_npcs_online(
-                pending,
+                missing,
                 str(clock["virtualTime"]),
                 login_round,
             )

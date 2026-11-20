@@ -1238,7 +1238,10 @@ class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
             await RuntimeModule(store, upstreams, settings)._reconcile_npcs_once()
 
         self.assertEqual(upstreams.registrations, [roster])
-        self.assertEqual(upstreams.activations[0][0], roster)
+        self.assertEqual(
+            upstreams.activations[0][0],
+            [{**roster[0], "loginRequestId": "login-42"}],
+        )
 
     async def test_restart_does_not_reactivate_ready_online_actor(self) -> None:
         with TemporaryDirectory() as directory, patch.dict(
@@ -1347,14 +1350,12 @@ class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
             await store.upsert_npc_directory(settings.game_server_id, roster)
             upstreams = _NpcRecoveryUpstreams(roster_unavailable=True)
 
-            await RuntimeModule(store, upstreams, settings)._reconcile_npcs_once(
-                force_relogin=True
-            )
+            await RuntimeModule(store, upstreams, settings)._reconcile_npcs_once()
 
         self.assertEqual(len(upstreams.activations), 1)
         self.assertEqual(upstreams.activations[0][0], roster)
 
-    async def test_cold_start_reactivates_actor_despite_stale_online_directory_flag(self) -> None:
+    async def test_cold_start_preserves_online_actor_incarnation(self) -> None:
         with TemporaryDirectory() as directory, patch.dict(
             "os.environ",
             {
@@ -1370,12 +1371,10 @@ class UpstreamCompatibilityTests(unittest.IsolatedAsyncioTestCase):
             await store.upsert_npc_directory(settings.game_server_id, roster)
             upstreams = _NpcRecoveryUpstreams(online_ids={"42"})
 
-            await RuntimeModule(store, upstreams, settings)._reconcile_npcs_once(
-                force_relogin=True
-            )
+            await RuntimeModule(store, upstreams, settings)._reconcile_npcs_once()
 
         self.assertEqual(upstreams.registrations, [])
-        self.assertEqual(upstreams.activations[0][0], roster)
+        self.assertEqual(upstreams.activations, [])
 
     async def test_orgflow_v1_catalog_fallback_preserves_context_in_brief(self) -> None:
         observed: list[dict[str, object]] = []
