@@ -21,6 +21,7 @@
     "simulationWorkflows": [
       "tools/test-council-chain.js",
       "tools/test-diplomacy-postbattle.js",
+      "tools/test-four-service-runtime-gate.js",
       "tools/test-game-systems.js",
       "tools/test-integration-client.js",
       "tools/test-integration-client-offline.js",
