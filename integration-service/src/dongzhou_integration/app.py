@@ -1294,6 +1294,23 @@ class ServiceProvenanceModule(Module):
         }
 
 
+def _service_provenance_receipt_matches(
+    receipt: Any, expected: dict[str, Any]
+) -> bool:
+    if not isinstance(receipt, dict):
+        return False
+    try:
+        sealed = ServiceProvenanceModule.seal(
+            {
+                "schemaVersion": receipt.get("schemaVersion"),
+                "services": receipt.get("services"),
+            }
+        )
+    except (TypeError, ValueError):
+        return False
+    return sealed == receipt and receipt.get("digest") == expected.get("digest")
+
+
 class BattleDebriefModule(Module):
     name = "dongzhou_battle_debrief"
     version = "1.1.0"
@@ -8893,6 +8910,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "assignment": assignment,
             **({"collaboration": collaboration} if collaboration is not None else {}),
             "emergency": emergency,
+            "sourceProvenance": service_provenance.receipt(),
             "kernel": {
                 "module": MandateWorkflowModule.name,
                 "moduleVersion": MandateWorkflowModule.version,
@@ -10645,6 +10663,14 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     "court_mandate_mismatch",
                     "The court mandate does not match this organization order.",
                     status_code=422,
+                )
+            if not _service_provenance_receipt_matches(
+                mandate.get("sourceProvenance"), service_provenance.receipt()
+            ):
+                raise ApiError(
+                    "court_mandate_source_provenance_mismatch",
+                    "The court mandate was not sealed by the current four-service runtime.",
+                    status_code=409,
                 )
             schedule_event_id = f"dongzhou-mandate-{mandate_digest[:32]}"
             schedule_request = await store.read_external_request(

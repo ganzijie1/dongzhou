@@ -16,15 +16,32 @@ from fastapi.testclient import TestClient
 from dongzhou_integration.app import (
     _composite_authoritative_settlement,
     _derived_follow_ups,
+    _service_provenance_receipt_matches,
+    ServiceProvenanceModule,
     build_application,
 )
 from dongzhou_integration.config import Settings
 from dongzhou_integration.security import stable_npc_id, stable_player_id
+from dongzhou_integration.service_sources import public_service_sources
 from dongzhou_integration.store import Store
 
 MANAGER_NPC_ID = str(stable_npc_id(91001, "DuBo"))
 ZUORU_NPC_ID = str(stable_npc_id(91001, "ZuoRu"))
 QIN_NPC_ID = str(stable_npc_id(91001, "QinXiangGong"))
+
+
+def test_service_provenance_receipt_requires_current_exact_seal() -> None:
+    expected = ServiceProvenanceModule.seal(public_service_sources())
+    assert _service_provenance_receipt_matches(expected, expected) is True
+
+    tampered = json.loads(json.dumps(expected))
+    tampered["services"]["aiNpc"]["sourceRevision"] = "0" * 40
+    assert _service_provenance_receipt_matches(tampered, expected) is False
+
+    prior_manifest = public_service_sources()
+    prior_manifest["services"]["aiNpc"]["sourceRevision"] = "0" * 40
+    prior = ServiceProvenanceModule.seal(prior_manifest)
+    assert _service_provenance_receipt_matches(prior, expected) is False
 
 
 def test_derived_follow_up_accepts_localized_authoritative_defaults() -> None:
@@ -844,6 +861,15 @@ def test_mandate_resume_and_schedule_recover_after_source_drift() -> None:
             assert drafted.status_code == 200, drafted.text
             draft = drafted.json()
             mandate_id = draft["mandate"]["id"]
+            provenance = draft["mandate"]["sourceProvenance"]
+            assert provenance["kernel"]["state"] == "SEALED"
+            assert set(provenance["services"]) == {
+                "knowledge",
+                "aiNpc",
+                "orgFlow",
+                "nexusKernel",
+            }
+            assert len(provenance["digest"]) == 64
 
             upstreams.source_attested["orgFlow"] = False
             blocked_resume = client.post(
