@@ -51,6 +51,19 @@ _BATTLE_SUPPORT_EFFECT_KEYS = (
     "defense",
     "recon",
 )
+_REQUIRED_SERVICE_NAMES = ("knowledge", "aiNpc", "orgFlow", "nexusKernel")
+
+
+def _unavailable_required_services(
+    services: dict[str, dict[str, Any]],
+) -> list[str]:
+    return [
+        name
+        for name in _REQUIRED_SERVICE_NAMES
+        if services.get(name, {}).get("online") is not True
+        or services.get(name, {}).get("sourceAttested") is not True
+    ]
+
 
 _DONGZHOU_DUTIES = {
     9100101: "朝会听政",
@@ -6053,6 +6066,13 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "Battle report has not passed kernel verification.",
                 status_code=409,
             )
+        runtime_services = service_statuses(await upstreams.health())
+        if _unavailable_required_services(runtime_services):
+            raise ApiError(
+                "battle_debrief_requires_four_services",
+                "A four-service debrief requires healthy source-attested runtimes.",
+                status_code=409,
+            )
         verified_support = receipt.get("verifiedSupport")
         orders = (
             verified_support.get("orders")
@@ -11801,19 +11821,14 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     def health() -> dict[str, Any]:
         snapshot = kernel.health_status()
         services = service_statuses(module.services)
-        required_services = ("knowledge", "aiNpc", "orgFlow", "nexusKernel")
-        unavailable_services = [
-            name
-            for name in required_services
-            if services.get(name, {}).get("online") is not True
-        ]
+        unavailable_services = _unavailable_required_services(services)
         source_drift_services = [
             name
-            for name in required_services
+            for name in _REQUIRED_SERVICE_NAMES
             if services.get(name, {}).get("sourceAttested") is False
         ]
         snapshot["services"] = services
-        snapshot["requiredServices"] = list(required_services)
+        snapshot["requiredServices"] = list(_REQUIRED_SERVICE_NAMES)
         snapshot["unavailableServices"] = unavailable_services
         snapshot["sourceDriftServices"] = source_drift_services
         if not module.services or unavailable_services:

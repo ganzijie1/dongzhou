@@ -44,6 +44,7 @@ from dongzhou_integration.app import (
     _validate_dongzhou_roster_contract,
     _organization_task_trace_view,
     _organization_task_chance,
+    _unavailable_required_services,
     _prepare_due_organization_reports,
     _repair_utf8_mojibake,
     _seal_battle_reports,
@@ -61,9 +62,9 @@ from dongzhou_integration.upstreams import UpstreamUnavailable, Upstreams
 class _HealthyUpstreams:
     async def health(self):
         return {
-            "orgFlow": {"online": True},
-            "aiNpc": {"online": True},
-            "knowledge": {"online": True},
+            "orgFlow": {"online": True, "sourceAttested": True},
+            "aiNpc": {"online": True, "sourceAttested": True},
+            "knowledge": {"online": True, "sourceAttested": True},
         }
 
     async def close(self):
@@ -1117,6 +1118,20 @@ class ServiceProvenanceModuleTests(unittest.TestCase):
 
 
 class BattleDebriefModuleTests(unittest.TestCase):
+    def test_requires_all_four_source_attested_runtimes(self) -> None:
+        services = {
+            name: {"online": True, "sourceAttested": True}
+            for name in ("knowledge", "aiNpc", "orgFlow", "nexusKernel")
+        }
+        self.assertEqual(_unavailable_required_services(services), [])
+
+        services["aiNpc"] = {
+            "online": False,
+            "sourceAttested": False,
+            "reason": "source_attestation_failed",
+        }
+        self.assertEqual(_unavailable_required_services(services), ["aiNpc"])
+
     def test_maps_verified_local_orders_to_remote_task_traces(self) -> None:
         first = str(uuid4())
         second = str(uuid4())
