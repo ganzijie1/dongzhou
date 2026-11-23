@@ -728,6 +728,16 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
 
         def handler(request: httpx.Request) -> httpx.Response:
             paths.append(request.url.path)
+            if request.url.path == "/health/ready":
+                return httpx.Response(200, json={
+                    "data": {
+                        "status": "healthy",
+                        "source": {
+                            "branch": "develop",
+                            "revision": "8b1049e965719d31c51772dde799737e9b92e918",
+                        },
+                    },
+                })
             if request.url.path == "/health":
                 return httpx.Response(200, json={
                     "code": 0,
@@ -768,6 +778,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["knowledge"]["dongzhouAkuCount"], 172)
         self.assertTrue(result["knowledge"]["sourceAttested"])
         self.assertTrue(result["aiNpc"]["sourceAttested"])
+        self.assertTrue(result["orgFlow"]["sourceAttested"])
         self.assertEqual(
             set(paths),
             {"/health/ready", "/readiness", "/health"},

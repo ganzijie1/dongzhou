@@ -2355,7 +2355,7 @@ class AuthenticationRouteTests(unittest.TestCase):
                     "nexusKernel": ("develop", "190abb1", "2a68d6b"),
                     "aiNpc": ("develop", "8a7b673", "eb6189f"),
                     "knowledge": ("main", "45afa2f", "660d65b"),
-                    "orgFlow": ("develop", "8b1049e", "07115df"),
+                    "orgFlow": ("develop", "8b1049e", "fbfc803"),
                 }
                 for service_name, (branch, source, integrated) in expected_sources.items():
                     service = status.json()["services"][service_name]

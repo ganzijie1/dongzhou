@@ -48,12 +48,13 @@ def _status() -> dict:
     )
     services["knowledge"]["sourceAttested"] = True
     services["aiNpc"]["sourceAttested"] = True
+    services["orgFlow"]["sourceAttested"] = True
     return {"mode": "connected", "services": services}
 
 
 def test_source_seal_matches_the_frozen_runtime_manifest() -> None:
     assert verifier.expected_source_seal() == (
-        "8e7f4a1c9289f1dd1b760f72a1983a5737366f3225f3202baa8f2cd6bb63898b"
+        "5f609b538ff884c9ec3eb133ef30944155785fdc3e6adab670e54353de395488"
     )
 
 
@@ -115,6 +116,11 @@ def test_live_status_requires_all_pinned_services_and_modules() -> None:
     unattested_ainpc["services"]["aiNpc"]["sourceAttested"] = False
     with pytest.raises(ValueError, match="aiNpc runtime did not attest"):
         verifier.validate_live_status(unattested_ainpc, seal)
+
+    unattested_orgflow = _status()
+    unattested_orgflow["services"]["orgFlow"]["sourceAttested"] = False
+    with pytest.raises(ValueError, match="orgFlow runtime did not attest"):
+        verifier.validate_live_status(unattested_orgflow, seal)
 
     incomplete = _status()
     incomplete["services"]["nexusKernel"]["operationalModuleCount"] = 19

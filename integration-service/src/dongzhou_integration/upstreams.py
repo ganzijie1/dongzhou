@@ -219,6 +219,18 @@ class Upstreams:
         async def probe(name: str, url: str) -> tuple[str, dict[str, Any]]:
             try:
                 payload = await self._json("GET", url)
+                if name == "orgFlow":
+                    data = payload.get("data")
+                    source = data.get("source") if isinstance(data, dict) else None
+                    expected_source = SERVICE_SOURCES["orgFlow"]
+                    return name, {
+                        "online": True,
+                        "sourceAttested": bool(
+                            isinstance(source, dict)
+                            and source.get("branch") == expected_source["sourceBranch"]
+                            and source.get("revision") == expected_source["sourceRevision"]
+                        ),
+                    }
                 if name == "aiNpc" and payload.get("ready") is not True:
                     raise UpstreamUnavailable("AINPC gateway readiness is false")
                 if name == "aiNpc":

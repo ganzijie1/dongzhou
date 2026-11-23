@@ -28,7 +28,7 @@ SERVICE_SOURCES: dict[str, dict[str, str]] = {
         "sourceUrl": "ssh://git@git.nd.com.cn:10022/AIGames/orgFlowEngine.git",
         "sourceBranch": "develop",
         "sourceRevision": "8b1049e965719d31c51772dde799737e9b92e918",
-        "integrationRevision": "07115dfc2d6120f03310daa4cc948021abd5f308",
+        "integrationRevision": "fbfc803b264c2c1e1dffe80c8da1bb5caa676cc3",
     },
     "nexusKernel": {
         "submodulePath": "services/NexusKernel",
