@@ -2370,12 +2370,27 @@ class AuthenticationRouteTests(unittest.TestCase):
                     {"sourceRevision": "0" * 40},
                 ):
                     drifted = client.get("/api/dongzhou/v1/integration/status")
+                    drifted_ready = client.get("/health/ready")
                 drifted_nexus = drifted.json()["services"]["nexusKernel"]
                 self.assertFalse(drifted_nexus["online"])
                 self.assertFalse(drifted_nexus["sourceAttested"])
                 self.assertEqual(
                     drifted_nexus["reason"],
                     "source_attestation_failed",
+                )
+                drifted_health = drifted_ready.json()["data"]
+                self.assertEqual(drifted_health["status"], "degraded")
+                self.assertEqual(
+                    drifted_health["requiredServices"],
+                    ["knowledge", "aiNpc", "orgFlow", "nexusKernel"],
+                )
+                self.assertEqual(
+                    drifted_health["unavailableServices"],
+                    ["nexusKernel"],
+                )
+                self.assertEqual(
+                    drifted_health["sourceDriftServices"],
+                    ["nexusKernel"],
                 )
 
                 merit_module = next(

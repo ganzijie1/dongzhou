@@ -11786,8 +11786,22 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     def health() -> dict[str, Any]:
         snapshot = kernel.health_status()
         services = service_statuses(module.services)
+        required_services = ("knowledge", "aiNpc", "orgFlow", "nexusKernel")
+        unavailable_services = [
+            name
+            for name in required_services
+            if services.get(name, {}).get("online") is not True
+        ]
+        source_drift_services = [
+            name
+            for name in required_services
+            if services.get(name, {}).get("sourceAttested") is False
+        ]
         snapshot["services"] = services
-        if not module.services or not all(item.get("online") for item in services.values()):
+        snapshot["requiredServices"] = list(required_services)
+        snapshot["unavailableServices"] = unavailable_services
+        snapshot["sourceDriftServices"] = source_drift_services
+        if not module.services or unavailable_services:
             snapshot["status"] = "degraded"
         return snapshot
 

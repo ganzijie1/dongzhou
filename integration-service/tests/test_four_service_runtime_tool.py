@@ -134,6 +134,23 @@ def test_live_status_requires_all_pinned_services_and_modules() -> None:
         verifier.validate_live_status(incomplete, seal)
 
 
+def test_gateway_readiness_requires_all_four_attested_services() -> None:
+    ready = {
+        "status": "healthy",
+        "requiredServices": ["knowledge", "aiNpc", "orgFlow", "nexusKernel"],
+        "unavailableServices": [],
+        "sourceDriftServices": [],
+    }
+    verifier.validate_gateway_readiness(ready)
+
+    drifted = deepcopy(ready)
+    drifted["status"] = "degraded"
+    drifted["unavailableServices"] = ["nexusKernel"]
+    drifted["sourceDriftServices"] = ["nexusKernel"]
+    with pytest.raises(ValueError, match="readiness is not healthy"):
+        verifier.validate_gateway_readiness(drifted)
+
+
 def test_cli_has_no_publish_or_write_mode() -> None:
     source = (ROOT / "tools" / "verify_four_service_runtime.py").read_text(
         encoding="utf-8"

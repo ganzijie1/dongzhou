@@ -173,6 +173,18 @@ def validate_live_status(status: dict, expected_seal: str) -> dict:
     }
 
 
+def validate_gateway_readiness(readiness: dict) -> None:
+    required = ["knowledge", "aiNpc", "orgFlow", "nexusKernel"]
+    if readiness.get("status") != "healthy":
+        raise ValueError("integration gateway readiness is not healthy")
+    if readiness.get("requiredServices") != required:
+        raise ValueError("integration gateway required-service list is invalid")
+    if readiness.get("unavailableServices") != []:
+        raise ValueError("integration gateway reports unavailable services")
+    if readiness.get("sourceDriftServices") != []:
+        raise ValueError("integration gateway reports source drift")
+
+
 def _python_executable() -> Path:
     candidate = ROOT / "integration-service" / ".venv" / "Scripts" / "python.exe"
     return candidate if candidate.is_file() else Path(sys.executable)
@@ -244,6 +256,8 @@ def _json_request(opener, method: str, url: str, payload: dict | None = None) ->
 def verify_live(base_url: str, expected_seal: str) -> dict:
     opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(CookieJar()))
     base = base_url.rstrip("/")
+    readiness = _json_request(opener, "GET", f"{base}/health/ready")
+    validate_gateway_readiness(readiness)
     guest = _json_request(
         opener,
         "POST",
@@ -253,7 +267,10 @@ def verify_live(base_url: str, expected_seal: str) -> dict:
     if not guest.get("playerId"):
         raise ValueError("guest session has no player identity")
     status = _json_request(opener, "GET", f"{base}/api/dongzhou/v1/integration/status")
-    return validate_live_status(status, expected_seal)
+    return {
+        **validate_live_status(status, expected_seal),
+        "gatewayReadiness": readiness["status"],
+    }
 
 
 def main() -> int:
