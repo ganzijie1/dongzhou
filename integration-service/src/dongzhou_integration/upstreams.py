@@ -10,6 +10,7 @@ import httpx
 
 from .config import Settings
 from .security import sign_orgflow_request
+from .service_sources import SERVICE_SOURCES
 
 
 _DONGZHOU_CORPUS_SIZE = 172
@@ -249,10 +250,18 @@ class Upstreams:
                         raise UpstreamUnavailable(
                             "knowledge index does not contain the complete Dongzhou corpus"
                         )
+                    source = data.get("source")
+                    expected_source = SERVICE_SOURCES["knowledge"]
+                    source_attested = bool(
+                        isinstance(source, dict)
+                        and source.get("branch") == expected_source["sourceBranch"]
+                        and source.get("revision") == expected_source["sourceRevision"]
+                    )
                     return name, {
                         "online": True,
                         "akuCount": aku_count,
                         "dongzhouAkuCount": dongzhou_aku_count,
+                        "sourceAttested": source_attested,
                     }
                 return name, {"online": True}
             except UpstreamUnavailable as error:

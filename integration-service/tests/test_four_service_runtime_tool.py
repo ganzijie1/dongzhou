@@ -46,12 +46,13 @@ def _status() -> dict:
             "sourceProvenance": {"kernel": {"state": "SEALED"}},
         }
     )
+    services["knowledge"]["sourceAttested"] = True
     return {"mode": "connected", "services": services}
 
 
 def test_source_seal_matches_the_frozen_runtime_manifest() -> None:
     assert verifier.expected_source_seal() == (
-        "d2b715c2a3d2a5b6a93999c6e6ff912453e30acf8f837f0fe968f49cdfbea7da"
+        "899881504e06dd7491155f3817bb68883b5f73b5f15091d8551c35d9a01a15c7"
     )
 
 
@@ -103,6 +104,11 @@ def test_live_status_requires_all_pinned_services_and_modules() -> None:
     drifted["services"]["knowledge"]["sourceRevision"] = "0" * 40
     with pytest.raises(ValueError, match="sourceRevision"):
         verifier.validate_live_status(drifted, seal)
+
+    unattested = _status()
+    unattested["services"]["knowledge"]["sourceAttested"] = False
+    with pytest.raises(ValueError, match="did not attest"):
+        verifier.validate_live_status(unattested, seal)
 
     incomplete = _status()
     incomplete["services"]["nexusKernel"]["operationalModuleCount"] = 19

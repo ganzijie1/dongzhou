@@ -743,6 +743,10 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                             "dongzhou_aku_count": 172,
                             "dongzhou_corpus_complete": True,
                         },
+                        "source": {
+                            "branch": "main",
+                            "revision": "45afa2ffe77faea0622e8d3ed3f2b69c0cab9c56",
+                        },
                     },
                 })
             return httpx.Response(200, json={"status": "ready", "ready": True})
@@ -753,10 +757,38 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all(item["online"] for item in result.values()))
         self.assertEqual(result["knowledge"]["akuCount"], 240)
         self.assertEqual(result["knowledge"]["dongzhouAkuCount"], 172)
+        self.assertTrue(result["knowledge"]["sourceAttested"])
         self.assertEqual(
             set(paths),
             {"/health/ready", "/readiness", "/health"},
         )
+
+    async def test_health_marks_mismatched_knowledge_source_unattested(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.url.path != "/health":
+                return httpx.Response(200, json={"ready": True})
+            return httpx.Response(200, json={
+                "data": {
+                    "status": "healthy",
+                    "components": {
+                        "qdrant": {"status": "up"},
+                        "elasticsearch": {"status": "up"},
+                        "neo4j": {"status": "up"},
+                    },
+                    "stats": {
+                        "aku_count": 172,
+                        "dongzhou_aku_count": 172,
+                        "dongzhou_corpus_complete": True,
+                    },
+                    "source": {"branch": "main", "revision": "0" * 40},
+                },
+            })
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            result = await Upstreams(settings(Path("unused")), client).health()
+
+        self.assertTrue(result["knowledge"]["online"])
+        self.assertFalse(result["knowledge"]["sourceAttested"])
 
     async def test_health_rejects_false_ainpc_readiness(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:

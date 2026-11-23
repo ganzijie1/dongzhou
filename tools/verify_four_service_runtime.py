@@ -144,6 +144,9 @@ def validate_live_status(status: dict, expected_seal: str) -> dict:
         if service.get("sourceSealDigest") != expected_seal:
             raise ValueError(f"{service_name} source seal does not match the pinned manifest")
 
+    if services["knowledge"].get("sourceAttested") is not True:
+        raise ValueError("knowledge runtime did not attest its pinned GitLab source")
+
     nexus = services["nexusKernel"]
     if nexus.get("serviceProvenanceState") != "ready":
         raise ValueError("Nexus service provenance module is not ready")
