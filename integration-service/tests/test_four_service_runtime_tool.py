@@ -61,6 +61,40 @@ def test_source_seal_matches_the_frozen_runtime_manifest() -> None:
     )
 
 
+def _source_receipt() -> dict:
+    trace = verifier.public_service_sources()
+    return {
+        **trace,
+        "digest": verifier.canonical_digest(trace),
+        "kernel": {
+            "module": "dongzhou_service_provenance",
+            "moduleVersion": "1.0.0",
+            "nexusKernelVersion": "0.2.0",
+            "state": "SEALED",
+        },
+    }
+
+
+def test_source_provenance_receipt_requires_exact_services_digest_and_kernel() -> None:
+    assert verifier.validate_source_provenance_receipt(_source_receipt()) == {
+        "services": 4,
+        "sourceSealDigest": verifier.expected_source_seal(),
+    }
+
+    for mutation in ("service", "digest", "kernel", "extra"):
+        receipt = deepcopy(_source_receipt())
+        if mutation == "service":
+            receipt["services"]["aiNpc"]["sourceRevision"] = "0" * 40
+        elif mutation == "digest":
+            receipt["digest"] = "0" * 64
+        elif mutation == "kernel":
+            receipt["kernel"]["state"] = "UNSEALED"
+        else:
+            receipt["unexpected"] = True
+        with pytest.raises(ValueError, match="source provenance"):
+            verifier.validate_source_provenance_receipt(receipt)
+
+
 def test_orgflow_bundle_contract_accepts_the_tracked_v7_asset() -> None:
     assert verifier.validate_orgflow_bundle(_bundle()) == {
         "releaseTier": "FORMAL",

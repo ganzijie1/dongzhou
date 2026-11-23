@@ -51,6 +51,33 @@ def expected_source_seal() -> str:
     return canonical_digest(public_service_sources())
 
 
+def validate_source_provenance_receipt(receipt: object) -> dict:
+    if not isinstance(receipt, dict):
+        raise ValueError("source provenance receipt is missing")
+    trace = {
+        "schemaVersion": receipt.get("schemaVersion"),
+        "services": receipt.get("services"),
+    }
+    if trace != public_service_sources():
+        raise ValueError("source provenance services do not match the pinned manifest")
+    seal = canonical_digest(trace)
+    if receipt.get("digest") != seal:
+        raise ValueError("source provenance digest does not match the pinned manifest")
+    kernel = receipt.get("kernel")
+    if (
+        not isinstance(kernel, dict)
+        or kernel.get("module") != "dongzhou_service_provenance"
+        or kernel.get("moduleVersion") != "1.0.0"
+        or not isinstance(kernel.get("nexusKernelVersion"), str)
+        or not kernel["nexusKernelVersion"]
+        or kernel.get("state") != "SEALED"
+    ):
+        raise ValueError("source provenance kernel seal is invalid")
+    if set(receipt) != {"schemaVersion", "services", "digest", "kernel"}:
+        raise ValueError("source provenance receipt contains unexpected fields")
+    return {"services": len(SERVICE_SOURCES), "sourceSealDigest": seal}
+
+
 def validate_orgflow_bundle(bundle: dict) -> dict:
     if bundle.get("schema_version") != 1 or bundle.get("release_tier") != "FORMAL":
         raise ValueError("orgFlow bundle must be schema 1 and FORMAL")

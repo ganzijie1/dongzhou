@@ -120,6 +120,21 @@ def verify_predecessors(client, state):
             raise RuntimeError("Predecessor is not invalidated; do not dispatch")
 
 
+def save_payload_matches(actual, expected):
+    if not isinstance(actual, dict):
+        return False
+    try:
+        smoke.four_service_delivery.validate_source_provenance_receipt(
+            actual.get("sourceProvenance")
+        )
+    except ValueError:
+        return False
+    business_payload = {
+        key: value for key, value in actual.items() if key != "sourceProvenance"
+    }
+    return business_payload == expected
+
+
 def order_action(client, state, journal, mode):
     if mode == "order-submit" and not state.get("remoteTask"):
         state["orderAttempted"] = True
@@ -143,13 +158,15 @@ def order_action(client, state, journal, mode):
         payload = {"integrationValidation": True, "campaignResources": {"provisions": 92}, "organization": {"month": 2,
             "members": [{"id": "DuBo", "name": "杜伯", "office": "司马", "loyalty": 80, "fatigue": 0}, {"id": "ZuoRu", "name": "左儒", "office": "司徒", "loyalty": 90, "fatigue": 7}],
             "tasks": [{"id": state["localTask"], "type": "supply", "name": "转运军粮", "status": "active", "assigneeId": "ZuoRu", "assigneeName": "左儒", "stageId": "01", "stageTitle": "东郊索命", "startedMonth": 1, "dueMonth": 2, "cost": 8, "remoteResult": state["remoteTask"]}]}}
-        if saved.get("payload") != payload:
+        if not save_payload_matches(saved.get("payload"), payload):
             if state.get("reportAttempted"):
                 raise RuntimeError("Report save outcome is uncertain; inspect instead of replay")
             state["reportAttempted"] = True
             write_journal(journal, state)
             get_json(client, "PUT", "/api/dongzhou/v1/save", json={"expected_version": saved["version"], "payload": payload})
-        if get_json(client, "GET", "/api/dongzhou/v1/save")["payload"] != payload:
+        if not save_payload_matches(
+            get_json(client, "GET", "/api/dongzhou/v1/save")["payload"], payload
+        ):
             raise RuntimeError("Report save readback mismatch")
         state["reportVerified"] = True
         write_journal(journal, state)

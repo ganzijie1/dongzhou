@@ -123,6 +123,26 @@ class ControlledTests(unittest.TestCase):
 
         self.assertEqual(client.calls, [("GET", "/health/ready", {})])
 
+    def test_save_payload_match_requires_server_four_source_seal(self):
+        trace = module.smoke.four_service_delivery.public_service_sources()
+        receipt = {
+            **trace,
+            "digest": module.smoke.four_service_delivery.canonical_digest(trace),
+            "kernel": {
+                "module": "dongzhou_service_provenance",
+                "moduleVersion": "1.0.0",
+                "nexusKernelVersion": "0.2.0",
+                "state": "SEALED",
+            },
+        }
+        expected = {"completed": ["01"]}
+        actual = {**expected, "sourceProvenance": receipt}
+        self.assertTrue(module.save_payload_matches(actual, expected))
+        self.assertFalse(module.save_payload_matches(expected, expected))
+        forged = copy.deepcopy(actual)
+        forged["sourceProvenance"]["digest"] = "0" * 64
+        self.assertFalse(module.save_payload_matches(forged, expected))
+
     def test_force_timeout_is_never_resent(self):
         old = plan()
         old["data"]["schedules"][0]["events"][0]["transaction_id"] = 200
@@ -242,6 +262,17 @@ class ControlledTests(unittest.TestCase):
 
     def test_report_save_reads_back_current_task_without_claiming_settlement(self):
         cloud = {"version": 0, "payload": {}}
+        trace = module.smoke.four_service_delivery.public_service_sources()
+        receipt = {
+            **trace,
+            "digest": module.smoke.four_service_delivery.canonical_digest(trace),
+            "kernel": {
+                "module": "dongzhou_service_provenance",
+                "moduleVersion": "1.0.0",
+                "nexusKernelVersion": "0.2.0",
+                "state": "SEALED",
+            },
+        }
         task_reads = 0
         def handle(method, path, kwargs):
             nonlocal task_reads
@@ -251,7 +282,13 @@ class ControlledTests(unittest.TestCase):
             if path.endswith("QueryGameTimeAndTimeScale"):
                 return {"virtualTime": "0771-01-31T00:00:00"}
             if method == "PUT":
-                cloud.update(version=1, payload=kwargs["json"]["payload"])
+                cloud.update(
+                    version=1,
+                    payload={
+                        **kwargs["json"]["payload"],
+                        "sourceProvenance": receipt,
+                    },
+                )
             return copy.deepcopy(cloud)
         client = Client(handle)
         result = module.order_action(client, {"remoteTask": "one-task", "localTask": "local"}, self.path, "report")

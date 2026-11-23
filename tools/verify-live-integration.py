@@ -156,8 +156,27 @@ def main() -> int:
             path = "/api/dongzhou/v1/save"
             previous = request("GET", path)
             payload = {"integrationValidation": str(uuid4()), "completed": []}
-            written = request("PUT", path, json={"expected_version": previous["version"], "payload": payload})
-            assert request("GET", path)["payload"] == payload, "save payload did not round trip"
+            submitted = {
+                **payload,
+                "sourceProvenance": {"digest": "0" * 64, "services": {}},
+            }
+            written = request(
+                "PUT",
+                path,
+                json={"expected_version": previous["version"], "payload": submitted},
+            )
+            restored = request("GET", path)["payload"]
+            receipt = restored.get("sourceProvenance")
+            detail = four_service_delivery.validate_source_provenance_receipt(receipt)
+            business_payload = {
+                key: value for key, value in restored.items() if key != "sourceProvenance"
+            }
+            assert (
+                business_payload == payload
+            ), "save business payload did not round trip"
+            assert (
+                written["payload"].get("sourceProvenance") == receipt
+            ), "save response and readback provenance differ"
             stale = client.put(path, json={"expected_version": previous["version"], "payload": {}})
             assert stale.status_code == 409, "stale save did not return 409"
             with httpx.Client(base_url=args.url, timeout=15) as other:
@@ -167,7 +186,12 @@ def main() -> int:
                 isolated_save = isolated.json()
                 assert isinstance(isolated_save.get("payload"), dict) and "version" in isolated_save, "other player save response is invalid"
                 assert "integrationValidation" not in isolated_save["payload"], "save leaked to another player"
-            return {"version": written["version"], "conflict": 409, "playerIsolation": True}
+            return {
+                "version": written["version"],
+                "conflict": 409,
+                "playerIsolation": True,
+                "sourceSealDigest": detail["sourceSealDigest"],
+            }
 
         check("save_roundtrip_and_isolation", save_roundtrip)
 
