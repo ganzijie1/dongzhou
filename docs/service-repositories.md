@@ -21,6 +21,14 @@ python tools/verify-service-submodules.py
 
 The verifier also requires every service worktree to be clean. A dirty submodule means the parent gitlink cannot reproduce the code being tested, even when its checked-out `HEAD` still matches the recorded commit.
 
+After the gateway is running, use the unified read-only check:
+
+```powershell
+python tools/verify_four_service_runtime.py
+```
+
+It verifies the four source and integration pins, regenerates the formal Dongzhou court v7 bundle into a temporary directory and compares it structurally with the tracked asset, then checks the live source seal and all required Nexus modules. Use `--skip-live` when only the checkout and generated assets are available. The command has no publish or execution mode.
+
 To advance a service deliberately, first fast-forward the matching `E:/game/<repository>` checkout from its GitLab SSH source. Import that reviewed source commit into the service's `dev-gzj` branch, preserve the Dongzhou-specific integration commits, run its tests, then commit the changed gitlink in Dongzhou. The parent repository must continue to pin an exact commit; do not leave a submodule merely following an unreviewed branch tip.
 
 The `.gitmodules` URLs remain the sanitized publishing mirrors. Internal GitLab repositories are read-only input sources for this workspace and are not push targets from Dongzhou.

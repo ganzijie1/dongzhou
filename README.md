@@ -11,6 +11,8 @@ git clone --recurse-submodules https://github.com/ganzijie1/dongzhou.git
 # Existing checkout:
 git submodule update --init --recursive
 python tools/verify-service-submodules.py
+# Also render-check the Dongzhou orgFlow v7 assets and verify the live four-service runtime:
+python tools/verify_four_service_runtime.py
 ```
 
 The parent repository records the exact commit of each service. Do not point these submodules at the internal GitLab remotes; updates are taken from the sanitized GitHub `dev-gzj` branches.
