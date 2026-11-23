@@ -141,6 +141,14 @@ def validate_live_status(status: dict, expected_seal: str) -> dict:
         for field in ("sourceBranch", "sourceRevision", "integrationRevision"):
             if service.get(field) != source[field]:
                 raise ValueError(f"{service_name} {field} does not match the pinned source")
+        if service.get("reportedSourceBranch") != source["sourceBranch"]:
+            raise ValueError(
+                f"{service_name} reportedSourceBranch does not match the pinned source"
+            )
+        if service.get("reportedSourceRevision") != source["sourceRevision"]:
+            raise ValueError(
+                f"{service_name} reportedSourceRevision does not match the pinned source"
+            )
         if service.get("sourceSealDigest") != expected_seal:
             raise ValueError(f"{service_name} source seal does not match the pinned manifest")
 

@@ -780,6 +780,10 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result["aiNpc"]["sourceAttested"])
         self.assertTrue(result["orgFlow"]["sourceAttested"])
         self.assertEqual(
+            result["knowledge"]["reportedSourceRevision"],
+            "45afa2ffe77faea0622e8d3ed3f2b69c0cab9c56",
+        )
+        self.assertEqual(
             set(paths),
             {"/health/ready", "/readiness", "/health"},
         )
@@ -821,6 +825,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         for service in ("knowledge", "aiNpc", "orgFlow"):
             self.assertFalse(result[service]["online"])
             self.assertFalse(result[service]["sourceAttested"])
+            self.assertEqual(result[service]["reportedSourceRevision"], "0" * 40)
             self.assertEqual(result[service]["reason"], "source_attestation_failed")
 
     async def test_health_rejects_false_ainpc_readiness(self) -> None:

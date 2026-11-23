@@ -35,6 +35,8 @@ def _status() -> dict:
             "sourceBranch": source["sourceBranch"],
             "sourceRevision": source["sourceRevision"],
             "integrationRevision": source["integrationRevision"],
+            "reportedSourceBranch": source["sourceBranch"],
+            "reportedSourceRevision": source["sourceRevision"],
             "sourceSealDigest": seal,
         }
     services["nexusKernel"].update(
@@ -127,6 +129,11 @@ def test_live_status_requires_all_pinned_services_and_modules() -> None:
     unattested_nexus["services"]["nexusKernel"]["sourceAttested"] = False
     with pytest.raises(ValueError, match="NexusKernel runtime did not attest"):
         verifier.validate_live_status(unattested_nexus, seal)
+
+    misreported = _status()
+    misreported["services"]["orgFlow"]["reportedSourceRevision"] = "0" * 40
+    with pytest.raises(ValueError, match="reportedSourceRevision"):
+        verifier.validate_live_status(misreported, seal)
 
     incomplete = _status()
     incomplete["services"]["nexusKernel"]["operationalModuleCount"] = 19

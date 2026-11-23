@@ -219,14 +219,22 @@ class Upstreams:
 
         def source_status(name: str, source: Any) -> dict[str, Any]:
             expected_source = SERVICE_SOURCES[name]
+            reported_branch = (
+                str(source.get("branch") or "") if isinstance(source, dict) else ""
+            )
+            reported_revision = (
+                str(source.get("revision") or "") if isinstance(source, dict) else ""
+            )
             source_attested = bool(
                 isinstance(source, dict)
-                and source.get("branch") == expected_source["sourceBranch"]
-                and source.get("revision") == expected_source["sourceRevision"]
+                and reported_branch == expected_source["sourceBranch"]
+                and reported_revision == expected_source["sourceRevision"]
             )
             return {
                 "online": source_attested,
                 "sourceAttested": source_attested,
+                "reportedSourceBranch": reported_branch,
+                "reportedSourceRevision": reported_revision,
                 **({} if source_attested else {"reason": "source_attestation_failed"}),
             }
 

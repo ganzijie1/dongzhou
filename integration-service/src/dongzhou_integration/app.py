@@ -4915,6 +4915,16 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     "kernel": provenance_receipt["kernel"],
                 },
                 "sourceAttested": nexus_source_attested,
+                "reportedSourceBranch": (
+                    str(nexus_source.get("branch") or "")
+                    if isinstance(nexus_source, dict)
+                    else ""
+                ),
+                "reportedSourceRevision": (
+                    str(nexus_source.get("revision") or "")
+                    if isinstance(nexus_source, dict)
+                    else ""
+                ),
                 **(
                     {}
                     if nexus_source_attested

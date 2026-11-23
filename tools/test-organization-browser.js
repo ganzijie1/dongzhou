@@ -378,7 +378,7 @@ async function openReady(page) {
         for (const service of Object.values(body.services)) service.sourceAttested = true;
       }
       if (sourceDrift && pathName.endsWith("/integration/status")) {
-        body.services.aiNpc = { ...body.services.aiNpc, online: false, sourceAttested: false, reason: "source_attestation_failed" };
+        body.services.aiNpc = { ...body.services.aiNpc, online: false, sourceAttested: false, reportedSourceBranch: "develop", reportedSourceRevision: "0".repeat(40), reason: "source_attestation_failed" };
       }
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
     });
@@ -578,6 +578,8 @@ async function openReady(page) {
     await online.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
     await online.click("#campaignOfficeButton");
     await online.waitForSelector("#officeServiceStatus >> text=属官版本不符", { timeout: 15000 });
+    const driftTitle = await online.locator("#officeServiceStatus .drift").getAttribute("title");
+    if (!driftTitle.includes(`运行上报 develop@${"0".repeat(40)}`)) throw new Error(`Reported source drift is missing: ${driftTitle}`);
     const driftState = await online.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.backend);
     if (driftState.serviceAttestations.aiNpc !== false || driftState.serviceFailures.aiNpc !== "source_attestation_failed") throw new Error(`Source drift was not persisted: ${JSON.stringify(driftState)}`);
     await online.setViewportSize({ width: 390, height: 844 });

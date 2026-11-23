@@ -1606,7 +1606,9 @@
       const sourceTitle = sourceRevision && integrationRevision
         ? `${label} · GitLab ${source.sourceBranch || "source"}@${sourceRevision} · Dongzhou ${integrationRevision}${sourceSealDigest ? ` · Nexus封印 ${sourceSealDigest}` : ""}`
         : label;
-      const title = sourceDrifted ? `${sourceTitle} · 运行版本与固定来源不符` : sourceTitle;
+      const reportedRevision = /^[0-9a-f]{40}$/i.test(source?.reportedSourceRevision || "") ? source.reportedSourceRevision : "";
+      const reportedIdentity = reportedRevision ? `${source.reportedSourceBranch || "source"}@${reportedRevision}` : "未提供来源身份";
+      const title = sourceDrifted ? `${sourceTitle} · 运行上报 ${reportedIdentity}，与固定来源不符` : sourceTitle;
       const stateClass = org.backend[key] ? "online" : sourceDrifted ? "drift" : "local";
       const stateLabel = org.backend[key] ? "通达" : sourceDrifted ? "版本不符" : "本地推演";
       return `<span class="${stateClass}" title="${escapeHtml(title)}"><i></i>${label}${stateLabel}${revision}</span>`;
@@ -2387,7 +2389,9 @@
         serviceSources: Object.fromEntries(["nexusKernel", "orgFlow", "aiNpc", "knowledge"].map((key) => [key, {
           sourceBranch: String(services[key]?.sourceBranch || ""),
           sourceRevision: String(services[key]?.sourceRevision || ""),
-          integrationRevision: String(services[key]?.integrationRevision || "")
+          integrationRevision: String(services[key]?.integrationRevision || ""),
+          reportedSourceBranch: String(services[key]?.reportedSourceBranch || ""),
+          reportedSourceRevision: String(services[key]?.reportedSourceRevision || "")
         }])),
         serviceAttestations: Object.fromEntries(["nexusKernel", "orgFlow", "aiNpc", "knowledge"].map((key) => [key, services[key]?.sourceAttested === true])),
         serviceFailures: Object.fromEntries(["nexusKernel", "orgFlow", "aiNpc", "knowledge"].map((key) => [key, String(services[key]?.reason || "")])),
