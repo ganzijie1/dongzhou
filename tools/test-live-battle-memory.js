@@ -4,6 +4,7 @@ const assert = require('assert/strict');
 const { createHash, randomUUID } = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { verifyFourServiceRuntime } = require('./four-service-runtime-gate');
 
 let chromium;
 try {
@@ -14,6 +15,7 @@ try {
 
 const root = path.resolve(__dirname, '..');
 const url = process.env.DONGZHOU_TEST_URL || 'http://127.0.0.1:8780/';
+verifyFourServiceRuntime(url);
 const evidencePath = path.join(root, 'output', 'integration-validation', 'live-route-battle-memory129.json');
 const screenshotPath = path.join(root, 'output', 'integration-validation', 'live-route-battle-memory129.png');
 const installationId = randomUUID();

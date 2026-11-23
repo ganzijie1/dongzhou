@@ -4,6 +4,7 @@ const assert = require("assert/strict");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const { verifyFourServiceRuntime } = require("./four-service-runtime-gate");
 
 let chromium;
 try {
@@ -13,6 +14,7 @@ try {
 }
 
 const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
+verifyFourServiceRuntime(url);
 const timeout = Number(process.env.DONGZHOU_MEMBERSHIP_TIMEOUT_MS || 180000);
 const applyViaMessage = process.env.DONGZHOU_MEMBERSHIP_APPLY_VIA_MESSAGE === "1";
 const applyMessage = "我明确要求你现在提交我的加入组织申请：应聘东周朝廷「军府属官·第12席」岗位。";

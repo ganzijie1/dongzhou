@@ -69,7 +69,7 @@ orgFlow 东周任务目录当前为 v7。五类正式任务以玩家可直接输
 
 `tools/verify-controlled-acceptance.py` 的日程重排、派单和回报模式在任何业务写入前也会重新检查同一套四服务 readiness、运行时自报来源、统一封印和 Nexus 20/20 模块；容器镜像标签正确但运行时来源漂移时必须停止，不能绕过该门禁继续验收。
 
-会创建真实军令或外交任务的 `test-live-kernel-mandate-acceptance.js` 与 `test-live-diplomacy-acceptance.js` 通过 `four-service-runtime-gate.js` 调用同一个规范验收器，并在创建验收日志或启动浏览器前完成门禁。不要直接删除该预检来恢复旧版验收流程。
+会创建真实军令、外交任务、战斗记忆、书问、私信或表彰记录的 live 浏览器验收通过 `four-service-runtime-gate.js` 调用同一个规范验收器，并在创建验收日志或启动浏览器前完成门禁。当前覆盖军令全链、外交全链、战斗情绪/记忆、书问、成员私信和论功表彰；不要直接删除该预检来恢复旧版验收流程。
 
 设置 `DONGZHOU_TEST_URL=<网关地址>` 后运行 `node tools/test-live-knowledge-browser.js`，直接从浏览器验证联网史料读取、展示和筹备记录；该测试不拦截或模拟 API。
 
