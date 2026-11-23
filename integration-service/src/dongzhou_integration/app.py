@@ -30,7 +30,12 @@ from .assignments import (
 )
 from .models import AdviserFeedbackRequest, AdviserGuideCancelRequest, AdviserGuideDecisionRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcPublicMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcCommendationRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMeritCommendationRequest, NpcMessageRequest, NpcRecollectionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationScheduledDutyStatusRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
-from .service_sources import SERVICE_SOURCES, public_service_source, public_service_sources
+from .service_sources import (
+    SERVICE_NAMES,
+    SERVICE_SOURCES,
+    public_service_source,
+    public_service_sources,
+)
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
 
@@ -51,7 +56,7 @@ _BATTLE_SUPPORT_EFFECT_KEYS = (
     "defense",
     "recon",
 )
-_REQUIRED_SERVICE_NAMES = ("knowledge", "aiNpc", "orgFlow", "nexusKernel")
+_REQUIRED_SERVICE_NAMES = SERVICE_NAMES
 
 
 def _unavailable_required_services(
@@ -1215,7 +1220,7 @@ class ServiceProvenanceModule(Module):
     name = "dongzhou_service_provenance"
     version = "1.0.0"
     dependencies = (RuntimeModule.name,)
-    service_names = ("knowledge", "aiNpc", "orgFlow", "nexusKernel")
+    service_names = SERVICE_NAMES
 
     def __init__(self, source_manifest: dict[str, Any]) -> None:
         super().__init__()

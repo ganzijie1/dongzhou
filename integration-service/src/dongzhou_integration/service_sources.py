@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+SERVICE_NAMES = ("knowledge", "aiNpc", "orgFlow", "nexusKernel")
+
 SERVICE_SOURCES: dict[str, dict[str, str]] = {
     "knowledge": {
         "submodulePath": "services/knowledge-jizhan",
@@ -41,6 +43,9 @@ SERVICE_SOURCES: dict[str, dict[str, str]] = {
     },
 }
 
+if tuple(SERVICE_SOURCES) != SERVICE_NAMES:
+    raise RuntimeError("service source manifest order does not match SERVICE_NAMES")
+
 
 def public_service_source(service: str) -> dict[str, str]:
     source = SERVICE_SOURCES[service]
@@ -56,6 +61,6 @@ def public_service_sources() -> dict[str, Any]:
         "schemaVersion": 1,
         "services": {
             service: public_service_source(service)
-            for service in ("knowledge", "aiNpc", "orgFlow", "nexusKernel")
+            for service in SERVICE_NAMES
         },
     }

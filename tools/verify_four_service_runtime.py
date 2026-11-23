@@ -20,6 +20,7 @@ INTEGRATION_SRC = ROOT / "integration-service" / "src"
 sys.path.insert(0, str(INTEGRATION_SRC))
 
 from dongzhou_integration.service_sources import (  # noqa: E402
+    SERVICE_NAMES,
     SERVICE_SOURCES,
     public_service_sources,
 )
@@ -182,7 +183,7 @@ def validate_live_status(status: dict, expected_seal: str) -> dict:
 
 
 def validate_gateway_readiness(readiness: dict) -> None:
-    required = ["knowledge", "aiNpc", "orgFlow", "nexusKernel"]
+    required = list(SERVICE_NAMES)
     if readiness.get("status") != "healthy":
         raise ValueError("integration gateway readiness is not healthy")
     if readiness.get("requiredServices") != required:
