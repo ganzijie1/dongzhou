@@ -184,6 +184,11 @@ class MandateUpstreams:
         self.contribution_entries: list[dict[str, object]] = []
         self.market_reports: list[dict[str, object]] = []
         self.warehouse_reports: list[dict[str, object]] = []
+        self.source_attested = {
+            "orgFlow": True,
+            "aiNpc": True,
+            "knowledge": True,
+        }
         self.inventory_snapshot = {
             "organization_id": "00000000-0000-0000-0000-000000000001",
             "game_server_id": "91001",
@@ -196,9 +201,8 @@ class MandateUpstreams:
 
     async def health(self):
         return {
-            "orgFlow": {"online": True},
-            "aiNpc": {"online": True},
-            "knowledge": {"online": True},
+            name: {"online": True, "sourceAttested": attested}
+            for name, attested in self.source_attested.items()
         }
 
     async def close(self):
@@ -696,6 +700,40 @@ def start_session(client: TestClient, installation_id: str | None = None) -> str
     )
     assert response.status_code == 200
     return installation_id
+
+
+def test_organization_dispatch_rejects_source_drift_before_trigger() -> None:
+    with TemporaryDirectory() as directory:
+        upstreams = MandateUpstreams()
+        upstreams.source_attested["aiNpc"] = False
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=upstreams
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            response = client.post(
+                "/api/dongzhou/v1/organization/tasks",
+                json={
+                    "client_request_id": str(uuid4()),
+                    "task_type": "supply",
+                    "assignee_hero_id": "ZuoRu",
+                    "stage_id": "01",
+                    "stage_title": "Dongzhou stage 01",
+                    "brief": "This order must not reach a drifted runtime.",
+                    "parameters": {
+                        "resource_units": 6,
+                        "assignee_name": "ZuoRu",
+                    },
+                },
+            )
+
+        assert response.status_code == 409
+        assert (
+            response.json()["error"]["code"]
+            == "organization_task_requires_four_services"
+        )
+        assert upstreams.triggers == []
+        assert upstreams.composite_triggers == []
 
 
 def complete_council(

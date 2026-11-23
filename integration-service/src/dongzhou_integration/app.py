@@ -4939,6 +4939,14 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             },
         }
 
+    async def require_source_attested_runtime(
+        *, error_code: str, message: str
+    ) -> dict[str, dict[str, Any]]:
+        services = service_statuses(await upstreams.health())
+        if _unavailable_required_services(services):
+            raise ApiError(error_code, message, status_code=409)
+        return services
+
     @game_clock_router.post("/api/v1/QueryServers")
     async def query_servers() -> dict[str, Any]:
         return {
@@ -10618,6 +10626,13 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     "The issued mandate must receive an AINPC schedule decision before organization dispatch.",
                     status_code=409,
                 )
+        await require_source_attested_runtime(
+            error_code="organization_task_requires_four_services",
+            message=(
+                "Organization dispatch requires healthy source-attested "
+                "knowledge, AINPC, orgFlow, and Nexus runtimes."
+            ),
+        )
         body = _payload(request)
         try:
             created, previous = await store.begin_request(player_id, request.client_request_id, "organization_task", body)
