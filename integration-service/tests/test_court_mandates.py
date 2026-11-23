@@ -178,6 +178,7 @@ class MandateUpstreams:
         self.interruptions: list[tuple[int, dict[str, object]]] = []
         self.dialogue_reports: list[tuple[int, dict[str, object]]] = []
         self.memories: dict[int, list[dict[str, object]]] = {}
+        self.decision_calls = 0
         self.collaboration_available = False
         self.roster_members: list[dict[str, object]] = []
         self.roster_positions: list[dict[str, object]] = []
@@ -217,6 +218,7 @@ class MandateUpstreams:
 
     async def choose_dialogue(self, npc_id, payload):
         assert npc_id > 0
+        self.decision_calls += 1
         return {"code": 200, "data": {"index": 1, "type": "OPTION"}}
 
     async def report_dialogue_choice(self, npc_id, payload):
@@ -734,6 +736,36 @@ def test_organization_dispatch_rejects_source_drift_before_trigger() -> None:
         )
         assert upstreams.triggers == []
         assert upstreams.composite_triggers == []
+
+
+def test_npc_decision_rejects_source_drift_before_ainpc_call() -> None:
+    with TemporaryDirectory() as directory:
+        upstreams = MandateUpstreams()
+        upstreams.source_attested["knowledge"] = False
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=upstreams
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            response = client.post(
+                "/api/dongzhou/v1/npcs/ZuoRu/decisions",
+                json={
+                    "client_request_id": str(uuid4()),
+                    "question": "Which source-attested plan should the court follow?",
+                    "options": [
+                        {"index": 0, "text": "Hold"},
+                        {"index": 1, "text": "Advance"},
+                    ],
+                    "topic": "court_decision",
+                },
+            )
+
+        assert response.status_code == 409
+        assert (
+            response.json()["error"]["code"]
+            == "npc_decision_requires_four_services"
+        )
+        assert upstreams.decision_calls == 0
 
 
 def complete_council(

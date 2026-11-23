@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 from dongzhou_integration.app import build_application
 from dongzhou_integration.config import Settings
 from dongzhou_integration.security import stable_npc_id, stable_player_id
+from dongzhou_integration.service_sources import SERVICE_SOURCES
 from dongzhou_integration.upstreams import UpstreamUnavailable, Upstreams
 
 
@@ -32,6 +33,46 @@ def settings(path: Path) -> Settings:
         ainpc_task_token="task-token",
         orgflow_ainpc_tools_token="tools-token",
     )
+
+
+def healthy_source_probe(request: httpx.Request) -> httpx.Response | None:
+    if request.url.host == "org" and request.url.path == "/health/ready":
+        source = SERVICE_SOURCES["orgFlow"]
+        return httpx.Response(200, json={"data": {
+            "status": "healthy",
+            "source": {
+                "branch": source["sourceBranch"],
+                "revision": source["sourceRevision"],
+            },
+        }})
+    if request.url.host == "ainpc" and request.url.path == "/readiness":
+        source = SERVICE_SOURCES["aiNpc"]
+        return httpx.Response(200, json={
+            "ready": True,
+            "source": {
+                "branch": source["sourceBranch"],
+                "revision": source["sourceRevision"],
+            },
+        })
+    if request.url.host == "knowledge" and request.url.path == "/health":
+        source = SERVICE_SOURCES["knowledge"]
+        return httpx.Response(200, json={"data": {
+            "status": "healthy",
+            "components": {
+                name: {"status": "up"}
+                for name in ("qdrant", "elasticsearch", "neo4j")
+            },
+            "stats": {
+                "aku_count": 172,
+                "dongzhou_aku_count": 172,
+                "dongzhou_corpus_complete": True,
+            },
+            "source": {
+                "branch": source["sourceBranch"],
+                "revision": source["sourceRevision"],
+            },
+        }})
+    return None
 
 
 class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
@@ -1255,6 +1296,9 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         attempts = []
 
         def handler(request: httpx.Request) -> httpx.Response:
+            health = healthy_source_probe(request)
+            if health is not None:
+                return health
             if request.url.path == "/callback/npc-dialogue/choice":
                 attempts.append(request)
                 return httpx.Response(200, json=(
@@ -1303,6 +1347,9 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         reports: list[dict[str, object]] = []
 
         def handler(request: httpx.Request) -> httpx.Response:
+            health = healthy_source_probe(request)
+            if health is not None:
+                return health
             body = json.loads(request.content)
             if request.url.path == "/callback/npc-dialogue/choice":
                 decisions.append(body)

@@ -7689,6 +7689,14 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         existing = await store.read_request(
             player_id, request.client_request_id, "npc_decision"
         )
+        if existing is None or existing.get("state") == "RETRYABLE":
+            await require_source_attested_runtime(
+                error_code="npc_decision_requires_four_services",
+                message=(
+                    "NPC council decisions require healthy source-attested "
+                    "knowledge, AINPC, orgFlow, and Nexus runtimes."
+                ),
+            )
         try:
             created, previous = await store.begin_request(player_id, request.client_request_id, "npc_decision", {"hero_id": hero_id, **body})
         except VersionConflict as error:
@@ -8055,6 +8063,17 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=503,
             )
         body = _payload(request)
+        existing = await store.read_request(
+            player_id, request.client_request_id, "court_mandate"
+        )
+        if existing is None or existing.get("state") == "RETRYABLE":
+            await require_source_attested_runtime(
+                error_code="court_mandate_requires_four_services",
+                message=(
+                    "Court mandates require healthy source-attested knowledge, "
+                    "AINPC, orgFlow, and Nexus runtimes."
+                ),
+            )
         try:
             created, previous = await store.begin_request(
                 player_id, request.client_request_id, "court_mandate", body
