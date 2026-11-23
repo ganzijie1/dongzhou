@@ -4,6 +4,7 @@ const assert = require("assert/strict");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const { verifyFourServiceRuntime } = require("./four-service-runtime-gate");
 
 let chromium;
 try {
@@ -13,6 +14,7 @@ try {
 }
 
 const BASE = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
+verifyFourServiceRuntime(BASE);
 const PROFILE = "dongzhou-h5-profile-v2";
 const BATTLE = "dongzhou-h5-battle-v2";
 const acceptanceLabel = process.env.DONGZHOU_ACCEPTANCE_LABEL || "kernel-mandate-complete12";

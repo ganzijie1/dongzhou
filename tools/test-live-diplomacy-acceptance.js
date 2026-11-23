@@ -5,6 +5,7 @@ const assert = require("assert/strict");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const { verifyFourServiceRuntime } = require("./four-service-runtime-gate");
 
 let chromium;
 try {
@@ -14,6 +15,7 @@ try {
 }
 
 const BASE = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
+verifyFourServiceRuntime(BASE);
 const LABEL = process.env.DONGZHOU_ACCEPTANCE_LABEL || "formal-diplomacy-current";
 const REQUESTED_INSTALLATION = process.env.DONGZHOU_INSTALLATION_ID || "";
 const forceNewTask = process.env.DONGZHOU_FORCE_NEW_TASK === "1";
