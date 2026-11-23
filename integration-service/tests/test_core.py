@@ -2251,6 +2251,17 @@ class AuthenticationRouteTests(unittest.TestCase):
                 self.assertEqual(nexus["operationalModuleCount"], 19)
                 self.assertEqual(len(nexus["moduleStates"]), 19)
                 self.assertEqual(nexus["unavailableModules"], [])
+                expected_sources = {
+                    "nexusKernel": ("develop", "190abb1", "2a68d6b"),
+                    "aiNpc": ("develop", "8a7b673", "6628e40"),
+                    "knowledge": ("main", "45afa2f", "a32f422"),
+                    "orgFlow": ("develop", "8b1049e", "07115df"),
+                }
+                for service_name, (branch, source, integrated) in expected_sources.items():
+                    service = status.json()["services"][service_name]
+                    self.assertEqual(service["sourceBranch"], branch)
+                    self.assertTrue(service["sourceRevision"].startswith(source))
+                    self.assertTrue(service["integrationRevision"].startswith(integrated))
 
                 merit_module = next(
                     entry.module

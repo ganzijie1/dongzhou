@@ -3710,9 +3710,10 @@ button:focus-visible {
 .office-overview dt { color: #898b82; font-size: 10px; }
 .office-overview dd { margin: 5px 0 0; color: #eadcad; font-size: 20px; }
 .office-service-status { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; }
-.office-service-status span { color: #9c9e94; font-size: 11px; }
+.office-service-status span { color: #9c9e94; font-size: 11px; white-space: nowrap; }
 .office-service-status i { display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: #756e5c; }
 .office-service-status .online i { background: #91a96d; box-shadow: 0 0 8px rgba(145, 169, 109, .5); }
+.office-service-status small { margin-left: 5px; color: #b99344; font-family: Consolas, monospace; font-size: 9px; }
 .office-inventory { width: 100%; display: grid; grid-template-columns: max-content minmax(0, 1fr) max-content 40px; gap: 12px; align-items: center; padding-top: 12px; border-top: 1px dotted rgba(196, 172, 111, .2); }
 .office-inventory > div { display: grid; gap: 3px; }
 .office-inventory > div > span { color: #b99344; font-size: 10px; }

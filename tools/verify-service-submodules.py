@@ -4,39 +4,12 @@ import configparser
 import os
 import subprocess
 from pathlib import Path
+import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED = {
-    "services/knowledge-jizhan": {
-        "mirror_url": "https://github.com/ganzijie1/knowledge-jizhan.git",
-        "source_path": Path("E:/game/knowledge-jizhan"),
-        "source_url": "ssh://git@git.nd.com.cn:10022/AIGames/knowledge-jizhan.git",
-        "source_branch": "main",
-        "source_commit": "45afa2ffe77faea0622e8d3ed3f2b69c0cab9c56",
-    },
-    "services/ainpc": {
-        "mirror_url": "https://github.com/ganzijie1/ainpc.git",
-        "source_path": Path("E:/game/ainpc"),
-        "source_url": "ssh://git@git.nd.com.cn:10022/AIGames/ainpc.git",
-        "source_branch": "develop",
-        "source_commit": "8a7b673c6ddb93c5ac64d96a270b35619e5bcc1c",
-    },
-    "services/orgFlowEngine": {
-        "mirror_url": "https://github.com/ganzijie1/orgFlowEngine.git",
-        "source_path": Path("E:/game/orgFlowEngine"),
-        "source_url": "ssh://git@git.nd.com.cn:10022/AIGames/orgFlowEngine.git",
-        "source_branch": "develop",
-        "source_commit": "8b1049e965719d31c51772dde799737e9b92e918",
-    },
-    "services/NexusKernel": {
-        "mirror_url": "https://github.com/ganzijie1/NexusKernel.git",
-        "source_path": Path("E:/game/NexusKernel"),
-        "source_url": "ssh://git@git.nd.com.cn:10022/AIGames/NexusKernel.git",
-        "source_branch": "develop",
-        "source_commit": "190abb1fa889e40aa08dbc6efaaba6fe4940ca6d",
-    },
-}
+sys.path.insert(0, str(ROOT / "integration-service" / "src"))
+from dongzhou_integration.service_sources import SERVICE_SOURCES  # noqa: E402
 
 
 def git(*args: str, cwd: Path = ROOT) -> str:
@@ -72,8 +45,9 @@ def main() -> None:
     modules.read(ROOT / ".gitmodules", encoding="utf-8")
     failures: list[str] = []
 
-    for relative_path, expected in EXPECTED.items():
-        expected_url = str(expected["mirror_url"])
+    for expected in SERVICE_SOURCES.values():
+        relative_path = expected["submodulePath"]
+        expected_url = expected["mirrorUrl"]
         section = f'submodule "{relative_path}"'
         directory = ROOT / relative_path
         if not modules.has_section(section):
@@ -92,6 +66,11 @@ def main() -> None:
             failures.append(f"{relative_path}: parent does not record a gitlink")
             continue
         pinned_commit = stage[1]
+        if pinned_commit != expected["integrationRevision"]:
+            failures.append(
+                f"{relative_path}: manifest expects {expected['integrationRevision'][:12]}, "
+                f"parent pins {pinned_commit[:12]}"
+            )
         actual_commit = git("rev-parse", "HEAD", cwd=directory)
         if actual_commit != pinned_commit:
             failures.append(
@@ -131,7 +110,7 @@ def main() -> None:
                     f"origin/dev-gzj ({branch_commit[:12]})"
                 )
 
-        source_commit = str(expected["source_commit"])
+        source_commit = expected["sourceRevision"]
         if not git_succeeds("cat-file", "-e", f"{source_commit}^{{commit}}", cwd=directory):
             failures.append(f"{relative_path}: GitLab source commit {source_commit[:12]} is missing")
         elif not git_succeeds(
@@ -142,16 +121,16 @@ def main() -> None:
                 f"GitLab source {source_commit[:12]}"
             )
 
-        source_path = Path(expected["source_path"])
+        source_path = Path(expected["sourcePath"])
         if source_path.is_dir():
             source_url = git("remote", "get-url", "origin", cwd=source_path)
-            if source_url != expected["source_url"]:
+            if source_url != expected["sourceUrl"]:
                 failures.append(f"{relative_path}: local source has an unexpected GitLab URL")
             source_branch = git("branch", "--show-current", cwd=source_path)
-            if source_branch != expected["source_branch"]:
+            if source_branch != expected["sourceBranch"]:
                 failures.append(
                     f"{relative_path}: local source branch is {source_branch}, "
-                    f"expected {expected['source_branch']}"
+                    f"expected {expected['sourceBranch']}"
                 )
             source_head = git("rev-parse", "HEAD", cwd=source_path)
             if source_head != source_commit:
@@ -162,7 +141,7 @@ def main() -> None:
 
     if failures:
         raise SystemExit("Service submodule verification failed:\n- " + "\n- ".join(failures))
-    print(f"PASS: {len(EXPECTED)} service submodules are initialized and pinned")
+    print(f"PASS: {len(SERVICE_SOURCES)} service submodules are initialized and pinned")
 
 
 if __name__ == "__main__":

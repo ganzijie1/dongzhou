@@ -30,6 +30,7 @@ from .assignments import (
 )
 from .models import AdviserFeedbackRequest, AdviserGuideCancelRequest, AdviserGuideDecisionRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcPublicMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcCommendationRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMeritCommendationRequest, NpcMessageRequest, NpcRecollectionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationScheduledDutyStatusRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
+from .service_sources import public_service_source
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
 
@@ -4749,8 +4750,13 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         logistics_state = module_state(LogisticsBriefingModule)
         task_trace_state = module_state(OrganizationTaskTraceModule)
         scheduled_duty_state = module_state(OrganizationScheduledDutyModule)
+        external_with_sources = {
+            name: {**status, **public_service_source(name)}
+            for name, status in external.items()
+            if name in {"aiNpc", "knowledge", "orgFlow"}
+        }
         return {
-            **external,
+            **external_with_sources,
             "nexusKernel": {
                 "online": bool(required_modules) and not unavailable_modules,
                 "mode": "embedded",
@@ -4772,6 +4778,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "logisticsBriefingState": logistics_state,
                 "organizationScheduledDutyModule": OrganizationScheduledDutyModule.name,
                 "organizationScheduledDutyState": scheduled_duty_state,
+                **public_service_source("nexusKernel"),
             },
         }
 

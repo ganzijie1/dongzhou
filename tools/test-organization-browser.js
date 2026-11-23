@@ -145,7 +145,7 @@ async function openReady(page) {
         if (payload.organization?.tasks?.some((task) => task.remoteResult)) savedRemoteTask = true;
         body = { version: ++saveVersion, payload };
       }
-      else if (pathName.endsWith("/integration/status")) body = { mode: "connected", organizationId: "org-e2e", services: { nexusKernel: { online: true, mode: "embedded", version: "0.2.0", requiredModuleCount: 19, operationalModuleCount: 19, unavailableModules: [] }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } } };
+      else if (pathName.endsWith("/integration/status")) body = { mode: "connected", organizationId: "org-e2e", services: { nexusKernel: { online: true, mode: "embedded", version: "0.2.0", requiredModuleCount: 19, operationalModuleCount: 19, unavailableModules: [], sourceBranch: "develop", sourceRevision: "190abb1fa889e40aa08dbc6efaaba6fe4940ca6d", integrationRevision: "2a68d6bea46348f7628cd117a017c84a8c506ff7" }, orgFlow: { online: true, sourceBranch: "develop", sourceRevision: "8b1049e965719d31c51772dde799737e9b92e918", integrationRevision: "07115dfc2d6120f03310daa4cc948021abd5f308" }, aiNpc: { online: true, sourceBranch: "develop", sourceRevision: "8a7b673c6ddb93c5ac64d96a270b35619e5bcc1c", integrationRevision: "6628e4036ee96444681d4f778d077d69f6983d4d" }, knowledge: { online: true, sourceBranch: "main", sourceRevision: "45afa2ffe77faea0622e8d3ed3f2b69c0cab9c56", integrationRevision: "a32f42256111adbeee76f7eab2b775ee5b541059" } } };
       else if (pathName.endsWith("/court/mandates/pending")) body = { pending: null };
       else if (pathName.endsWith("/organization/roster")) body = { organization: { name: "东周军府", state: "ACTIVE", templateId: "dongzhou_court", templateVersion: 7, hierarchyVersion: membershipJoined ? 8 : 7, growthContribution: 245 }, members: [{ heroId: "DuBo", office: "军府主官", role: "军府主官", level: "manager", directManagerHeroId: null, contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 }, { heroId: "ZuoRu", office: "军府属官·第1席", role: "军府属官", level: "officer", directManagerHeroId: "DuBo", contributionBalance: 31, lifetimeEarned: 42, lifetimeSpent: 11 }], playerMembership: membershipJoined ? { office: "军府属官·第12席", role: "军府属官", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 } : null, openPositions: membershipJoined ? [] : [{ office: "军府属官·第12席", role: "军府属官", level: "staff" }] };
       else if (pathName.endsWith("/organization/scheduled-duties/status")) {
@@ -381,6 +381,11 @@ async function openReady(page) {
     await online.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
     await online.click("#campaignOfficeButton");
     await online.waitForSelector("#officeServiceStatus >> text=内核 19/19通达", { timeout: 15000 });
+    for (const revision of ["190abb1", "8b1049e", "8a7b673", "45afa2f"]) {
+      await online.waitForSelector(`#officeServiceStatus >> text=${revision}`, { timeout: 15000 });
+    }
+    const serviceTitle = await online.locator("#officeServiceStatus span").first().getAttribute("title");
+    if (!serviceTitle.includes("Dongzhou 2a68d6bea46348f7628cd117a017c84a8c506ff7")) throw new Error(`Missing service provenance tooltip: ${serviceTitle}`);
     await online.waitForSelector("#officeRosterSummary >> text=模板 v7", { timeout: 15000 });
     await online.waitForSelector("#officeMembers >> text=官署实账");
     await online.waitForSelector("#officeScheduledDutyStatus >> text=已有同类差事在办", { timeout: 15000 });
