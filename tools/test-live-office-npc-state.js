@@ -3,6 +3,7 @@
 const assert = require('assert/strict');
 const fs = require('fs');
 const path = require('path');
+const { verifyFourServiceRuntime } = require('./four-service-runtime-gate');
 
 let chromium;
 try {
@@ -13,6 +14,7 @@ try {
 
 const root = path.resolve(__dirname, '..');
 const url = process.env.DONGZHOU_TEST_URL || 'http://127.0.0.1:8780/';
+verifyFourServiceRuntime(url);
 const output = path.join(root, 'output', 'integration-validation', 'npc-runtime-schedule-live.png');
 const mobileOutput = path.join(root, 'output', 'integration-validation', 'npc-runtime-schedule-mobile-live.png');
 const executablePath = [

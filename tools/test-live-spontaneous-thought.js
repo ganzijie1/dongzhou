@@ -3,6 +3,7 @@
 const assert = require("assert/strict");
 const fs = require("fs");
 const path = require("path");
+const { verifyFourServiceRuntime } = require("./four-service-runtime-gate");
 let chromium;
 try {
   ({ chromium } = require(path.resolve(__dirname, "../output/playwright-runtime/node_modules/playwright")));
@@ -12,6 +13,7 @@ try {
 
 const output = path.resolve(__dirname, "../output/integration-validation/live-spontaneous-thought-mobile.png");
 const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
+verifyFourServiceRuntime(url);
 const executablePath = [
   "C:/Program Files/Google/Chrome/Application/chrome.exe",
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"

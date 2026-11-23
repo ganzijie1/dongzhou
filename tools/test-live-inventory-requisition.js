@@ -4,6 +4,7 @@ const assert = require("assert/strict");
 const { randomUUID } = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const { verifyFourServiceRuntime } = require("./four-service-runtime-gate");
 
 let chromium;
 try {
@@ -13,6 +14,7 @@ try {
 }
 
 const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
+verifyFourServiceRuntime(url);
 const installationId = "00000000-0000-4000-8000-000000005021";
 const requestId = "00000000-0000-4000-8000-000000005022";
 const pendingKey = "dongzhou-pending-inventory-requisition-v1";

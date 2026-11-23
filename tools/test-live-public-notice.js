@@ -4,11 +4,13 @@ const assert = require("node:assert/strict");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
+const { verifyFourServiceRuntime } = require("./four-service-runtime-gate");
 let chromium;
 try { ({ chromium } = require(path.resolve(__dirname, "../output/playwright-runtime/node_modules/playwright"))); }
 catch (_) { ({ chromium } = require("playwright")); }
 
 const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
+verifyFourServiceRuntime(url);
 const npcId = process.env.DONGZHOU_NOTICE_NPC_ID;
 const loginRequestId = process.env.DONGZHOU_NOTICE_LOGIN_REQUEST_ID;
 assert.ok(npcId && loginRequestId, "current NPC identity is required");
