@@ -1738,13 +1738,15 @@
       const evidenceFit = Number(mandate.evidenceFit?.factor);
       const evidenceLabel = Number.isFinite(evidenceFit) ? ` · 史证${evidenceFit}/9` : "";
       const masteryLabel = mandate.knowledgeMastery ? ` · 史识${Number(mandate.knowledgeMastery.score)}/10 · 成功率+${Number(mandate.knowledgeMastery.bonus)}` : "";
+      const sourceSeal = /^[0-9a-f]{64}$/i.test(mandate.sourceProvenance?.digest || "") ? mandate.sourceProvenance.digest : "";
+      const sourceSealLabel = sourceSeal ? ` · 版本封印 ${escapeHtml(sourceSeal.slice(0, 10))}` : "";
       const emergency = mandate.emergency;
       const emergencyLabel = emergency ? ` · ${emergency.urgent ? "急报" : "常报"}${Number(emergency.score).toFixed(3)}` : "";
       const interruption = mandate.scheduleInterruption;
       const interruptionLabel = interruption
         ? ` · ${interruption.action === "insert_today" ? "今日插程" : interruption.action === "future" ? "后续排程" : "日程裁定 " + interruption.action}${interruption.scheduleName ? `“${escapeHtml(interruption.scheduleName)}”` : ""}`
         : "";
-      return `<li class="${escapeHtml(String(mandate.state || "issued").toLowerCase())}"><span>${escapeHtml(mandate.evidence?.name || "内核军令")}</span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(mandate.evidence?.source?.work || "未列出处")}${evidenceLabel}${masteryLabel} · ${escapeHtml(mandate.assignment?.date || "未定日")} ${escapeHtml(mandate.assignment?.name || "旧军令未封当值")}${Number.isFinite(readiness) ? ` · 胜任${readiness}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${collaborationLabel}${emergencyLabel}${interruptionLabel} · 印记 ${escapeHtml(String(mandate.digest || "").slice(0, 10))}</small></li>`;
+      return `<li class="${escapeHtml(String(mandate.state || "issued").toLowerCase())}"><span>${escapeHtml(mandate.evidence?.name || "内核军令")}</span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(mandate.evidence?.source?.work || "未列出处")}${evidenceLabel}${masteryLabel} · ${escapeHtml(mandate.assignment?.date || "未定日")} ${escapeHtml(mandate.assignment?.name || "旧军令未封当值")}${Number.isFinite(readiness) ? ` · 胜任${readiness}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${collaborationLabel}${emergencyLabel}${interruptionLabel}${sourceSealLabel} · 印记 ${escapeHtml(String(mandate.digest || "").slice(0, 10))}</small></li>`;
     }).join("") || '<li class="empty">完成史料查阅与属官裁断后，可签发内核军令。</li>';
     $("#officeAllianceLedger").innerHTML = [...org.diplomacy.alliances].reverse().map((pact) => `<li class="${pact.status}"><span>${escapeHtml(pact.targetName)}盟约</span><strong>${pact.status === "active" ? "生效" : pact.status === "broken" ? "背盟待战" : "战后结案"}</strong><small>关系 ${Number(org.diplomacy.relations[pact.targetId] || 0)} · ${escapeHtml(pact.terms.join("、"))}</small></li>`).join("") || '<li class="empty">尚无盟约</li>';
     $("#officeBattleArchive").innerHTML = [...org.archives].reverse().slice(0, 12).map((entry) => `<li><strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml(entry.text)} · ${escapeHtml(String(entry.stageId || "无关卡"))}</span></li>`).join("") || "<li><strong>尚无档案</strong><span>完成盟约、背盟或战役后将在此存照。</span></li>";
@@ -3287,7 +3289,9 @@
     const collaboration = mandate.collaboration;
     const collaborationLabel = collaboration ? ` · ${displayName(collaboration.supportHeroId)}协办 · 协同 ${Number(collaboration.score)}/100 (${Number(collaboration.factor) >= 0 ? "+" : ""}${Number(collaboration.factor)})` : "";
     const masteryLabel = mandate.knowledgeMastery ? ` · 史识 ${Number(mandate.knowledgeMastery.score)}/10 · 成功率 +${Number(mandate.knowledgeMastery.bonus)}` : "";
-    $("#officeMandateApprovalDetail").textContent = `${mandate.evidence?.name || "史料军令"} · ${mandate.assignment?.name || "属官当值"}${masteryLabel}${collaborationLabel}${emergencyLabel} · 印记 ${String(mandate.digest || "").slice(0, 10)}`;
+    const sourceSeal = /^[0-9a-f]{64}$/i.test(mandate.sourceProvenance?.digest || "") ? mandate.sourceProvenance.digest : "";
+    const sourceSealLabel = sourceSeal ? ` · 版本封印 ${sourceSeal.slice(0, 10)}` : "";
+    $("#officeMandateApprovalDetail").textContent = `${mandate.evidence?.name || "史料军令"} · ${mandate.assignment?.name || "属官当值"}${masteryLabel}${collaborationLabel}${emergencyLabel}${sourceSealLabel} · 印记 ${String(mandate.digest || "").slice(0, 10)}`;
     $("#officeMandateApproveButton").textContent = issued ? "下达" : "签发";
     $("#officeMandateRejectButton").hidden = issued;
     $("#officeMandateReviseButton").hidden = issued;

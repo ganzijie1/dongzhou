@@ -359,6 +359,7 @@ async function openReady(page) {
         body.mandate.assignment.readiness.factors.personality = 1.2;
         body.mandate.assignment.readiness.factors.motivation = 0;
         body.mandate.emergency = { urgent: true, score: 54.548, interruptTraceId: "itr-browser-emergency", assessedAt: "2026-11-11T04:57:03Z", event: "emergency military report" };
+        body.mandate.sourceProvenance = { digest: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" };
       }
       else if (pathName.endsWith("/organization/tasks")) {
         orderAttempts += 1;
@@ -558,6 +559,7 @@ async function openReady(page) {
     if (!/协同\+5\.5/.test(await online.locator("#officeTaskLedger li.active").innerText())) throw new Error("Sealed manager relationship support is missing from the task ledger");
     if (!/史证2\/9/.test(await online.locator("#officeTaskLedger li.active").innerText())) throw new Error("Sealed evidence fit is missing from the task ledger");
     if (!/54\.548/.test(await online.locator("#officeTaskLedger li.active").innerText())) throw new Error("Sealed AINPC emergency assessment is missing from the task ledger");
+    if (!/版本封印 0123456789/.test(await online.locator("#officeMandateLedger").innerText())) throw new Error("Four-service source seal is missing from the mandate ledger");
     const afterConcurrentOrder = await online.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")));
     if (afterConcurrentOrder.organization.month !== 2) throw new Error(`Accepted order rolled back a concurrent month advance: ${afterConcurrentOrder.organization.month}`);
     if (afterConcurrentOrder.campaignResources.provisions !== provisionsBeforeOrder - afterConcurrentOrder.organization.tasks[0].cost) throw new Error("Accepted order did not charge exactly once");
