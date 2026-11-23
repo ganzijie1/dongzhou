@@ -208,6 +208,31 @@ async function advanceMonth(page) {
       saveJournal();
     }
 
+    const mandateProvenance = await page.evaluate(({ key, mandateId }) => {
+      const organization = JSON.parse(localStorage.getItem(key)).organization;
+      const mandate = organization.mandates.find((entry) => entry.id === mandateId);
+      return {
+        provenance: mandate?.sourceProvenance || null,
+        expectedSeal: organization.backend.serviceSourceSealDigest,
+      };
+    }, { key: PROFILE, mandateId: journal.mandateId });
+    assert.equal(mandateProvenance.provenance?.kernel?.module, "dongzhou_service_provenance");
+    assert.equal(mandateProvenance.provenance?.kernel?.state, "SEALED");
+    assert.equal(mandateProvenance.provenance?.digest, mandateProvenance.expectedSeal);
+    assert.deepEqual(
+      Object.keys(mandateProvenance.provenance?.services || {}),
+      ["knowledge", "aiNpc", "orgFlow", "nexusKernel"],
+    );
+    for (const source of Object.values(mandateProvenance.provenance.services)) {
+      assert(source.sourceBranch);
+      assert.match(source.sourceRevision, /^[0-9a-f]{40}$/);
+      assert.match(source.integrationRevision, /^[0-9a-f]{40}$/);
+    }
+    const mandateLedgerText = await page.locator("#officeMandateLedger").innerText();
+    assert.match(mandateLedgerText, new RegExp(`版本封印 ${mandateProvenance.expectedSeal.slice(0, 10)}`));
+    journal.sourceSeal = mandateProvenance.expectedSeal;
+    saveJournal();
+
     journal.stage = "orgflow-execution";
     saveJournal();
     let task = await waitForTask(page, journal.remoteTask, (entry) => (
@@ -301,6 +326,7 @@ async function advanceMonth(page) {
       mode: "real-services-browser-no-interception",
       chain: ["knowledge", "AINPC council", "NexusKernel diplomacy mandate", "orgFlow task", "settlement review", "cloud lobbying result", "alliance gate"],
       taskId: journal.remoteTask,
+      mandateSourceSeal: journal.sourceSeal,
       terminalResult: terminal,
       lobbyingOutcome: restored.lobbying.outcome,
       settlementReviewed,
