@@ -311,8 +311,23 @@ saveJournal();
       return organization.councils.find((entry) => entry.id === requestId);
     }, { key: PROFILE, requestId: issued.mandate.council.requestId });
     assert(council, "The sealed mandate council is missing from the saved ledger");
+    const expectedSourceSeal = await page.evaluate((key) => (
+      JSON.parse(localStorage.getItem(key)).organization.backend.serviceSourceSealDigest
+    ), PROFILE);
     assert.equal(issued.mandate.kernel.state, "ISSUED");
     assert.match(issued.mandate.digest, /^[0-9a-f]{64}$/);
+    assert.equal(issued.mandate.sourceProvenance?.kernel?.module, "dongzhou_service_provenance");
+    assert.equal(issued.mandate.sourceProvenance?.kernel?.state, "SEALED");
+    assert.equal(issued.mandate.sourceProvenance?.digest, expectedSourceSeal);
+    assert.deepEqual(
+      Object.keys(issued.mandate.sourceProvenance?.services || {}),
+      ["knowledge", "aiNpc", "orgFlow", "nexusKernel"],
+    );
+    for (const source of Object.values(issued.mandate.sourceProvenance.services)) {
+      assert(source.sourceBranch);
+      assert.match(source.sourceRevision, /^[0-9a-f]{40}$/);
+      assert.match(source.integrationRevision, /^[0-9a-f]{40}$/);
+    }
     assert.equal(issued.mandate.evidence.id, council.knowledgeId);
     assert.deepEqual(issued.mandate.evidence.source, {
       index: council.evidenceSource.index,
@@ -380,6 +395,7 @@ saveJournal();
     assert.match(await page.locator("#officeMandateLedger").innerText(), /今日插程|后续排程|日程裁定/);
     const mandateLedgerText = await page.locator("#officeMandateLedger").innerText();
     assert.match(mandateLedgerText, new RegExp(`史证${issued.mandate.evidenceFit.factor}/9`));
+    assert.match(mandateLedgerText, new RegExp(`版本封印 ${expectedSourceSeal.slice(0, 10)}`));
     if (requireKnowledgeMastery) assert.match(mandateLedgerText, /史识10\/10 · 成功率\+3/);
 
     } else {
@@ -848,6 +864,7 @@ saveJournal();
       },
       evidenceFit: issued.mandate.evidenceFit,
       mandateDigestPrefix: issued.mandate.digest.slice(0, 10),
+      mandateSourceSeal: issued.mandate.sourceProvenance.digest,
       terminalResult: terminal.final_result,
       collaboration: supportHeroId ? {
         primaryHeroId: issued.mandate.collaboration.primaryHeroId,
