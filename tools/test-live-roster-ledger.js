@@ -70,7 +70,7 @@ const executablePath = [
     assert(rowText.includes(`可用贡献 ${zuoRu.contributionBalance}`));
     assert(rowText.includes(`累计 ${zuoRu.lifetimeEarned}`));
     assert(rowText.includes(`已用 ${zuoRu.lifetimeSpent}`));
-    assert(!rowText.includes("officer_01"));
+    assert(!rowText.includes("patrol_1"));
     assert(!rowText.includes("court_officer"));
 
     const summary = await page.locator("#officeRosterSummary").innerText();

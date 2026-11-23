@@ -95,7 +95,7 @@ const guideReceipt = (actionId, state, digest) => ({
     else if (pathname.endsWith("/court/mandates/pending")) body = { pending: null };
     else if (pathname.endsWith("/npcs/sync")) body = { ready: true, npcs: [] };
     else if (pathname.endsWith("/npcs/interaction-preference")) body = { enabled: true, source: "test" };
-    else if (pathname.endsWith("/organization/roster")) body = { organization: { id: "test", name: "东周军府", state: "ACTIVE", growthContribution: 0 }, members: [] };
+    else if (pathname.endsWith("/organization/roster")) body = { organization: { id: "test", name: "东周军府", state: "ACTIVE", templateId: "dongzhou_court", templateVersion: 7, hierarchyVersion: 7, growthContribution: 0 }, members: [] };
     else if (pathname.endsWith("/organization/inventory")) body = { organizationId: "test", gameServerId: "91001", revision: 1, accounts: [] };
     else if (pathname.endsWith("/organization/scheduled-duties")) body = {
       ruleId: "00000000-0000-4000-8000-000000000198", state: "ACTIVE", frequency: "DAILY",

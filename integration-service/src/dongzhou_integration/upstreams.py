@@ -12,6 +12,9 @@ from .config import Settings
 from .security import sign_orgflow_request
 
 
+_DONGZHOU_CORPUS_SIZE = 172
+
+
 class UpstreamUnavailable(RuntimeError):
     def __init__(self, message: str, *, status_code: int | None = None, error_code: str | None = None, response_payload: dict[str, Any] | None = None) -> None:
         super().__init__(message)
@@ -217,6 +220,40 @@ class Upstreams:
                 payload = await self._json("GET", url)
                 if name == "aiNpc" and payload.get("ready") is not True:
                     raise UpstreamUnavailable("AINPC gateway readiness is false")
+                if name == "knowledge":
+                    data = payload.get("data")
+                    if not isinstance(data, dict) or data.get("status") != "healthy":
+                        raise UpstreamUnavailable("knowledge service is not healthy")
+                    components = data.get("components")
+                    required_components = {"qdrant", "elasticsearch", "neo4j"}
+                    if not isinstance(components, dict) or any(
+                        not isinstance(components.get(component), dict)
+                        or components[component].get("status") != "up"
+                        for component in required_components
+                    ):
+                        raise UpstreamUnavailable("knowledge indexes are not ready")
+                    stats = data.get("stats")
+                    aku_count = stats.get("aku_count") if isinstance(stats, dict) else None
+                    dongzhou_aku_count = (
+                        stats.get("dongzhou_aku_count") if isinstance(stats, dict) else None
+                    )
+                    if (
+                        not isinstance(aku_count, int)
+                        or isinstance(aku_count, bool)
+                        or not isinstance(dongzhou_aku_count, int)
+                        or isinstance(dongzhou_aku_count, bool)
+                        or dongzhou_aku_count != _DONGZHOU_CORPUS_SIZE
+                        or aku_count < dongzhou_aku_count
+                        or stats.get("dongzhou_corpus_complete") is not True
+                    ):
+                        raise UpstreamUnavailable(
+                            "knowledge index does not contain the complete Dongzhou corpus"
+                        )
+                    return name, {
+                        "online": True,
+                        "akuCount": aku_count,
+                        "dongzhouAkuCount": dongzhou_aku_count,
+                    }
                 return name, {"online": True}
             except UpstreamUnavailable as error:
                 return name, {"online": False, "reason": str(error)}

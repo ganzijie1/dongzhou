@@ -1586,6 +1586,46 @@ def _organization_final_result(value: Any) -> str | None:
     return None
 
 
+_DONGZHOU_ORGANIZATION_TEMPLATE_ID = "dongzhou_court"
+_DONGZHOU_ORGANIZATION_TEMPLATE_VERSION = 7
+_DONGZHOU_ORGANIZATION_SLOT_KEYS = frozenset(
+    {"commander", *(f"patrol_{index}" for index in range(1, 13))}
+)
+
+
+def _validate_dongzhou_roster_contract(
+    snapshot: Any,
+    *,
+    organization_id: str | None = None,
+) -> None:
+    if not isinstance(snapshot, dict):
+        raise ValueError("roster snapshot must be an object")
+    if organization_id is not None and str(snapshot.get("organization_id") or "") != organization_id:
+        raise ValueError("roster organization id is incompatible")
+    if snapshot.get("state") != "ACTIVE":
+        raise ValueError("roster organization is not active")
+    if snapshot.get("template_id") != _DONGZHOU_ORGANIZATION_TEMPLATE_ID:
+        raise ValueError("roster template id is incompatible")
+    template_version = snapshot.get("template_version")
+    if (
+        isinstance(template_version, bool)
+        or template_version != _DONGZHOU_ORGANIZATION_TEMPLATE_VERSION
+    ):
+        raise ValueError("roster template version is incompatible")
+    positions = snapshot.get("positions")
+    if not isinstance(positions, list) or len(positions) != len(
+        _DONGZHOU_ORGANIZATION_SLOT_KEYS
+    ):
+        raise ValueError("roster positions are missing")
+    slot_keys = {
+        position.get("slot_key")
+        for position in positions
+        if isinstance(position, dict) and isinstance(position.get("slot_key"), str)
+    }
+    if slot_keys != _DONGZHOU_ORGANIZATION_SLOT_KEYS:
+        raise ValueError("roster position contract is incompatible")
+
+
 def _organization_roster_view(
     snapshot: Any,
     settings: Settings,
@@ -1662,6 +1702,8 @@ def _organization_roster_view(
         "organization": {
             "name": display_text(snapshot.get("name")),
             "state": str(snapshot.get("state") or ""),
+            "templateId": str(snapshot.get("template_id") or ""),
+            "templateVersion": snapshot.get("template_version", 0),
             "hierarchyVersion": hierarchy_version,
             "growthContribution": growth,
         },
@@ -5304,7 +5346,41 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
 
     @router.get("/integration/status")
     async def integration_status(player_id: UUID = Depends(player)) -> dict[str, Any]:
-        services = service_statuses(await upstreams.health())
+        external = await upstreams.health()
+        orgflow_status = external.get("orgFlow")
+        if (
+            settings.orgflow_org_id
+            and isinstance(orgflow_status, dict)
+            and orgflow_status.get("online") is True
+        ):
+            try:
+                roster_response = await upstreams.organization_roster(
+                    settings.orgflow_org_id
+                )
+                roster_snapshot = (
+                    roster_response.get("data")
+                    if isinstance(roster_response, dict)
+                    else None
+                )
+                _validate_dongzhou_roster_contract(
+                    roster_snapshot,
+                    organization_id=settings.orgflow_org_id,
+                )
+            except (UpstreamUnavailable, OSError, ValueError) as error:
+                external["orgFlow"] = {
+                    **orgflow_status,
+                    "online": False,
+                    "rosterOnline": False,
+                    "reason": str(error),
+                }
+            else:
+                external["orgFlow"] = {
+                    **orgflow_status,
+                    "rosterOnline": True,
+                    "templateId": _DONGZHOU_ORGANIZATION_TEMPLATE_ID,
+                    "templateVersion": _DONGZHOU_ORGANIZATION_TEMPLATE_VERSION,
+                }
+        services = service_statuses(external)
         return {"mode": "connected", "services": services, "playerId": str(player_id), "organizationId": settings.orgflow_org_id or None}
 
     @router.post("/adviser/questions")
@@ -8955,6 +9031,10 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             response = await upstreams.organization_roster(settings.orgflow_org_id)
             if not isinstance(response, dict):
                 raise ValueError("roster response must be an object")
+            _validate_dongzhou_roster_contract(
+                response.get("data"),
+                organization_id=settings.orgflow_org_id,
+            )
             return _organization_roster_view(
                 response.get("data"),
                 settings,

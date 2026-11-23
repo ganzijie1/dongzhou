@@ -147,7 +147,7 @@ async function openReady(page) {
       }
       else if (pathName.endsWith("/integration/status")) body = { mode: "connected", organizationId: "org-e2e", services: { nexusKernel: { online: true, mode: "embedded", version: "0.2.0", requiredModuleCount: 19, operationalModuleCount: 19, unavailableModules: [] }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } } };
       else if (pathName.endsWith("/court/mandates/pending")) body = { pending: null };
-      else if (pathName.endsWith("/organization/roster")) body = { organization: { name: "东周军府", state: "ACTIVE", hierarchyVersion: membershipJoined ? 8 : 7, growthContribution: 245 }, members: [{ heroId: "DuBo", office: "军府主官", role: "军府主官", level: "manager", directManagerHeroId: null, contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 }, { heroId: "ZuoRu", office: "军府属官·第1席", role: "军府属官", level: "officer", directManagerHeroId: "DuBo", contributionBalance: 31, lifetimeEarned: 42, lifetimeSpent: 11 }], playerMembership: membershipJoined ? { office: "军府属官·第12席", role: "军府属官", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 } : null, openPositions: membershipJoined ? [] : [{ office: "军府属官·第12席", role: "军府属官", level: "staff" }] };
+      else if (pathName.endsWith("/organization/roster")) body = { organization: { name: "东周军府", state: "ACTIVE", templateId: "dongzhou_court", templateVersion: 7, hierarchyVersion: membershipJoined ? 8 : 7, growthContribution: 245 }, members: [{ heroId: "DuBo", office: "军府主官", role: "军府主官", level: "manager", directManagerHeroId: null, contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 }, { heroId: "ZuoRu", office: "军府属官·第1席", role: "军府属官", level: "officer", directManagerHeroId: "DuBo", contributionBalance: 31, lifetimeEarned: 42, lifetimeSpent: 11 }], playerMembership: membershipJoined ? { office: "军府属官·第12席", role: "军府属官", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 } : null, openPositions: membershipJoined ? [] : [{ office: "军府属官·第12席", role: "军府属官", level: "staff" }] };
       else if (pathName.endsWith("/organization/scheduled-duties/status")) {
         const input = request.postDataJSON();
         scheduledDutyState = input.enabled ? "ACTIVE" : "DISABLED";
@@ -301,7 +301,7 @@ async function openReady(page) {
       else if (/\/npcs\/[^/]+\/messages$/.test(pathName)) {
         const input = request.postDataJSON();
         const message = String(input.content || "");
-        membershipAction = message.includes("加入组织申请") ? "join" : message.includes("退出东周") ? "confirmLeave" : null;
+        membershipAction = message.includes("加入组织申请") ? "join" : message.includes("我确认退出") ? "confirmLeave" : null;
         if (membershipAction === "join" && !message.includes("「军府属官·第12席」岗位")) {
           throw new Error(`Membership request did not bind the formal position name: ${message}`);
         }
@@ -381,6 +381,7 @@ async function openReady(page) {
     await online.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
     await online.click("#campaignOfficeButton");
     await online.waitForSelector("#officeServiceStatus >> text=内核 19/19通达", { timeout: 15000 });
+    await online.waitForSelector("#officeRosterSummary >> text=模板 v7", { timeout: 15000 });
     await online.waitForSelector("#officeMembers >> text=官署实账");
     await online.waitForSelector("#officeScheduledDutyStatus >> text=已有同类差事在办", { timeout: 15000 });
     await online.click("#officeScheduledDutyToggle");
@@ -454,7 +455,7 @@ async function openReady(page) {
     if (careerMobileLayout.scrollWidth > careerMobileLayout.width + 1) throw new Error(`Mobile player contribution ledger overflows viewport: ${JSON.stringify(careerMobileLayout)}`);
     await online.screenshot({ path: path.join(OUT, "mobile-career-contribution.png"), fullPage: false });
     await online.setViewportSize({ width: 1440, height: 900 });
-    if (careerActions.map((entry) => entry.action).join(",") !== "options,request,inbox,inbox,modify,inbox,accept,exception,result,supplement,request,inbox,reject") throw new Error(`Unexpected player career sequence: ${JSON.stringify(careerActions)}`);
+    if (careerActions.map((entry) => entry.action).join(",") !== "options,request,inbox,modify,accept,exception,result,supplement,request,reject") throw new Error(`Unexpected player career sequence: ${JSON.stringify(careerActions)}`);
     if (!careerActions.find((entry) => entry.action === "modify")?.message.includes("将交付时限顺延一日，并增加西仓封识清单")) throw new Error("Task modification detail was not sent to the manager");
     if (!careerActions.find((entry) => entry.action === "modify")?.message.includes("《核验军粮账册》")) throw new Error("Task modification did not bind the selected task");
     if (!careerActions.find((entry) => entry.action === "reject")?.message.includes("当前粮道已封，请另派属官承办")) throw new Error("Task rejection reason was not sent to the manager");

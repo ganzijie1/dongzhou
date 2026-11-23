@@ -14,11 +14,13 @@ orgFlow 东周任务目录当前为 v7。五类正式任务以玩家可直接输
 
 1. 发布 knowledge-jizhan 数据镜像，确认镜像包含 `AI使用的知识库/V3/dongzhou` 的 172 份 AKU。
 2. 在 knowledge-jizhan 工作台登记新来源，执行 schema/内容一致性校验，发布并同步检索索引。管理模式不会自动导入。
-3. 在 orgFlowEngine 运行 `python scripts/publish_dongzhou_catalog.py --publish`，发布 `config/organizations/dongzhou_court_v3.json`，用 `dongzhou_court` 模板建立官署并导入武将；把每个稳定武将 ID 与其实际占用的岗位 UUID 写入 `DONGZHOU_ORGFLOW_HERO_SLOTS`。未映射武将会拒绝派单，不会错派给其他成员。
+3. 在 orgFlowEngine 运行 `python scripts/publish_dongzhou_catalog.py --publish`，发布 `config/organizations/dongzhou_court_v7.json`；旧官署先运行 `python scripts/upgrade_dongzhou_court.py --organization-id <ORG UUID>` 原地升级，再运行 `python scripts/provision_dongzhou_court.py --ainpc-url <AINPC URL>`。v7 `dongzhou_court` 共 13 席并导入 12 名武将，保留 `patrol_12` 给玩家入仕；把每个稳定武将 ID 与其实际占用的岗位 UUID 写入 `DONGZHOU_ORGFLOW_HERO_SLOTS`。未映射武将会拒绝派单，不会错派给其他成员。
 4. 将 AINPC 的 `ORGANIZATION_TASK_SERVICE_BEARER_TOKEN` 以同值注入 `DONGZHOU_AINPC_TASK_TOKEN`。该令牌只用于服务端到期复命出站队列，禁止进入 H5、日志或存档。
 5. 用 AINPC 仓库的 `docker/v2/docker-compose-dongzhou.yml` 叠加环境。日程事务目录唯一 owner 是 Gateway；Business 通过 typed proxy 读取 Gateway，必须给 Gateway 配置 `AINPC_CONST_CSV_SCHEDULE_TRANSACTIONS`，指向东周专用 12 类官署事务，不替换通用 CSV。当前本机 Gateway、Global、Business 固定为 `ainpc-app:v20261112-dongzhou-local-complete65`。保留基础配置的 entrypoint、网络、挂载、端口和托管凭据；更新现有实例前按 Docker 标签保留每个服务原 Compose 项目归属。目录升级不会自动迁移已提交日程，必须通过正式重拟接口并回读验收。
 6. 启动 AINPC V2 的 gateway、global、business 实例及其 NATS/Mongo/Redis 依赖，确认目标 NPC 已注册且 Actor 可用。Windows 宿主执行 Compose 时必须把 `AINPC_DATA_ROOT` 设为实际宿主目录（当前环境为 `E:/game/.runtime/ainpc/v2`）；容器内路径沿基础配置挂载，不因宿主路径不同而直接改容器目录。
 7. 部署 integration gateway，执行 `/health/live`、`/health/ready` 和 `/api/dongzhou/v1/integration/status` 探测，再开放入口流量。
+
+集成状态不会把“HTTP 可访问”当作知识服务就绪：knowledge-jizhan 必须报告 `healthy`，Qdrant、Elasticsearch、Neo4j 三个组件全部为 `up`，并且已发布索引逐条包含 `dongzhou_stage_001..172`；降级、空索引、数量相同但编号缺失或未完整发布时均保持离线。
 
 ## 身份与真值
 

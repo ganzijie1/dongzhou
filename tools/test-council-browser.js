@@ -46,7 +46,7 @@ async function setup(browser) {
     else if(p.endsWith('/court/mandates/pending')) body={pending:null};
     else if(p.endsWith('/npcs/interaction-preference')) body={enabled:req.postDataJSON().enabled,source:'dongzhou-player-settings',updatedAt:'2026-11-11T12:00:00Z'};
     else if(p.endsWith('/npcs/ZuoRu/merit-commendations')) {model.meritCommendations.push(req.postDataJSON());body={state:'COMPLETED',replayed:model.meritCommendations.length>1,commendation:clone(MERIT_COMMENDATION)};}
-    else if(p.endsWith('/organization/roster')) body={organization:{id:'test',name:'东周军府',state:'ACTIVE',growthContribution:0},members:[]};
+    else if(p.endsWith('/organization/roster')) body={organization:{id:'test',name:'东周军府',state:'ACTIVE',templateId:'dongzhou_court',templateVersion:7,hierarchyVersion:7,growthContribution:20},members:[{heroId:'ZuoRu',office:'司徒',role:'军府属官',level:'officer',directManagerHeroId:'DuBo',contributionBalance:20,lifetimeEarned:20,lifetimeSpent:0}]};
     else if(p.endsWith('/organization/public-notices')) body={notices:[]};
     else if(p.endsWith(`/organization/members/ZuoRu/contributions/${CONTRIBUTION.entryId}/dossier`)) body={dossier:clone(CONTRIBUTION_DOSSIER)};
     else if(p.endsWith('/organization/members/ZuoRu/contributions')) body={heroId:'ZuoRu',memberId:'member-zuoru',account:{accountVersion:2,accountBalance:20,lifetimeEarned:20,lifetimeSpent:0},entries:[clone(CONTRIBUTION)],nextBeforeVersion:null};

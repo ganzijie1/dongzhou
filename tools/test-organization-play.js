@@ -151,9 +151,9 @@ state = play.updateBackend(state, { aiNpc: false });
 assert.strictEqual(state.backend.mode, "local");
 state = play.updateBackend(state, { aiNpc: true });
 state = play.recordRemoteRoster(state, {
-  organization: { name: "东周军府", state: "ACTIVE", hierarchyVersion: 3, growthContribution: 245 },
+  organization: { name: "东周军府", state: "ACTIVE", templateId: "dongzhou_court", templateVersion: 7, hierarchyVersion: 3, growthContribution: 245 },
   members: [{ heroId: "ZuoRu", office: "司马", role: "军务属官", level: "officer", directManagerHeroId: "DuBo", contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 }],
-  playerMembership: { office: "officer_12", role: "court_officer", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 3, lifetimeEarned: 5, lifetimeSpent: 2 },
+  playerMembership: { office: "patrol_12", role: "court_officer", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 3, lifetimeEarned: 5, lifetimeSpent: 2 },
   openPositions: []
 });
 assert.strictEqual(state.name, "东周军府");
@@ -161,13 +161,14 @@ assert.strictEqual(state.contribution, 245);
 assert.strictEqual(state.members.find((member) => member.id === "ZuoRu").office, "司马");
 assert.strictEqual(state.members.find((member) => member.id === "ZuoRu").merit, 80);
 assert.strictEqual(state.remoteRoster.members[0].contributionBalance, 54);
+assert.strictEqual(state.remoteRoster.organization.templateVersion, 7);
 assert.strictEqual(state.remoteRoster.playerMembership.directManagerHeroId, "DuBo");
 assert.strictEqual(state.remoteRoster.playerMembership.lifetimeEarned, 5);
-const internalOfficeState = play.recordRemoteRoster({ ...state, members: state.members.map((member) => member.id === "ZuoRu" ? { ...member, office: "officer_01" } : member) }, {
-  organization: { name: "东周军府", state: "ACTIVE", hierarchyVersion: 4, growthContribution: 245 },
+const internalOfficeState = play.recordRemoteRoster({ ...state, members: state.members.map((member) => member.id === "ZuoRu" ? { ...member, office: "patrol_1" } : member) }, {
+  organization: { name: "东周军府", state: "ACTIVE", templateId: "dongzhou_court", templateVersion: 7, hierarchyVersion: 4, growthContribution: 245 },
   members: [
-    { heroId: "ZuoRu", office: "officer_01", role: "court_officer", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 },
-    { heroId: "ZhouYouWang", office: "officer_02", role: "court_officer", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 12, lifetimeEarned: 14, lifetimeSpent: 2 }
+    { heroId: "ZuoRu", office: "patrol_1", role: "court_officer", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 54, lifetimeEarned: 80, lifetimeSpent: 26 },
+    { heroId: "ZhouYouWang", office: "patrol_2", role: "court_officer", level: "staff", directManagerHeroId: "DuBo", contributionBalance: 12, lifetimeEarned: 14, lifetimeSpent: 2 }
   ]
 }, (id) => ({ ZuoRu: "左儒", ZhouYouWang: "周幽王" }[id] || id));
 assert.strictEqual(internalOfficeState.members.find((member) => member.id === "ZuoRu").office, "司马");
@@ -175,7 +176,8 @@ assert.strictEqual(internalOfficeState.members.find((member) => member.id === "Z
 assert.strictEqual(internalOfficeState.members.find((member) => member.id === "ZhouYouWang").name, "周幽王");
 assert.strictEqual(internalOfficeState.members.find((member) => member.id === "ZhouYouWang").office, "司徒");
 assert.strictEqual(internalOfficeState.members.find((member) => member.id === "ZhouYouWang").merit, 14);
-assert.throws(() => play.recordRemoteRoster(state, { organization: { growthContribution: 1 }, members: [{ heroId: "ZuoRu", contributionBalance: 0, lifetimeEarned: 1.5, lifetimeSpent: 0 }] }), /功绩无效/);
+assert.throws(() => play.recordRemoteRoster(state, { organization: { templateId: "dongzhou_court", templateVersion: 6, growthContribution: 1 }, members: [] }), /模板不兼容/);
+assert.throws(() => play.recordRemoteRoster(state, { organization: { templateId: "dongzhou_court", templateVersion: 7, growthContribution: 1 }, members: [{ heroId: "ZuoRu", contributionBalance: 0, lifetimeEarned: 1.5, lifetimeSpent: 0 }] }), /功绩无效/);
 
 let remote = play.createTask(state, { type: "supply", assigneeId: "ZuoRu", stageId: "01", stageTitle: "东郊索命" });
 remote.task.remoteResult = "00000000-0000-0000-0000-000000000010";

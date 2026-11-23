@@ -277,7 +277,7 @@
       configureMobilePanels();
       buildRangeOptions();
       syncCampaignSettings();
-      refreshIntegrationStatus();
+      await refreshIntegrationStatus();
       renderCampaign();
       setLoading(100, `${campaign.stageCount} 场战役就绪`);
       await sleep(180);
@@ -1618,7 +1618,7 @@
     const rosterByHero = new Map(rosterMembers.map((entry) => [entry.heroId, entry]));
     const rosterState = roster.organization?.state === "ACTIVE" ? "在署" : roster.organization?.state || "待核";
     $("#officeRosterSummary").textContent = roster.organization
-      ? `${roster.organization.name || org.name} · ${rosterMembers.length} 席在册 · 谱系 ${roster.organization.hierarchyVersion} · ${rosterState}`
+      ? `${roster.organization.name || org.name} · 模板 v${roster.organization.templateVersion} · ${rosterMembers.length} 席在册 · 谱系 ${roster.organization.hierarchyVersion} · ${rosterState}`
       : "尚未取得朝议实账名册";
     renderOfficeMembership(roster);
     $("#officeMembers").innerHTML = org.members.map((member) => {

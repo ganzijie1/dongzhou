@@ -71,7 +71,7 @@ async function routeAssets(page) {
         digest: "6".repeat(64),
         kernel: { module: "dongzhou_battle_debrief", moduleVersion: "1.0.0", state: "SEALED" },
       };
-    } else if (pathname.endsWith("/organization/roster")) body = { organization: { name: "东周军府", state: "ACTIVE" }, members: [{ heroId: "DuBo", office: "军府主官" }, { heroId: "ZuoRu", office: "军府属官" }], playerMembership: null, openPositions: [] };
+    } else if (pathname.endsWith("/organization/roster")) body = { organization: { name: "东周军府", state: "ACTIVE", templateId: "dongzhou_court", templateVersion: 7, hierarchyVersion: 7, growthContribution: 0 }, members: [{ heroId: "DuBo", office: "军府主官", contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 }, { heroId: "ZuoRu", office: "军府属官", contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 }], playerMembership: null, openPositions: [] };
     else if (pathname.endsWith("/organization/inventory")) body = { accounts: [], revision: 1 };
     else if (pathname.endsWith("/organization/scheduled-duties")) body = { state: "ACTIVE", version: 1 };
     else if (pathname.endsWith("/organization/public-notices")) body = { notices: [] };

@@ -352,6 +352,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
     async def test_roster_route_exposes_mapped_heroes_and_current_player_only(self) -> None:
         class RosterUpstreams:
             player_subject_id = "pending"
+            template_version = 7
 
             async def health(self):
                 return {
@@ -364,6 +365,8 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                 return {
                     "data": {
                         "organization_id": organization_id,
+                        "template_id": "dongzhou_court",
+                        "template_version": self.template_version,
                         "name": "Dongzhou Commandery",
                         "state": "ACTIVE",
                         "hierarchy_version": 7,
@@ -371,12 +374,14 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                         "positions": [
                             {
                                 "position_slot_id": "00000000-0000-0000-0000-000000000003",
+                                "slot_key": "commander",
                                 "position_display_name": "Marshal",
                                 "role_display_name": "Commander",
                                 "level_key": "manager",
                             },
                             {
                                 "position_slot_id": "00000000-0000-0000-0000-000000000005",
+                                "slot_key": "patrol_1",
                                 "position_display_name": "Court Officer",
                                 "role_display_name": "Officer",
                                 "level_key": "staff",
@@ -384,11 +389,23 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                             },
                             {
                                 "position_slot_id": "00000000-0000-0000-0000-000000000006",
+                                "slot_key": "patrol_2",
                                 "position_display_name": "Open Court Officer",
                                 "role_display_name": "Officer",
                                 "level_key": "staff",
                                 "state": "OPEN",
                             },
+                            *(
+                                {
+                                    "position_slot_id": f"disabled-{index:02d}",
+                                    "slot_key": f"patrol_{index}",
+                                    "position_display_name": "Reserved Court Officer",
+                                    "role_display_name": "Officer",
+                                    "level_key": "staff",
+                                    "state": "DISABLED",
+                                }
+                                for index in range(3, 13)
+                            ),
                         ],
                         "members": [
                             {
@@ -439,9 +456,26 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                     configured.ainpc_game_server_id,
                     UUID(session.json()["playerId"]),
                 ))
+                status = client.get("/api/dongzhou/v1/integration/status")
+                upstreams.template_version = 6
+                degraded_status = client.get("/api/dongzhou/v1/integration/status")
+                rejected_roster = client.get("/api/dongzhou/v1/organization/roster")
+                upstreams.template_version = 7
                 response = client.get("/api/dongzhou/v1/organization/roster")
 
+        self.assertTrue(status.json()["services"]["orgFlow"]["online"])
+        self.assertTrue(status.json()["services"]["orgFlow"]["rosterOnline"])
+        self.assertEqual(status.json()["services"]["orgFlow"]["templateVersion"], 7)
+        self.assertFalse(degraded_status.json()["services"]["orgFlow"]["online"])
+        self.assertFalse(degraded_status.json()["services"]["orgFlow"]["rosterOnline"])
+        self.assertEqual(rejected_roster.status_code, 502)
+        self.assertEqual(
+            rejected_roster.json()["error"]["code"],
+            "organization_roster_contract_invalid",
+        )
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["organization"]["templateId"], "dongzhou_court")
+        self.assertEqual(response.json()["organization"]["templateVersion"], 7)
         self.assertEqual(response.json()["organization"]["growthContribution"], 245)
         self.assertEqual(response.json()["members"], [{
             "heroId": "DuBo",
@@ -694,12 +728,31 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
 
         def handler(request: httpx.Request) -> httpx.Response:
             paths.append(request.url.path)
+            if request.url.path == "/health":
+                return httpx.Response(200, json={
+                    "code": 0,
+                    "data": {
+                        "status": "healthy",
+                        "components": {
+                            "qdrant": {"status": "up"},
+                            "elasticsearch": {"status": "up"},
+                            "neo4j": {"status": "up"},
+                        },
+                        "stats": {
+                            "aku_count": 240,
+                            "dongzhou_aku_count": 172,
+                            "dongzhou_corpus_complete": True,
+                        },
+                    },
+                })
             return httpx.Response(200, json={"status": "ready", "ready": True})
 
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
             result = await Upstreams(settings(Path("unused")), client).health()
 
         self.assertTrue(all(item["online"] for item in result.values()))
+        self.assertEqual(result["knowledge"]["akuCount"], 240)
+        self.assertEqual(result["knowledge"]["dongzhouAkuCount"], 172)
         self.assertEqual(
             set(paths),
             {"/health/ready", "/readiness", "/health"},
@@ -707,6 +760,22 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_health_rejects_false_ainpc_readiness(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
+            if request.url.path == "/health":
+                return httpx.Response(200, json={
+                    "data": {
+                        "status": "healthy",
+                        "components": {
+                            "qdrant": {"status": "up"},
+                            "elasticsearch": {"status": "up"},
+                            "neo4j": {"status": "up"},
+                        },
+                        "stats": {
+                            "aku_count": 172,
+                            "dongzhou_aku_count": 172,
+                            "dongzhou_corpus_complete": True,
+                        },
+                    },
+                })
             return httpx.Response(
                 200,
                 json={"ready": request.url.path != "/readiness"},
@@ -718,6 +787,58 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result["aiNpc"]["online"])
         self.assertTrue(result["orgFlow"]["online"])
         self.assertTrue(result["knowledge"]["online"])
+
+    async def test_health_rejects_degraded_knowledge_components(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.url.path != "/health":
+                return httpx.Response(200, json={"ready": True})
+            return httpx.Response(200, json={
+                "data": {
+                    "status": "degraded",
+                    "components": {
+                        "qdrant": {"status": "up"},
+                        "elasticsearch": {"status": "down"},
+                        "neo4j": {"status": "up"},
+                    },
+                    "stats": {
+                        "aku_count": 172,
+                        "dongzhou_aku_count": 172,
+                        "dongzhou_corpus_complete": True,
+                    },
+                },
+            })
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            result = await Upstreams(settings(Path("unused")), client).health()
+
+        self.assertFalse(result["knowledge"]["online"])
+        self.assertIn("not healthy", result["knowledge"]["reason"])
+
+    async def test_health_rejects_incomplete_knowledge_corpus(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.url.path != "/health":
+                return httpx.Response(200, json={"ready": True})
+            return httpx.Response(200, json={
+                "data": {
+                    "status": "healthy",
+                    "components": {
+                        "qdrant": {"status": "up"},
+                        "elasticsearch": {"status": "up"},
+                        "neo4j": {"status": "up"},
+                    },
+                    "stats": {
+                        "aku_count": 172,
+                        "dongzhou_aku_count": 171,
+                        "dongzhou_corpus_complete": False,
+                    },
+                },
+            })
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            result = await Upstreams(settings(Path("unused")), client).health()
+
+        self.assertFalse(result["knowledge"]["online"])
+        self.assertIn("complete Dongzhou corpus", result["knowledge"]["reason"])
 
     async def test_npc_state_keeps_persistent_state_when_emotion_actor_is_offline(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:

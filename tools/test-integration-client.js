@@ -154,7 +154,7 @@ global.fetch = async (url, options = {}) => {
     response = { state: "ANSWERED", questionId: decodeURIComponent(url.split("/").at(-1)), answer: "adviser answer", intentType: "role", guide: { available: true, sessionId: "guide-session-1", status: "AVAILABLE", started: false } };
   }
   else if (url.endsWith("/organization/roster")) {
-    response = { organization: { name: "东周军府", growthContribution: 245 }, members: [{ heroId: "DuBo", lifetimeEarned: 80 }] };
+    response = { organization: { name: "东周军府", templateId: "dongzhou_court", templateVersion: 7, growthContribution: 245 }, members: [{ heroId: "DuBo", lifetimeEarned: 80 }] };
   }
   else if (url.endsWith("/organization/public-notices")) {
     response = { notices: [{ messageId: "npc-public:1", heroId: "DuBo", npcName: "杜伯", message: "军令已布。", digest: "a".repeat(64) }] };

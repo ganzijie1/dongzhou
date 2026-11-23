@@ -1036,6 +1036,7 @@
     const organization = snapshot?.organization;
     const members = snapshot?.members;
     if (!organization || typeof organization !== "object" || !Array.isArray(members)) throw new Error("官署实账名册无效");
+    if (organization.templateId !== "dongzhou_court" || organization.templateVersion !== 7) throw new Error("官署实账模板不兼容");
     const growth = organization.growthContribution;
     if (!Number.isSafeInteger(growth)) throw new Error("官署实账贡献无效");
     const normalized = members.slice(0, 12).map((entry) => {
@@ -1050,11 +1051,11 @@
       };
     });
     const existingByHero = new Map(state.members.map((member) => [member.id, member]));
-    const internalOffice = /^(?:commander|court_officer|officer_\d+)$/i;
+    const internalOffice = /^(?:commander|court_officer|(?:officer_|patrol_)\d+)$/i;
     const taskOffices = ["司马", "司徒", "司寇", "行人", "上卿"];
     const remoteMembers = normalized.map((account, index) => {
       const existing = existingByHero.get(account.heroId);
-      const slot = /^officer_(\d+)$/i.exec(account.office);
+      const slot = /^(?:officer_|patrol_)(\d+)$/i.exec(account.office);
       const mappedOffice = account.level === "owner" || account.role === "commander" || account.office === "commander"
         ? "主官"
         : slot
@@ -1084,6 +1085,8 @@
     state.remoteRoster = {
       organization: {
         name: String(organization.name || ""), state: String(organization.state || ""),
+        templateId: organization.templateId,
+        templateVersion: organization.templateVersion,
         hierarchyVersion: Number.isSafeInteger(organization.hierarchyVersion) ? organization.hierarchyVersion : 0,
         growthContribution: growth
       },

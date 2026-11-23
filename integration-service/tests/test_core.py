@@ -39,6 +39,7 @@ from dongzhou_integration.app import (
     _npc_outcome_status,
     _npc_collaboration_affection_events,
     _organization_supervision_links,
+    _validate_dongzhou_roster_contract,
     _organization_task_trace_view,
     _organization_task_chance,
     _prepare_due_organization_reports,
@@ -190,6 +191,33 @@ class _NpcRecoveryUpstreams(_HealthyUpstreams):
 
 
 class SecurityTests(unittest.TestCase):
+    def test_dongzhou_roster_contract_requires_v7_thirteen_seat_court(self) -> None:
+        positions = [
+            {"slot_key": "commander"},
+            *({"slot_key": f"patrol_{index}"} for index in range(1, 13)),
+        ]
+        snapshot = {
+            "organization_id": "court-1",
+            "state": "ACTIVE",
+            "template_id": "dongzhou_court",
+            "template_version": 7,
+            "positions": positions,
+        }
+        _validate_dongzhou_roster_contract(snapshot)
+
+        with self.assertRaisesRegex(ValueError, "template version"):
+            _validate_dongzhou_roster_contract({**snapshot, "template_version": 6})
+        with self.assertRaisesRegex(ValueError, "positions are missing"):
+            _validate_dongzhou_roster_contract({**snapshot, "positions": positions[:-1]})
+        with self.assertRaisesRegex(ValueError, "organization id"):
+            _validate_dongzhou_roster_contract(snapshot, organization_id="court-2")
+        with self.assertRaisesRegex(ValueError, "not active"):
+            _validate_dongzhou_roster_contract({**snapshot, "state": "ARCHIVED"})
+        with self.assertRaisesRegex(ValueError, "positions are missing"):
+            _validate_dongzhou_roster_contract(
+                {**snapshot, "positions": [*positions, positions[-1]]}
+            )
+
     def test_nested_utf8_mojibake_is_repaired_without_changing_chinese(self) -> None:
         expected = "与左儒对话：先固军粮"
         broken = expected.encode("utf-8").decode("latin-1")
