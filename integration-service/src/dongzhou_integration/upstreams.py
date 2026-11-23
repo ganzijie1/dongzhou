@@ -216,34 +216,32 @@ class Upstreams:
             "aiNpc": f"{self.settings.ainpc_url}/readiness",
             "knowledge": f"{self.settings.knowledge_url}/health",
         }
+
+        def source_status(name: str, source: Any) -> dict[str, Any]:
+            expected_source = SERVICE_SOURCES[name]
+            source_attested = bool(
+                isinstance(source, dict)
+                and source.get("branch") == expected_source["sourceBranch"]
+                and source.get("revision") == expected_source["sourceRevision"]
+            )
+            return {
+                "online": source_attested,
+                "sourceAttested": source_attested,
+                **({} if source_attested else {"reason": "source_attestation_failed"}),
+            }
+
         async def probe(name: str, url: str) -> tuple[str, dict[str, Any]]:
             try:
                 payload = await self._json("GET", url)
                 if name == "orgFlow":
                     data = payload.get("data")
                     source = data.get("source") if isinstance(data, dict) else None
-                    expected_source = SERVICE_SOURCES["orgFlow"]
-                    return name, {
-                        "online": True,
-                        "sourceAttested": bool(
-                            isinstance(source, dict)
-                            and source.get("branch") == expected_source["sourceBranch"]
-                            and source.get("revision") == expected_source["sourceRevision"]
-                        ),
-                    }
+                    return name, source_status(name, source)
                 if name == "aiNpc" and payload.get("ready") is not True:
                     raise UpstreamUnavailable("AINPC gateway readiness is false")
                 if name == "aiNpc":
                     source = payload.get("source")
-                    expected_source = SERVICE_SOURCES["aiNpc"]
-                    return name, {
-                        "online": True,
-                        "sourceAttested": bool(
-                            isinstance(source, dict)
-                            and source.get("branch") == expected_source["sourceBranch"]
-                            and source.get("revision") == expected_source["sourceRevision"]
-                        ),
-                    }
+                    return name, source_status(name, source)
                 if name == "knowledge":
                     data = payload.get("data")
                     if not isinstance(data, dict) or data.get("status") != "healthy":
@@ -274,17 +272,10 @@ class Upstreams:
                             "knowledge index does not contain the complete Dongzhou corpus"
                         )
                     source = data.get("source")
-                    expected_source = SERVICE_SOURCES["knowledge"]
-                    source_attested = bool(
-                        isinstance(source, dict)
-                        and source.get("branch") == expected_source["sourceBranch"]
-                        and source.get("revision") == expected_source["sourceRevision"]
-                    )
                     return name, {
-                        "online": True,
+                        **source_status(name, source),
                         "akuCount": aku_count,
                         "dongzhouAkuCount": dongzhou_aku_count,
-                        "sourceAttested": source_attested,
                     }
                 return name, {"online": True}
             except UpstreamUnavailable as error:

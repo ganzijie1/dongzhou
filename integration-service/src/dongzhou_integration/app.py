@@ -4856,7 +4856,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         return {
             **external_with_sources,
             "nexusKernel": {
-                "online": bool(required_modules) and not unavailable_modules,
+                "online": (
+                    bool(required_modules)
+                    and not unavailable_modules
+                    and nexus_source_attested
+                ),
                 "mode": "embedded",
                 "version": _NEXUS_KERNEL_VERSION,
                 "requiredModuleCount": len(required_modules),
@@ -4884,6 +4888,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     "kernel": provenance_receipt["kernel"],
                 },
                 "sourceAttested": nexus_source_attested,
+                **(
+                    {}
+                    if nexus_source_attested
+                    else {"reason": "source_attestation_failed"}
+                ),
                 **public_service_source("nexusKernel"),
             },
         }

@@ -53,7 +53,7 @@ from dongzhou_integration.app import (
 from dongzhou_integration.config import Settings
 from dongzhou_integration.models import GuestSessionRequest, NpcDecisionRequest, OrganizationTaskRequest
 from dongzhou_integration.security import issue_session, sign_orgflow_request, stable_event_id, stable_npc_id, stable_player_id, verify_session
-from dongzhou_integration.service_sources import public_service_sources
+from dongzhou_integration.service_sources import SERVICE_SOURCES, public_service_sources
 from dongzhou_integration.store import GameClockConflict, Store, VersionConflict
 from dongzhou_integration.upstreams import UpstreamUnavailable, Upstreams
 
@@ -2364,6 +2364,19 @@ class AuthenticationRouteTests(unittest.TestCase):
                     self.assertTrue(service["sourceRevision"].startswith(source))
                     self.assertTrue(service["integrationRevision"].startswith(integrated))
                     self.assertEqual(service["sourceSealDigest"], nexus["sourceSealDigest"])
+
+                with patch.dict(
+                    SERVICE_SOURCES["nexusKernel"],
+                    {"sourceRevision": "0" * 40},
+                ):
+                    drifted = client.get("/api/dongzhou/v1/integration/status")
+                drifted_nexus = drifted.json()["services"]["nexusKernel"]
+                self.assertFalse(drifted_nexus["online"])
+                self.assertFalse(drifted_nexus["sourceAttested"])
+                self.assertEqual(
+                    drifted_nexus["reason"],
+                    "source_attestation_failed",
+                )
 
                 merit_module = next(
                     entry.module

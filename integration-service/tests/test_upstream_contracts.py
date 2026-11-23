@@ -784,7 +784,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
             {"/health/ready", "/readiness", "/health"},
         )
 
-    async def test_health_marks_mismatched_knowledge_source_unattested(self) -> None:
+    async def test_health_rejects_mismatched_runtime_sources(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
             if request.url.path != "/health":
                 return httpx.Response(200, json={"ready": True})
@@ -808,8 +808,10 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
             result = await Upstreams(settings(Path("unused")), client).health()
 
-        self.assertTrue(result["knowledge"]["online"])
-        self.assertFalse(result["knowledge"]["sourceAttested"])
+        for service in ("knowledge", "aiNpc", "orgFlow"):
+            self.assertFalse(result[service]["online"])
+            self.assertFalse(result[service]["sourceAttested"])
+            self.assertEqual(result[service]["reason"], "source_attestation_failed")
 
     async def test_health_rejects_false_ainpc_readiness(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
@@ -826,6 +828,20 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                             "aku_count": 172,
                             "dongzhou_aku_count": 172,
                             "dongzhou_corpus_complete": True,
+                        },
+                        "source": {
+                            "branch": "main",
+                            "revision": "45afa2ffe77faea0622e8d3ed3f2b69c0cab9c56",
+                        },
+                    },
+                })
+            if request.url.path == "/health/ready":
+                return httpx.Response(200, json={
+                    "data": {
+                        "status": "healthy",
+                        "source": {
+                            "branch": "develop",
+                            "revision": "8b1049e965719d31c51772dde799737e9b92e918",
                         },
                     },
                 })
