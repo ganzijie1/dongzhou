@@ -749,6 +749,15 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                         },
                     },
                 })
+            if request.url.path == "/readiness":
+                return httpx.Response(200, json={
+                    "status": "ready",
+                    "ready": True,
+                    "source": {
+                        "branch": "develop",
+                        "revision": "8a7b673c6ddb93c5ac64d96a270b35619e5bcc1c",
+                    },
+                })
             return httpx.Response(200, json={"status": "ready", "ready": True})
 
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
@@ -758,6 +767,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["knowledge"]["akuCount"], 240)
         self.assertEqual(result["knowledge"]["dongzhouAkuCount"], 172)
         self.assertTrue(result["knowledge"]["sourceAttested"])
+        self.assertTrue(result["aiNpc"]["sourceAttested"])
         self.assertEqual(
             set(paths),
             {"/health/ready", "/readiness", "/health"},

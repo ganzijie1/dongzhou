@@ -2353,7 +2353,7 @@ class AuthenticationRouteTests(unittest.TestCase):
                 )
                 expected_sources = {
                     "nexusKernel": ("develop", "190abb1", "2a68d6b"),
-                    "aiNpc": ("develop", "8a7b673", "6628e40"),
+                    "aiNpc": ("develop", "8a7b673", "eb6189f"),
                     "knowledge": ("main", "45afa2f", "660d65b"),
                     "orgFlow": ("develop", "8b1049e", "07115df"),
                 }

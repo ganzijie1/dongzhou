@@ -19,7 +19,7 @@ SERVICE_SOURCES: dict[str, dict[str, str]] = {
         "sourceUrl": "ssh://git@git.nd.com.cn:10022/AIGames/ainpc.git",
         "sourceBranch": "develop",
         "sourceRevision": "8a7b673c6ddb93c5ac64d96a270b35619e5bcc1c",
-        "integrationRevision": "6628e4036ee96444681d4f778d077d69f6983d4d",
+        "integrationRevision": "eb6189f9328cf6e7411689b93e4287f0872b2c7c",
     },
     "orgFlow": {
         "submodulePath": "services/orgFlowEngine",

@@ -221,6 +221,17 @@ class Upstreams:
                 payload = await self._json("GET", url)
                 if name == "aiNpc" and payload.get("ready") is not True:
                     raise UpstreamUnavailable("AINPC gateway readiness is false")
+                if name == "aiNpc":
+                    source = payload.get("source")
+                    expected_source = SERVICE_SOURCES["aiNpc"]
+                    return name, {
+                        "online": True,
+                        "sourceAttested": bool(
+                            isinstance(source, dict)
+                            and source.get("branch") == expected_source["sourceBranch"]
+                            and source.get("revision") == expected_source["sourceRevision"]
+                        ),
+                    }
                 if name == "knowledge":
                     data = payload.get("data")
                     if not isinstance(data, dict) or data.get("status") != "healthy":
