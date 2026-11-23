@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 19;
+  const SCHEMA_VERSION = 20;
   const TASK_TYPES = {
     supply: { name: "转运军粮", office: "司徒", duration: 1, cost: 8, base: 72, reward: { provisions: 24 } },
     drill: { name: "整训军阵", office: "司马", duration: 1, cost: 6, base: 68, reward: { attack: 0.08 } },
@@ -34,7 +34,7 @@
       taskSequence: 0,
       influence: 12,
       contribution: 0,
-      backend: { mode: "local", nexusKernel: false, nexusRequiredModules: null, nexusOperationalModules: null, nexusUnavailableModules: [], orgFlow: false, aiNpc: false, knowledge: false, serviceSources: {}, serviceSourceSealDigest: "", checkedAt: null },
+      backend: { mode: "local", nexusKernel: false, nexusRequiredModules: null, nexusOperationalModules: null, nexusUnavailableModules: [], orgFlow: false, aiNpc: false, knowledge: false, serviceSources: {}, serviceAttestations: {}, serviceFailures: {}, serviceSourceSealDigest: "", checkedAt: null },
       members: [],
       remoteRoster: { organization: null, members: [], playerMembership: null, openPositions: [], observedAt: null },
       tasks: [],

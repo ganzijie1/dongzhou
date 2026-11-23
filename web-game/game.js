@@ -1599,13 +1599,17 @@
     const sourceSealDigest = /^[0-9a-f]{64}$/i.test(org.backend.serviceSourceSealDigest || "") ? org.backend.serviceSourceSealDigest : "";
     const serviceStatuses = serviceLabels.map(([key, label]) => {
       const source = org.backend.serviceSources?.[key];
+      const sourceDrifted = org.backend.serviceAttestations?.[key] === false && org.backend.serviceFailures?.[key] === "source_attestation_failed";
       const sourceRevision = /^[0-9a-f]{40}$/i.test(source?.sourceRevision || "") ? source.sourceRevision : "";
       const integrationRevision = /^[0-9a-f]{40}$/i.test(source?.integrationRevision || "") ? source.integrationRevision : "";
       const revision = sourceRevision ? `<small>${escapeHtml(sourceRevision.slice(0, 7))}</small>` : "";
-      const title = sourceRevision && integrationRevision
+      const sourceTitle = sourceRevision && integrationRevision
         ? `${label} · GitLab ${source.sourceBranch || "source"}@${sourceRevision} · Dongzhou ${integrationRevision}${sourceSealDigest ? ` · Nexus封印 ${sourceSealDigest}` : ""}`
         : label;
-      return `<span class="${org.backend[key] ? "online" : "local"}" title="${escapeHtml(title)}"><i></i>${label}${org.backend[key] ? "通达" : "本地推演"}${revision}</span>`;
+      const title = sourceDrifted ? `${sourceTitle} · 运行版本与固定来源不符` : sourceTitle;
+      const stateClass = org.backend[key] ? "online" : sourceDrifted ? "drift" : "local";
+      const stateLabel = org.backend[key] ? "通达" : sourceDrifted ? "版本不符" : "本地推演";
+      return `<span class="${stateClass}" title="${escapeHtml(title)}"><i></i>${label}${stateLabel}${revision}</span>`;
     }).join("");
     const provenanceStatus = sourceSealDigest
       ? `<span class="online provenance" title="四仓来源已由 NexusKernel 完整封存 · ${escapeHtml(sourceSealDigest)}"><i></i>版本封印<small>${escapeHtml(sourceSealDigest.slice(0, 7))}</small></span>`
@@ -2383,6 +2387,8 @@
           sourceRevision: String(services[key]?.sourceRevision || ""),
           integrationRevision: String(services[key]?.integrationRevision || "")
         }])),
+        serviceAttestations: Object.fromEntries(["nexusKernel", "orgFlow", "aiNpc", "knowledge"].map((key) => [key, services[key]?.sourceAttested === true])),
+        serviceFailures: Object.fromEntries(["nexusKernel", "orgFlow", "aiNpc", "knowledge"].map((key) => [key, String(services[key]?.reason || "")])),
         serviceSourceSealDigest: String(services.nexusKernel?.sourceSealDigest || ""),
         remoteId: response.organizationId || profile.organization.remoteId || ""
       });
@@ -2392,7 +2398,7 @@
         await refreshOfficeInventory();
       }
     } catch (_) {
-      profile.organization = organization.updateBackend(profile.organization, { nexusKernel: false, nexusRequiredModules: null, nexusOperationalModules: null, nexusUnavailableModules: [], orgFlow: false, aiNpc: false, knowledge: false, serviceSources: {}, serviceSourceSealDigest: "" });
+      profile.organization = organization.updateBackend(profile.organization, { nexusKernel: false, nexusRequiredModules: null, nexusOperationalModules: null, nexusUnavailableModules: [], orgFlow: false, aiNpc: false, knowledge: false, serviceSources: {}, serviceAttestations: {}, serviceFailures: {}, serviceSourceSealDigest: "" });
     }
     writeJson(PROFILE_KEY, profile);
     renderOrganizationPanel();

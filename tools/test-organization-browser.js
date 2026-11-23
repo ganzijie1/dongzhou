@@ -127,6 +127,7 @@ async function openReady(page) {
     let orderAttempts = 0;
     let mandateAttempts = 0;
     let organizationTaskReads = 0;
+    let sourceDrift = false;
     let scheduledDutyState = "ACTIVE";
     let scheduledDutyVersion = 1;
     const scheduledDutyActions = [];
@@ -373,6 +374,12 @@ async function openReady(page) {
           : { taskId: "00000000-0000-0000-0000-000000000010", npcOutcome: { state: "DELIVERED", attempts: 1, lastError: null }, result: { data: { task_id: "00000000-0000-0000-0000-000000000010", state: "SUCCEEDED", execution_started_game_time: 24306616800, final_result: "SUCCESS", version: "3" } } };
       }
       else return route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: { code: "not_mocked", message: pathName } }) });
+      if (pathName.endsWith("/integration/status")) {
+        for (const service of Object.values(body.services)) service.sourceAttested = true;
+      }
+      if (sourceDrift && pathName.endsWith("/integration/status")) {
+        body.services.aiNpc = { ...body.services.aiNpc, online: false, sourceAttested: false, reason: "source_attestation_failed" };
+      }
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
     });
     const onlineUrl = new URL(BASE_URL);
@@ -566,6 +573,17 @@ async function openReady(page) {
     if (npcSyncAttempts < 2) throw new Error("NPC activation was cached before the service reported ready");
     if (npcSyncRequests.filter((entry) => entry.npcs?.some((npc) => npc.hero_id === "DuBo")).length < 2) throw new Error("Initializing manager NPC was not retried");
     await online.screenshot({ path: path.join(OUT, "desktop-office-online.png"), fullPage: false });
+    sourceDrift = true;
+    await online.reload({ waitUntil: "domcontentloaded" });
+    await online.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
+    await online.click("#campaignOfficeButton");
+    await online.waitForSelector("#officeServiceStatus >> text=属官版本不符", { timeout: 15000 });
+    const driftState = await online.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.backend);
+    if (driftState.serviceAttestations.aiNpc !== false || driftState.serviceFailures.aiNpc !== "source_attestation_failed") throw new Error(`Source drift was not persisted: ${JSON.stringify(driftState)}`);
+    await online.setViewportSize({ width: 390, height: 844 });
+    const driftMobileLayout = await online.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth }));
+    if (driftMobileLayout.scrollWidth > driftMobileLayout.width + 1) throw new Error(`Source drift status overflows mobile viewport: ${JSON.stringify(driftMobileLayout)}`);
+    await online.screenshot({ path: path.join(OUT, "mobile-source-drift.png"), fullPage: false });
     if (errors.length) throw new Error(`Page errors: ${errors.join(" | ")}`);
     console.log(JSON.stringify({ result: "PASS", desktopLayout, mobileLayout, screenshots: OUT }, null, 2));
   } finally {

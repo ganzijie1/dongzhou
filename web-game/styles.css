@@ -3713,6 +3713,8 @@ button:focus-visible {
 .office-service-status span { color: #9c9e94; font-size: 11px; white-space: nowrap; }
 .office-service-status i { display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: #756e5c; }
 .office-service-status .online i { background: #91a96d; box-shadow: 0 0 8px rgba(145, 169, 109, .5); }
+.office-service-status .drift { color: #d28a72; }
+.office-service-status .drift i { background: #c86c5a; box-shadow: 0 0 8px rgba(200, 108, 90, .45); }
 .office-service-status small { margin-left: 5px; color: #b99344; font-family: Consolas, monospace; font-size: 9px; }
 .office-inventory { width: 100%; display: grid; grid-template-columns: max-content minmax(0, 1fr) max-content 40px; gap: 12px; align-items: center; padding-top: 12px; border-top: 1px dotted rgba(196, 172, 111, .2); }
 .office-inventory > div { display: grid; gap: 3px; }
