@@ -2,11 +2,13 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { verifyFourServiceRuntime } = require("./four-service-runtime-gate");
 let chromium;
 try { ({ chromium } = require(path.resolve(__dirname, "../output/playwright-runtime/node_modules/playwright"))); }
 catch (_) { ({ chromium } = require("playwright")); }
 
 const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
+verifyFourServiceRuntime(url);
 const executablePath = [
   process.env.DONGZHOU_CHROMIUM_EXECUTABLE,
   "C:/Program Files/Google/Chrome/Application/chrome.exe",

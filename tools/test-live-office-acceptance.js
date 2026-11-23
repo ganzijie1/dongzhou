@@ -1,7 +1,9 @@
 'use strict';
 // Use only the dedicated existing acceptance account; no new order or clock change.
 const fs=require('fs'),path=require('path'),assert=require('assert/strict');
+const {verifyFourServiceRuntime}=require('./four-service-runtime-gate');
 const url=process.env.DONGZHOU_TEST_URL||'http://127.0.0.1:8780/';
+verifyFourServiceRuntime(url);
 let chromium;
 try {({chromium}=require(path.resolve(__dirname,'../output/playwright-runtime/node_modules/playwright')));}
 catch (_) {({chromium}=require('playwright'));}

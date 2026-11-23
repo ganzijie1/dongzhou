@@ -3,6 +3,7 @@
 const assert = require("assert/strict");
 const fs = require("fs");
 const path = require("path");
+const { verifyFourServiceRuntime } = require("./four-service-runtime-gate");
 let chromium;
 try {
   ({ chromium } = require(path.resolve(__dirname, "../output/playwright-runtime/node_modules/playwright")));
@@ -11,6 +12,7 @@ try {
 }
 
 const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
+verifyFourServiceRuntime(url);
 assert.notEqual(new URL(url).searchParams.get("offline"), "1");
 const executablePath = [
   process.env.DONGZHOU_CHROMIUM_EXECUTABLE,

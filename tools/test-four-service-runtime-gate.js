@@ -28,7 +28,8 @@ const unguardedMutationScripts = fs.readdirSync(__dirname)
   .filter((name) => /^test-live-.*\.js$/.test(name))
   .filter((name) => {
     const source = fs.readFileSync(path.join(__dirname, name), "utf8");
-    return /method:\s*["'](?:POST|PUT|DELETE)["']/.test(source)
+    const indirectMutation = /#office(?:AdviserAsk|CommendButton|RecollectionButton|AdvanceButton|ThoughtButton|QuizStart|QuizVerify|MembershipApply|MembershipLeave)|data-adviser-guide|officeCareerResultForm|data-contribution-verify|#focusStageButton/.test(source);
+    return (/method:\s*["'](?:POST|PUT|DELETE)["']/.test(source) || indirectMutation)
       && !source.includes("four-service-runtime-gate");
   });
 assert.deepEqual(
