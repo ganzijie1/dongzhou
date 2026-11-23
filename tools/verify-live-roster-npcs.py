@@ -6,6 +6,7 @@ from datetime import date, timedelta
 import json
 from pathlib import Path
 import sys
+import time
 from urllib.parse import quote
 from uuid import uuid4
 
@@ -18,6 +19,21 @@ def unwrap(response: httpx.Response) -> dict:
     if body.get("success") is True:
         return body.get("data", body)
     return body
+
+
+def get_with_transient_retry(client: httpx.Client, path: str, attempts: int = 6) -> httpx.Response:
+    last_error: httpx.TransportError | None = None
+    for attempt in range(attempts):
+        try:
+            response = client.get(path)
+        except httpx.TransportError as error:
+            last_error = error
+        else:
+            if response.status_code not in (502, 503, 504) or attempt == attempts - 1:
+                return response
+        time.sleep(min(2 ** attempt, 8))
+    assert last_error is not None
+    raise last_error
 
 
 def business_ok(component: object) -> bool:
@@ -54,7 +70,7 @@ def main() -> int:
     results = []
     with httpx.Client(base_url=args.url, timeout=45) as client:
         unwrap(client.post("/api/dongzhou/v1/sessions/guest", json={"installation_id": str(uuid4())}))
-        roster = unwrap(client.get("/api/dongzhou/v1/organization/roster"))
+        roster = unwrap(get_with_transient_retry(client, "/api/dongzhou/v1/organization/roster"))
         members = roster.get("members")
         assert isinstance(members, list) and members, "organization roster is empty"
         hero_ids = [member.get("heroId") for member in members]
@@ -63,7 +79,7 @@ def main() -> int:
 
         for hero_id in hero_ids:
             encoded = quote(hero_id, safe="")
-            state = unwrap(client.get(f"/api/dongzhou/v1/npcs/{encoded}/state"))
+            state = unwrap(get_with_transient_retry(client, f"/api/dongzhou/v1/npcs/{encoded}/state"))
             assert state.get("heroId") == hero_id, "state hero identity mismatch"
             npc_id = state.get("npcId")
             assert isinstance(npc_id, str) and npc_id, "state has no NPC identity"
@@ -74,7 +90,7 @@ def main() -> int:
             schedule = validate_schedule(
                 hero_id,
                 npc_id,
-                unwrap(client.get(f"/api/dongzhou/v1/npcs/{encoded}/schedule")),
+                unwrap(get_with_transient_retry(client, f"/api/dongzhou/v1/npcs/{encoded}/schedule")),
             )
             results.append({"heroId": hero_id, "npcId": npc_id, **schedule})
 

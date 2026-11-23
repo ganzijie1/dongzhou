@@ -1,13 +1,13 @@
 # Dongzhou service repositories
 
-The four AI repositories are pinned Git submodules under `services/`:
+The four AI repositories are imported from the internal GitLab SSH repositories and pinned as exact Git submodule commits under `services/`:
 
-| Directory | GitHub repository | Branch | Role |
-| --- | --- | --- | --- |
-| `services/knowledge-jizhan` | `ganzijie1/knowledge-jizhan` | `dev-gzj` | Dongzhou source material and retrieval service |
-| `services/ainpc` | `ganzijie1/ainpc` | `dev-gzj` | NPC state, schedules, dialogue, and durable answer delivery |
-| `services/orgFlowEngine` | `ganzijie1/orgFlowEngine` | `dev-gzj` | Office hierarchy and durable virtual tasks |
-| `services/NexusKernel` | `ganzijie1/NexusKernel` | `dev-gzj` | Embedded gateway runtime |
+| Directory | GitLab SSH source | Source branch | Dongzhou pin | Role |
+| --- | --- | --- | --- | --- |
+| `services/knowledge-jizhan` | `ssh://git@git.nd.com.cn:10022/AIGames/knowledge-jizhan.git` | `main@45afa2f` | `a32f4225` | Dongzhou source material and retrieval service |
+| `services/ainpc` | `ssh://git@git.nd.com.cn:10022/AIGames/ainpc.git` | `develop@8a7b673c6` | `6628e4036` | NPC state, schedules, dialogue, and durable answer delivery |
+| `services/orgFlowEngine` | `ssh://git@git.nd.com.cn:10022/AIGames/orgFlowEngine.git` | `develop@8b1049e` | `07115df` | Office hierarchy and durable virtual tasks |
+| `services/NexusKernel` | `ssh://git@git.nd.com.cn:10022/AIGames/NexusKernel.git` | `develop@190abb1` | `2a68d6b` | Embedded gateway runtime |
 
 ## Clone and update
 
@@ -21,11 +21,11 @@ python tools/verify-service-submodules.py
 
 The verifier also requires every service worktree to be clean. A dirty submodule means the parent gitlink cannot reproduce the code being tested, even when its checked-out `HEAD` still matches the recorded commit.
 
-To advance a service deliberately, fetch its sanitized GitHub branch, check out the reviewed commit inside that service directory, run its tests, then commit the changed gitlink in Dongzhou. The parent repository must continue to pin an exact commit; do not leave a submodule merely following an unreviewed branch tip. The remote branch may advance beyond the reviewed pin, but the pinned commit must remain on that branch.
+To advance a service deliberately, first fast-forward the matching `E:/game/<repository>` checkout from its GitLab SSH source. Import that reviewed source commit into the service's `dev-gzj` branch, preserve the Dongzhou-specific integration commits, run its tests, then commit the changed gitlink in Dongzhou. The parent repository must continue to pin an exact commit; do not leave a submodule merely following an unreviewed branch tip.
 
-The internal GitLab repositories are not configured as submodule remotes and must never be push targets from this repository.
+The `.gitmodules` URLs remain the sanitized publishing mirrors. Internal GitLab repositories are read-only input sources for this workspace and are not push targets from Dongzhou.
 
-Current AINPC pin: `3cf7c79ae` (`dev-gzj`). Its adviser answer delivery recovery, large-player feedback fix, knowledge recall budget, and live acceptance are recorded in [2026-11-13-ainpc-adviser-delivery-recovery.md](2026-11-13-ainpc-adviser-delivery-recovery.md). AI Helper callbacks now use the configured AIFirewall HMAC filter instead of the retired DES sensitive-word endpoint. The local container reaches that service through the host loopback bridge on port `8090`; live question `1fcce851-19f7-4b8b-bc1f-7b45e4742607` confirmed both the loading and answer callbacks completed with `filter_degraded=false`.
+Current AINPC pin: `6628e4036` (`dev-gzj`), containing GitLab `develop@8a7b673c6`. Its adviser answer delivery recovery, large-player feedback fix, knowledge recall budget, and live acceptance are recorded in [2026-11-13-ainpc-adviser-delivery-recovery.md](2026-11-13-ainpc-adviser-delivery-recovery.md). AI Helper callbacks now use the configured AIFirewall HMAC filter instead of the retired DES sensitive-word endpoint. The local container reaches that service through the host loopback bridge on port `8090`; live question `1fcce851-19f7-4b8b-bc1f-7b45e4742607` confirmed both the loading and answer callbacks completed with `filter_degraded=false`.
 
 Runtime fallback rest now always instantiates AINPC's fixed `SleepTree` chain, including when the generation snapshot is outside a core map or temporarily lacks a scene. Dongzhou implements the matching strict parameter precheck and physical execution callback contract: unsupported trees remain rejected, `Reborn` closes immediately, and `SleepTree` stays in flight for its declared duration. Callback identity and due time live in the SQLite outbox, survive a gateway restart, and reject a conflicting reuse of the same physical UID. Live deployment produced exactly 12 accepted rest chains after a clean AINPC restart, with no parameter-precheck, empty-chain, model-configuration, or premature-completion failures during the acceptance window.
 
@@ -39,4 +39,4 @@ Production private chat reads LoongEQ's native `guidance/v1` profile and `eq-abi
 
 Durable-chat recovery now projects historical messages through LoongEQ's final private-chat contract before evaluation: only the current player/NPC pair is retained, wire message IDs are unique, the current message is excluded from history, and future timestamps are clamped to the current turn. Image `v20261114-dongzhou-local-eq-history-contract87` passed 62 focused regressions (one skipped) and all eight roles became healthy. Six live recovered fragments then passed request validation and reached the known external `503 guidance_profile_storage_unavailable` degradation with empty validation errors; no post-deployment request returned the previous body-level `422`.
 
-Current orgFlowEngine pin: `0794c88` (`dev-gzj`). Current knowledge-jizhan and NexusKernel pins are `0103bc49` and `beda977df`; all four are exact GitHub submodule commits. Deterministic private-chat failures now converge instead of remaining indefinitely queued. Follow-up messages owned by an AINPC-created original chat reach `FAILED/npc_original_chat_owned` in dependency order, while genuinely transient states such as `WAITING_ACTIVE` remain retryable. Live task `866d1e9c-7ecd-507d-badb-24161e91222d` confirmed its `END` and `ACTION_PROMPT` messages both converged without creating a duplicate private chat.
+Current orgFlowEngine, knowledge-jizhan, and NexusKernel pins are `07115df`, `a32f4225`, and `2a68d6b`. All four service pins include the GitLab source revisions listed above plus the reviewed Dongzhou integration commits. Deterministic private-chat failures now converge instead of remaining indefinitely queued. Follow-up messages owned by an AINPC-created original chat reach `FAILED/npc_original_chat_owned` in dependency order, while genuinely transient states such as `WAITING_ACTIVE` remain retryable. Live task `866d1e9c-7ecd-507d-badb-24161e91222d` confirmed its `END` and `ACTION_PROMPT` messages both converged without creating a duplicate private chat.
