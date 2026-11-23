@@ -786,8 +786,18 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_health_rejects_mismatched_runtime_sources(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
-            if request.url.path != "/health":
-                return httpx.Response(200, json={"ready": True})
+            if request.url.path == "/health/ready":
+                return httpx.Response(200, json={
+                    "data": {
+                        "status": "healthy",
+                        "source": {"branch": "develop", "revision": "0" * 40},
+                    },
+                })
+            if request.url.path == "/readiness":
+                return httpx.Response(200, json={
+                    "ready": True,
+                    "source": {"branch": "develop", "revision": "0" * 40},
+                })
             return httpx.Response(200, json={
                 "data": {
                     "status": "healthy",
@@ -855,6 +865,56 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertFalse(result["aiNpc"]["online"])
         self.assertTrue(result["orgFlow"]["online"])
+        self.assertTrue(result["knowledge"]["online"])
+
+    async def test_health_rejects_degraded_orgflow_with_valid_source(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.url.path == "/health/ready":
+                return httpx.Response(200, json={
+                    "data": {
+                        "status": "degraded",
+                        "source": {
+                            "branch": "develop",
+                            "revision": "8b1049e965719d31c51772dde799737e9b92e918",
+                        },
+                    },
+                })
+            if request.url.path == "/readiness":
+                return httpx.Response(200, json={
+                    "ready": True,
+                    "source": {
+                        "branch": "develop",
+                        "revision": "8a7b673c6ddb93c5ac64d96a270b35619e5bcc1c",
+                    },
+                })
+            return httpx.Response(200, json={
+                "data": {
+                    "status": "healthy",
+                    "components": {
+                        "qdrant": {"status": "up"},
+                        "elasticsearch": {"status": "up"},
+                        "neo4j": {"status": "up"},
+                    },
+                    "stats": {
+                        "aku_count": 172,
+                        "dongzhou_aku_count": 172,
+                        "dongzhou_corpus_complete": True,
+                    },
+                    "source": {
+                        "branch": "main",
+                        "revision": "45afa2ffe77faea0622e8d3ed3f2b69c0cab9c56",
+                    },
+                },
+            })
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            result = await Upstreams(settings(Path("unused")), client).health()
+
+        self.assertEqual(
+            result["orgFlow"],
+            {"online": False, "reason": "orgFlow service is not healthy"},
+        )
+        self.assertTrue(result["aiNpc"]["online"])
         self.assertTrue(result["knowledge"]["online"])
 
     async def test_health_rejects_degraded_knowledge_components(self) -> None:

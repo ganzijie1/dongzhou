@@ -235,6 +235,8 @@ class Upstreams:
                 payload = await self._json("GET", url)
                 if name == "orgFlow":
                     data = payload.get("data")
+                    if not isinstance(data, dict) or data.get("status") != "healthy":
+                        raise UpstreamUnavailable("orgFlow service is not healthy")
                     source = data.get("source") if isinstance(data, dict) else None
                     return name, source_status(name, source)
                 if name == "aiNpc" and payload.get("ready") is not True:
