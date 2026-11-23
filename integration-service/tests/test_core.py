@@ -2347,12 +2347,13 @@ class AuthenticationRouteTests(unittest.TestCase):
                     nexus["serviceProvenanceModule"], ServiceProvenanceModule.name
                 )
                 self.assertEqual(nexus["serviceProvenanceState"], "ready")
+                self.assertTrue(nexus["sourceAttested"])
                 self.assertRegex(nexus["sourceSealDigest"], r"^[0-9a-f]{64}$")
                 self.assertEqual(
                     nexus["sourceProvenance"]["kernel"]["state"], "SEALED"
                 )
                 expected_sources = {
-                    "nexusKernel": ("develop", "190abb1", "2a68d6b"),
+                    "nexusKernel": ("develop", "190abb1", "4f1915b"),
                     "aiNpc": ("develop", "8a7b673", "eb6189f"),
                     "knowledge": ("main", "45afa2f", "660d65b"),
                     "orgFlow": ("develop", "8b1049e", "fbfc803"),

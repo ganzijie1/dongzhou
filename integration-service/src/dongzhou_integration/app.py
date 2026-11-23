@@ -30,7 +30,7 @@ from .assignments import (
 )
 from .models import AdviserFeedbackRequest, AdviserGuideCancelRequest, AdviserGuideDecisionRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcPublicMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcCommendationRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMeritCommendationRequest, NpcMessageRequest, NpcRecollectionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationScheduledDutyStatusRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
-from .service_sources import public_service_source, public_service_sources
+from .service_sources import SERVICE_SOURCES, public_service_source, public_service_sources
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
 
@@ -4837,6 +4837,13 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         provenance_state = module_state(ServiceProvenanceModule)
         provenance_receipt = service_provenance.receipt()
         provenance_digest = str(provenance_receipt["digest"])
+        nexus_source = kernel_snapshot.get("source")
+        expected_nexus_source = SERVICE_SOURCES["nexusKernel"]
+        nexus_source_attested = bool(
+            isinstance(nexus_source, dict)
+            and nexus_source.get("branch") == expected_nexus_source["sourceBranch"]
+            and nexus_source.get("revision") == expected_nexus_source["sourceRevision"]
+        )
         external_with_sources = {
             name: {
                 **status,
@@ -4876,6 +4883,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     "digest": provenance_digest,
                     "kernel": provenance_receipt["kernel"],
                 },
+                "sourceAttested": nexus_source_attested,
                 **public_service_source("nexusKernel"),
             },
         }

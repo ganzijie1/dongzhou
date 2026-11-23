@@ -150,6 +150,8 @@ def validate_live_status(status: dict, expected_seal: str) -> dict:
         raise ValueError("aiNpc runtime did not attest its pinned GitLab source")
     if services["orgFlow"].get("sourceAttested") is not True:
         raise ValueError("orgFlow runtime did not attest its pinned GitLab source")
+    if services["nexusKernel"].get("sourceAttested") is not True:
+        raise ValueError("NexusKernel runtime did not attest its pinned GitLab source")
 
     nexus = services["nexusKernel"]
     if nexus.get("serviceProvenanceState") != "ready":

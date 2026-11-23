@@ -37,7 +37,7 @@ SERVICE_SOURCES: dict[str, dict[str, str]] = {
         "sourceUrl": "ssh://git@git.nd.com.cn:10022/AIGames/NexusKernel.git",
         "sourceBranch": "develop",
         "sourceRevision": "190abb1fa889e40aa08dbc6efaaba6fe4940ca6d",
-        "integrationRevision": "2a68d6bea46348f7628cd117a017c84a8c506ff7",
+        "integrationRevision": "4f1915b45eadf8608308f7131173d1d60f6c5270",
     },
 }
 
