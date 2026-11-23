@@ -578,7 +578,8 @@ async function openReady(page) {
     await online.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
     await online.click("#campaignOfficeButton");
     await online.waitForSelector("#officeServiceStatus >> text=属官版本不符", { timeout: 15000 });
-    const driftTitle = await online.locator("#officeServiceStatus .drift").getAttribute("title");
+    await online.waitForSelector("#officeServiceStatus .provenance.drift >> text=封印未验0123456", { timeout: 15000 });
+    const driftTitle = await online.locator("#officeServiceStatus .drift:not(.provenance)").getAttribute("title");
     if (!driftTitle.includes(`运行上报 develop@${"0".repeat(40)}`)) throw new Error(`Reported source drift is missing: ${driftTitle}`);
     const driftState = await online.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.backend);
     if (driftState.serviceAttestations.aiNpc !== false || driftState.serviceFailures.aiNpc !== "source_attestation_failed") throw new Error(`Source drift was not persisted: ${JSON.stringify(driftState)}`);

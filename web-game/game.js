@@ -1597,6 +1597,8 @@
       : "内核";
     const serviceLabels = [["nexusKernel", nexusModuleCount], ["orgFlow", "朝议"], ["aiNpc", "属官"], ["knowledge", "史官"]];
     const sourceSealDigest = /^[0-9a-f]{64}$/i.test(org.backend.serviceSourceSealDigest || "") ? org.backend.serviceSourceSealDigest : "";
+    const allSourcesAttested = serviceLabels.every(([key]) => org.backend.serviceAttestations?.[key] === true);
+    const anySourceDrift = serviceLabels.some(([key]) => org.backend.serviceAttestations?.[key] === false && org.backend.serviceFailures?.[key] === "source_attestation_failed");
     const serviceStatuses = serviceLabels.map(([key, label]) => {
       const source = org.backend.serviceSources?.[key];
       const sourceDrifted = org.backend.serviceAttestations?.[key] === false && org.backend.serviceFailures?.[key] === "source_attestation_failed";
@@ -1613,8 +1615,15 @@
       const stateLabel = org.backend[key] ? "通达" : sourceDrifted ? "版本不符" : "本地推演";
       return `<span class="${stateClass}" title="${escapeHtml(title)}"><i></i>${label}${stateLabel}${revision}</span>`;
     }).join("");
+    const provenanceClass = allSourcesAttested ? "online" : anySourceDrift ? "drift" : "local";
+    const provenanceLabel = allSourcesAttested ? "版本封印" : anySourceDrift ? "封印未验" : "封印待验";
+    const provenanceTitle = allSourcesAttested
+      ? "四仓来源已由 NexusKernel 完整封存"
+      : anySourceDrift
+        ? "固定来源清单已封存，但运行版本验印未通过"
+        : "固定来源清单已封存，等待运行版本验印";
     const provenanceStatus = sourceSealDigest
-      ? `<span class="online provenance" title="四仓来源已由 NexusKernel 完整封存 · ${escapeHtml(sourceSealDigest)}"><i></i>版本封印<small>${escapeHtml(sourceSealDigest.slice(0, 7))}</small></span>`
+      ? `<span class="${provenanceClass} provenance" title="${provenanceTitle} · ${escapeHtml(sourceSealDigest)}"><i></i>${provenanceLabel}<small>${escapeHtml(sourceSealDigest.slice(0, 7))}</small></span>`
       : "";
     $("#officeServiceStatus").innerHTML = serviceStatuses + provenanceStatus;
     $("#officeModeText").textContent = integration.isOffline() ? "当前为显式离线演算，属官与官署结果仅保存在本机。" : org.backend.mode === "connected" ? "朝议、属官与史官已互通；远端未确认的结果不会在本地结算。" : "官署服务暂不可达，联网玩法已暂停。";
