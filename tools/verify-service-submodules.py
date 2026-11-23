@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import configparser
 import os
 import subprocess
@@ -40,7 +41,25 @@ def git_succeeds(*args: str, cwd: Path = ROOT) -> bool:
     return result.returncode == 0
 
 
+def remote_branch_commit(url: str, branch: str) -> str:
+    output = git("ls-remote", "--exit-code", url, f"refs/heads/{branch}")
+    rows = [line.split() for line in output.splitlines() if line.strip()]
+    if len(rows) != 1 or len(rows[0]) != 2:
+        raise RuntimeError(f"GitLab branch {branch} returned an invalid ls-remote result")
+    revision, reference = rows[0]
+    if reference != f"refs/heads/{branch}" or len(revision) != 40:
+        raise RuntimeError(f"GitLab branch {branch} returned an invalid revision")
+    return revision
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--verify-source-remotes",
+        action="store_true",
+        help="query each GitLab SSH branch and require its current HEAD",
+    )
+    args = parser.parse_args()
     modules = configparser.ConfigParser()
     modules.read(ROOT / ".gitmodules", encoding="utf-8")
     failures: list[str] = []
@@ -111,6 +130,19 @@ def main() -> None:
                 )
 
         source_commit = expected["sourceRevision"]
+        if args.verify_source_remotes:
+            try:
+                remote_commit = remote_branch_commit(
+                    expected["sourceUrl"], expected["sourceBranch"]
+                )
+            except RuntimeError as error:
+                failures.append(f"{relative_path}: {error}")
+            else:
+                if remote_commit != source_commit:
+                    failures.append(
+                        f"{relative_path}: GitLab {expected['sourceBranch']} is "
+                        f"{remote_commit[:12]}, manifest expects {source_commit[:12]}"
+                    )
         if not git_succeeds("cat-file", "-e", f"{source_commit}^{{commit}}", cwd=directory):
             failures.append(f"{relative_path}: GitLab source commit {source_commit[:12]} is missing")
         elif not git_succeeds(
@@ -141,7 +173,10 @@ def main() -> None:
 
     if failures:
         raise SystemExit("Service submodule verification failed:\n- " + "\n- ".join(failures))
-    print(f"PASS: {len(SERVICE_SOURCES)} service submodules are initialized and pinned")
+    scope = " and current on GitLab" if args.verify_source_remotes else ""
+    print(
+        f"PASS: {len(SERVICE_SOURCES)} service submodules are initialized and pinned{scope}"
+    )
 
 
 if __name__ == "__main__":

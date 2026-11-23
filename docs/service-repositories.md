@@ -27,6 +27,8 @@ After the gateway is running, use the unified read-only check:
 python tools/verify_four_service_runtime.py
 ```
 
+发布或拉取审计时另运行 `python tools/verify-service-submodules.py --verify-source-remotes`，通过 GitLab SSH 查询四个源分支的当前 HEAD；它只读且不会覆盖本地修改。常规运行时验收不查询 GitLab，以免游戏健康门禁依赖源码托管网络。
+
 It verifies the four source and integration pins, regenerates the formal Dongzhou court v7 bundle into a temporary directory and compares it structurally with the tracked asset, then checks the live source seal and all required Nexus modules. Use `--skip-live` when only the checkout and generated assets are available. The command has no publish or execution mode.
 
 To advance a service deliberately, first fast-forward the matching `E:/game/<repository>` checkout from its GitLab SSH source. Import that reviewed source commit into the service's `dev-gzj` branch, preserve the Dongzhou-specific integration commits, run its tests, then commit the changed gitlink in Dongzhou. The parent repository must continue to pin an exact commit; do not leave a submodule merely following an unreviewed branch tip.
