@@ -11,6 +11,12 @@ from uuid import uuid4
 
 import httpx
 
+TOOLS_DIR = Path(__file__).resolve().parent
+if str(TOOLS_DIR) not in sys.path:
+    sys.path.insert(0, str(TOOLS_DIR))
+
+import verify_four_service_runtime as four_service_delivery
+
 
 def validate_dongzhou_schedule(schedule: dict) -> dict:
     """校验真实日程内容；不能把有 90 条旧游戏日程当作东周接入成功。"""
@@ -104,10 +110,11 @@ def main() -> int:
 
         def health():
             body = request("GET", "/health/ready")
-            assert body.get("status") == "healthy", "gateway readiness is not healthy"
-            services = body.get("services", {})
-            assert all(services.get(key, {}).get("online") for key in ("nexusKernel", "orgFlow", "aiNpc", "knowledge")), "required capability missing"
-            return {key: "online" for key in services}
+            four_service_delivery.validate_gateway_readiness(body)
+            return {
+                "status": body["status"],
+                "requiredServices": body["requiredServices"],
+            }
 
         check("upstream_readiness", health)
         def guest():
@@ -115,6 +122,15 @@ def main() -> int:
             assert result.get("playerId"), "guest session has no player identity"
             return True
         check("guest_session", guest)
+
+        def source_provenance():
+            status = request("GET", "/api/dongzhou/v1/integration/status")
+            return four_service_delivery.validate_live_status(
+                status,
+                four_service_delivery.expected_source_seal(),
+            )
+
+        check("four_service_source_provenance", source_provenance)
 
         def organization_inventory():
             body = request("GET", "/api/dongzhou/v1/organization/inventory")
