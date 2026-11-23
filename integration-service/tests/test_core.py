@@ -1727,6 +1727,51 @@ class StoreRuntimeQueryTests(unittest.TestCase):
 
 
 class AuthenticationRouteTests(unittest.TestCase):
+    def test_save_replaces_client_provenance_with_current_four_source_seal(self) -> None:
+        with TemporaryDirectory() as directory, patch.dict(
+            "os.environ",
+            {
+                "DONGZHOU_ENV": "development",
+                "DONGZHOU_WEB_ROOT": directory,
+                "DONGZHOU_PUBLIC_ORIGIN": "http://testserver",
+                "DONGZHOU_DATABASE_PATH": str(Path(directory) / "gateway.sqlite3"),
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            application = build_application(
+                settings,
+                store=Store(settings.database_path),
+                upstreams=_HealthyUpstreams(),
+            )
+            with TestClient(application) as client:
+                client.post(
+                    "/api/dongzhou/v1/sessions/guest",
+                    json={"installation_id": str(uuid4())},
+                )
+                written = client.put(
+                    "/api/dongzhou/v1/save",
+                    json={
+                        "expected_version": 1,
+                        "payload": {
+                            "completed": ["01"],
+                            "sourceProvenance": {
+                                "digest": "0" * 64,
+                                "services": {},
+                            },
+                        },
+                    },
+                )
+                self.assertEqual(written.status_code, 200, written.text)
+                expected = ServiceProvenanceModule.seal(public_service_sources())
+                self.assertEqual(written.json()["payload"]["sourceProvenance"], expected)
+
+                restored = client.get("/api/dongzhou/v1/save")
+                self.assertEqual(restored.status_code, 200, restored.text)
+                self.assertEqual(
+                    restored.json()["payload"]["sourceProvenance"], expected
+                )
+
     def test_save_dispatches_participating_npc_battle_outcome_and_memory(self) -> None:
         with TemporaryDirectory() as directory, patch.dict(
             "os.environ",

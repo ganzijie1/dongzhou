@@ -6038,6 +6038,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 campaign_routes,
                 route_required_stages,
             )
+            sealed_payload["sourceProvenance"] = service_provenance.receipt()
             reports = await _prepare_due_organization_reports(
                 store, settings, player_id, sealed_payload
             )
