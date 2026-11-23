@@ -1278,10 +1278,11 @@ class ServiceProvenanceModule(Module):
 
 class BattleDebriefModule(Module):
     name = "dongzhou_battle_debrief"
-    version = "1.0.0"
+    version = "1.1.0"
     dependencies = (
         RuntimeModule.name,
         OrganizationTaskTraceModule.name,
+        ServiceProvenanceModule.name,
     )
 
     @classmethod
@@ -1289,6 +1290,7 @@ class BattleDebriefModule(Module):
         knowledge = trace.get("knowledge")
         participants = trace.get("participants")
         organization_tasks = trace.get("organizationTasks")
+        source_provenance = trace.get("sourceProvenance")
         outcome = trace.get("outcome")
         if (
             any(
@@ -1309,6 +1311,7 @@ class BattleDebriefModule(Module):
             or not participants
             or not isinstance(organization_tasks, list)
             or not organization_tasks
+            or not isinstance(source_provenance, dict)
         ):
             raise ValueError("battle debrief trace is incomplete")
         if any(
@@ -1341,6 +1344,17 @@ class BattleDebriefModule(Module):
             r"[0-9a-f]{64}", str(trace["battleReceiptDigest"])
         ):
             raise ValueError("battle debrief receipt digest is invalid")
+        try:
+            expected_provenance = ServiceProvenanceModule.seal(
+                {
+                    "schemaVersion": source_provenance.get("schemaVersion"),
+                    "services": source_provenance.get("services"),
+                }
+            )
+        except (TypeError, ValueError) as error:
+            raise ValueError("battle debrief source provenance is invalid") from error
+        if source_provenance != expected_provenance:
+            raise ValueError("battle debrief source provenance is invalid")
         return {
             **trace,
             "digest": _canonical_digest(trace),
@@ -6218,6 +6232,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "knowledge": knowledge,
             "participants": participant_evidence,
             "organizationTasks": task_traces,
+            "sourceProvenance": service_provenance.receipt(),
         }
         try:
             return battle_debrief.seal(trace)

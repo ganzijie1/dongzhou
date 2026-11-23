@@ -3907,6 +3907,7 @@ button:focus-visible {
 .office-battle-debrief { margin-top: 16px; padding: 16px 0; border-top: 1px solid rgba(196, 172, 111, .24); border-bottom: 1px solid rgba(196, 172, 111, .16); }
 .office-battle-debrief header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .office-battle-debrief header span, .office-battle-debrief header strong { color: #a99561; font-size: 10px; }
+.office-battle-debrief header strong { display: grid; gap: 4px; text-align: right; }
 .office-battle-debrief h4 { margin: 4px 0 0; color: #e2d6b5; font: 600 18px/1.3 var(--font-display); }
 .office-battle-debrief dl { margin: 14px 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .office-battle-debrief dl div { padding: 9px 10px; background: #11130f; }
@@ -3923,6 +3924,7 @@ button:focus-visible {
 
 @media (max-width: 600px) {
   .office-battle-debrief header { display: grid; }
+  .office-battle-debrief header strong { text-align: left; }
   .office-battle-debrief dl { grid-template-columns: 1fr; }
 }
 

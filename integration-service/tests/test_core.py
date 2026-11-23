@@ -1197,6 +1197,9 @@ class BattleDebriefModuleTests(unittest.TestCase):
                 }
             ],
             "organizationTasks": [task_trace],
+            "sourceProvenance": ServiceProvenanceModule.seal(
+                public_service_sources()
+            ),
         }
         receipt = BattleDebriefModule.seal(trace)
         self.assertEqual(receipt["kernel"]["module"], "dongzhou_battle_debrief")
@@ -1206,6 +1209,16 @@ class BattleDebriefModuleTests(unittest.TestCase):
             BattleDebriefModule.seal({**trace, "participants": [{"heroId": "ZuoRu"}]})
         with self.assertRaisesRegex(ValueError, "organization trace"):
             BattleDebriefModule.seal({**trace, "organizationTasks": [{}]})
+        with self.assertRaisesRegex(ValueError, "source provenance"):
+            BattleDebriefModule.seal(
+                {
+                    **trace,
+                    "sourceProvenance": {
+                        **trace["sourceProvenance"],
+                        "digest": "0" * 64,
+                    },
+                }
+            )
 
 
 class BattleMemoryHistoryTests(unittest.IsolatedAsyncioTestCase):
