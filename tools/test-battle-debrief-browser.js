@@ -68,9 +68,10 @@ async function routeAssets(page) {
         knowledge: [{ id: "dongzhou_stage_001", title: "第一回史料", summary: "宣王失政，诸侯观望。", sources: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败" }], digest: "3".repeat(64) }],
         participants: [{ heroId: "ZuoRu", npcId: "42", memory: { content: "左儒记得东郊索命告捷，所据 dongzhou_stage_001 已经核验。", digest: "4".repeat(64) } }],
         organizationTasks: [{ timeline: [{ sequence: 1 }, { sequence: 2 }, { sequence: 3 }], digest: "5".repeat(64), kernel: { module: "dongzhou_organization_task_trace", state: "SEALED" } }],
+        battleSourceProvenance: { digest: "8".repeat(64), kernel: { module: "dongzhou_service_provenance", state: "SEALED" } },
         sourceProvenance: { digest: "7".repeat(64), kernel: { module: "dongzhou_service_provenance", state: "SEALED" } },
         digest: "6".repeat(64),
-        kernel: { module: "dongzhou_battle_debrief", moduleVersion: "1.1.0", state: "SEALED" },
+        kernel: { module: "dongzhou_battle_debrief", moduleVersion: "1.2.0", state: "SEALED" },
       };
     } else if (pathname.endsWith("/organization/roster")) body = { organization: { name: "东周军府", state: "ACTIVE", templateId: "dongzhou_court", templateVersion: 7, hierarchyVersion: 7, growthContribution: 0 }, members: [{ heroId: "DuBo", office: "军府主官", contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 }, { heroId: "ZuoRu", office: "军府属官", contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 }], playerMembership: null, openPositions: [] };
     else if (pathname.endsWith("/organization/inventory")) body = { accounts: [], revision: 1 };
@@ -122,6 +123,7 @@ async function routeAssets(page) {
     assert.match(text, /左儒/);
     assert.match(text, /1 卷 \/ 3 步/);
     assert.match(text, /《史记·周本纪》/);
+    assert.match(text, /战斗封印 888888888888/);
     assert.match(text, /版本封印 777777777777/);
     assert(!text.includes("dongzhou_stage_001"), "Internal knowledge key leaked into debrief UI");
     assert(!text.includes("00000000-0000-4000-8000-000000000081"), "Internal task ID leaked into debrief UI");

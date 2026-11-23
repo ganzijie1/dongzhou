@@ -1297,6 +1297,13 @@ class ServiceProvenanceModule(Module):
 def _service_provenance_receipt_matches(
     receipt: Any, expected: dict[str, Any]
 ) -> bool:
+    return (
+        _service_provenance_receipt_is_valid(receipt)
+        and receipt.get("digest") == expected.get("digest")
+    )
+
+
+def _service_provenance_receipt_is_valid(receipt: Any) -> bool:
     if not isinstance(receipt, dict):
         return False
     try:
@@ -1308,12 +1315,12 @@ def _service_provenance_receipt_matches(
         )
     except (TypeError, ValueError):
         return False
-    return sealed == receipt and receipt.get("digest") == expected.get("digest")
+    return sealed == receipt
 
 
 class BattleDebriefModule(Module):
     name = "dongzhou_battle_debrief"
-    version = "1.1.0"
+    version = "1.2.0"
     dependencies = (
         RuntimeModule.name,
         OrganizationTaskTraceModule.name,
@@ -1326,6 +1333,7 @@ class BattleDebriefModule(Module):
         participants = trace.get("participants")
         organization_tasks = trace.get("organizationTasks")
         source_provenance = trace.get("sourceProvenance")
+        battle_source_provenance = trace.get("battleSourceProvenance")
         outcome = trace.get("outcome")
         if (
             any(
@@ -1390,6 +1398,13 @@ class BattleDebriefModule(Module):
             raise ValueError("battle debrief source provenance is invalid") from error
         if source_provenance != expected_provenance:
             raise ValueError("battle debrief source provenance is invalid")
+        if (
+            battle_source_provenance is not None
+            and not _service_provenance_receipt_is_valid(
+                battle_source_provenance
+            )
+        ):
+            raise ValueError("battle debrief battle source provenance is invalid")
         return {
             **trace,
             "digest": _canonical_digest(trace),
@@ -3806,7 +3821,13 @@ def _seal_battle_reports(
     attestations: dict[str, Any] | None = None,
     campaign_routes: CampaignRouteModule | None = None,
     route_required_stages: set[str] | None = None,
+    source_provenance: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    if (
+        source_provenance is not None
+        and not _service_provenance_receipt_is_valid(source_provenance)
+    ):
+        raise BattleReceiptConflict("battle_source_provenance_invalid")
     payload = deepcopy(submitted_payload)
     organization = payload.get("organization")
     if not isinstance(organization, dict):
@@ -4135,6 +4156,11 @@ def _seal_battle_reports(
             "rejectedSupport": sorted(
                 rejected_support,
                 key=lambda entry: (entry["kind"], entry["id"]),
+            ),
+            **(
+                {"sourceProvenance": deepcopy(source_provenance)}
+                if source_provenance is not None
+                else {}
             ),
             "kernel": {
                 "module": MandateWorkflowModule.name,
@@ -6037,6 +6063,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 attestations,
                 campaign_routes,
                 route_required_stages,
+                source_provenance=service_provenance.receipt(),
             )
             sealed_payload["sourceProvenance"] = service_provenance.receipt()
             reports = await _prepare_due_organization_reports(
@@ -6090,6 +6117,9 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=404,
             )
         receipt = report.get("kernelReceipt")
+        battle_source_provenance = (
+            receipt.get("sourceProvenance") if isinstance(receipt, dict) else None
+        )
         receipt_trace = (
             {key: value for key, value in receipt.items() if key != "digest"}
             if isinstance(receipt, dict)
@@ -6101,6 +6131,12 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             or receipt.get("digest") != _digest_json(receipt_trace)
             or not _battle_report_digest_matches(report, receipt)
             or receipt.get("kernel", {}).get("state") != "SEALED"
+            or (
+                battle_source_provenance is not None
+                and not _service_provenance_receipt_is_valid(
+                    battle_source_provenance
+                )
+            )
         ):
             raise ApiError(
                 "battle_report_unsealed",
@@ -6294,6 +6330,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "participants": participant_evidence,
             "organizationTasks": task_traces,
             "sourceProvenance": service_provenance.receipt(),
+            **(
+                {"battleSourceProvenance": battle_source_provenance}
+                if battle_source_provenance is not None
+                else {}
+            ),
         }
         try:
             return battle_debrief.seal(trace)

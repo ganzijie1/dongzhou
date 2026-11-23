@@ -1829,7 +1829,8 @@
     const taskCount = Number(debrief.organizationTasks?.length || 0);
     const taskSteps = (debrief.organizationTasks || []).reduce((sum, trace) => sum + Number(trace.timeline?.length || 0), 0);
     const sourceSeal = /^[0-9a-f]{64}$/i.test(debrief.sourceProvenance?.digest || "") ? debrief.sourceProvenance.digest : "";
-    const seals = `<strong><span>内核印记 ${escapeHtml(String(debrief.digest || "").slice(0, 12))}</span>${sourceSeal ? `<span>版本封印 ${escapeHtml(sourceSeal.slice(0, 12))}</span>` : ""}</strong>`;
+    const battleSourceSeal = /^[0-9a-f]{64}$/i.test(debrief.battleSourceProvenance?.digest || "") ? debrief.battleSourceProvenance.digest : "";
+    const seals = `<strong><span>内核印记 ${escapeHtml(String(debrief.digest || "").slice(0, 12))}</span>${battleSourceSeal ? `<span>战斗封印 ${escapeHtml(battleSourceSeal.slice(0, 12))}</span>` : ""}${sourceSeal ? `<span>版本封印 ${escapeHtml(sourceSeal.slice(0, 12))}</span>` : ""}</strong>`;
     panel.innerHTML = `<header><div><span>${outcome.won ? "战役告捷" : "战局失利"}</span><h4>${escapeHtml(debrief.stageTitle || "战后复盘")}</h4></div>${seals}</header><dl><div><dt>用时</dt><dd>${Number(outcome.turns || 0)} 回合</dd></div><div><dt>折损</dt><dd>${Number(outcome.ownLosses || 0)} 部</dd></div><div><dt>军务行迹</dt><dd>${taskCount} 卷 / ${taskSteps} 步</dd></div></dl><section><h5>史证复核</h5><ol>${knowledge}</ol></section><section><h5>参战者回忆</h5><ol>${participants}</ol></section>`;
     panel.hidden = false;
   }

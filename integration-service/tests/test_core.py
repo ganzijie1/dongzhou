@@ -367,12 +367,16 @@ class OrganizationOutcomeTests(unittest.TestCase):
                 "battleReports": [],
             }
         }
+        source_provenance = ServiceProvenanceModule.seal(
+            public_service_sources()
+        )
         payload = _seal_battle_reports(
             player_id,
             previous_payload,
             payload,
             campaign_routes=campaign_routes,
             route_required_stages={"02"},
+            source_provenance=source_provenance,
         )
         first = _battle_game_events(
             settings, player_id, payload, "0771-01-01 14:00:00"
@@ -400,6 +404,7 @@ class OrganizationOutcomeTests(unittest.TestCase):
         receipt = payload["organization"]["battleReports"][0]["kernelReceipt"]
         self.assertEqual(receipt["verifiedParticipants"], ["DuBo", "SiTu", "ZuoRu"])
         self.assertEqual(receipt["verifiedSupport"]["mandates"][0]["supportHeroId"], "SiTu")
+        self.assertEqual(receipt["sourceProvenance"], source_provenance)
         outcome = next(
             event["payload"]
             for event in first
@@ -1215,6 +1220,9 @@ class BattleDebriefModuleTests(unittest.TestCase):
             "sourceProvenance": ServiceProvenanceModule.seal(
                 public_service_sources()
             ),
+            "battleSourceProvenance": ServiceProvenanceModule.seal(
+                public_service_sources()
+            ),
         }
         receipt = BattleDebriefModule.seal(trace)
         self.assertEqual(receipt["kernel"]["module"], "dongzhou_battle_debrief")
@@ -1230,6 +1238,16 @@ class BattleDebriefModuleTests(unittest.TestCase):
                     **trace,
                     "sourceProvenance": {
                         **trace["sourceProvenance"],
+                        "digest": "0" * 64,
+                    },
+                }
+            )
+        with self.assertRaisesRegex(ValueError, "battle source provenance"):
+            BattleDebriefModule.seal(
+                {
+                    **trace,
+                    "battleSourceProvenance": {
+                        **trace["battleSourceProvenance"],
                         "digest": "0" * 64,
                     },
                 }
