@@ -63,7 +63,7 @@ class ControlledTests(unittest.TestCase):
                 if path.endswith('/sessions/guest'): return {}
                 return {"result": {"state": "IN_PROGRESS" if path.endswith(f'task-{bad}') else "INVALIDATED"}}
             client = Client(handle)
-            with patch.object(sys, 'argv', ['controlled', 'order-submit', '--journal', str(self.path)]), patch.object(module, 'deployment_gate'), patch.object(module.httpx, 'Client', return_value=client):
+            with patch.object(sys, 'argv', ['controlled', 'order-submit', '--journal', str(self.path)]), patch.object(module, 'deployment_gate'), patch.object(module, 'runtime_source_gate'), patch.object(module.httpx, 'Client', return_value=client):
                 with self.assertRaisesRegex(RuntimeError, 'not invalidated'):
                     module.main()
             self.assertFalse(any(method == 'POST' and path.endswith('/organization/tasks') for method, path, _ in client.calls))
@@ -73,6 +73,55 @@ class ControlledTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'reuse'):
             module.verify_predecessors(client, {"installation": 'old', "predecessors": [{"installation": 'old', "remoteTask": 'task'}]})
         self.assertEqual(client.calls, [])
+
+    def test_runtime_source_gate_accepts_canonical_attestation(self):
+        delivery = module.smoke.four_service_delivery
+        seal = delivery.expected_source_seal()
+        services = {}
+        for name, source in delivery.SERVICE_SOURCES.items():
+            services[name] = {
+                "online": True,
+                "sourceAttested": True,
+                "sourceBranch": source["sourceBranch"],
+                "sourceRevision": source["sourceRevision"],
+                "integrationRevision": source["integrationRevision"],
+                "reportedSourceBranch": source["sourceBranch"],
+                "reportedSourceRevision": source["sourceRevision"],
+                "sourceSealDigest": seal,
+            }
+        services["nexusKernel"].update({
+            "serviceProvenanceState": "ready",
+            "sourceProvenance": {"kernel": {"state": "SEALED"}},
+            "requiredModuleCount": 20,
+            "operationalModuleCount": 20,
+            "unavailableModules": [],
+        })
+        readiness = {
+            "status": "healthy",
+            "requiredServices": list(delivery.SERVICE_NAMES),
+            "unavailableServices": [],
+            "sourceDriftServices": [],
+        }
+        client = Client(lambda method, path, kwargs: readiness if path == "/health/ready" else {"mode": "connected", "services": services})
+
+        result = module.runtime_source_gate(client)
+
+        self.assertEqual(result["onlineServices"], 4)
+        self.assertEqual(result["sourceSealDigest"], seal)
+
+    def test_runtime_source_gate_rejects_drift_before_business_requests(self):
+        readiness = {
+            "status": "unhealthy",
+            "requiredServices": list(module.smoke.four_service_delivery.SERVICE_NAMES),
+            "unavailableServices": ["aiNpc"],
+            "sourceDriftServices": ["aiNpc"],
+        }
+        client = Client(lambda method, path, kwargs: readiness)
+
+        with self.assertRaisesRegex(ValueError, "readiness is not healthy"):
+            module.runtime_source_gate(client)
+
+        self.assertEqual(client.calls, [("GET", "/health/ready", {})])
 
     def test_force_timeout_is_never_resent(self):
         old = plan()

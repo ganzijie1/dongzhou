@@ -67,6 +67,8 @@ orgFlow 东周任务目录当前为 v7。五类正式任务以玩家可直接输
 
 运行 `integration-service/.venv/Scripts/python.exe tools/verify-live-integration.py --url <网关地址> --output output/integration-validation/live-smoke.json` 验证真实健康、四服务 expected/reported 来源与统一封印、Nexus 20/20 模块、独立访客存档及冲突隔离、首中末关卡已发布史料、AI 检索、NPC 状态和 90 天日程。该脚本复用 `verify_four_service_runtime.py` 的唯一来源契约，不保留较弱的仅在线检查旁路。任一项失败则退出码非零；此检查不会派差或推进共享游戏时钟，不能代替任务复命与发布验收。
 
+`tools/verify-controlled-acceptance.py` 的日程重排、派单和回报模式在任何业务写入前也会重新检查同一套四服务 readiness、运行时自报来源、统一封印和 Nexus 20/20 模块；容器镜像标签正确但运行时来源漂移时必须停止，不能绕过该门禁继续验收。
+
 设置 `DONGZHOU_TEST_URL=<网关地址>` 后运行 `node tools/test-live-knowledge-browser.js`，直接从浏览器验证联网史料读取、展示和筹备记录；该测试不拦截或模拟 API。
 
 - knowledge AKU schema 必须 `172/172` 通过，且工作台发布后用代表性人物、战役、军令各做召回验收。

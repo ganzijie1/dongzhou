@@ -46,6 +46,20 @@ def get_json(client, method, path, **kwargs):
     return response.json()
 
 
+def unwrap_success(body):
+    return body.get("data", body) if isinstance(body, dict) and body.get("success") is True else body
+
+
+def runtime_source_gate(client):
+    readiness = unwrap_success(get_json(client, "GET", "/health/ready"))
+    smoke.four_service_delivery.validate_gateway_readiness(readiness)
+    status = unwrap_success(get_json(client, "GET", "/api/dongzhou/v1/integration/status"))
+    return smoke.four_service_delivery.validate_live_status(
+        status,
+        smoke.four_service_delivery.expected_source_seal(),
+    )
+
+
 def fingerprint(plan):
     return hashlib.sha256(json.dumps(plan, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 
@@ -205,6 +219,7 @@ def main():
             if args.mode == "order-submit" and not state.get("remoteTask"):
                 verify_predecessors(client, state)
             get_json(client, "POST", "/api/dongzhou/v1/sessions/guest", json={"installation_id": state["installation"]})
+            runtime_source_gate(client)
             if args.mode.startswith("schedule-"):
                 summary = schedule_action(client, state, args.journal, args.mode == "schedule-regenerate")
             else:
