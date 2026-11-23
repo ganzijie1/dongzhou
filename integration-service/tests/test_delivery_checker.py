@@ -104,3 +104,36 @@ def test_manifest_file_set_verifies_declared_source_and_package_hashes(tmp_path:
     extra = CHECKER.check_package_sources(package, {}, tmp_path, manifest_file_sets=contract)
     assert extra[0]["passed"] is False
     assert extra[0]["mismatches"] == ["extra:audio/dialogue/stale.ogg"]
+
+
+def _healthy_readiness() -> dict:
+    names = list(CHECKER.four_service_delivery.SERVICE_NAMES)
+    return {
+        "status": "healthy",
+        "requiredServices": names,
+        "unavailableServices": [],
+        "sourceDriftServices": [],
+        "services": {name: {"online": True} for name in names},
+    }
+
+
+def test_readiness_contract_accepts_the_canonical_four_services() -> None:
+    names = list(CHECKER.four_service_delivery.SERVICE_NAMES)
+    result = CHECKER.check_readiness_contract(_healthy_readiness(), names)
+
+    assert result["passed"] is True
+    assert result["manifestMatchesCanonicalServices"] is True
+    assert result["sourceDriftServices"] == []
+
+
+def test_readiness_contract_rejects_source_drift() -> None:
+    names = list(CHECKER.four_service_delivery.SERVICE_NAMES)
+    readiness = _healthy_readiness()
+    readiness["status"] = "unhealthy"
+    readiness["sourceDriftServices"] = ["aiNpc"]
+    readiness["services"]["aiNpc"] = {"online": False}
+
+    result = CHECKER.check_readiness_contract(readiness, names)
+
+    assert result["passed"] is False
+    assert result["error"] == "integration gateway readiness is not healthy"

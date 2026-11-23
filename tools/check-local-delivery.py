@@ -5,11 +5,18 @@ import http.client
 import json
 from pathlib import Path, PurePosixPath
 import subprocess
+import sys
 import urllib.error
 import urllib.request
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
+TOOLS_DIR = Path(__file__).resolve().parent
+if str(TOOLS_DIR) not in sys.path:
+    sys.path.insert(0, str(TOOLS_DIR))
+
+import verify_four_service_runtime as four_service_delivery
+
 DEPENDENCIES = ['deploy-server-1', 'deploy-mongo-1', 'deploy-qdrant-1',
                 'deploy-elasticsearch-1', 'deploy-neo4j-1', 'ainpc-v2-redis-dev',
                 'ainpc-v2-mongo-dev', 'ainpc-v2-nats-dev', 'org-flow-engine-postgres-dev-postgres-1']
@@ -195,6 +202,32 @@ def check_package_sources(
     return checks
 
 
+def check_readiness_contract(readiness: dict, required_capabilities: list[str]) -> dict:
+    readiness_data = readiness.get('data', readiness) if isinstance(readiness, dict) else {}
+    try:
+        four_service_delivery.validate_gateway_readiness(readiness_data)
+    except ValueError as error:
+        return {
+            'requiredCapabilities': {},
+            'passed': False,
+            'error': str(error),
+        }
+
+    canonical = list(four_service_delivery.SERVICE_NAMES)
+    services = readiness_data.get('services', {})
+    capability_states = {
+        name: bool(isinstance(services.get(name), dict) and services[name].get('online'))
+        for name in canonical
+    }
+    manifest_matches = set(required_capabilities) == set(canonical)
+    return {
+        'requiredCapabilities': capability_states,
+        'manifestMatchesCanonicalServices': manifest_matches,
+        'sourceDriftServices': readiness_data.get('sourceDriftServices'),
+        'passed': manifest_matches and all(capability_states.values()),
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path)
@@ -236,16 +269,7 @@ def main():
             status = 'unavailable'
         checks.append({'path': path, 'status': status, 'passed': status == expected})
     required_capabilities = manifest.get('requiredCapabilities', [])
-    readiness_data = readiness.get('data', readiness) if isinstance(readiness, dict) else {}
-    services = readiness_data.get('services', {}) if isinstance(readiness_data, dict) else {}
-    capability_states = {
-        name: bool(isinstance(services.get(name), dict) and services[name].get('online'))
-        for name in required_capabilities
-    }
-    checks.append({
-        'requiredCapabilities': capability_states,
-        'passed': bool(required_capabilities) and all(capability_states.values()),
-    })
+    checks.append(check_readiness_contract(readiness, required_capabilities))
     package = root_path(str(manifest['package']['path']))
     digest = None
     if package.exists():

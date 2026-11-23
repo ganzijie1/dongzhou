@@ -87,7 +87,7 @@ orgFlow 东周任务目录当前为 v7。五类正式任务以玩家可直接输
 integration-service/.venv/Scripts/python.exe tools/check-local-delivery.py --output output/integration-validation/local-delivery-readonly-20261109.json
 ```
 
-此工具核对本次交付的 11 个应用容器镜像标签，以及这 11 个应用和 9 个存储/知识依赖的运行、已有健康检查与 `unless-stopped` 重启策略；还检查页面/健康 HTTP、匿名存档拒绝访问及交付包 SHA256。依赖镜像版本不由此工具固定。没有健康检查的容器，其 running 不等同业务健康；本工具不覆盖宿主冷启动。版本变更后须同步工具中的期望发布版本和包哈希。
+此工具核对本次交付的 11 个应用容器镜像标签，以及这 11 个应用和 9 个存储/知识依赖的运行、已有健康检查与 `unless-stopped` 重启策略；还检查页面/健康 HTTP、匿名存档拒绝访问、四服务统一清单、不可用服务、来源漂移及交付包 SHA256。四服务就绪判断复用 `verify_four_service_runtime.py` 的规范契约，错分支或错提交的运行时不能以单纯在线状态通过。依赖镜像版本不由此工具固定。没有健康检查的容器，其 running 不等同业务健康；本工具不覆盖宿主冷启动。版本变更后须同步工具中的期望发布版本和包哈希。
 
 东周 orgFlow Compose 叠加层为 API 和 Worker 显式设置 `restart: unless-stopped`。该策略依赖 Docker 引擎已启动；手工停止的容器不会因此自动恢复。当前尚未进行宿主重启演练，也未证明 Windows 登录前 Docker Desktop 可用。不要为了检查恢复随意重启共享服务或重放已完成任务。公网 TLS 与全文检索的验收边界见上文发布门禁和 `production-ingress-isolation.md`。
 
