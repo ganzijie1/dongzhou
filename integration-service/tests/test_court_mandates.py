@@ -828,6 +828,73 @@ def schedule_mandate(client: TestClient, mandate: dict[str, object]) -> dict[str
     return scheduled.json()["scheduleReceipt"]
 
 
+def test_mandate_resume_and_schedule_recover_after_source_drift() -> None:
+    with TemporaryDirectory() as directory:
+        upstreams = MandateUpstreams()
+        app = build_application(
+            configured(Path(directory) / "gateway.sqlite3"), upstreams=upstreams
+        )
+        with TestClient(app) as client:
+            start_session(client)
+            council_id, _ = complete_council(client)
+            drafted = client.post(
+                "/api/dongzhou/v1/court/mandates",
+                json=mandate_body(council_id),
+            )
+            assert drafted.status_code == 200, drafted.text
+            draft = drafted.json()
+            mandate_id = draft["mandate"]["id"]
+
+            upstreams.source_attested["orgFlow"] = False
+            blocked_resume = client.post(
+                f"/api/dongzhou/v1/court/mandates/{mandate_id}/resume",
+                json={
+                    "action_id": draft["action"]["actionId"],
+                    "decision": "APPROVE",
+                },
+            )
+            assert blocked_resume.status_code == 409
+            assert (
+                blocked_resume.json()["error"]["code"]
+                == "court_mandate_resume_requires_four_services"
+            )
+
+            upstreams.source_attested["orgFlow"] = True
+            approved = client.post(
+                f"/api/dongzhou/v1/court/mandates/{mandate_id}/resume",
+                json={
+                    "action_id": draft["action"]["actionId"],
+                    "decision": "APPROVE",
+                },
+            )
+            assert approved.status_code == 200, approved.text
+            mandate = approved.json()["mandate"]
+
+            upstreams.source_attested["aiNpc"] = False
+            schedule_body = {
+                "client_request_id": str(uuid4()),
+                "mandate_digest": mandate["digest"],
+            }
+            blocked_schedule = client.post(
+                f"/api/dongzhou/v1/court/mandates/{mandate_id}/schedule",
+                json=schedule_body,
+            )
+            assert blocked_schedule.status_code == 409
+            assert (
+                blocked_schedule.json()["error"]["code"]
+                == "court_mandate_schedule_requires_four_services"
+            )
+            assert upstreams.interruptions == []
+
+            upstreams.source_attested["aiNpc"] = True
+            scheduled = client.post(
+                f"/api/dongzhou/v1/court/mandates/{mandate_id}/schedule",
+                json=schedule_body,
+            )
+            assert scheduled.status_code == 200, scheduled.text
+            assert len(upstreams.interruptions) == 1
+
+
 def test_contribution_entry_is_reverified_and_sealed_into_mandate() -> None:
     with TemporaryDirectory() as directory:
         upstreams = MandateUpstreams()

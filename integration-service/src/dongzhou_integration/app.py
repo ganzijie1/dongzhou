@@ -8978,6 +8978,13 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "The player action does not match this court mandate.",
                 status_code=409,
             )
+        await require_source_attested_runtime(
+            error_code="court_mandate_resume_requires_four_services",
+            message=(
+                "Court mandate decisions require healthy source-attested "
+                "knowledge, AINPC, orgFlow, and Nexus runtimes."
+            ),
+        )
         result = mandate_workflow.resume(response, request.decision)
         transitioned = await store.transition_request(
             player_id,
@@ -9060,6 +9067,14 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "The mandate schedule identity is already bound to different input.",
                 status_code=409,
             )
+
+        await require_source_attested_runtime(
+            error_code="court_mandate_schedule_requires_four_services",
+            message=(
+                "Mandate schedule changes require healthy source-attested "
+                "knowledge, AINPC, orgFlow, and Nexus runtimes."
+            ),
+        )
 
         request_body = request.model_dump(mode="json")
         try:
