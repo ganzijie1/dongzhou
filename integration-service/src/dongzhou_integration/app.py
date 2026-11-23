@@ -1204,6 +1204,37 @@ class ServiceProvenanceModule(Module):
     dependencies = (RuntimeModule.name,)
     service_names = ("knowledge", "aiNpc", "orgFlow", "nexusKernel")
 
+    def __init__(self, source_manifest: dict[str, Any]) -> None:
+        super().__init__()
+        self._source_manifest_json = json.dumps(
+            source_manifest,
+            ensure_ascii=False,
+            allow_nan=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        self._receipt_json: str | None = None
+
+    async def on_start(self, context: ModuleContext) -> None:
+        del context
+        receipt = self.seal(json.loads(self._source_manifest_json))
+        self._receipt_json = json.dumps(
+            receipt,
+            ensure_ascii=False,
+            allow_nan=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+
+    async def on_stop(self, context: ModuleContext) -> None:
+        del context
+        self._receipt_json = None
+
+    def receipt(self) -> dict[str, Any]:
+        if self._receipt_json is None:
+            raise RuntimeError("service provenance receipt is unavailable")
+        return json.loads(self._receipt_json)
+
     @classmethod
     def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
         services = trace.get("services")
@@ -4585,7 +4616,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     organization_task_topology = OrganizationTaskTopologyModule()
     logistics_briefing = LogisticsBriefingModule()
     organization_scheduled_duty = OrganizationScheduledDutyModule()
-    service_provenance = ServiceProvenanceModule()
+    service_provenance = ServiceProvenanceModule(public_service_sources())
     battle_debrief = BattleDebriefModule()
     npc_commendation = NpcCommendationModule()
     npc_merit_commendation = NpcMeritCommendationModule()
@@ -4804,7 +4835,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         task_trace_state = module_state(OrganizationTaskTraceModule)
         scheduled_duty_state = module_state(OrganizationScheduledDutyModule)
         provenance_state = module_state(ServiceProvenanceModule)
-        provenance_receipt = service_provenance.seal(public_service_sources())
+        provenance_receipt = service_provenance.receipt()
         provenance_digest = str(provenance_receipt["digest"])
         external_with_sources = {
             name: {

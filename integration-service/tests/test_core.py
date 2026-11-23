@@ -16,6 +16,7 @@ from uuid import UUID, uuid4
 from fastapi.testclient import TestClient
 import httpx
 from pydantic import ValidationError
+from nexus_kernel.errors import KernelStartupError
 from nexus_kernel.kernel import ModuleState
 
 from dongzhou_integration.app import (
@@ -1040,6 +1041,26 @@ class ServiceProvenanceModuleTests(unittest.TestCase):
         self.assertEqual(receipt["kernel"]["module"], ServiceProvenanceModule.name)
         self.assertEqual(receipt["kernel"]["state"], "SEALED")
 
+    def test_freezes_manifest_and_returns_isolated_receipt_copies(self) -> None:
+        payload = public_service_sources()
+        expected_source_revision = payload["services"]["aiNpc"]["sourceRevision"]
+        module = ServiceProvenanceModule(payload)
+        payload["services"]["aiNpc"]["sourceRevision"] = "0" * 40
+
+        asyncio.run(module.on_start(None))
+        first = module.receipt()
+        first["services"]["aiNpc"]["sourceRevision"] = "f" * 40
+        second = module.receipt()
+
+        self.assertEqual(
+            second["services"]["aiNpc"]["sourceRevision"],
+            expected_source_revision,
+        )
+        self.assertEqual(first["digest"], second["digest"])
+        asyncio.run(module.on_stop(None))
+        with self.assertRaisesRegex(RuntimeError, "unavailable"):
+            module.receipt()
+
     def test_rejects_incomplete_or_malformed_source_manifest(self) -> None:
         payload = public_service_sources()
         missing = {**payload, "services": dict(payload["services"])}
@@ -1063,6 +1084,36 @@ class ServiceProvenanceModuleTests(unittest.TestCase):
         malformed["services"]["aiNpc"]["sourceRevision"] = "8a7b673"
         with self.assertRaisesRegex(ValueError, "aiNpc provenance"):
             ServiceProvenanceModule.seal(malformed)
+
+    def test_invalid_manifest_prevents_required_kernel_startup(self) -> None:
+        with TemporaryDirectory() as directory, patch.dict(
+            "os.environ",
+            {
+                "DONGZHOU_ENV": "development",
+                "DONGZHOU_WEB_ROOT": directory,
+                "DONGZHOU_PUBLIC_ORIGIN": "http://testserver",
+                "DONGZHOU_DATABASE_PATH": str(Path(directory) / "gateway.sqlite3"),
+            },
+            clear=True,
+        ):
+            settings = Settings.from_env()
+            malformed = public_service_sources()
+            malformed["services"]["knowledge"]["integrationRevision"] = "invalid"
+            with patch(
+                "dongzhou_integration.app.public_service_sources",
+                return_value=malformed,
+            ):
+                application = build_application(
+                    settings,
+                    store=Store(settings.database_path),
+                    upstreams=_HealthyUpstreams(),
+                )
+            with self.assertRaisesRegex(
+                KernelStartupError,
+                "Required module failed to start: dongzhou_service_provenance",
+            ):
+                with TestClient(application):
+                    pass
 
 
 class BattleDebriefModuleTests(unittest.TestCase):
