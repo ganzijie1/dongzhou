@@ -3,11 +3,13 @@
 const assert = require("assert/strict");
 const fs = require("fs");
 const path = require("path");
+const { verifyFourServiceRuntime } = require("./four-service-runtime-gate");
 let chromium;
 try { ({ chromium } = require(path.resolve(__dirname, "../output/playwright-runtime/node_modules/playwright"))); }
 catch (_) { ({ chromium } = require("playwright")); }
 
 const BASE = (process.env.DONGZHOU_BASE_URL || "http://127.0.0.1:8780/").replace(/\/?$/, "/");
+verifyFourServiceRuntime(BASE);
 const PROFILE = "dongzhou-h5-profile-v2";
 const TASK = "c27e41ed-2304-5f02-a087-7f89bf441681";
 const journal = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../.agentwork/root/diplomacy-acceptance-20261109-diplomacy-v1-private.json"), "utf8"));

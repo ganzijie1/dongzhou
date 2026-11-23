@@ -25,7 +25,7 @@ assert.throws(() => verifyFourServiceRuntime("file:///tmp/game", {
 }), /HTTP gateway URL/);
 
 const unguardedMutationScripts = fs.readdirSync(__dirname)
-  .filter((name) => /^test-live-.*\.js$/.test(name))
+  .filter((name) => /^(?:test-live-|resume-live-|recover-live-|verify-existing-).*\.js$/.test(name))
   .filter((name) => {
     const source = fs.readFileSync(path.join(__dirname, name), "utf8");
     const indirectMutation = /#office(?:AdviserAsk|CommendButton|RecollectionButton|AdvanceButton|ThoughtButton|QuizStart|QuizVerify|MembershipApply|MembershipLeave)|data-adviser-guide|officeCareerResultForm|data-contribution-verify|#focusStageButton/.test(source);

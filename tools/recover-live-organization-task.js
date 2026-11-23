@@ -3,6 +3,7 @@
 const assert = require("assert/strict");
 const fs = require("fs");
 const path = require("path");
+const { verifyFourServiceRuntime } = require("./four-service-runtime-gate");
 
 let chromium;
 try {
@@ -12,6 +13,7 @@ try {
 }
 
 const base = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
+verifyFourServiceRuntime(base);
 const installation = process.env.DONGZHOU_INSTALLATION_ID;
 const taskId = process.env.DONGZHOU_TASK_ID;
 const output = process.env.DONGZHOU_RECOVERY_OUTPUT

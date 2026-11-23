@@ -3,6 +3,7 @@
 const assert = require("assert/strict");
 const fs = require("fs");
 const path = require("path");
+const { verifyFourServiceRuntime } = require("./four-service-runtime-gate");
 let chromium;
 try {
   ({ chromium } = require(path.resolve(__dirname, "../output/playwright-runtime/node_modules/playwright")));
@@ -14,6 +15,7 @@ const journalPath = process.argv[2];
 const journal = JSON.parse(fs.readFileSync(journalPath, "utf8"));
 assert(journal.installation && journal.remoteTask && journal.mandateId);
 const base = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
+verifyFourServiceRuntime(base);
 const profileKey = "dongzhou-h5-profile-v2";
 const battleKey = "dongzhou-h5-battle-v2";
 const outputDirectory = path.resolve(__dirname, "../output/integration-validation");
