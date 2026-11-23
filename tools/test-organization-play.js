@@ -145,9 +145,10 @@ const sealedTask = play.createTask(state, { type: "drill", assigneeId: "ZuoRu", 
 assert.strictEqual(sealedTask.task.mandate.evidence.source.tier, "史实骨架");
 assert.strictEqual(sealedTask.task.mandate.assignment.readiness.score, 75);
 assert.strictEqual(sealedTask.task.mandate.emergency.urgent, true);
-state = play.updateBackend(state, { nexusKernel: true, orgFlow: true, aiNpc: true, knowledge: true, serviceSources: { aiNpc: { sourceRevision: "8a7b673c6ddb93c5ac64d96a270b35619e5bcc1c" } } });
+state = play.updateBackend(state, { nexusKernel: true, orgFlow: true, aiNpc: true, knowledge: true, serviceSources: { aiNpc: { sourceRevision: "8a7b673c6ddb93c5ac64d96a270b35619e5bcc1c" } }, serviceSourceSealDigest: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" });
 assert.strictEqual(state.backend.mode, "connected");
 assert.strictEqual(state.backend.serviceSources.aiNpc.sourceRevision.slice(0, 7), "8a7b673");
+assert.strictEqual(state.backend.serviceSourceSealDigest.slice(0, 7), "0123456");
 state = play.updateBackend(state, { aiNpc: false });
 assert.strictEqual(state.backend.mode, "local");
 state = play.updateBackend(state, { aiNpc: true });

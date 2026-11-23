@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 SERVICE_SOURCES: dict[str, dict[str, str]] = {
     "knowledge": {
         "submodulePath": "services/knowledge-jizhan",
@@ -46,4 +48,14 @@ def public_service_source(service: str) -> dict[str, str]:
         "sourceBranch": source["sourceBranch"],
         "sourceRevision": source["sourceRevision"],
         "integrationRevision": source["integrationRevision"],
+    }
+
+
+def public_service_sources() -> dict[str, Any]:
+    return {
+        "schemaVersion": 1,
+        "services": {
+            service: public_service_source(service)
+            for service in ("knowledge", "aiNpc", "orgFlow", "nexusKernel")
+        },
     }

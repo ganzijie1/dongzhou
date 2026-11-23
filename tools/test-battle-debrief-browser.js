@@ -54,7 +54,7 @@ async function routeAssets(page) {
     else if (pathname.endsWith("/save") && request.method() === "PUT") {
       stored = request.postDataJSON().payload;
       body = { version: ++version, payload: stored };
-    } else if (pathname.endsWith("/integration/status")) body = { mode: "connected", services: { nexusKernel: { online: true, requiredModuleCount: 19, operationalModuleCount: 19, unavailableModules: [] }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } } };
+    } else if (pathname.endsWith("/integration/status")) body = { mode: "connected", services: { nexusKernel: { online: true, requiredModuleCount: 20, operationalModuleCount: 20, unavailableModules: [] }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } } };
     else if (/\/battle-reports\/[^/]+\/debrief$/.test(pathname)) {
       debriefReads += 1;
       body = {

@@ -30,7 +30,7 @@ from .assignments import (
 )
 from .models import AdviserFeedbackRequest, AdviserGuideCancelRequest, AdviserGuideDecisionRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcPublicMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcCommendationRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMeritCommendationRequest, NpcMessageRequest, NpcRecollectionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationScheduledDutyStatusRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
-from .service_sources import public_service_source
+from .service_sources import public_service_source, public_service_sources
 from .store import GameClockConflict, Store, VersionConflict
 from .upstreams import UpstreamUnavailable, Upstreams
 
@@ -1192,6 +1192,53 @@ class OrganizationScheduledDutyModule(Module):
             "kernel": {
                 "module": OrganizationScheduledDutyModule.name,
                 "moduleVersion": OrganizationScheduledDutyModule.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "SEALED",
+            },
+        }
+
+
+class ServiceProvenanceModule(Module):
+    name = "dongzhou_service_provenance"
+    version = "1.0.0"
+    dependencies = (RuntimeModule.name,)
+    service_names = ("knowledge", "aiNpc", "orgFlow", "nexusKernel")
+
+    @classmethod
+    def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
+        services = trace.get("services")
+        if trace.get("schemaVersion") != 1 or not isinstance(services, dict):
+            raise ValueError("service provenance envelope is invalid")
+        if set(services) != set(cls.service_names):
+            raise ValueError("service provenance must contain exactly four services")
+        normalized: dict[str, dict[str, str]] = {}
+        for service in cls.service_names:
+            source = services.get(service)
+            if not isinstance(source, dict) or set(source) != {
+                "sourceBranch", "sourceRevision", "integrationRevision"
+            }:
+                raise ValueError(f"{service} provenance is invalid")
+            branch = str(source["sourceBranch"])
+            source_revision = str(source["sourceRevision"])
+            integration_revision = str(source["integrationRevision"])
+            if (
+                not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]{0,127}", branch)
+                or not re.fullmatch(r"[0-9a-f]{40}", source_revision)
+                or not re.fullmatch(r"[0-9a-f]{40}", integration_revision)
+            ):
+                raise ValueError(f"{service} provenance is invalid")
+            normalized[service] = {
+                "sourceBranch": branch,
+                "sourceRevision": source_revision,
+                "integrationRevision": integration_revision,
+            }
+        payload: dict[str, Any] = {"schemaVersion": 1, "services": normalized}
+        return {
+            **payload,
+            "digest": _canonical_digest(payload),
+            "kernel": {
+                "module": cls.name,
+                "moduleVersion": cls.version,
                 "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
                 "state": "SEALED",
             },
@@ -4538,6 +4585,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     organization_task_topology = OrganizationTaskTopologyModule()
     logistics_briefing = LogisticsBriefingModule()
     organization_scheduled_duty = OrganizationScheduledDutyModule()
+    service_provenance = ServiceProvenanceModule()
     battle_debrief = BattleDebriefModule()
     npc_commendation = NpcCommendationModule()
     npc_merit_commendation = NpcMeritCommendationModule()
@@ -4581,6 +4629,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 module=battle_debrief,
                 required=True,
                 original_index=18,
+            ),
+            LoadedModule(
+                module=service_provenance,
+                required=True,
+                original_index=19,
             ),
         ]
     )
@@ -4750,8 +4803,15 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         logistics_state = module_state(LogisticsBriefingModule)
         task_trace_state = module_state(OrganizationTaskTraceModule)
         scheduled_duty_state = module_state(OrganizationScheduledDutyModule)
+        provenance_state = module_state(ServiceProvenanceModule)
+        provenance_receipt = service_provenance.seal(public_service_sources())
+        provenance_digest = str(provenance_receipt["digest"])
         external_with_sources = {
-            name: {**status, **public_service_source(name)}
+            name: {
+                **status,
+                **public_service_source(name),
+                "sourceSealDigest": provenance_digest,
+            }
             for name, status in external.items()
             if name in {"aiNpc", "knowledge", "orgFlow"}
         }
@@ -4778,6 +4838,13 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "logisticsBriefingState": logistics_state,
                 "organizationScheduledDutyModule": OrganizationScheduledDutyModule.name,
                 "organizationScheduledDutyState": scheduled_duty_state,
+                "serviceProvenanceModule": ServiceProvenanceModule.name,
+                "serviceProvenanceState": provenance_state,
+                "sourceSealDigest": provenance_digest,
+                "sourceProvenance": {
+                    "digest": provenance_digest,
+                    "kernel": provenance_receipt["kernel"],
+                },
                 **public_service_source("nexusKernel"),
             },
         }

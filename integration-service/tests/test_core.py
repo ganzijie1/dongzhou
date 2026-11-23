@@ -31,6 +31,7 @@ from dongzhou_integration.app import (
     NpcSettlementModule,
     OrganizationTaskTraceModule,
     RuntimeModule,
+    ServiceProvenanceModule,
     _battle_support_attestations,
     _battle_game_events,
     _evidence_task_fit,
@@ -51,6 +52,7 @@ from dongzhou_integration.app import (
 from dongzhou_integration.config import Settings
 from dongzhou_integration.models import GuestSessionRequest, NpcDecisionRequest, OrganizationTaskRequest
 from dongzhou_integration.security import issue_session, sign_orgflow_request, stable_event_id, stable_npc_id, stable_player_id, verify_session
+from dongzhou_integration.service_sources import public_service_sources
 from dongzhou_integration.store import GameClockConflict, Store, VersionConflict
 from dongzhou_integration.upstreams import UpstreamUnavailable, Upstreams
 
@@ -1022,6 +1024,45 @@ class OrganizationOutcomeTests(unittest.TestCase):
                 pending,
                 event_ids=event_ids,
             )
+
+
+class ServiceProvenanceModuleTests(unittest.TestCase):
+    def test_seals_exact_four_service_source_manifest(self) -> None:
+        payload = public_service_sources()
+        receipt = ServiceProvenanceModule.seal(payload)
+        reordered = {
+            "schemaVersion": 1,
+            "services": dict(reversed(list(payload["services"].items()))),
+        }
+
+        self.assertRegex(receipt["digest"], r"^[0-9a-f]{64}$")
+        self.assertEqual(receipt["digest"], ServiceProvenanceModule.seal(reordered)["digest"])
+        self.assertEqual(receipt["kernel"]["module"], ServiceProvenanceModule.name)
+        self.assertEqual(receipt["kernel"]["state"], "SEALED")
+
+    def test_rejects_incomplete_or_malformed_source_manifest(self) -> None:
+        payload = public_service_sources()
+        missing = {**payload, "services": dict(payload["services"])}
+        missing["services"].pop("knowledge")
+        with self.assertRaisesRegex(ValueError, "exactly four"):
+            ServiceProvenanceModule.seal(missing)
+
+        extra = {**payload, "services": dict(payload["services"])}
+        extra["services"]["unexpected"] = dict(
+            extra["services"]["nexusKernel"]
+        )
+        with self.assertRaisesRegex(ValueError, "exactly four"):
+            ServiceProvenanceModule.seal(extra)
+
+        malformed = {
+            **payload,
+            "services": {
+                name: dict(source) for name, source in payload["services"].items()
+            },
+        }
+        malformed["services"]["aiNpc"]["sourceRevision"] = "8a7b673"
+        with self.assertRaisesRegex(ValueError, "aiNpc provenance"):
+            ServiceProvenanceModule.seal(malformed)
 
 
 class BattleDebriefModuleTests(unittest.TestCase):
@@ -2247,10 +2288,18 @@ class AuthenticationRouteTests(unittest.TestCase):
                 self.assertTrue(nexus["online"])
                 self.assertEqual(nexus["mode"], "embedded")
                 self.assertRegex(nexus["version"], r"^\d+\.\d+\.\d+")
-                self.assertEqual(nexus["requiredModuleCount"], 19)
-                self.assertEqual(nexus["operationalModuleCount"], 19)
-                self.assertEqual(len(nexus["moduleStates"]), 19)
+                self.assertEqual(nexus["requiredModuleCount"], 20)
+                self.assertEqual(nexus["operationalModuleCount"], 20)
+                self.assertEqual(len(nexus["moduleStates"]), 20)
                 self.assertEqual(nexus["unavailableModules"], [])
+                self.assertEqual(
+                    nexus["serviceProvenanceModule"], ServiceProvenanceModule.name
+                )
+                self.assertEqual(nexus["serviceProvenanceState"], "ready")
+                self.assertRegex(nexus["sourceSealDigest"], r"^[0-9a-f]{64}$")
+                self.assertEqual(
+                    nexus["sourceProvenance"]["kernel"]["state"], "SEALED"
+                )
                 expected_sources = {
                     "nexusKernel": ("develop", "190abb1", "2a68d6b"),
                     "aiNpc": ("develop", "8a7b673", "6628e40"),
@@ -2262,6 +2311,7 @@ class AuthenticationRouteTests(unittest.TestCase):
                     self.assertEqual(service["sourceBranch"], branch)
                     self.assertTrue(service["sourceRevision"].startswith(source))
                     self.assertTrue(service["integrationRevision"].startswith(integrated))
+                    self.assertEqual(service["sourceSealDigest"], nexus["sourceSealDigest"])
 
                 merit_module = next(
                     entry.module
@@ -2273,7 +2323,7 @@ class AuthenticationRouteTests(unittest.TestCase):
                 self.assertEqual(degraded.status_code, 200)
                 degraded_nexus = degraded.json()["services"]["nexusKernel"]
                 self.assertFalse(degraded_nexus["online"])
-                self.assertEqual(degraded_nexus["operationalModuleCount"], 18)
+                self.assertEqual(degraded_nexus["operationalModuleCount"], 19)
                 self.assertEqual(
                     degraded_nexus["unavailableModules"],
                     ["dongzhou_npc_merit_commendation"],
