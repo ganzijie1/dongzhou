@@ -124,6 +124,7 @@ AINPC 事件公聊现由东周正式实现 `NDLLMSendPublicMessage` 游戏服契
 图谱路径增量把 knowledge-jizhan 的 graph 召回从“只有命中分数”补成可核验的最短路径证据。知识服务现在返回确定性选择的起点、完整节点、关系类型和跳数，并为路径节点批量补全 AKU 名称；东周只接受节点数等于跳数加一、关系数等于跳数且起点一致的路径。合格路径随六路召回进入 SHA-256 搜索回执、玩家简册、选证和后续军议/军令证据，页面以“牵连路径”直接展示史料之间的归属、前置、层级或上下级关联。真实查询返回 10/10 条带路径的 graph 结果；真实 Chromium 搜索“郑伯克段 周郑交质”取得 6 条已发布东周史料并展示一跳 `DEPENDS_ON` 路径，桌面和 390px 视口均通过，证据为 `graph-path-live.png`、`graph-path-mobile-live.png` 与 `fulltext-browser-restored.json`。
 
 - 组织任务来源：新派单在网关权威请求记录、受理回执和任务状态中保存完整 `sourceProvenance`；读任务时发现回执被篡改会以 `organization_task_source_provenance_invalid` 拒绝。orgFlow v7 的严格任务参数与线上 checksum 保持不变，来源 digest 的 orgFlow 原生字段留待带迁移流程的 v8 目录升级。
+- 军议来源：新 AINPC 军议完成响应保存完整四源回执，NexusKernel 军令草案把该回执纳入军议证据；新军议与当前运行时封印不一致时以 `court_council_source_provenance_mismatch` 拒绝，旧军议没有来源字段时保持兼容。
 
 ## orgFlow 追办与补救
 

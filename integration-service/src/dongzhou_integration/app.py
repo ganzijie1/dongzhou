@@ -8073,6 +8073,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "requestId": str(request.client_request_id),
             "decision": result,
             "dialogueReceipt": dialogue_receipt,
+            "sourceProvenance": service_provenance.receipt(),
             **({"memoryReceipt": memory_receipt} if memory_receipt else {}),
             **({"publicNoticeReceipt": public_notice_receipt} if public_notice_receipt else {}),
             **({"contributionReceipt": contribution_receipt} if contribution_receipt else {}),
@@ -8246,6 +8247,30 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "court_council_unverified",
                 "The mandate must reference this player's completed NPC council decision.",
                 status_code=422,
+            )
+
+        council_source_provenance = (
+            council_response.get("sourceProvenance")
+            if isinstance(council_response, dict)
+            else None
+        )
+        if (
+            council_source_provenance is not None
+            and not _service_provenance_receipt_matches(
+                council_source_provenance, service_provenance.receipt()
+            )
+        ):
+            await store.finish_request(
+                player_id,
+                request.client_request_id,
+                "REJECTED",
+                {"state": "REJECTED"},
+                "court_council_source_provenance_mismatch",
+            )
+            raise ApiError(
+                "court_council_source_provenance_mismatch",
+                "The NPC council was not sealed by the current four-service runtime.",
+                status_code=409,
             )
 
         dialogue_receipt = (
@@ -8936,6 +8961,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "index": request.decision_index,
                 "text": str(selected_option.get("text") or ""),
                 "dialogueReceipt": dialogue_receipt,
+                **(
+                    {"sourceProvenance": council_source_provenance}
+                    if council_source_provenance is not None
+                    else {}
+                ),
                 **({"memory": selected_memory} if selected_memory else {}),
                 **({"publicNotice": selected_public_notice} if selected_public_notice else {}),
                 **({"contribution": selected_contribution} if selected_contribution else {}),

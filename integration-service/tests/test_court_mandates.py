@@ -785,6 +785,43 @@ def test_npc_decision_rejects_source_drift_before_ainpc_call() -> None:
         assert upstreams.decision_calls == 0
 
 
+def test_mandate_rejects_tampered_council_source_provenance() -> None:
+    with TemporaryDirectory() as directory:
+        database = Path(directory) / "gateway.sqlite3"
+        upstreams = MandateUpstreams()
+        app = build_application(configured(database), upstreams=upstreams)
+        with TestClient(app) as client:
+            start_session(client)
+            council_id, _ = complete_council(client)
+            connection = sqlite3.connect(database)
+            try:
+                row = connection.execute(
+                    "SELECT response_payload FROM requests WHERE request_id=?",
+                    (council_id,),
+                ).fetchone()
+                assert row is not None
+                response = json.loads(row[0])
+                response["sourceProvenance"]["digest"] = "0" * 64
+                connection.execute(
+                    "UPDATE requests SET response_payload=? WHERE request_id=?",
+                    (json.dumps(response, ensure_ascii=False), council_id),
+                )
+                connection.commit()
+            finally:
+                connection.close()
+
+            rejected = client.post(
+                "/api/dongzhou/v1/court/mandates",
+                json=mandate_body(council_id),
+            )
+
+        assert rejected.status_code == 409
+        assert (
+            rejected.json()["error"]["code"]
+            == "court_council_source_provenance_mismatch"
+        )
+
+
 def complete_council(
     client: TestClient, question_suffix: str = ""
 ) -> tuple[str, dict[str, object]]:
@@ -802,6 +839,14 @@ def complete_council(
         "/api/dongzhou/v1/npcs/ZuoRu/decisions", json=request
     )
     assert response.status_code == 200
+    provenance = response.json()["sourceProvenance"]
+    assert provenance["kernel"]["state"] == "SEALED"
+    assert set(provenance["services"]) == {
+        "knowledge",
+        "aiNpc",
+        "orgFlow",
+        "nexusKernel",
+    }
     return council_id, request
 
 
@@ -870,6 +915,7 @@ def test_mandate_resume_and_schedule_recover_after_source_drift() -> None:
                 "nexusKernel",
             }
             assert len(provenance["digest"]) == 64
+            assert draft["mandate"]["council"]["sourceProvenance"] == provenance
 
             upstreams.source_attested["orgFlow"] = False
             blocked_resume = client.post(
