@@ -5,7 +5,12 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-from dongzhou_integration.app import ServiceProvenanceModule, build_application
+from dongzhou_integration.app import (
+    BattleDeploymentModule,
+    ServiceProvenanceModule,
+    _canonical_digest,
+    build_application,
+)
 from dongzhou_integration.config import Settings
 from dongzhou_integration.security import stable_npc_id
 from dongzhou_integration.upstreams import UpstreamUnavailable
@@ -235,6 +240,13 @@ def test_campaign_route_requires_completed_predecessor_and_validates_published_d
             "formation": "balanced",
             "vanguardHeroId": None,
             "supportIds": [],
+            "supportEffect": {
+                "provisions": 0,
+                "morale": 0,
+                "attack": 0,
+                "defense": 0,
+                "recon": 0,
+            },
         }
 
         report = {
@@ -334,24 +346,64 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
     with TestClient(build_application(settings, upstreams=upstreams)) as client:
         path = "/api/dongzhou/v1/battle-readiness"
         assert client.post(path, json={"stage_id": "01"}).status_code == 401
-        assert client.post(
+        session = client.post(
             "/api/dongzhou/v1/sessions/guest",
             json={"installation_id": str(uuid4())},
-        ).status_code == 200
+        )
+        assert session.status_code == 200
+        player_id = session.json()["playerId"]
+        remote_task_id = str(uuid4())
+        closure_digest = "c" * 64
         planned = client.put("/api/dongzhou/v1/save", json={
             "expected_version": 1,
             "payload": {
                 "formation": "assault",
                 "stageVanguards": {"01": "DuBo"},
-                "organization": {"pendingSupport": [{
+                "organization": {
+                    "members": [{"id": "DuBo", "name": "DuBo"}],
+                    "tasks": [{
+                        "id": "support-01",
+                        "remoteResult": remote_task_id,
+                        "stageId": "01",
+                        "assigneeId": "DuBo",
+                        "closureReceipt": {"digest": closure_digest},
+                    }],
+                    "pendingSupport": [{
                     "id": "support-01",
                     "stageId": "01",
+                    "memberId": "DuBo",
                     "source": "军需预备",
-                    "provisions": 5,
-                }]},
+                    "provisions": 24,
+                }],
+                },
             },
         })
         assert planned.status_code == 200, planned.json()
+        with sqlite3.connect(settings.database_path) as database:
+            database.execute(
+                "INSERT INTO requests "
+                "(player_id,request_id,kind,state,request_payload,response_payload,external_id) "
+                "VALUES (?,?,?,?,?,?,?)",
+                (
+                    player_id,
+                    str(uuid4()),
+                    "organization_task",
+                    "COMPLETED",
+                    json.dumps({
+                        "task_type": "supply",
+                        "stage_id": "01",
+                        "assignee_hero_id": "DuBo",
+                    }),
+                    json.dumps({"terminal": {
+                        "settlement": {"result": "SUCCESS"},
+                        "closureReceipt": {
+                            "state": "SEALED",
+                            "digest": closure_digest,
+                        },
+                    }}),
+                    remote_task_id,
+                ),
+            )
         prepared = client.post(path, json={"stage_id": "01"})
         assert prepared.status_code == 200
         receipt = prepared.json()
@@ -369,6 +421,34 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
         assert receipt["kernel"]["state"] == "SEALED"
         assert len(receipt["digest"]) == 64
 
+        with sqlite3.connect(settings.database_path) as database:
+            original_payload = database.execute(
+                "SELECT payload FROM saves WHERE player_id=?", (player_id,)
+            ).fetchone()[0]
+            tampered_payload = json.loads(original_payload)
+            tampered_payload["organization"]["pendingSupport"][0]["provisions"] = 200
+            database.execute(
+                "UPDATE saves SET payload=? WHERE player_id=?",
+                (json.dumps(tampered_payload), player_id),
+            )
+        tampered_deployment = client.post(
+            "/api/dongzhou/v1/battle-deployment",
+            json={
+                "stage_id": "01",
+                "battle_readiness": receipt,
+                "campaign_route": None,
+            },
+        )
+        assert tampered_deployment.status_code == 409
+        assert tampered_deployment.json()["error"]["code"] == (
+            "battle_deployment_support_effect_mismatch"
+        )
+        with sqlite3.connect(settings.database_path) as database:
+            database.execute(
+                "UPDATE saves SET payload=? WHERE player_id=?",
+                (original_payload, player_id),
+            )
+
         deployed = client.post("/api/dongzhou/v1/battle-deployment", json={
             "stage_id": "01",
             "battle_readiness": receipt,
@@ -384,12 +464,46 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
             "formation": "assault",
             "vanguardHeroId": "DuBo",
             "supportIds": ["support-01"],
+            "supportEffect": {
+                "provisions": 24,
+                "morale": 0,
+                "attack": 0,
+                "defense": 0,
+                "recon": 0,
+            },
         }
         assert deployment["reportId"] == (
             "battle:01:" + deployment["deploymentId"]
         )
         assert deployment["kernel"]["module"] == "dongzhou_battle_deployment"
-        assert deployment["kernel"]["moduleVersion"] == "1.1.0"
+        assert deployment["kernel"]["moduleVersion"] == "1.2.0"
+        current_trace = {
+            key: json.loads(json.dumps(value))
+            for key, value in deployment.items()
+            if key not in {"digest", "kernel"}
+        }
+        legacy_11_trace = json.loads(json.dumps(current_trace))
+        legacy_11_trace["battlePlan"].pop("supportEffect")
+        legacy_11 = {
+            **legacy_11_trace,
+            "digest": _canonical_digest(legacy_11_trace),
+            "kernel": {
+                **deployment["kernel"],
+                "moduleVersion": "1.1.0",
+            },
+        }
+        assert BattleDeploymentModule.verify(legacy_11)
+        legacy_10_trace = json.loads(json.dumps(legacy_11_trace))
+        legacy_10_trace.pop("battlePlan")
+        legacy_10 = {
+            **legacy_10_trace,
+            "digest": _canonical_digest(legacy_10_trace),
+            "kernel": {
+                **deployment["kernel"],
+                "moduleVersion": "1.0.0",
+            },
+        }
+        assert BattleDeploymentModule.verify(legacy_10)
 
         report = {
             "id": deployment["reportId"],
@@ -399,14 +513,14 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
             "ownLosses": 0,
             "terminalReason": "victory",
             "support": {
-                "provisions": 5,
+                "provisions": 24,
                 "morale": 0,
                 "attack": 0,
                 "defense": 0,
                 "recon": 0,
                 "orders": [{
                     "id": "support-01",
-                    "memberId": None,
+                    "memberId": "DuBo",
                     "source": "军需预备",
                 }],
             },
@@ -510,12 +624,44 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
             "battle_deployment_invalid"
         )
 
-        assert client.post(
+        second_session = client.post(
             "/api/dongzhou/v1/sessions/guest",
             json={"installation_id": str(uuid4())},
-        ).status_code == 200
-        cross_player = client.put("/api/dongzhou/v1/save", json={
+        )
+        assert second_session.status_code == 200
+        forged_support = client.put("/api/dongzhou/v1/save", json={
             "expected_version": 1,
+            "payload": {
+                "formation": "assault",
+                "stageVanguards": {"01": "DuBo"},
+                "organization": {
+                    "members": [{"id": "DuBo"}],
+                    "pendingSupport": [{
+                        "id": "forged-support",
+                        "stageId": "01",
+                        "memberId": "DuBo",
+                        "provisions": 200,
+                    }],
+                },
+            },
+        })
+        assert forged_support.status_code == 200
+        second_readiness = client.post(path, json={"stage_id": "01"})
+        assert second_readiness.status_code == 200
+        forged_deployment = client.post(
+            "/api/dongzhou/v1/battle-deployment",
+            json={
+                "stage_id": "01",
+                "battle_readiness": second_readiness.json(),
+                "campaign_route": None,
+            },
+        )
+        assert forged_deployment.status_code == 409
+        assert forged_deployment.json()["error"]["code"] == (
+            "battle_deployment_support_unattested"
+        )
+        cross_player = client.put("/api/dongzhou/v1/save", json={
+            "expected_version": 2,
             "payload": {"organization": {"battleReports": [report]}},
         })
         assert cross_player.status_code == 409

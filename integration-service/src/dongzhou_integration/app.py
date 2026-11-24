@@ -1511,7 +1511,7 @@ class BattleReadinessModule(Module):
 
 class BattleDeploymentModule(Module):
     name = "dongzhou_battle_deployment"
-    version = "1.1.0"
+    version = "1.2.0"
     dependencies = (
         RuntimeModule.name,
         CampaignRouteModule.name,
@@ -1521,7 +1521,10 @@ class BattleDeploymentModule(Module):
 
     @classmethod
     def _validate_trace(
-        cls, trace: dict[str, Any], *, require_battle_plan: bool
+        cls,
+        trace: dict[str, Any],
+        *,
+        battle_plan_version: str | None,
     ) -> None:
         stage_id = str(trace.get("stageId") or "")
         report_id = str(trace.get("reportId") or "")
@@ -1544,12 +1547,16 @@ class BattleDeploymentModule(Module):
             or not _service_provenance_receipt_is_valid(trace.get("sourceProvenance"))
         ):
             raise ValueError("battle deployment trace is incomplete")
-        if not require_battle_plan:
+        if battle_plan_version is None:
             return
         if not isinstance(battle_plan, dict):
             raise ValueError("battle deployment plan is missing")
         support_ids = battle_plan.get("supportIds")
         vanguard_hero_id = battle_plan.get("vanguardHeroId")
+        support_effect = battle_plan.get("supportEffect")
+        expected_keys = {"formation", "vanguardHeroId", "supportIds"}
+        if battle_plan_version == "1.2.0":
+            expected_keys.add("supportEffect")
         if (
             battle_plan.get("formation")
             not in {"balanced", "assault", "bulwark", "maneuver"}
@@ -1563,13 +1570,25 @@ class BattleDeploymentModule(Module):
                 not re.fullmatch(r"[A-Za-z0-9_.:-]{1,256}", str(item or ""))
                 for item in support_ids
             )
-            or set(battle_plan) != {"formation", "vanguardHeroId", "supportIds"}
+            or set(battle_plan) != expected_keys
         ):
             raise ValueError("battle deployment plan is invalid")
+        if battle_plan_version == "1.2.0":
+            if not isinstance(support_effect, dict) or set(support_effect) != set(
+                _BATTLE_SUPPORT_EFFECT_KEYS
+            ):
+                raise ValueError("battle deployment support effect is invalid")
+            for value in support_effect.values():
+                if (
+                    isinstance(value, bool)
+                    or not isinstance(value, (int, float))
+                    or not math.isfinite(float(value))
+                ):
+                    raise ValueError("battle deployment support effect is invalid")
 
     @classmethod
     def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
-        cls._validate_trace(trace, require_battle_plan=True)
+        cls._validate_trace(trace, battle_plan_version=cls.version)
         return {
             **trace,
             "digest": _canonical_digest(trace),
@@ -1592,14 +1611,19 @@ class BattleDeploymentModule(Module):
         }
         module_version = receipt.get("kernel", {}).get("moduleVersion")
         try:
-            if module_version == "1.0.0":
-                cls._validate_trace(trace, require_battle_plan=False)
+            if module_version in {"1.0.0", "1.1.0"}:
+                cls._validate_trace(
+                    trace,
+                    battle_plan_version=(
+                        None if module_version == "1.0.0" else "1.1.0"
+                    ),
+                )
                 sealed = {
                     **trace,
                     "digest": _canonical_digest(trace),
                     "kernel": {
                         "module": cls.name,
-                        "moduleVersion": "1.0.0",
+                        "moduleVersion": module_version,
                         "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
                         "state": "SEALED",
                     },
@@ -4126,6 +4150,166 @@ async def _battle_support_attestations(
             if global_scheduled_support:
                 attested["globalOrders"].add(order_id)
     return attested
+
+
+async def _authoritative_battle_plan_support(
+    store: Store,
+    player_id: UUID,
+    payload: dict[str, Any],
+    stage_id: str,
+) -> tuple[list[str], dict[str, int | float]]:
+    organization = payload.get("organization")
+    if not isinstance(organization, dict):
+        return [], {key: 0 for key in _BATTLE_SUPPORT_EFFECT_KEYS}
+    pending_support = organization.get("pendingSupport")
+    if not isinstance(pending_support, list):
+        return [], {key: 0 for key in _BATTLE_SUPPORT_EFFECT_KEYS}
+    consumed_support_ids = {
+        str(item)
+        for item in organization.get("consumedSupportIds", [])
+    } if isinstance(organization.get("consumedSupportIds"), list) else set()
+    eligible = [
+        entry
+        for entry in pending_support
+        if isinstance(entry, dict)
+        and entry.get("id")
+        and str(entry.get("id")) not in consumed_support_ids
+        and (not entry.get("stageId") or str(entry.get("stageId")) == stage_id)
+    ]
+    support_ids = sorted(str(entry.get("id") or "") for entry in eligible)
+    if len(support_ids) != len(set(support_ids)):
+        raise BattleReceiptConflict("battle_deployment_support_duplicate")
+
+    tasks = [
+        task
+        for task in organization.get("tasks", [])
+        if isinstance(task, dict) and task.get("id")
+    ] if isinstance(organization.get("tasks"), list) else []
+    tasks_by_remote = {
+        str(task.get("remoteResult") or ""): task
+        for task in tasks
+        if task.get("remoteResult")
+    }
+    diplomacy = organization.get("diplomacy")
+    lobbying_records = (
+        diplomacy.get("lobbying", []) if isinstance(diplomacy, dict) else []
+    )
+    alliances = (
+        diplomacy.get("alliances", []) if isinstance(diplomacy, dict) else []
+    )
+    lobbying_by_id = {
+        str(item.get("id") or ""): item
+        for item in lobbying_records
+        if isinstance(item, dict) and item.get("id")
+    } if isinstance(lobbying_records, list) else {}
+    alliances_by_id = {
+        str(item.get("id") or ""): item
+        for item in alliances
+        if isinstance(item, dict) and item.get("id")
+    } if isinstance(alliances, list) else {}
+
+    synthetic_orders: dict[str, dict[str, str]] = {}
+    synthetic_councils: dict[str, dict[str, Any]] = {}
+    synthetic_mandates: dict[str, dict[str, Any]] = {}
+    betrayal_backing_orders: dict[str, str] = {}
+    for entry in eligible:
+        support_id = str(entry.get("id") or "")
+        member_id = str(entry.get("memberId") or "")
+        if member_id:
+            synthetic_orders[support_id] = {
+                "id": support_id,
+                "memberId": member_id,
+            }
+        else:
+            embedded_alliance = entry.get("alliance")
+            alliance_id = str(
+                embedded_alliance.get("id") or ""
+                if isinstance(embedded_alliance, dict)
+                else ""
+            )
+            alliance = alliances_by_id.get(alliance_id)
+            lobbying = lobbying_by_id.get(
+                str((alliance or {}).get("lobbyingId") or "")
+            )
+            remote_task_id = str(
+                (lobbying or {}).get("organizationTaskId") or ""
+            )
+            backing_task = tasks_by_remote.get(remote_task_id)
+            backing_order_id = str((backing_task or {}).get("id") or "")
+            backing_member_id = str((backing_task or {}).get("assigneeId") or "")
+            if (
+                not support_id.startswith("betrayal:")
+                or support_id != f"betrayal:{alliance_id}"
+                or not isinstance(embedded_alliance, dict)
+                or alliance != embedded_alliance
+                or str((alliance or {}).get("status") or "") != "broken"
+                or str((alliance or {}).get("betrayalStageId") or "") != stage_id
+                or not str((alliance or {}).get("betrayalReason") or "").strip()
+                or not isinstance(lobbying, dict)
+                or lobbying.get("outcome") != "accepted"
+                or str(lobbying.get("targetId") or "")
+                != str((alliance or {}).get("targetId") or "")
+                or not backing_order_id
+                or not backing_member_id
+            ):
+                raise BattleReceiptConflict("battle_deployment_support_unattested")
+            synthetic_orders[backing_order_id] = {
+                "id": backing_order_id,
+                "memberId": backing_member_id,
+            }
+            betrayal_backing_orders[support_id] = backing_order_id
+        council = entry.get("council")
+        if isinstance(council, dict) and council.get("id"):
+            synthetic_councils[str(council["id"])] = deepcopy(council)
+        mandate = entry.get("mandate")
+        if isinstance(mandate, dict) and mandate.get("id"):
+            synthetic_mandates[str(mandate["id"])] = deepcopy(mandate)
+
+    synthetic_payload = {
+        "organization": {
+            "battleReports": [{
+                "stageId": stage_id,
+                "councils": list(synthetic_councils.values()),
+                "mandates": list(synthetic_mandates.values()),
+                "support": {"orders": list(synthetic_orders.values())},
+            }]
+        }
+    }
+    attestations = await _battle_support_attestations(
+        store, player_id, payload, synthetic_payload
+    )
+    effect: dict[str, int | float] = {
+        key: 0 for key in _BATTLE_SUPPORT_EFFECT_KEYS
+    }
+    for entry in eligible:
+        support_id = str(entry.get("id") or "")
+        member_id = str(entry.get("memberId") or "")
+        if member_id:
+            authoritative = attestations.get("orderEffects", {}).get(support_id)
+            if support_id not in attestations.get("orders", set()) or not isinstance(
+                authoritative, dict
+            ):
+                raise BattleReceiptConflict("battle_deployment_support_unattested")
+        else:
+            backing_order_id = betrayal_backing_orders.get(support_id, "")
+            if backing_order_id not in attestations.get("orders", set()):
+                raise BattleReceiptConflict("battle_deployment_support_unattested")
+            authoritative = {"morale": -8, "attack": 0.06}
+        normalized_authoritative = _normalized_battle_support_effect(authoritative)
+        normalized_saved = _normalized_battle_support_effect(entry)
+        if any(
+            not math.isclose(
+                float(normalized_authoritative[key]),
+                float(normalized_saved[key]),
+                rel_tol=0,
+                abs_tol=1e-9,
+            )
+            for key in _BATTLE_SUPPORT_EFFECT_KEYS
+        ):
+            raise BattleReceiptConflict("battle_deployment_support_effect_mismatch")
+        for key in _BATTLE_SUPPORT_EFFECT_KEYS:
+            effect[key] += normalized_authoritative[key]
+    return support_ids, effect
 
 
 def _seal_battle_reports(
@@ -7642,29 +7826,16 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         candidates = stage_vanguard_candidates.get(request.stage_id, set())
         if not candidates:
             vanguard_hero_id = None
-        organization = saved_payload.get("organization")
-        pending_support = (
-            organization.get("pendingSupport")
-            if isinstance(organization, dict)
-            else None
-        )
-        consumed_support_ids = {
-            str(item)
-            for item in organization.get("consumedSupportIds", [])
-        } if isinstance(organization, dict) and isinstance(
-            organization.get("consumedSupportIds"), list
-        ) else set()
-        support_ids = sorted(
-            str(entry.get("id") or "")
-            for entry in pending_support
-            if isinstance(entry, dict)
-            and entry.get("id")
-            and str(entry.get("id")) not in consumed_support_ids
-            and (
-                not entry.get("stageId")
-                or str(entry.get("stageId")) == request.stage_id
+        try:
+            support_ids, support_effect = await _authoritative_battle_plan_support(
+                store, player_id, saved_payload, request.stage_id
             )
-        ) if isinstance(pending_support, list) else []
+        except BattleReceiptConflict as error:
+            raise ApiError(
+                str(error),
+                "The saved battle support is not backed by authoritative records.",
+                status_code=409,
+            ) from error
         if (
             formation not in {"balanced", "assault", "bulwark", "maneuver"}
             or candidates and vanguard_hero_id not in candidates
@@ -7683,6 +7854,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "formation": formation,
             "vanguardHeroId": vanguard_hero_id,
             "supportIds": support_ids,
+            "supportEffect": support_effect,
         }
         deployment_id = uuid4()
         trace = {

@@ -137,7 +137,7 @@ global.fetch = async (url, options = {}) => {
   }
   else if (url.endsWith("/battle-deployment")) {
     battleDeploymentInput = body;
-    response = { state: "AUTHORIZED", stageId: body.stage_id, reportId: `battle:${body.stage_id}:deployment-1`, battlePlan: { formation: "balanced", vanguardHeroId: null, supportIds: [] }, digest: "5".repeat(64), kernel: { module: "dongzhou_battle_deployment", moduleVersion: "1.1.0", state: "SEALED" } };
+    response = { state: "AUTHORIZED", stageId: body.stage_id, reportId: `battle:${body.stage_id}:deployment-1`, battlePlan: { formation: "balanced", vanguardHeroId: null, supportIds: [], supportEffect: { provisions: 0, morale: 0, attack: 0, defense: 0, recon: 0 } }, digest: "5".repeat(64), kernel: { module: "dongzhou_battle_deployment", moduleVersion: "1.2.0", state: "SEALED" } };
   }
   else if (url.endsWith("/adviser/questions") && options.method === "POST") {
     adviserQuestionInput = body;

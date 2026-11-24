@@ -607,10 +607,18 @@
     profile.stageVanguards ||= {};
     if (selectedVanguard) profile.stageVanguards[record.id] = selectedVanguard;
     const preview = organization.consumeSupport(profile.organization, record.id);
+    const supportEffect = {
+      provisions: Number(preview.support.provisions || 0),
+      morale: Number(preview.support.morale || 0),
+      attack: Number(preview.support.attack || 0),
+      defense: Number(preview.support.defense || 0),
+      recon: Number(preview.support.recon || 0)
+    };
     return {
       formation: systems.FORMATION_PRESETS[profile.formation] ? profile.formation : "balanced",
       vanguardHeroId: selectedVanguard,
-      supportIds: (preview.support.orders || []).map((entry) => String(entry.id || "")).filter(Boolean).sort()
+      supportIds: (preview.support.orders || []).map((entry) => String(entry.id || "")).filter(Boolean).sort(),
+      supportEffect
     };
   }
 
@@ -767,7 +775,7 @@
             battleDeployment?.state !== "AUTHORIZED"
             || battleDeployment?.stageId !== record.id
             || battleDeployment?.kernel?.module !== "dongzhou_battle_deployment"
-            || battleDeployment?.kernel?.moduleVersion !== "1.1.0"
+            || battleDeployment?.kernel?.moduleVersion !== "1.2.0"
             || battleDeployment?.kernel?.state !== "SEALED"
             || !/^[0-9a-f]{64}$/.test(String(battleDeployment?.digest || ""))
             || battleDeployment?.readinessDigest !== battleReadiness.digest
@@ -867,7 +875,17 @@
       profile.organization = syncOfficeMembers(profile.organization, record);
       const prepared = organization.consumeSupport(profile.organization, record.id);
       const consumedSupportIds = (prepared.support.orders || []).map((entry) => String(entry.id || "")).filter(Boolean).sort();
-      if (state.battlePlan && JSON.stringify(consumedSupportIds) !== JSON.stringify(state.battlePlan.supportIds)) {
+      const consumedSupportEffect = {
+        provisions: Number(prepared.support.provisions || 0),
+        morale: Number(prepared.support.morale || 0),
+        attack: Number(prepared.support.attack || 0),
+        defense: Number(prepared.support.defense || 0),
+        recon: Number(prepared.support.recon || 0)
+      };
+      if (state.battlePlan && (
+        JSON.stringify(consumedSupportIds) !== JSON.stringify(state.battlePlan.supportIds)
+        || JSON.stringify(consumedSupportEffect) !== JSON.stringify(state.battlePlan.supportEffect)
+      )) {
         throw new Error("官署支援与出征许可不一致");
       }
       profile.organization = prepared.state;
