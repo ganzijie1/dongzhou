@@ -2441,6 +2441,10 @@ class AuthenticationRouteTests(unittest.TestCase):
                 self.assertRegex(nexus["version"], r"^\d+\.\d+\.\d+")
                 self.assertEqual(nexus["requiredModuleCount"], 20)
                 self.assertEqual(nexus["operationalModuleCount"], 20)
+                self.assertEqual(nexus["sourceBoundModuleCount"], 18)
+                self.assertEqual(len(nexus["sourceBoundModules"]), 18)
+                self.assertNotIn(RuntimeModule.name, nexus["sourceBoundModules"])
+                self.assertNotIn(ServiceProvenanceModule.name, nexus["sourceBoundModules"])
                 self.assertEqual(len(nexus["moduleStates"]), 20)
                 self.assertEqual(nexus["unavailableModules"], [])
                 self.assertEqual(

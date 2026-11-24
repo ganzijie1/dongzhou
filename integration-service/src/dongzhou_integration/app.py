@@ -4787,6 +4787,45 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     npc_recollection = NpcRecollectionModule()
     npc_public_notice = NpcPublicNoticeModule()
     organization_contribution_ledger = OrganizationContributionLedgerModule()
+    module_instances = (
+        module, mandate_workflow, knowledge_tournament, campaign_routes,
+        npc_settlement, npc_review_relationship,
+        npc_collaboration_relationship, organization_task_trace,
+        organization_task_topology, logistics_briefing, npc_commendation,
+        npc_recollection, npc_public_notice, organization_contribution_ledger,
+        organization_contribution_dossier, npc_merit_commendation,
+        adviser_guide, organization_scheduled_duty, battle_debrief,
+        service_provenance,
+    )
+    dependencies_by_name = {
+        item.name: set(item.dependencies) for item in module_instances
+    }
+
+    def depends_on_service_provenance(name: str, seen: set[str] | None = None) -> bool:
+        if name == ServiceProvenanceModule.name:
+            return True
+        visited = set() if seen is None else seen
+        if name in visited:
+            return False
+        return any(
+            depends_on_service_provenance(dependency, visited | {name})
+            for dependency in dependencies_by_name.get(name, set())
+        )
+
+    source_bound_module_names = sorted(
+        item.name
+        for item in module_instances
+        if item.name not in {RuntimeModule.name, ServiceProvenanceModule.name}
+        and depends_on_service_provenance(item.name)
+    )
+    expected_source_bound_modules = {
+        item.name
+        for item in module_instances
+        if item.name not in {RuntimeModule.name, ServiceProvenanceModule.name}
+    }
+    if set(source_bound_module_names) != expected_source_bound_modules:
+        missing = sorted(expected_source_bound_modules - set(source_bound_module_names))
+        raise RuntimeError("business modules lack service provenance dependencies: " + ",".join(missing))
     kernel = Kernel(
         [
             LoadedModule(module=module, required=True, original_index=0),
@@ -5054,6 +5093,8 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "version": _NEXUS_KERNEL_VERSION,
                 "requiredModuleCount": len(required_modules),
                 "operationalModuleCount": len(operational_modules),
+                "sourceBoundModuleCount": len(source_bound_module_names),
+                "sourceBoundModules": source_bound_module_names,
                 "moduleStates": module_states,
                 "unavailableModules": unavailable_modules,
                 "runtimeState": runtime_state,

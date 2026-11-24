@@ -43,6 +43,8 @@ def _status() -> dict:
         {
             "requiredModuleCount": 20,
             "operationalModuleCount": 20,
+            "sourceBoundModuleCount": len(verifier.EXPECTED_SOURCE_BOUND_MODULES),
+            "sourceBoundModules": sorted(verifier.EXPECTED_SOURCE_BOUND_MODULES),
             "unavailableModules": [],
             "serviceProvenanceState": "ready",
             "sourceProvenance": {"kernel": {"state": "SEALED"}},
@@ -133,6 +135,7 @@ def test_live_status_requires_all_pinned_services_and_modules() -> None:
     detail = verifier.validate_live_status(_status(), seal)
     assert detail["onlineServices"] == 4
     assert detail["nexusModules"] == 20
+    assert detail["sourceBoundModules"] == 18
 
     offline = _status()
     offline["services"]["aiNpc"]["online"] = False
@@ -173,6 +176,12 @@ def test_live_status_requires_all_pinned_services_and_modules() -> None:
     incomplete["services"]["nexusKernel"]["operationalModuleCount"] = 19
     with pytest.raises(ValueError, match="not fully operational"):
         verifier.validate_live_status(incomplete, seal)
+
+    source_unbound = _status()
+    source_unbound["services"]["nexusKernel"]["sourceBoundModules"].pop()
+    source_unbound["services"]["nexusKernel"]["sourceBoundModuleCount"] = 17
+    with pytest.raises(ValueError, match="not fully source-bound"):
+        verifier.validate_live_status(source_unbound, seal)
 
 
 def test_gateway_readiness_requires_all_four_attested_services() -> None:

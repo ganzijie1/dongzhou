@@ -34,6 +34,26 @@ EXPECTED_TASK_CODES = {
     "dongzhou.patrol",
     "dongzhou.supply",
 }
+EXPECTED_SOURCE_BOUND_MODULES = {
+    "dongzhou_adviser_guide",
+    "dongzhou_battle_debrief",
+    "dongzhou_campaign_route",
+    "dongzhou_knowledge_tournament",
+    "dongzhou_logistics_briefing",
+    "dongzhou_mandate_workflow",
+    "dongzhou_npc_collaboration_relationship",
+    "dongzhou_npc_commendation",
+    "dongzhou_npc_merit_commendation",
+    "dongzhou_npc_public_notice",
+    "dongzhou_npc_recollection",
+    "dongzhou_npc_review_relationship",
+    "dongzhou_npc_settlement",
+    "dongzhou_organization_contribution_dossier",
+    "dongzhou_organization_contribution_ledger",
+    "dongzhou_organization_scheduled_duty",
+    "dongzhou_organization_task_topology",
+    "dongzhou_organization_task_trace",
+}
 
 
 def canonical_digest(value: object) -> str:
@@ -200,11 +220,19 @@ def validate_live_status(status: dict, expected_seal: str) -> dict:
         raise ValueError("Nexus required modules are not fully operational")
     if nexus.get("unavailableModules") != []:
         raise ValueError("Nexus reports unavailable required modules")
+    source_bound_modules = nexus.get("sourceBoundModules")
+    if (
+        nexus.get("sourceBoundModuleCount") != len(EXPECTED_SOURCE_BOUND_MODULES)
+        or not isinstance(source_bound_modules, list)
+        or source_bound_modules != sorted(EXPECTED_SOURCE_BOUND_MODULES)
+    ):
+        raise ValueError("Nexus business modules are not fully source-bound")
 
     return {
         "mode": "connected",
         "onlineServices": len(SERVICE_SOURCES),
         "nexusModules": operational,
+        "sourceBoundModules": len(source_bound_modules),
         "sourceSealDigest": expected_seal,
     }
 
