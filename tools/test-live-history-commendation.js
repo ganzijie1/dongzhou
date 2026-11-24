@@ -9,7 +9,9 @@ try { ({ chromium } = require(path.resolve(__dirname, "../output/playwright-runt
 catch (_) { ({ chromium } = require("playwright")); }
 
 const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
-verifyFourServiceRuntime(url);
+const runtimeReport = verifyFourServiceRuntime(url);
+const expectedSourceSeal = runtimeReport.checks?.liveRuntime?.sourceSealDigest;
+assert.match(expectedSourceSeal || "", /^[0-9a-f]{64}$/);
 const executablePath = [
   process.env.DONGZHOU_CHROMIUM_EXECUTABLE,
   "C:/Program Files/Google/Chrome/Application/chrome.exe",
@@ -41,9 +43,12 @@ const executablePath = [
     assert.equal(receipt.affectionType, "appreciation");
     assert.equal(receipt.affectionDelta, 2);
     assert.equal(receipt.kernel.module, "dongzhou_npc_commendation");
+    assert.equal(receipt.kernel.moduleVersion, "1.1.0");
     assert.equal(receipt.kernel.state, "SEALED");
+    assert.equal(receipt.sourceProvenance.digest, expectedSourceSeal);
     assert.match(receipt.digest, /^[0-9a-f]{64}$/);
     await page.waitForFunction(() => document.querySelector("#officeCommendationResult").textContent.includes("感激 +2"));
+    assert.match(await page.locator("#officeCommendationResult").innerText(), new RegExp(`版本封印 ${expectedSourceSeal.slice(0, 10)}`));
     const npcState = await page.evaluate(async (selectedHeroId) => {
       const response = await fetch(`api/dongzhou/v1/npcs/${encodeURIComponent(selectedHeroId)}/state`, { credentials: "same-origin" });
       return { status: response.status, body: await response.json() };

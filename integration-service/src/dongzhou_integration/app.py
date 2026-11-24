@@ -572,10 +572,13 @@ class KnowledgeTournamentModule(Module):
 
 class NpcCommendationModule(Module):
     name = "dongzhou_npc_commendation"
-    version = "1.0.0"
+    version = "1.1.0"
+    dependencies = (RuntimeModule.name, "dongzhou_service_provenance")
 
     @classmethod
     def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
+        if not _service_provenance_receipt_is_valid(trace.get("sourceProvenance")):
+            raise ValueError("NPC commendation source provenance is invalid")
         required = (
             "eventId", "playerId", "heroId", "npcId", "stageId",
             "knowledgeId", "knowledgeTitle", "affectionType", "affectionDelta",
@@ -6710,6 +6713,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "sourceWork": source_work,
             "affectionType": "appreciation",
             "affectionDelta": 2,
+            "sourceProvenance": service_provenance.receipt(),
         }
         return {"state": "COMPLETED", "replayed": not created, "commendation": npc_commendation.seal(trace)}
 

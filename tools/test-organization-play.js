@@ -498,12 +498,16 @@ const commendation = {
   eventId: "npc-commendation:" + "1".repeat(64), playerId: "player-1", heroId: "ZuoRu", npcId: "npc-1",
   stageId: "01", knowledgeId: "source-1", knowledgeTitle: "第一回", sourceWork: "Chronicle",
   affectionType: "appreciation", affectionDelta: 2, digest: "2".repeat(64),
-  kernel: { module: "dongzhou_npc_commendation", moduleVersion: "1.0.0", state: "SEALED" }
+  sourceProvenance,
+  kernel: { module: "dongzhou_npc_commendation", moduleVersion: "1.1.0", state: "SEALED" }
 };
 const commended = play.recordCommendation(correspondenceCouncil.state, commendation);
 assert.strictEqual(commended.state.commendations.length, 1);
 assert.strictEqual(play.recordCommendation(commended.state, commendation).state.commendations.length, 1);
+const legacyCommendationState = { ...correspondenceCouncil.state, commendations: [{ ...commendation, sourceProvenance: undefined, digest: "9".repeat(64), kernel: { ...commendation.kernel, moduleVersion: "1.0.0" } }] };
+assert.strictEqual(play.recordCommendation(legacyCommendationState, commendation).state.commendations[0].digest, commendation.digest);
 assert.throws(() => play.recordCommendation(commended.state, { ...commendation, digest: "bad" }), /内核校验/);
+assert.throws(() => play.recordCommendation(commended.state, { ...commendation, sourceProvenance: { ...sourceProvenance, digest: "bad" } }), /内核校验/);
 
 const recollection = {
   recollectionId: "npc-recollection:" + "2".repeat(64), playerId: "player-1", heroId: "ZuoRu", npcId: "npc-1",

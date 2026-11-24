@@ -401,9 +401,12 @@ def test_history_commendation_is_roster_bound_sealed_and_idempotent(tmp_path):
         assert result["commendation"]["affectionDelta"] == 2
         assert result["commendation"]["kernel"] == {
             "module": "dongzhou_npc_commendation",
-            "moduleVersion": "1.0.0",
+            "moduleVersion": "1.1.0",
             "state": "SEALED",
         }
+        assert result["commendation"]["sourceProvenance"]["kernel"]["module"] == (
+            "dongzhou_service_provenance"
+        )
         assert len(upstreams.events) == 1
         replay = client.post(path, json=body)
         assert replay.status_code == 200

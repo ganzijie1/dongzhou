@@ -146,7 +146,10 @@
         ? source.logisticsBriefings.filter((entry) => entry && typeof entry.requestId === "string").slice(-30).map(copy)
         : [],
       commendations: Array.isArray(source.commendations)
-        ? source.commendations.filter((entry) => entry && typeof entry.eventId === "string").slice(-60).map(copy)
+        ? source.commendations.filter((entry) => entry && typeof entry.eventId === "string" && (
+          entry.kernel?.module !== "dongzhou_npc_commendation"
+          || (entry.kernel?.moduleVersion === "1.1.0" && validSourceProvenance(entry.sourceProvenance))
+        )).slice(-60).map(copy)
         : [],
       recollections: Array.isArray(source.recollections)
         ? source.recollections.filter((entry) => entry && typeof entry.recollectionId === "string").slice(-60).map(copy)
@@ -279,6 +282,7 @@
   function recordCommendation(rawState, receipt) {
     const state = normalizeState(rawState);
     const historyCommendation = receipt?.kernel?.module === "dongzhou_npc_commendation"
+      && receipt?.kernel?.moduleVersion === "1.1.0"
       && String(receipt.eventId || "").startsWith("npc-commendation:")
       && Number(receipt.affectionDelta) === 2;
     const meritCommendation = receipt?.kernel?.module === "dongzhou_npc_merit_commendation"
@@ -294,6 +298,7 @@
     if (!receipt || receipt.kernel?.state !== "SEALED"
       || !/^[0-9a-f]{64}$/.test(String(receipt.digest || ""))
       || receipt.affectionType !== "appreciation"
+      || (historyCommendation && !validSourceProvenance(receipt.sourceProvenance))
       || (!historyCommendation && !meritCommendation)) {
       throw new Error("慰勉回执未通过内核校验");
     }

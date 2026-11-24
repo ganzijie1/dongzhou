@@ -1810,7 +1810,7 @@
     const latestRecollection = [...org.recollections].reverse().find((entry) => entry.heroId === selectedHeroId && entry.stageId === currentStageId && entry.knowledgeId === selectedKnowledgeId);
     $("#officeCommendButton").disabled = officeCommendationInFlight || integration.isOffline();
     $("#officeCommendationResult").textContent = latestCommendation
-      ? `已据《${latestCommendation.knowledgeTitle}》慰勉 ${displayName(latestCommendation.heroId)} · 感激 +${Number(latestCommendation.affectionDelta)} · 印记 ${String(latestCommendation.digest).slice(0, 12)}`
+      ? `已据《${latestCommendation.knowledgeTitle}》慰勉 ${displayName(latestCommendation.heroId)} · 感激 +${Number(latestCommendation.affectionDelta)} · 印记 ${String(latestCommendation.digest).slice(0, 12)}${latestCommendation.sourceProvenance?.digest ? ` · 版本封印 ${latestCommendation.sourceProvenance.digest.slice(0, 10)}` : ""}`
       : "选定本回出处后，可慰勉当前在职属官；每关每人只结算一次。";
     $("#officeRecollectionButton").disabled = officeRecollectionInFlight || integration.isOffline();
     $("#officeRecollectionResult").textContent = latestRecollection
