@@ -371,6 +371,7 @@ const requisitionReceipt = {
   state: "COMPLETED",
   requestId: "00000000-0000-4000-8000-000000000040",
   stageId: "01",
+  sourceProvenance,
   inventoryDebit: {
     entryId: "00000000-0000-4000-8000-000000000041",
     resourceKey: "task.execution",
@@ -384,6 +385,7 @@ const requisitionReceipt = {
 const firstRequisition = play.recordInventoryRequisition(state, requisitionReceipt);
 assert.strictEqual(firstRequisition.applied, true);
 assert.strictEqual(firstRequisition.effect.provisions, 12);
+assert.strictEqual(firstRequisition.state.inventoryRequisitions[0].sourceProvenance.digest, sourceProvenance.digest);
 assert.deepStrictEqual(firstRequisition.state.inventoryRequisitionIds, [requisitionReceipt.requestId]);
 const replayedRequisition = play.recordInventoryRequisition(firstRequisition.state, { ...requisitionReceipt, replayed: true });
 assert.strictEqual(replayedRequisition.applied, false, "A replayed inventory receipt must not grant provisions twice");
@@ -392,6 +394,7 @@ assert.throws(
   () => play.recordInventoryRequisition(state, { ...requisitionReceipt, effect: { provisions: 20 } }),
   /回执无效/
 );
+assert.throws(() => play.recordInventoryRequisition(state, { ...requisitionReceipt, sourceProvenance: { ...sourceProvenance, digest: "invalid" } }), /回执无效/);
 
 const logisticsReceipt = {
   state: "SEALED",

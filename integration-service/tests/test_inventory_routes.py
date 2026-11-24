@@ -1,3 +1,5 @@
+import json
+import sqlite3
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -141,6 +143,8 @@ def test_inventory_requisition_is_authoritative_and_idempotent(tmp_path):
         assert draft["requisition"]["state"] == "DRAFT"
         assert draft["requisition"]["effect"] == {"provisions": 12}
         assert draft["requisition"]["kernel"]["module"] == "dongzhou_mandate_workflow"
+        assert draft["sourceProvenance"]["kernel"]["state"] == "SEALED"
+        assert draft["requisition"]["sourceProvenance"] == draft["sourceProvenance"]
         assert draft["action"]["code"] == "approve_inventory_requisition"
         assert len(upstreams.adjustment_calls) == 0
 
@@ -162,6 +166,7 @@ def test_inventory_requisition_is_authoritative_and_idempotent(tmp_path):
         assert result["inventoryDebit"]["resourceKey"] == "task.execution"
         assert result["inventoryDebit"]["delta"] == -20
         assert result["inventoryDebit"]["balanceAfter"] == 108
+        assert result["sourceProvenance"] == draft["sourceProvenance"]
         assert len(upstreams.adjustment_calls) == 1
 
         replay = client.post(route, json=payload)
@@ -198,6 +203,58 @@ def test_inventory_requisition_is_authoritative_and_idempotent(tmp_path):
         assert rejected.json()["state"] == "REJECTED"
         assert rejected.json()["requisition"]["kernel"]["state"] == "REJECTED"
         assert len(upstreams.adjustment_calls) == 1
+
+
+def test_inventory_requisition_rejects_tampered_source_provenance(tmp_path):
+    organization_id = "596354f7-c343-5c78-958d-757a9e58fde6"
+    database = tmp_path / "save.db"
+    with patch.dict(
+        "os.environ",
+        {
+            "DONGZHOU_ENV": "test",
+            "DONGZHOU_WEB_ROOT": str(tmp_path),
+            "DONGZHOU_DATABASE_PATH": str(database),
+            "DONGZHOU_GAME_SERVER_ID": "91001",
+            "DONGZHOU_ORGFLOW_ORG_ID": organization_id,
+        },
+        clear=True,
+    ):
+        settings = Settings.from_env()
+    upstreams = InventoryUpstreams(organization_id)
+    request_id = str(uuid4())
+    route = "/api/dongzhou/v1/organization/inventory/requisitions"
+    with TestClient(build_application(settings, upstreams=upstreams)) as client:
+        client.post(
+            "/api/dongzhou/v1/sessions/guest",
+            json={"installation_id": str(uuid4())},
+        )
+        draft = client.post(
+            route,
+            json={"client_request_id": request_id, "units": 20, "stage_id": "01"},
+        ).json()
+        connection = sqlite3.connect(database)
+        try:
+            row = connection.execute(
+                "SELECT response_payload FROM requests WHERE request_id=?",
+                (request_id,),
+            ).fetchone()
+            assert row is not None
+            response = json.loads(row[0])
+            response["requisition"]["sourceProvenance"]["digest"] = "0" * 64
+            connection.execute(
+                "UPDATE requests SET response_payload=? WHERE request_id=?",
+                (json.dumps(response, ensure_ascii=False), request_id),
+            )
+            connection.commit()
+        finally:
+            connection.close()
+        rejected = client.post(
+            f"{route}/{draft['requisition']['id']}/resume",
+            json={"action_id": draft["action"]["actionId"], "decision": "APPROVE"},
+        )
+    assert rejected.status_code == 409
+    assert rejected.json()["error"]["code"] == "organization_inventory_requisition_source_provenance_mismatch"
+    assert upstreams.adjustment_calls == []
 
 
 def test_inventory_requisition_retries_after_insufficient_balance(tmp_path):

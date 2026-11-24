@@ -913,6 +913,7 @@
     const stageId = String(response?.stageId || "");
     const debit = response?.inventoryDebit;
     const provisions = response?.effect?.provisions;
+    const sourceProvenance = response?.sourceProvenance;
     const validDebit = debit
       && debit.resourceKey === "task.execution"
       && Number.isSafeInteger(debit.delta)
@@ -931,6 +932,7 @@
       || !Number.isSafeInteger(provisions)
       || provisions <= 0
       || provisions !== (-debit.delta * 3) / 5
+      || (sourceProvenance && !validSourceProvenance(sourceProvenance))
     ) {
       throw new Error("军需调拨回执无效");
     }
@@ -941,7 +943,8 @@
       requestId,
       stageId,
       provisions,
-      inventoryDebit: copy(debit)
+      inventoryDebit: copy(debit),
+      ...(sourceProvenance ? { sourceProvenance: copy(sourceProvenance) } : {})
     };
     state.inventoryRequisitions.push(record);
     state.inventoryRequisitions = state.inventoryRequisitions.slice(-100);

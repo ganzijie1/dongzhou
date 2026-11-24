@@ -10431,7 +10431,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "Organization integration is not configured.",
                 status_code=503,
             )
-        payload = request.model_dump(mode="json")
+        source_provenance = service_provenance.receipt()
+        payload = {
+            **request.model_dump(mode="json"),
+            "sourceProvenance": source_provenance,
+        }
         try:
             should_process, previous = await store.begin_request(
                 player_id,
@@ -10471,6 +10475,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "resourceKey": resource_key,
             "units": request.units,
             "effect": {"provisions": provisions},
+            "sourceProvenance": source_provenance,
             "kernel": {
                 "module": MandateWorkflowModule.name,
                 "moduleVersion": MandateWorkflowModule.version,
@@ -10487,6 +10492,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             ).encode("utf-8")
         ).hexdigest()
         result = mandate_workflow.draft_inventory_requisition(trace, digest)
+        result["sourceProvenance"] = source_provenance
         await store.finish_request(
             player_id,
             request.client_request_id,
@@ -10542,6 +10548,18 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "The inventory requisition is not waiting for player action.",
                 status_code=409,
             )
+        requisition_source_provenance = requisition.get("sourceProvenance")
+        if (
+            requisition_source_provenance is not None
+            and not _service_provenance_receipt_matches(
+                requisition_source_provenance, service_provenance.receipt()
+            )
+        ):
+            raise ApiError(
+                "organization_inventory_requisition_source_provenance_mismatch",
+                "The inventory requisition was not sealed by the current four-service runtime.",
+                status_code=409,
+            )
         if action.get("actionId") != str(request.action_id):
             raise ApiError(
                 "organization_inventory_requisition_action_mismatch",
@@ -10568,6 +10586,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "state": "REJECTED",
                 "requestId": str(request_id),
                 "stageId": str(requisition["stageId"]),
+                **(
+                    {"sourceProvenance": requisition_source_provenance}
+                    if requisition_source_provenance is not None
+                    else {}
+                ),
                 "requisition": {
                     **requisition,
                     "state": "REJECTED",
@@ -10726,6 +10749,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "state": "COMPLETED",
             "requestId": str(request_id),
             "stageId": str(stage_id),
+            **(
+                {"sourceProvenance": requisition_source_provenance}
+                if requisition_source_provenance is not None
+                else {}
+            ),
             "requisition": {
                 **requisition,
                 "state": "COMPLETED",
