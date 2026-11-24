@@ -59,6 +59,10 @@ async function openReady(page) {
   try {
     const desktop = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     await routeLocalAssets(desktop);
+    let offlineApiRequests = 0;
+    desktop.on("request", (request) => {
+      if (new URL(request.url()).pathname.startsWith("/api/")) offlineApiRequests += 1;
+    });
     desktop.on("pageerror", (error) => errors.push(error.message));
     await openReady(desktop);
     await desktop.click("#campaignOfficeButton");
@@ -75,6 +79,17 @@ async function openReady(page) {
     await desktop.waitForSelector("#officeKnowledgeResults article", { timeout: 10000 });
     await desktop.click("#officeStageKnowledgeButton");
     await desktop.waitForSelector("#officeKnowledgeResults article");
+    await desktop.click("#officeQuizStart");
+    await desktop.waitForSelector("[data-quiz-answer]");
+    const stagePeople = new Set(["周宣王", "伯阳父", "乡民", "杜伯", "左儒", "尹吉甫"]);
+    const quizOptions = await desktop.locator("[data-quiz-answer]").allTextContents();
+    const correctQuizIndex = quizOptions.findIndex((text) => [...stagePeople].some((name) => text.includes(name)));
+    if (correctQuizIndex < 0) throw new Error(`Offline knowledge quiz has no stage-bound answer: ${JSON.stringify(quizOptions)}`);
+    await desktop.click(`[data-quiz-answer="${correctQuizIndex}"]`);
+    await desktop.waitForFunction(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).knowledgeQuiz.score === 10);
+    await desktop.click("#officeQuizVerify");
+    await desktop.waitForFunction(() => document.querySelector("#officeQuizSealStatus")?.textContent.trim().length > 0);
+    if (offlineApiRequests !== 0) throw new Error(`Offline knowledge quiz made ${offlineApiRequests} API requests`);
     await desktop.click("#officeIssueButton");
     await desktop.waitForSelector("#officeTaskLedger li.active");
     await desktop.screenshot({ path: path.join(OUT, "desktop-office.png"), fullPage: false });

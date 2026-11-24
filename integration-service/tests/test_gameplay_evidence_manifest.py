@@ -4,10 +4,19 @@ import json
 from pathlib import Path
 import subprocess
 
+from dongzhou_integration.service_sources import public_service_sources
+
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "config" / "gameplay-evidence.json"
 COVERAGE = ROOT / "docs" / "four-service-gameplay-coverage.md"
+LOCAL_SERVICE_SOURCES = ROOT / "web-game" / "scenario" / "service-sources.json"
+
+
+def test_local_service_source_manifest_matches_runtime_pins() -> None:
+    assert json.loads(LOCAL_SERVICE_SOURCES.read_text(encoding="utf-8")) == (
+        public_service_sources()
+    )
 
 
 def test_current_gameplay_evidence_is_present_and_tracked() -> None:

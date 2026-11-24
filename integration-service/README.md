@@ -16,6 +16,8 @@ uv run uvicorn dongzhou_integration.app:app --host 127.0.0.1 --port 8765
 
 Open `http://127.0.0.1:8765/?offline=1`. Do not start the former four-service containers or processes.
 
+Standalone history quizzes load only `scenario/dongzhou-knowledge.json` and `scenario/service-sources.json`. Questions omit the correct index until answered; completed receipts are recomputed and verified locally with the pinned four-repository provenance.
+
 ## Legacy connected-mode notes (inactive)
 
 The notes below describe the former connected deployment and remain only as schema and migration context. They are not current operating instructions and must not be used to restart containers, processes, callbacks, health probes, or private-network access.

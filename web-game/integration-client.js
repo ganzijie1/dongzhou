@@ -18,12 +18,14 @@
   const SCHEDULED_DUTY_STATUS_PENDING_KEY = "dongzhou-pending-scheduled-duty-status-v1";
   const LOGISTICS_BRIEFING_PENDING_PREFIX = "dongzhou-pending-logistics-briefing-v1:";
   const ADVISER_QUESTION_KEY = "dongzhou-adviser-question-v1";
+  const KNOWLEDGE_QUIZ_PREFIX = "dongzhou-local-knowledge-quiz-v1:";
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
   let session = read(SESSION_KEY, null);
   let sessionPromise = null;
   let saveVersion = 1;
   let persistChain = Promise.resolve();
   let saveBlocked = false;
+  let localServiceProvenancePromise = null;
   const TRANSIENT_STATUSES = new Set([502, 503, 504]);
 
   function read(key, fallback) {
@@ -32,6 +34,133 @@
 
   function write(key, value) {
     root.localStorage.setItem(key, JSON.stringify(value));
+  }
+
+  function canonicalJson(value) {
+    if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+    if (value && typeof value === "object") {
+      return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
+    }
+    return JSON.stringify(value);
+  }
+
+  async function sha256(value) {
+    const bytes = new root.TextEncoder().encode(String(value));
+    const digest = await root.crypto.subtle.digest("SHA-256", bytes);
+    return [...new Uint8Array(digest)].map((item) => item.toString(16).padStart(2, "0")).join("");
+  }
+
+  function uuidFromDigest(digest) {
+    const chars = digest.slice(0, 32).split("");
+    chars[12] = "5";
+    chars[16] = ((parseInt(chars[16], 16) & 3) | 8).toString(16);
+    const value = chars.join("");
+    return `${value.slice(0, 8)}-${value.slice(8, 12)}-${value.slice(12, 16)}-${value.slice(16, 20)}-${value.slice(20)}`;
+  }
+
+  async function localServiceProvenance() {
+    if (!localServiceProvenancePromise) {
+      localServiceProvenancePromise = root.fetch("scenario/service-sources.json", { cache: "no-store" })
+        .then((response) => {
+          if (!response.ok) throw new Error("local_service_sources_unavailable");
+          return response.json();
+        })
+        .then(async (payload) => {
+          const services = payload?.services;
+          const names = Object.keys(services || {}).sort();
+          if (payload?.schemaVersion !== 1 || names.join(",") !== "aiNpc,knowledge,nexusKernel,orgFlow") {
+            throw new Error("local_service_sources_invalid");
+          }
+          for (const source of Object.values(services)) {
+            if (!source || !/^[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$/.test(source.sourceBranch)
+              || !/^[0-9a-f]{40}$/.test(source.sourceRevision)
+              || !/^[0-9a-f]{40}$/.test(source.integrationRevision)) {
+              throw new Error("local_service_sources_invalid");
+            }
+          }
+          const trace = { schemaVersion: 1, services };
+          return {
+            ...trace,
+            digest: await sha256(canonicalJson(trace)),
+            kernel: {
+              module: "dongzhou_service_provenance",
+              moduleVersion: "1.0.0",
+              nexusKernelVersion: "0.2.0",
+              state: "SEALED"
+            }
+          };
+        });
+    }
+    return JSON.parse(JSON.stringify(await localServiceProvenancePromise));
+  }
+
+  async function localKnowledgeCatalog() {
+    const response = await root.fetch("scenario/dongzhou-knowledge.json", { cache: "no-store" });
+    if (!response.ok) throw new Error("knowledge_quiz_unavailable");
+    const payload = await response.json();
+    return Array.isArray(payload?.entries) ? payload.entries : [];
+  }
+
+  async function buildLocalKnowledgeQuiz(questionId, stageId, deadlineAt) {
+    const entries = await localKnowledgeCatalog();
+    const published = entries.find((entry) => entry && String(entry.stageId || "") === String(stageId));
+    if (!published) throw new Error("knowledge_quiz_unavailable");
+    const rawPeople = Array.isArray(published.people)
+      ? published.people
+      : Array.isArray(published.entities?.npcs) ? published.entities.npcs : [];
+    const currentPeople = [...new Set(rawPeople.map((item) => String(item?.name || item || "").trim()).filter(Boolean))];
+    const distractors = [...new Set(entries
+      .filter((entry) => entry && String(entry.stageId || "") !== String(stageId))
+      .flatMap((entry) => Array.isArray(entry.people) ? entry.people : [])
+      .map((item) => String(item || "").trim())
+      .filter((name) => name && !currentPeople.includes(name)))];
+    if (!currentPeople.length || distractors.length < 3) throw new Error("knowledge_quiz_unavailable");
+    const seed = await sha256(`${questionId}:${stageId}`);
+    const correctName = currentPeople[parseInt(seed.slice(0, 8), 16) % currentPeople.length];
+    const rankedDistractors = await Promise.all(distractors.map(async (name) => ({ name, rank: await sha256(`${seed}:distractor:${name}`) })));
+    rankedDistractors.sort((left, right) => left.rank.localeCompare(right.rank));
+    const rankedOptions = await Promise.all([correctName, ...rankedDistractors.slice(0, 3).map((item) => item.name)]
+      .map(async (name) => ({ name, rank: await sha256(`${seed}:option:${name}`) })));
+    rankedOptions.sort((left, right) => left.rank.localeCompare(right.rank));
+    const options = rankedOptions.map((item) => item.name);
+    const sourceProvenance = await localServiceProvenance();
+    const title = String(published.name || published.title || "本回史录");
+    const trace = {
+      id: String(questionId),
+      stageId: String(stageId),
+      knowledgeId: String(published.id || published.aku_id || ""),
+      title,
+      prompt: `下列哪位人物见于《${title}》的已发布人物录？`,
+      options,
+      correctIndex: options.indexOf(correctName),
+      deadlineAt,
+      sourceProvenance
+    };
+    const questionDigest = await sha256(canonicalJson(trace));
+    const actionId = uuidFromDigest(await sha256(`dongzhou-knowledge-quiz:${questionDigest}`));
+    const publicQuestion = Object.fromEntries(Object.entries(trace).filter(([key]) => key !== "correctIndex" && key !== "sourceProvenance"));
+    const ready = {
+      mode: "offline",
+      state: "READY",
+      question: {
+        ...publicQuestion,
+        receipt: {
+          digest: questionDigest,
+          sourceProvenance,
+          kernel: {
+            module: "dongzhou_knowledge_tournament",
+            moduleVersion: "1.1.0",
+            nexusKernelVersion: "0.2.0",
+            state: "READY"
+          }
+        }
+      },
+      action: { actionId, code: "answer_knowledge_quiz", type: "selection" }
+    };
+    const source = Array.isArray(published.sourceDetails)
+      ? published.sourceDetails.find((item) => item && typeof item === "object") || null
+      : null;
+    return { trace, source, ready };
   }
 
   function installationId() {
@@ -686,24 +815,123 @@
     return { mode: "offline", stageId, results };
   }
 
-  function startKnowledgeQuiz(stageId, clientRequestId) {
-    if (offline) return Promise.reject(new Error("knowledge_quiz_requires_online"));
+  async function startKnowledgeQuiz(stageId, clientRequestId) {
+    if (offline) {
+      const key = KNOWLEDGE_QUIZ_PREFIX + clientRequestId;
+      const existing = read(key, null);
+      if (existing) {
+        if (existing.stageId !== String(stageId)) throw new Error("idempotency_conflict");
+        if (existing.result) return { replayed: true, ...existing.result };
+        const rebuilt = await buildLocalKnowledgeQuiz(clientRequestId, stageId, existing.deadlineAt);
+        if (canonicalJson(existing.ready) !== canonicalJson(rebuilt.ready)) {
+          throw new Error("knowledge_quiz_source_invalid");
+        }
+        return { replayed: true, ...rebuilt.ready };
+      }
+      const deadlineAt = new Date(Date.now() + 30000).toISOString();
+      const built = await buildLocalKnowledgeQuiz(clientRequestId, stageId, deadlineAt);
+      write(key, { stageId: String(stageId), deadlineAt, ready: built.ready });
+      return built.ready;
+    }
     return request("/knowledge/quiz", {
       method: "POST",
       body: JSON.stringify({ stage_id: stageId, client_request_id: clientRequestId })
     });
   }
 
-  function answerKnowledgeQuiz(questionId, actionId, answerIndex) {
-    if (offline) return Promise.reject(new Error("knowledge_quiz_requires_online"));
+  async function answerKnowledgeQuiz(questionId, actionId, answerIndex) {
+    if (offline) {
+      const key = KNOWLEDGE_QUIZ_PREFIX + questionId;
+      const record = read(key, null);
+      if (!record) throw new Error("knowledge_quiz_not_found");
+      if (record.result) {
+        if (record.result.selectedIndex !== answerIndex) throw new Error("knowledge_quiz_already_answered");
+        return { replayed: true, ...record.result };
+      }
+      const built = await buildLocalKnowledgeQuiz(questionId, record.stageId, record.deadlineAt);
+      if (built.ready.action.actionId !== actionId) throw new Error("knowledge_quiz_action_invalid");
+      if (!Number.isInteger(answerIndex) || answerIndex < 0 || answerIndex >= built.trace.options.length) {
+        throw new Error("knowledge_quiz_answer_invalid");
+      }
+      const state = Date.now() > Date.parse(record.deadlineAt) ? "EXPIRED" : "COMPLETED";
+      const correct = state === "COMPLETED" && answerIndex === built.trace.correctIndex;
+      const resultTrace = {
+        questionDigest: built.ready.question.receipt.digest,
+        selectedIndex: answerIndex,
+        correctIndex: built.trace.correctIndex,
+        state,
+        correct,
+        score: correct ? 10 : 0,
+        sourceProvenance: built.trace.sourceProvenance
+      };
+      const result = {
+        mode: "offline",
+        ...resultTrace,
+        receipt: {
+          digest: await sha256(canonicalJson(resultTrace)),
+          sourceProvenance: built.trace.sourceProvenance,
+          kernel: {
+            module: "dongzhou_knowledge_tournament",
+            moduleVersion: "1.1.0",
+            nexusKernelVersion: "0.2.0",
+            state: "SEALED"
+          }
+        },
+        questionId: String(questionId),
+        stageId: record.stageId,
+        knowledgeId: built.trace.knowledgeId,
+        correctAnswer: built.trace.options[built.trace.correctIndex],
+        source: built.source
+      };
+      write(key, { ...record, result });
+      return result;
+    }
     return request(`/knowledge/quiz/${encodeURIComponent(questionId)}/answer`, {
       method: "POST",
       body: JSON.stringify({ action_id: actionId, answer_index: answerIndex })
     });
   }
 
-  function verifyKnowledgeQuizSeal(questionId) {
-    if (offline) return Promise.reject(new Error("knowledge_quiz_requires_online"));
+  async function verifyKnowledgeQuizSeal(questionId) {
+    if (offline) {
+      const record = read(KNOWLEDGE_QUIZ_PREFIX + questionId, null);
+      if (!record?.result) throw new Error("knowledge_quiz_not_answered");
+      const built = await buildLocalKnowledgeQuiz(questionId, record.stageId, record.deadlineAt);
+      const expectedTrace = {
+        questionDigest: built.ready.question.receipt.digest,
+        selectedIndex: record.result.selectedIndex,
+        correctIndex: built.trace.correctIndex,
+        state: record.result.state,
+        correct: record.result.state === "COMPLETED" && record.result.selectedIndex === built.trace.correctIndex,
+        score: record.result.state === "COMPLETED" && record.result.selectedIndex === built.trace.correctIndex ? 10 : 0,
+        sourceProvenance: built.trace.sourceProvenance
+      };
+      const digest = await sha256(canonicalJson(expectedTrace));
+      const expectedKernel = {
+        module: "dongzhou_knowledge_tournament",
+        moduleVersion: "1.1.0",
+        nexusKernelVersion: "0.2.0",
+        state: "SEALED"
+      };
+      if (record.result.receipt?.digest !== digest
+        || record.result.correctIndex !== expectedTrace.correctIndex
+        || record.result.correct !== expectedTrace.correct
+        || record.result.score !== expectedTrace.score
+        || canonicalJson(record.result.receipt?.sourceProvenance) !== canonicalJson(built.trace.sourceProvenance)
+        || canonicalJson(record.result.receipt?.kernel) !== canonicalJson(expectedKernel)) {
+        throw new Error("knowledge_quiz_seal_invalid");
+      }
+      return {
+        verified: true,
+        questionId: String(questionId),
+        stageId: record.stageId,
+        knowledgeId: built.trace.knowledgeId,
+        score: expectedTrace.score,
+        digest,
+        kernel: expectedKernel,
+        sourceProvenance: built.trace.sourceProvenance
+      };
+    }
     return requestWithTransientRetry(`/knowledge/quiz/${encodeURIComponent(questionId)}/seal`);
   }
 
