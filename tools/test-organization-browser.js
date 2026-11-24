@@ -122,6 +122,31 @@ async function openReady(page) {
       || localCouncil.thought.logisticsBriefing?.digest !== localCouncil.briefing.digest) {
       throw new Error("Offline thought did not bind the sealed local logistics briefing");
     }
+    const localInventoryBefore = await desktop.evaluate(() => {
+      const profile = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2"));
+      return {
+        provisions: profile.campaignResources.provisions,
+        balance: profile.organization.localInventory.accounts.find((account) => account.resourceKey === "task.execution").balance
+      };
+    });
+    await desktop.waitForSelector("#officeInventoryRequisition:not(:disabled)");
+    await desktop.click("#officeInventoryRequisition");
+    await desktop.waitForSelector("#officeInventoryApproval:not([hidden])");
+    const localInventoryAfterDraft = await desktop.evaluate(() => {
+      const profile = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2"));
+      return {
+        provisions: profile.campaignResources.provisions,
+        balance: profile.organization.localInventory.accounts.find((account) => account.resourceKey === "task.execution").balance
+      };
+    });
+    if (JSON.stringify(localInventoryAfterDraft) !== JSON.stringify(localInventoryBefore)) throw new Error("Offline requisition draft changed inventory or provisions before approval");
+    await desktop.click("#officeInventoryApprove");
+    await desktop.waitForFunction(({ provisions, balance }) => {
+      const profile = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2"));
+      const currentBalance = profile.organization.localInventory.accounts.find((account) => account.resourceKey === "task.execution").balance;
+      return profile.campaignResources.provisions === provisions + 12 && currentBalance === balance - 20;
+    }, localInventoryBefore);
+    if (await desktop.evaluate(() => Boolean(localStorage.getItem("dongzhou-pending-inventory-requisition-v1")))) throw new Error("Offline requisition journal was not acknowledged after commit");
     await desktop.click("#officeQuizStart");
     await desktop.waitForSelector("[data-quiz-answer]");
     const stagePeople = new Set(["周宣王", "伯阳父", "乡民", "杜伯", "左儒", "尹吉甫"]);

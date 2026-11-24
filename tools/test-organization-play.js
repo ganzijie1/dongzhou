@@ -506,6 +506,27 @@ assert.deepStrictEqual(firstRequisition.state.inventoryRequisitionIds, [requisit
 const replayedRequisition = play.recordInventoryRequisition(firstRequisition.state, { ...requisitionReceipt, replayed: true });
 assert.strictEqual(replayedRequisition.applied, false, "A replayed inventory receipt must not grant provisions twice");
 assert.strictEqual(replayedRequisition.state.inventoryRequisitions.length, 1);
+const localRequisitionReceipt = {
+  ...requisitionReceipt,
+  requestId: "00000000-0000-4000-8000-000000000049",
+  requisition: {
+    ...requisitionReceipt.requisition,
+    requestId: "00000000-0000-4000-8000-000000000049",
+  },
+  inventoryDebit: {
+    ...requisitionReceipt.inventoryDebit,
+    balanceAfter: 40,
+    accountVersion: 2,
+    inventoryRevision: 2,
+    mode: "IN_PROCESS"
+  }
+};
+const localRequisition = play.recordInventoryRequisition(state, localRequisitionReceipt);
+assert.strictEqual(localRequisition.state.localInventory.revision, 2);
+assert.strictEqual(localRequisition.state.localInventory.accounts.find((account) => account.resourceKey === "task.execution").balance, 40);
+assert.throws(
+  () => play.recordInventoryRequisition(state, { ...localRequisitionReceipt, inventoryDebit: { ...localRequisitionReceipt.inventoryDebit, balanceAfter: 39 } })
+);
 assert.throws(
   () => play.recordInventoryRequisition(state, { ...requisitionReceipt, effect: { provisions: 20 } }),
   /回执无效/

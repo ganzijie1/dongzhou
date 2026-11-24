@@ -176,6 +176,52 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(decision.dialogueReceipt.state, "RECORDED");
   assert.strictEqual((await client.npcDecision("DuBo", "What should the court do?", decisionOptions, "01", localMemory)).replayed, true);
 
+  const inventoryBeforeDraft = await client.organizationInventory();
+  const requisitionDraft = await client.requisitionOrganizationInventory({ units: 20, stage_id: "01" });
+  assert.strictEqual(requisitionDraft.state, "REQUIRES_ACTION");
+  assert.strictEqual(requisitionDraft.requisition.state, "DRAFT");
+  assert.strictEqual(requisitionDraft.requisition.effect.provisions, 12);
+  assert.strictEqual((await client.organizationInventory()).accounts.find((account) => account.resourceKey === "task.execution").balance, 60);
+  await assert.rejects(
+    client.resumeOrganizationInventoryRequisition(requisitionDraft.requisition.id, global.crypto.randomUUID(), "APPROVE"),
+    /organization_inventory_requisition_action_mismatch/
+  );
+  const cleanRequisitionJournal = values.get("dongzhou-pending-inventory-requisition-v1");
+  const forgedRequisitionJournal = JSON.parse(cleanRequisitionJournal);
+  forgedRequisitionJournal.result.requisition.digest = "0".repeat(64);
+  values.set("dongzhou-pending-inventory-requisition-v1", JSON.stringify(forgedRequisitionJournal));
+  await assert.rejects(
+    client.resumeOrganizationInventoryRequisition(requisitionDraft.requisition.id, requisitionDraft.action.actionId, "APPROVE"),
+    /organization_inventory_requisition_seal_invalid/
+  );
+  values.set("dongzhou-pending-inventory-requisition-v1", cleanRequisitionJournal);
+  const approvedRequisition = await client.resumeOrganizationInventoryRequisition(
+    requisitionDraft.requisition.id,
+    requisitionDraft.action.actionId,
+    "APPROVE"
+  );
+  assert.strictEqual(approvedRequisition.state, "COMPLETED");
+  assert.strictEqual(approvedRequisition.inventoryDebit.balanceAfter, 40);
+  assert.strictEqual(approvedRequisition.inventoryDebit.inventoryRevision, inventoryBeforeDraft.revision + 1);
+  assert.strictEqual((await client.resumeOrganizationInventoryRequisition(
+    requisitionDraft.requisition.id,
+    requisitionDraft.action.actionId,
+    "APPROVE"
+  )).replayed, true);
+  client.acknowledgeOrganizationInventoryRequisition(approvedRequisition.requestId);
+  assert.strictEqual(client.pendingOrganizationInventoryRequisition(), null);
+
+  const rejectedDraft = await client.requisitionOrganizationInventory({ units: 20, stage_id: "01" });
+  const rejectedRequisition = await client.resumeOrganizationInventoryRequisition(
+    rejectedDraft.requisition.id,
+    rejectedDraft.action.actionId,
+    "REJECT"
+  );
+  assert.strictEqual(rejectedRequisition.state, "REJECTED");
+  assert.strictEqual(rejectedRequisition.requisition.kernel.state, "REJECTED");
+  assert.strictEqual((await client.organizationInventory()).accounts.find((account) => account.resourceKey === "task.execution").balance, 60);
+  client.acknowledgeOrganizationInventoryRequisition(rejectedRequisition.requestId);
+
   const battlePlan = {
     formation: "balanced",
     vanguardHeroId: "DuBo",
@@ -344,7 +390,7 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(rejected.guide.kernel.state, "SEALED");
   assert.strictEqual(fetchedUrls.some((url) => url.includes("/api/")), false);
 
-  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true, localBattleGate: true, localDebrief: true, localCommendation: true, localRecollection: true, localLogistics: true, localThought: true, localCouncil: true }));
+  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true, localBattleGate: true, localDebrief: true, localCommendation: true, localRecollection: true, localLogistics: true, localInventoryRequisition: true, localThought: true, localCouncil: true }));
 })().catch((error) => {
   console.error(error.stack || error.message);
   process.exitCode = 1;

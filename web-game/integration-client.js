@@ -417,6 +417,115 @@
     return { replayed: Boolean(stored?.result), ...result };
   }
 
+  function localInventoryRequisitionError(code, message) {
+    const error = new Error(message || code);
+    error.code = code;
+    return error;
+  }
+
+  async function localInventoryRequisitionDraft(input) {
+    const units = Number(input?.units);
+    const stageId = String(input?.stage_id || "");
+    const requestId = String(input?.client_request_id || "");
+    if (!requestId || !stageId || !Number.isSafeInteger(units) || units < 20 || units > 100 || units % 20) {
+      throw localInventoryRequisitionError("organization_inventory_requisition_invalid");
+    }
+    const sourceProvenance = await localServiceProvenance();
+    const playerId = await localPlayerId();
+    const trace = {
+      id: `dongzhou:requisition:${playerId}:${requestId}`,
+      requestId,
+      stageId,
+      resourceKey: "task.execution",
+      units,
+      effect: { provisions: units * 3 / 5 },
+      sourceProvenance,
+      kernel: { module: "dongzhou_mandate_workflow", moduleVersion: "1.14.0", nexusKernelVersion: "0.2.0", state: "REQUIRES_ACTION" }
+    };
+    const digest = await sha256(canonicalJson(trace));
+    return {
+      state: "REQUIRES_ACTION",
+      requestId,
+      stageId,
+      requisition: { ...trace, digest, state: "DRAFT" },
+      action: {
+        actionId: uuidFromDigest(await sha256(`dongzhou-inventory-requisition-action:${digest}`)),
+        code: "approve_inventory_requisition",
+        type: "confirmation",
+        prompt: "Approve this public inventory requisition?",
+        options: ["APPROVE", "REJECT"]
+      },
+      sourceProvenance
+    };
+  }
+
+  async function validateLocalInventoryRequisitionDraft(result) {
+    const requisition = result?.requisition;
+    const sourceProvenance = await localServiceProvenance();
+    if (!requisition || result.state !== "REQUIRES_ACTION" || requisition.state !== "DRAFT"
+      || requisition.kernel?.module !== "dongzhou_mandate_workflow"
+      || requisition.kernel?.moduleVersion !== "1.14.0"
+      || requisition.kernel?.state !== "REQUIRES_ACTION"
+      || canonicalJson(requisition.sourceProvenance) !== canonicalJson(sourceProvenance)
+      || canonicalJson(result.sourceProvenance) !== canonicalJson(sourceProvenance)) {
+      throw localInventoryRequisitionError("organization_inventory_requisition_seal_invalid");
+    }
+    const { digest, state, ...trace } = requisition;
+    if (state !== "DRAFT" || digest !== await sha256(canonicalJson(trace))) {
+      throw localInventoryRequisitionError("organization_inventory_requisition_seal_invalid");
+    }
+    return requisition;
+  }
+
+  async function localResumeOrganizationInventoryRequisition(requisitionId, actionId, decision) {
+    const journal = pendingOrganizationInventoryRequisition();
+    if (!journal?.input || journal.result?.requisition?.id !== requisitionId) {
+      throw localInventoryRequisitionError("organization_inventory_requisition_journal_mismatch");
+    }
+    if (["COMPLETED", "REJECTED"].includes(journal.result?.state)) return { replayed: true, ...journal.result };
+    const requisition = await validateLocalInventoryRequisitionDraft(journal.result);
+    if (journal.result.action?.actionId !== actionId || !["APPROVE", "REJECT"].includes(decision)) {
+      throw localInventoryRequisitionError("organization_inventory_requisition_action_mismatch");
+    }
+    const pending = { ...journal, decision };
+    write(INVENTORY_REQUISITION_PENDING_KEY, pending);
+    if (decision === "REJECT") {
+      const result = {
+        state: "REJECTED",
+        requestId: requisition.requestId,
+        stageId: requisition.stageId,
+        sourceProvenance: requisition.sourceProvenance,
+        requisition: { ...requisition, state: "REJECTED", kernel: { ...requisition.kernel, state: "REJECTED" } }
+      };
+      write(INVENTORY_REQUISITION_PENDING_KEY, { ...pending, result });
+      return result;
+    }
+    const inventory = localInventorySnapshot();
+    const account = inventory.accounts.find((entry) => entry.resourceKey === requisition.resourceKey);
+    if (!account || account.balance < requisition.units) {
+      throw localInventoryRequisitionError("organization_inventory_insufficient", "The local public inventory does not have enough task credit.");
+    }
+    const result = {
+      state: "COMPLETED",
+      requestId: requisition.requestId,
+      stageId: requisition.stageId,
+      sourceProvenance: requisition.sourceProvenance,
+      requisition: { ...requisition, state: "COMPLETED", kernel: { ...requisition.kernel, state: "COMPLETED" } },
+      inventoryDebit: {
+        entryId: uuidFromDigest(await sha256(`dongzhou-local-inventory-debit:${requisition.requestId}`)),
+        resourceKey: requisition.resourceKey,
+        delta: -requisition.units,
+        balanceAfter: account.balance - requisition.units,
+        accountVersion: account.version + 1,
+        inventoryRevision: inventory.revision + 1,
+        mode: "IN_PROCESS"
+      },
+      effect: { ...requisition.effect }
+    };
+    write(INVENTORY_REQUISITION_PENDING_KEY, { ...pending, result });
+    return result;
+  }
+
   async function buildLocalKnowledgeQuiz(questionId, stageId, deadlineAt) {
     const entries = await localKnowledgeCatalog();
     const published = entries.find((entry) => entry && String(entry.stageId || "") === String(stageId));
@@ -1529,6 +1638,11 @@
       return journal.result;
     }
     try {
+      if (offline) {
+        const result = await localInventoryRequisitionDraft(journal.input);
+        write(INVENTORY_REQUISITION_PENDING_KEY, { ...journal, result });
+        return result;
+      }
       const result = await request("/organization/inventory/requisitions", {
         method: "POST",
         body: JSON.stringify(journal.input)
@@ -1549,6 +1663,7 @@
     }
   }
   async function resumeOrganizationInventoryRequisition(requisitionId, actionId, decision) {
+    if (offline) return localResumeOrganizationInventoryRequisition(requisitionId, actionId, decision);
     const journal = pendingOrganizationInventoryRequisition();
     if (!journal?.input || journal.result?.requisition?.id !== requisitionId) {
       throw new Error("军需调拨草案与待裁记录不匹配");

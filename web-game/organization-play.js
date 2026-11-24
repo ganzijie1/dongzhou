@@ -1140,12 +1140,20 @@
       && requisition.kernel?.state === "COMPLETED"
       && validSourceProvenance(requisition.sourceProvenance)
       && requisition.sourceProvenance.digest === sourceProvenance?.digest;
+    const localAccount = state.localInventory.accounts.find((account) => account.resourceKey === debit?.resourceKey);
+    const validLocalDebit = debit?.mode !== "IN_PROCESS" || (
+      localAccount
+      && localAccount.balance === debit.balanceAfter - debit.delta
+      && localAccount.version + 1 === debit.accountVersion
+      && state.localInventory.revision + 1 === debit.inventoryRevision
+    );
     if (
       response?.state !== "COMPLETED"
       || !requestId
       || !stageId
       || !validDebit
       || !validRequisition
+      || !validLocalDebit
       || !Number.isSafeInteger(provisions)
       || provisions <= 0
       || provisions !== (-debit.delta * 3) / 5
@@ -1155,6 +1163,11 @@
     }
     if (state.inventoryRequisitionIds.includes(requestId)) {
       return { state, applied: false, effect: { provisions } };
+    }
+    if (debit.mode === "IN_PROCESS") {
+      localAccount.balance = debit.balanceAfter;
+      localAccount.version = debit.accountVersion;
+      state.localInventory.revision = debit.inventoryRevision;
     }
     const record = {
       requestId,

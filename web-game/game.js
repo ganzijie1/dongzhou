@@ -1161,6 +1161,7 @@
       setCampaignSettings(false);
       renderOrganizationPanel();
       refreshOfficeTaskSnapshots().catch((error) => showNotice(`官署簿书暂不可达：${error.message}`));
+      refreshOfficeInventory().catch(() => {});
       refreshOfficeScheduledDuty().catch(() => {});
       refreshOfficePublicNotices().catch(() => {});
       refreshOfficeContributions().catch(() => {});
@@ -1430,8 +1431,7 @@
       $("#officeInventoryReject").disabled = officeInventoryRequisitionBusy || retrying;
     }
     const requisition = $("#officeInventoryRequisition");
-    requisition.disabled = integration.isOffline()
-      || officeInventoryRequisitionBusy
+    requisition.disabled = officeInventoryRequisitionBusy
       || Boolean(pending)
       || !officeInventoryView
       || officeInventoryView.loading
@@ -1489,7 +1489,7 @@
 
   async function recoverOfficeInventoryRequisition() {
     let pending = integration.pendingOrganizationInventoryRequisition();
-    if (!pending || integration.isOffline()) return;
+    if (!pending) return;
     try {
       let response = pending.result || await integration.requisitionOrganizationInventory(pending.input);
       pending = integration.pendingOrganizationInventoryRequisition();
