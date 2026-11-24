@@ -103,6 +103,21 @@ async function openReady(page) {
       || await desktop.locator("#officeCareerTaskCatalog option").count() !== 5) {
       throw new Error(`Offline task catalog was not sealed and rendered: ${JSON.stringify(localTaskCatalog.catalog)}`);
     }
+    const catalogTaskCount = await desktop.locator("#officeCareerStatus > li:not(.empty)").count();
+    const currentOption = localTaskCatalog.catalog.options[0];
+    const forgedContextRejected = await desktop.evaluate(async ({ option, digest }) => {
+      try {
+        await window.DongzhouIntegration.applyOrganizationPlayerTaskAction("REQUEST", {
+          title: option.title, taskCode: option.taskCode, contextId: "0".repeat(64), catalogDigest: digest
+        });
+        return false;
+      } catch (error) {
+        return error?.code === "organization_player_task_context_invalid";
+      }
+    }, { option: currentOption, digest: localTaskCatalog.catalog.digest });
+    if (!forgedContextRejected || await desktop.locator("#officeCareerStatus > li:not(.empty)").count() !== catalogTaskCount) {
+      throw new Error("Forged task catalog context was not rejected before task creation");
+    }
     await desktop.fill("#officeCareerTaskName", "目录外差事");
     await desktop.click("#officeCareerRequestForm button[type=submit]");
     await desktop.waitForSelector("#officeCareerFeedback >> text=organization_player_task_catalog_invalid", { timeout: 10000 });

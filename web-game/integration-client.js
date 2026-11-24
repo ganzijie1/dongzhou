@@ -1332,10 +1332,18 @@
       const title = String(input.title || "").trim();
       if (!title || title.length > 80) throw new Error("organization_player_task_title_invalid");
       const requestedCode = String(input.taskCode || "").trim();
-      const option = catalog.options.find((entry) => requestedCode ? entry.taskCode === requestedCode : entry.title === title);
-      if (!option || (requestedCode && title && option.title !== title)) {
+      const requestedContextId = String(input.contextId || "").trim();
+      const requestedCatalogDigest = String(input.catalogDigest || "").trim();
+      const option = catalog.options.find((entry) => entry.taskCode === requestedCode);
+      if (!option || option.title !== title) {
         const error = new Error("organization_player_task_catalog_invalid");
         error.code = "organization_player_task_catalog_invalid";
+        error.catalog = catalog;
+        throw error;
+      }
+      if (option.contextId !== requestedContextId || catalog.digest !== requestedCatalogDigest) {
+        const error = new Error("organization_player_task_context_invalid");
+        error.code = "organization_player_task_context_invalid";
         error.catalog = catalog;
         throw error;
       }

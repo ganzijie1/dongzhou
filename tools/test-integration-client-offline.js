@@ -126,8 +126,23 @@ const client = require("../web-game/integration-client.js");
   await assert.rejects(client.applyOrganizationPlayerTaskAction("REQUEST", {
     taskCode: "dongzhou.granary.audit", title: "巡察驿路"
   }), /organization_player_task_catalog_invalid/);
+  await assert.rejects(client.applyOrganizationPlayerTaskAction("REQUEST", {
+    taskCode: "dongzhou.granary.audit", title: "核验军粮账册"
+  }), /organization_player_task_context_invalid/);
+  await assert.rejects(client.applyOrganizationPlayerTaskAction("REQUEST", {
+    taskCode: "dongzhou.granary.audit",
+    title: "核验军粮账册",
+    contextId: "0".repeat(64),
+    catalogDigest: taskOptions.tasks.catalog.digest
+  }), /organization_player_task_context_invalid/);
   const applyCareerAction = async (action, input) => {
-    const response = await client.applyOrganizationPlayerTaskAction(action, input);
+    let boundInput = input;
+    if (action === "REQUEST") {
+      const catalog = (await client.organizationPlayerTasks()).catalog;
+      const option = catalog.options.find((entry) => entry.title === input.title);
+      boundInput = { ...input, taskCode: option?.taskCode, contextId: option?.contextId, catalogDigest: catalog.digest };
+    }
+    const response = await client.applyOrganizationPlayerTaskAction(action, boundInput);
     localProfile.organization = response.organization;
     await client.persist(localProfile);
     return response;
@@ -266,7 +281,7 @@ const client = require("../web-game/integration-client.js");
   const capacityTaskTwo = await applyCareerAction("REQUEST", { title: "核验军粮账册" });
   const capacityTaskThree = await applyCareerAction("REQUEST", { title: "巡察驿路" });
   const taskCountAtCapacity = localProfile.organization.localPlayerTasks.length;
-  await assert.rejects(client.applyOrganizationPlayerTaskAction("REQUEST", { title: "查访边情" }), (error) => {
+  await assert.rejects(applyCareerAction("REQUEST", { title: "查访边情" }), (error) => {
     assert.strictEqual(error.code, "organization_task_workload_conflict");
     assert.strictEqual(error.capacity.activeTaskCount, 3);
     assert.strictEqual(error.capacity.availableSlots, 0);
@@ -283,6 +298,22 @@ const client = require("../web-game/integration-client.js");
   const postRejoinContributions = await client.organizationPlayerContributions();
   assert.deepStrictEqual(postRejoinContributions.entries.map((entry) => entry.amount), [20, 10, -30, 20]);
   assert.deepStrictEqual(postRejoinContributions.account, { accountVersion: 5, accountBalance: 20, lifetimeEarned: 50, lifetimeSpent: 30 });
+  const staleCatalog = (await client.organizationPlayerTasks()).catalog;
+  const staleOption = staleCatalog.options[0];
+  const finalLeave = await client.setOrganizationMembership("LEAVE");
+  localProfile.organization = finalLeave.organization;
+  await client.persist(localProfile);
+  const finalJoin = await client.setOrganizationMembership("JOIN");
+  localProfile.organization = finalJoin.organization;
+  await client.persist(localProfile);
+  const taskCountBeforeStaleRequest = localProfile.organization.localPlayerTasks.length;
+  await assert.rejects(client.applyOrganizationPlayerTaskAction("REQUEST", {
+    title: staleOption.title,
+    taskCode: staleOption.taskCode,
+    contextId: staleOption.contextId,
+    catalogDigest: staleCatalog.digest
+  }), /organization_player_task_context_invalid/);
+  assert.strictEqual(localProfile.organization.localPlayerTasks.length, taskCountBeforeStaleRequest);
   const cleanPlayerTasks = JSON.stringify(localProfile.organization.localPlayerTasks);
   localProfile.organization.localPlayerTasks[0].result = "forged result";
   await client.persist(localProfile);

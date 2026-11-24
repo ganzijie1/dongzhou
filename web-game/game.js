@@ -125,6 +125,7 @@
   let officeCareerStatusItems = [];
   let officeCareerTaskCapacity = null;
   let officeCareerTaskOptions = [];
+  let officeCareerTaskCatalogDigest = "";
   let officeCareerSelectedTaskId = null;
   const officeCareerExpandedTaskIds = new Set();
   let officeCareerContributionBusy = false;
@@ -2058,6 +2059,7 @@
       officeCareerExpandedTaskIds.clear();
       officeCareerTaskCapacity = null;
       officeCareerTaskOptions = [];
+      officeCareerTaskCatalogDigest = "";
       return;
     }
     const account = officeCareerContributionAccount || {
@@ -2297,9 +2299,11 @@
           throw new Error("差事目录回执与当前岗位不一致");
         }
         officeCareerTaskOptions = response.catalog.options;
+        officeCareerTaskCatalogDigest = response.catalog.digest;
       } else {
         officeCareerTaskCapacity = null;
         officeCareerTaskOptions = [];
+        officeCareerTaskCatalogDigest = "";
       }
       const actionable = officeCareerStatusItems.filter((task) => {
         const exception = task.organizationTrace?.state === "SEALED" ? task.organizationTrace.executionException : task.executionException;
@@ -2382,8 +2386,16 @@
     $("#officeCareerFeedback").textContent = ({ options: "正在向杜伯查询可领差事……", request: "领差申请已送杜伯，等待派发……", inbox: "正在调阅我的任务待办……", accept: "受命回执已送杜伯……", reject: "拒绝回执已送杜伯……", modify: "改令申请已送杜伯，等待裁定……", review: "正在请杜伯裁定改令……", exception: "受阻报告已送杜伯，等待冻结方案裁定……", result: "复命已送杜伯，等待审核与贡献结算……", supplement: "补呈已送杜伯，等待权威行迹登记与复核……" })[action];
     try {
       if (integration.isOffline()) {
+        const requestedOption = action === "request"
+          ? officeCareerTaskOptions.find((option) => option.title === detail) || null
+          : null;
         const input = action === "request"
-          ? { title: detail }
+          ? {
+              title: detail,
+              taskCode: requestedOption?.taskCode || "",
+              contextId: requestedOption?.contextId || "",
+              catalogDigest: officeCareerTaskCatalogDigest
+            }
           : ["options", "inbox"].includes(action) ? {} : { taskId: selectedTask.taskId, detail };
         let response = await integration.applyOrganizationPlayerTaskAction(action.toUpperCase(), input);
         profile.organization = organization.normalizeState(response.organization);
