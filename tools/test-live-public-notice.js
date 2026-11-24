@@ -13,9 +13,9 @@ const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
 const runtimeReport = verifyFourServiceRuntime(url);
 const expectedSourceSeal = runtimeReport.checks?.liveRuntime?.sourceSealDigest;
 assert.match(expectedSourceSeal || "", /^[0-9a-f]{64}$/);
-const npcId = process.env.DONGZHOU_NOTICE_NPC_ID;
-const loginRequestId = process.env.DONGZHOU_NOTICE_LOGIN_REQUEST_ID;
-assert.ok(npcId && loginRequestId, "current NPC identity is required");
+const configuredNpcId = process.env.DONGZHOU_NOTICE_NPC_ID;
+const configuredLoginRequestId = process.env.DONGZHOU_NOTICE_LOGIN_REQUEST_ID;
+assert.equal(Boolean(configuredNpcId), Boolean(configuredLoginRequestId), "NPC identity overrides must be supplied together");
 const message = "东郊军粮已至，诸官依令整备。";
 const executablePath = [process.env.DONGZHOU_CHROMIUM_EXECUTABLE, "C:/Program Files/Google/Chrome/Application/chrome.exe", "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"].find((entry) => entry && fs.existsSync(entry));
 
@@ -27,6 +27,30 @@ const executablePath = [process.env.DONGZHOU_CHROMIUM_EXECUTABLE, "C:/Program Fi
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(url, { waitUntil: "domcontentloaded" });
     await page.waitForSelector("#app:not([hidden])", { timeout: 45000 });
+    const identity = await page.evaluate(async ({ configuredNpcId, configuredLoginRequestId }) => {
+      if (configuredNpcId) return { npcId: configuredNpcId, loginRequestId: configuredLoginRequestId, source: "environment" };
+      const serversResponse = await fetch("/api/v1/QueryServers", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+      });
+      assertStatus(serversResponse, "server directory");
+      const servers = await serversResponse.json();
+      const serverId = servers.servers?.[0];
+      if (!serverId) throw new Error("server directory is empty");
+      const directoryResponse = await fetch("/api/v1/QueryNPCS", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serverId, includeOffline: false }),
+      });
+      assertStatus(directoryResponse, "NPC directory");
+      const directory = await directoryResponse.json();
+      const npc = directory.infos?.find((entry) => entry.heroId === "ZuoRu" && Boolean(entry.isOnline));
+      if (!npc?.id || !npc?.loginRequestId) throw new Error("current ZuoRu login identity is unavailable");
+      return { npcId: String(npc.id), loginRequestId: npc.loginRequestId, source: "game-server-directory" };
+
+      function assertStatus(response, label) {
+        if (!response.ok) throw new Error(`${label} failed with HTTP ${response.status}`);
+      }
+    }, { configuredNpcId, configuredLoginRequestId });
+    const { npcId, loginRequestId } = identity;
     const delivery = await page.evaluate(async ({ npcId, loginRequestId, message }) => {
       const response = await fetch("/api/v2/NDLLMSendPublicMessage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ aiId: npcId, loginRequestId, message }) });
       return { status: response.status, body: await response.json() };
@@ -87,6 +111,6 @@ const executablePath = [process.env.DONGZHOU_CHROMIUM_EXECUTABLE, "C:/Program Fi
     assert.ok(layout.panelWidth <= layout.viewport, JSON.stringify(layout));
     await page.locator("#officePublicNotices").screenshot({ path: mobileScreenshot });
     assert.deepEqual(errors, []);
-    console.log(JSON.stringify({ result: "PASS", messageId: notice.messageId, digest: notice.digest, loginRoundDigest: currentRoundDigest, visibleNoticeCount: notices.notices.length, councilId: council.id, screenshot, councilScreenshot, mobileScreenshot }));
+    console.log(JSON.stringify({ result: "PASS", identitySource: identity.source, messageId: notice.messageId, digest: notice.digest, loginRoundDigest: currentRoundDigest, visibleNoticeCount: notices.notices.length, councilId: council.id, screenshot, councilScreenshot, mobileScreenshot }));
   } finally { await browser.close(); }
 })().catch((error) => { console.error(error); process.exitCode = 1; });

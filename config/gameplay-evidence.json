@@ -56,6 +56,7 @@
       "tools/test-live-office-roster-browser.js",
       "tools/test-live-player-career-browser.js",
       "tools/test-live-player-task-response-browser.js",
+      "tools/test-live-public-notice.js",
       "tools/test-live-quality-loop.js",
       "tools/test-live-roster-ledger.js",
       "tools/test-live-schedule-browser.js",
@@ -68,7 +69,6 @@
       "tools/test-live-merit-commendation.js": "requires an existing positive NPC organization-task contribution entry",
       "tools/test-live-office-acceptance.js": "requires a private acceptance journal path",
       "tools/test-live-orgflow-followup.js": "requires a previously generated parent task, derived child task, and owning installation ID",
-      "tools/test-live-public-notice.js": "requires the current AINPC NPC ID and login request ID",
       "tools/test-live-settlement-acceptance.js": "requires a completed live task journal path",
       "tools/test-real-office-snapshot-battle.js": "requires a captured real task snapshot and its private acceptance journal"
     },
