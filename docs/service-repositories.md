@@ -5,7 +5,7 @@ The four AI repositories are imported from the internal GitLab SSH repositories 
 | Directory | GitLab SSH source | Source branch | Dongzhou pin | Role |
 | --- | --- | --- | --- | --- |
 | `services/knowledge-jizhan` | `ssh://git@git.nd.com.cn:10022/AIGames/knowledge-jizhan.git` | `main@45afa2f` | `660d65b2` | Dongzhou source material and retrieval service |
-| `services/ainpc` | `ssh://git@git.nd.com.cn:10022/AIGames/ainpc.git` | `develop@82b7a7e02` | `a26c8299f` | NPC state, schedules, dialogue, and durable answer delivery |
+| `services/ainpc` | `ssh://git@git.nd.com.cn:10022/AIGames/ainpc.git` | `develop@82b7a7e02` | `808edf68f` | NPC state, schedules, dialogue, and durable answer delivery |
 | `services/orgFlowEngine` | `ssh://git@git.nd.com.cn:10022/AIGames/orgFlowEngine.git` | `develop@8b1049e` | `fbfc803b` | Office hierarchy and durable virtual tasks |
 | `services/NexusKernel` | `ssh://git@git.nd.com.cn:10022/AIGames/NexusKernel.git` | `develop@190abb1` | `4f1915b` | Embedded gateway runtime |
 
@@ -35,7 +35,7 @@ To advance a service deliberately, first fast-forward the matching `E:/game/<rep
 
 The `.gitmodules` URLs remain the sanitized publishing mirrors. Internal GitLab repositories are read-only input sources for this workspace and are not push targets from Dongzhou.
 
-Current AINPC pin: `a26c8299f` (`dev-gzj`), containing GitLab `develop@82b7a7e02`. Its Gateway readiness now reports that reviewed GitLab source so Dongzhou can reject an unattested runtime. Its adviser answer delivery recovery, large-player feedback fix, knowledge recall budget, and live acceptance are recorded in [2026-11-13-ainpc-adviser-delivery-recovery.md](2026-11-13-ainpc-adviser-delivery-recovery.md). AI Helper callbacks now use the configured AIFirewall HMAC filter instead of the retired DES sensitive-word endpoint. The local container reaches that service through the host loopback bridge on port `8090`; live question `1fcce851-19f7-4b8b-bc1f-7b45e4742607` confirmed both the loading and answer callbacks completed with `filter_degraded=false`.
+Current AINPC pin: `808edf68f` (`dev-gzj`), containing GitLab `develop@82b7a7e02`. Its Gateway readiness now reports that reviewed GitLab source so Dongzhou can reject an unattested runtime. Its adviser answer delivery recovery, large-player feedback fix, knowledge recall budget, and live acceptance are recorded in [2026-11-13-ainpc-adviser-delivery-recovery.md](2026-11-13-ainpc-adviser-delivery-recovery.md). AI Helper callbacks now use the configured AIFirewall HMAC filter instead of the retired DES sensitive-word endpoint. The local container reaches that service through the host loopback bridge on port `8090`; live question `1fcce851-19f7-4b8b-bc1f-7b45e4742607` confirmed both the loading and answer callbacks completed with `filter_degraded=false`.
 
 Runtime fallback rest now always instantiates AINPC's fixed `SleepTree` chain, including when the generation snapshot is outside a core map or temporarily lacks a scene. Dongzhou implements the matching strict parameter precheck and physical execution callback contract: unsupported trees remain rejected, `Reborn` closes immediately, and `SleepTree` stays in flight for its declared duration. Callback identity and due time live in the SQLite outbox, survive a gateway restart, and reject a conflicting reuse of the same physical UID. Live deployment produced exactly 12 accepted rest chains after a clean AINPC restart, with no parameter-precheck, empty-chain, model-configuration, or premature-completion failures during the acceptance window.
 
