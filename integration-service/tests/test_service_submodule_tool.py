@@ -38,3 +38,30 @@ def test_remote_branch_commit_rejects_ambiguous_or_invalid_output(
 
     with pytest.raises(RuntimeError, match="invalid"):
         VERIFIER.remote_branch_commit("ssh://git.example/repo.git", "develop")
+
+
+def test_source_revision_attestation_accepts_exact_trailer(monkeypatch, tmp_path) -> None:
+    source_revision = "a" * 40
+    monkeypatch.setattr(VERIFIER, "git_succeeds", lambda *args, **kwargs: False)
+    monkeypatch.setattr(
+        VERIFIER,
+        "git",
+        lambda *args, **kwargs: f"Snapshot\n\nSource-Revision: {source_revision}\n",
+    )
+
+    assert VERIFIER.source_revision_is_attested(
+        source_revision, "b" * 40, cwd=tmp_path
+    )
+
+
+def test_source_revision_attestation_rejects_wrong_trailer(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr(VERIFIER, "git_succeeds", lambda *args, **kwargs: False)
+    monkeypatch.setattr(
+        VERIFIER,
+        "git",
+        lambda *args, **kwargs: f"Source-Revision: {'c' * 40}\n",
+    )
+
+    assert not VERIFIER.source_revision_is_attested(
+        "a" * 40, "b" * 40, cwd=tmp_path
+    )

@@ -12,7 +12,7 @@ SERVICE_SOURCES: dict[str, dict[str, str]] = {
         "sourceUrl": "ssh://git@git.nd.com.cn:10022/AIGames/knowledge-jizhan.git",
         "sourceBranch": "main",
         "sourceRevision": "45afa2ffe77faea0622e8d3ed3f2b69c0cab9c56",
-        "integrationRevision": "660d65b2b5f1ab667812ebb1d73c91aadcdc5a03",
+        "integrationRevision": "5fd67de575113b3f1238149d971106c97eed5c9a",
     },
     "aiNpc": {
         "submodulePath": "services/ainpc",

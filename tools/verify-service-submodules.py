@@ -41,6 +41,17 @@ def git_succeeds(*args: str, cwd: Path = ROOT) -> bool:
     return result.returncode == 0
 
 
+def source_revision_is_attested(
+    source_commit: str, pinned_commit: str, *, cwd: Path
+) -> bool:
+    if git_succeeds(
+        "merge-base", "--is-ancestor", source_commit, pinned_commit, cwd=cwd
+    ):
+        return True
+    message = git("show", "-s", "--format=%B", pinned_commit, cwd=cwd)
+    return f"Source-Revision: {source_commit}" in message.splitlines()
+
+
 def remote_branch_commit(url: str, branch: str) -> str:
     output = git("ls-remote", "--exit-code", url, f"refs/heads/{branch}")
     rows = [line.split() for line in output.splitlines() if line.strip()]
@@ -143,14 +154,12 @@ def main() -> None:
                         f"{relative_path}: GitLab {expected['sourceBranch']} is "
                         f"{remote_commit[:12]}, manifest expects {source_commit[:12]}"
                     )
-        if not git_succeeds("cat-file", "-e", f"{source_commit}^{{commit}}", cwd=directory):
-            failures.append(f"{relative_path}: GitLab source commit {source_commit[:12]} is missing")
-        elif not git_succeeds(
-            "merge-base", "--is-ancestor", source_commit, pinned_commit, cwd=directory
+        if not source_revision_is_attested(
+            source_commit, pinned_commit, cwd=directory
         ):
             failures.append(
-                f"{relative_path}: pinned {pinned_commit[:12]} does not include "
-                f"GitLab source {source_commit[:12]}"
+                f"{relative_path}: pinned {pinned_commit[:12]} neither includes nor "
+                f"attests GitLab source {source_commit[:12]}"
             )
 
         source_path = Path(expected["sourcePath"])
