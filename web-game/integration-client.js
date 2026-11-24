@@ -29,6 +29,7 @@
   const LOCAL_LOGISTICS_BRIEFING_PREFIX = "dongzhou-local-logistics-briefing-v1:";
   const LOCAL_SCHEDULED_DUTY_STATUS_PREFIX = "dongzhou-local-scheduled-duty-status-v1:";
   const LOCAL_MEMBERSHIP_PREFIX = "dongzhou-local-membership-v1:";
+  const LOCAL_PLAYER_TASK_ACTIONS = new Set(["OPTIONS", "INBOX", "REQUEST", "ACCEPT", "REJECT", "MODIFY", "REVIEW", "EXCEPTION", "RESULT"]);
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
   let session = read(SESSION_KEY, null);
   let sessionPromise = null;
@@ -739,6 +740,164 @@
     const roster = localOrganizationRoster();
     offlineProfile = previousProfile;
     return { mode: "standalone", replayed, career, roster, receipt };
+  }
+
+  function localCareerTimestamp(taskIndex, version) {
+    const day = String(Math.min(28, taskIndex + 1)).padStart(2, "0");
+    const second = String(Math.min(59, version)).padStart(2, "0");
+    return `0771-01-${day}T00:00:${second}Z`;
+  }
+
+  async function sealLocalPlayerTask(task, sourceProvenance) {
+    const trace = {
+      taskId: task.taskId,
+      taskState: task.state,
+      taskVersion: String(task.version),
+      activeConfirmations: task.activeConfirmations || [],
+      supplementRequest: null,
+      executionException: task.executionException || null,
+      timeline: task.timeline || [],
+      sourceProvenance
+    };
+    return {
+      state: "SEALED",
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: { module: "dongzhou_organization_task_trace", moduleVersion: "1.1.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    };
+  }
+
+  async function verifiedLocalPlayerTasks(organization) {
+    const sourceProvenance = await localServiceProvenance();
+    const tasks = Array.isArray(organization.localPlayerTasks) ? organization.localPlayerTasks : [];
+    for (const task of tasks) {
+      const expected = await sealLocalPlayerTask(task, sourceProvenance);
+      if (canonicalJson(task.organizationTrace) !== canonicalJson(expected)) throw new Error("organization_player_task_seal_invalid");
+    }
+    return tasks;
+  }
+
+  async function localOrganizationPlayerTasks() {
+    const currentProfile = offlineProfile || read("dongzhou-h5-profile-v2", null);
+    const organization = currentProfile?.organization || {};
+    const tasks = await verifiedLocalPlayerTasks(organization);
+    return {
+      mode: "standalone",
+      items: tasks.map((task) => ({
+        taskId: task.taskId,
+        title: task.title,
+        state: task.state,
+        version: task.version,
+        updatedAt: task.updatedAt,
+        executionException: task.executionException || null,
+        organizationTrace: task.organizationTrace
+      })),
+      hasMore: false
+    };
+  }
+
+  async function localOrganizationPlayerTaskAction(action, input = {}) {
+    const normalizedAction = String(action || "").toUpperCase();
+    if (!LOCAL_PLAYER_TASK_ACTIONS.has(normalizedAction)) throw new Error("organization_player_task_action_invalid");
+    const currentProfile = offlineProfile || read("dongzhou-h5-profile-v2", null);
+    const organization = currentProfile?.organization || {};
+    if (organization.localPlayerCareer?.state !== "ACTIVE") throw new Error("organization_player_membership_required");
+    const tasks = (await verifiedLocalPlayerTasks(organization)).map((task) => JSON.parse(JSON.stringify(task)));
+    const sourceProvenance = await localServiceProvenance();
+    let task;
+    let message;
+    if (normalizedAction === "OPTIONS" || normalizedAction === "INBOX") {
+      message = normalizedAction === "OPTIONS"
+        ? "本地可领差事：核验军粮账册、巡察驿路、整训军阵、查访边情、修好诸侯。"
+        : tasks.length ? `本地仕途账共有 ${tasks.length} 项差事。` : "本地仕途账尚无差事。";
+      return { mode: "standalone", organization, task: null, message, tasks: await localOrganizationPlayerTasks() };
+    } else if (normalizedAction === "REQUEST") {
+      const title = String(input.title || "").trim();
+      if (!title || title.length > 80) throw new Error("organization_player_task_title_invalid");
+      const taskIndex = tasks.length;
+      const playerId = await localPlayerId();
+      const taskId = uuidFromDigest(await sha256(canonicalJson({ playerId, sequence: taskIndex + 1, title })));
+      if (tasks.some((entry) => entry.taskId === taskId || (entry.title === title && !["SUCCEEDED", "REJECTED", "CANCELLED", "FAILED"].includes(entry.state)))) {
+        throw new Error("organization_player_task_conflict");
+      }
+      task = {
+        taskId,
+        title,
+        state: "MEMBER_RESPONSE_PENDING",
+        version: 1,
+        updatedAt: localCareerTimestamp(taskIndex, 1),
+        modification: null,
+        executionException: null,
+        activeConfirmations: [],
+        timeline: [{ sequence: 1, type: "TASK_CREATED", occurredAt: localCareerTimestamp(taskIndex, 1), stateCode: "MEMBER_RESPONSE_PENDING" }]
+      };
+      task.organizationTrace = await sealLocalPlayerTask(task, sourceProvenance);
+      tasks.push(task);
+      message = `本地差事《${title}》已经立案，等待你接受、改令或拒绝。`;
+    } else {
+      const taskId = String(input.taskId || "");
+      const taskIndex = tasks.findIndex((entry) => entry.taskId === taskId);
+      if (taskIndex < 0) throw new Error("organization_player_task_not_found");
+      task = tasks[taskIndex];
+      const detail = String(input.detail || "").trim();
+      const requireState = (states) => {
+        if (!states.includes(task.state)) throw new Error("organization_player_task_state_invalid");
+      };
+      if (["ACCEPT", "REJECT", "MODIFY"].includes(normalizedAction)) requireState(["MEMBER_RESPONSE_PENDING"]);
+      if (normalizedAction === "REVIEW") requireState(["MODIFICATION_CONFIRMATION_PENDING"]);
+      if (["EXCEPTION", "RESULT"].includes(normalizedAction)) requireState(["IN_PROGRESS"]);
+      if (["MODIFY", "EXCEPTION", "RESULT"].includes(normalizedAction) && !detail) throw new Error("organization_player_task_detail_required");
+      task.version += 1;
+      task.updatedAt = localCareerTimestamp(taskIndex, task.version);
+      const append = (type, stateCode) => task.timeline.push({ sequence: task.timeline.length + 1, type, occurredAt: task.updatedAt, stateCode });
+      if (normalizedAction === "ACCEPT") {
+        task.state = "IN_PROGRESS";
+        append("EXECUTION_STARTED", task.state);
+        message = `本地差事《${task.title}》已接受并开始执行。`;
+      } else if (normalizedAction === "REJECT") {
+        task.state = "REJECTED";
+        task.rejectionReason = detail;
+        append("CONFIRMATION_RESOLVED", task.state);
+        message = `本地差事《${task.title}》已拒绝。`;
+      } else if (normalizedAction === "MODIFY") {
+        task.state = "MODIFICATION_CONFIRMATION_PENDING";
+        task.modification = detail;
+        task.activeConfirmations = [{ type: "TASK_MODIFICATION", state: "WAITING_CONFIRMATION", recipientType: "MANAGER", allowedActions: ["approve"] }];
+        append("CONFIRMATION_OPENED", task.state);
+        message = `本地改令申请已登记，等待杜伯裁定。`;
+      } else if (normalizedAction === "REVIEW") {
+        task.state = "IN_PROGRESS";
+        task.activeConfirmations = [];
+        append("CONFIRMATION_RESOLVED", task.state);
+        append("EXECUTION_STARTED", task.state);
+        message = `本地改令已经裁定，差事按新要求开始执行。`;
+      } else if (normalizedAction === "EXCEPTION") {
+        task.executionException = {
+          exceptionId: uuidFromDigest(await sha256(`${task.taskId}:exception:${task.version}`)),
+          code: "local_execution_blocked",
+          summary: detail,
+          state: "ACCEPTED",
+          defaultPlanId: "local-adjust-course",
+          selectedPlanId: "local-adjust-course",
+          plans: [{ id: "local-adjust-course", title: "调整行程继续办理", description: "缩小范围并改换路线，保留原差事目标。" }],
+          resolutionSource: "IN_PROCESS_RULE"
+        };
+        append("EXECUTION_EXCEPTION_REPORTED", "OPEN");
+        append("EXECUTION_EXCEPTION_RESOLVED", "ACCEPTED");
+        message = `本地受阻记录已封存，差事按调整方案继续。`;
+      } else if (normalizedAction === "RESULT") {
+        task.state = "SUCCEEDED";
+        task.result = detail;
+        append("SUBMISSION_RECORDED", "SUBMISSION_PENDING");
+        append("TASK_FINALIZED", task.state);
+        message = `本地复命已封存，差事《${task.title}》办结。`;
+      }
+      task.organizationTrace = await sealLocalPlayerTask(task, sourceProvenance);
+      tasks[taskIndex] = task;
+    }
+    const nextOrganization = { ...organization, localPlayerTasks: tasks };
+    offlineProfile = { ...(currentProfile || {}), organization: nextOrganization };
+    return { mode: "standalone", organization: nextOrganization, task, message, tasks: await localOrganizationPlayerTasks() };
   }
 
   async function localNpcDecision(heroId, question, options, stageId, memory, publicNotice, contribution, contributionDossier) {
@@ -2184,7 +2343,14 @@
     if (offline) return localOrganizationContributionDossier(heroId, entryId);
     return requestWithTransientRetry(`/organization/members/${encodeURIComponent(heroId)}/contributions/${encodeURIComponent(entryId)}/dossier`);
   }
-  function organizationPlayerTasks() { return requestWithTransientRetry("/organization/player-tasks"); }
+  function organizationPlayerTasks() {
+    if (offline) return localOrganizationPlayerTasks();
+    return requestWithTransientRetry("/organization/player-tasks");
+  }
+  function applyOrganizationPlayerTaskAction(action, input) {
+    if (offline) return localOrganizationPlayerTaskAction(action, input);
+    throw new Error("organization_player_task_action_requires_conversation");
+  }
   function organizationPlayerContributions() { return requestWithTransientRetry("/organization/player-contributions"); }
   function organizationPlayerContributionDossier(entryId) { return requestWithTransientRetry(`/organization/player-contributions/${encodeURIComponent(entryId)}/dossier`); }
   function organizationInventory() {
@@ -2643,5 +2809,5 @@
     return result;
   }
 
-  return { initialize, persist, status, searchKnowledge, knowledgeCodex, battleDebrief, battleReadiness, battleDeployment, verifyBattleDeployment, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, verifyKnowledgeQuizSeal, pendingAdviserQuestion, askAdviser, adviserQuestion, feedbackAdviser, decideAdviserGuide, adviserGuide, cancelAdviserGuide, syncNpcs, setNpcInteractionPreference, commendNpc, commendMeritNpc, recallNpc, npcState, npcCorrespondence, organizationPublicNotices, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, setOrganizationMembership, organizationMemberContributions, organizationContributionDossier, organizationPlayerTasks, organizationPlayerContributions, organizationPlayerContributionDossier, organizationInventory, organizationScheduledDuties, setOrganizationScheduledDutyEnabled, organizationLogisticsBriefing, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, settleLocalOrganizationTasks, reviewOrganizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, knowledgeCodex, battleDebrief, battleReadiness, battleDeployment, verifyBattleDeployment, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, verifyKnowledgeQuizSeal, pendingAdviserQuestion, askAdviser, adviserQuestion, feedbackAdviser, decideAdviserGuide, adviserGuide, cancelAdviserGuide, syncNpcs, setNpcInteractionPreference, commendNpc, commendMeritNpc, recallNpc, npcState, npcCorrespondence, organizationPublicNotices, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, setOrganizationMembership, organizationMemberContributions, organizationContributionDossier, organizationPlayerTasks, applyOrganizationPlayerTaskAction, organizationPlayerContributions, organizationPlayerContributionDossier, organizationInventory, organizationScheduledDuties, setOrganizationScheduledDutyEnabled, organizationLogisticsBriefing, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, settleLocalOrganizationTasks, reviewOrganizationTask, isOffline: () => offline };
 });

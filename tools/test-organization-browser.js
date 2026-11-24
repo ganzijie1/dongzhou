@@ -95,6 +95,35 @@ async function openReady(page) {
     await desktop.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
     await desktop.click("#campaignOfficeButton");
     await desktop.waitForSelector("#officeMembershipState >> text=已入仕", { timeout: 10000 });
+    await desktop.click("#officeCareerOptions");
+    await desktop.waitForSelector("#officeCareerFeedback >> text=本地可领差事", { timeout: 10000 });
+    await desktop.fill("#officeCareerTaskName", "核验军粮账册");
+    await desktop.click("#officeCareerRequestForm button[type=submit]");
+    await desktop.waitForSelector("#officeCareerStatus >> text=待接受", { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerFeedback >> text=等待你接受、改令或拒绝", { timeout: 10000 });
+    await desktop.click("#officeCareerAccept");
+    await desktop.waitForSelector("#officeCareerStatus >> text=执行中", { timeout: 10000 });
+    await desktop.fill("#officeCareerResult", "北路桥梁冲毁，车队暂时受阻");
+    await desktop.click("#officeCareerException");
+    await desktop.waitForSelector('#officeCareerStatus [data-exception-state="ACCEPTED"]', { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerFeedback >> text=本地受阻记录已封存", { timeout: 10000 });
+    await desktop.fill("#officeCareerResult", "改走西驿道后核清军粮账册");
+    await desktop.click("#officeCareerResultSubmit");
+    await desktop.waitForSelector("#officeCareerStatus >> text=已办成", { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerFeedback >> text=本地复命已封存", { timeout: 10000 });
+    const localPlayerTask = await desktop.evaluate(() => {
+      const task = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.localPlayerTasks[0];
+      return { state: task.state, version: task.version, result: task.result, trace: task.organizationTrace };
+    });
+    if (localPlayerTask.state !== "SUCCEEDED" || localPlayerTask.result !== "改走西驿道后核清军粮账册"
+      || localPlayerTask.trace.kernel?.moduleVersion !== "1.1.0" || !/^[0-9a-f]{64}$/.test(localPlayerTask.trace.digest)) {
+      throw new Error(`Offline player task was not sealed: ${JSON.stringify(localPlayerTask)}`);
+    }
+    await desktop.reload({ waitUntil: "domcontentloaded" });
+    await desktop.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
+    await desktop.click("#campaignOfficeButton");
+    await desktop.waitForSelector("#officeMembershipState >> text=已入仕", { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerStatus >> text=已办成", { timeout: 10000 });
     await desktop.click("#officeMembershipLeave");
     await desktop.waitForSelector("#officeMembershipLeaveConfirm:not([hidden])", { timeout: 10000 });
     if (await desktop.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.localPlayerCareer.state) !== "ACTIVE") {

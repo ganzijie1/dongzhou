@@ -1169,6 +1169,7 @@
       refreshOfficeScheduledDuty().catch(() => {});
       refreshOfficePublicNotices().catch(() => {});
       refreshOfficeContributions().catch(() => {});
+      refreshOfficeCareerStatus({ quiet: true }).catch(() => {});
       const manager = profile.organization.members.find((member) => member.id === "DuBo");
       syncOfficeNpcs(manager ? [manager] : [])
         .then(() => {
@@ -2258,7 +2259,7 @@
   }
 
   async function refreshOfficeCareerStatus({ quiet = false } = {}) {
-    if (integration.isOffline() || officeCareerStatusBusy || !profile.organization.remoteRoster?.playerMembership) return null;
+    if (officeCareerStatusBusy || !profile.organization.remoteRoster?.playerMembership) return null;
     officeCareerStatusBusy = true;
     renderOfficeCareer();
     try {
@@ -2288,7 +2289,7 @@
   }
 
   async function requestOfficeCareer(action, detail = "") {
-    if (integration.isOffline() || officeCareerBusy || !profile.organization.remoteRoster?.playerMembership) return;
+    if (officeCareerBusy || !profile.organization.remoteRoster?.playerMembership) return;
     const selectedTask = officeCareerStatusItems.find((task) => task.taskId === officeCareerSelectedTaskId) || null;
     if (["accept", "reject", "modify", "review", "result", "supplement", "exception"].includes(action) && !selectedTask) {
       $("#officeCareerFeedback").textContent = "请先在权威差事状态中选定本次要汇报的差事。";
@@ -2347,6 +2348,26 @@
     renderOfficeCareer();
     $("#officeCareerFeedback").textContent = ({ options: "正在向杜伯查询可领差事……", request: "领差申请已送杜伯，等待派发……", inbox: "正在调阅我的任务待办……", accept: "受命回执已送杜伯……", reject: "拒绝回执已送杜伯……", modify: "改令申请已送杜伯，等待裁定……", review: "正在请杜伯裁定改令……", exception: "受阻报告已送杜伯，等待冻结方案裁定……", result: "复命已送杜伯，等待审核与贡献结算……", supplement: "补呈已送杜伯，等待权威行迹登记与复核……" })[action];
     try {
+      if (integration.isOffline()) {
+        const input = action === "request"
+          ? { title: detail }
+          : ["options", "inbox"].includes(action) ? {} : { taskId: selectedTask.taskId, detail };
+        let response = await integration.applyOrganizationPlayerTaskAction(action.toUpperCase(), input);
+        profile.organization = organization.normalizeState(response.organization);
+        if (action === "modify") {
+          response = await integration.applyOrganizationPlayerTaskAction("REVIEW", { taskId: selectedTask.taskId });
+          profile.organization = organization.normalizeState(response.organization);
+        }
+        writeJson(PROFILE_KEY, profile);
+        await integration.persist(profile);
+        await refreshOfficeCareerStatus({ quiet: true });
+        $("#officeCareerFeedback").textContent = response.message;
+        if (action === "request" && detail) $("#officeCareerTaskName").value = "";
+        if (["result", "exception"].includes(action) && detail) $("#officeCareerResult").value = "";
+        if (["accept", "reject", "modify"].includes(action)) $("#officeCareerResponseDetail").value = "";
+        renderOrganizationPanel();
+        return;
+      }
       await syncOfficeNpcs(profile.organization.members.filter((member) => member.id === "DuBo"));
       const replyMatchesAction = (entry, expectedAction) => {
         const content = String(entry?.content || "");
