@@ -2661,7 +2661,7 @@
       ? officePublicNotices.slice(0, 12).map((notice) => {
         const eligible = notice.heroId === $("#officeMemberSelect").value;
         const selected = notice.messageId === officeSelectedPublicNotice?.messageId;
-        return `<li class="${selected ? "selected" : ""}"><strong>${escapeHtml(notice.npcName || displayName(notice.heroId))}</strong><span>${escapeHtml(notice.message)}</span><small>${escapeHtml(notice.publishedAt || "")} · 内核印记 ${escapeHtml(String(notice.digest || "").slice(0, 12))}</small><button class="large-button" type="button" data-public-notice-id="${escapeHtml(notice.messageId)}" ${eligible ? "" : "disabled"}>${selected ? "已取为公议" : "取为公议"}</button></li>`;
+        return `<li class="${selected ? "selected" : ""}"><strong>${escapeHtml(notice.npcName || displayName(notice.heroId))}</strong><span>${escapeHtml(notice.message)}</span><small>${escapeHtml(notice.publishedAt || "")} · 内核印记 ${escapeHtml(String(notice.digest || "").slice(0, 12))} · 版本封印 ${escapeHtml(String(notice.sourceProvenance?.digest || "").slice(0, 10))}</small><button class="large-button" type="button" data-public-notice-id="${escapeHtml(notice.messageId)}" ${eligible ? "" : "disabled"}>${selected ? "已取为公议" : "取为公议"}</button></li>`;
       }).join("")
       : '<li class="empty">尚无在职属官公开告示</li>';
   }

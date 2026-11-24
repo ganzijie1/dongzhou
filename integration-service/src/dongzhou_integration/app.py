@@ -642,7 +642,8 @@ class NpcRecollectionModule(Module):
 
 class NpcPublicNoticeModule(Module):
     name = "dongzhou_npc_public_notice"
-    version = "1.0.0"
+    version = "1.1.0"
+    dependencies = (RuntimeModule.name, "dongzhou_service_provenance")
 
     @classmethod
     def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
@@ -651,10 +652,17 @@ class NpcPublicNoticeModule(Module):
             raise ValueError("NPC public notice trace is incomplete")
         if not re.fullmatch(r"[0-9a-f]{64}", str(trace["loginRoundDigest"])):
             raise ValueError("NPC public notice login round digest is invalid")
+        if not _service_provenance_receipt_is_valid(trace.get("sourceProvenance")):
+            raise ValueError("NPC public notice source provenance is invalid")
         return {
             **trace,
             "digest": _canonical_digest(trace),
-            "kernel": {"module": cls.name, "moduleVersion": cls.version, "state": "SEALED"},
+            "kernel": {
+                "module": cls.name,
+                "moduleVersion": cls.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "SEALED",
+            },
         }
 
 
@@ -5364,6 +5372,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "npcName": npc["name"],
             "message": request.message,
             "loginRoundDigest": hashlib.sha256(request.login_request_id.encode("utf-8")).hexdigest(),
+            "sourceProvenance": service_provenance.receipt(),
         })
         created = await store.record_public_message(message_id, settings.game_server_id, request.ai_id, notice)
         return {"success": True, "messageId": message_id, "duplicate": not created}
@@ -6968,6 +6977,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             for notice, runtime in zip(notices, runtimes, strict=True)
             if notice.get("heroId") in active_heroes
             and _public_notice_matches_runtime(notice, runtime)
+            and notice.get("kernel", {}).get("module") == NpcPublicNoticeModule.name
+            and notice.get("kernel", {}).get("moduleVersion") == NpcPublicNoticeModule.version
+            and _service_provenance_receipt_matches(
+                notice.get("sourceProvenance"), service_provenance.receipt()
+            )
         ]}
 
     @router.post("/knowledge/routes")
@@ -7844,7 +7858,12 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 or public_notice_receipt.get("heroId") != hero_id
                 or public_notice_receipt.get("digest") != request.public_notice_digest
                 or public_notice_receipt.get("kernel", {}).get("module") != NpcPublicNoticeModule.name
+                or public_notice_receipt.get("kernel", {}).get("moduleVersion") != NpcPublicNoticeModule.version
                 or public_notice_receipt.get("kernel", {}).get("state") != "SEALED"
+                or not _service_provenance_receipt_matches(
+                    public_notice_receipt.get("sourceProvenance"),
+                    service_provenance.receipt(),
+                )
                 or not _public_notice_matches_runtime(public_notice_receipt, notice_runtime)
                 or request.public_notice_digest[:12] not in request.question
                 or not active
@@ -8480,6 +8499,14 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 not isinstance(current_notice, dict)
                 or current_notice.get("heroId") != request.hero_id
                 or current_notice.get("digest") != selected_public_notice.get("digest")
+                or current_notice.get("kernel", {}).get("module") != NpcPublicNoticeModule.name
+                or current_notice.get("kernel", {}).get("moduleVersion") != NpcPublicNoticeModule.version
+                or current_notice.get("kernel", {}).get("state") != "SEALED"
+                or not _service_provenance_receipt_matches(
+                    current_notice.get("sourceProvenance"),
+                    service_provenance.receipt(),
+                )
+                or selected_public_notice.get("sourceProvenance") != current_notice.get("sourceProvenance")
                 or not _public_notice_matches_runtime(current_notice, notice_runtime)
                 or str(selected_public_notice.get("digest") or "")[:12] not in str(council_request.get("question") or "")
                 or not any(member.get("heroId") == request.hero_id for member in current_roster.get("members", []))

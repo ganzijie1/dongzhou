@@ -10,7 +10,9 @@ try { ({ chromium } = require(path.resolve(__dirname, "../output/playwright-runt
 catch (_) { ({ chromium } = require("playwright")); }
 
 const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
-verifyFourServiceRuntime(url);
+const runtimeReport = verifyFourServiceRuntime(url);
+const expectedSourceSeal = runtimeReport.checks?.liveRuntime?.sourceSealDigest;
+assert.match(expectedSourceSeal || "", /^[0-9a-f]{64}$/);
 const npcId = process.env.DONGZHOU_NOTICE_NPC_ID;
 const loginRequestId = process.env.DONGZHOU_NOTICE_LOGIN_REQUEST_ID;
 assert.ok(npcId && loginRequestId, "current NPC identity is required");
@@ -43,7 +45,10 @@ const executablePath = [process.env.DONGZHOU_CHROMIUM_EXECUTABLE, "C:/Program Fi
     assert.ok(notice);
     assert.equal(notice.heroId, "ZuoRu");
     assert.equal(notice.kernel.module, "dongzhou_npc_public_notice");
+    assert.equal(notice.kernel.moduleVersion, "1.1.0");
     assert.equal(notice.kernel.state, "SEALED");
+    assert.equal(notice.sourceProvenance.digest, expectedSourceSeal);
+    assert.deepEqual(Object.keys(notice.sourceProvenance.services).sort(), ["aiNpc", "knowledge", "nexusKernel", "orgFlow"]);
     assert.match(notice.digest, /^[0-9a-f]{64}$/);
 
     await page.click("#officeStageKnowledgeButton");
@@ -65,6 +70,9 @@ const executablePath = [process.env.DONGZHOU_CHROMIUM_EXECUTABLE, "C:/Program Fi
     assert.equal(council.memberId, "ZuoRu");
     assert.equal(council.publicNotice.messageId, notice.messageId);
     assert.equal(council.publicNotice.digest, notice.digest);
+    assert.equal(council.publicNotice.sourceProvenance.digest, expectedSourceSeal);
+    assert.equal(council.sourceProvenance.digest, expectedSourceSeal);
+    assert.match(await noticeItem.textContent(), new RegExp(`版本封印\\s+${expectedSourceSeal.slice(0, 10)}`));
     assert.match(council.question, new RegExp(`告示印记：${notice.digest.slice(0, 12)}`));
 
     const screenshot = path.resolve(__dirname, "../output/integration-validation/npc-public-notice-live.png");

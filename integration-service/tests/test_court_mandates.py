@@ -1495,6 +1495,8 @@ def test_council_memory_and_public_notice_are_verified_and_sealed_into_mandate()
             assert recalled.status_code == 200, recalled.text
             assert recalled.json()["memoryReceipt"]["digest"] == memory["digest"]
             assert recalled.json()["publicNoticeReceipt"]["digest"] == notice["digest"]
+            assert recalled.json()["publicNoticeReceipt"]["kernel"]["moduleVersion"] == "1.1.0"
+            assert recalled.json()["publicNoticeReceipt"]["sourceProvenance"] == notice["sourceProvenance"]
 
             asyncio.run(store.mark_npc_ready(
                 settings.game_server_id, ZUORU_NPC_ID, "round-replaced", None, None, "startup-2"
@@ -1519,6 +1521,8 @@ def test_council_memory_and_public_notice_are_verified_and_sealed_into_mandate()
             assert mandate["council"]["memory"]["idempotencyKey"] == memory["idempotencyKey"]
             assert mandate["publicNotice"]["digest"] == notice["digest"]
             assert mandate["council"]["publicNotice"]["messageId"] == notice["messageId"]
+            assert mandate["publicNotice"]["sourceProvenance"] == mandate["sourceProvenance"]
+            assert mandate["council"]["publicNotice"]["sourceProvenance"] == mandate["sourceProvenance"]
             assert mandate["kernel"]["moduleVersion"] == "1.13.0"
 
 

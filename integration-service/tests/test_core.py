@@ -28,6 +28,7 @@ from dongzhou_integration.app import (
     BattleReceiptConflict,
     CampaignRouteModule,
     NpcCollaborationRelationshipModule,
+    NpcPublicNoticeModule,
     NpcReviewRelationshipModule,
     NpcSettlementModule,
     OrganizationTaskTraceModule,
@@ -2772,7 +2773,11 @@ class AuthenticationRouteTests(unittest.TestCase):
                 notices = asyncio.run(store.list_public_messages(settings.game_server_id))
                 self.assertEqual(len(notices), 1)
                 self.assertEqual(notices[0]["heroId"], "ZuoRu")
-                self.assertEqual(notices[0]["kernel"], {"module": "dongzhou_npc_public_notice", "moduleVersion": "1.0.0", "state": "SEALED"})
+                self.assertEqual(notices[0]["kernel"]["module"], "dongzhou_npc_public_notice")
+                self.assertEqual(notices[0]["kernel"]["moduleVersion"], "1.1.0")
+                self.assertEqual(notices[0]["kernel"]["state"], "SEALED")
+                self.assertEqual(notices[0]["sourceProvenance"]["kernel"]["module"], "dongzhou_service_provenance")
+                self.assertEqual(set(notices[0]["sourceProvenance"]["services"]), set(ServiceProvenanceModule.service_names))
                 self.assertRegex(notices[0]["digest"], r"^[0-9a-f]{64}$")
                 self.assertEqual(client.post("/api/dongzhou/v1/sessions/guest", json={"installation_id": str(uuid4())}).status_code, 200)
                 visible = client.get("/api/dongzhou/v1/organization/public-notices")
@@ -2797,6 +2802,38 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
 
     async def asyncTearDown(self) -> None:
         self.temp.cleanup()
+
+    async def test_public_message_allows_only_source_provenance_upgrade(self) -> None:
+        business = {
+            "messageId": "npc-public:" + "1" * 64,
+            "gameServerId": "91001",
+            "npcId": "42",
+            "heroId": "ZuoRu",
+            "npcName": "Zuo Ru",
+            "message": "The grain convoy has arrived.",
+            "loginRoundDigest": "2" * 64,
+        }
+        legacy = {
+            **business,
+            "digest": "3" * 64,
+            "kernel": {
+                "module": "dongzhou_npc_public_notice",
+                "moduleVersion": "1.0.0",
+                "state": "SEALED",
+            },
+        }
+        source = ServiceProvenanceModule.seal(public_service_sources())
+        upgraded = NpcPublicNoticeModule.seal({**business, "sourceProvenance": source})
+        self.assertTrue(await self.store.record_public_message(business["messageId"], "91001", "42", legacy))
+        self.assertFalse(await self.store.record_public_message(business["messageId"], "91001", "42", upgraded))
+        stored = await self.store.read_public_message("91001", business["messageId"])
+        self.assertEqual(stored["kernel"]["moduleVersion"], "1.1.0")
+        self.assertEqual(stored["sourceProvenance"], source)
+        with self.assertRaises(VersionConflict):
+            await self.store.record_public_message(
+                business["messageId"], "91001", "42",
+                {**upgraded, "message": "Changed message"},
+            )
 
     async def test_private_chat_reset_releases_only_requested_pair_lease(self) -> None:
         first = {

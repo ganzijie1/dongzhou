@@ -233,7 +233,29 @@ class Store:
                 row = db.execute("SELECT payload FROM npc_public_messages WHERE message_id=?", (message_id,)).fetchone()
                 if row is not None:
                     if row["payload"] != encoded:
-                        raise VersionConflict("public_message_idempotency_conflict")
+                        previous = json.loads(row["payload"])
+                        business_fields = (
+                            "messageId", "gameServerId", "npcId", "heroId",
+                            "npcName", "message", "loginRoundDigest",
+                        )
+                        previous_kernel = previous.get("kernel", {})
+                        current_kernel = payload.get("kernel", {})
+                        provenance_upgrade = (
+                            all(previous.get(key) == payload.get(key) for key in business_fields)
+                            and previous_kernel.get("module") == "dongzhou_npc_public_notice"
+                            and previous_kernel.get("moduleVersion") == "1.0.0"
+                            and previous_kernel.get("state") == "SEALED"
+                            and current_kernel.get("module") == "dongzhou_npc_public_notice"
+                            and current_kernel.get("moduleVersion") == "1.1.0"
+                            and current_kernel.get("state") == "SEALED"
+                            and isinstance(payload.get("sourceProvenance"), dict)
+                        )
+                        if not provenance_upgrade:
+                            raise VersionConflict("public_message_idempotency_conflict")
+                        db.execute(
+                            "UPDATE npc_public_messages SET payload=?,game_server_id=?,npc_id=? WHERE message_id=?",
+                            (encoded, game_server_id, npc_id, message_id),
+                        )
                     return False
                 db.execute(
                     "INSERT INTO npc_public_messages(message_id,game_server_id,npc_id,payload) VALUES (?,?,?,?)",
