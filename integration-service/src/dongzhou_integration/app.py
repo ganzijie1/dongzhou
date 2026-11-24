@@ -1153,11 +1153,13 @@ class OrganizationTaskTopologyModule(Module):
 
 class LogisticsBriefingModule(Module):
     name = "dongzhou_logistics_briefing"
-    version = "1.0.0"
-    dependencies = (RuntimeModule.name,)
+    version = "1.1.0"
+    dependencies = (RuntimeModule.name, "dongzhou_service_provenance")
 
     @staticmethod
     def seal(trace: dict[str, Any]) -> dict[str, Any]:
+        if not _service_provenance_receipt_is_valid(trace.get("sourceProvenance")):
+            raise ValueError("logistics briefing source provenance is invalid")
         digest = _canonical_digest(trace)
         return {
             **trace,
@@ -7617,6 +7619,21 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     status_code=422,
                 )
             logistics_receipt = candidate
+            if not _service_provenance_receipt_matches(
+                candidate.get("sourceProvenance"), service_provenance.receipt()
+            ):
+                await store.finish_request(
+                    player_id,
+                    request.client_request_id,
+                    "REJECTED",
+                    {"state": "REJECTED"},
+                    "npc_thought_logistics_source_provenance_mismatch",
+                )
+                raise ApiError(
+                    "npc_thought_logistics_source_provenance_mismatch",
+                    "The logistics briefing was not sealed by the current four-service runtime.",
+                    status_code=409,
+                )
 
         npc_id = stable_npc_id(settings.ainpc_game_server_id, hero_id)
         directory = await store.list_npcs(settings.game_server_id, include_offline=True)
@@ -7719,6 +7736,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                         "requestId": logistics_receipt["requestId"],
                         "digest": logistics_receipt["digest"],
                         "inventoryRevision": logistics_receipt["inventoryRevision"],
+                        "sourceProvenance": logistics_receipt["sourceProvenance"],
                     }
                 }
                 if logistics_receipt
@@ -10405,6 +10423,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "market": "DELIVERED",
                 "warehouse": "DELIVERED",
             },
+            "sourceProvenance": service_provenance.receipt(),
         }
         receipt = logistics_briefing.seal(trace)
         response = {

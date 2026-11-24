@@ -1743,9 +1743,8 @@ def test_logistics_briefing_reports_authoritative_facts_and_binds_thought() -> N
             "contribution_lifetime_earned": 80,
             "contribution_lifetime_spent": 26,
         }]
-        app = build_application(
-            configured(Path(directory) / "gateway.sqlite3"), upstreams=upstreams
-        )
+        database = Path(directory) / "gateway.sqlite3"
+        app = build_application(configured(database), upstreams=upstreams)
         with TestClient(app) as client:
             start_session(client)
             saved = client.put(
@@ -1772,6 +1771,8 @@ def test_logistics_briefing_reports_authoritative_facts_and_binds_thought() -> N
             receipt = created.json()["briefingReceipt"]
             assert receipt["state"] == "SEALED"
             assert receipt["kernel"]["module"] == "dongzhou_logistics_briefing"
+            assert receipt["kernel"]["moduleVersion"] == "1.1.0"
+            assert receipt["sourceProvenance"]["kernel"]["state"] == "SEALED"
             assert receipt["inventoryRevision"] == 7
             assert receipt["campaignResources"] == {"provisions": 73, "morale": 61}
             assert receipt["exchange"] == {
@@ -1826,6 +1827,7 @@ def test_logistics_briefing_reports_authoritative_facts_and_binds_thought() -> N
                 "requestId": briefing_id,
                 "digest": receipt["digest"],
                 "inventoryRevision": 7,
+                "sourceProvenance": receipt["sourceProvenance"],
             }
             assert "仓情实账：军粮73，差事额度128" in upstreams.thoughts[-1][1]["npc_context"]["recent_events"]
 
@@ -1844,6 +1846,40 @@ def test_logistics_briefing_reports_authoritative_facts_and_binds_thought() -> N
             )
             assert tampered.status_code == 422
             assert tampered.json()["error"]["code"] == "npc_thought_logistics_unverified"
+
+            connection = sqlite3.connect(database)
+            try:
+                row = connection.execute(
+                    "SELECT response_payload FROM requests WHERE request_id=?",
+                    (briefing_id,),
+                ).fetchone()
+                assert row is not None
+                stored = json.loads(row[0])
+                stored["briefingReceipt"]["sourceProvenance"]["digest"] = "0" * 64
+                connection.execute(
+                    "UPDATE requests SET response_payload=? WHERE request_id=?",
+                    (json.dumps(stored, ensure_ascii=False), briefing_id),
+                )
+                connection.commit()
+            finally:
+                connection.close()
+            thought_calls = len(upstreams.thoughts)
+            stale = client.post(
+                "/api/dongzhou/v1/npcs/ZuoRu/thoughts",
+                json={
+                    "client_request_id": str(uuid4()),
+                    "stage_id": "01",
+                    "stage_title": "东郊索命",
+                    "knowledge_id": "dongzhou_stage_001",
+                    "evidence_source_index": 0,
+                    "task_type": "drill",
+                    "logistics_briefing_request_id": briefing_id,
+                    "logistics_briefing_digest": receipt["digest"],
+                },
+            )
+            assert stale.status_code == 409
+            assert stale.json()["error"]["code"] == "npc_thought_logistics_source_provenance_mismatch"
+            assert len(upstreams.thoughts) == thought_calls
 
 
 def test_verified_quiz_mastery_is_sealed_and_forwarded_to_orgflow() -> None:

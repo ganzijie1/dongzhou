@@ -228,6 +228,9 @@
     const member = state.members.find((entry) => entry.id === receipt?.heroId);
     const knowledge = state.knowledge.find((entry) => entry.id === receipt?.knowledgeId && entry.stageId === receipt?.stageId);
     if (!receipt?.requestId || !/^[0-9a-f]{64}$/.test(String(receipt.digest || "")) || !member || !knowledge) throw new Error("属官进言回执无效");
+    const briefing = receipt.logisticsBriefing;
+    const recordedBriefing = briefing ? state.logisticsBriefings.find((entry) => entry.requestId === briefing.requestId) : null;
+    if (briefing?.sourceProvenance && (!validSourceProvenance(briefing.sourceProvenance) || !recordedBriefing || recordedBriefing.digest !== briefing.digest || recordedBriefing.sourceProvenance?.digest !== briefing.sourceProvenance.digest)) throw new Error("属官进言仓情服务来源无效");
     if (!receipt.source?.work || !Number.isInteger(Number(receipt.source.index)) || !receipt.assignment?.planId || !receipt.assignment?.eventId || !receipt.taskType) throw new Error("属官进言缺少史证或当值记录");
     if (!receipt.thought || typeof receipt.thought.hasThought !== "boolean" || !String(receipt.thought.description || "").trim() || !String(receipt.councilProposal || "").trim() || String(receipt.councilProposal).length > 48 || !Number.isFinite(Number(receipt.thought.importance))) throw new Error("属官进言内容无效");
     const previous = state.thoughts.find((entry) => entry.requestId === receipt.requestId);
@@ -248,6 +251,7 @@
       || !/^[0-9a-f]{64}$/.test(String(receipt.digest || ""))
       || receipt.kernel?.module !== "dongzhou_logistics_briefing"
       || receipt.kernel?.state !== "SEALED"
+      || (receipt.sourceProvenance && !validSourceProvenance(receipt.sourceProvenance))
       || receipt.ainpcDelivery?.market !== "DELIVERED"
       || receipt.ainpcDelivery?.warehouse !== "DELIVERED"
       || !Number.isSafeInteger(receipt.exchange?.availableUnits)

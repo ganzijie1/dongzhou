@@ -405,17 +405,28 @@ const logisticsReceipt = {
   campaignResources: { provisions: 73, morale: 61 },
   exchange: { resourceKey: "task.execution", priceUnits: 20, provisionsPerLot: 12, availableUnits: 128, availableLots: 6 },
   ainpcDelivery: { market: "DELIVERED", warehouse: "DELIVERED" },
+  sourceProvenance,
   digest: "e".repeat(64),
-  kernel: { module: "dongzhou_logistics_briefing", moduleVersion: "1.0.0", state: "SEALED" }
+  kernel: { module: "dongzhou_logistics_briefing", moduleVersion: "1.1.0", state: "SEALED" }
 };
 const briefed = play.recordLogisticsBriefing(state, logisticsReceipt);
 assert.strictEqual(briefed.briefing.exchange.availableLots, 6);
+assert.strictEqual(briefed.briefing.sourceProvenance.digest, sourceProvenance.digest);
 assert.strictEqual(briefed.state.logisticsBriefings.length, 1);
 assert.strictEqual(play.recordLogisticsBriefing(briefed.state, logisticsReceipt).state.logisticsBriefings.length, 1);
 assert.throws(
   () => play.recordLogisticsBriefing(state, { ...logisticsReceipt, digest: "bad" }),
   /仓情简报回执无效/
 );
+assert.throws(() => play.recordLogisticsBriefing(state, { ...logisticsReceipt, sourceProvenance: { ...sourceProvenance, digest: "invalid" } }), /仓情简报回执无效/);
+const logisticsThought = {
+  requestId: "thought-logistics-1", heroId: "ZuoRu", stageId: "01", knowledgeId: "dongzhou_stage_001", taskType: "drill",
+  source: { index: 0, work: "《史记·周本纪》" }, assignment: { planId: "plan-1", eventId: "event-drill" },
+  logisticsBriefing: { requestId: logisticsReceipt.requestId, digest: logisticsReceipt.digest, inventoryRevision: 9, sourceProvenance },
+  thought: { hasThought: true, description: "仓情足以支持整训", importance: 80 }, councilProposal: "依仓情整训军阵", digest: "f".repeat(64)
+};
+assert.strictEqual(play.recordThought(briefed.state, logisticsThought).thought.logisticsBriefing.sourceProvenance.digest, sourceProvenance.digest);
+assert.throws(() => play.recordThought(briefed.state, { ...logisticsThought, requestId: "thought-logistics-bad", logisticsBriefing: { ...logisticsThought.logisticsBriefing, sourceProvenance: { ...sourceProvenance, digest: "9".repeat(64) } } }), /进言仓情服务来源无效/);
 
 const supportBeforeCensure = state.pendingSupport.length;
 const contributionBeforeCensure = state.contribution;
