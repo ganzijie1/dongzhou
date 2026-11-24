@@ -270,6 +270,7 @@
     if (!receipt?.requestId || !/^[0-9a-f]{64}$/.test(String(receipt.digest || "")) || !member || !knowledge) throw new Error("属官进言回执无效");
     const briefing = receipt.logisticsBriefing;
     const recordedBriefing = briefing ? state.logisticsBriefings.find((entry) => entry.requestId === briefing.requestId) : null;
+    if (briefing && !briefing.sourceProvenance) throw new Error("属官进言军需服务来源无效");
     if (briefing?.sourceProvenance && (!validSourceProvenance(briefing.sourceProvenance) || !recordedBriefing || recordedBriefing.digest !== briefing.digest || recordedBriefing.sourceProvenance?.digest !== briefing.sourceProvenance.digest)) throw new Error("属官进言仓情服务来源无效");
     if (!receipt.source?.work || !Number.isInteger(Number(receipt.source.index)) || !receipt.assignment?.planId || !receipt.assignment?.eventId || !receipt.taskType) throw new Error("属官进言缺少史证或当值记录");
     if (!receipt.thought || typeof receipt.thought.hasThought !== "boolean" || !String(receipt.thought.description || "").trim() || !String(receipt.councilProposal || "").trim() || String(receipt.councilProposal).length > 48 || !Number.isFinite(Number(receipt.thought.importance))) throw new Error("属官进言内容无效");
@@ -426,6 +427,7 @@
     if (mandate.assignment.motivation?.available === true && (!Array.isArray(mandate.assignment.motivation.motives) || mandate.assignment.motivation.fit?.available !== true || !Number.isFinite(Number(mandate.assignment.motivation.fit.score)) || Number(mandate.assignment.motivation.fit.score) < 0 || Number(mandate.assignment.motivation.fit.score) > 100)) throw new Error("内核军令任务意愿证据无效");
     if (mandate.emergency && (typeof mandate.emergency.urgent !== "boolean" || !Number.isFinite(Number(mandate.emergency.score)) || Number(mandate.emergency.score) < 0 || !mandate.emergency.assessedAt || !mandate.emergency.event || (mandate.emergency.urgent && !mandate.emergency.interruptTraceId))) throw new Error("内核军令紧急评估无效");
     const interruption = mandate.scheduleInterruption;
+    if (interruption && mandateSource && !interruption.sourceProvenance) throw new Error("属官日程服务来源不一致");
     if (interruption && (
       interruption.mandateId !== mandate.id
       || interruption.mandateDigest !== mandate.digest
@@ -437,6 +439,7 @@
     )) throw new Error("属官日程中断回执无效");
     if (interruption?.sourceProvenance && (!validSourceProvenance(interruption.sourceProvenance) || interruption.sourceProvenance.digest !== mandateSource?.digest)) throw new Error("属官日程服务来源不一致");
     const supportInterruption = mandate.supportScheduleInterruption;
+    if (supportInterruption && mandateSource && !supportInterruption.sourceProvenance) throw new Error("副手日程服务来源不一致");
     if (mandate.collaboration && (!supportInterruption
       || supportInterruption.mandateId !== mandate.id
       || supportInterruption.mandateDigest !== mandate.digest

@@ -167,6 +167,11 @@ const collaborationTask = play.createTask(collaborationSealed.state, { type: "dr
 assert.strictEqual(collaborationTask.task.mandate.collaboration.supportHeroId, "DuBo");
 assert.strictEqual(collaborationTask.state.members.find((member) => member.id === "DuBo").fatigue, 8);
 assert.throws(() => play.createTask(collaborationTask.state, { type: "supply", assigneeId: "DuBo", stageId: "01" }), /协办已有差事/);
+const missingScheduleSource = JSON.parse(JSON.stringify(collaborationMandate));
+missingScheduleSource.id = "mandate-schedule-source-missing";
+missingScheduleSource.supportScheduleInterruption.mandateId = missingScheduleSource.id;
+delete missingScheduleSource.supportScheduleInterruption.sourceProvenance;
+assert.throws(() => play.recordMandate(state, missingScheduleSource));
 const personalityMandate = JSON.parse(JSON.stringify(sealed.mandate));
 personalityMandate.id = "mandate-personality-1";
 personalityMandate.assignment.personality = { available: true, profileId: "profile-zuoru", traits: { stubborn: 79, smooth: 48 }, dominantTraits: ["stubborn", "smooth"], fit: { available: true, score: 56, band: "steady", factor: 1.2, signals: [{ trait: "stubborn", value: 79, effect: 6.3 }] } };
@@ -504,6 +509,7 @@ const logisticsThought = {
 assert.strictEqual(play.recordThought(briefed.state, logisticsThought).thought.logisticsBriefing.sourceProvenance.digest, sourceProvenance.digest);
 assert.throws(() => play.recordThought(briefed.state, { ...logisticsThought, requestId: "thought-logistics-bad", logisticsBriefing: { ...logisticsThought.logisticsBriefing, sourceProvenance: { ...sourceProvenance, digest: "9".repeat(64) } } }), /进言仓情服务来源无效/);
 
+assert.throws(() => play.recordThought(briefed.state, { ...logisticsThought, requestId: "thought-logistics-missing", logisticsBriefing: { ...logisticsThought.logisticsBriefing, sourceProvenance: null } }));
 const supportBeforeCensure = state.pendingSupport.length;
 const contributionBeforeCensure = state.contribution;
 const censuredOrder = play.createTask(state, { type: "patrol", assigneeId: "ZuoRu", stageId: "02", stageTitle: "申斥测试" });
