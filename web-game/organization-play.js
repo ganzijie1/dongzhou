@@ -633,6 +633,43 @@
     return { state, alliance: copy(alliance) };
   }
 
+  function validateBattleDebrief(debrief, reportId, expectedSourceDigest = "") {
+    const sourceProvenance = debrief?.sourceProvenance;
+    const battleSourceProvenance = debrief?.battleSourceProvenance;
+    const knowledge = debrief?.knowledge;
+    const participants = debrief?.participants;
+    const organizationTasks = debrief?.organizationTasks;
+    const validDigest = (value) => /^[0-9a-f]{64}$/.test(String(value || ""));
+    const valid = debrief?.state === "SEALED"
+      && debrief.reportId === String(reportId)
+      && validDigest(debrief.reportDigest)
+      && validDigest(debrief.battleReceiptDigest)
+      && validDigest(debrief.digest)
+      && debrief.kernel?.module === "dongzhou_battle_debrief"
+      && debrief.kernel?.moduleVersion === "1.2.0"
+      && debrief.kernel?.state === "SEALED"
+      && validSourceProvenance(sourceProvenance)
+      && (!expectedSourceDigest || sourceProvenance.digest === expectedSourceDigest)
+      && (!battleSourceProvenance || validSourceProvenance(battleSourceProvenance))
+      && Array.isArray(knowledge)
+      && knowledge.length > 0
+      && knowledge.every((entry) => entry && entry.id && validDigest(entry.digest))
+      && Array.isArray(participants)
+      && participants.length > 0
+      && participants.every((entry) => entry && entry.heroId && entry.npcId && validDigest(entry.memory?.digest))
+      && Array.isArray(organizationTasks)
+      && organizationTasks.length > 0
+      && organizationTasks.every((trace) => trace
+        && trace.kernel?.module === "dongzhou_organization_task_trace"
+        && trace.kernel?.moduleVersion === "1.1.0"
+        && trace.kernel?.state === "SEALED"
+        && validDigest(trace.digest)
+        && validSourceProvenance(trace.sourceProvenance)
+        && trace.sourceProvenance.digest === sourceProvenance.digest);
+    if (!valid) throw new Error("战后复盘服务来源无效");
+    return copy(debrief);
+  }
+
   function recordBattleOutcome(rawState, input) {
     const state = normalizeState(rawState);
     const id = String(input?.id || "").trim();
@@ -1220,5 +1257,5 @@
     return state;
   }
 
-  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordThought, recordLogisticsBriefing, recordCommendation, recordRecollection, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, recordBattleOutcome, createTask, adoptScheduledDuty, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, recordInventoryRequisition, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, recordRemoteRoster, hash };
+  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordThought, recordLogisticsBriefing, recordCommendation, recordRecollection, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, validateBattleDebrief, recordBattleOutcome, createTask, adoptScheduledDuty, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, recordInventoryRequisition, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, recordRemoteRoster, hash };
 });

@@ -43,6 +43,8 @@ async function routeAssets(page) {
   let version = 1;
   let stored = {};
   let debriefReads = 0;
+  const sourceProvenance = { digest: "7".repeat(64), services: { knowledge: {}, aiNpc: {}, orgFlow: {}, nexusKernel: {} }, kernel: { module: "dongzhou_service_provenance", state: "SEALED" } };
+  const battleSourceProvenance = { digest: "8".repeat(64), services: { knowledge: {}, aiNpc: {}, orgFlow: {}, nexusKernel: {} }, kernel: { module: "dongzhou_service_provenance", state: "SEALED" } };
   await routeAssets(page);
   await page.route("**/api/dongzhou/v1/**", async (route) => {
     const request = route.request();
@@ -54,7 +56,7 @@ async function routeAssets(page) {
     else if (pathname.endsWith("/save") && request.method() === "PUT") {
       stored = request.postDataJSON().payload;
       body = { version: ++version, payload: stored };
-    } else if (pathname.endsWith("/integration/status")) body = { mode: "connected", services: { nexusKernel: { online: true, requiredModuleCount: 20, operationalModuleCount: 20, sourceBoundModuleCount: 18, sourceBoundModules: Array.from({ length: 18 }, (_, index) => `source-bound-${index + 1}`), unavailableModules: [] }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } } };
+    } else if (pathname.endsWith("/integration/status")) body = { mode: "connected", services: { nexusKernel: { online: true, requiredModuleCount: 20, operationalModuleCount: 20, sourceBoundModuleCount: 18, sourceBoundModules: Array.from({ length: 18 }, (_, index) => `source-bound-${index + 1}`), unavailableModules: [], sourceSealDigest: sourceProvenance.digest }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } } };
     else if (/\/battle-reports\/[^/]+\/debrief$/.test(pathname)) {
       debriefReads += 1;
       body = {
@@ -67,9 +69,9 @@ async function routeAssets(page) {
         outcome: { won: true, turns: 7, ownLosses: 1, terminalReason: "victory" },
         knowledge: [{ id: "dongzhou_stage_001", title: "第一回史料", summary: "宣王失政，诸侯观望。", sources: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败" }], digest: "3".repeat(64) }],
         participants: [{ heroId: "ZuoRu", npcId: "42", memory: { content: "左儒记得东郊索命告捷，所据 dongzhou_stage_001 已经核验。", digest: "4".repeat(64) } }],
-        organizationTasks: [{ timeline: [{ sequence: 1 }, { sequence: 2 }, { sequence: 3 }], digest: "5".repeat(64), kernel: { module: "dongzhou_organization_task_trace", state: "SEALED" } }],
-        battleSourceProvenance: { digest: "8".repeat(64), kernel: { module: "dongzhou_service_provenance", state: "SEALED" } },
-        sourceProvenance: { digest: "7".repeat(64), kernel: { module: "dongzhou_service_provenance", state: "SEALED" } },
+        organizationTasks: [{ timeline: [{ sequence: 1 }, { sequence: 2 }, { sequence: 3 }], sourceProvenance, digest: "5".repeat(64), kernel: { module: "dongzhou_organization_task_trace", moduleVersion: "1.1.0", state: "SEALED" } }],
+        battleSourceProvenance,
+        sourceProvenance,
         digest: "6".repeat(64),
         kernel: { module: "dongzhou_battle_debrief", moduleVersion: "1.2.0", state: "SEALED" },
       };

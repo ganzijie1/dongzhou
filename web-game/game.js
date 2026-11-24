@@ -1857,7 +1857,11 @@
     officeBattleDebriefInFlight = true;
     renderOrganizationPanel();
     try {
-      officeBattleDebriefView = await integration.battleDebrief(reportId);
+      officeBattleDebriefView = organization.validateBattleDebrief(
+        await integration.battleDebrief(reportId),
+        reportId,
+        profile.organization.backend.serviceSourceSealDigest
+      );
       renderOrganizationPanel();
     } catch (error) {
       const message = error.code === "battle_debrief_memory_pending"

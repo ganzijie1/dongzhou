@@ -13,6 +13,18 @@ let state = play.syncMembers(null, stage, (id) => ({ DuBo: "杜伯", ZuoRu: "左
 assert.deepStrictEqual(state.members.map((member) => member.name), ["杜伯", "左儒"]);
 
 const sourceProvenance = { digest: "8".repeat(64), kernel: { module: "dongzhou_service_provenance", state: "SEALED" }, services: { knowledge: {}, aiNpc: {}, orgFlow: {}, nexusKernel: {} } };
+const battleDebrief = {
+  state: "SEALED", reportId: "battle:01:test", reportDigest: "1".repeat(64), battleReceiptDigest: "2".repeat(64), digest: "3".repeat(64),
+  knowledge: [{ id: "dongzhou_stage_001", digest: "4".repeat(64) }],
+  participants: [{ heroId: "ZuoRu", npcId: "42", memory: { digest: "5".repeat(64) } }],
+  organizationTasks: [{ sourceProvenance, digest: "6".repeat(64), kernel: { module: "dongzhou_organization_task_trace", moduleVersion: "1.1.0", state: "SEALED" } }],
+  sourceProvenance,
+  battleSourceProvenance: sourceProvenance,
+  kernel: { module: "dongzhou_battle_debrief", moduleVersion: "1.2.0", state: "SEALED" }
+};
+assert.strictEqual(play.validateBattleDebrief(battleDebrief, battleDebrief.reportId, sourceProvenance.digest).sourceProvenance.digest, sourceProvenance.digest);
+assert.throws(() => play.validateBattleDebrief({ ...battleDebrief, kernel: { ...battleDebrief.kernel, moduleVersion: "1.1.0" } }, battleDebrief.reportId, sourceProvenance.digest), /战后复盘服务来源无效/);
+assert.throws(() => play.validateBattleDebrief(battleDebrief, battleDebrief.reportId, "9".repeat(64)), /战后复盘服务来源无效/);
 const scheduledTaskId = "00000000-0000-4000-8000-000000000099";
 const scheduledDuty = {
   ruleId: "00000000-0000-4000-8000-000000000098", state: "ACTIVE",
