@@ -188,15 +188,23 @@ const client = require("../web-game/integration-client.js");
   assert.deepStrictEqual(requestedTask.task.organizationTrace.taskDefinitionSnapshot, requestedTask.task.taskDefinitionSnapshot);
   assert.strictEqual(requestedTask.task.organizationTrace.kernel.moduleVersion, "1.1.0");
   const currentTrace = requestedTask.task.organizationTrace;
-  const { state: traceState, digest: traceDigest, kernel: traceKernel, effectiveParameters: omittedEffectiveParameters,
-    effectiveExecutionGameSeconds: omittedEffectiveDuration, parameterModification: omittedModification, ...v7Payload } = currentTrace;
-  assert.ok(traceDigest && omittedEffectiveParameters && omittedEffectiveDuration && omittedModification === null);
-  const v7Trace = { state: traceState, ...v7Payload, digest: sha256(canonicalJson(v7Payload)), kernel: traceKernel };
-  localProfile.organization.localPlayerTasks[0].organizationTrace = v7Trace;
+  const { state: traceState, digest: traceDigest, kernel: traceKernel, finalMemberChoice: omittedFinalChoice, ...v8Payload } = currentTrace;
+  assert.ok(traceDigest && omittedFinalChoice === null);
+  const v8Trace = { state: traceState, ...v8Payload, digest: sha256(canonicalJson(v8Payload)), kernel: traceKernel };
+  localProfile.organization.localPlayerTasks[0].organizationTrace = v8Trace;
   await client.persist(localProfile);
   const migratedTrace = (await client.organizationPlayerTasks()).items[0].organizationTrace;
   assert.deepStrictEqual(migratedTrace.taskDefinitionSnapshot, requestedTask.task.taskDefinitionSnapshot);
-  assert.notStrictEqual(migratedTrace.digest, v7Trace.digest);
+  assert.notStrictEqual(migratedTrace.digest, v8Trace.digest);
+  const { effectiveParameters: omittedEffectiveParameters, effectiveExecutionGameSeconds: omittedEffectiveDuration,
+    parameterModification: omittedModification, ...v7Payload } = v8Payload;
+  assert.ok(omittedEffectiveParameters && omittedEffectiveDuration && omittedModification === null);
+  const v7Trace = { state: traceState, ...v7Payload, digest: sha256(canonicalJson(v7Payload)), kernel: traceKernel };
+  localProfile.organization.localPlayerTasks[0].organizationTrace = v7Trace;
+  await client.persist(localProfile);
+  const migratedV7Trace = (await client.organizationPlayerTasks()).items[0].organizationTrace;
+  assert.deepStrictEqual(migratedV7Trace.taskDefinitionSnapshot, requestedTask.task.taskDefinitionSnapshot);
+  assert.notStrictEqual(migratedV7Trace.digest, v7Trace.digest);
   assert.strictEqual((await applyCareerAction("ACCEPT", { taskId: playerTaskId })).task.state, "IN_PROGRESS");
   const blockedTask = await applyCareerAction("EXCEPTION", { taskId: playerTaskId, detail: "Bridge closed" });
   assert.strictEqual(blockedTask.task.executionException.state, "ACCEPTED");
@@ -252,6 +260,41 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(contributionsAfterPartial.entries[1].eventCode, "TASK_PARTIALLY_COMPLETED");
   assert.strictEqual(contributionsAfterPartial.entries[1].amount, 10);
   assert.strictEqual(contributionsAfterPartial.account.accountBalance, 30);
+  const originalChoiceTask = await applyCareerAction("REQUEST", { title: "查访边情" });
+  await applyCareerAction("MODIFY", {
+    taskId: originalChoiceTask.task.taskId,
+    detail: "Extend by two days",
+    proposedParameters: { execution_days: 4 }
+  });
+  const rejectedModification = await applyCareerAction("REVIEW", { taskId: originalChoiceTask.task.taskId });
+  assert.strictEqual(rejectedModification.task.state, "MEMBER_RESPONSE_PENDING");
+  assert.strictEqual(rejectedModification.task.parameterModification.state, "REJECTED");
+  assert.strictEqual(rejectedModification.task.parameterModification.resolutionReasonCode, "deadline_extension_exceeds_local_policy");
+  assert.deepStrictEqual(rejectedModification.task.effectiveParameters, { execution_days: 2 });
+  assert.strictEqual(rejectedModification.task.finalMemberChoice.state, "PENDING_PLAYER_CHOICE");
+  assert.deepStrictEqual(rejectedModification.task.activeConfirmations[0].allowedActions, ["accept_original", "reject"]);
+  await assert.rejects(applyCareerAction("MODIFY", {
+    taskId: originalChoiceTask.task.taskId,
+    detail: "Try another change",
+    proposedParameters: { execution_days: 3 }
+  }), /organization_player_task_final_choice_required/);
+  const acceptedOriginal = await applyCareerAction("ACCEPT", { taskId: originalChoiceTask.task.taskId });
+  assert.strictEqual(acceptedOriginal.task.state, "IN_PROGRESS");
+  assert.strictEqual(acceptedOriginal.task.finalMemberChoice.decision, "ACCEPT_ORIGINAL");
+  assert.deepStrictEqual(acceptedOriginal.task.effectiveParameters, { execution_days: 2 });
+  assert.strictEqual(acceptedOriginal.task.effectiveExecutionGameSeconds, 172800);
+  await applyCareerAction("RESULT", { taskId: originalChoiceTask.task.taskId, detail: "Failed because the witness departed" });
+  const finalRejectTask = await applyCareerAction("REQUEST", { title: "整训军阵" });
+  await applyCareerAction("MODIFY", {
+    taskId: finalRejectTask.task.taskId,
+    detail: "总时限改为三日",
+    proposedParameters: { execution_days: 3 }
+  });
+  await applyCareerAction("REVIEW", { taskId: finalRejectTask.task.taskId, decision: "REJECT", reasonCode: "manager_capacity_reserved" });
+  const finalRejection = await applyCareerAction("REJECT", { taskId: finalRejectTask.task.taskId, detail: "Cannot meet the original order" });
+  assert.strictEqual(finalRejection.task.state, "REJECTED");
+  assert.strictEqual(finalRejection.task.finalMemberChoice.decision, "REJECT");
+  assert.strictEqual(finalRejection.task.parameterModification.resolutionReasonCode, "manager_capacity_reserved");
   const rejectedTask = await applyCareerAction("REQUEST", { title: "查访边情" });
   assert.strictEqual((await applyCareerAction("REJECT", { taskId: rejectedTask.task.taskId, detail: "No escort" })).task.state, "REJECTED");
   const failedTask = await applyCareerAction("REQUEST", { title: "整训军阵" });
@@ -380,6 +423,11 @@ const client = require("../web-game/integration-client.js");
   }), /organization_player_task_context_invalid/);
   assert.strictEqual(localProfile.organization.localPlayerTasks.length, taskCountBeforeStaleRequest);
   const cleanPlayerTasks = JSON.stringify(localProfile.organization.localPlayerTasks);
+  const sealedFinalChoice = localProfile.organization.localPlayerTasks.find((task) => task.finalMemberChoice?.decision === "ACCEPT_ORIGINAL");
+  sealedFinalChoice.finalMemberChoice.decision = "REJECT";
+  await client.persist(localProfile);
+  await assert.rejects(client.organizationPlayerTasks(), /organization_player_task_seal_invalid/);
+  localProfile.organization.localPlayerTasks = JSON.parse(cleanPlayerTasks);
   localProfile.organization.localPlayerTasks[0].taskDefinitionSnapshot.presentationSnapshot.brief = "forged brief";
   await client.persist(localProfile);
   await assert.rejects(client.organizationPlayerTasks(), /organization_player_task_seal_invalid/);
@@ -393,7 +441,7 @@ const client = require("../web-game/integration-client.js");
   await assert.rejects(client.organizationPlayerTasks(), /organization_player_task_seal_invalid/);
   localProfile.organization.localPlayerTasks = JSON.parse(cleanPlayerTasks);
   await client.persist(localProfile);
-  assert.strictEqual((await client.organizationPlayerTasks()).items.length, 8);
+  assert.strictEqual((await client.organizationPlayerTasks()).items.length, 10);
   const search = await client.searchKnowledge("court", 6, "01");
   assert.strictEqual(search.results.length, 1);
   const codex = await client.knowledgeCodex();

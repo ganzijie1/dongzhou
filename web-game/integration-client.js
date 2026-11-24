@@ -1038,7 +1038,7 @@
     return `0771-01-${day}T00:00:${second}Z`;
   }
 
-  async function sealLocalPlayerTask(task, sourceProvenance, contentVersion = 8) {
+  async function sealLocalPlayerTask(task, sourceProvenance, contentVersion = 9) {
     const trace = {
       taskId: task.taskId,
       taskState: task.state,
@@ -1058,6 +1058,7 @@
       activeConfirmations: task.activeConfirmations || [],
       supplementRequest: task.supplementRequest || null,
       executionException: task.executionException || null,
+      ...(contentVersion >= 9 ? { finalMemberChoice: task.finalMemberChoice || null } : {}),
       ...(contentVersion >= 8 ? {
         effectiveParameters: task.effectiveParameters || task.taskDefinitionSnapshot?.parameterSnapshot || null,
         effectiveExecutionGameSeconds: task.effectiveExecutionGameSeconds || task.taskDefinitionSnapshot?.executionPolicy?.virtualExecutionGameSeconds || null,
@@ -1193,6 +1194,7 @@
     for (const task of tasks) {
       const expected = await sealLocalPlayerTask(task, sourceProvenance);
       if (canonicalJson(task.organizationTrace) !== canonicalJson(expected)) {
+        const previousV8 = await sealLocalPlayerTask(task, sourceProvenance, 8);
         const previousV7 = await sealLocalPlayerTask(task, sourceProvenance, 7);
         const previousV6 = await sealLocalPlayerTask(task, sourceProvenance, 6);
         const previousV5 = await sealLocalPlayerTask(task, sourceProvenance, 5);
@@ -1201,7 +1203,8 @@
         const previous = await sealLocalPlayerTask(task, sourceProvenance, 2);
         const legacy = await sealLocalPlayerTask(task, sourceProvenance, 0);
         const matchedLegacy = canonicalJson(task.organizationTrace) === canonicalJson(legacy);
-        if (canonicalJson(task.organizationTrace) !== canonicalJson(previousV7)
+        if (canonicalJson(task.organizationTrace) !== canonicalJson(previousV8)
+          && canonicalJson(task.organizationTrace) !== canonicalJson(previousV7)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previousV6)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previousV5)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previousV4)
@@ -1431,6 +1434,7 @@
         effectiveParameters: task.effectiveParameters || task.taskDefinitionSnapshot?.parameterSnapshot || null,
         effectiveExecutionGameSeconds: task.effectiveExecutionGameSeconds || task.taskDefinitionSnapshot?.executionPolicy?.virtualExecutionGameSeconds || null,
         parameterModification: task.parameterModification || null,
+        finalMemberChoice: task.finalMemberChoice || null,
         organizationTrace: task.organizationTrace
       })),
       hasMore: false
@@ -1500,6 +1504,7 @@
         effectiveParameters: JSON.parse(JSON.stringify(taskDefinitionSnapshot.parameterSnapshot)),
         effectiveExecutionGameSeconds: taskDefinitionSnapshot.executionPolicy.virtualExecutionGameSeconds,
         parameterModification: null,
+        finalMemberChoice: null,
         executionException: null,
         activeConfirmations: [],
         timeline: [{ sequence: 1, type: "TASK_CREATED", occurredAt: localCareerTimestamp(taskIndex, 1), stateCode: "MEMBER_RESPONSE_PENDING" }]
@@ -1516,7 +1521,12 @@
       const requireState = (states) => {
         if (!states.includes(task.state)) throw new Error("organization_player_task_state_invalid");
       };
+      const finalChoiceConfirmation = task.activeConfirmations?.find((confirmation) =>
+        confirmation.type === "TASK_FINAL_MEMBER_CHOICE"
+        && confirmation.state === "WAITING_CONFIRMATION"
+        && confirmation.recipientType === "PLAYER");
       if (["ACCEPT", "REJECT", "MODIFY"].includes(normalizedAction)) requireState(["MEMBER_RESPONSE_PENDING"]);
+      if (normalizedAction === "MODIFY" && finalChoiceConfirmation) throw new Error("organization_player_task_final_choice_required");
       if (normalizedAction === "REVIEW") requireState(["MODIFICATION_CONFIRMATION_PENDING"]);
       if (["EXCEPTION", "RESULT"].includes(normalizedAction)) requireState(["IN_PROGRESS"]);
       if (normalizedAction === "SUPPLEMENT") requireState(["SUPPLEMENT_PENDING"]);
@@ -1527,13 +1537,32 @@
       const append = (type, stateCode) => task.timeline.push({ sequence: task.timeline.length + 1, type, occurredAt: task.updatedAt, stateCode });
       if (normalizedAction === "ACCEPT") {
         task.state = "IN_PROGRESS";
+        if (finalChoiceConfirmation) {
+          task.activeConfirmations = [];
+          task.finalMemberChoice.state = "RESOLVED";
+          task.finalMemberChoice.decision = "ACCEPT_ORIGINAL";
+          task.finalMemberChoice.decidedAt = task.updatedAt;
+          append("CONFIRMATION_RESOLVED", task.state);
+          append("FINAL_MEMBER_CHOICE_RESOLVED", task.state);
+        }
         append("EXECUTION_STARTED", task.state);
-        message = `本地差事《${task.title}》已接受并开始执行。`;
+        message = finalChoiceConfirmation
+          ? `你已接受原令，差事《${task.title}》按原参数开始执行。`
+          : `本地差事《${task.title}》已接受并开始执行。`;
       } else if (normalizedAction === "REJECT") {
         task.state = "REJECTED";
-        task.rejectionReason = detail;
+        task.rejectionReason = detail || (finalChoiceConfirmation ? "member_rejected_final_choice" : "member_rejected_task");
+        if (finalChoiceConfirmation) {
+          task.activeConfirmations = [];
+          task.finalMemberChoice.state = "RESOLVED";
+          task.finalMemberChoice.decision = "REJECT";
+          task.finalMemberChoice.decidedAt = task.updatedAt;
+          append("FINAL_MEMBER_CHOICE_RESOLVED", task.state);
+        }
         append("CONFIRMATION_RESOLVED", task.state);
-        message = `本地差事《${task.title}》已拒绝。`;
+        message = finalChoiceConfirmation
+          ? `你已最终拒绝原令，差事《${task.title}》已经终止。`
+          : `本地差事《${task.title}》已拒绝。`;
       } else if (normalizedAction === "MODIFY") {
         task.parameterModification = localPlayerTaskModificationProposal(task, input);
         task.state = "MODIFICATION_CONFIRMATION_PENDING";
@@ -1545,17 +1574,51 @@
         if (task.parameterModification?.state !== "PENDING_MANAGER_CONFIRMATION") {
           throw new Error("organization_player_task_modification_invalid");
         }
-        task.effectiveParameters = JSON.parse(JSON.stringify(task.parameterModification.proposedParameters));
-        task.effectiveExecutionGameSeconds = task.parameterModification.proposedExecutionGameSeconds;
-        task.parameterModification.state = "APPLIED";
+        const requestedDecision = String(input.decision || "").toUpperCase();
+        const extension = task.parameterModification.proposedExecutionGameSeconds
+          - task.parameterModification.originalExecutionGameSeconds;
+        const decision = requestedDecision || (extension <= 86400 ? "APPROVE" : "REJECT");
+        if (!["APPROVE", "REJECT"].includes(decision)) throw new Error("organization_player_task_modification_decision_invalid");
         task.parameterModification.decidedBy = "DuBo";
         task.parameterModification.decidedAt = task.updatedAt;
-        task.state = "IN_PROGRESS";
-        task.activeConfirmations = [];
-        append("CONFIRMATION_RESOLVED", task.state);
-        append("PARAMETER_REVISION_APPLIED", task.state);
-        append("EXECUTION_STARTED", task.state);
-        message = `本地改令已经裁定，差事按新要求开始执行。`;
+        if (decision === "APPROVE") {
+          task.effectiveParameters = JSON.parse(JSON.stringify(task.parameterModification.proposedParameters));
+          task.effectiveExecutionGameSeconds = task.parameterModification.proposedExecutionGameSeconds;
+          task.parameterModification.state = "APPLIED";
+          task.parameterModification.resolutionReasonCode = "modification_approved";
+          task.state = "IN_PROGRESS";
+          task.activeConfirmations = [];
+          append("CONFIRMATION_RESOLVED", task.state);
+          append("PARAMETER_REVISION_APPLIED", task.state);
+          append("EXECUTION_STARTED", task.state);
+          message = `本地改令已经裁定，差事按新要求开始执行。`;
+        } else {
+          const reasonCode = String(input.reasonCode || "deadline_extension_exceeds_local_policy");
+          task.parameterModification.state = "REJECTED";
+          task.parameterModification.resolutionReasonCode = reasonCode;
+          task.parameterModification.resolutionReasonDetail = "杜伯只准一次改令顺延一日；请接受原令或最终拒绝。";
+          task.state = "MEMBER_RESPONSE_PENDING";
+          task.finalMemberChoice = {
+            schemaVersion: 1,
+            state: "PENDING_PLAYER_CHOICE",
+            originalParameters: JSON.parse(JSON.stringify(task.parameterModification.originalParameters)),
+            rejectedParameters: JSON.parse(JSON.stringify(task.parameterModification.proposedParameters)),
+            rejectionReasonCode: reasonCode,
+            rejectionReasonDetail: task.parameterModification.resolutionReasonDetail,
+            openedAt: task.updatedAt,
+            decision: null,
+            decidedAt: null
+          };
+          task.activeConfirmations = [{
+            type: "TASK_FINAL_MEMBER_CHOICE",
+            state: "WAITING_CONFIRMATION",
+            recipientType: "PLAYER",
+            allowedActions: ["accept_original", "reject"]
+          }];
+          append("CONFIRMATION_RESOLVED", task.state);
+          append("FINAL_MEMBER_CHOICE_OPENED", task.state);
+          message = `杜伯驳回了改令；请接受原令或最终拒绝差事。`;
+        }
       } else if (normalizedAction === "EXCEPTION") {
         task.executionException = {
           exceptionId: uuidFromDigest(await sha256(`${task.taskId}:exception:${task.version}`)),

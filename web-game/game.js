@@ -2080,6 +2080,15 @@
         && confirmation.allowedActions?.includes("submit_supplement"))
       : null;
     const supplementReady = selectedTask?.state === "SUPPLEMENT_PENDING" && Boolean(supplementConfirmation);
+    const finalChoiceConfirmation = selectedTask?.organizationTrace?.state === "SEALED"
+      ? selectedTask.organizationTrace.activeConfirmations?.find((confirmation) =>
+        confirmation.type === "TASK_FINAL_MEMBER_CHOICE"
+        && confirmation.state === "WAITING_CONFIRMATION"
+        && confirmation.recipientType === "PLAYER"
+        && confirmation.allowedActions?.includes("accept_original")
+        && confirmation.allowedActions?.includes("reject"))
+      : null;
+    const finalChoiceReady = selectedTask?.state === "MEMBER_RESPONSE_PENDING" && Boolean(finalChoiceConfirmation);
     const supplementReasonLabels = {
       missing_core_requirement_response: "核心要求尚未逐项说明",
       missing_required_conclusion: "缺少必要结论",
@@ -2089,6 +2098,14 @@
       other: "主管另有补充要求"
     };
     if (responseForm) responseForm.hidden = selectedTask?.state !== "MEMBER_RESPONSE_PENDING";
+    const responseDetail = $("#officeCareerResponseDetail");
+    const acceptButton = $("#officeCareerAccept");
+    const modifyButton = $("#officeCareerModify");
+    const rejectButton = $("#officeCareerReject");
+    if (responseDetail) responseDetail.placeholder = finalChoiceReady ? "可填写最终拒绝理由" : "改令填目标值（如总时限改为三日）；拒绝填理由";
+    if (acceptButton) acceptButton.textContent = finalChoiceReady ? "接受原令" : "接受差事";
+    if (modifyButton) modifyButton.hidden = finalChoiceReady;
+    if (rejectButton) rejectButton.textContent = finalChoiceReady ? "最终拒绝" : "拒绝差事";
     if (resultForm) resultForm.hidden = selectedTask?.state !== "IN_PROGRESS" && !supplementReady;
     const resultInput = $("#officeCareerResult");
     const resultSubmit = $("#officeCareerResultSubmit");
@@ -2141,6 +2158,7 @@
       CONFIRMATION_RESOLVED: "已确认", EXECUTION_STARTED: "开工", SUBMISSION_RECORDED: "复命",
       LIGHTWEIGHT_CHECK_COMPLETED: "核验", SUPPLEMENT_REQUESTED: "补件",
       PARAMETER_REVISION_APPLIED: "改令生效",
+      FINAL_MEMBER_CHOICE_OPENED: "原令待选", FINAL_MEMBER_CHOICE_RESOLVED: "原令已决",
       EXECUTION_EXCEPTION_REPORTED: "报阻", EXECUTION_EXCEPTION_RESOLVED: "复行",
       DERIVED_TASK_INTENT_CREATED: "拟定续办", DERIVED_TASK_CREATED: "续办立案",
       DERIVED_TASK_SKIPPED: "无需续办", TASK_FINALIZED: "定案", SETTLEMENT_RECORDED: "结算",
@@ -2165,8 +2183,9 @@
       const selected = actionable && officeCareerSelectedTaskId === task.taskId;
       const expanded = trace?.state === "SEALED" && officeCareerExpandedTaskIds.has(task.taskId);
       const revision = trace?.state === "SEALED" ? trace.parameterModification : task.parameterModification;
+      const revisionStateLabels = { APPLIED: "改令已生效", REJECTED: "改令已驳回", PENDING_MANAGER_CONFIRMATION: "改令待裁" };
       const revisionDetail = revision
-        ? `<div class="office-career-task-revision"><strong>${revision.state === "APPLIED" ? "改令已生效" : "改令待裁"}</strong><span>执行时限 ${Math.ceil(Number(revision.originalExecutionGameSeconds || 0) / 86400)}日 → ${Math.ceil(Number(revision.proposedExecutionGameSeconds || 0) / 86400)}日</span><small>${escapeHtml(revision.changedPaths?.join("、") || "未记录变更路径")} · ${escapeHtml(revision.requestedDetail || "结构化参数修订")}</small></div>`
+        ? `<div class="office-career-task-revision"><strong>${revisionStateLabels[revision.state] || revision.state}</strong><span>执行时限 ${Math.ceil(Number(revision.originalExecutionGameSeconds || 0) / 86400)}日 → ${Math.ceil(Number(revision.proposedExecutionGameSeconds || 0) / 86400)}日</span><small>${escapeHtml(revision.resolutionReasonDetail || revision.changedPaths?.join("、") || "未记录变更路径")} · ${escapeHtml(revision.requestedDetail || "结构化参数修订")}</small></div>`
         : "";
       const timeline = expanded
         ? `<ol class="office-career-trace">${(trace.timeline || []).map((item) => `<li><span>${Number(item.sequence)} · ${escapeHtml(traceLabels[item.type] || item.type)}</span><strong>${escapeHtml(item.stateCode || "已记录")}</strong><small>${escapeHtml(String(item.occurredAt || "").replace("T", " ").replace("Z", " UTC"))}</small></li>`).join("")}</ol>`
@@ -2354,6 +2373,14 @@
     }
     if (["accept", "reject", "modify"].includes(action) && selectedTask.state !== "MEMBER_RESPONSE_PENDING") {
       $("#officeCareerFeedback").textContent = "只有待接受的差事可以接受、申请改令或拒绝。";
+      return;
+    }
+    const finalChoicePending = selectedTask?.organizationTrace?.activeConfirmations?.some((confirmation) =>
+      confirmation.type === "TASK_FINAL_MEMBER_CHOICE"
+      && confirmation.state === "WAITING_CONFIRMATION"
+      && confirmation.recipientType === "PLAYER");
+    if (action === "modify" && finalChoicePending) {
+      $("#officeCareerFeedback").textContent = "改令已被驳回，请接受原令或最终拒绝。";
       return;
     }
     if (action === "review" && selectedTask.state !== "MODIFICATION_CONFIRMATION_PENDING") {
