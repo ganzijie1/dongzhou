@@ -94,6 +94,7 @@ saveJournal();
     let recoveringExisting = resume && Boolean(journal.remoteTask && journal.mandateId);
     let council;
     let issued;
+    let orderAcceptance = null;
 
     if (!recoveringExisting && await page.locator("#officeMandateApproval").isVisible()) {
       const pendingMandateId = await page.evaluate(() =>
@@ -296,6 +297,7 @@ saveJournal();
       const body = await orderResponse.json().catch(() => ({}));
       throw new Error(`Organization task creation failed (${orderResponse.status()}): ${JSON.stringify(body)}`);
     }
+    orderAcceptance = await orderResponse.json();
     await page.waitForFunction((key) => {
       const organization = JSON.parse(localStorage.getItem(key)).organization;
       return organization.tasks.some((task) => task.remoteResult && task.mandate)
@@ -319,6 +321,11 @@ saveJournal();
     assert.equal(issued.mandate.sourceProvenance?.kernel?.module, "dongzhou_service_provenance");
     assert.equal(issued.mandate.sourceProvenance?.kernel?.state, "SEALED");
     assert.equal(issued.mandate.sourceProvenance?.digest, expectedSourceSeal);
+    assert.equal(council.sourceProvenance?.digest, expectedSourceSeal);
+    assert.equal(council.sourceProvenance?.kernel?.state, "SEALED");
+    assert.deepEqual(issued.mandate.council.sourceProvenance, council.sourceProvenance);
+    assert.equal(issued.mandate.scheduleInterruption?.sourceProvenance?.digest, expectedSourceSeal);
+    assert.equal(orderAcceptance?.sourceProvenance?.digest, expectedSourceSeal);
     assert.deepEqual(
       Object.keys(issued.mandate.sourceProvenance?.services || {}),
       ["knowledge", "aiNpc", "orgFlow", "nexusKernel"],

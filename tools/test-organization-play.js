@@ -55,13 +55,17 @@ state = selectedEvidence.state;
 assert.strictEqual(selectedEvidence.source.tier, "史实骨架");
 const publicNotice = { messageId: "npc-public:" + "9".repeat(64), heroId: "ZuoRu", message: "东郊军粮已至，诸官依令整备。", digest: "6".repeat(64), kernel: { module: "dongzhou_npc_public_notice", state: "SEALED" } };
 const contribution = { entryId: "10000000-0000-4000-8000-000000000001", heroId: "ZuoRu", entryVersion: 2, amount: 20, eventCode: "TASK_COMPLETED", sourceRef: "task-1", digest: "7".repeat(64), kernel: { module: "dongzhou_organization_contribution_ledger", state: "SEALED" } };
+const sourceProvenance = { digest: "8".repeat(64), kernel: { module: "dongzhou_service_provenance", state: "SEALED" }, services: { knowledge: {}, aiNpc: {}, orgFlow: {}, nexusKernel: {} } };
 assert.throws(() => play.recordCouncil(state, { id: "council-contribution-invalid", stageId: "01", memberId: "ZuoRu", knowledgeId: "dongzhou_stage_001", knowledgeName: "第一回", evidenceSourceIndex: 0, question: "如何部署", options: ["守", "攻"], index: 1, contribution }), /属官功绩回执无效/);
 assert.throws(() => play.recordCouncil(state, { id: "council-notice-invalid", stageId: "01", memberId: "ZuoRu", knowledgeId: "dongzhou_stage_001", knowledgeName: "第一回", evidenceSourceIndex: 0, question: "如何部署", options: ["守", "攻"], index: 1, publicNotice }), /官署告示回执无效/);
-const council = play.recordCouncil(state, { id: "council-source-1", stageId: "01", memberId: "ZuoRu", knowledgeId: "dongzhou_stage_001", knowledgeName: "第一回", evidenceSourceIndex: 0, question: `如何部署\n选证：《史记·周本纪》｜史实骨架\n告示印记：${publicNotice.digest.slice(0, 12)}\n功绩印记：${contribution.digest.slice(0, 12)}`, options: ["守", "攻"], index: 1, publicNotice, contribution });
+const council = play.recordCouncil(state, { id: "council-source-1", stageId: "01", memberId: "ZuoRu", knowledgeId: "dongzhou_stage_001", knowledgeName: "第一回", evidenceSourceIndex: 0, question: `如何部署\n选证：《史记·周本纪》｜史实骨架\n告示印记：${publicNotice.digest.slice(0, 12)}\n功绩印记：${contribution.digest.slice(0, 12)}`, options: ["守", "攻"], index: 1, publicNotice, contribution, sourceProvenance });
 state = council.state;
 assert.strictEqual(council.council.evidenceSource.work, "《史记·周本纪》");
 assert.strictEqual(council.council.publicNotice.messageId, publicNotice.messageId);
 assert.strictEqual(council.council.contribution.entryId, contribution.entryId);
+assert.strictEqual(council.council.sourceProvenance.digest, sourceProvenance.digest);
+assert.throws(() => play.recordCouncil(state, { id: "council-source-invalid", stageId: "01", memberId: "ZuoRu", knowledgeId: "dongzhou_stage_001", knowledgeName: "第一回", evidenceSourceIndex: 0, question: "如何部署", options: ["守", "攻"], index: 1, sourceProvenance: { ...sourceProvenance, digest: "invalid" } }), /军议服务来源回执无效/);
+assert.throws(() => play.recordCouncil(state, { id: "council-source-services-invalid", stageId: "01", memberId: "ZuoRu", knowledgeId: "dongzhou_stage_001", knowledgeName: "第一回", evidenceSourceIndex: 0, question: "如何部署", options: ["守", "攻"], index: 1, sourceProvenance: { ...sourceProvenance, services: { knowledge: {}, aiNpc: {}, orgFlow: {}, impostor: {} } } }), /军议服务来源回执无效/);
 const masteryResult = {
   questionId: "00000000-0000-4000-8000-000000000071",
   stageId: "01",

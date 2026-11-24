@@ -175,6 +175,9 @@
     if (!String(input.question || '').trim() || !String(input.id || '').trim()) throw new Error('军议缺少来源记录');
     const dialogueReceipt = input.dialogueReceipt && typeof input.dialogueReceipt === 'object' ? copy(input.dialogueReceipt) : null;
     if (dialogueReceipt && (dialogueReceipt.state !== 'RECORDED' || !String(dialogueReceipt.sourceRecordId || '').startsWith('dongzhou-council:') || !/^[0-9a-f]{64}$/.test(String(dialogueReceipt.digest || '')))) throw new Error('军议对话归档回执无效');
+    const sourceProvenance = input.sourceProvenance && typeof input.sourceProvenance === 'object' ? copy(input.sourceProvenance) : null;
+    const sourceServices = Object.keys(sourceProvenance?.services || {});
+    if (sourceProvenance && (!/^[0-9a-f]{64}$/.test(String(sourceProvenance.digest || '')) || sourceProvenance.kernel?.module !== 'dongzhou_service_provenance' || sourceProvenance.kernel?.state !== 'SEALED' || sourceServices.length !== 4 || !['knowledge', 'aiNpc', 'orgFlow', 'nexusKernel'].every((name) => sourceServices.includes(name)))) throw new Error('军议服务来源回执无效');
     const memory = input.memory && typeof input.memory === 'object' ? copy(input.memory) : null;
     if (memory && (!memory.idempotencyKey || !memory.content || !/^[0-9a-f]{64}$/.test(String(memory.digest || '')) || !String(input.question || '').includes(`记忆印记：${memory.digest.slice(0, 12)}`))) throw new Error('军议旧事回执无效');
     const publicNotice = input.publicNotice && typeof input.publicNotice === 'object' ? copy(input.publicNotice) : null;
@@ -199,6 +202,7 @@
       contributionDossier,
       knowledgeMastery,
       dialogueReceipt,
+      sourceProvenance,
       options: options.slice(), index: input.index, text: options[input.index] };
     const previous = state.councils.find((entry) => entry.id === council.id);
     if (previous && JSON.stringify(previous) !== JSON.stringify(council)) throw new Error('军议来源记录冲突');
