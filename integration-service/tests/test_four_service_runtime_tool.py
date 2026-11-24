@@ -59,7 +59,7 @@ def _status() -> dict:
 
 def test_source_seal_matches_the_frozen_runtime_manifest() -> None:
     assert verifier.expected_source_seal() == (
-        "51916203740c55ca4a3b60c89c6322dbb862ae7aa2f963952beec5bb8d7c4047"
+        "136cee1b1f48bdefd870932d655f23aafbb669f0862d290d66a76a5b3bcca2e8"
     )
 
 
