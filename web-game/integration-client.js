@@ -748,11 +748,17 @@
     return `0771-01-${day}T00:00:${second}Z`;
   }
 
-  async function sealLocalPlayerTask(task, sourceProvenance) {
+  async function sealLocalPlayerTask(task, sourceProvenance, legacy = false) {
     const trace = {
       taskId: task.taskId,
       taskState: task.state,
       taskVersion: String(task.version),
+      ...(!legacy ? { taskContent: {
+        title: String(task.title || ""),
+        modification: task.modification == null ? null : String(task.modification),
+        rejectionReason: task.rejectionReason == null ? null : String(task.rejectionReason),
+        result: task.result == null ? null : String(task.result)
+      } } : {}),
       activeConfirmations: task.activeConfirmations || [],
       supplementRequest: null,
       executionException: task.executionException || null,
@@ -772,7 +778,12 @@
     const tasks = Array.isArray(organization.localPlayerTasks) ? organization.localPlayerTasks : [];
     for (const task of tasks) {
       const expected = await sealLocalPlayerTask(task, sourceProvenance);
-      if (canonicalJson(task.organizationTrace) !== canonicalJson(expected)) throw new Error("organization_player_task_seal_invalid");
+      if (canonicalJson(task.organizationTrace) !== canonicalJson(expected)) {
+        const legacy = await sealLocalPlayerTask(task, sourceProvenance, true);
+        if (canonicalJson(task.organizationTrace) !== canonicalJson(legacy)) throw new Error("organization_player_task_seal_invalid");
+        task.organizationTrace = expected;
+        task.localTraceMigratedFromV1 = true;
+      }
     }
     return tasks;
   }
@@ -847,6 +858,7 @@
       if (normalizedAction === "REVIEW") requireState(["MODIFICATION_CONFIRMATION_PENDING"]);
       if (["EXCEPTION", "RESULT"].includes(normalizedAction)) requireState(["IN_PROGRESS"]);
       if (["MODIFY", "EXCEPTION", "RESULT"].includes(normalizedAction) && !detail) throw new Error("organization_player_task_detail_required");
+      delete task.localTraceMigratedFromV1;
       task.version += 1;
       task.updatedAt = localCareerTimestamp(taskIndex, task.version);
       const append = (type, stateCode) => task.timeline.push({ sequence: task.timeline.length + 1, type, occurredAt: task.updatedAt, stateCode });
@@ -895,9 +907,98 @@
       task.organizationTrace = await sealLocalPlayerTask(task, sourceProvenance);
       tasks[taskIndex] = task;
     }
-    const nextOrganization = { ...organization, localPlayerTasks: tasks };
+    const career = organization.localPlayerCareer || { state: "ACTIVE", version: 1, contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 };
+    const nextCareer = normalizedAction === "RESULT"
+      ? { ...career, contributionBalance: career.contributionBalance + 20, lifetimeEarned: career.lifetimeEarned + 20 }
+      : career;
+    const nextOrganization = { ...organization, localPlayerCareer: nextCareer, localPlayerTasks: tasks };
     offlineProfile = { ...(currentProfile || {}), organization: nextOrganization };
     return { mode: "standalone", organization: nextOrganization, task, message, tasks: await localOrganizationPlayerTasks() };
+  }
+
+  async function localPlayerContributionEntries(organization) {
+    const tasks = await verifiedLocalPlayerTasks(organization);
+    const sourceProvenance = await localServiceProvenance();
+    const completed = tasks.filter((task) => task.state === "SUCCEEDED" && !task.localTraceMigratedFromV1 && String(task.result || "").trim());
+    const entries = [];
+    let balance = 0;
+    for (let index = 0; index < completed.length; index += 1) {
+      const task = completed[index];
+      balance += 20;
+      const trace = {
+        organizationId: "dongzhou-local-court",
+        memberId: "dongzhou-local-player",
+        heroId: "PLAYER",
+        entryId: uuidFromDigest(await sha256(`local-player-contribution:${task.taskId}`)),
+        entryVersion: index + 2,
+        amount: 20,
+        balanceAfter: balance,
+        lifetimeEarnedAfter: balance,
+        lifetimeSpentAfter: 0,
+        eventCode: "TASK_COMPLETED",
+        sourceRef: `organization-task:${task.taskId}`,
+        violationId: null,
+        ruleSetId: "dongzhou.local.player-career",
+        ruleSetVersion: 1,
+        taskTraceDigest: task.organizationTrace.digest,
+        sourceProvenance
+      };
+      entries.push({
+        ...trace,
+        digest: await sha256(canonicalJson(trace)),
+        kernel: { module: "dongzhou_organization_contribution_ledger", moduleVersion: "1.1.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+      });
+    }
+    return entries;
+  }
+
+  async function localOrganizationPlayerContributions() {
+    const currentProfile = offlineProfile || read("dongzhou-h5-profile-v2", null);
+    const organization = currentProfile?.organization || {};
+    const entries = await localPlayerContributionEntries(organization);
+    const lifetimeEarned = entries.reduce((sum, entry) => sum + entry.amount, 0);
+    return {
+      mode: "standalone",
+      heroId: "PLAYER",
+      memberId: "dongzhou-local-player",
+      account: { accountVersion: entries.length + 1, accountBalance: lifetimeEarned, lifetimeEarned, lifetimeSpent: 0 },
+      entries,
+      nextBeforeVersion: null
+    };
+  }
+
+  async function localOrganizationPlayerContributionDossier(entryId) {
+    const currentProfile = offlineProfile || read("dongzhou-h5-profile-v2", null);
+    const organization = currentProfile?.organization || {};
+    const contribution = (await localPlayerContributionEntries(organization)).find((entry) => entry.entryId === entryId);
+    if (!contribution) throw new Error("organization_player_contribution_not_found");
+    const taskId = contribution.sourceRef.replace(/^organization-task:/, "");
+    const task = (await verifiedLocalPlayerTasks(organization)).find((item) => item.taskId === taskId);
+    if (!task || task.state !== "SUCCEEDED" || task.organizationTrace.digest !== contribution.taskTraceDigest) {
+      throw new Error("organization_player_contribution_task_invalid");
+    }
+    const body = {
+      state: "SEALED",
+      organizationId: contribution.organizationId,
+      memberId: contribution.memberId,
+      heroId: "PLAYER",
+      entryId: contribution.entryId,
+      eventCode: contribution.eventCode,
+      amount: contribution.amount,
+      taskId,
+      taskState: task.state,
+      contribution,
+      taskTrace: task.organizationTrace,
+      sourceProvenance: contribution.sourceProvenance
+    };
+    return {
+      mode: "standalone",
+      dossier: {
+        ...body,
+        digest: await sha256(canonicalJson(body)),
+        kernel: { module: "dongzhou_organization_contribution_dossier", moduleVersion: "1.1.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+      }
+    };
   }
 
   async function localNpcDecision(heroId, question, options, stageId, memory, publicNotice, contribution, contributionDossier) {
@@ -2351,8 +2452,14 @@
     if (offline) return localOrganizationPlayerTaskAction(action, input);
     throw new Error("organization_player_task_action_requires_conversation");
   }
-  function organizationPlayerContributions() { return requestWithTransientRetry("/organization/player-contributions"); }
-  function organizationPlayerContributionDossier(entryId) { return requestWithTransientRetry(`/organization/player-contributions/${encodeURIComponent(entryId)}/dossier`); }
+  function organizationPlayerContributions() {
+    if (offline) return localOrganizationPlayerContributions();
+    return requestWithTransientRetry("/organization/player-contributions");
+  }
+  function organizationPlayerContributionDossier(entryId) {
+    if (offline) return localOrganizationPlayerContributionDossier(entryId);
+    return requestWithTransientRetry(`/organization/player-contributions/${encodeURIComponent(entryId)}/dossier`);
+  }
   function organizationInventory() {
     if (offline) return Promise.resolve(localInventorySnapshot());
     return requestWithTransientRetry("/organization/inventory");

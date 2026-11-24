@@ -2185,7 +2185,7 @@
 
   async function refreshOfficeCareerContributions({ quiet = false } = {}) {
     const membership = profile.organization.remoteRoster?.playerMembership;
-    if (integration.isOffline() || officeCareerContributionBusy || !membership) {
+    if (officeCareerContributionBusy || !membership) {
       if (!membership) {
         officeCareerContributionAccount = null;
         officeCareerContributions = [];
@@ -2358,6 +2358,7 @@
           response = await integration.applyOrganizationPlayerTaskAction("REVIEW", { taskId: selectedTask.taskId });
           profile.organization = organization.normalizeState(response.organization);
         }
+        profile.organization = organization.recordRemoteRoster(profile.organization, await integration.organizationRoster(), displayName);
         writeJson(PROFILE_KEY, profile);
         await integration.persist(profile);
         await refreshOfficeCareerStatus({ quiet: true });

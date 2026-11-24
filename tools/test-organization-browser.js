@@ -111,11 +111,19 @@ async function openReady(page) {
     await desktop.click("#officeCareerResultSubmit");
     await desktop.waitForSelector("#officeCareerStatus >> text=已办成", { timeout: 10000 });
     await desktop.waitForSelector("#officeCareerFeedback >> text=本地复命已封存", { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerContributions >> text=差事告成", { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerContributions >> text=+20", { timeout: 10000 });
+    await desktop.click('#officeCareerContributions [data-player-contribution-dossier-id]');
+    await desktop.waitForSelector("#officeCareerContributions >> text=个人功绩卷宗已封印", { timeout: 10000 });
+    await desktop.click('#officeCareerContributions [data-player-contribution-verify-id]');
+    await desktop.waitForSelector("#officeCareerContributions >> text=验印通过", { timeout: 10000 });
     const localPlayerTask = await desktop.evaluate(() => {
-      const task = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.localPlayerTasks[0];
-      return { state: task.state, version: task.version, result: task.result, trace: task.organizationTrace };
+      const organization = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization;
+      const task = organization.localPlayerTasks[0];
+      return { state: task.state, version: task.version, result: task.result, trace: task.organizationTrace, career: organization.localPlayerCareer };
     });
     if (localPlayerTask.state !== "SUCCEEDED" || localPlayerTask.result !== "改走西驿道后核清军粮账册"
+      || localPlayerTask.career.contributionBalance !== 20 || localPlayerTask.career.lifetimeEarned !== 20
       || localPlayerTask.trace.kernel?.moduleVersion !== "1.1.0" || !/^[0-9a-f]{64}$/.test(localPlayerTask.trace.digest)) {
       throw new Error(`Offline player task was not sealed: ${JSON.stringify(localPlayerTask)}`);
     }
@@ -124,6 +132,7 @@ async function openReady(page) {
     await desktop.click("#campaignOfficeButton");
     await desktop.waitForSelector("#officeMembershipState >> text=已入仕", { timeout: 10000 });
     await desktop.waitForSelector("#officeCareerStatus >> text=已办成", { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerContributions >> text=结余 20", { timeout: 10000 });
     await desktop.click("#officeMembershipLeave");
     await desktop.waitForSelector("#officeMembershipLeaveConfirm:not([hidden])", { timeout: 10000 });
     if (await desktop.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.localPlayerCareer.state) !== "ACTIVE") {
