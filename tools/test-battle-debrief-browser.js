@@ -138,7 +138,71 @@ async function routeAssets(page) {
     assert(layout.scrollWidth <= layout.width + 1, `Mobile debrief overflows viewport: ${JSON.stringify(layout)}`);
     await page.screenshot({ path: path.join(OUT, "battle-debrief-mobile.png"), fullPage: false });
     assert.deepEqual(errors, []);
-    console.log(JSON.stringify({ result: "PASS", debriefReads, layout }));
+
+    const offlineContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const offlinePage = await offlineContext.newPage();
+    const offlineErrors = [];
+    let offlineApiRequests = 0;
+    offlinePage.on("pageerror", (error) => offlineErrors.push(error.message));
+    await routeAssets(offlinePage);
+    await offlinePage.route("**/api/**", async (route) => {
+      offlineApiRequests += 1;
+      await route.abort();
+    });
+    await offlinePage.goto(`${BASE_URL}?offline=1`, { waitUntil: "domcontentloaded" });
+    await offlinePage.waitForSelector("#app:not([hidden])", { timeout: 45000 });
+    const offlineReportId = await offlinePage.evaluate(async () => {
+      const profileKey = "dongzhou-h5-profile-v2";
+      const profile = JSON.parse(localStorage.getItem(profileKey));
+      await window.DongzhouIntegration.persist(profile);
+      const battlePlan = {
+        formation: "balanced",
+        vanguardHeroId: "DuBo",
+        supportIds: ["local-support-01"],
+        supportEffect: { provisions: 8, morale: 3, attack: 0, defense: 0, recon: 1 },
+      };
+      const readiness = await window.DongzhouIntegration.battleReadiness("01", battlePlan);
+      const deployment = await window.DongzhouIntegration.battleDeployment("01", readiness, null, battlePlan);
+      profile.organization.battleReports.push({
+        id: deployment.reportId,
+        stageId: "01",
+        stageTitle: "东郊索命",
+        won: true,
+        turns: 7,
+        ownLosses: 1,
+        terminalReason: "victory",
+        month: 1,
+        campaignRoute: null,
+        battleReadiness: readiness,
+        battleDeployment: deployment,
+        battlePlan,
+      });
+      localStorage.setItem(profileKey, JSON.stringify(profile));
+      await window.DongzhouIntegration.persist(profile);
+      return deployment.reportId;
+    });
+    await offlinePage.reload({ waitUntil: "domcontentloaded" });
+    await offlinePage.waitForSelector("#app:not([hidden])", { timeout: 45000 });
+    await offlinePage.click("#campaignOfficeButton");
+    await offlinePage.waitForSelector("#campaignOfficeBackdrop:not([hidden])");
+    await offlinePage.waitForSelector("#officeBattleDebriefButton:not(:disabled)", { timeout: 15000 });
+    assert.equal(await offlinePage.locator("#officeBattleDebriefButton").getAttribute("data-report-id"), offlineReportId);
+    await offlinePage.click("#officeBattleDebriefButton");
+    await offlinePage.waitForTimeout(750);
+    if (await offlinePage.locator("#officeBattleDebrief").isHidden()) {
+      const directError = await offlinePage.evaluate(async (reportId) => {
+        try { await window.DongzhouIntegration.battleDebrief(reportId); return "none"; }
+        catch (error) { return error.message; }
+      }, offlineReportId);
+      throw new Error(`Standalone debrief rejected: ${directError} / ${await offlinePage.locator("#floatingNotice").textContent()} / ${offlineErrors.join(" | ")}`);
+    }
+    await offlinePage.waitForSelector("#officeBattleDebrief:not([hidden])", { timeout: 15000 });
+    assert.match(await offlinePage.locator("#officeBattleDebrief").innerText(), /DuBo|杜伯/);
+    assert.equal(offlineApiRequests, 0);
+    assert.deepEqual(offlineErrors, []);
+    await offlinePage.screenshot({ path: path.join(OUT, "battle-debrief-standalone-mobile.png"), fullPage: false });
+    await offlineContext.close();
+    console.log(JSON.stringify({ result: "PASS", debriefReads, offlineApiRequests, layout }));
   } finally {
     await browser.close();
   }

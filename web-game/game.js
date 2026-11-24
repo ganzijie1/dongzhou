@@ -1913,13 +1913,16 @@
       );
     }
     const debriefReport = [...org.battleReports].reverse().find((report) =>
-      report?.kernelReceipt?.kernel?.state === "SEALED"
-      && report.kernelReceipt.verifiedParticipants?.length
-      && report.kernelReceipt.verifiedSupport?.orders?.length
+      (report?.kernelReceipt?.kernel?.state === "SEALED"
+        && report.kernelReceipt.verifiedParticipants?.length
+        && report.kernelReceipt.verifiedSupport?.orders?.length)
+      || (integration.isOffline()
+        && report?.battleDeployment?.kernel?.state === "SEALED"
+        && report?.battlePlan?.supportIds?.length)
     );
     const debriefButton = $("#officeBattleDebriefButton");
     debriefButton.dataset.reportId = debriefReport?.id || "";
-    debriefButton.disabled = officeBattleDebriefInFlight || integration.isOffline() || !debriefReport;
+    debriefButton.disabled = officeBattleDebriefInFlight || !debriefReport;
     debriefButton.textContent = officeBattleDebriefInFlight ? "复核中" : "论功复盘";
     if (!debriefReport || officeBattleDebriefView?.reportId !== debriefReport.id) {
       if (!officeBattleDebriefInFlight) officeBattleDebriefView = null;
@@ -1984,7 +1987,7 @@
 
   async function requestOfficeBattleDebrief() {
     const reportId = $("#officeBattleDebriefButton").dataset.reportId;
-    if (!reportId || officeBattleDebriefInFlight || integration.isOffline()) return;
+    if (!reportId || officeBattleDebriefInFlight) return;
     officeBattleDebriefInFlight = true;
     renderOrganizationPanel();
     try {

@@ -20,6 +20,8 @@ Standalone history quizzes load only `scenario/dongzhou-knowledge.json` and `sce
 
 Every standalone non-procedural battle passes the same local four-repository gate. The browser binds the published stage knowledge, local court roster, local AINPC actor set, selected campaign route and exact battle plan into `dongzhou_battle_readiness 1.3.0` and `dongzhou_battle_deployment 1.3.0` receipts. Both receipts are journaled and reverified before a saved battle can resume. This path reads static files and browser storage only; it sends no `/api/` request and starts no service process.
 
+Standalone battle debriefs use the sealed deployment and battle-time roster rather than any current service state. Published local knowledge, local actor memories and applied support traces are recomputed into the existing `dongzhou_battle_debrief 1.2.0` contract. Historical review therefore remains available after the court roster changes, while a changed report, deployment, source manifest or support trace is rejected.
+
 Standalone adviser questions use those same two static files. The browser applies AINPC's published intent and guide state contract in-process, binds answers to the local `列国军府` authority, and seals accepted guide transitions with the Nexus `dongzhou_adviser_guide 1.1.0` shape. Reads, feedback, decisions, status changes and cancellation all rebuild the answer from local knowledge before accepting the journal; no `/api/` request or service process is involved.
 
 ## Legacy connected-mode notes (inactive)

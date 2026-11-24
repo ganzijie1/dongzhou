@@ -104,12 +104,33 @@ const client = require("../web-game/integration-client.js");
   );
   await assert.rejects(
     client.battleDeployment("02", { ...readiness, knowledge: { ...readiness.knowledge, digest: "0".repeat(64) } }, route, battlePlan),
-    /battle_readiness_seal_invalid/
+    /battle_readiness_.*_invalid/
   );
   await assert.rejects(
     client.battleDeployment("02", readiness, { ...route, localRouteDigest: "0".repeat(64) }, battlePlan),
     /campaign_route_seal_invalid/
   );
+  localProfile.organization.battleReports = [{
+    id: deployment.reportId,
+    stageId: "02",
+    stageTitle: "Second stage",
+    won: true,
+    turns: 7,
+    ownLosses: 1,
+    terminalReason: "victory",
+    campaignRoute: route,
+    battleReadiness: readiness,
+    battleDeployment: deployment,
+    battlePlan,
+  }];
+  await client.persist(localProfile);
+  const debrief = await client.battleDebrief(deployment.reportId);
+  assert.strictEqual(debrief.mode, "standalone");
+  assert.strictEqual(debrief.kernel.module, "dongzhou_battle_debrief");
+  assert.strictEqual(debrief.kernel.moduleVersion, "1.2.0");
+  assert.deepStrictEqual(debrief.organizationTasks.map((entry) => entry.taskId), battlePlan.supportIds);
+  assert.deepStrictEqual(debrief.participants.map((entry) => entry.heroId), ["DuBo", "ZuoRu"]);
+  assert.match(debrief.digest, /^[0-9a-f]{64}$/);
 
   const questionId = "00000000-0000-4000-8000-000000000501";
   const started = await client.startKnowledgeQuiz("01", questionId);
@@ -217,7 +238,7 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(rejected.guide.kernel.state, "SEALED");
   assert.strictEqual(fetchedUrls.some((url) => url.includes("/api/")), false);
 
-  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true, localBattleGate: true }));
+  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true, localBattleGate: true, localDebrief: true }));
 })().catch((error) => {
   console.error(error.stack || error.message);
   process.exitCode = 1;

@@ -21,6 +21,7 @@
   const KNOWLEDGE_QUIZ_PREFIX = "dongzhou-local-knowledge-quiz-v1:";
   const BATTLE_READINESS_PREFIX = "dongzhou-local-battle-readiness-v1:";
   const BATTLE_DEPLOYMENT_PREFIX = "dongzhou-local-battle-deployment-v1:";
+  const BATTLE_DEBRIEF_PREFIX = "dongzhou-local-battle-debrief-v1:";
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
   let session = read(SESSION_KEY, null);
   let sessionPromise = null;
@@ -398,24 +399,32 @@
     return receipt;
   }
 
-  async function validateLocalBattleReadiness(stageId, receipt, battlePlan) {
+  async function validateLocalBattleReadiness(stageId, receipt, battlePlan, requireCurrentRoster = true) {
     const plan = normalizeLocalBattlePlan(battlePlan);
     const record = read(BATTLE_READINESS_PREFIX + String(receipt?.readinessId || ""), null);
     const trace = receipt && Object.fromEntries(Object.entries(receipt).filter(([key]) => !["digest", "kernel"].includes(key)));
     const sourceProvenance = await localServiceProvenance();
     const knowledge = await localKnowledgeWitness(stageId);
     const activeHeroIds = localActiveHeroIds(plan);
-    if (!record || canonicalJson(record.receipt) !== canonicalJson(receipt)
-      || canonicalJson(record.battlePlan) !== canonicalJson(plan)
-      || receipt?.mode !== "standalone" || receipt?.state !== "READY" || receipt?.kind !== "BATTLE_READINESS"
-      || receipt?.stageId !== String(stageId) || receipt?.playerDigest !== await sha256(canonicalJson({ playerId: await localPlayerId() }))
-      || canonicalJson(receipt?.knowledge) !== canonicalJson(knowledge)
-      || canonicalJson(receipt?.organization?.activeHeroIds) !== canonicalJson(activeHeroIds)
-      || canonicalJson(receipt?.aiNpc?.readyHeroIds) !== canonicalJson(activeHeroIds)
-      || canonicalJson(receipt?.sourceProvenance) !== canonicalJson(sourceProvenance)
-      || receipt?.digest !== await sha256(canonicalJson(trace))
-      || canonicalJson(receipt?.kernel) !== canonicalJson({ module: "dongzhou_battle_readiness", moduleVersion: "1.3.0", nexusKernelVersion: "0.2.0", state: "SEALED" })) {
-      throw new Error("battle_readiness_seal_invalid");
+    if (!record || canonicalJson(record.receipt) !== canonicalJson(receipt)) throw new Error("battle_readiness_journal_invalid");
+    if (canonicalJson(record.battlePlan) !== canonicalJson(plan)) throw new Error("battle_readiness_plan_invalid");
+    if (receipt?.mode !== "standalone" || receipt?.state !== "READY" || receipt?.kind !== "BATTLE_READINESS"
+      || receipt?.stageId !== String(stageId)) throw new Error("battle_readiness_identity_invalid");
+    if (receipt?.playerDigest !== await sha256(canonicalJson({ playerId: await localPlayerId() }))) throw new Error("battle_readiness_player_invalid");
+    if (canonicalJson(receipt?.knowledge) !== canonicalJson(knowledge)) throw new Error("battle_readiness_knowledge_invalid");
+    const sealedHeroIds = receipt?.organization?.activeHeroIds;
+    if (!Array.isArray(sealedHeroIds) || !sealedHeroIds.length
+      || canonicalJson(receipt?.aiNpc?.readyHeroIds) !== canonicalJson(sealedHeroIds)) throw new Error("battle_readiness_actors_invalid");
+    if (receipt?.organization?.rosterDigest !== await sha256(canonicalJson({
+      organizationId: receipt.organization.organizationId,
+      hierarchyVersion: receipt.organization.hierarchyVersion,
+      activeHeroIds: sealedHeroIds
+    }))) throw new Error("battle_readiness_roster_digest_invalid");
+    if (requireCurrentRoster && canonicalJson(sealedHeroIds) !== canonicalJson(activeHeroIds)) throw new Error("battle_readiness_roster_invalid");
+    if (canonicalJson(receipt?.sourceProvenance) !== canonicalJson(sourceProvenance)) throw new Error("battle_readiness_source_invalid");
+    if (receipt?.digest !== await sha256(canonicalJson(trace))) throw new Error("battle_readiness_digest_invalid");
+    if (canonicalJson(receipt?.kernel) !== canonicalJson({ module: "dongzhou_battle_readiness", moduleVersion: "1.3.0", nexusKernelVersion: "0.2.0", state: "SEALED" })) {
+      throw new Error("battle_readiness_kernel_invalid");
     }
     return receipt;
   }
@@ -467,10 +476,10 @@
     return receipt;
   }
 
-  async function verifyBattleDeployment(stageId, readiness, deployment, battlePlan, campaignRoute = null) {
+  async function verifyBattleDeployment(stageId, readiness, deployment, battlePlan, campaignRoute = null, historical = false) {
     if (!offline) return true;
     const plan = normalizeLocalBattlePlan(battlePlan);
-    await validateLocalBattleReadiness(stageId, readiness, plan);
+    await validateLocalBattleReadiness(stageId, readiness, plan, !historical);
     const record = read(BATTLE_DEPLOYMENT_PREFIX + String(deployment?.deploymentId || ""), null);
     const trace = deployment && Object.fromEntries(Object.entries(deployment).filter(([key]) => !["digest", "kernel"].includes(key)));
     const routeDigest = campaignRoute ? await validateStandaloneRoute(campaignRoute) : null;
@@ -484,6 +493,92 @@
       throw new Error("battle_deployment_seal_invalid");
     }
     return true;
+  }
+
+  async function sealLocalBattleDebrief(reportId) {
+    const report = (offlineProfile?.organization?.battleReports || []).find((entry) => entry?.id === String(reportId));
+    const supportIds = Array.isArray(report?.battlePlan?.supportIds) ? report.battlePlan.supportIds.map(String) : [];
+    if (!report || report?.battleDeployment?.kernel?.module !== "dongzhou_battle_deployment"
+      || report.battleDeployment.kernel.state !== "SEALED" || !supportIds.length) {
+      throw new Error("battle_debrief_report_ineligible");
+    }
+    await verifyBattleDeployment(
+      report.stageId,
+      report.battleReadiness,
+      report.battleDeployment,
+      report.battlePlan,
+      report.campaignRoute || null,
+      true
+    );
+    const sourceProvenance = await localServiceProvenance();
+    const reportDigest = await sha256(canonicalJson(report));
+    const previous = read(BATTLE_DEBRIEF_PREFIX + reportId, null);
+    if (previous && previous.reportDigest !== reportDigest) throw new Error("battle_debrief_report_changed");
+    const entries = (await localKnowledgeCatalog())
+      .filter((entry) => String(entry?.stageId || "") === String(report.stageId)
+        && String(entry?.id || entry?.aku_id || "").startsWith("dongzhou_stage_"));
+    if (!entries.length) throw new Error("battle_debrief_knowledge_missing");
+    const knowledge = await Promise.all(entries.map(async (entry) => ({
+      id: String(entry.id || entry.aku_id),
+      title: String(entry.name || report.stageTitle || report.stageId),
+      summary: String(entry.summary || entry.objective || ""),
+      sources: Array.isArray(entry.sources) ? entry.sources : [],
+      digest: await sha256(canonicalJson(entry))
+    })));
+    const heroIds = [...new Set([
+      ...(report.battleReadiness?.organization?.activeHeroIds || []),
+      report.battlePlan?.vanguardHeroId
+    ].filter(Boolean).map(String))].sort();
+    if (!heroIds.length) throw new Error("battle_debrief_participants_missing");
+    const participants = await Promise.all(heroIds.map(async (heroId) => {
+      const memory = {
+        content: `${report.stageTitle || report.stageId}${report.won ? "告捷" : "失利"}，${heroId}参与此役，用时${Number(report.turns || 0)}回合。`,
+        reportId: String(reportId),
+        stageId: String(report.stageId)
+      };
+      memory.digest = await sha256(canonicalJson(memory));
+      return { heroId, npcId: `local:${heroId}`, memory };
+    }));
+    const organizationTasks = await Promise.all(supportIds.map(async (supportId) => {
+      const trace = {
+        taskId: supportId,
+        state: "COMPLETED",
+        timeline: [{ state: "APPLIED", reportId: String(reportId) }],
+        sourceProvenance
+      };
+      return {
+        ...trace,
+        digest: await sha256(canonicalJson(trace)),
+        kernel: { module: "dongzhou_organization_task_trace", moduleVersion: "1.1.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+      };
+    }));
+    const trace = {
+      mode: "standalone",
+      state: "SEALED",
+      reportId: String(reportId),
+      reportDigest,
+      battleReceiptDigest: report.battleDeployment.digest,
+      stageId: String(report.stageId),
+      stageTitle: String(report.stageTitle || report.stageId),
+      outcome: {
+        won: Boolean(report.won),
+        turns: Number(report.turns || 0),
+        ownLosses: Number(report.ownLosses || 0),
+        terminalReason: String(report.terminalReason || "")
+      },
+      knowledge,
+      participants,
+      organizationTasks,
+      sourceProvenance,
+      battleSourceProvenance: report.battleDeployment.sourceProvenance || sourceProvenance
+    };
+    const debrief = {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: { module: "dongzhou_battle_debrief", moduleVersion: "1.2.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    };
+    write(BATTLE_DEBRIEF_PREFIX + reportId, { reportDigest, debrief });
+    return debrief;
   }
 
   function installationId() {
@@ -671,7 +766,7 @@
     return { mode: "offline", results: Object.values(read(KNOWLEDGE_CODEX_KEY, {})) };
   }
   function battleDebrief(reportId) {
-    if (offline) return Promise.reject(new Error("battle_debrief_requires_online"));
+    if (offline) return sealLocalBattleDebrief(reportId);
     return requestWithTransientRetry(`/battle-reports/${encodeURIComponent(reportId)}/debrief`);
   }
   function battleReadiness(stageId, battlePlan = null) {
