@@ -2562,6 +2562,42 @@ class AuthenticationRouteTests(unittest.TestCase):
                     [("101", 1), ("202", 1)],
                 )
 
+                nearby_npcs = client.post(
+                    "/api/v2/QueryNDLLMNearbyEntityInfo",
+                    json={
+                        "aiId": "101",
+                        "filters": [{"filterType": "FILTER_ONLY_SMART_NPC"}],
+                    },
+                )
+                self.assertEqual(nearby_npcs.status_code, 200)
+                self.assertEqual(
+                    nearby_npcs.json(),
+                    {
+                        "players": [{"playerId": "202", "playerName": "Officer"}],
+                        "monsters": [],
+                    },
+                )
+                nearby_monsters = client.post(
+                    "/api/v2/QueryNDLLMNearbyEntityInfo",
+                    json={
+                        "aiId": "101",
+                        "filters": [{"filterType": "FILTER_ONLY_MONSTER"}],
+                    },
+                )
+                self.assertEqual(nearby_monsters.status_code, 200)
+                self.assertEqual(nearby_monsters.json(), {"players": [], "monsters": []})
+                legacy_nearby_players = client.post(
+                    "/api/v2/QueryNDLLMNearbyPlayerInfo",
+                    json={
+                        "aiId": "101",
+                        "filters": [{"filterType": "FILTER_ONLY_PLAYER"}],
+                    },
+                )
+                self.assertEqual(legacy_nearby_players.status_code, 200)
+                self.assertEqual(
+                    legacy_nearby_players.json(), {"players": [], "monsters": []}
+                )
+
                 started = client.post(
                     "/api/v2/NDLLMChatWithPlayer",
                     json={

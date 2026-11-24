@@ -97,9 +97,12 @@ class AinpcNpcDirectoryQuery(StrictModel):
 
 
 class AinpcNearbyFilter(StrictModel):
-    filter_type: Literal["FILTER_ONLY_PLAYER", "FILTER_ONLY_SMART_NPC"] = Field(
-        alias="filterType"
-    )
+    filter_type: Literal[
+        "FILTER_ONLY_PLAYER",
+        "FILTER_ONLY_PET",
+        "FILTER_ONLY_SMART_NPC",
+        "FILTER_ONLY_MONSTER",
+    ] = Field(alias="filterType")
 
 
 class AinpcNearbyQuery(StrictModel):

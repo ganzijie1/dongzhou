@@ -5382,17 +5382,20 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         }
 
     @game_clock_router.post("/api/v2/QueryNDLLMNearbyPlayerInfo")
+    @game_clock_router.post("/api/v2/QueryNDLLMNearbyEntityInfo")
     async def query_nearby(request: AinpcNearbyQuery) -> dict[str, Any]:
         filters = {item.filter_type for item in request.filters}
-        if "FILTER_ONLY_PLAYER" in filters:
-            return {"players": []}
-        rows = await store.list_npcs(settings.game_server_id)
-        return {
-            "players": [
+        players: list[dict[str, Any]] = []
+        if "FILTER_ONLY_SMART_NPC" in filters:
+            rows = await store.list_npcs(settings.game_server_id)
+            players = [
                 {"playerId": row["id"], "playerName": row["name"]}
                 for row in rows
                 if row["id"] != request.ai_id
             ]
+        return {
+            "players": players,
+            "monsters": [],
         }
 
     @game_clock_router.post("/api/v2/QueryNDLLMTargetPlayerInfo")
