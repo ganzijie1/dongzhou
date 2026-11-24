@@ -27,6 +27,7 @@ const SYSTEM_CHROMIUM = [
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   const errors = [];
   let routeRequests = 0;
+  let readinessRequests = 0;
   let saveVersion = 1;
   const profile = { completed: ["01"], campaignResources: { provisions: 100, morale: 70 } };
   const sourceProvenance = { digest: "8".repeat(64), services: { knowledge: {}, aiNpc: {}, orgFlow: {}, nexusKernel: {} }, kernel: { module: "dongzhou_service_provenance", state: "SEALED" } };
@@ -39,7 +40,18 @@ const SYSTEM_CHROMIUM = [
       if (url.pathname.endsWith("/sessions/guest")) body = { playerId: "route-player", expiresIn: 86400 };
       else if (url.pathname.endsWith("/save") && request.method() === "GET") body = { version: saveVersion, payload: profile };
       else if (url.pathname.endsWith("/save")) body = { version: ++saveVersion, payload: request.postDataJSON().payload };
-      else if (url.pathname.endsWith("/integration/status")) body = { mode: "connected", services: { knowledge: { online: true }, aiNpc: { online: true }, orgFlow: { online: true }, nexusKernel: { online: true, requiredModuleCount: 20, operationalModuleCount: 20, sourceBoundModuleCount: 18, sourceBoundModules: Array.from({ length: 18 }, (_, index) => `source-bound-${index + 1}`) } } };
+      else if (url.pathname.endsWith("/integration/status")) body = { mode: "connected", services: { knowledge: { online: true }, aiNpc: { online: true }, orgFlow: { online: true }, nexusKernel: { online: true, requiredModuleCount: 21, operationalModuleCount: 21, sourceBoundModuleCount: 19, sourceBoundModules: Array.from({ length: 19 }, (_, index) => `source-bound-${index + 1}`) } } };
+      else if (url.pathname.endsWith("/battle-readiness")) {
+        readinessRequests += 1;
+        assert.deepStrictEqual(request.postDataJSON(), { stage_id: "02" });
+        body = {
+          mode: "connected", state: "READY", kind: "BATTLE_READINESS", stageId: "02", stageTitle: "骊山烽火",
+          knowledge: { knowledgeIds: ["dongzhou_stage_002"], digest: "b".repeat(64) },
+          organization: { organizationId: "court", state: "ACTIVE", hierarchyVersion: 1, activeHeroIds: ["DuBo"] },
+          aiNpc: { readyHeroIds: ["DuBo"] }, sourceProvenance, digest: "6".repeat(64),
+          kernel: { module: "dongzhou_battle_readiness", moduleVersion: "1.0.0", state: "SEALED" }
+        };
+      }
       else if (url.pathname.endsWith("/knowledge/routes")) {
         routeRequests += 1;
         assert.deepStrictEqual(request.postDataJSON(), {
@@ -89,10 +101,12 @@ const SYSTEM_CHROMIUM = [
       profile: JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2"))
     }));
     assert.strictEqual(stored.battle.campaignRoute.provisionCost, 2);
+    assert.strictEqual(stored.battle.battleReadiness.kernel.module, "dongzhou_battle_readiness");
     assert.strictEqual(stored.profile.campaignResources.provisions, 98);
     assert.strictEqual(routeRequests, 2, "deployment must revalidate the selected campaign route");
+    assert.strictEqual(readinessRequests, 1, "deployment must obtain a fresh four-service readiness seal");
     assert.deepStrictEqual(errors, []);
-    console.log(JSON.stringify({ result: "PASS", routeRequests, provisionCost: 2, provisions: 98 }));
+    console.log(JSON.stringify({ result: "PASS", routeRequests, readinessRequests, provisionCost: 2, provisions: 98 }));
   } finally {
     await browser.close();
   }

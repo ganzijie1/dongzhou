@@ -28,7 +28,7 @@ from .assignments import (
     select_assignment,
     task_duty,
 )
-from .models import AdviserFeedbackRequest, AdviserGuideCancelRequest, AdviserGuideDecisionRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcPublicMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcCommendationRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMeritCommendationRequest, NpcMessageRequest, NpcRecollectionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationScheduledDutyStatusRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
+from .models import AdviserFeedbackRequest, AdviserGuideCancelRequest, AdviserGuideDecisionRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcPublicMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, BattleReadinessRequest, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcCommendationRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMeritCommendationRequest, NpcMessageRequest, NpcRecollectionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationScheduledDutyStatusRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .service_sources import (
     SERVICE_NAMES,
@@ -1434,6 +1434,76 @@ def _service_provenance_receipt_is_valid(receipt: Any) -> bool:
     except (TypeError, ValueError):
         return False
     return sealed == receipt
+
+
+class BattleReadinessModule(Module):
+    name = "dongzhou_battle_readiness"
+    version = "1.0.0"
+    dependencies = (RuntimeModule.name, ServiceProvenanceModule.name)
+
+    @classmethod
+    def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
+        knowledge = trace.get("knowledge")
+        organization = trace.get("organization")
+        ai_npc = trace.get("aiNpc")
+        if (
+            trace.get("mode") != "connected"
+            or trace.get("state") != "READY"
+            or trace.get("kind") != "BATTLE_READINESS"
+            or not str(trace.get("stageId") or "")
+            or not str(trace.get("stageTitle") or "")
+            or not isinstance(knowledge, dict)
+            or not isinstance(organization, dict)
+            or not isinstance(ai_npc, dict)
+            or not _service_provenance_receipt_is_valid(
+                trace.get("sourceProvenance")
+            )
+        ):
+            raise ValueError("battle readiness trace is incomplete")
+        knowledge_ids = knowledge.get("knowledgeIds")
+        active_heroes = organization.get("activeHeroIds")
+        ready_heroes = ai_npc.get("readyHeroIds")
+        if (
+            not isinstance(knowledge_ids, list)
+            or not knowledge_ids
+            or knowledge_ids != sorted(set(map(str, knowledge_ids)))
+            or not re.fullmatch(r"[0-9a-f]{64}", str(knowledge.get("digest") or ""))
+            or organization.get("state") != "ACTIVE"
+            or not str(organization.get("organizationId") or "")
+            or isinstance(organization.get("hierarchyVersion"), bool)
+            or not isinstance(organization.get("hierarchyVersion"), int)
+            or organization["hierarchyVersion"] < 1
+            or not isinstance(active_heroes, list)
+            or not active_heroes
+            or active_heroes != sorted(set(map(str, active_heroes)))
+            or not isinstance(ready_heroes, list)
+            or ready_heroes != active_heroes
+        ):
+            raise ValueError("battle readiness evidence is invalid")
+        return {
+            **trace,
+            "digest": _canonical_digest(trace),
+            "kernel": {
+                "module": cls.name,
+                "moduleVersion": cls.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "SEALED",
+            },
+        }
+
+    @classmethod
+    def verify(cls, receipt: Any) -> bool:
+        if not isinstance(receipt, dict):
+            return False
+        trace = {
+            key: value
+            for key, value in receipt.items()
+            if key not in {"digest", "kernel"}
+        }
+        try:
+            return cls.seal(trace) == receipt
+        except (TypeError, ValueError):
+            return False
 
 
 class BattleDebriefModule(Module):
@@ -3493,6 +3563,7 @@ class BattleReceiptConflict(ValueError):
 def _battle_report_signature(report: dict[str, Any]) -> dict[str, Any]:
     support = report.get("support") if isinstance(report.get("support"), dict) else {}
     campaign_route = report.get("campaignRoute")
+    battle_readiness = report.get("battleReadiness")
 
     def references(entries: Any, hero_key: str) -> list[dict[str, str]]:
         if not isinstance(entries, list):
@@ -3531,6 +3602,8 @@ def _battle_report_signature(report: dict[str, Any]) -> dict[str, Any]:
             "receiptDigest": str(campaign_route.get("receipt", {}).get("digest") or ""),
             "receiptAttestation": str(campaign_route.get("receipt", {}).get("attestation") or ""),
         }
+    if isinstance(battle_readiness, dict):
+        signature["battleReadiness"] = battle_readiness
     return signature
 
 
@@ -3947,6 +4020,7 @@ def _seal_battle_reports(
     campaign_routes: CampaignRouteModule | None = None,
     route_required_stages: set[str] | None = None,
     source_provenance: dict[str, Any] | None = None,
+    battle_readiness_module: BattleReadinessModule | None = None,
 ) -> dict[str, Any]:
     if (
         source_provenance is not None
@@ -4032,6 +4106,19 @@ def _seal_battle_reports(
             continue
 
         report.pop("kernelReceipt", None)
+        readiness = report.get("battleReadiness")
+        if (
+            isinstance(readiness, dict)
+            and (
+                battle_readiness_module is None
+                or not battle_readiness_module.verify(readiness)
+                or str(readiness.get("stageId") or "") != stage_id
+                or not _service_provenance_receipt_matches(
+                    readiness.get("sourceProvenance"), source_provenance or {}
+                )
+            )
+        ):
+            raise BattleReceiptConflict("battle_readiness_invalid")
         campaign_route = report.get("campaignRoute")
         if (
             isinstance(campaign_route, dict)
@@ -4817,6 +4904,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     logistics_briefing = LogisticsBriefingModule()
     organization_scheduled_duty = OrganizationScheduledDutyModule()
     service_provenance = ServiceProvenanceModule(public_service_sources())
+    battle_readiness = BattleReadinessModule()
     battle_debrief = BattleDebriefModule()
     npc_commendation = NpcCommendationModule()
     npc_merit_commendation = NpcMeritCommendationModule()
@@ -4832,6 +4920,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         npc_recollection, npc_public_notice, organization_contribution_ledger,
         organization_contribution_dossier, npc_merit_commendation,
         adviser_guide, organization_scheduled_duty, battle_debrief,
+        battle_readiness,
         service_provenance,
     )
     dependencies_by_name = {
@@ -4901,9 +4990,14 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 original_index=18,
             ),
             LoadedModule(
-                module=service_provenance,
+                module=battle_readiness,
                 required=True,
                 original_index=19,
+            ),
+            LoadedModule(
+                module=service_provenance,
+                required=True,
+                original_index=20,
             ),
         ]
     )
@@ -6265,6 +6359,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 campaign_routes,
                 route_required_stages,
                 source_provenance=service_provenance.receipt(),
+                battle_readiness_module=battle_readiness,
             )
             sealed_payload["sourceProvenance"] = service_provenance.receipt()
             reports = await _prepare_due_organization_reports(
@@ -7147,6 +7242,96 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 notice.get("sourceProvenance"), service_provenance.receipt()
             )
         ]}
+
+    @router.post("/battle-readiness")
+    async def prepare_battle_readiness(
+        request: BattleReadinessRequest,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        del player_id
+        stage_title = stage_titles.get(request.stage_id)
+        if stage_title is None:
+            raise ApiError(
+                "battle_readiness_stage_unknown",
+                "The campaign stage is not published.",
+                status_code=404,
+            )
+        unavailable = _unavailable_required_services(
+            {
+                **module.services,
+                "nexusKernel": {"online": True, "sourceAttested": True},
+            }
+        )
+        if unavailable:
+            raise ApiError(
+                "battle_readiness_requires_four_services",
+                "Battle readiness requires all four attested services: "
+                + ", ".join(unavailable),
+                status_code=503,
+            )
+        try:
+            knowledge_entries, roster_response, online_npc_ids = await asyncio.gather(
+                upstreams.stage_knowledge(request.stage_id),
+                upstreams.organization_roster(settings.orgflow_org_id),
+                upstreams.online_npc_ids(),
+            )
+        except UpstreamUnavailable as error:
+            raise ApiError(
+                "battle_readiness_upstream_unavailable",
+                "Battle readiness evidence is temporarily unavailable.",
+                status_code=503,
+            ) from error
+        try:
+            knowledge = _campaign_route_knowledge_witness(
+                request.stage_id, knowledge_entries
+            )
+            roster = roster_response.get("data")
+            if not isinstance(roster, dict):
+                raise ValueError("organization roster is missing")
+            active_member_ids = {
+                str(member.get("member_id") or "")
+                for member in roster.get("members", [])
+                if isinstance(member, dict)
+                and str(member.get("state") or "ACTIVE") == "ACTIVE"
+            }
+            active_hero_ids = sorted(
+                hero_id
+                for hero_id, member_id in settings.orgflow_hero_members.items()
+                if member_id in active_member_ids
+            )
+            if roster.get("state") != "ACTIVE" or not active_hero_ids:
+                raise ValueError("organization roster is not battle ready")
+            ready_hero_ids = sorted(
+                hero_id
+                for hero_id in active_hero_ids
+                if str(
+                    stable_npc_id(settings.ainpc_game_server_id, hero_id)
+                ) in online_npc_ids
+            )
+            trace = {
+                "mode": "connected",
+                "state": "READY",
+                "kind": "BATTLE_READINESS",
+                "stageId": request.stage_id,
+                "stageTitle": stage_title,
+                "knowledge": knowledge,
+                "organization": {
+                    "organizationId": settings.orgflow_org_id,
+                    "state": str(roster.get("state") or ""),
+                    "hierarchyVersion": int(roster.get("hierarchy_version") or 0),
+                    "activeHeroIds": active_hero_ids,
+                },
+                "aiNpc": {"readyHeroIds": ready_hero_ids},
+                "sourceProvenance": service_provenance.receipt(),
+            }
+            receipt = battle_readiness.seal(trace)
+        except (TypeError, ValueError) as error:
+            raise ApiError(
+                "battle_readiness_evidence_invalid",
+                "Battle readiness evidence is incomplete or inconsistent.",
+                status_code=409,
+            ) from error
+        return receipt
 
     @router.post("/knowledge/routes")
     async def campaign_route(

@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from dongzhou_integration.app import ServiceProvenanceModule, build_application
 from dongzhou_integration.config import Settings
+from dongzhou_integration.security import stable_npc_id
 from dongzhou_integration.upstreams import UpstreamUnavailable
 
 
@@ -24,6 +25,7 @@ class PublishedKnowledge:
 
     def __init__(self):
         self.events = []
+        self.online_ids = set()
         self.memory_queries = []
         self.memory_items = [{
             "idempotency_key": "memory-dongzhou-stage-001",
@@ -34,7 +36,10 @@ class PublishedKnowledge:
         }]
 
     async def health(self):
-        return {name: {"online": True} for name in ("orgFlow", "aiNpc", "knowledge")}
+        return {
+            name: {"online": True, "sourceAttested": True}
+            for name in ("orgFlow", "aiNpc", "knowledge")
+        }
 
     async def close(self):
         pass
@@ -109,6 +114,9 @@ class PublishedKnowledge:
                 "contribution_lifetime_spent": 0,
             }],
         }}
+
+    async def online_npc_ids(self):
+        return set(self.online_ids)
 
     async def send_game_event(self, kind, payload):
         self.events.append((kind, payload))
@@ -213,7 +221,7 @@ def test_campaign_route_requires_completed_predecessor_and_validates_published_d
             "expected_version": 2,
             "payload": {"completed": ["01", "02"], "organization": {"battleReports": [report]}},
         })
-        assert saved.status_code == 200
+        assert saved.status_code == 200, saved.json()
         sealed_report = saved.json()["payload"]["organization"]["battleReports"][0]
         assert sealed_report["campaignRoute"]["receipt"]["attestation"] == guided.json()["receipt"]["attestation"]
         assert sealed_report["kernelReceipt"]["kernel"]["state"] == "SEALED"
@@ -263,6 +271,85 @@ def test_campaign_route_requires_completed_predecessor_and_validates_published_d
         unavailable = client.post(path, json=request)
         assert unavailable.status_code == 503
         assert unavailable.json()["error"]["code"] == "knowledge_route_unavailable"
+
+
+def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path):
+    scenario = tmp_path / "scenario"
+    scenario.mkdir()
+    (scenario / "campaign.json").write_text(json.dumps({
+        "stages": [{"id": "01", "index": 1, "battleTitle": "东郊索命"}],
+    }, ensure_ascii=False), encoding="utf-8")
+    org_id = "00000000-0000-4000-8000-000000000100"
+    member_id = "00000000-0000-4000-8000-000000000101"
+    with patch.dict("os.environ", {
+        "DONGZHOU_ENV": "test",
+        "DONGZHOU_WEB_ROOT": str(tmp_path),
+        "DONGZHOU_DATABASE_PATH": str(tmp_path / "save.db"),
+        "DONGZHOU_ORGFLOW_ORG_ID": org_id,
+        "DONGZHOU_ORGFLOW_HERO_MEMBERS": f"DuBo={member_id}",
+    }, clear=True):
+        settings = Settings.from_env()
+    upstreams = PublishedKnowledge()
+    upstreams.online_ids = {
+        str(stable_npc_id(settings.ainpc_game_server_id, "DuBo"))
+    }
+    with TestClient(build_application(settings, upstreams=upstreams)) as client:
+        path = "/api/dongzhou/v1/battle-readiness"
+        assert client.post(path, json={"stage_id": "01"}).status_code == 401
+        assert client.post(
+            "/api/dongzhou/v1/sessions/guest",
+            json={"installation_id": str(uuid4())},
+        ).status_code == 200
+        prepared = client.post(path, json={"stage_id": "01"})
+        assert prepared.status_code == 200
+        receipt = prepared.json()
+        assert receipt["state"] == "READY"
+        assert receipt["knowledge"]["knowledgeIds"] == ["dongzhou_stage_001"]
+        assert receipt["organization"] == {
+            "organizationId": org_id,
+            "state": "ACTIVE",
+            "hierarchyVersion": 1,
+            "activeHeroIds": ["DuBo"],
+        }
+        assert receipt["aiNpc"] == {"readyHeroIds": ["DuBo"]}
+        assert receipt["kernel"]["module"] == "dongzhou_battle_readiness"
+        assert receipt["kernel"]["moduleVersion"] == "1.0.0"
+        assert receipt["kernel"]["state"] == "SEALED"
+        assert len(receipt["digest"]) == 64
+
+        report = {
+            "id": "battle:01:readiness",
+            "stageId": "01",
+            "won": True,
+            "turns": 6,
+            "ownLosses": 0,
+            "terminalReason": "victory",
+            "battleReadiness": receipt,
+        }
+        saved = client.put("/api/dongzhou/v1/save", json={
+            "expected_version": 1,
+            "payload": {"organization": {"battleReports": [report]}},
+        })
+        assert saved.status_code == 200, saved.json()
+        sealed_report = saved.json()["payload"]["organization"]["battleReports"][0]
+        assert sealed_report["battleReadiness"]["digest"] == receipt["digest"]
+        assert sealed_report["kernelReceipt"]["kernel"]["state"] == "SEALED"
+
+        forged_readiness = json.loads(json.dumps(receipt))
+        forged_readiness["aiNpc"]["readyHeroIds"] = []
+        forged = client.put("/api/dongzhou/v1/save", json={
+            "expected_version": 2,
+            "payload": {
+                **saved.json()["payload"],
+                "organization": {"battleReports": [sealed_report, {
+                    **report,
+                    "id": "battle:01:forged-readiness",
+                    "battleReadiness": forged_readiness,
+                }]},
+            },
+        })
+        assert forged.status_code == 409
+        assert forged.json()["error"]["code"] == "battle_readiness_invalid"
 
 
 def test_knowledge_quiz_hides_answer_and_is_idempotent_and_player_scoped(tmp_path):

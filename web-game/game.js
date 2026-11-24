@@ -695,33 +695,50 @@
       return;
     }
     const requiresRoute = !savedState && !record.isProcedural && Number(record.index) > 1 && !(profile.completed || []).includes(record.id);
+    const requiresReadiness = !savedState && !record.isProcedural && !integration.isOffline();
     let campaignRoute = null;
-    if (requiresRoute) {
+    let battleReadiness = null;
+    if (requiresReadiness || requiresRoute) {
       const button = $("#focusStageButton");
       routeStartPending = true;
       if (button?.dataset.stageId === record.id) button.disabled = true;
       try {
-        campaignRoute = await verifySelectedCampaignRoute(record);
-        const cost = Number(campaignRoute?.provisionCost);
-        if (!campaignRoute?.found || !Number.isInteger(cost) || cost < 0 || cost > 20) throw new Error("路线军粮配置无效");
-        if (
-          campaignRoute.mode === "connected"
-          && (
-            campaignRoute.receipt?.kernel?.state !== "SEALED"
-            || campaignRoute.receipt?.kernel?.moduleVersion !== "1.3.0"
-            || !/^[0-9a-f]{64}$/.test(String(campaignRoute.receipt?.attestation || ""))
-            || !/^[0-9a-f]{64}$/.test(String(campaignRoute.sourceProvenance?.digest || ""))
-            || campaignRoute.receipt?.sourceProvenance?.digest !== campaignRoute.sourceProvenance.digest
-          )
-        ) {
-          throw new Error("路线未获内核封印");
+        if (requiresReadiness) {
+          battleReadiness = await integration.battleReadiness(record.id);
+          if (
+            battleReadiness?.state !== "READY"
+            || battleReadiness?.kernel?.module !== "dongzhou_battle_readiness"
+            || battleReadiness?.kernel?.moduleVersion !== "1.0.0"
+            || battleReadiness?.kernel?.state !== "SEALED"
+            || !/^[0-9a-f]{64}$/.test(String(battleReadiness?.digest || ""))
+            || !/^[0-9a-f]{64}$/.test(String(battleReadiness?.sourceProvenance?.digest || ""))
+          ) {
+            throw new Error("四服务战前回执无效");
+          }
         }
-        if (profile.campaignResources.provisions < cost) {
-          showNotice(`行军需 ${cost} 军粮，请先在官署筹备`);
-          return;
+        if (requiresRoute) {
+          campaignRoute = await verifySelectedCampaignRoute(record);
+          const cost = Number(campaignRoute?.provisionCost);
+          if (!campaignRoute?.found || !Number.isInteger(cost) || cost < 0 || cost > 20) throw new Error("路线军粮配置无效");
+          if (
+            campaignRoute.mode === "connected"
+            && (
+              campaignRoute.receipt?.kernel?.state !== "SEALED"
+              || campaignRoute.receipt?.kernel?.moduleVersion !== "1.3.0"
+              || !/^[0-9a-f]{64}$/.test(String(campaignRoute.receipt?.attestation || ""))
+              || !/^[0-9a-f]{64}$/.test(String(campaignRoute.sourceProvenance?.digest || ""))
+              || campaignRoute.receipt?.sourceProvenance?.digest !== campaignRoute.sourceProvenance.digest
+            )
+          ) {
+            throw new Error("路线未获内核封印");
+          }
+          if (profile.campaignResources.provisions < cost) {
+            showNotice(`行军需 ${cost} 军粮，请先在官署筹备`);
+            return;
+          }
         }
       } catch (error) {
-        showNotice(`史料路线核验失败，请稍后重试：${error.message}`);
+        showNotice(`战前整备核验失败，请稍后重试：${error.message}`);
         return;
       } finally {
         routeStartPending = false;
@@ -745,6 +762,7 @@
     mapZoom = 1;
     updateZoom();
     state = savedState || freshState(record);
+    if (battleReadiness) state.battleReadiness = battleReadiness;
     if (options.procedural) state.procedural = options.procedural;
     state.assist ||= systems.retryAssist(profile, record.id);
     const objectiveType = state.procedural?.objectiveType ? "procedural" : difficultyProfileFor(record).objectiveType;
@@ -818,6 +836,11 @@
       log(`难度：${{ easy: "简单", medium: "标准", hard: "艰难" }[preset.id]}；敌军等级 ${preset.enemyLevelOffset >= 0 ? "+" : ""}${preset.enemyLevelOffset}，生命 ×${preset.enemyHpMultiplier}，攻击 ×${preset.enemyPowerMultiplier}，防御 ×${preset.enemyDefenseMultiplier}。`, "event");
       const formation = systems.FORMATION_PRESETS[profile.formation];
       const vanguard = profile.stageVanguards[record.id];
+      if (state.battleReadiness) {
+        const knowledgeCount = Number(state.battleReadiness.knowledge?.knowledgeIds?.length || 0);
+        const officerCount = Number(state.battleReadiness.aiNpc?.readyHeroIds?.length || 0);
+        log(`四服务整备已验印：${knowledgeCount} 卷史料、${officerCount} 名在线属官，内核印记 ${String(state.battleReadiness.digest || "").slice(0, 12)}。`, "event");
+      }
       if (state.campaignRoute) log(`史料行军：${state.campaignRoute.label || "奉诏直进"}（${state.campaignRoute.routeId}）；军粮 -${state.campaignRoute.provisionCost}${state.campaignRoute.moraleDelta ? `，士气 ${state.campaignRoute.moraleDelta > 0 ? "+" : ""}${state.campaignRoute.moraleDelta}` : ""}。`, "event");
       log(`军议：${formation.name}${vanguard ? `；${displayName(vanguard)}任先锋` : ""}；军粮 ${profile.campaignResources.provisions}，士气 ${profile.campaignResources.morale}${profile.campaignResources.provisions < 40 ? "；缺粮导致兵力与攻击下降" : ""}。`, "event");
       if (state.assist.active) log(`连续失利援助已启用：回合上限 +15%，临时金疮药 +1、士气 +8；首通铜钱 -10%。`, "event");
@@ -4945,7 +4968,8 @@
       stageId: String(stageRecord.id), stageTitle: stageRecord.battleTitle, won, turns: state.turn,
       ownLosses: ownUnits.filter((unit) => unit.hp <= 0).length, terminalReason,
       support: state.organizationSupport || {},
-      campaignRoute: state.campaignRoute || null
+      campaignRoute: state.campaignRoute || null,
+      battleReadiness: state.battleReadiness || null
     });
     profile.organization = officeReport.state;
     profile.organization.history.push({ month: profile.organization.month, tone: won ? "good" : "bad", text: `${stageRecord.battleTitle}${won ? "告捷" : "失利"}，战后回报已收入官署档案。` });

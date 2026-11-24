@@ -39,7 +39,7 @@ const BASE_ORIGIN = new URL(BASE_URL).origin;
     if (pathname.endsWith("/sessions/guest")) body = { playerId: "diplomacy-browser" };
     else if (pathname.endsWith("/save") && request.method() === "GET") body = { version, payload: cloud };
     else if (pathname.endsWith("/save") && request.method() === "PUT") { cloud = request.postDataJSON().payload; body = { version: ++version, payload: cloud }; }
-    else if (pathname.endsWith("/integration/status")) body = { services: { nexusKernel: { online: true, requiredModuleCount: 20, operationalModuleCount: 20, sourceBoundModuleCount: 18, sourceBoundModules: Array.from({ length: 18 }, (_, index) => `source-bound-${index + 1}`) }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } }, organizationId: "court-test" };
+    else if (pathname.endsWith("/integration/status")) body = { services: { nexusKernel: { online: true, requiredModuleCount: 21, operationalModuleCount: 21, sourceBoundModuleCount: 19, sourceBoundModules: Array.from({ length: 19 }, (_, index) => `source-bound-${index + 1}`) }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } }, organizationId: "court-test" };
     else if (pathname.endsWith("/court/mandates/pending")) body = { pending: null };
     else if (pathname.endsWith("/npcs/interaction-preference")) body = { enabled: request.postDataJSON().enabled, source: "dongzhou-player-settings", updatedAt: "2026-11-11T12:00:00Z" };
     else if (pathname.endsWith("/organization/roster")) body = { organization: { id: "court-test", name: "东周军府", state: "ACTIVE", templateId: "dongzhou_court", templateVersion: 7, hierarchyVersion: 7, growthContribution: 0 }, members: [] };

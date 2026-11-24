@@ -41,8 +41,8 @@ def _status() -> dict:
         }
     services["nexusKernel"].update(
         {
-            "requiredModuleCount": 20,
-            "operationalModuleCount": 20,
+            "requiredModuleCount": 21,
+            "operationalModuleCount": 21,
             "sourceBoundModuleCount": len(verifier.EXPECTED_SOURCE_BOUND_MODULES),
             "sourceBoundModules": sorted(verifier.EXPECTED_SOURCE_BOUND_MODULES),
             "unavailableModules": [],
@@ -134,8 +134,8 @@ def test_live_status_requires_all_pinned_services_and_modules() -> None:
     seal = verifier.expected_source_seal()
     detail = verifier.validate_live_status(_status(), seal)
     assert detail["onlineServices"] == 4
-    assert detail["nexusModules"] == 20
-    assert detail["sourceBoundModules"] == 18
+    assert detail["nexusModules"] == 21
+    assert detail["sourceBoundModules"] == 19
 
     offline = _status()
     offline["services"]["aiNpc"]["online"] = False
@@ -173,7 +173,7 @@ def test_live_status_requires_all_pinned_services_and_modules() -> None:
         verifier.validate_live_status(misreported, seal)
 
     incomplete = _status()
-    incomplete["services"]["nexusKernel"]["operationalModuleCount"] = 19
+    incomplete["services"]["nexusKernel"]["operationalModuleCount"] = 20
     with pytest.raises(ValueError, match="not fully operational"):
         verifier.validate_live_status(incomplete, seal)
 
