@@ -375,8 +375,8 @@ async function openReady(page) {
       else if (/\/organization\/tasks\//.test(pathName)) {
         organizationTaskReads += 1;
         body = organizationTaskReads === 1
-          ? { taskId: "00000000-0000-0000-0000-000000000010", result: { data: { task_id: "00000000-0000-0000-0000-000000000010", state: "MEMBER_RESPONSE_PENDING", execution_started_game_time: null, final_result: null, version: "2" } } }
-          : { taskId: "00000000-0000-0000-0000-000000000010", npcOutcome: { state: "DELIVERED", attempts: 1, lastError: null }, result: { data: { task_id: "00000000-0000-0000-0000-000000000010", state: "SUCCEEDED", execution_started_game_time: 24306616800, final_result: "SUCCESS", version: "3" } } };
+          ? { taskId: "00000000-0000-0000-0000-000000000010", sourceProvenance, result: { data: { task_id: "00000000-0000-0000-0000-000000000010", state: "MEMBER_RESPONSE_PENDING", execution_started_game_time: null, final_result: null, version: "2" } } }
+          : { taskId: "00000000-0000-0000-0000-000000000010", sourceProvenance, npcOutcome: { state: "DELIVERED", attempts: 1, lastError: null }, result: { data: { task_id: "00000000-0000-0000-0000-000000000010", state: "SUCCEEDED", execution_started_game_time: 24306616800, final_result: "SUCCESS", version: "3" } } };
       }
       else return route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: { code: "not_mocked", message: pathName } }) });
       if (pathName.endsWith("/integration/status")) {

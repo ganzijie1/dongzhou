@@ -747,6 +747,10 @@
       if (!task.remoteResult) continue;
       const snapshot = byId.get(String(task.remoteResult));
       if (!snapshot) continue;
+      const snapshotSource = snapshot.sourceProvenance;
+      const expectedSource = task.sourceProvenance || task.mandate?.sourceProvenance;
+      if (snapshotSource && (!validSourceProvenance(snapshotSource) || (expectedSource && snapshotSource.digest !== expectedSource.digest))) throw new Error("组织任务快照服务来源不一致");
+      if (snapshotSource) task.sourceProvenance = copy(snapshotSource);
       if (snapshot.npcOutcome && typeof snapshot.npcOutcome === "object") {
         task.npcOutcome = copy(snapshot.npcOutcome);
       }

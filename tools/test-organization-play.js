@@ -158,6 +158,11 @@ assert.throws(() => play.recordMandate(motivationSealed.state, invalidMotivation
 const sealedTask = play.createTask(state, { type: "drill", assigneeId: "ZuoRu", stageId: "01", stageTitle: "东郊索命", knowledgeId: "dongzhou_stage_001", councilId: "council-source-1", mandateId: "mandate-source-1" });
 assert.strictEqual(sealedTask.task.mandate.evidence.source.tier, "史实骨架");
 assert.strictEqual(sealedTask.task.mandate.assignment.readiness.score, 75);
+sealedTask.task.remoteResult = "00000000-0000-0000-0000-000000000008";
+const sourcedSnapshot = { task_id: sealedTask.task.remoteResult, state: "IN_PROGRESS", final_result: null, version: "2", sourceProvenance };
+const sourcedObserved = play.reconcileRemoteTasks(sealedTask.state, [sourcedSnapshot], { advanceMonth: false });
+assert.strictEqual(sourcedObserved.tasks.find((task) => task.remoteResult === sourcedSnapshot.task_id).sourceProvenance.digest, sourceProvenance.digest);
+assert.throws(() => play.reconcileRemoteTasks(sealedTask.state, [{ ...sourcedSnapshot, sourceProvenance: { ...sourceProvenance, digest: "9".repeat(64) } }], { advanceMonth: false }), /任务快照服务来源不一致/);
 assert.strictEqual(sealedTask.task.mandate.emergency.urgent, true);
 state = play.updateBackend(state, { nexusKernel: true, orgFlow: true, aiNpc: true, knowledge: true, serviceSources: { aiNpc: { sourceRevision: "8a7b673c6ddb93c5ac64d96a270b35619e5bcc1c" } }, serviceAttestations: { nexusKernel: true, orgFlow: true, aiNpc: true, knowledge: true }, serviceFailures: {}, serviceSourceSealDigest: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" });
 assert.strictEqual(state.backend.mode, "connected");
