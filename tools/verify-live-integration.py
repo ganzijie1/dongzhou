@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 import re
 import sys
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 
 NPC_EXECUTION_FIELDS = {
@@ -56,6 +56,41 @@ if str(TOOLS_DIR) not in sys.path:
 import verify_four_service_runtime as four_service_delivery
 
 
+def schedule_event_source(event: dict, plan_id: str) -> str:
+    extra = event.get("extra_data")
+    assert isinstance(extra, dict), "schedule event has no source metadata"
+    source = extra.get("source")
+    if event.get("type") == "temp":
+        assert (
+            event.get("transaction_type") == "temp"
+            and str(event.get("id") or "").startswith("temp_event:")
+            and source == "event_report"
+            and str(extra.get("event_id") or "").startswith("dongzhou-")
+            and str(extra.get("mandate_id") or "").startswith("dongzhou:")
+            and re.fullmatch(r"[0-9a-f]{64}", str(extra.get("mandate_digest") or ""))
+        ), "schedule contains an unbound temporary transaction"
+        return "event_report"
+    if source is None:
+        assert extra.get("schedule_origin") == "90_day_plan", "base schedule event has no plan origin"
+        return "90_day_plan"
+    if source == "dongzhou_scheduled_duty":
+        assert str(extra.get("hero_id") or "").strip(), "scheduled duty has no hero"
+        try:
+            UUID(str(extra.get("rule_id") or ""))
+        except ValueError:
+            raise AssertionError("scheduled duty has no valid rule") from None
+        return source
+    if source == "dongzhou_court_duty":
+        assert (
+            extra.get("plan_id") == plan_id
+            and str(extra.get("hero_id") or "").strip()
+            and str(extra.get("task_type") or "").strip()
+            and str(extra.get("stage_id") or "").strip()
+        ), "court duty is not bound to the current plan"
+        return source
+    raise AssertionError(f"schedule event has unknown source: {source}")
+
+
 def validate_dongzhou_schedule(schedule: dict) -> dict:
     """校验真实日程内容；不能把有 90 条旧游戏日程当作东周接入成功。"""
     assert schedule.get("code") in (0, 200, "0", "200"), "schedule business request failed"
@@ -74,6 +109,7 @@ def validate_dongzhou_schedule(schedule: dict) -> dict:
     assert dates[-1] == end_date, "schedule end date does not match its days"
     transaction_ids = set()
     temporary_transaction_ids = set()
+    source_counts: dict[str, int] = {}
     event_ids = set()
     event_count = 0
     for day in days:
@@ -88,16 +124,12 @@ def validate_dongzhou_schedule(schedule: dict) -> dict:
             assert type(event.get("duration_minutes")) is int and event["duration_minutes"] > 0, "schedule event has no valid duration"
             identifier = event.get("transaction_id")
             assert type(identifier) is int, "schedule contains non-Dongzhou transaction IDs"
+            source = schedule_event_source(event, str(data.get("plan_id") or ""))
+            source_counts[source] = source_counts.get(source, 0) + 1
             if 10001 <= identifier <= 10009:
-                extra = event.get("extra_data")
                 assert (
                     event.get("type") == "temp"
-                    and event.get("transaction_type") == "temp"
-                    and event_id.startswith("temp_event:")
-                    and isinstance(extra, dict)
-                    and extra.get("source") == "event_report"
-                    and isinstance(extra.get("event_id"), str)
-                    and extra["event_id"].startswith("dongzhou-")
+                    and source == "event_report"
                 ), "schedule contains an unbound temporary transaction"
                 temporary_transaction_ids.add(identifier)
             else:
@@ -116,6 +148,7 @@ def validate_dongzhou_schedule(schedule: dict) -> dict:
     return {"hero": "ZuoRu", "days": len(days), "events": event_count,
             "transactionIds": sorted(transaction_ids),
             "temporaryTransactionIds": sorted(temporary_transaction_ids),
+            "sourceCounts": dict(sorted(source_counts.items())),
             "dongzhouContentVerified": True}
 
 

@@ -47,3 +47,45 @@ def test_execution_projection_rejects_unknown_outcome() -> None:
             "available": False,
             "outcome": "assumed_complete",
         })
+
+
+@pytest.mark.parametrize(("event", "source"), [
+    ({"type": "政务", "id": "plan:1", "extra_data": {"schedule_origin": "90_day_plan"}}, "90_day_plan"),
+    ({"type": "人才", "id": "duty:1", "extra_data": {
+        "source": "dongzhou_scheduled_duty",
+        "hero_id": "ZuoRu",
+        "rule_id": "bead406a-1797-5cd4-bf2c-ed21bc82bfcf",
+        "schedule_origin": "90_day_plan",
+    }}, "dongzhou_scheduled_duty"),
+    ({"type": "准备工作", "id": "court:1", "extra_data": {
+        "source": "dongzhou_court_duty",
+        "hero_id": "ZuoRu",
+        "task_type": "supply",
+        "stage_id": "01",
+        "plan_id": "plan-1",
+        "schedule_origin": "90_day_plan",
+    }}, "dongzhou_court_duty"),
+    ({"type": "temp", "transaction_type": "temp", "id": "temp_event:1", "extra_data": {
+        "source": "event_report",
+        "event_id": "dongzhou-mandate-1",
+        "mandate_id": "dongzhou:player:mandate",
+        "mandate_digest": "a" * 64,
+    }}, "event_report"),
+])
+def test_schedule_event_sources_require_authoritative_bindings(event: dict, source: str) -> None:
+    assert verifier.schedule_event_source(event, "plan-1") == source
+
+
+@pytest.mark.parametrize("event", [
+    {"type": "政务", "id": "bad:1", "extra_data": {"source": "unknown"}},
+    {"type": "人才", "id": "bad:2", "extra_data": {
+        "source": "dongzhou_scheduled_duty", "hero_id": "ZuoRu", "rule_id": "not-a-uuid",
+    }},
+    {"type": "准备工作", "id": "bad:3", "extra_data": {
+        "source": "dongzhou_court_duty", "hero_id": "ZuoRu", "task_type": "supply",
+        "stage_id": "01", "plan_id": "another-plan",
+    }},
+])
+def test_schedule_event_sources_reject_unknown_or_unbound_events(event: dict) -> None:
+    with pytest.raises(AssertionError):
+        verifier.schedule_event_source(event, "plan-1")
