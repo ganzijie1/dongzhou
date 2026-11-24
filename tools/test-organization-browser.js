@@ -109,8 +109,13 @@ async function openReady(page) {
     await desktop.waitForSelector("#officeCareerFeedback >> text=本地受阻记录已封存", { timeout: 10000 });
     await desktop.fill("#officeCareerResult", "改走西驿道后核清军粮账册");
     await desktop.click("#officeCareerResultSubmit");
+    await desktop.waitForSelector("#officeCareerStatus >> text=待补充", { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerSupplementRequirement >> text=请补齐封识清单或经手人复核记录", { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerResultSubmit >> text=提交补呈", { timeout: 10000 });
+    await desktop.fill("#officeCareerResult", "补齐西仓封识清单及经手人复核记录");
+    await desktop.click("#officeCareerResultSubmit");
     await desktop.waitForSelector("#officeCareerStatus >> text=已办成", { timeout: 10000 });
-    await desktop.waitForSelector("#officeCareerFeedback >> text=本地复命已封存", { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerFeedback >> text=本地补呈已复核", { timeout: 10000 });
     await desktop.waitForSelector("#officeCareerContributions >> text=差事告成", { timeout: 10000 });
     await desktop.waitForSelector("#officeCareerContributions >> text=+20", { timeout: 10000 });
     await desktop.click('#officeCareerContributions [data-player-contribution-dossier-id]');
@@ -120,10 +125,11 @@ async function openReady(page) {
     const localPlayerTask = await desktop.evaluate(() => {
       const organization = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization;
       const task = organization.localPlayerTasks[0];
-      return { state: task.state, version: task.version, result: task.result, trace: task.organizationTrace, career: organization.localPlayerCareer };
+      return { state: task.state, version: task.version, result: task.result, supplementResult: task.supplementResult, trace: task.organizationTrace, career: organization.localPlayerCareer };
     });
     if (localPlayerTask.state !== "SUCCEEDED" || localPlayerTask.result !== "改走西驿道后核清军粮账册"
       || localPlayerTask.career.contributionBalance !== 20 || localPlayerTask.career.lifetimeEarned !== 20
+      || localPlayerTask.supplementResult !== "补齐西仓封识清单及经手人复核记录"
       || localPlayerTask.trace.kernel?.moduleVersion !== "1.1.0" || !/^[0-9a-f]{64}$/.test(localPlayerTask.trace.digest)) {
       throw new Error(`Offline player task was not sealed: ${JSON.stringify(localPlayerTask)}`);
     }

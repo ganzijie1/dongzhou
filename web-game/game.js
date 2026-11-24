@@ -2364,7 +2364,7 @@
         await refreshOfficeCareerStatus({ quiet: true });
         $("#officeCareerFeedback").textContent = response.message;
         if (action === "request" && detail) $("#officeCareerTaskName").value = "";
-        if (["result", "exception"].includes(action) && detail) $("#officeCareerResult").value = "";
+        if (["result", "supplement", "exception"].includes(action) && detail) $("#officeCareerResult").value = "";
         if (["accept", "reject", "modify"].includes(action)) $("#officeCareerResponseDetail").value = "";
         renderOrganizationPanel();
         return;

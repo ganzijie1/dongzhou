@@ -29,7 +29,7 @@
   const LOCAL_LOGISTICS_BRIEFING_PREFIX = "dongzhou-local-logistics-briefing-v1:";
   const LOCAL_SCHEDULED_DUTY_STATUS_PREFIX = "dongzhou-local-scheduled-duty-status-v1:";
   const LOCAL_MEMBERSHIP_PREFIX = "dongzhou-local-membership-v1:";
-  const LOCAL_PLAYER_TASK_ACTIONS = new Set(["OPTIONS", "INBOX", "REQUEST", "ACCEPT", "REJECT", "MODIFY", "REVIEW", "EXCEPTION", "RESULT"]);
+  const LOCAL_PLAYER_TASK_ACTIONS = new Set(["OPTIONS", "INBOX", "REQUEST", "ACCEPT", "REJECT", "MODIFY", "REVIEW", "EXCEPTION", "RESULT", "SUPPLEMENT"]);
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
   let session = read(SESSION_KEY, null);
   let sessionPromise = null;
@@ -748,19 +748,20 @@
     return `0771-01-${day}T00:00:${second}Z`;
   }
 
-  async function sealLocalPlayerTask(task, sourceProvenance, legacy = false) {
+  async function sealLocalPlayerTask(task, sourceProvenance, contentVersion = 3) {
     const trace = {
       taskId: task.taskId,
       taskState: task.state,
       taskVersion: String(task.version),
-      ...(!legacy ? { taskContent: {
+      ...(contentVersion > 0 ? { taskContent: {
         title: String(task.title || ""),
         modification: task.modification == null ? null : String(task.modification),
         rejectionReason: task.rejectionReason == null ? null : String(task.rejectionReason),
-        result: task.result == null ? null : String(task.result)
+        result: task.result == null ? null : String(task.result),
+        ...(contentVersion >= 3 ? { supplementResult: task.supplementResult == null ? null : String(task.supplementResult) } : {})
       } } : {}),
       activeConfirmations: task.activeConfirmations || [],
-      supplementRequest: null,
+      supplementRequest: task.supplementRequest || null,
       executionException: task.executionException || null,
       timeline: task.timeline || [],
       sourceProvenance
@@ -779,10 +780,13 @@
     for (const task of tasks) {
       const expected = await sealLocalPlayerTask(task, sourceProvenance);
       if (canonicalJson(task.organizationTrace) !== canonicalJson(expected)) {
-        const legacy = await sealLocalPlayerTask(task, sourceProvenance, true);
-        if (canonicalJson(task.organizationTrace) !== canonicalJson(legacy)) throw new Error("organization_player_task_seal_invalid");
+        const previous = await sealLocalPlayerTask(task, sourceProvenance, 2);
+        const legacy = await sealLocalPlayerTask(task, sourceProvenance, 0);
+        const matchedLegacy = canonicalJson(task.organizationTrace) === canonicalJson(legacy);
+        if (canonicalJson(task.organizationTrace) !== canonicalJson(previous)
+          && !matchedLegacy) throw new Error("organization_player_task_seal_invalid");
         task.organizationTrace = expected;
-        task.localTraceMigratedFromV1 = true;
+        if (matchedLegacy) task.localTraceMigratedFromV1 = true;
       }
     }
     return tasks;
@@ -857,7 +861,8 @@
       if (["ACCEPT", "REJECT", "MODIFY"].includes(normalizedAction)) requireState(["MEMBER_RESPONSE_PENDING"]);
       if (normalizedAction === "REVIEW") requireState(["MODIFICATION_CONFIRMATION_PENDING"]);
       if (["EXCEPTION", "RESULT"].includes(normalizedAction)) requireState(["IN_PROGRESS"]);
-      if (["MODIFY", "EXCEPTION", "RESULT"].includes(normalizedAction) && !detail) throw new Error("organization_player_task_detail_required");
+      if (normalizedAction === "SUPPLEMENT") requireState(["SUPPLEMENT_PENDING"]);
+      if (["MODIFY", "EXCEPTION", "RESULT", "SUPPLEMENT"].includes(normalizedAction) && !detail) throw new Error("organization_player_task_detail_required");
       delete task.localTraceMigratedFromV1;
       task.version += 1;
       task.updatedAt = localCareerTimestamp(taskIndex, task.version);
@@ -898,17 +903,36 @@
         append("EXECUTION_EXCEPTION_RESOLVED", "ACCEPTED");
         message = `本地受阻记录已封存，差事按调整方案继续。`;
       } else if (normalizedAction === "RESULT") {
-        task.state = "SUCCEEDED";
         task.result = detail;
         append("SUBMISSION_RECORDED", "SUBMISSION_PENDING");
+        if (/(?:复核记录|封识清单|supporting record|sealed checklist)/i.test(detail)) {
+          task.state = "SUCCEEDED";
+          append("TASK_FINALIZED", task.state);
+          message = `本地复命已封存，差事《${task.title}》办结。`;
+        } else {
+          task.state = "SUPPLEMENT_PENDING";
+          task.supplementCount = 1;
+          const supplementCaseId = uuidFromDigest(await sha256(`${task.taskId}:supplement:1`));
+          task.activeConfirmations = [{ caseId: supplementCaseId, type: "TASK_SUPPLEMENT_REQUEST", state: "WAITING_CONFIRMATION", recipientType: "PLAYER", allowedActions: ["submit_supplement"] }];
+          task.supplementRequest = { reviewCaseId: uuidFromDigest(await sha256(`${task.taskId}:review:1`)), supplementCaseId, reasonCode: "other", reasonDetail: "请补齐封识清单或经手人复核记录。" };
+          append("SUPPLEMENT_REQUESTED", task.state);
+          message = `本地复命已审核，差事《${task.title}》需要补呈封识清单或复核记录。`;
+        }
+      } else if (normalizedAction === "SUPPLEMENT") {
+        task.supplementResult = detail;
+        task.state = "SUCCEEDED";
+        task.activeConfirmations = [];
+        task.supplementRequest = null;
+        append("SUBMISSION_RECORDED", "SUBMISSION_PENDING");
         append("TASK_FINALIZED", task.state);
-        message = `本地复命已封存，差事《${task.title}》办结。`;
+        message = `本地补呈已复核，差事《${task.title}》办结。`;
       }
       task.organizationTrace = await sealLocalPlayerTask(task, sourceProvenance);
       tasks[taskIndex] = task;
     }
     const career = organization.localPlayerCareer || { state: "ACTIVE", version: 1, contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 };
-    const nextCareer = normalizedAction === "RESULT"
+    const settledNow = task?.state === "SUCCEEDED" && ["RESULT", "SUPPLEMENT"].includes(normalizedAction);
+    const nextCareer = settledNow
       ? { ...career, contributionBalance: career.contributionBalance + 20, lifetimeEarned: career.lifetimeEarned + 20 }
       : career;
     const nextOrganization = { ...organization, localPlayerCareer: nextCareer, localPlayerTasks: tasks };
