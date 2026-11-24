@@ -717,6 +717,16 @@
     const current = organization.localPlayerCareer || { state: "OUT", version: 1, contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 };
     const targetState = normalizedAction === "JOIN" ? "ACTIVE" : "OUT";
     const replayed = current.state === targetState;
+    if (!replayed && normalizedAction === "LEAVE") {
+      const terminalStates = new Set(["SUCCEEDED", "PARTIALLY_COMPLETED", "FAILED", "REJECTED", "CANCELLED"]);
+      const activeTasks = (await verifiedLocalPlayerTasks(organization)).filter((task) => !terminalStates.has(task.state));
+      if (activeTasks.length) {
+        const error = new Error(`尚有 ${activeTasks.length} 项未结差事，请先办结或拒绝后再辞仕。`);
+        error.code = "organization_membership_active_tasks";
+        error.activeTaskIds = activeTasks.map((task) => task.taskId);
+        throw error;
+      }
+    }
     const clearedAmount = !replayed && normalizedAction === "LEAVE" ? current.contributionBalance : 0;
     const career = {
       ...current,

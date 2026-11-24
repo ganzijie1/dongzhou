@@ -159,11 +159,21 @@ async function openReady(page) {
       || !(await desktop.locator("#officeCareerAccount").innerText()).includes("可用贡献 30")) {
       throw new Error("Offline failed task changed the player contribution ledger");
     }
+    await desktop.fill("#officeCareerTaskName", "辞仕前巡仓");
+    await desktop.click("#officeCareerRequestForm button[type=submit]");
+    await desktop.waitForSelector('#officeCareerStatus [data-task-state="MEMBER_RESPONSE_PENDING"] >> text=辞仕前巡仓', { timeout: 10000 });
     await desktop.click("#officeMembershipLeave");
     await desktop.waitForSelector("#officeMembershipLeaveConfirm:not([hidden])", { timeout: 10000 });
     if (await desktop.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.localPlayerCareer.state) !== "ACTIVE") {
-      throw new Error("Offline membership changed before leave confirmation");
+      throw new Error("Offline membership changed before active-task leave confirmation");
     }
+    await desktop.click("#officeMembershipLeaveConfirm");
+    await desktop.waitForSelector("#officeMembershipFeedback >> text=尚有 1 项未结差事", { timeout: 10000 });
+    if (await desktop.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.localPlayerCareer.state) !== "ACTIVE") {
+      throw new Error("Offline membership left while a player task was active");
+    }
+    await desktop.click("#officeCareerReject");
+    await desktop.waitForSelector('#officeCareerStatus [data-task-state="REJECTED"] >> text=辞仕前巡仓', { timeout: 10000 });
     await desktop.click("#officeMembershipLeaveConfirm");
     await desktop.waitForSelector("#officeMembershipState >> text=尚未入仕", { timeout: 10000 });
     await desktop.waitForSelector("#officeMembershipFeedback >> text=本地辞仕已完成", { timeout: 10000 });
