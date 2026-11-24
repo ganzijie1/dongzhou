@@ -286,8 +286,9 @@ async function openReady(page) {
             violationId: null,
             ruleSetId: "organization.default",
             ruleSetVersion: 1,
+            sourceProvenance,
             digest: "9".repeat(64),
-            kernel: { module: "dongzhou_organization_contribution_ledger", state: "SEALED" }
+            kernel: { module: "dongzhou_organization_contribution_ledger", moduleVersion: "1.1.0", state: "SEALED" }
           }] : [],
           nextBeforeVersion: null
         };

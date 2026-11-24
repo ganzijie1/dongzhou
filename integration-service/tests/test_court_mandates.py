@@ -1079,6 +1079,10 @@ def test_contribution_entry_is_reverified_and_sealed_into_mandate() -> None:
             )
             assert ledger.status_code == 200, ledger.text
             contribution = ledger.json()["entries"][0]
+            assert contribution["kernel"]["moduleVersion"] == "1.1.0"
+            assert contribution["sourceProvenance"]["kernel"]["module"] == (
+                "dongzhou_service_provenance"
+            )
             dossier_response = client.get(
                 f"/api/dongzhou/v1/organization/members/ZuoRu/contributions/{entry_id}/dossier"
             )
@@ -1157,6 +1161,7 @@ def test_contribution_entry_is_reverified_and_sealed_into_mandate() -> None:
             mandate = draft.json()["mandate"]
             assert mandate["contribution"] == contribution
             assert mandate["council"]["contribution"] == contribution
+            assert mandate["contribution"]["sourceProvenance"] == mandate["sourceProvenance"]
             assert mandate["contributionDossier"] == dossier
             assert mandate["council"]["contributionDossier"] == dossier
 

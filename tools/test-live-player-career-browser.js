@@ -14,7 +14,9 @@ try {
 }
 
 const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
-verifyFourServiceRuntime(url);
+const runtimeReport = verifyFourServiceRuntime(url);
+const expectedSourceSeal = runtimeReport.checks?.liveRuntime?.sourceSealDigest;
+assert.match(expectedSourceSeal || "", /^[0-9a-f]{64}$/);
 const timeout = Number(process.env.DONGZHOU_CAREER_TIMEOUT_MS || 360000);
 const installation = process.env.DONGZHOU_CAREER_INSTALLATION || crypto.randomUUID();
 const outputDir = path.resolve(__dirname, "../output/integration-validation");
@@ -261,7 +263,9 @@ async function releaseMembership(page) {
     assert(contribution, `Settled player contribution did not enter the authoritative ledger: ${JSON.stringify(contributionPage)}`);
     assert.equal(contribution.heroId, "PLAYER");
     assert.equal(contribution.kernel?.module, "dongzhou_organization_contribution_ledger");
+    assert.equal(contribution.kernel?.moduleVersion, "1.1.0");
     assert.equal(contribution.kernel?.state, "SEALED");
+    assert.equal(contribution.sourceProvenance?.digest, expectedSourceSeal);
     const dossierResponse = await readPlayerContributionDossier(page, contribution.entryId);
     const dossier = dossierResponse.dossier;
     assert.equal(dossier?.heroId, "PLAYER");

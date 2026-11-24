@@ -668,7 +668,8 @@ class NpcPublicNoticeModule(Module):
 
 class OrganizationContributionLedgerModule(Module):
     name = "dongzhou_organization_contribution_ledger"
-    version = "1.0.0"
+    version = "1.1.0"
+    dependencies = (RuntimeModule.name, "dongzhou_service_provenance")
 
     @classmethod
     def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
@@ -686,6 +687,8 @@ class OrganizationContributionLedgerModule(Module):
                 raise ValueError("organization contribution trace contains an invalid amount")
         if trace["amount"] == 0 or trace["entryVersion"] < 2:
             raise ValueError("organization contribution entry is invalid")
+        if not _service_provenance_receipt_is_valid(trace.get("sourceProvenance")):
+            raise ValueError("organization contribution source provenance is invalid")
         return {
             **trace,
             "digest": _canonical_digest(trace),
@@ -1931,6 +1934,7 @@ def _organization_contribution_view(
     hero_id: str,
     member_id: str,
     ledger: OrganizationContributionLedgerModule,
+    source_provenance: dict[str, Any],
 ) -> dict[str, Any]:
     if not isinstance(snapshot, dict):
         raise ValueError("contribution snapshot must be an object")
@@ -2005,6 +2009,7 @@ def _organization_contribution_view(
             "sourceRef": str(raw.get("source_ref") or ""),
             "violationId": str(violation_id) if violation_id else None,
             "ruleSetId": str(raw.get("rule_set_id") or ""),
+            "sourceProvenance": source_provenance,
         }
         UUID(trace["entryId"])
         if trace["violationId"]:
@@ -4817,6 +4822,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 hero_id=hero_id,
                 member_id=member_id,
                 ledger=organization_contribution_ledger,
+                source_provenance=service_provenance.receipt(),
             )
             selected = next(
                 (
@@ -9545,6 +9551,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 hero_id=hero_id,
                 member_id=member_id,
                 ledger=organization_contribution_ledger,
+                source_provenance=service_provenance.receipt(),
             )
         except UpstreamUnavailable as error:
             raise ApiError(
@@ -9691,6 +9698,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 hero_id="PLAYER",
                 member_id=member_id,
                 ledger=organization_contribution_ledger,
+                source_provenance=service_provenance.receipt(),
             )
         except ApiError:
             raise
