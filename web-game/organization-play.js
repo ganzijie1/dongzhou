@@ -290,8 +290,9 @@
       || !Number.isSafeInteger(receipt.inventoryRevision)
       || !/^[0-9a-f]{64}$/.test(String(receipt.digest || ""))
       || receipt.kernel?.module !== "dongzhou_logistics_briefing"
+      || receipt.kernel?.moduleVersion !== "1.1.0"
       || receipt.kernel?.state !== "SEALED"
-      || (receipt.sourceProvenance && !validSourceProvenance(receipt.sourceProvenance))
+      || !validSourceProvenance(receipt.sourceProvenance)
       || receipt.ainpcDelivery?.market !== "DELIVERED"
       || receipt.ainpcDelivery?.warehouse !== "DELIVERED"
       || !Number.isSafeInteger(receipt.exchange?.availableUnits)

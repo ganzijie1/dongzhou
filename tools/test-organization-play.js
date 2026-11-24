@@ -493,6 +493,8 @@ assert.throws(
   /仓情简报回执无效/
 );
 assert.throws(() => play.recordLogisticsBriefing(state, { ...logisticsReceipt, sourceProvenance: { ...sourceProvenance, digest: "invalid" } }), /仓情简报回执无效/);
+assert.throws(() => play.recordLogisticsBriefing(state, { ...logisticsReceipt, sourceProvenance: null }));
+assert.throws(() => play.recordLogisticsBriefing(state, { ...logisticsReceipt, kernel: { ...logisticsReceipt.kernel, moduleVersion: "1.0.0" } }));
 const logisticsThought = {
   requestId: "thought-logistics-1", heroId: "ZuoRu", stageId: "01", knowledgeId: "dongzhou_stage_001", taskType: "drill",
   source: { index: 0, work: "《史记·周本纪》" }, assignment: { planId: "plan-1", eventId: "event-drill" },
