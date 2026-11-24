@@ -2533,9 +2533,13 @@
         profile.organization = organization.recordRemoteRoster(next, response.roster, displayName);
         writeJson(PROFILE_KEY, profile);
         await integration.persist(profile);
+        await refreshOfficeCareerStatus({ quiet: true });
+        await refreshOfficeCareerContributions({ quiet: true });
         officeMembershipLeavePending = false;
         $("#officeMembershipFeedback").textContent = response.career.state === "ACTIVE"
-          ? "本地仕籍已登记，列入军府属官第12席。"
+          ? response.redispatches?.length
+            ? `本地仕籍已登记，杜伯已将 ${response.redispatches.length} 项旧差事重新派发。`
+            : "本地仕籍已登记，列入军府属官第12席。"
           : response.departure?.releasedTaskIds?.length
             ? `本地辞仕已完成，${response.departure.releasedTaskIds.length} 项执行中差事已退回杜伯重新派任。`
             : "本地辞仕已完成，军府第12席已经释放。";

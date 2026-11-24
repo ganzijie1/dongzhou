@@ -218,8 +218,27 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(clearedContributions.entries[2].amount, -30);
   assert.deepStrictEqual(clearedContributions.account, { accountVersion: 4, accountBalance: 0, lifetimeEarned: 30, lifetimeSpent: 30 });
   const careerRejoin = await client.setOrganizationMembership("JOIN");
+  assert.strictEqual(careerRejoin.redispatches.length, 1);
+  const redispatchedTask = careerRejoin.organization.localPlayerTasks.find((task) => task.taskId === departureBlockedTask.task.taskId);
+  assert.strictEqual(redispatchedTask.state, "MEMBER_RESPONSE_PENDING");
+  assert.deepStrictEqual(redispatchedTask.timeline.slice(-2).map((event) => event.type), ["MANAGER_DISPATCH_SUBMITTED", "ASSIGNMENT_OFFERED"]);
+  assert.strictEqual(redispatchedTask.redispatch.reassignmentDigest, releasedTask.reassignment.digest);
+  assert.strictEqual(redispatchedTask.redispatch.membershipDigest, careerRejoin.receipt.digest);
+  assert.strictEqual(redispatchedTask.redispatch.dispatchState, "CANCELLED");
+  assert.strictEqual(redispatchedTask.redispatch.workItemState, "ACTED");
+  assert.strictEqual(redispatchedTask.redispatch.assignmentAttemptState, "OFFERED");
+  assert.strictEqual(redispatchedTask.redispatch.kernel.module, "dongzhou_organization_task_redispatch");
   localProfile.organization = careerRejoin.organization;
   await client.persist(localProfile);
+  const cleanRedispatch = JSON.stringify(localProfile.organization.localPlayerRedispatches.at(-1));
+  localProfile.organization.localPlayerRedispatches[localProfile.organization.localPlayerRedispatches.length - 1] = {
+    ...localProfile.organization.localPlayerRedispatches.at(-1), digest: "0".repeat(64)
+  };
+  await client.persist(localProfile);
+  await assert.rejects(client.organizationPlayerTasks(), /organization_player_task_redispatch_invalid/);
+  localProfile.organization.localPlayerRedispatches[localProfile.organization.localPlayerRedispatches.length - 1] = JSON.parse(cleanRedispatch);
+  await client.persist(localProfile);
+  await applyCareerAction("REJECT", { taskId: redispatchedTask.taskId, detail: "Decline reassigned departure task" });
   const postRejoinTask = await applyCareerAction("REQUEST", { title: "Inspect player archive" });
   await applyCareerAction("ACCEPT", { taskId: postRejoinTask.task.taskId });
   await applyCareerAction("RESULT", { taskId: postRejoinTask.task.taskId, detail: "Archive sealed with supporting record" });

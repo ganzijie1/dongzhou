@@ -207,6 +207,22 @@ async function openReady(page) {
       || !(await desktop.locator("#officeCareer").isHidden())) {
       throw new Error(`Offline membership was not released: ${JSON.stringify(releasedMembership)}`);
     }
+    await desktop.click("#officeMembershipApply");
+    await desktop.waitForSelector("#officeMembershipState >> text=已入仕", { timeout: 10000 });
+    await desktop.waitForSelector("#officeMembershipFeedback >> text=1 项旧差事重新派发", { timeout: 10000 });
+    await desktop.waitForSelector('#officeCareerStatus [data-task-state="MEMBER_RESPONSE_PENDING"] >> text=辞仕前巡仓', { timeout: 10000 });
+    const redispatchedMembershipTask = await desktop.evaluate(() => {
+      const organization = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization;
+      const task = organization.localPlayerTasks.find((entry) => entry.title === "辞仕前巡仓");
+      return { task, redispatch: organization.localPlayerRedispatches.at(-1) };
+    });
+    if (redispatchedMembershipTask.task?.redispatch?.digest !== redispatchedMembershipTask.redispatch?.digest
+      || redispatchedMembershipTask.task?.redispatch?.dispatchState !== "CANCELLED"
+      || redispatchedMembershipTask.task?.redispatch?.workItemState !== "ACTED"
+      || redispatchedMembershipTask.task?.redispatch?.assignmentAttemptState !== "OFFERED"
+      || redispatchedMembershipTask.task?.redispatch?.kernel?.module !== "dongzhou_organization_task_redispatch") {
+      throw new Error(`Offline departure task was not redispatched: ${JSON.stringify(redispatchedMembershipTask)}`);
+    }
     if (offlineApiRequests !== 0) throw new Error(`Offline membership flow made ${offlineApiRequests} API requests`);
     await desktop.click("#officeScheduleButton");
     await desktop.waitForSelector("#officeNpcSchedule >> text=进程内账本", { timeout: 10000 });

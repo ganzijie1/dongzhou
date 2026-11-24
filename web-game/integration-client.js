@@ -813,6 +813,9 @@
         returnedManagerMemberIds = [uuidFromDigest(await sha256("dongzhou-local-organization-member:DuBo"))];
       }
     }
+    if (!replayed && normalizedAction === "JOIN") {
+      membershipTasks = (await verifiedLocalPlayerTasks(organization)).map((task) => JSON.parse(JSON.stringify(task)));
+    }
     const clearedAmount = !replayed && normalizedAction === "LEAVE" ? current.contributionBalance : 0;
     const career = {
       ...current,
@@ -930,6 +933,61 @@
         createdReassignments.push(reassignment);
       }
     }
+    const redispatches = Array.isArray(organization.localPlayerRedispatches)
+      ? organization.localPlayerRedispatches.slice()
+      : [];
+    const createdRedispatches = [];
+    if (normalizedAction === "JOIN") {
+      for (let index = 0; index < membershipTasks.length; index += 1) {
+        const task = membershipTasks[index];
+        if (task.state !== "DISPATCHING" || !task.reassignment || task.redispatch) continue;
+        const fromTaskVersion = task.version;
+        task.version += 1;
+        task.updatedAt = localCareerTimestamp(index, task.version);
+        task.state = "MEMBER_RESPONSE_PENDING";
+        task.timeline.push({
+          sequence: task.timeline.length + 1,
+          type: "MANAGER_DISPATCH_SUBMITTED",
+          occurredAt: task.updatedAt,
+          stateCode: "ASSIGNING",
+          action: "SUBMIT_DISPATCH",
+          dispatchStepId: task.reassignment.dispatchStepId,
+          managementWorkItemId: task.reassignment.managementWorkItemId
+        });
+        task.timeline.push({
+          sequence: task.timeline.length + 1,
+          type: "ASSIGNMENT_OFFERED",
+          occurredAt: task.updatedAt,
+          stateCode: task.state,
+          assignmentAttemptNo: 2,
+          memberId: playerId
+        });
+        const redispatch = await sealLocalTaskRedispatch({
+          redispatchId: uuidFromDigest(await sha256(`local-task-redispatch:${task.reassignment.reassignmentId}:${career.version}`)),
+          taskId: task.taskId,
+          reassignmentDigest: task.reassignment.digest,
+          membershipVersion: career.version,
+          membershipDigest: receipt.digest,
+          managerHeroId: "DuBo",
+          managerMemberId: task.reassignment.managerMemberId,
+          preferredMemberId: playerId,
+          action: "SUBMIT_DISPATCH",
+          dispatchStepId: task.reassignment.dispatchStepId,
+          dispatchState: "CANCELLED",
+          managementWorkItemId: task.reassignment.managementWorkItemId,
+          workItemState: "ACTED",
+          assignmentAttemptNo: 2,
+          assignmentAttemptState: "OFFERED",
+          fromTaskVersion,
+          taskVersion: task.version,
+          taskState: task.state
+        }, sourceProvenance);
+        task.redispatch = redispatch;
+        task.organizationTrace = await sealLocalPlayerTask(task, sourceProvenance);
+        redispatches.push(redispatch);
+        createdRedispatches.push(redispatch);
+      }
+    }
     const clearances = Array.isArray(organization.localPlayerContributionClearances)
       ? organization.localPlayerContributionClearances.slice()
       : [];
@@ -954,13 +1012,17 @@
       localPlayerTasks: membershipTasks,
       localPlayerDepartures: departures,
       localPlayerReassignments: reassignments,
+      localPlayerRedispatches: redispatches,
       localPlayerContributionClearances: clearances
     };
     const previousProfile = offlineProfile;
     offlineProfile = { ...(currentProfile || {}), organization: nextOrganization };
     const roster = localOrganizationRoster();
     offlineProfile = previousProfile;
-    return { mode: "standalone", replayed, organization: nextOrganization, career, roster, receipt, departure, reassignments: createdReassignments };
+    return {
+      mode: "standalone", replayed, organization: nextOrganization, career, roster, receipt, departure,
+      reassignments: createdReassignments, redispatches: createdRedispatches
+    };
   }
 
   function localCareerTimestamp(taskIndex, version) {
@@ -969,7 +1031,7 @@
     return `0771-01-${day}T00:00:${second}Z`;
   }
 
-  async function sealLocalPlayerTask(task, sourceProvenance, contentVersion = 4) {
+  async function sealLocalPlayerTask(task, sourceProvenance, contentVersion = 5) {
     const trace = {
       taskId: task.taskId,
       taskState: task.state,
@@ -985,6 +1047,7 @@
       supplementRequest: task.supplementRequest || null,
       executionException: task.executionException || null,
       ...(contentVersion >= 4 ? { reassignment: task.reassignment || null } : {}),
+      ...(contentVersion >= 5 ? { redispatch: task.redispatch || null } : {}),
       timeline: task.timeline || [],
       sourceProvenance
     };
@@ -1038,7 +1101,8 @@
       || canonicalJson(stored) !== canonicalJson(expected)
       || !departure?.releasedTaskIds?.includes(task.taskId)
       || departure.returnedManagerMemberIds?.[0] !== reassignment.managerMemberId
-      || task.state !== "DISPATCHING" || reassignment.taskState !== task.state || reassignment.taskVersion !== task.version
+      || (!task.redispatch && task.state !== "DISPATCHING")
+      || reassignment.taskState !== "DISPATCHING" || reassignment.taskVersion > task.version
       || reassignment.fromState !== "REASSIGN_PENDING" || reassignment.resourceCleanupState !== "NOT_REQUIRED"
       || reassignment.managerHeroId !== "DuBo" || reassignment.dispatchStepNo !== 1
       || reassignment.dispatchState !== "PENDING_MANAGER_ACTION" || reassignment.workItemState !== "OPEN"
@@ -1050,23 +1114,81 @@
     return expected;
   }
 
+  async function sealLocalTaskRedispatch(input, sourceProvenance) {
+    const trace = {
+      redispatchId: input.redispatchId,
+      taskId: input.taskId,
+      reassignmentDigest: input.reassignmentDigest,
+      membershipVersion: input.membershipVersion,
+      membershipDigest: input.membershipDigest,
+      managerHeroId: input.managerHeroId,
+      managerMemberId: input.managerMemberId,
+      preferredMemberId: input.preferredMemberId,
+      action: input.action,
+      dispatchStepId: input.dispatchStepId,
+      dispatchState: input.dispatchState,
+      managementWorkItemId: input.managementWorkItemId,
+      workItemState: input.workItemState,
+      assignmentAttemptNo: input.assignmentAttemptNo,
+      assignmentAttemptState: input.assignmentAttemptState,
+      fromTaskVersion: input.fromTaskVersion,
+      taskVersion: input.taskVersion,
+      taskState: input.taskState,
+      sourceProvenance
+    };
+    return {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: { module: "dongzhou_organization_task_redispatch", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    };
+  }
+
+  async function validateLocalTaskRedispatch(organization, task, sourceProvenance) {
+    if (!task.redispatch) return null;
+    const redispatch = task.redispatch;
+    const expected = await sealLocalTaskRedispatch(redispatch, sourceProvenance);
+    const stored = (organization.localPlayerRedispatches || []).find((entry) => entry.redispatchId === redispatch.redispatchId);
+    const membership = read(`${LOCAL_MEMBERSHIP_PREFIX}${redispatch.preferredMemberId}:${redispatch.membershipVersion}`, null);
+    const submitted = task.timeline?.find((event) => event.type === "MANAGER_DISPATCH_SUBMITTED"
+      && event.dispatchStepId === redispatch.dispatchStepId && event.managementWorkItemId === redispatch.managementWorkItemId);
+    const offered = task.timeline?.find((event) => event.type === "ASSIGNMENT_OFFERED"
+      && event.assignmentAttemptNo === redispatch.assignmentAttemptNo && event.memberId === redispatch.preferredMemberId);
+    if (canonicalJson(redispatch) !== canonicalJson(expected)
+      || canonicalJson(stored) !== canonicalJson(expected)
+      || redispatch.reassignmentDigest !== task.reassignment?.digest
+      || membership?.action !== "JOIN" || membership?.digest !== redispatch.membershipDigest
+      || redispatch.managerHeroId !== "DuBo" || redispatch.managerMemberId !== task.reassignment?.managerMemberId
+      || redispatch.action !== "SUBMIT_DISPATCH" || redispatch.dispatchStepId !== task.reassignment?.dispatchStepId
+      || redispatch.dispatchState !== "CANCELLED" || redispatch.managementWorkItemId !== task.reassignment?.managementWorkItemId
+      || redispatch.workItemState !== "ACTED" || redispatch.assignmentAttemptNo !== 2
+      || redispatch.assignmentAttemptState !== "OFFERED" || redispatch.taskState !== "MEMBER_RESPONSE_PENDING"
+      || redispatch.fromTaskVersion !== task.reassignment?.taskVersion || redispatch.taskVersion > task.version
+      || !submitted || submitted.action !== "SUBMIT_DISPATCH" || !offered) {
+      throw new Error("organization_player_task_redispatch_invalid");
+    }
+    return expected;
+  }
+
   async function verifiedLocalPlayerTasks(organization) {
     const sourceProvenance = await localServiceProvenance();
     const tasks = Array.isArray(organization.localPlayerTasks) ? organization.localPlayerTasks : [];
     for (const task of tasks) {
       const expected = await sealLocalPlayerTask(task, sourceProvenance);
       if (canonicalJson(task.organizationTrace) !== canonicalJson(expected)) {
+        const previousV4 = await sealLocalPlayerTask(task, sourceProvenance, 4);
         const previousV3 = await sealLocalPlayerTask(task, sourceProvenance, 3);
         const previous = await sealLocalPlayerTask(task, sourceProvenance, 2);
         const legacy = await sealLocalPlayerTask(task, sourceProvenance, 0);
         const matchedLegacy = canonicalJson(task.organizationTrace) === canonicalJson(legacy);
-        if (canonicalJson(task.organizationTrace) !== canonicalJson(previousV3)
+        if (canonicalJson(task.organizationTrace) !== canonicalJson(previousV4)
+          && canonicalJson(task.organizationTrace) !== canonicalJson(previousV3)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previous)
           && !matchedLegacy) throw new Error("organization_player_task_seal_invalid");
         task.organizationTrace = expected;
         if (matchedLegacy) task.localTraceMigratedFromV1 = true;
       }
       await validateLocalTaskReassignment(organization, task, sourceProvenance);
+      await validateLocalTaskRedispatch(organization, task, sourceProvenance);
     }
     return tasks;
   }

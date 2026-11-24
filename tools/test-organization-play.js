@@ -14,6 +14,7 @@ assert.deepStrictEqual(state.members.map((member) => member.name), ["杜伯", "�
 assert.deepStrictEqual(state.localPlayerCareer, { state: "OUT", version: 1, contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 });
 assert.deepStrictEqual(state.localPlayerDepartures, []);
 assert.deepStrictEqual(state.localPlayerReassignments, []);
+assert.deepStrictEqual(state.localPlayerRedispatches, []);
 assert.deepStrictEqual(state.localPlayerContributionClearances, []);
 assert.deepStrictEqual(play.normalizeState({ localPlayerCareer: { state: "ACTIVE", version: 4, contributionBalance: 999, lifetimeEarned: 12, lifetimeSpent: 3 } }).localPlayerCareer,
   { state: "ACTIVE", version: 4, contributionBalance: 9, lifetimeEarned: 12, lifetimeSpent: 3 });

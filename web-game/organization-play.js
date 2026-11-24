@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 31;
+  const SCHEMA_VERSION = 32;
   const TASK_TYPES = {
     supply: { name: "转运军粮", office: "司徒", duration: 1, cost: 8, base: 72, reward: { provisions: 24 } },
     drill: { name: "整训军阵", office: "司马", duration: 1, cost: 6, base: 68, reward: { attack: 0.08 } },
@@ -96,6 +96,7 @@
       localPlayerTasks: [],
       localPlayerDepartures: [],
       localPlayerReassignments: [],
+      localPlayerRedispatches: [],
       localPlayerContributionClearances: [],
       backend: { mode: "local", nexusKernel: false, nexusRequiredModules: null, nexusOperationalModules: null, nexusUnavailableModules: [], nexusSourceBoundModules: null, nexusSourceBoundModuleNames: [], orgFlow: false, aiNpc: false, knowledge: false, serviceSources: {}, serviceAttestations: {}, serviceFailures: {}, serviceSourceSealDigest: "", checkedAt: null },
       members: [],
@@ -197,6 +198,9 @@
         : [],
       localPlayerReassignments: Array.isArray(source.localPlayerReassignments)
         ? source.localPlayerReassignments.filter((entry) => entry && typeof entry === "object").slice(-30)
+        : [],
+      localPlayerRedispatches: Array.isArray(source.localPlayerRedispatches)
+        ? source.localPlayerRedispatches.filter((entry) => entry && typeof entry === "object").slice(-30)
         : [],
       localPlayerContributionClearances: Array.isArray(source.localPlayerContributionClearances)
         ? source.localPlayerContributionClearances.filter((entry) => entry && typeof entry === "object").slice(-20)

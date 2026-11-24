@@ -141,7 +141,7 @@ standalone 调拨沿用同一两阶段审批契约，但只操作组织存档中
 
 standalone 辞仕现同时清算玩家当前可用贡献：`LEAVE` 履历成功后追加 `MEMBER_DEPARTURE_CONTRIBUTION_CLEARED` 负向账目，累计获得保持不变、累计支出增加、可用余额归零。`dongzhou_organization_membership_clearance 1.0.0` 回执绑定玩家、履历版本、辞仕回执摘要、当时任务数、清算金额和固定四仓来源；贡献账重放时逐项复核辞仕回执与任务边界，篡改金额、顺序或来源都会拒绝。重新请仕后的新任务收益排在清算账目之后；隔离版本之前已经完成的辞仕不会被凭空补造历史支出。整个流程只读写本地存档，不调用或启动 AINPC、orgFlow、knowledge、网关及任何内网服务，离线浏览器继续强制要求 `/api/` 请求为 0。
 
-辞仕还复用 orgFlow V1.2 的任务责任释放语义。待接受、待改令裁定或待补呈的差事仍会在生成履历和清算前阻止辞仕，并返回稳定任务号；已经进入 `IN_PROGRESS` 的差事则随辞事流程转为 `REASSIGN_PENDING`，追加 `TASK_RESPONSIBILITY_RELEASED_MEMBER_DEPARTURE` 行迹。进程内资源处理器确认本地差事没有外部资源需要释放后记录 `NOT_REQUIRED`，再把任务推进到 `DISPATCHING`，为杜伯建立 `OPEN / PENDING_MANAGER_ACTION` 的派任工作项。`dongzhou_organization_membership_departure 1.0.0` 快照绑定 `V12_MEMBER_LEAVE`、层级版本、排序后的释放任务、退回主管、仕籍摘要和四仓来源；`dongzhou_organization_task_reassignment 1.0.0` 另行绑定释放前任务封印、清理结果、派任步骤和工作项。离线浏览器已连续验证阻止分支、原仕籍保留、执行责任释放、主官工作项与辞仕成功，全程不发送 `/api/` 请求。
+辞仕还复用 orgFlow V1.2 的任务责任释放语义。待接受、待改令裁定或待补呈的差事仍会在生成履历和清算前阻止辞仕，并返回稳定任务号；已经进入 `IN_PROGRESS` 的差事则随辞事流程转为 `REASSIGN_PENDING`，追加 `TASK_RESPONSIBILITY_RELEASED_MEMBER_DEPARTURE` 行迹。进程内资源处理器确认本地差事没有外部资源需要释放后记录 `NOT_REQUIRED`，再把任务推进到 `DISPATCHING`，为杜伯建立 `OPEN / PENDING_MANAGER_ACTION` 的派任工作项。`dongzhou_organization_membership_departure 1.0.0` 快照绑定 `V12_MEMBER_LEAVE`、层级版本、排序后的释放任务、退回主管、仕籍摘要和四仓来源；`dongzhou_organization_task_reassignment 1.0.0` 另行绑定释放前任务封印、清理结果、派任步骤和工作项。玩家后来重新请仕填回第12席时，杜伯以 `SUBMIT_DISPATCH` 完成开放工作项，将派任步骤置为 `CANCELLED`、工作项置为 `ACTED`，再生成第2次 `OFFERED` 尝试和 `MEMBER_RESPONSE_PENDING` 玩家待办；`dongzhou_organization_task_redispatch 1.0.0` 同时绑定新 JOIN 回执、原重新派任摘要、目标成员和全部状态转换。离线浏览器已连续验证阻止分支、执行责任释放、主官工作项、辞仕、重新请仕和旧差事重派，全程不发送 `/api/` 请求。
 
 ## 历史验证基线
 
