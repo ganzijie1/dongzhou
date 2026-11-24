@@ -1175,11 +1175,13 @@ class LogisticsBriefingModule(Module):
 
 class OrganizationScheduledDutyModule(Module):
     name = "dongzhou_organization_scheduled_duty"
-    version = "1.0.0"
-    dependencies = (RuntimeModule.name,)
+    version = "1.1.0"
+    dependencies = (RuntimeModule.name, "dongzhou_service_provenance")
 
     @staticmethod
     def seal(trace: dict[str, Any]) -> dict[str, Any]:
+        if not _service_provenance_receipt_is_valid(trace.get("sourceProvenance")):
+            raise ValueError("organization scheduled duty source provenance is invalid")
         UUID(str(trace.get("playerRequestId") or ""))
         UUID(str(trace.get("ruleId") or ""))
         UUID(str(trace.get("organizationId") or ""))
@@ -10034,6 +10036,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "dutyTitle": duty_title,
                 "latestTrigger": latest if isinstance(latest, dict) else None,
                 "activeTask": active_task,
+                "sourceProvenance": service_provenance.receipt(),
             }
         except UpstreamUnavailable as error:
             raise ApiError(
@@ -10082,6 +10085,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             rule_id = str(current.get("ruleId") or "")
             previous_state = str(current.get("state") or "")
             previous_version = int(current.get("version") or 0)
+            current_source_provenance = current.get("sourceProvenance")
             if (
                 UUID(rule_id)
                 != uuid5(
@@ -10093,6 +10097,9 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 or current.get("managerHeroId") != "DuBo"
                 or current.get("workerHeroId") != "ZuoRu"
                 or current.get("taskCode") != "dongzhou.intelligence"
+                or not _service_provenance_receipt_matches(
+                    current_source_provenance, service_provenance.receipt()
+                )
             ):
                 raise ValueError("monthly duty rule identity is invalid")
 
@@ -10149,6 +10156,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                         if isinstance(active_task, dict) and active_task.get("taskId")
                         else None
                     ),
+                    "sourceProvenance": current_source_provenance,
                 }
             )
             result = {
@@ -10156,6 +10164,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "version": resulting_version,
                 "activeTask": active_task,
                 "receipt": receipt,
+                "sourceProvenance": current_source_provenance,
                 "replayed": False,
             }
             await store.finish_request(

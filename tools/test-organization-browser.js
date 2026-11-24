@@ -159,9 +159,9 @@ async function openReady(page) {
         scheduledDutyState = input.enabled ? "ACTIVE" : "DISABLED";
         scheduledDutyVersion += 1;
         scheduledDutyActions.push(input);
-        body = { state: scheduledDutyState, version: scheduledDutyVersion, activeTask: { taskId: "00000000-0000-4000-8000-000000000099", title: "东周朝廷月例察访", state: "IN_PROGRESS" }, receipt: { digest: "5".repeat(64), kernel: { module: "dongzhou_organization_scheduled_duty", state: "SEALED" } } };
+        body = { state: scheduledDutyState, version: scheduledDutyVersion, activeTask: { taskId: "00000000-0000-4000-8000-000000000099", title: "东周朝廷月例察访", state: "IN_PROGRESS" }, sourceProvenance, receipt: { digest: "5".repeat(64), sourceProvenance, kernel: { module: "dongzhou_organization_scheduled_duty", moduleVersion: "1.1.0", state: "SEALED" } } };
       }
-      else if (pathName.endsWith("/organization/scheduled-duties")) body = { ruleId: "00000000-0000-4000-8000-000000000098", state: scheduledDutyState, version: scheduledDutyVersion, frequency: "DAILY", triggerMinute: 780, managerHeroId: "DuBo", workerHeroId: "ZuoRu", taskCode: "dongzhou.intelligence", latestTrigger: { state: "SKIPPED", failure_code: "duplicate_active_task", task_id: "00000000-0000-4000-8000-000000000099" }, activeTask: { taskId: "00000000-0000-4000-8000-000000000099", title: "东周朝廷月例察访", state: "IN_PROGRESS", adopted: false } };
+      else if (pathName.endsWith("/organization/scheduled-duties")) body = { ruleId: "00000000-0000-4000-8000-000000000098", state: scheduledDutyState, version: scheduledDutyVersion, frequency: "DAILY", triggerMinute: 780, managerHeroId: "DuBo", workerHeroId: "ZuoRu", taskCode: "dongzhou.intelligence", latestTrigger: { state: "SKIPPED", failure_code: "duplicate_active_task", task_id: "00000000-0000-4000-8000-000000000099" }, activeTask: { taskId: "00000000-0000-4000-8000-000000000099", title: "东周朝廷月例察访", state: "IN_PROGRESS", adopted: false }, sourceProvenance };
       else if (pathName.endsWith("/organization/player-tasks")) {
         const hasException = careerAction === "exception";
         body = !careerAction ? { items: [], hasMore: false } : { items: [{
@@ -402,9 +402,11 @@ async function openReady(page) {
     await online.waitForSelector("#officeRosterSummary >> text=模板 v7", { timeout: 15000 });
     await online.waitForSelector("#officeMembers >> text=官署实账");
     await online.waitForSelector("#officeScheduledDutyStatus >> text=已有同类差事在办", { timeout: 15000 });
+    await online.waitForSelector("#officeScheduledDutyStatus >> text=版本封印 0123456789ab", { timeout: 15000 });
     await online.click("#officeScheduledDutyToggle");
     await online.waitForSelector("#officeScheduledDutyStatus >> text=月例已停办", { timeout: 15000 });
     await online.waitForSelector("#officeScheduledDutyStatus >> text=Nexus封印 555555555555", { timeout: 15000 });
+    await online.waitForSelector("#officeScheduledDutyStatus >> text=版本封印 0123456789ab", { timeout: 15000 });
     if (!(await online.locator("#officeScheduledDutyStatus").innerText()).includes("已派差事仍照常办理")) throw new Error("Disabling the monthly duty hid the already dispatched task");
     await online.click("#officeScheduledDutyToggle");
     await online.waitForSelector("#officeScheduledDutyToggle >> text=停办月例", { timeout: 15000 });

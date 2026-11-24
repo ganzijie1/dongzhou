@@ -12,10 +12,12 @@ const stage = {
 let state = play.syncMembers(null, stage, (id) => ({ DuBo: "杜伯", ZuoRu: "左儒" }[id]));
 assert.deepStrictEqual(state.members.map((member) => member.name), ["杜伯", "左儒"]);
 
+const sourceProvenance = { digest: "8".repeat(64), kernel: { module: "dongzhou_service_provenance", state: "SEALED" }, services: { knowledge: {}, aiNpc: {}, orgFlow: {}, nexusKernel: {} } };
 const scheduledTaskId = "00000000-0000-4000-8000-000000000099";
 const scheduledDuty = {
   ruleId: "00000000-0000-4000-8000-000000000098", state: "ACTIVE",
   taskCode: "dongzhou.intelligence", workerHeroId: "ZuoRu",
+  sourceProvenance,
   latestTrigger: { state: "SKIPPED", failure_code: "duplicate_active_task", task_id: scheduledTaskId },
   activeTask: { taskId: scheduledTaskId, title: "东周朝廷月例察访", state: "IN_PROGRESS", finalResult: null, adopted: true }
 };
@@ -24,9 +26,11 @@ assert.equal(adoptedDuty.adopted, true);
 assert.equal(adoptedDuty.task.remoteResult, scheduledTaskId);
 assert.equal(adoptedDuty.task.cost, 0);
 assert.equal(adoptedDuty.task.stageId, "");
+assert.equal(adoptedDuty.task.scheduledDuty.sourceProvenance.digest, sourceProvenance.digest);
 assert.equal(play.adoptScheduledDuty(adoptedDuty.state, scheduledDuty).adopted, false);
 assert.equal(adoptedDuty.state.tasks.filter((task) => task.remoteResult === scheduledTaskId).length, 1);
 assert.throws(() => play.adoptScheduledDuty(state, { ...scheduledDuty, latestTrigger: { ...scheduledDuty.latestTrigger, task_id: "other" } }), /任务号/);
+assert.throws(() => play.adoptScheduledDuty(state, { ...scheduledDuty, sourceProvenance: { ...sourceProvenance, digest: "invalid" } }), /服务来源无效/);
 const completedScheduledDuty = play.reconcileRemoteTasks(adoptedDuty.state, [{ task_id: scheduledTaskId, state: "SUCCEEDED", final_result: "SUCCESS", version: "3" }], { advanceMonth: false });
 const scheduledSupport = play.consumeSupport(completedScheduledDuty, "02");
 assert.equal(scheduledSupport.support.recon, 1);
@@ -46,7 +50,6 @@ assert.ok(consumed.support.attack >= 0.05);
 assert.strictEqual(consumed.state.pendingSupport.some((entry) => entry.id === "forced"), false);
 assert.deepStrictEqual(play.consumeSupport(consumed.state, "01").support.sources, []);
 
-const sourceProvenance = { digest: "8".repeat(64), kernel: { module: "dongzhou_service_provenance", state: "SEALED" }, services: { knowledge: {}, aiNpc: {}, orgFlow: {}, nexusKernel: {} } };
 state = play.recordKnowledge(consumed.state, { id: "dongzhou_stage_001", name: "第一回", summary: "东郊索命", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }, { work: "《东周列国志》第一回", tier: "文学演绎", scope: "杜伯索命", url: "https://zh.wikisource.org/zh-hans/东周列国志/第001回" }], retrieval: { aggregateScore: 0.55, strongestChannel: "graph", graphRelated: true, channels: [{ channel: "graph", score: 1, normalizedScore: 1, rank: 1, graphPath: { seedId: "dongzhou_stage_002", hops: 1, nodes: [{ id: "dongzhou_stage_002", name: "烽火戏诸侯" }, { id: "dongzhou_stage_001", name: "东郊索命" }], relations: ["DEPENDS_ON"] } }] }, searchReceipt: { id: "search-receipt-1", digest: "5".repeat(64), sourceProvenance } });
 assert.strictEqual(state.knowledge[0].stageId, "01");
 assert.deepStrictEqual(state.knowledge[0].retrieval.channels[0].graphPath, { seedId: "dongzhou_stage_002", hops: 1, nodes: [{ id: "dongzhou_stage_002", name: "烽火戏诸侯" }, { id: "dongzhou_stage_001", name: "东郊索命" }], relations: ["DEPENDS_ON"] });

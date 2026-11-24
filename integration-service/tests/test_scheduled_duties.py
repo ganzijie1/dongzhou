@@ -217,6 +217,9 @@ def test_scheduled_duty_is_registered_once_and_returned(tmp_path):
     assert first.json()["managerHeroId"] == "DuBo"
     assert first.json()["workerHeroId"] == "ZuoRu"
     assert first.json()["taskCode"] == "dongzhou.intelligence"
+    assert first.json()["sourceProvenance"]["kernel"]["module"] == (
+        "dongzhou_service_provenance"
+    )
     assert second.json()["activeTask"] == {
         "taskId": upstreams.active_task_id,
         "title": "东周朝廷月例察访",
@@ -245,6 +248,11 @@ def test_scheduled_duty_is_registered_once_and_returned(tmp_path):
     assert disabled.json()["receipt"]["kernel"]["module"] == (
         "dongzhou_organization_scheduled_duty"
     )
+    assert disabled.json()["receipt"]["kernel"]["moduleVersion"] == "1.1.0"
+    assert disabled.json()["receipt"]["sourceProvenance"] == first.json()[
+        "sourceProvenance"
+    ]
+    assert disabled.json()["sourceProvenance"] == first.json()["sourceProvenance"]
     assert disabled.json()["receipt"]["previousVersion"] == 1
     assert disabled.json()["receipt"]["resultingVersion"] == 2
     assert replayed.status_code == 200

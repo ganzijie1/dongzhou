@@ -1504,6 +1504,8 @@
     }
     const digest = officeScheduledDutyView?.receipt?.digest;
     if (digest) status.textContent += ` · Nexus封印 ${String(digest).slice(0, 12)}`;
+    const sourceSeal = officeScheduledDutyView?.receipt?.sourceProvenance?.digest || officeScheduledDutyView?.sourceProvenance?.digest;
+    if (/^[0-9a-f]{64}$/i.test(sourceSeal || "")) status.textContent += ` · 版本封印 ${sourceSeal.slice(0, 12)}`;
   }
 
   async function refreshOfficeScheduledDuty() {
