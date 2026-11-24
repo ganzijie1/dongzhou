@@ -576,8 +576,9 @@
       const witnessCount = [route?.knowledgeWitnesses?.from, route?.knowledgeWitnesses?.to]
         .filter((witness) => Array.isArray(witness?.knowledgeIds) && witness.knowledgeIds.length && String(witness?.digest || "").length === 64)
         .length;
-      const witnessSeal = witnessCount === 2 && route?.receipt?.kernel?.state === "SEALED"
-        ? ` · 双史料封印 ${String(route.receipt.digest || "").slice(0, 10)}`
+      const routeSeal = route?.receipt?.kernel?.state === "SEALED" ? route.receipt.digest : route?.localRouteDigest;
+      const witnessSeal = witnessCount === 2 && /^[0-9a-f]{64}$/.test(String(routeSeal || ""))
+        ? ` · 双史料封印 ${String(routeSeal).slice(0, 10)}`
         : "";
       proof.dataset.state = "ready";
       proof.textContent = `${previous.battleTitle} → ${record.battleTitle} · ${selected.label || "奉诏直进"} · 军粮 ${selected.provisionCost}${selected.moraleDelta ? ` · 士气 ${selected.moraleDelta > 0 ? "+" : ""}${selected.moraleDelta}` : ""}${witnessSeal}`;
@@ -718,25 +719,40 @@
       return;
     }
     const requiresRoute = !savedState && !record.isProcedural && Number(record.index) > 1 && !(profile.completed || []).includes(record.id);
-    const requiresReadiness = !savedState && !record.isProcedural && !integration.isOffline();
+    const requiresReadiness = !savedState && !record.isProcedural;
     let campaignRoute = null;
     let battleReadiness = null;
     let battleDeployment = null;
     let battlePlan = null;
+    if (savedState && !record.isProcedural && integration.isOffline()) {
+      try {
+        await integration.verifyBattleDeployment(
+          record.id,
+          savedState.battleReadiness,
+          savedState.battleDeployment,
+          savedState.battlePlan,
+          savedState.campaignRoute || null
+        );
+      } catch (error) {
+        showNotice(`本地战前封印无效，请重新开战：${error.message}`);
+        return;
+      }
+    }
     if (requiresReadiness || requiresRoute) {
       const button = $("#focusStageButton");
       routeStartPending = true;
       if (button?.dataset.stageId === record.id) button.disabled = true;
       try {
         if (requiresReadiness) {
+          profile.organization = syncOfficeMembers(profile.organization, record);
           battlePlan = currentBattlePlan(record);
           await integration.persist(profile);
           battlePlan = currentBattlePlan(record);
-          battleReadiness = await integration.battleReadiness(record.id);
+          battleReadiness = await integration.battleReadiness(record.id, battlePlan);
           if (
             battleReadiness?.state !== "READY"
             || battleReadiness?.kernel?.module !== "dongzhou_battle_readiness"
-            || battleReadiness?.kernel?.moduleVersion !== "1.2.0"
+            || battleReadiness?.kernel?.moduleVersion !== "1.3.0"
             || battleReadiness?.kernel?.state !== "SEALED"
             || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(String(battleReadiness?.readinessId || ""))
             || !/^[0-9a-f]{64}$/.test(String(battleReadiness?.playerDigest || ""))
@@ -762,6 +778,17 @@
           ) {
             throw new Error("路线未获内核封印");
           }
+          if (
+            campaignRoute.mode === "standalone"
+            && (
+              !/^[0-9a-f]{64}$/.test(String(campaignRoute.localRouteDigest || ""))
+              || !/^[0-9a-f]{64}$/.test(String(campaignRoute.sourceProvenance?.digest || ""))
+              || !campaignRoute.knowledgeWitnesses?.from?.knowledgeIds?.length
+              || !campaignRoute.knowledgeWitnesses?.to?.knowledgeIds?.length
+            )
+          ) {
+            throw new Error("本地路线未获双史料封印");
+          }
           if (profile.campaignResources.provisions < cost) {
             showNotice(`行军需 ${cost} 军粮，请先在官署筹备`);
             return;
@@ -771,17 +798,18 @@
           battleDeployment = await integration.battleDeployment(
             record.id,
             battleReadiness,
-            campaignRoute
+            campaignRoute,
+            battlePlan
           );
           if (
             battleDeployment?.state !== "AUTHORIZED"
             || battleDeployment?.stageId !== record.id
             || battleDeployment?.kernel?.module !== "dongzhou_battle_deployment"
-            || battleDeployment?.kernel?.moduleVersion !== "1.2.0"
+            || battleDeployment?.kernel?.moduleVersion !== "1.3.0"
             || battleDeployment?.kernel?.state !== "SEALED"
             || !/^[0-9a-f]{64}$/.test(String(battleDeployment?.digest || ""))
             || battleDeployment?.readinessDigest !== battleReadiness.digest
-            || battleDeployment?.routeDigest !== (campaignRoute?.receipt?.digest || null)
+            || battleDeployment?.routeDigest !== (campaignRoute?.receipt?.digest || campaignRoute?.localRouteDigest || null)
             || JSON.stringify(battleDeployment?.battlePlan || null) !== JSON.stringify(battlePlan)
             || !String(battleDeployment?.reportId || "").startsWith(`battle:${record.id}:`)
           ) {

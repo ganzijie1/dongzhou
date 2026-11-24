@@ -1438,18 +1438,22 @@ def _service_provenance_receipt_is_valid(receipt: Any) -> bool:
 
 class BattleReadinessModule(Module):
     name = "dongzhou_battle_readiness"
-    version = "1.2.0"
+    version = "1.3.0"
     dependencies = (RuntimeModule.name, ServiceProvenanceModule.name)
 
     @classmethod
     def _validate_trace(
-        cls, trace: dict[str, Any], *, require_player_identity: bool
+        cls,
+        trace: dict[str, Any],
+        *,
+        require_player_identity: bool,
+        allowed_modes: frozenset[str],
     ) -> None:
         knowledge = trace.get("knowledge")
         organization = trace.get("organization")
         ai_npc = trace.get("aiNpc")
         if (
-            trace.get("mode") != "connected"
+            trace.get("mode") not in allowed_modes
             or trace.get("state") != "READY"
             or trace.get("kind") != "BATTLE_READINESS"
             or not str(trace.get("stageId") or "")
@@ -1494,7 +1498,11 @@ class BattleReadinessModule(Module):
 
     @classmethod
     def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
-        cls._validate_trace(trace, require_player_identity=True)
+        cls._validate_trace(
+            trace,
+            require_player_identity=True,
+            allowed_modes=frozenset({"connected", "standalone"}),
+        )
         return {
             **trace,
             "digest": _canonical_digest(trace),
@@ -1517,8 +1525,12 @@ class BattleReadinessModule(Module):
         }
         module_version = receipt.get("kernel", {}).get("moduleVersion")
         try:
-            if module_version in {"1.0.0", "1.1.0"}:
-                cls._validate_trace(trace, require_player_identity=False)
+            if module_version in {"1.0.0", "1.1.0", "1.2.0"}:
+                cls._validate_trace(
+                    trace,
+                    require_player_identity=module_version == "1.2.0",
+                    allowed_modes=frozenset({"connected"}),
+                )
                 return {
                     **trace,
                     "digest": _canonical_digest(trace),
@@ -1536,7 +1548,7 @@ class BattleReadinessModule(Module):
 
 class BattleDeploymentModule(Module):
     name = "dongzhou_battle_deployment"
-    version = "1.2.0"
+    version = "1.3.0"
     dependencies = (
         RuntimeModule.name,
         CampaignRouteModule.name,
@@ -1550,6 +1562,7 @@ class BattleDeploymentModule(Module):
         trace: dict[str, Any],
         *,
         battle_plan_version: str | None,
+        allowed_modes: frozenset[str],
     ) -> None:
         stage_id = str(trace.get("stageId") or "")
         report_id = str(trace.get("reportId") or "")
@@ -1559,7 +1572,7 @@ class BattleDeploymentModule(Module):
             raise ValueError("battle deployment identity is invalid") from None
         battle_plan = trace.get("battlePlan")
         if (
-            trace.get("mode") != "connected"
+            trace.get("mode") not in allowed_modes
             or trace.get("state") != "AUTHORIZED"
             or trace.get("kind") != "BATTLE_DEPLOYMENT"
             or not stage_id
@@ -1580,7 +1593,7 @@ class BattleDeploymentModule(Module):
         vanguard_hero_id = battle_plan.get("vanguardHeroId")
         support_effect = battle_plan.get("supportEffect")
         expected_keys = {"formation", "vanguardHeroId", "supportIds"}
-        if battle_plan_version == "1.2.0":
+        if battle_plan_version in {"1.2.0", "1.3.0"}:
             expected_keys.add("supportEffect")
         if (
             battle_plan.get("formation")
@@ -1598,7 +1611,7 @@ class BattleDeploymentModule(Module):
             or set(battle_plan) != expected_keys
         ):
             raise ValueError("battle deployment plan is invalid")
-        if battle_plan_version == "1.2.0":
+        if battle_plan_version in {"1.2.0", "1.3.0"}:
             if not isinstance(support_effect, dict) or set(support_effect) != set(
                 _BATTLE_SUPPORT_EFFECT_KEYS
             ):
@@ -1613,7 +1626,11 @@ class BattleDeploymentModule(Module):
 
     @classmethod
     def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
-        cls._validate_trace(trace, battle_plan_version=cls.version)
+        cls._validate_trace(
+            trace,
+            battle_plan_version=cls.version,
+            allowed_modes=frozenset({"connected", "standalone"}),
+        )
         return {
             **trace,
             "digest": _canonical_digest(trace),
@@ -1636,12 +1653,13 @@ class BattleDeploymentModule(Module):
         }
         module_version = receipt.get("kernel", {}).get("moduleVersion")
         try:
-            if module_version in {"1.0.0", "1.1.0"}:
+            if module_version in {"1.0.0", "1.1.0", "1.2.0"}:
                 cls._validate_trace(
                     trace,
                     battle_plan_version=(
-                        None if module_version == "1.0.0" else "1.1.0"
+                        None if module_version == "1.0.0" else module_version
                     ),
+                    allowed_modes=frozenset({"connected"}),
                 )
                 sealed = {
                     **trace,
@@ -7829,7 +7847,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         readiness = request.battle_readiness
         if (
             not battle_readiness.verify(readiness)
-            or readiness.get("kernel", {}).get("moduleVersion") != "1.2.0"
+            or readiness.get("kernel", {}).get("moduleVersion") != "1.3.0"
             or str(readiness.get("stageId") or "") != request.stage_id
             or str(readiness.get("playerDigest") or "")
             != _battle_readiness_player_digest(player_id)

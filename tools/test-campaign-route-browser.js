@@ -50,7 +50,7 @@ const SYSTEM_CHROMIUM = [
           knowledge: { knowledgeIds: ["dongzhou_stage_002"], digest: "b".repeat(64) },
           organization: { organizationId: "court", state: "ACTIVE", hierarchyVersion: 1, activeHeroIds: ["DuBo"] },
           aiNpc: { readyHeroIds: ["DuBo"] }, sourceProvenance, digest: "6".repeat(64),
-          kernel: { module: "dongzhou_battle_readiness", moduleVersion: "1.2.0", state: "SEALED" }
+          kernel: { module: "dongzhou_battle_readiness", moduleVersion: "1.3.0", state: "SEALED" }
         };
       }
       else if (url.pathname.endsWith("/battle-deployment")) {
@@ -67,7 +67,7 @@ const SYSTEM_CHROMIUM = [
           readinessDigest: "6".repeat(64), routeDigest: "c".repeat(64),
           battlePlan: { formation: "balanced", vanguardHeroId: "ZhouYouWang", supportIds: [], supportEffect: { provisions: 0, morale: 0, attack: 0, defense: 0, recon: 0 } },
           sourceProvenance, digest: "5".repeat(64),
-          kernel: { module: "dongzhou_battle_deployment", moduleVersion: "1.2.0", state: "SEALED" }
+          kernel: { module: "dongzhou_battle_deployment", moduleVersion: "1.3.0", state: "SEALED" }
         };
       }
       else if (url.pathname.endsWith("/knowledge/routes")) {

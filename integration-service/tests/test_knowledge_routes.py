@@ -418,7 +418,7 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
         }
         assert receipt["aiNpc"] == {"readyHeroIds": ["DuBo"]}
         assert receipt["kernel"]["module"] == "dongzhou_battle_readiness"
-        assert receipt["kernel"]["moduleVersion"] == "1.2.0"
+        assert receipt["kernel"]["moduleVersion"] == "1.3.0"
         assert receipt["kernel"]["state"] == "SEALED"
         assert len(receipt["readinessId"]) == 36
         assert len(receipt["playerDigest"]) == 64
@@ -440,6 +440,17 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
                     "moduleVersion": legacy_version,
                 },
             })
+        legacy_12_readiness = {
+            **readiness_trace,
+            "digest": _canonical_digest(readiness_trace),
+            "kernel": {**receipt["kernel"], "moduleVersion": "1.2.0"},
+        }
+        assert BattleReadinessModule.verify(legacy_12_readiness)
+        standalone_readiness_trace = json.loads(json.dumps(readiness_trace))
+        standalone_readiness_trace["mode"] = "standalone"
+        assert BattleReadinessModule.verify(
+            BattleReadinessModule.seal(standalone_readiness_trace)
+        )
 
         with sqlite3.connect(settings.database_path) as database:
             original_payload = database.execute(
@@ -512,12 +523,23 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
             "battle:01:" + deployment["deploymentId"]
         )
         assert deployment["kernel"]["module"] == "dongzhou_battle_deployment"
-        assert deployment["kernel"]["moduleVersion"] == "1.2.0"
+        assert deployment["kernel"]["moduleVersion"] == "1.3.0"
         current_trace = {
             key: json.loads(json.dumps(value))
             for key, value in deployment.items()
             if key not in {"digest", "kernel"}
         }
+        legacy_12_deployment = {
+            **current_trace,
+            "digest": _canonical_digest(current_trace),
+            "kernel": {**deployment["kernel"], "moduleVersion": "1.2.0"},
+        }
+        assert BattleDeploymentModule.verify(legacy_12_deployment)
+        standalone_deployment_trace = json.loads(json.dumps(current_trace))
+        standalone_deployment_trace["mode"] = "standalone"
+        assert BattleDeploymentModule.verify(
+            BattleDeploymentModule.seal(standalone_deployment_trace)
+        )
         legacy_11_trace = json.loads(json.dumps(current_trace))
         legacy_11_trace["battlePlan"].pop("supportEffect")
         legacy_11 = {

@@ -133,11 +133,11 @@ global.fetch = async (url, options = {}) => {
   }
   else if (url.endsWith("/battle-readiness")) {
     battleReadinessInput = body;
-    response = { state: "READY", readinessId: "00000000-0000-4000-8000-000000000101", playerDigest: "4".repeat(64), stageId: body.stage_id, digest: "6".repeat(64), kernel: { module: "dongzhou_battle_readiness", moduleVersion: "1.2.0", state: "SEALED" } };
+    response = { state: "READY", readinessId: "00000000-0000-4000-8000-000000000101", playerDigest: "4".repeat(64), stageId: body.stage_id, digest: "6".repeat(64), kernel: { module: "dongzhou_battle_readiness", moduleVersion: "1.3.0", state: "SEALED" } };
   }
   else if (url.endsWith("/battle-deployment")) {
     battleDeploymentInput = body;
-    response = { state: "AUTHORIZED", stageId: body.stage_id, reportId: `battle:${body.stage_id}:deployment-1`, battlePlan: { formation: "balanced", vanguardHeroId: null, supportIds: [], supportEffect: { provisions: 0, morale: 0, attack: 0, defense: 0, recon: 0 } }, digest: "5".repeat(64), kernel: { module: "dongzhou_battle_deployment", moduleVersion: "1.2.0", state: "SEALED" } };
+    response = { state: "AUTHORIZED", stageId: body.stage_id, reportId: `battle:${body.stage_id}:deployment-1`, battlePlan: { formation: "balanced", vanguardHeroId: null, supportIds: [], supportEffect: { provisions: 0, morale: 0, attack: 0, defense: 0, recon: 0 } }, digest: "5".repeat(64), kernel: { module: "dongzhou_battle_deployment", moduleVersion: "1.3.0", state: "SEALED" } };
   }
   else if (url.endsWith("/adviser/questions") && options.method === "POST") {
     adviserQuestionInput = body;

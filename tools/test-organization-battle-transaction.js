@@ -167,7 +167,7 @@ async function begin(page) {
             supportIds: support.map(entry => String(entry.id || "")).filter(Boolean).sort(),
             supportEffect: { provisions: sum("provisions"), morale: sum("morale"), attack: sum("attack"), defense: sum("defense"), recon: sum("recon") }
           },
-          kernel: { module: "dongzhou_battle_readiness", moduleVersion: "1.2.0", state: "SEALED" }
+          kernel: { module: "dongzhou_battle_readiness", moduleVersion: "1.3.0", state: "SEALED" }
         };
       }
       else if (pathname.endsWith("/battle-deployment")) {
@@ -181,7 +181,7 @@ async function begin(page) {
           battlePlan: input.battle_readiness.battlePlan,
           digest: "5".repeat(64),
           sourceProvenance: { digest: "7".repeat(64) },
-          kernel: { module: "dongzhou_battle_deployment", moduleVersion: "1.2.0", state: "SEALED" }
+          kernel: { module: "dongzhou_battle_deployment", moduleVersion: "1.3.0", state: "SEALED" }
         };
       }
       else { status = 503; body = { error: { message: "Test denies all unmocked API calls" } }; }

@@ -19,12 +19,15 @@
   const LOGISTICS_BRIEFING_PENDING_PREFIX = "dongzhou-pending-logistics-briefing-v1:";
   const ADVISER_QUESTION_KEY = "dongzhou-adviser-question-v1";
   const KNOWLEDGE_QUIZ_PREFIX = "dongzhou-local-knowledge-quiz-v1:";
+  const BATTLE_READINESS_PREFIX = "dongzhou-local-battle-readiness-v1:";
+  const BATTLE_DEPLOYMENT_PREFIX = "dongzhou-local-battle-deployment-v1:";
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
   let session = read(SESSION_KEY, null);
   let sessionPromise = null;
   let saveVersion = 1;
   let persistChain = Promise.resolve();
   let saveBlocked = false;
+  let offlineProfile = null;
   let localServiceProvenancePromise = null;
   const TRANSIENT_STATUSES = new Set([502, 503, 504]);
 
@@ -315,6 +318,174 @@
     return expected;
   }
 
+  async function localKnowledgeWitness(stageId) {
+    const published = (await localKnowledgeCatalog())
+      .filter((entry) => entry && String(entry.stageId || "") === String(stageId)
+        && String(entry.id || entry.aku_id || "").startsWith("dongzhou_stage_"))
+      .sort((left, right) => String(left.id || left.aku_id).localeCompare(String(right.id || right.aku_id)));
+    if (!published.length) throw new Error("battle_readiness_knowledge_missing");
+    return {
+      stageId: String(stageId),
+      knowledgeIds: published.map((entry) => String(entry.id || entry.aku_id)),
+      digest: await sha256(canonicalJson({ stageId: String(stageId), entries: published }))
+    };
+  }
+
+  function normalizeLocalBattlePlan(plan) {
+    const supportIds = Array.isArray(plan?.supportIds) ? plan.supportIds.map(String) : [];
+    const supportEffect = plan?.supportEffect;
+    const effects = ["provisions", "morale", "attack", "defense", "recon"];
+    if (!plan || !["balanced", "assault", "bulwark", "maneuver"].includes(plan.formation)
+      || (plan.vanguardHeroId !== null && !/^[A-Za-z0-9_.:-]{1,128}$/.test(String(plan.vanguardHeroId || "")))
+      || supportIds.join("\0") !== [...new Set(supportIds)].sort().join("\0")
+      || !supportEffect || Object.keys(supportEffect).sort().join(",") !== effects.slice().sort().join(",")
+      || effects.some((key) => typeof supportEffect[key] !== "number" || !Number.isFinite(supportEffect[key]))) {
+      throw new Error("battle_deployment_plan_invalid");
+    }
+    return {
+      formation: plan.formation,
+      vanguardHeroId: plan.vanguardHeroId === null ? null : String(plan.vanguardHeroId),
+      supportIds,
+      supportEffect: Object.fromEntries(effects.map((key) => [key, Number(supportEffect[key])]))
+    };
+  }
+
+  function localActiveHeroIds(plan) {
+    const members = Array.isArray(offlineProfile?.organization?.members) ? offlineProfile.organization.members : [];
+    const ids = members.map((member) => String(member?.id || "").trim()).filter(Boolean);
+    if (!ids.length && plan.vanguardHeroId) ids.push(String(plan.vanguardHeroId));
+    return [...new Set(ids)].sort();
+  }
+
+  async function sealLocalBattleReadiness(stageId, battlePlan) {
+    const plan = normalizeLocalBattlePlan(battlePlan);
+    const knowledge = await localKnowledgeWitness(stageId);
+    const sourceProvenance = await localServiceProvenance();
+    const activeHeroIds = localActiveHeroIds(plan);
+    if (!activeHeroIds.length) throw new Error("battle_readiness_roster_missing");
+    const organizationId = String(offlineProfile?.organization?.remoteId || "dongzhou-local-court");
+    const hierarchyVersion = Math.max(1, Number(offlineProfile?.organization?.remoteRoster?.organization?.hierarchyVersion || 1));
+    const readinessId = root.crypto.randomUUID();
+    const playerId = await localPlayerId();
+    const trace = {
+      mode: "standalone",
+      state: "READY",
+      kind: "BATTLE_READINESS",
+      readinessId,
+      playerDigest: await sha256(canonicalJson({ playerId })),
+      stageId: String(stageId),
+      stageTitle: String((await localKnowledgeCatalog()).find((entry) => String(entry?.stageId || "") === String(stageId))?.name || stageId),
+      knowledge,
+      organization: {
+        organizationId,
+        state: "ACTIVE",
+        hierarchyVersion,
+        activeHeroIds,
+        rosterDigest: await sha256(canonicalJson({ organizationId, hierarchyVersion, activeHeroIds }))
+      },
+      aiNpc: {
+        readyHeroIds: activeHeroIds,
+        actorDigest: await sha256(canonicalJson({ readyHeroIds: activeHeroIds }))
+      },
+      sourceProvenance
+    };
+    const receipt = {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: { module: "dongzhou_battle_readiness", moduleVersion: "1.3.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    };
+    write(BATTLE_READINESS_PREFIX + readinessId, { receipt, battlePlan: plan });
+    return receipt;
+  }
+
+  async function validateLocalBattleReadiness(stageId, receipt, battlePlan) {
+    const plan = normalizeLocalBattlePlan(battlePlan);
+    const record = read(BATTLE_READINESS_PREFIX + String(receipt?.readinessId || ""), null);
+    const trace = receipt && Object.fromEntries(Object.entries(receipt).filter(([key]) => !["digest", "kernel"].includes(key)));
+    const sourceProvenance = await localServiceProvenance();
+    const knowledge = await localKnowledgeWitness(stageId);
+    const activeHeroIds = localActiveHeroIds(plan);
+    if (!record || canonicalJson(record.receipt) !== canonicalJson(receipt)
+      || canonicalJson(record.battlePlan) !== canonicalJson(plan)
+      || receipt?.mode !== "standalone" || receipt?.state !== "READY" || receipt?.kind !== "BATTLE_READINESS"
+      || receipt?.stageId !== String(stageId) || receipt?.playerDigest !== await sha256(canonicalJson({ playerId: await localPlayerId() }))
+      || canonicalJson(receipt?.knowledge) !== canonicalJson(knowledge)
+      || canonicalJson(receipt?.organization?.activeHeroIds) !== canonicalJson(activeHeroIds)
+      || canonicalJson(receipt?.aiNpc?.readyHeroIds) !== canonicalJson(activeHeroIds)
+      || canonicalJson(receipt?.sourceProvenance) !== canonicalJson(sourceProvenance)
+      || receipt?.digest !== await sha256(canonicalJson(trace))
+      || canonicalJson(receipt?.kernel) !== canonicalJson({ module: "dongzhou_battle_readiness", moduleVersion: "1.3.0", nexusKernelVersion: "0.2.0", state: "SEALED" })) {
+      throw new Error("battle_readiness_seal_invalid");
+    }
+    return receipt;
+  }
+
+  function standaloneRouteTrace(route) {
+    return Object.fromEntries(["mode", "fromStageId", "toStageId", "fromMapId", "toMapId", "method", "routeId", "label", "provisionCost", "moraleDelta", "guideName", "knowledgeWitnesses", "sourceProvenance"]
+      .filter((key) => route[key] !== undefined)
+      .map((key) => [key, route[key]]));
+  }
+
+  async function validateStandaloneRoute(route) {
+    if (!route || route.mode !== "standalone" || !route.found || !/^[0-9a-f]{64}$/.test(String(route.localRouteDigest || ""))) {
+      throw new Error("campaign_route_seal_invalid");
+    }
+    const sourceProvenance = await localServiceProvenance();
+    if (canonicalJson(route.sourceProvenance) !== canonicalJson(sourceProvenance)
+      || route.localRouteDigest !== await sha256(canonicalJson(standaloneRouteTrace(route)))) {
+      throw new Error("campaign_route_seal_invalid");
+    }
+    return route.localRouteDigest;
+  }
+
+  async function sealLocalBattleDeployment(stageId, readiness, campaignRoute, battlePlan) {
+    const plan = normalizeLocalBattlePlan(battlePlan);
+    await validateLocalBattleReadiness(stageId, readiness, plan);
+    const routeDigest = campaignRoute ? await validateStandaloneRoute(campaignRoute) : null;
+    const sourceProvenance = await localServiceProvenance();
+    const deploymentId = root.crypto.randomUUID();
+    const trace = {
+      mode: "standalone",
+      state: "AUTHORIZED",
+      kind: "BATTLE_DEPLOYMENT",
+      deploymentId,
+      reportId: `battle:${stageId}:${deploymentId}`,
+      stageId: String(stageId),
+      stageTitle: readiness.stageTitle,
+      playerDigest: await sha256(canonicalJson({ playerId: await localPlayerId(), purpose: "battle-deployment" })),
+      readinessDigest: readiness.digest,
+      routeDigest,
+      battlePlan: plan,
+      sourceProvenance
+    };
+    const receipt = {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: { module: "dongzhou_battle_deployment", moduleVersion: "1.3.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    };
+    write(BATTLE_DEPLOYMENT_PREFIX + deploymentId, { receipt, readinessId: readiness.readinessId, routeDigest, battlePlan: plan });
+    return receipt;
+  }
+
+  async function verifyBattleDeployment(stageId, readiness, deployment, battlePlan, campaignRoute = null) {
+    if (!offline) return true;
+    const plan = normalizeLocalBattlePlan(battlePlan);
+    await validateLocalBattleReadiness(stageId, readiness, plan);
+    const record = read(BATTLE_DEPLOYMENT_PREFIX + String(deployment?.deploymentId || ""), null);
+    const trace = deployment && Object.fromEntries(Object.entries(deployment).filter(([key]) => !["digest", "kernel"].includes(key)));
+    const routeDigest = campaignRoute ? await validateStandaloneRoute(campaignRoute) : null;
+    if (!record || canonicalJson(record.receipt) !== canonicalJson(deployment)
+      || deployment?.mode !== "standalone" || deployment?.state !== "AUTHORIZED" || deployment?.kind !== "BATTLE_DEPLOYMENT"
+      || deployment?.stageId !== String(stageId) || deployment?.readinessDigest !== readiness.digest
+      || deployment?.routeDigest !== routeDigest || canonicalJson(deployment?.battlePlan) !== canonicalJson(plan)
+      || deployment?.digest !== await sha256(canonicalJson(trace))
+      || canonicalJson(deployment?.sourceProvenance) !== canonicalJson(await localServiceProvenance())
+      || canonicalJson(deployment?.kernel) !== canonicalJson({ module: "dongzhou_battle_deployment", moduleVersion: "1.3.0", nexusKernelVersion: "0.2.0", state: "SEALED" })) {
+      throw new Error("battle_deployment_seal_invalid");
+    }
+    return true;
+  }
+
   function installationId() {
     let value = root.localStorage.getItem(INSTALLATION_KEY);
     if (!value) {
@@ -377,7 +548,10 @@
   }
 
   async function initialize(localProfile) {
-    if (offline) return { profile: localProfile, connected: false, offline: true };
+    if (offline) {
+      offlineProfile = localProfile;
+      return { profile: localProfile, connected: false, offline: true };
+    }
     await ensureSession();
     try {
       await recoverPendingCourtMandate();
@@ -414,7 +588,11 @@
   }
 
   function persist(profile) {
-    if (offline || !session?.playerId) return Promise.resolve(null);
+    if (offline) {
+      offlineProfile = profile;
+      return Promise.resolve(null);
+    }
+    if (!session?.playerId) return Promise.resolve(null);
     if (saveBlocked) return Promise.reject(new Error("save_conflict_reload_required"));
     const snapshot = JSON.parse(JSON.stringify(profile));
     persistChain = persistChain.catch(() => null).then(async () => {
@@ -496,15 +674,15 @@
     if (offline) return Promise.reject(new Error("battle_debrief_requires_online"));
     return requestWithTransientRetry(`/battle-reports/${encodeURIComponent(reportId)}/debrief`);
   }
-  function battleReadiness(stageId) {
-    if (offline) return Promise.resolve({ mode: "offline", state: "READY", stageId: String(stageId) });
+  function battleReadiness(stageId, battlePlan = null) {
+    if (offline) return sealLocalBattleReadiness(stageId, battlePlan);
     return requestWithTransientRetry("/battle-readiness", {
       method: "POST",
       body: JSON.stringify({ stage_id: String(stageId) })
     });
   }
-  function battleDeployment(stageId, battleReadiness, campaignRoute = null) {
-    if (offline) return Promise.resolve(null);
+  function battleDeployment(stageId, battleReadiness, campaignRoute = null, battlePlan = null) {
+    if (offline) return sealLocalBattleDeployment(stageId, battleReadiness, campaignRoute, battlePlan);
     return requestWithTransientRetry("/battle-deployment", {
       method: "POST",
       body: JSON.stringify({
@@ -514,25 +692,46 @@
       })
     });
   }
-  function campaignRoute(input) {
+  async function campaignRoute(input) {
     if (!offline) {
       return requestWithTransientRetry("/knowledge/routes", {
         method: "POST",
         body: JSON.stringify(input)
       });
     }
-    const fromMapId = 900000 + Number(input.from_stage_index);
-    const toMapId = 900000 + Number(input.to_stage_index);
-    return Promise.resolve({
-      mode: "offline",
+    const fromStageId = String(input.from_stage_id || "");
+    const toStageId = String(input.to_stage_id || "");
+    const fromIndex = Number(input.from_stage_index);
+    const toIndex = Number(input.to_stage_index);
+    if (!fromStageId || !toStageId || !Number.isSafeInteger(fromIndex) || toIndex !== fromIndex + 1) {
+      throw new Error("campaign_route_invalid");
+    }
+    const fromMapId = 900000 + fromIndex;
+    const toMapId = 900000 + toIndex;
+    const options = [
+      { method: "campaign_progression", routeId: `standalone_campaign_progression_${fromMapId}_${toMapId}`, label: "奉诏直进", provisionCost: 2, moraleDelta: 0 },
+      { method: "fixed_point", routeId: `standalone_fixed_point_${fromMapId}_${toMapId}`, label: "官道驿行", provisionCost: 3, moraleDelta: 6 },
+      { method: "npc_dialog", routeId: `standalone_npc_dialog_${fromMapId}_${toMapId}`, label: "向导引路", provisionCost: 1, moraleDelta: -4, guideName: "杜伯" }
+    ];
+    const selected = options.find((option) => option.method === String(input.route_method || "campaign_progression"));
+    if (!selected) throw new Error("campaign_route_method_invalid");
+    const route = {
+      mode: "standalone",
       found: true,
-      fromStageId: input.from_stage_id,
-      toStageId: input.to_stage_id,
+      fromStageId,
+      toStageId,
       fromMapId,
       toMapId,
-      routeId: `offline_campaign_progression_${fromMapId}_${toMapId}`,
-      provisionCost: 2
-    });
+      ...selected,
+      options,
+      knowledgeWitnesses: {
+        from: await localKnowledgeWitness(fromStageId),
+        to: await localKnowledgeWitness(toStageId)
+      },
+      sourceProvenance: await localServiceProvenance()
+    };
+    route.localRouteDigest = await sha256(canonicalJson(standaloneRouteTrace(route)));
+    return route;
   }
   function syncNpcs(npcs) { return request("/npcs/sync", { method: "POST", body: JSON.stringify({ npcs: npcs.map((npc) => ({ hero_id: npc.heroId, name: npc.name })) }) }); }
   function setNpcInteractionPreference(enabled) { return request("/npcs/interaction-preference", { method: "POST", body: JSON.stringify({ enabled: Boolean(enabled) }) }); }
@@ -1285,5 +1484,5 @@
     return result;
   }
 
-  return { initialize, persist, status, searchKnowledge, knowledgeCodex, battleDebrief, battleReadiness, battleDeployment, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, verifyKnowledgeQuizSeal, pendingAdviserQuestion, askAdviser, adviserQuestion, feedbackAdviser, decideAdviserGuide, adviserGuide, cancelAdviserGuide, syncNpcs, setNpcInteractionPreference, commendNpc, commendMeritNpc, recallNpc, npcState, npcCorrespondence, organizationPublicNotices, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationMemberContributions, organizationContributionDossier, organizationPlayerTasks, organizationPlayerContributions, organizationPlayerContributionDossier, organizationInventory, organizationScheduledDuties, setOrganizationScheduledDutyEnabled, organizationLogisticsBriefing, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, knowledgeCodex, battleDebrief, battleReadiness, battleDeployment, verifyBattleDeployment, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, verifyKnowledgeQuizSeal, pendingAdviserQuestion, askAdviser, adviserQuestion, feedbackAdviser, decideAdviserGuide, adviserGuide, cancelAdviserGuide, syncNpcs, setNpcInteractionPreference, commendNpc, commendMeritNpc, recallNpc, npcState, npcCorrespondence, organizationPublicNotices, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationMemberContributions, organizationContributionDossier, organizationPlayerTasks, organizationPlayerContributions, organizationPlayerContributionDossier, organizationInventory, organizationScheduledDuties, setOrganizationScheduledDutyEnabled, organizationLogisticsBriefing, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
 });

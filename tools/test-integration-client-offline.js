@@ -51,6 +51,16 @@ global.fetch = async (url) => {
 const client = require("../web-game/integration-client.js");
 
 (async () => {
+  const localProfile = {
+    formation: "balanced",
+    stageVanguards: { "02": "DuBo" },
+    organization: {
+      remoteId: "dongzhou-local-court",
+      members: [{ id: "DuBo" }, { id: "ZuoRu" }],
+      remoteRoster: { organization: { hierarchyVersion: 1 } },
+    },
+  };
+  await client.initialize(localProfile);
   const search = await client.searchKnowledge("court", 6, "01");
   assert.strictEqual(search.results.length, 1);
   const codex = await client.knowledgeCodex();
@@ -59,6 +69,47 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(codex.results[0].content, undefined);
   assert.deepStrictEqual(codex.results[0].people, ["Du Bo"]);
   assert.ok(values.has("dongzhou-knowledge-codex-v1"));
+
+  const battlePlan = {
+    formation: "balanced",
+    vanguardHeroId: "DuBo",
+    supportIds: ["support-local-1"],
+    supportEffect: { provisions: 8, morale: 3, attack: 0.1, defense: 0.05, recon: 1 },
+  };
+  await client.persist(localProfile);
+  const route = await client.campaignRoute({
+    from_stage_id: "01", from_stage_index: 1, to_stage_id: "02", to_stage_index: 2, route_method: "npc_dialog",
+  });
+  assert.strictEqual(route.mode, "standalone");
+  assert.strictEqual(route.options.length, 3);
+  assert.strictEqual(route.knowledgeWitnesses.from.knowledgeIds[0], "dongzhou_stage_001");
+  assert.strictEqual(route.knowledgeWitnesses.to.knowledgeIds[0], "dongzhou_stage_002");
+  assert.match(route.localRouteDigest, /^[0-9a-f]{64}$/);
+  const readiness = await client.battleReadiness("02", battlePlan);
+  assert.strictEqual(readiness.mode, "standalone");
+  assert.strictEqual(readiness.kernel.module, "dongzhou_battle_readiness");
+  assert.strictEqual(readiness.kernel.moduleVersion, "1.3.0");
+  assert.deepStrictEqual(readiness.organization.activeHeroIds, ["DuBo", "ZuoRu"]);
+  assert.deepStrictEqual(readiness.aiNpc.readyHeroIds, readiness.organization.activeHeroIds);
+  const deployment = await client.battleDeployment("02", readiness, route, battlePlan);
+  assert.strictEqual(deployment.state, "AUTHORIZED");
+  assert.strictEqual(deployment.kernel.module, "dongzhou_battle_deployment");
+  assert.strictEqual(deployment.kernel.moduleVersion, "1.3.0");
+  assert.strictEqual(deployment.routeDigest, route.localRouteDigest);
+  assert.deepStrictEqual(deployment.battlePlan, battlePlan);
+  assert.strictEqual(await client.verifyBattleDeployment("02", readiness, deployment, battlePlan, route), true);
+  await assert.rejects(
+    client.verifyBattleDeployment("02", readiness, { ...deployment, digest: "0".repeat(64) }, battlePlan, route),
+    /battle_deployment_seal_invalid/
+  );
+  await assert.rejects(
+    client.battleDeployment("02", { ...readiness, knowledge: { ...readiness.knowledge, digest: "0".repeat(64) } }, route, battlePlan),
+    /battle_readiness_seal_invalid/
+  );
+  await assert.rejects(
+    client.battleDeployment("02", readiness, { ...route, localRouteDigest: "0".repeat(64) }, battlePlan),
+    /campaign_route_seal_invalid/
+  );
 
   const questionId = "00000000-0000-4000-8000-000000000501";
   const started = await client.startKnowledgeQuiz("01", questionId);
@@ -166,7 +217,7 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(rejected.guide.kernel.state, "SEALED");
   assert.strictEqual(fetchedUrls.some((url) => url.includes("/api/")), false);
 
-  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true }));
+  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true, localBattleGate: true }));
 })().catch((error) => {
   console.error(error.stack || error.message);
   process.exitCode = 1;
