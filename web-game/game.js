@@ -1264,10 +1264,14 @@
 
   function renderOfficeInventory() {
     const accounts = Array.isArray(officeInventoryView?.accounts) ? officeInventoryView.accounts : [];
+    const briefing = currentOfficeLogisticsBriefing();
+    const briefingSourceSeal = /^[0-9a-f]{64}$/i.test(briefing?.sourceProvenance?.digest || "")
+      ? briefing.sourceProvenance.digest
+      : "";
     $("#officeInventoryRevision").textContent = officeInventoryView?.error
       ? "实账暂不可达"
       : officeInventoryView
-        ? `账本第 ${Number(officeInventoryView.revision || 0)} 版`
+        ? `账本第 ${Number(officeInventoryView.revision || 0)} 版${briefingSourceSeal ? ` · 仓情封印 ${briefingSourceSeal.slice(0, 10)}` : ""}`
         : "等待朝议实账";
     $("#officeInventoryAccounts").innerHTML = officeInventoryView?.loading
       ? "<li>正在清点…</li>"
@@ -1308,7 +1312,6 @@
         : taskCredit < 20 && officeInventoryView
           ? "差事额度不足 20"
           : "可补入 12 军粮";
-    const briefing = currentOfficeLogisticsBriefing();
     const briefingButton = $("#officeLogisticsBriefing");
     briefingButton.disabled = integration.isOffline() || officeLogisticsBriefingBusy || !$("#officeMemberSelect").value;
     briefingButton.textContent = officeLogisticsBriefingBusy

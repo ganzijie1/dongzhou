@@ -12,7 +12,10 @@ try {
 }
 
 const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
-verifyFourServiceRuntime(url);
+const runtimeReport = verifyFourServiceRuntime(url);
+const expectedSourceSeal = runtimeReport.checks?.liveRuntime?.sourceSealDigest;
+const expectedSourceServices = ["aiNpc", "knowledge", "nexusKernel", "orgFlow"];
+assert.match(expectedSourceSeal || "", /^[0-9a-f]{64}$/);
 assert.notEqual(new URL(url).searchParams.get("offline"), "1");
 const executablePath = [
   process.env.DONGZHOU_CHROMIUM_EXECUTABLE,
@@ -49,11 +52,17 @@ const executablePath = [
     assert.equal(briefingResult.state, "COMPLETED");
     assert.equal(receipt.heroId, selectedHero);
     assert.equal(receipt.kernel.module, "dongzhou_logistics_briefing");
+    assert.equal(receipt.kernel.moduleVersion, "1.1.0");
     assert.equal(receipt.kernel.state, "SEALED");
+    assert.equal(receipt.sourceProvenance.digest, expectedSourceSeal);
+    assert.deepEqual(Object.keys(receipt.sourceProvenance.services).sort(), expectedSourceServices);
     assert.deepEqual(receipt.ainpcDelivery, { market: "DELIVERED", warehouse: "DELIVERED" });
     assert.equal(receipt.exchange.priceUnits, 20);
     assert.equal(receipt.exchange.provisionsPerLot, 12);
     await page.waitForFunction(() => /仓情 · [0-9a-f]{8}/.test(document.querySelector("#officeLogisticsBriefing")?.textContent || ""));
+    await page.waitForFunction((seal) => (
+      document.querySelector("#officeInventoryRevision")?.textContent?.includes(`仓情封印 ${seal.slice(0, 10)}`)
+    ), expectedSourceSeal);
 
     await page.click("#officeStageKnowledgeButton");
     await page.waitForSelector("#officeKnowledgeResults .office-source-choice:not([disabled])", { timeout: 60000 });
@@ -78,6 +87,7 @@ const executablePath = [
       assert.equal(thoughtResult.state, "COMPLETED");
       assert.equal(thoughtResult.thoughtReceipt.logisticsBriefing.requestId, receipt.requestId);
       assert.equal(thoughtResult.thoughtReceipt.logisticsBriefing.digest, receipt.digest);
+      assert.deepEqual(thoughtResult.thoughtReceipt.logisticsBriefing.sourceProvenance, receipt.sourceProvenance);
     } else {
       assert.equal(thoughtResponse.status(), 503, JSON.stringify(thoughtBody));
       assert.equal(thoughtBody.error?.code, "npc_thought_context_unavailable");
@@ -87,6 +97,7 @@ const executablePath = [
       viewportWidth: document.documentElement.clientWidth,
       documentWidth: document.documentElement.scrollWidth,
       buttonText: document.querySelector("#officeLogisticsBriefing")?.textContent,
+      inventoryRevisionText: document.querySelector("#officeInventoryRevision")?.textContent,
     }));
     assert.ok(layout.documentWidth <= layout.viewportWidth, JSON.stringify(layout));
     assert.deepEqual(pageErrors, []);
@@ -101,6 +112,7 @@ const executablePath = [
       inventoryRevision: receipt.inventoryRevision,
       availableLots: receipt.exchange.availableLots,
       briefingDigest: receipt.digest,
+      sourceSealDigest: receipt.sourceProvenance.digest,
       thoughtBound,
       thoughtDigest: thoughtBound ? thoughtResult.thoughtReceipt.digest : null,
       mobileNoOverflow: true,
