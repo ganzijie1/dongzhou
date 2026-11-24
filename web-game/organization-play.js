@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 27;
+  const SCHEMA_VERSION = 28;
   const TASK_TYPES = {
     supply: { name: "转运军粮", office: "司徒", duration: 1, cost: 8, base: 72, reward: { provisions: 24 } },
     drill: { name: "整训军阵", office: "司马", duration: 1, cost: 6, base: 68, reward: { attack: 0.08 } },
@@ -94,6 +94,7 @@
       localScheduledDuty: { state: "DISABLED", version: 1 },
       localPlayerCareer: { state: "OUT", version: 1, contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 },
       localPlayerTasks: [],
+      localPlayerContributionClearances: [],
       backend: { mode: "local", nexusKernel: false, nexusRequiredModules: null, nexusOperationalModules: null, nexusUnavailableModules: [], nexusSourceBoundModules: null, nexusSourceBoundModuleNames: [], orgFlow: false, aiNpc: false, knowledge: false, serviceSources: {}, serviceAttestations: {}, serviceFailures: {}, serviceSourceSealDigest: "", checkedAt: null },
       members: [],
       remoteRoster: { organization: null, members: [], playerMembership: null, openPositions: [], observedAt: null },
@@ -188,6 +189,9 @@
       })(),
       localPlayerTasks: Array.isArray(source.localPlayerTasks)
         ? source.localPlayerTasks.filter((task) => task && typeof task === "object").slice(-30)
+        : [],
+      localPlayerContributionClearances: Array.isArray(source.localPlayerContributionClearances)
+        ? source.localPlayerContributionClearances.filter((entry) => entry && typeof entry === "object").slice(-20)
         : [],
       backend: { ...base.backend, ...(source.backend || {}) },
       members: Array.isArray(source.members) ? source.members.slice(0, 12).map(normalizeMember) : [],

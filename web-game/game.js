@@ -2529,7 +2529,7 @@
     try {
       if (integration.isOffline()) {
         const response = await integration.setOrganizationMembership(action === "join" ? "JOIN" : "LEAVE");
-        const next = { ...profile.organization, localPlayerCareer: response.career };
+        const next = response.organization || { ...profile.organization, localPlayerCareer: response.career };
         profile.organization = organization.recordRemoteRoster(next, response.roster, displayName);
         writeJson(PROFILE_KEY, profile);
         await integration.persist(profile);

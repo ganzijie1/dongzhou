@@ -167,12 +167,15 @@ async function openReady(page) {
     await desktop.click("#officeMembershipLeaveConfirm");
     await desktop.waitForSelector("#officeMembershipState >> text=尚未入仕", { timeout: 10000 });
     await desktop.waitForSelector("#officeMembershipFeedback >> text=本地辞仕已完成", { timeout: 10000 });
-    const releasedMembership = await desktop.evaluate(() => {
+    const releasedMembership = await desktop.evaluate(async () => {
       const organization = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization;
-      return { career: organization.localPlayerCareer, roster: organization.remoteRoster };
+      return { career: organization.localPlayerCareer, roster: organization.remoteRoster, contributions: await window.DongzhouIntegration.organizationPlayerContributions() };
     });
     if (releasedMembership.career.state !== "OUT" || releasedMembership.career.version !== 3
       || releasedMembership.roster.playerMembership || releasedMembership.roster.openPositions?.[0]?.office !== "军府属官·第12席"
+      || releasedMembership.career.contributionBalance !== 0 || releasedMembership.career.lifetimeEarned !== 30 || releasedMembership.career.lifetimeSpent !== 30
+      || releasedMembership.contributions.entries.at(-1)?.eventCode !== "MEMBER_DEPARTURE_CONTRIBUTION_CLEARED"
+      || releasedMembership.contributions.entries.at(-1)?.amount !== -30 || releasedMembership.contributions.account.accountBalance !== 0
       || !(await desktop.locator("#officeCareer").isHidden())) {
       throw new Error(`Offline membership was not released: ${JSON.stringify(releasedMembership)}`);
     }

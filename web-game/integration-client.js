@@ -717,7 +717,13 @@
     const current = organization.localPlayerCareer || { state: "OUT", version: 1, contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 };
     const targetState = normalizedAction === "JOIN" ? "ACTIVE" : "OUT";
     const replayed = current.state === targetState;
-    const career = { ...current, state: targetState, version: replayed ? current.version : current.version + 1 };
+    const clearedAmount = !replayed && normalizedAction === "LEAVE" ? current.contributionBalance : 0;
+    const career = {
+      ...current,
+      state: targetState,
+      version: replayed ? current.version : current.version + 1,
+      ...(clearedAmount > 0 ? { contributionBalance: 0, lifetimeSpent: current.lifetimeSpent + clearedAmount } : {})
+    };
     const playerId = await localPlayerId();
     const key = `${LOCAL_MEMBERSHIP_PREFIX}${playerId}:${career.version}`;
     const existing = read(key, null);
@@ -731,15 +737,34 @@
       offlineProfile = { ...(currentProfile || {}), organization: { ...organization, localPlayerCareer: career } };
       const roster = localOrganizationRoster();
       offlineProfile = previousProfile;
-      return { mode: "standalone", replayed: true, career, roster, receipt };
+      return { mode: "standalone", replayed: true, organization, career, roster, receipt };
     }
     if (existing && canonicalJson(existing) !== canonicalJson(receipt)) throw new Error("organization_membership_seal_invalid");
     write(key, receipt);
+    const clearances = Array.isArray(organization.localPlayerContributionClearances)
+      ? organization.localPlayerContributionClearances.slice()
+      : [];
+    if (clearedAmount > 0) {
+      const clearanceTrace = {
+        clearanceId: uuidFromDigest(await sha256(`local-player-clearance:${playerId}:${career.version}`)),
+        membershipVersion: career.version,
+        taskCount: Array.isArray(organization.localPlayerTasks) ? organization.localPlayerTasks.length : 0,
+        amount: clearedAmount,
+        membershipDigest: receipt.digest,
+        sourceProvenance
+      };
+      clearances.push({
+        ...clearanceTrace,
+        digest: await sha256(canonicalJson(clearanceTrace)),
+        kernel: { module: "dongzhou_organization_membership_clearance", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+      });
+    }
+    const nextOrganization = { ...organization, localPlayerCareer: career, localPlayerContributionClearances: clearances };
     const previousProfile = offlineProfile;
-    offlineProfile = { ...(currentProfile || {}), organization: { ...organization, localPlayerCareer: career } };
+    offlineProfile = { ...(currentProfile || {}), organization: nextOrganization };
     const roster = localOrganizationRoster();
     offlineProfile = previousProfile;
-    return { mode: "standalone", replayed, career, roster, receipt };
+    return { mode: "standalone", replayed, organization: nextOrganization, career, roster, receipt };
   }
 
   function localCareerTimestamp(taskIndex, version) {
@@ -958,23 +983,53 @@
   async function localPlayerContributionEntries(organization) {
     const tasks = await verifiedLocalPlayerTasks(organization);
     const sourceProvenance = await localServiceProvenance();
-    const completed = tasks.filter((task) => ["SUCCEEDED", "PARTIALLY_COMPLETED"].includes(task.state) && !task.localTraceMigratedFromV1 && String(task.result || "").trim());
+    const clearances = Array.isArray(organization.localPlayerContributionClearances) ? organization.localPlayerContributionClearances : [];
+    const playerId = await localPlayerId();
+    for (const clearance of clearances) {
+      const trace = {
+        clearanceId: clearance.clearanceId,
+        membershipVersion: clearance.membershipVersion,
+        taskCount: clearance.taskCount,
+        amount: clearance.amount,
+        membershipDigest: clearance.membershipDigest,
+        sourceProvenance
+      };
+      const expected = {
+        ...trace,
+        digest: await sha256(canonicalJson(trace)),
+        kernel: { module: "dongzhou_organization_membership_clearance", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+      };
+      const membership = read(`${LOCAL_MEMBERSHIP_PREFIX}${playerId}:${clearance.membershipVersion}`, null);
+      if (canonicalJson(clearance) !== canonicalJson(expected) || membership?.action !== "LEAVE" || membership?.digest !== clearance.membershipDigest) {
+        throw new Error("organization_player_clearance_seal_invalid");
+      }
+    }
     const entries = [];
     let balance = 0;
-    for (let index = 0; index < completed.length; index += 1) {
-      const task = completed[index];
+    let lifetimeEarned = 0;
+    let lifetimeSpent = 0;
+    const pushEntry = async (trace) => entries.push({
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: { module: "dongzhou_organization_contribution_ledger", moduleVersion: "1.1.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    });
+    for (let boundary = 0; boundary <= tasks.length; boundary += 1) {
+      if (boundary > 0) {
+        const task = tasks[boundary - 1];
+        if (["SUCCEEDED", "PARTIALLY_COMPLETED"].includes(task.state) && !task.localTraceMigratedFromV1 && String(task.result || "").trim()) {
       const amount = task.state === "SUCCEEDED" ? 20 : 10;
       balance += amount;
+      lifetimeEarned += amount;
       const trace = {
         organizationId: "dongzhou-local-court",
         memberId: "dongzhou-local-player",
         heroId: "PLAYER",
         entryId: uuidFromDigest(await sha256(`local-player-contribution:${task.taskId}`)),
-        entryVersion: index + 2,
+        entryVersion: entries.length + 2,
         amount,
         balanceAfter: balance,
-        lifetimeEarnedAfter: balance,
-        lifetimeSpentAfter: 0,
+        lifetimeEarnedAfter: lifetimeEarned,
+        lifetimeSpentAfter: lifetimeSpent,
         eventCode: task.state === "SUCCEEDED" ? "TASK_COMPLETED" : "TASK_PARTIALLY_COMPLETED",
         sourceRef: `organization-task:${task.taskId}`,
         violationId: null,
@@ -983,11 +1038,22 @@
         taskTraceDigest: task.organizationTrace.digest,
         sourceProvenance
       };
-      entries.push({
-        ...trace,
-        digest: await sha256(canonicalJson(trace)),
-        kernel: { module: "dongzhou_organization_contribution_ledger", moduleVersion: "1.1.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
-      });
+          await pushEntry(trace);
+        }
+      }
+      for (const clearance of clearances.filter((item) => item.taskCount === boundary).sort((left, right) => left.membershipVersion - right.membershipVersion)) {
+        if (clearance.amount !== balance || clearance.amount <= 0) throw new Error("organization_player_clearance_balance_invalid");
+        balance = 0;
+        lifetimeSpent += clearance.amount;
+        await pushEntry({
+          organizationId: "dongzhou-local-court", memberId: "dongzhou-local-player", heroId: "PLAYER",
+          entryId: clearance.clearanceId, entryVersion: entries.length + 2, amount: -clearance.amount,
+          balanceAfter: balance, lifetimeEarnedAfter: lifetimeEarned, lifetimeSpentAfter: lifetimeSpent,
+          eventCode: "MEMBER_DEPARTURE_CONTRIBUTION_CLEARED", sourceRef: `v12-membership:${clearance.membershipVersion}`,
+          violationId: null, ruleSetId: "dongzhou.local.player-career", ruleSetVersion: 1,
+          membershipDigest: clearance.membershipDigest, sourceProvenance
+        });
+      }
     }
     return entries;
   }
@@ -996,12 +1062,14 @@
     const currentProfile = offlineProfile || read("dongzhou-h5-profile-v2", null);
     const organization = currentProfile?.organization || {};
     const entries = await localPlayerContributionEntries(organization);
-    const lifetimeEarned = entries.reduce((sum, entry) => sum + entry.amount, 0);
+    const finalEntry = entries.at(-1);
+    const lifetimeEarned = finalEntry?.lifetimeEarnedAfter || 0;
+    const lifetimeSpent = finalEntry?.lifetimeSpentAfter || 0;
     return {
       mode: "standalone",
       heroId: "PLAYER",
       memberId: "dongzhou-local-player",
-      account: { accountVersion: entries.length + 1, accountBalance: lifetimeEarned, lifetimeEarned, lifetimeSpent: 0 },
+      account: { accountVersion: entries.length + 1, accountBalance: lifetimeEarned - lifetimeSpent, lifetimeEarned, lifetimeSpent },
       entries,
       nextBeforeVersion: null
     };
