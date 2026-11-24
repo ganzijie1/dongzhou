@@ -111,36 +111,33 @@ async function openReady(page) {
     await desktop.evaluate(() => {
       const profile = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2"));
       const heroId = profile.organization.recollections[0].heroId;
-      const settlement = {
-        settlementId: "20000000-0000-4000-8000-000000000001",
-        taskId: "20000000-0000-4000-8000-000000000002",
-        memberId: heroId,
-        memberDelta: 18,
-        organizationDelta: 36,
-        result: "SUCCESS"
-      };
-      const closureReceipt = { state: "SEALED", digest: "c".repeat(64), settlement };
       profile.organization.tasks.push({
         id: "offline-settled-task",
-        remoteResult: settlement.taskId,
         assigneeId: heroId,
         assigneeName: profile.organization.members.find((member) => member.id === heroId).name,
         name: "核验本地粮册",
+        type: "supply",
+        cost: 8,
         status: "success",
         createdMonth: 1,
-        resolvedMonth: 1,
-        settlement,
-        closureReceipt,
-        sourceProvenance: profile.organization.recollections[0].sourceProvenance
+        resolvedMonth: 1
       });
-      profile.organization.settlements.push({ ...settlement, closureReceipt });
       localStorage.setItem("dongzhou-h5-profile-v2", JSON.stringify(profile));
     });
     await desktop.reload({ waitUntil: "domcontentloaded" });
     await desktop.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
     await desktop.click("#campaignOfficeButton");
     await desktop.waitForSelector("#officeContributions >> text=差事告成", { timeout: 10000 });
-    await desktop.waitForSelector("#officeContributions >> text=+18", { timeout: 10000 });
+    await desktop.waitForSelector("#officeContributions >> text=+8", { timeout: 10000 });
+    const localTaskSettlement = await desktop.evaluate(() => {
+      const organization = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization;
+      const task = organization.tasks.find((entry) => entry.id === "offline-settled-task");
+      return { task, contribution: organization.contribution, merit: organization.members.find((member) => member.id === task.assigneeId).merit };
+    });
+    if (localTaskSettlement.task.closureReceipt?.kernel?.module !== "dongzhou_local_task_closure"
+      || localTaskSettlement.contribution !== 16 || localTaskSettlement.merit !== 8) {
+      throw new Error(`Offline task was not settled by the local closure path: ${JSON.stringify(localTaskSettlement)}`);
+    }
     await desktop.click('#officeContributions [data-contribution-dossier-id]');
     await desktop.waitForSelector("#officeContributions >> text=功绩卷宗已封印", { timeout: 10000 });
     await desktop.click('#officeContributions [data-contribution-verify-id]');

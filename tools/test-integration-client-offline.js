@@ -191,6 +191,19 @@ const client = require("../web-game/integration-client.js");
   assert.match(localAssignment.assignment.digest, /^[0-9a-f]{64}$/);
   await assert.rejects(client.npcAssignment("DuBo", "forged", "01"), /npc_assignment_task_invalid/);
   await assert.rejects(client.npcState("Unknown"), /npc_not_in_local_organization/);
+  const localSettlementResult = await client.settleLocalOrganizationTasks({
+    ...localProfile.organization,
+    contribution: 0,
+    settlements: [],
+    settlementIds: [],
+    tasks: [{ id: "dz-1-1-DuBo-supply", assigneeId: "DuBo", name: "Local granary task", type: "supply", cost: 8, status: "success", createdMonth: 1, resolvedMonth: 2 }],
+  });
+  assert.strictEqual(localSettlementResult.settled, 1);
+  assert.strictEqual(localSettlementResult.organization.contribution, 16);
+  assert.strictEqual(localSettlementResult.organization.members.find((member) => member.id === "DuBo").merit, 8);
+  assert.strictEqual(localSettlementResult.organization.tasks[0].closureReceipt.kernel.module, "dongzhou_local_task_closure");
+  assert.match(localSettlementResult.organization.tasks[0].remoteResult, /^[0-9a-f-]{36}$/);
+  assert.strictEqual((await client.settleLocalOrganizationTasks(localSettlementResult.organization)).settled, 0);
   const localSettlement = {
     settlementId: "10000000-0000-4000-8000-000000000001",
     taskId: "10000000-0000-4000-8000-000000000002",

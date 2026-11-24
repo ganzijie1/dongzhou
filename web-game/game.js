@@ -2885,6 +2885,15 @@
       : profile.organization.remoteRoster?.members?.some((member) => member.heroId === heroId);
     if (!heroId || !isAuthoritativeMember) { officeContributions = []; officeSelectedContribution = null; renderOfficeContributions(); return; }
     try {
+      if (integration.isOffline()) {
+        const settlement = await integration.settleLocalOrganizationTasks(profile.organization);
+        if (settlement.settled) {
+          profile.organization = organization.normalizeState(settlement.organization);
+          writeJson(PROFILE_KEY, profile);
+          await integration.persist(profile);
+          renderOrganizationPanel();
+        }
+      }
       const response = await integration.organizationMemberContributions(heroId);
       if (response.heroId !== heroId || !Array.isArray(response.entries)) throw new Error("功绩簿身份不匹配");
       officeContributions = response.entries;
@@ -3810,7 +3819,10 @@
       }
       return;
     }
-    saveOrganization(organization.advanceMonth(profile.organization));
+    const advanced = organization.advanceMonth(profile.organization);
+    const settlement = await integration.settleLocalOrganizationTasks(advanced);
+    saveOrganization(settlement.organization);
+    await integration.persist(profile);
     const latest = profile.organization.history.at(-1);
     showNotice(latest?.text || "月令已进");
     } finally {

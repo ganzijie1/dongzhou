@@ -614,6 +614,64 @@
     return { state: "COMPLETED", replayed: false, commendation };
   }
 
+  async function settleLocalOrganizationTasks(rawOrganization) {
+    if (!offline) throw new Error("local_task_settlement_offline_only");
+    const organization = JSON.parse(JSON.stringify(rawOrganization || {}));
+    organization.tasks = Array.isArray(organization.tasks) ? organization.tasks : [];
+    organization.members = Array.isArray(organization.members) ? organization.members : [];
+    organization.settlements = Array.isArray(organization.settlements) ? organization.settlements : [];
+    organization.settlementIds = Array.isArray(organization.settlementIds) ? organization.settlementIds : [];
+    const sourceProvenance = await localServiceProvenance();
+    let settled = 0;
+    for (const task of organization.tasks) {
+      const terminal = ["success", "partial", "failed", "censured"].includes(task?.status);
+      const localTask = !task?.remoteResult || task?.scheduledDuty?.mode === "IN_PROCESS";
+      if (!terminal || !localTask || task.settlement || task.closureReceipt) continue;
+      const member = organization.members.find((entry) => String(entry?.id || "") === String(task.assigneeId || ""));
+      if (!member) continue;
+      const result = task.status === "success" ? "SUCCESS" : task.status === "partial" ? "PARTIAL" : "FAILURE";
+      const cost = Math.max(1, Math.trunc(Number(task.cost || 1)));
+      const organizationDelta = result === "SUCCESS" ? cost * 2 : result === "PARTIAL" ? cost : 0;
+      const memberDelta = result === "SUCCESS" ? cost : result === "PARTIAL" ? Math.max(1, Math.floor(cost / 2)) : -Math.max(1, Math.ceil(cost / 2));
+      const taskId = task.remoteResult || uuidFromDigest(await sha256(`local-task:${task.id}:${task.assigneeId}:${task.createdMonth || 1}`));
+      const settlementId = uuidFromDigest(await sha256(`local-settlement:${taskId}:${task.status}:${task.resolvedMonth || organization.month || 1}`));
+      const settlement = {
+        settlementId,
+        taskId,
+        memberId: String(task.assigneeId),
+        memberDelta,
+        organizationDelta,
+        result
+      };
+      const closureTrace = {
+        receiptId: `dongzhou:local-closure:${settlementId}`,
+        settlement,
+        sourceProvenance
+      };
+      const closureReceipt = {
+        state: "SEALED",
+        ...closureTrace,
+        digest: await sha256(canonicalJson(closureTrace)),
+        kernel: { module: "dongzhou_local_task_closure", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+      };
+      task.remoteResult = taskId;
+      task.local = true;
+      task.sourceProvenance = sourceProvenance;
+      task.settlement = settlement;
+      task.closureReceipt = closureReceipt;
+      if (!organization.settlementIds.includes(settlementId)) {
+        organization.settlements.push({ ...settlement, closureReceipt });
+        organization.settlementIds.push(settlementId);
+        organization.contribution = Math.max(-999999, Math.min(999999, Math.trunc(Number(organization.contribution || 0)) + organizationDelta));
+        member.merit = Math.max(-999999, Math.min(999999, Math.trunc(Number(member.merit || 0)) + memberDelta));
+      }
+      settled += 1;
+    }
+    organization.settlements = organization.settlements.slice(-100);
+    organization.settlementIds = [...new Set(organization.settlementIds)].slice(-100);
+    return { organization, settled };
+  }
+
   async function localNpcDecision(heroId, question, options, stageId, memory, publicNotice, contribution, contributionDossier) {
     requireLocalOfficer(heroId);
     if (!String(question || "").trim() || !Array.isArray(options) || options.length < 2 || options.some((item) => !String(item || "").trim())) {
@@ -2509,5 +2567,5 @@
     return result;
   }
 
-  return { initialize, persist, status, searchKnowledge, knowledgeCodex, battleDebrief, battleReadiness, battleDeployment, verifyBattleDeployment, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, verifyKnowledgeQuizSeal, pendingAdviserQuestion, askAdviser, adviserQuestion, feedbackAdviser, decideAdviserGuide, adviserGuide, cancelAdviserGuide, syncNpcs, setNpcInteractionPreference, commendNpc, commendMeritNpc, recallNpc, npcState, npcCorrespondence, organizationPublicNotices, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationMemberContributions, organizationContributionDossier, organizationPlayerTasks, organizationPlayerContributions, organizationPlayerContributionDossier, organizationInventory, organizationScheduledDuties, setOrganizationScheduledDutyEnabled, organizationLogisticsBriefing, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, knowledgeCodex, battleDebrief, battleReadiness, battleDeployment, verifyBattleDeployment, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, verifyKnowledgeQuizSeal, pendingAdviserQuestion, askAdviser, adviserQuestion, feedbackAdviser, decideAdviserGuide, adviserGuide, cancelAdviserGuide, syncNpcs, setNpcInteractionPreference, commendNpc, commendMeritNpc, recallNpc, npcState, npcCorrespondence, organizationPublicNotices, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationMemberContributions, organizationContributionDossier, organizationPlayerTasks, organizationPlayerContributions, organizationPlayerContributionDossier, organizationInventory, organizationScheduledDuties, setOrganizationScheduledDutyEnabled, organizationLogisticsBriefing, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, settleLocalOrganizationTasks, reviewOrganizationTask, isOffline: () => offline };
 });
