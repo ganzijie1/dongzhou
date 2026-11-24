@@ -179,6 +179,23 @@ const sourcedSnapshot = { task_id: sealedTask.task.remoteResult, state: "IN_PROG
 const sourcedObserved = play.reconcileRemoteTasks(sealedTask.state, [sourcedSnapshot], { advanceMonth: false });
 assert.strictEqual(sourcedObserved.tasks.find((task) => task.remoteResult === sourcedSnapshot.task_id).sourceProvenance.digest, sourceProvenance.digest);
 assert.throws(() => play.reconcileRemoteTasks(sealedTask.state, [{ ...sourcedSnapshot, sourceProvenance: { ...sourceProvenance, digest: "9".repeat(64) } }], { advanceMonth: false }), /任务快照服务来源不一致/);
+const sourceBoundReceipt = (module, moduleVersion, digest) => ({
+  state: "SEALED", digest, sourceProvenance,
+  kernel: { module, moduleVersion, state: "SEALED" }
+});
+const sourceBoundOutcomeSnapshot = {
+  ...sourcedSnapshot,
+  npcOutcome: { state: "DELIVERED", receipt: sourceBoundReceipt("dongzhou_npc_settlement", "1.2.0", "1".repeat(64)) },
+  supportNpcOutcomes: [{ state: "DELIVERED", receipt: sourceBoundReceipt("dongzhou_npc_settlement", "1.2.0", "2".repeat(64)) }],
+  npcConsequence: { state: "DELIVERED", receipt: sourceBoundReceipt("dongzhou_npc_review_relationship", "1.1.0", "3".repeat(64)) },
+  collaborationRelationship: { state: "DELIVERED", receipt: sourceBoundReceipt("dongzhou_npc_collaboration_relationship", "1.1.0", "4".repeat(64)) }
+};
+const sourceBoundObserved = play.reconcileRemoteTasks(sealedTask.state, [sourceBoundOutcomeSnapshot], { advanceMonth: false });
+assert.strictEqual(sourceBoundObserved.tasks.find((task) => task.remoteResult === sourcedSnapshot.task_id).npcOutcome.receipt.sourceProvenance.digest, sourceProvenance.digest);
+assert.throws(() => play.reconcileRemoteTasks(sealedTask.state, [{ ...sourceBoundOutcomeSnapshot, npcOutcome: { state: "DELIVERED" } }], { advanceMonth: false }), /主将结算回执服务来源无效/);
+assert.throws(() => play.reconcileRemoteTasks(sealedTask.state, [{ ...sourceBoundOutcomeSnapshot, supportNpcOutcomes: [{ state: "DELIVERED", receipt: sourceBoundReceipt("dongzhou_npc_settlement", "1.1.0", "2".repeat(64)) }] }], { advanceMonth: false }), /协同结算回执服务来源无效/);
+assert.throws(() => play.reconcileRemoteTasks(sealedTask.state, [{ ...sourceBoundOutcomeSnapshot, npcConsequence: { state: "DELIVERED", receipt: sourceBoundReceipt("dongzhou_npc_settlement", "1.2.0", "3".repeat(64)) } }], { advanceMonth: false }), /复核关系回执服务来源无效/);
+assert.throws(() => play.reconcileRemoteTasks(sealedTask.state, [{ ...sourceBoundOutcomeSnapshot, collaborationRelationship: { state: "DELIVERED", receipt: { ...sourceBoundReceipt("dongzhou_npc_collaboration_relationship", "1.1.0", "4".repeat(64)), sourceProvenance: { ...sourceProvenance, digest: "9".repeat(64) } } } }], { advanceMonth: false }), /协作关系回执服务来源无效/);
 const topologySnapshot = {
   ...sourcedSnapshot,
   organizationTopology: {

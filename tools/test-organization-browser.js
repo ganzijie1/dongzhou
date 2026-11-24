@@ -378,7 +378,7 @@ async function openReady(page) {
         organizationTaskReads += 1;
         body = organizationTaskReads === 1
           ? { taskId: "00000000-0000-0000-0000-000000000010", sourceProvenance, result: { data: { task_id: "00000000-0000-0000-0000-000000000010", state: "MEMBER_RESPONSE_PENDING", execution_started_game_time: null, final_result: null, version: "2" } } }
-          : { taskId: "00000000-0000-0000-0000-000000000010", sourceProvenance, npcOutcome: { state: "DELIVERED", attempts: 1, lastError: null }, result: { data: { task_id: "00000000-0000-0000-0000-000000000010", state: "SUCCEEDED", execution_started_game_time: 24306616800, final_result: "SUCCESS", version: "3" } } };
+          : { taskId: "00000000-0000-0000-0000-000000000010", sourceProvenance, npcOutcome: { state: "DELIVERED", attempts: 1, lastError: null, receipt: { state: "SEALED", digest: "a".repeat(64), sourceProvenance, kernel: { module: "dongzhou_npc_settlement", moduleVersion: "1.2.0", state: "SEALED" } } }, result: { data: { task_id: "00000000-0000-0000-0000-000000000010", state: "SUCCEEDED", execution_started_game_time: 24306616800, final_result: "SUCCESS", version: "3" } } };
       }
       else return route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: { code: "not_mocked", message: pathName } }) });
       if (pathName.endsWith("/integration/status")) {
@@ -585,7 +585,8 @@ async function openReady(page) {
     if (mandateAttempts !== 2) throw new Error("Rejected order retry did not reuse the Nexus mandate request exactly once");
     await online.click("#officeAdvanceButton");
     await online.waitForSelector("#officeTaskLedger li.success");
-    await online.waitForSelector("#officeTaskLedger >> text=经历已形成");
+    await online.waitForSelector("#officeTaskLedger >> text=人物四项归档");
+    if (!/内核封印 a{10}/.test(await online.locator("#officeTaskLedger li.success").innerText())) throw new Error("Source-bound NPC settlement seal is missing from the task ledger");
     const taskNameWidth = await online.locator("#officeTaskLedger li.success > span").evaluate((element) => element.getBoundingClientRect().width);
     if (taskNameWidth < 100) throw new Error(`Task ledger name column collapsed to ${taskNameWidth}px`);
     if (organizationTaskReads < 2) throw new Error("A pending organization task was not polled within the same month advance");

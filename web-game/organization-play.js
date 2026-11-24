@@ -30,6 +30,22 @@
     );
   }
 
+  function validateSourceBoundOutcome(outcome, sourceProvenance, moduleName, moduleVersion, label) {
+    if (!outcome || typeof outcome !== "object" || !sourceProvenance) return;
+    const receipt = outcome.receipt;
+    if (outcome.state !== "DELIVERED" && !receipt) return;
+    if (
+      !receipt
+      || receipt.state !== "SEALED"
+      || !/^[0-9a-f]{64}$/.test(String(receipt.digest || ""))
+      || receipt.kernel?.module !== moduleName
+      || receipt.kernel?.moduleVersion !== moduleVersion
+      || receipt.kernel?.state !== "SEALED"
+      || !validSourceProvenance(receipt.sourceProvenance)
+      || receipt.sourceProvenance.digest !== sourceProvenance.digest
+    ) throw new Error(`${label}服务来源无效`);
+  }
+
   function hash(text) {
     let value = 2166136261;
     for (const char of String(text)) {
@@ -765,16 +781,21 @@
       const expectedSource = task.sourceProvenance || task.mandate?.sourceProvenance;
       if (snapshotSource && (!validSourceProvenance(snapshotSource) || (expectedSource && snapshotSource.digest !== expectedSource.digest))) throw new Error("组织任务快照服务来源不一致");
       if (snapshotSource) task.sourceProvenance = copy(snapshotSource);
+      const authoritativeSource = snapshotSource || expectedSource;
       if (snapshot.npcOutcome && typeof snapshot.npcOutcome === "object") {
+        validateSourceBoundOutcome(snapshot.npcOutcome, authoritativeSource, "dongzhou_npc_settlement", "1.2.0", "主将结算回执");
         task.npcOutcome = copy(snapshot.npcOutcome);
       }
       if (Array.isArray(snapshot.supportNpcOutcomes)) {
+        for (const outcome of snapshot.supportNpcOutcomes) validateSourceBoundOutcome(outcome, authoritativeSource, "dongzhou_npc_settlement", "1.2.0", "协同结算回执");
         task.supportNpcOutcomes = snapshot.supportNpcOutcomes.map(copy);
       }
       if (snapshot.npcConsequence && typeof snapshot.npcConsequence === "object") {
+        validateSourceBoundOutcome(snapshot.npcConsequence, authoritativeSource, "dongzhou_npc_review_relationship", "1.1.0", "复核关系回执");
         task.npcConsequence = copy(snapshot.npcConsequence);
       }
       if (snapshot.collaborationRelationship && typeof snapshot.collaborationRelationship === "object") {
+        validateSourceBoundOutcome(snapshot.collaborationRelationship, authoritativeSource, "dongzhou_npc_collaboration_relationship", "1.1.0", "协作关系回执");
         task.collaborationRelationship = copy(snapshot.collaborationRelationship);
       }
       if (snapshot.organizationTrace && typeof snapshot.organizationTrace === "object") {
