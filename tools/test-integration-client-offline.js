@@ -218,6 +218,7 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(contributionResponse.mode, "standalone");
   assert.strictEqual(contributionResponse.entries.length, 1);
   const localContribution = contributionResponse.entries[0];
+  assert.match(localContribution.entryId, /^[0-9a-f-]{36}$/);
   assert.strictEqual(localContribution.amount, 15);
   assert.strictEqual(localContribution.kernel.module, "dongzhou_organization_contribution_ledger");
   const localContributionDossier = (await client.organizationContributionDossier("DuBo", localContribution.entryId)).dossier;
@@ -226,6 +227,30 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(localContributionDossier.taskTrace.timeline.length, 5);
   assert.strictEqual(localContributionDossier.kernel.module, "dongzhou_organization_contribution_dossier");
   await assert.rejects(client.organizationContributionDossier("DuBo", "forged"), /organization_contribution_not_found/);
+  const meritCommendation = await client.commendMeritNpc("DuBo", {
+    contribution_entry_id: localContribution.entryId,
+    contribution_entry_digest: localContribution.digest,
+    contribution_dossier_digest: localContributionDossier.digest,
+  });
+  assert.strictEqual(meritCommendation.state, "COMPLETED");
+  assert.strictEqual(meritCommendation.commendation.affectionDelta, 3);
+  assert.strictEqual(meritCommendation.commendation.kernel.module, "dongzhou_npc_merit_commendation");
+  assert.strictEqual((await client.commendMeritNpc("DuBo", {
+    contribution_entry_id: localContribution.entryId,
+    contribution_entry_digest: localContribution.digest,
+    contribution_dossier_digest: localContributionDossier.digest,
+  })).replayed, true);
+  const meritKey = [...values.keys()].find((key) => key.startsWith("dongzhou-local-npc-merit-commendation-v1:"));
+  const cleanMerit = values.get(meritKey);
+  const forgedMerit = JSON.parse(cleanMerit);
+  forgedMerit.commendation.digest = "0".repeat(64);
+  values.set(meritKey, JSON.stringify(forgedMerit));
+  await assert.rejects(client.commendMeritNpc("DuBo", {
+    contribution_entry_id: localContribution.entryId,
+    contribution_entry_digest: localContribution.digest,
+    contribution_dossier_digest: localContributionDossier.digest,
+  }), /npc_merit_commendation_seal_invalid/);
+  values.set(meritKey, cleanMerit);
   const cleanTaskSource = localProfile.organization.tasks[1].sourceProvenance;
   localProfile.organization.tasks[1].sourceProvenance = { ...cleanTaskSource, digest: "0".repeat(64) };
   await client.persist(localProfile);
@@ -494,7 +519,7 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(rejected.guide.kernel.state, "SEALED");
   assert.strictEqual(fetchedUrls.some((url) => url.includes("/api/")), false);
 
-  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true, localBattleGate: true, localDebrief: true, localCommendation: true, localRecollection: true, localPublicNotice: true, localNpcState: true, localNpcSchedule: true, localNpcAssignment: true, localContributionLedger: true, localContributionDossier: true, localLogistics: true, localInventoryRequisition: true, localScheduledDuty: true, localThought: true, localCouncil: true }));
+  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true, localBattleGate: true, localDebrief: true, localCommendation: true, localMeritCommendation: true, localRecollection: true, localPublicNotice: true, localNpcState: true, localNpcSchedule: true, localNpcAssignment: true, localContributionLedger: true, localContributionDossier: true, localLogistics: true, localInventoryRequisition: true, localScheduledDuty: true, localThought: true, localCouncil: true }));
 })().catch((error) => {
   console.error(error.stack || error.message);
   process.exitCode = 1;

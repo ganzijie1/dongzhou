@@ -23,6 +23,7 @@
   const BATTLE_DEPLOYMENT_PREFIX = "dongzhou-local-battle-deployment-v1:";
   const BATTLE_DEBRIEF_PREFIX = "dongzhou-local-battle-debrief-v1:";
   const NPC_COMMENDATION_PREFIX = "dongzhou-local-npc-commendation-v1:";
+  const NPC_MERIT_COMMENDATION_PREFIX = "dongzhou-local-npc-merit-commendation-v1:";
   const NPC_RECOLLECTION_PREFIX = "dongzhou-local-npc-recollection-v1:";
   const NPC_DECISION_PREFIX = "dongzhou-local-npc-decision-v1:";
   const LOCAL_LOGISTICS_BRIEFING_PREFIX = "dongzhou-local-logistics-briefing-v1:";
@@ -498,7 +499,7 @@
         || canonicalJson(task.settlement) !== canonicalJson(Object.fromEntries(Object.entries(settlement).filter(([key]) => key !== "closureReceipt")))
         || canonicalJson(task.sourceProvenance) !== canonicalJson(sourceProvenance)) continue;
       const trace = {
-        entryId: `local-contribution:${settlement.settlementId}`,
+        entryId: uuidFromDigest(await sha256(`local-contribution:${heroId}:${settlement.settlementId}`)),
         heroId: String(heroId),
         eventCode: settlement.result === "PARTIAL" ? "TASK_PARTIALLY_COMPLETED" : "TASK_COMPLETED",
         amount: settlement.memberDelta,
@@ -567,6 +568,50 @@
         kernel: { module: "dongzhou_organization_contribution_dossier", moduleVersion: "1.1.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
       }
     };
+  }
+
+  async function buildLocalNpcMeritCommendation(heroId, input) {
+    requireLocalOfficer(heroId);
+    const contribution = (await localMemberContributionEntries(heroId)).find((entry) => entry.entryId === input?.contribution_entry_id
+      && entry.digest === input?.contribution_entry_digest && entry.amount > 0);
+    if (!contribution) throw new Error("npc_merit_commendation_entry_invalid");
+    const contributionDossier = (await localOrganizationContributionDossier(heroId, contribution.entryId)).dossier;
+    if (contributionDossier.digest !== input?.contribution_dossier_digest) throw new Error("npc_merit_commendation_dossier_stale");
+    const playerId = await localPlayerId();
+    const identity = await sha256(`${playerId}\n${heroId}\n${contribution.entryId}\n${contributionDossier.digest}\ndongzhou-npc-merit-commendation-v1`);
+    const sourceProvenance = await localServiceProvenance();
+    const trace = {
+      eventId: `npc-merit-commendation:${identity}`,
+      playerId,
+      heroId: String(heroId),
+      npcId: `local:${heroId}`,
+      entryId: contribution.entryId,
+      eventCode: contribution.eventCode,
+      amount: contribution.amount,
+      affectionType: "appreciation",
+      affectionDelta: 3,
+      contribution,
+      contributionDossier,
+      sourceProvenance
+    };
+    return {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: { module: "dongzhou_npc_merit_commendation", moduleVersion: "1.1.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    };
+  }
+
+  async function localCommendMeritNpc(heroId, input) {
+    const key = `${NPC_MERIT_COMMENDATION_PREFIX}${heroId}:${input?.contribution_entry_id || ""}`;
+    const commendation = await buildLocalNpcMeritCommendation(heroId, input);
+    const existing = read(key, null);
+    if (existing) {
+      if (canonicalJson(existing.input) !== canonicalJson(input)) throw new Error("npc_merit_commendation_conflict");
+      if (canonicalJson(existing.commendation) !== canonicalJson(commendation)) throw new Error("npc_merit_commendation_seal_invalid");
+      return { state: "COMPLETED", replayed: true, commendation };
+    }
+    write(key, { input, commendation });
+    return { state: "COMPLETED", replayed: false, commendation };
   }
 
   async function localNpcDecision(heroId, question, options, stageId, memory, publicNotice, contribution, contributionDossier) {
@@ -1686,6 +1731,7 @@
     throw new Error("慰勉仍在送达，请稍后重试");
   }
   async function commendMeritNpc(heroId, input) {
+    if (offline) return localCommendMeritNpc(heroId, input);
     for (let attempt = 0; attempt < 12; attempt += 1) {
       const result = await request(`/npcs/${encodeURIComponent(heroId)}/merit-commendations`, {
         method: "POST",

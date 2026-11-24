@@ -143,9 +143,11 @@ async function openReady(page) {
     await desktop.waitForSelector("#officeContributions >> text=+18", { timeout: 10000 });
     await desktop.click('#officeContributions [data-contribution-dossier-id]');
     await desktop.waitForSelector("#officeContributions >> text=功绩卷宗已封印", { timeout: 10000 });
-    if (await desktop.locator('#officeContributions [data-merit-commendation-id]').count()) throw new Error("Offline contribution exposed unsupported merit commendation");
     await desktop.click('#officeContributions [data-contribution-verify-id]');
     await desktop.waitForSelector("#officeContributions >> text=验印通过", { timeout: 10000 });
+    await desktop.click('#officeContributions [data-merit-commendation-id]');
+    await desktop.waitForSelector("#officeContributions >> text=已据功慰勉", { timeout: 10000 });
+    await desktop.waitForFunction(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.commendations.some((entry) => entry.kernel?.module === "dongzhou_npc_merit_commendation"));
     await desktop.click('#officeContributions [data-contribution-id]');
     await desktop.waitForSelector("#officeLogisticsBriefing:not(:disabled)");
     await desktop.click("#officeLogisticsBriefing");
