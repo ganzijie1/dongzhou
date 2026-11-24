@@ -3,13 +3,51 @@ from __future__ import annotations
 
 import argparse
 from datetime import date, datetime, timedelta, timezone
+import httpx
 import json
 from pathlib import Path
 import re
 import sys
 from uuid import uuid4
 
-import httpx
+
+NPC_EXECUTION_FIELDS = {
+    "available",
+    "running",
+    "paused",
+    "waitingForReport",
+    "executionId",
+    "phase",
+    "outcome",
+    "scheduleId",
+    "scheduleName",
+    "scheduleDate",
+    "actionChainId",
+    "currentActionUid",
+    "currentActionId",
+    "currentActionIndex",
+    "totalActions",
+    "updatedAt",
+}
+NPC_EXECUTION_OUTCOMES = {None, "unconfirmed", "succeeded", "failed"}
+
+
+def validate_npc_execution(value: object) -> dict:
+    assert isinstance(value, dict), "NPC execution projection is missing"
+    assert isinstance(value.get("available"), bool), "NPC execution availability is invalid"
+    unexpected = set(value) - NPC_EXECUTION_FIELDS
+    assert not unexpected, f"NPC execution leaked fields: {sorted(unexpected)}"
+    assert value.get("outcome") in NPC_EXECUTION_OUTCOMES, "NPC execution outcome is invalid"
+    if value["available"]:
+        assert isinstance(value.get("running"), bool), "NPC execution running state is invalid"
+        assert isinstance(value.get("paused"), bool), "NPC execution paused state is invalid"
+        assert isinstance(value.get("waitingForReport"), bool), "NPC execution report state is invalid"
+    return {
+        "available": value["available"],
+        "phase": value.get("phase"),
+        "outcome": value.get("outcome"),
+        "publicFields": len(value),
+    }
 
 TOOLS_DIR = Path(__file__).resolve().parent
 if str(TOOLS_DIR) not in sys.path:
@@ -214,7 +252,11 @@ def main() -> int:
             body = request("GET", "/api/dongzhou/v1/npcs/ZuoRu/state")
             for key in ("emotion", "affection", "relationships"):
                 assert body.get(key, {}).get("code") in (0, 200, "0", "200"), f"{key} business request failed"
-            return {"hero": "ZuoRu", "components": 3}
+            return {
+                "hero": "ZuoRu",
+                "components": 3,
+                "execution": validate_npc_execution(body.get("execution")),
+            }
         check("npc_state", npc_state)
 
         def npc_schedule():
