@@ -28,6 +28,7 @@
   const NPC_DECISION_PREFIX = "dongzhou-local-npc-decision-v1:";
   const LOCAL_LOGISTICS_BRIEFING_PREFIX = "dongzhou-local-logistics-briefing-v1:";
   const LOCAL_SCHEDULED_DUTY_STATUS_PREFIX = "dongzhou-local-scheduled-duty-status-v1:";
+  const LOCAL_MEMBERSHIP_PREFIX = "dongzhou-local-membership-v1:";
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
   let session = read(SESSION_KEY, null);
   let sessionPromise = null;
@@ -670,6 +671,74 @@
     organization.settlements = organization.settlements.slice(-100);
     organization.settlementIds = [...new Set(organization.settlementIds)].slice(-100);
     return { organization, settled };
+  }
+
+  function localOrganizationRoster() {
+    const currentProfile = offlineProfile || read("dongzhou-h5-profile-v2", null);
+    const organization = currentProfile?.organization || {};
+    const career = organization.localPlayerCareer || { state: "OUT", version: 1, contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 };
+    const members = (organization.members || []).map((member, index) => ({
+      heroId: String(member.id),
+      office: String(member.office || `军府属官·第${index + 1}席`),
+      role: member.id === "DuBo" ? "军府主官" : "军府属官",
+      level: member.id === "DuBo" ? "manager" : "officer",
+      directManagerHeroId: member.id === "DuBo" ? null : "DuBo",
+      contributionBalance: Math.max(0, Number(member.merit || 0)),
+      lifetimeEarned: Math.max(0, Number(member.merit || 0)),
+      lifetimeSpent: 0
+    }));
+    const playerMembership = career.state === "ACTIVE" ? {
+      office: "军府属官·第12席",
+      role: "军府属官",
+      level: "staff",
+      directManagerHeroId: "DuBo",
+      contributionBalance: career.contributionBalance,
+      lifetimeEarned: career.lifetimeEarned,
+      lifetimeSpent: career.lifetimeSpent
+    } : null;
+    return {
+      mode: "standalone",
+      organization: {
+        name: String(organization.name || "列国军府"), state: "ACTIVE", templateId: "dongzhou_court", templateVersion: 7,
+        hierarchyVersion: career.version, growthContribution: Math.trunc(Number(organization.contribution || 0))
+      },
+      members,
+      playerMembership,
+      openPositions: playerMembership ? [] : [{ office: "军府属官·第12席", role: "军府属官", level: "staff" }]
+    };
+  }
+
+  async function localOrganizationMembership(action) {
+    const normalizedAction = String(action || "").toUpperCase();
+    if (!["JOIN", "LEAVE"].includes(normalizedAction)) throw new Error("organization_membership_action_invalid");
+    const currentProfile = offlineProfile || read("dongzhou-h5-profile-v2", null);
+    const organization = currentProfile?.organization || {};
+    const current = organization.localPlayerCareer || { state: "OUT", version: 1, contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 };
+    const targetState = normalizedAction === "JOIN" ? "ACTIVE" : "OUT";
+    const replayed = current.state === targetState;
+    const career = { ...current, state: targetState, version: replayed ? current.version : current.version + 1 };
+    const playerId = await localPlayerId();
+    const key = `${LOCAL_MEMBERSHIP_PREFIX}${playerId}:${career.version}`;
+    const existing = read(key, null);
+    const sourceProvenance = await localServiceProvenance();
+    const previousState = replayed ? (targetState === "ACTIVE" ? "OUT" : "ACTIVE") : current.state;
+    const trace = { playerId, action: normalizedAction, previousState, state: career.state, version: career.version, office: "军府属官·第12席", directManagerHeroId: "DuBo", sourceProvenance };
+    const receipt = { ...trace, digest: await sha256(canonicalJson(trace)), kernel: { module: "dongzhou_organization_local_membership", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "SEALED" } };
+    if (replayed) {
+      if (canonicalJson(existing) !== canonicalJson(receipt)) throw new Error("organization_membership_seal_invalid");
+      const previousProfile = offlineProfile;
+      offlineProfile = { ...(currentProfile || {}), organization: { ...organization, localPlayerCareer: career } };
+      const roster = localOrganizationRoster();
+      offlineProfile = previousProfile;
+      return { mode: "standalone", replayed: true, career, roster, receipt };
+    }
+    if (existing && canonicalJson(existing) !== canonicalJson(receipt)) throw new Error("organization_membership_seal_invalid");
+    write(key, receipt);
+    const previousProfile = offlineProfile;
+    offlineProfile = { ...(currentProfile || {}), organization: { ...organization, localPlayerCareer: career } };
+    const roster = localOrganizationRoster();
+    offlineProfile = previousProfile;
+    return { mode: "standalone", replayed, career, roster, receipt };
   }
 
   async function localNpcDecision(heroId, question, options, stageId, memory, publicNotice, contribution, contributionDossier) {
@@ -2099,7 +2168,14 @@
     return result;
   }
   function organizationTask(taskId) { return requestWithTransientRetry(`/organization/tasks/${encodeURIComponent(taskId)}`); }
-  function organizationRoster() { return requestWithTransientRetry("/organization/roster"); }
+  function organizationRoster() {
+    if (offline) return Promise.resolve(localOrganizationRoster());
+    return requestWithTransientRetry("/organization/roster");
+  }
+  function setOrganizationMembership(action) {
+    if (offline) return localOrganizationMembership(action);
+    throw new Error("organization_membership_requires_conversation");
+  }
   function organizationMemberContributions(heroId) {
     if (offline) return localOrganizationMemberContributions(heroId);
     return requestWithTransientRetry(`/organization/members/${encodeURIComponent(heroId)}/contributions`);
@@ -2567,5 +2643,5 @@
     return result;
   }
 
-  return { initialize, persist, status, searchKnowledge, knowledgeCodex, battleDebrief, battleReadiness, battleDeployment, verifyBattleDeployment, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, verifyKnowledgeQuizSeal, pendingAdviserQuestion, askAdviser, adviserQuestion, feedbackAdviser, decideAdviserGuide, adviserGuide, cancelAdviserGuide, syncNpcs, setNpcInteractionPreference, commendNpc, commendMeritNpc, recallNpc, npcState, npcCorrespondence, organizationPublicNotices, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationMemberContributions, organizationContributionDossier, organizationPlayerTasks, organizationPlayerContributions, organizationPlayerContributionDossier, organizationInventory, organizationScheduledDuties, setOrganizationScheduledDutyEnabled, organizationLogisticsBriefing, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, settleLocalOrganizationTasks, reviewOrganizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, knowledgeCodex, battleDebrief, battleReadiness, battleDeployment, verifyBattleDeployment, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, verifyKnowledgeQuizSeal, pendingAdviserQuestion, askAdviser, adviserQuestion, feedbackAdviser, decideAdviserGuide, adviserGuide, cancelAdviserGuide, syncNpcs, setNpcInteractionPreference, commendNpc, commendMeritNpc, recallNpc, npcState, npcCorrespondence, organizationPublicNotices, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, setOrganizationMembership, organizationMemberContributions, organizationContributionDossier, organizationPlayerTasks, organizationPlayerContributions, organizationPlayerContributionDossier, organizationInventory, organizationScheduledDuties, setOrganizationScheduledDutyEnabled, organizationLogisticsBriefing, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, settleLocalOrganizationTasks, reviewOrganizationTask, isOffline: () => offline };
 });

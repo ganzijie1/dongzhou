@@ -74,6 +74,45 @@ async function openReady(page) {
     await desktop.waitForSelector("#officeNpcSchedule >> text=日程来自本地官署账本", { timeout: 10000 });
     await desktop.waitForSelector("#officeNpcAssignment >> text=本地拟定", { timeout: 10000 });
     await desktop.waitForSelector("#officeNpcAssignment >> text=本地账本已核验", { timeout: 10000 });
+    await desktop.waitForSelector("#officeMembershipState >> text=尚未入仕", { timeout: 10000 });
+    await desktop.waitForFunction(() => !document.querySelector("#officeMembershipApply").disabled
+      && document.querySelector("#officeMembershipDetail").textContent.includes("军府属官·第12席"));
+    await desktop.click("#officeMembershipApply");
+    await desktop.waitForSelector("#officeMembershipState >> text=已入仕", { timeout: 10000 });
+    await desktop.waitForSelector("#officeMembershipFeedback >> text=本地仕籍已登记", { timeout: 10000 });
+    const localMembership = await desktop.evaluate(() => {
+      const profile = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2"));
+      const receiptKey = Object.keys(localStorage).find((key) => key.startsWith("dongzhou-local-membership-v1:"));
+      return { career: profile.organization.localPlayerCareer, roster: profile.organization.remoteRoster, receipt: JSON.parse(localStorage.getItem(receiptKey)) };
+    });
+    if (localMembership.career.state !== "ACTIVE" || localMembership.career.version !== 2
+      || localMembership.roster.playerMembership?.office !== "军府属官·第12席"
+      || localMembership.receipt.kernel?.module !== "dongzhou_organization_local_membership"
+      || !/^[0-9a-f]{64}$/.test(localMembership.receipt.digest)) {
+      throw new Error(`Offline membership was not sealed: ${JSON.stringify(localMembership)}`);
+    }
+    await desktop.reload({ waitUntil: "domcontentloaded" });
+    await desktop.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
+    await desktop.click("#campaignOfficeButton");
+    await desktop.waitForSelector("#officeMembershipState >> text=已入仕", { timeout: 10000 });
+    await desktop.click("#officeMembershipLeave");
+    await desktop.waitForSelector("#officeMembershipLeaveConfirm:not([hidden])", { timeout: 10000 });
+    if (await desktop.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.localPlayerCareer.state) !== "ACTIVE") {
+      throw new Error("Offline membership changed before leave confirmation");
+    }
+    await desktop.click("#officeMembershipLeaveConfirm");
+    await desktop.waitForSelector("#officeMembershipState >> text=尚未入仕", { timeout: 10000 });
+    await desktop.waitForSelector("#officeMembershipFeedback >> text=本地辞仕已完成", { timeout: 10000 });
+    const releasedMembership = await desktop.evaluate(() => {
+      const organization = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization;
+      return { career: organization.localPlayerCareer, roster: organization.remoteRoster };
+    });
+    if (releasedMembership.career.state !== "OUT" || releasedMembership.career.version !== 3
+      || releasedMembership.roster.playerMembership || releasedMembership.roster.openPositions?.[0]?.office !== "军府属官·第12席"
+      || !(await desktop.locator("#officeCareer").isHidden())) {
+      throw new Error(`Offline membership was not released: ${JSON.stringify(releasedMembership)}`);
+    }
+    if (offlineApiRequests !== 0) throw new Error(`Offline membership flow made ${offlineApiRequests} API requests`);
     await desktop.click("#officeScheduleButton");
     await desktop.waitForSelector("#officeNpcSchedule >> text=进程内账本", { timeout: 10000 });
     const desktopLayout = await desktop.evaluate(() => {

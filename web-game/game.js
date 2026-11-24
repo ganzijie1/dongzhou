@@ -257,6 +257,10 @@
       const integrated = await integration.initialize(profile);
       profile = systems.normalizeProfile(integrated.profile, campaign.stages);
       profile.organization = organization.normalizeState(profile.organization);
+      if (integration.isOffline()) {
+        profile.organization = organization.recordRemoteRoster(profile.organization, await integration.organizationRoster(), displayName);
+        await integration.persist(profile);
+      }
       await recoverOfficeInventoryRequisition();
       if (!integration.isOffline()) {
         try {
@@ -2480,7 +2484,7 @@
   }
 
   async function requestOfficeMembership(action) {
-    if (integration.isOffline() || officeMembershipBusy) return;
+    if (officeMembershipBusy) return;
     if (action === "leave") {
       officeMembershipLeavePending = true;
       $("#officeMembershipFeedback").textContent = "请再次确认辞仕；确认后将立即提交军府实账。";
@@ -2497,8 +2501,23 @@
     if (!content) return;
     officeMembershipBusy = true;
     renderOfficeMembership();
-    $("#officeMembershipFeedback").textContent = action === "join" ? "请仕书已送杜伯，等待裁定……" : action === "leave" ? "请辞已送杜伯，等待确认……" : "辞仕确认已送杜伯，等待实账回读……";
+    $("#officeMembershipFeedback").textContent = integration.isOffline()
+      ? action === "join" ? "正在登记本地仕籍……" : "正在结清本地仕籍……"
+      : action === "join" ? "请仕书已送杜伯，等待裁定……" : action === "leave" ? "请辞已送杜伯，等待确认……" : "辞仕确认已送杜伯，等待实账回读……";
     try {
+      if (integration.isOffline()) {
+        const response = await integration.setOrganizationMembership(action === "join" ? "JOIN" : "LEAVE");
+        const next = { ...profile.organization, localPlayerCareer: response.career };
+        profile.organization = organization.recordRemoteRoster(next, response.roster, displayName);
+        writeJson(PROFILE_KEY, profile);
+        await integration.persist(profile);
+        officeMembershipLeavePending = false;
+        $("#officeMembershipFeedback").textContent = response.career.state === "ACTIVE"
+          ? "本地仕籍已登记，列入军府属官第12席。"
+          : "本地辞仕已完成，军府第12席已经释放。";
+        renderOrganizationPanel();
+        return;
+      }
       await syncOfficeNpcs(profile.organization.members.filter((member) => member.id === "DuBo"));
       let reply = null;
       const messagesToSend = [content];
