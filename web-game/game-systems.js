@@ -124,8 +124,19 @@
 
   function normalizeKnowledgeQuiz(raw) {
     const source = raw && typeof raw === "object" ? raw : {};
+    const validSourceProvenance = (receipt) => {
+      const services = Object.keys(receipt?.services || {});
+      return /^[0-9a-f]{64}$/.test(String(receipt?.digest || ""))
+        && receipt?.kernel?.module === "dongzhou_service_provenance"
+        && receipt?.kernel?.state === "SEALED"
+        && services.length === 4
+        && ["knowledge", "aiNpc", "orgFlow", "nexusKernel"].every((name) => services.includes(name));
+    };
     const pending = source.pending && typeof source.pending === "object"
-      && source.pending.question && source.pending.action ? source.pending : null;
+      && source.pending.question && source.pending.action
+      && source.pending.question.receipt?.kernel?.module === "dongzhou_knowledge_tournament"
+      && validSourceProvenance(source.pending.question.receipt?.sourceProvenance)
+      ? source.pending : null;
     return {
       score: Math.max(0, Number(source.score || 0)),
       pending,
@@ -141,9 +152,19 @@
     const digest = String(receipt?.digest || "");
     const kernel = receipt?.kernel;
     const score = Number(result?.score);
+    const sourceProvenance = result?.sourceProvenance;
+    const sourceServices = Object.keys(sourceProvenance?.services || {});
+    const pendingSourceDigest = profile.knowledgeQuiz.pending?.question?.receipt?.sourceProvenance?.digest;
     const valid = /^[0-9a-f]{64}$/.test(digest)
       && kernel?.module === "dongzhou_knowledge_tournament"
+      && kernel?.moduleVersion === "1.1.0"
       && kernel?.state === "SEALED"
+      && /^[0-9a-f]{64}$/.test(String(sourceProvenance?.digest || ""))
+      && sourceProvenance?.kernel?.module === "dongzhou_service_provenance"
+      && sourceProvenance?.kernel?.state === "SEALED"
+      && sourceServices.length === 4
+      && ["knowledge", "aiNpc", "orgFlow", "nexusKernel"].every((name) => sourceServices.includes(name))
+      && receipt?.sourceProvenance?.digest === sourceProvenance.digest
       && [0, 10].includes(score)
       && typeof result?.correct === "boolean"
       && (result.correct ? score === 10 : score === 0)
@@ -156,6 +177,7 @@
     if (profile.knowledgeQuiz.receipts.includes(digest)) {
       return { ok: true, replayed: true, profile };
     }
+    if (pendingSourceDigest !== sourceProvenance.digest) return { ok: false, reason: "source-mismatch", profile };
     profile.knowledgeQuiz.score += score;
     profile.knowledgeQuiz.receipts = [...profile.knowledgeQuiz.receipts, digest].slice(-100);
     profile.knowledgeQuiz.history = [...profile.knowledgeQuiz.history, result].slice(-20);

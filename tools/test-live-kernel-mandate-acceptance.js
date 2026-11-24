@@ -148,6 +148,11 @@ saveJournal();
       const quizResponse = await quizResponsePromise;
       assert.equal(quizResponse.status(), 200);
       const startedQuiz = await quizResponse.json();
+      const expectedQuizSourceSeal = await page.evaluate((key) => (
+        JSON.parse(localStorage.getItem(key)).organization.backend.serviceSourceSealDigest
+      ), PROFILE);
+      assert.equal(startedQuiz.question.receipt?.kernel?.moduleVersion, "1.1.0");
+      assert.equal(startedQuiz.question.receipt?.sourceProvenance?.digest, expectedQuizSourceSeal);
       const currentPeople = await page.evaluate(async () => {
         const response = await fetch("/api/dongzhou/v1/knowledge/stages/01", { credentials: "same-origin" });
         if (!response.ok) throw new Error("Unable to read stage people for knowledge mastery");
@@ -166,6 +171,9 @@ saveJournal();
       assert.equal(knowledgeMastery.correct, true);
       assert.equal(knowledgeMastery.score, 10);
       assert.equal(knowledgeMastery.receipt?.kernel?.state, "SEALED");
+      assert.equal(knowledgeMastery.receipt?.kernel?.moduleVersion, "1.1.0");
+      assert.equal(knowledgeMastery.sourceProvenance?.digest, expectedQuizSourceSeal);
+      assert.deepEqual(knowledgeMastery.receipt?.sourceProvenance, knowledgeMastery.sourceProvenance);
     }
 
     const resumedCouncil = resume ? await page.evaluate((key) => {

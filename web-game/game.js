@@ -1075,7 +1075,7 @@
         ? `${latest.correct ? "答中" : latest.state === "EXPIRED" ? "逾时" : "未中"} · 本题 ${latest.score} 分 · 累计 ${quiz.score} 分`
         : "本回可开一题，答中记 10 分。";
       $("#officeQuizSource").textContent = latest?.source?.work
-        ? `据 ${latest.source.work}${latest.source.scope ? ` · ${latest.source.scope}` : ""}`
+        ? `据 ${latest.source.work}${latest.source.scope ? ` · ${latest.source.scope}` : ""}${latest.sourceProvenance?.digest ? ` · 版本封印 ${latest.sourceProvenance.digest.slice(0, 10)}` : ""}`
         : "";
       $("#officeQuizPrompt").textContent = latest ? `正解：${latest.correctAnswer}` : "";
       $("#officeQuizOptions").innerHTML = "";
@@ -1094,7 +1094,7 @@
       `<button type="button" data-quiz-answer="${index}" ${officeQuizInFlight ? "disabled" : ""}><span>${String.fromCharCode(65 + index)}</span> ${escapeHtml(option)}</button>`
     ).join("");
     $("#officeQuizStatus").textContent = remaining > 0 ? `余 ${remaining} 秒 · 答中 10 分` : "已到时 · 交卷记 0 分";
-    $("#officeQuizSource").textContent = `内核题印 ${String(question.receipt?.digest || "").slice(0, 12)}`;
+    $("#officeQuizSource").textContent = `内核题印 ${String(question.receipt?.digest || "").slice(0, 12)}${question.receipt?.sourceProvenance?.digest ? ` · 版本封印 ${question.receipt.sourceProvenance.digest.slice(0, 10)}` : ""}`;
     $("#officeQuizVerify").hidden = true;
     $("#officeQuizSealStatus").textContent = "";
     if (!$("#campaignOfficeBackdrop").hidden) officeQuizTimer = setTimeout(renderOfficeQuiz, 1000);
@@ -1125,7 +1125,7 @@
     renderOfficeQuiz();
     try {
       const verification = await integration.verifyKnowledgeQuizSeal(latest.questionId);
-      if (!verification?.verified || verification.digest !== latest.receipt?.digest) {
+      if (!verification?.verified || verification.digest !== latest.receipt?.digest || verification.sourceProvenance?.digest !== latest.sourceProvenance?.digest) {
         throw new Error("问对封印与本地记录不一致");
       }
       officeQuizVerification = verification;

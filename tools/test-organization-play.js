@@ -78,10 +78,11 @@ const masteryResult = {
   state: "COMPLETED",
   correct: true,
   score: 10,
-  receipt: { digest: "7".repeat(64), kernel: { module: "dongzhou_knowledge_tournament", state: "SEALED" } }
+  sourceProvenance,
+  receipt: { digest: "7".repeat(64), sourceProvenance, kernel: { module: "dongzhou_knowledge_tournament", moduleVersion: "1.1.0", state: "SEALED" } }
 };
 assert.throws(() => play.recordCouncil(state, { id: "council-mastery-invalid", stageId: "01", memberId: "ZuoRu", knowledgeId: "dongzhou_stage_001", knowledgeName: "第一回", evidenceSourceIndex: 0, question: "如何部署", options: ["守", "攻"], index: 1, knowledgeMastery: masteryResult }), /史官问对回执无效/);
-const masteryCouncil = play.recordCouncil(state, { id: "council-mastery-1", stageId: "01", memberId: "ZuoRu", knowledgeId: "dongzhou_stage_001", knowledgeName: "第一回", evidenceSourceIndex: 0, question: `如何部署\n史识印记：${masteryResult.receipt.digest.slice(0, 12)}`, options: ["守", "攻"], index: 1, knowledgeMastery: masteryResult });
+const masteryCouncil = play.recordCouncil(state, { id: "council-mastery-1", stageId: "01", memberId: "ZuoRu", knowledgeId: "dongzhou_stage_001", knowledgeName: "第一回", evidenceSourceIndex: 0, question: `如何部署\n史识印记：${masteryResult.receipt.digest.slice(0, 12)}`, options: ["守", "攻"], index: 1, knowledgeMastery: masteryResult, sourceProvenance });
 state = masteryCouncil.state;
 assert.strictEqual(masteryCouncil.council.knowledgeMastery.score, 10);
 const sealed = play.recordMandate(state, { id: "mandate-source-1", stageId: "01", stageTitle: "东郊索命", heroId: "ZuoRu", taskType: "drill", evidence: { id: "dongzhou_stage_001", name: "第一回", source: { index: 0, work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" } }, council: { requestId: "council-source-1", text: "攻", publicNotice, contribution, sourceProvenance }, publicNotice, contribution, assignment: { heroId: "ZuoRu", npcId: "42", runtimeState: "READY", planId: "plan-1", generationId: "gen-1", eventId: "event-drill", transactionId: 9100102, name: "检阅军阵", type: "军事", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "calm", intensity: 0, affectionCount: 0, relationshipCount: 0 }, readiness: { score: 75, band: "steady", factors: { runtime: 6, duty: 7.2, emotion: 6, support: 0 } } }, emergency: { urgent: true, score: 81.25, interruptTraceId: "emergency_evaluate:test", assessedAt: "0771-01-01 14:00:00", event: "Enemy riders reached the pass" }, sourceProvenance, kernel: { state: "READY" }, digest: "a".repeat(64), state: "ISSUED" });
@@ -107,7 +108,7 @@ assert.throws(() => play.recordMandate(state, tamperedNoticeMandate), /官署告
 const masteryMandate = JSON.parse(JSON.stringify(sealed.mandate));
 masteryMandate.id = "mandate-mastery-1";
 masteryMandate.digest = "8".repeat(64);
-masteryMandate.knowledgeMastery = { questionId: masteryResult.questionId, stageId: "01", knowledgeId: "dongzhou_stage_001", score: 10, bonus: 3, resultDigest: masteryResult.receipt.digest, state: "SEALED", kernel: masteryResult.receipt.kernel };
+masteryMandate.knowledgeMastery = { questionId: masteryResult.questionId, stageId: "01", knowledgeId: "dongzhou_stage_001", score: 10, bonus: 3, resultDigest: masteryResult.receipt.digest, state: "SEALED", kernel: masteryResult.receipt.kernel, sourceProvenance };
 masteryMandate.council = { ...masteryMandate.council, knowledgeMastery: masteryMandate.knowledgeMastery };
 const masterySealed = play.recordMandate(state, masteryMandate);
 assert.strictEqual(masterySealed.mandate.knowledgeMastery.bonus, 3);

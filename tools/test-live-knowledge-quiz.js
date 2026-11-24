@@ -8,7 +8,9 @@ try { ({ chromium } = require(path.resolve(__dirname, "../output/playwright-runt
 catch (_) { ({ chromium } = require("playwright")); }
 
 const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
-verifyFourServiceRuntime(url);
+const runtimeReport = verifyFourServiceRuntime(url);
+const expectedSourceSeal = runtimeReport.checks?.liveRuntime?.sourceSealDigest;
+assert.match(expectedSourceSeal || "", /^[0-9a-f]{64}$/);
 const executablePath = [
   process.env.DONGZHOU_CHROMIUM_EXECUTABLE,
   "C:/Program Files/Google/Chrome/Application/chrome.exe",
@@ -35,6 +37,9 @@ const executablePath = [
     assert.equal(started.question.options.length, 4);
     assert.equal(JSON.stringify(started).includes("correctIndex"), false);
     assert.equal(started.question.receipt.kernel.module, "dongzhou_knowledge_tournament");
+    assert.equal(started.question.receipt.kernel.moduleVersion, "1.1.0");
+    assert.equal(started.question.receipt.sourceProvenance.digest, expectedSourceSeal);
+    await page.waitForFunction((seal) => document.querySelector("#officeQuizSource")?.textContent?.includes(`版本封印 ${seal.slice(0, 10)}`), expectedSourceSeal);
 
     const stageResponse = await page.evaluate(async () => {
       const response = await fetch("api/dongzhou/v1/knowledge/stages/01", { credentials: "same-origin" });
@@ -60,6 +65,9 @@ const executablePath = [
     assert.equal(result.correct, true);
     assert.equal(result.score, 10);
     assert.equal(result.receipt.kernel.state, "SEALED");
+    assert.equal(result.receipt.kernel.moduleVersion, "1.1.0");
+    assert.equal(result.sourceProvenance.digest, expectedSourceSeal);
+    assert.deepEqual(result.receipt.sourceProvenance, result.sourceProvenance);
     await page.waitForFunction(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).knowledgeQuiz.score === 10);
     await page.waitForFunction(() => document.querySelector("#officeQuizStatus").textContent.includes("累计 10 分"));
     assert.match(await page.locator("#officeQuizStatus").innerText(), /本题 10 分 · 累计 10 分/);
@@ -74,6 +82,7 @@ const executablePath = [
     assert.equal(seal.verified, true);
     assert.equal(seal.digest, result.receipt.digest);
     assert.equal(seal.kernel.module, "dongzhou_knowledge_tournament");
+    assert.deepEqual(seal.sourceProvenance, result.sourceProvenance);
     await page.waitForFunction(() => document.querySelector("#officeQuizSealStatus").textContent.includes("内核验真"));
     assert.match(await page.locator("#officeQuizSealStatus").innerText(), /dongzhou_knowledge_tournament/);
 

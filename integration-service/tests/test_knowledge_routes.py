@@ -1,10 +1,11 @@
 import json
+import sqlite3
 from unittest.mock import patch
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-from dongzhou_integration.app import build_application
+from dongzhou_integration.app import ServiceProvenanceModule, build_application
 from dongzhou_integration.config import Settings
 from dongzhou_integration.upstreams import UpstreamUnavailable
 
@@ -290,6 +291,10 @@ def test_knowledge_quiz_hides_answer_and_is_idempotent_and_player_scoped(tmp_pat
         assert len(question["options"]) == 4
         assert "correctIndex" not in json.dumps(started.json())
         assert question["receipt"]["kernel"]["module"] == "dongzhou_knowledge_tournament"
+        assert question["receipt"]["kernel"]["moduleVersion"] == "1.1.0"
+        assert question["receipt"]["sourceProvenance"]["kernel"]["module"] == (
+            "dongzhou_service_provenance"
+        )
         correct_index = question["options"].index("杜伯")
         answer_path = f"{path}/{request_id}/answer"
         seal_path = f"{path}/{request_id}/seal"
@@ -302,6 +307,8 @@ def test_knowledge_quiz_hides_answer_and_is_idempotent_and_player_scoped(tmp_pat
         assert answer.json()["score"] == 10
         assert answer.json()["correctAnswer"] == "杜伯"
         assert answer.json()["receipt"]["kernel"]["state"] == "SEALED"
+        assert answer.json()["sourceProvenance"] == question["receipt"]["sourceProvenance"]
+        assert answer.json()["receipt"]["sourceProvenance"] == answer.json()["sourceProvenance"]
         seal = client.get(seal_path)
         assert seal.status_code == 200
         assert seal.json() == {
@@ -312,6 +319,7 @@ def test_knowledge_quiz_hides_answer_and_is_idempotent_and_player_scoped(tmp_pat
             "score": 10,
             "digest": answer.json()["receipt"]["digest"],
             "kernel": answer.json()["receipt"]["kernel"],
+            "sourceProvenance": answer.json()["sourceProvenance"],
         }
         replay = client.post(answer_path, json={
             "action_id": started.json()["action"]["actionId"],
@@ -327,6 +335,39 @@ def test_knowledge_quiz_hides_answer_and_is_idempotent_and_player_scoped(tmp_pat
         replay_start = client.post(path, json=body)
         assert replay_start.status_code == 200
         assert replay_start.json()["state"] == "COMPLETED"
+
+        drift_id = uuid4()
+        drift_started = client.post(
+            path,
+            json={"client_request_id": str(drift_id), "stage_id": "01"},
+        )
+        assert drift_started.status_code == 200
+        with sqlite3.connect(settings.database_path) as database:
+            row = database.execute(
+                "SELECT request_payload FROM requests WHERE request_id=?",
+                (str(drift_id),),
+            ).fetchone()
+            payload = json.loads(row[0])
+            drift_trace = {
+                "schemaVersion": payload["sourceProvenance"]["schemaVersion"],
+                "services": payload["sourceProvenance"]["services"],
+            }
+            drift_trace["services"]["knowledge"]["sourceRevision"] = "0" * 40
+            payload["sourceProvenance"] = ServiceProvenanceModule.seal(drift_trace)
+            database.execute(
+                "UPDATE requests SET request_payload=? WHERE request_id=?",
+                (json.dumps(payload, ensure_ascii=False), str(drift_id)),
+            )
+            database.commit()
+        drifted = client.post(
+            f"{path}/{drift_id}/answer",
+            json={
+                "action_id": drift_started.json()["action"]["actionId"],
+                "answer_index": drift_started.json()["question"]["options"].index("杜伯"),
+            },
+        )
+        assert drifted.status_code == 409
+        assert drifted.json()["error"]["code"] == "knowledge_quiz_source_drift"
 
         client.cookies.clear()
         assert client.post("/api/dongzhou/v1/sessions/guest", json={"installation_id": str(uuid4())}).status_code == 200

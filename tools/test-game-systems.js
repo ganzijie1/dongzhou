@@ -10,11 +10,13 @@ assert.equal(migrated.armyRank, 3);
 assert.equal(systems.isStageUnlocked(stages[6], migrated, stages), true);
 assert.equal(systems.isStageUnlocked(stages[7], migrated, stages), false);
 
-const quizProfile = systems.normalizeProfile({ knowledgeQuiz: { pending: {
+const quizSourceProvenance = { digest: "8".repeat(64), kernel: { module: "dongzhou_service_provenance", state: "SEALED" }, services: { knowledge: {}, aiNpc: {}, orgFlow: {}, nexusKernel: {} } };
+const newQuizProfile = () => systems.normalizeProfile({ knowledgeQuiz: { pending: {
   state: "READY",
-  question: { id: "quiz-1", options: ["甲", "乙", "丙", "丁"] },
+  question: { id: "quiz-1", options: ["甲", "乙", "丙", "丁"], receipt: { sourceProvenance: quizSourceProvenance, kernel: { module: "dongzhou_knowledge_tournament" } } },
   action: { actionId: "action-1" }
 } } }, stages);
+const quizProfile = newQuizProfile();
 const quizResult = {
   state: "COMPLETED",
   questionId: "quiz-1",
@@ -22,9 +24,11 @@ const quizResult = {
   correctIndex: 1,
   correct: true,
   score: 10,
+  sourceProvenance: quizSourceProvenance,
   receipt: {
     digest: "a".repeat(64),
-    kernel: { module: "dongzhou_knowledge_tournament", state: "SEALED" }
+    sourceProvenance: quizSourceProvenance,
+    kernel: { module: "dongzhou_knowledge_tournament", moduleVersion: "1.1.0", state: "SEALED" }
   }
 };
 const firstQuiz = systems.recordKnowledgeQuizResult(quizProfile, quizResult);
@@ -38,6 +42,8 @@ assert.equal(systems.recordKnowledgeQuizResult(replayedQuiz.profile, {
   ...quizResult,
   receipt: { ...quizResult.receipt, digest: "not-a-digest" }
 }).ok, false);
+const tamperedQuizProfile = newQuizProfile();
+assert.equal(systems.recordKnowledgeQuizResult(tamperedQuizProfile, { ...quizResult, sourceProvenance: { ...quizSourceProvenance, digest: "9".repeat(64) } }).ok, false);
 
 let profile = systems.normalizeProfile({}, stages);
 for (let index = 0; index < 6; index++) {

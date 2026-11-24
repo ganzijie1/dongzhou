@@ -493,11 +493,14 @@ class MandateWorkflowModule(Module):
 
 class KnowledgeTournamentModule(Module):
     name = "dongzhou_knowledge_tournament"
-    version = "1.0.0"
-    dependencies = (RuntimeModule.name,)
+    version = "1.1.0"
+    dependencies = (RuntimeModule.name, "dongzhou_service_provenance")
 
     @staticmethod
     def seal_question(trace: dict[str, Any]) -> dict[str, Any]:
+        source_provenance = trace.get("sourceProvenance")
+        if not _service_provenance_receipt_is_valid(source_provenance):
+            raise ValueError("knowledge quiz source provenance is invalid")
         digest = hashlib.sha256(
             json.dumps(trace, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
         ).hexdigest()
@@ -512,6 +515,7 @@ class KnowledgeTournamentModule(Module):
                 **public_question,
                 "receipt": {
                     "digest": digest,
+                    "sourceProvenance": source_provenance,
                     "kernel": {
                         "module": KnowledgeTournamentModule.name,
                         "moduleVersion": KnowledgeTournamentModule.version,
@@ -528,7 +532,15 @@ class KnowledgeTournamentModule(Module):
         }
 
     @staticmethod
-    def seal_result(question_digest: str, selected_index: int, correct_index: int, state: str) -> dict[str, Any]:
+    def seal_result(
+        question_digest: str,
+        selected_index: int,
+        correct_index: int,
+        state: str,
+        source_provenance: dict[str, Any],
+    ) -> dict[str, Any]:
+        if not _service_provenance_receipt_is_valid(source_provenance):
+            raise ValueError("knowledge quiz result source provenance is invalid")
         correct = state == "COMPLETED" and selected_index == correct_index
         score = 10 if correct else 0
         trace = {
@@ -538,6 +550,7 @@ class KnowledgeTournamentModule(Module):
             "state": state,
             "correct": correct,
             "score": score,
+            "sourceProvenance": source_provenance,
         }
         digest = hashlib.sha256(
             json.dumps(trace, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
@@ -546,6 +559,7 @@ class KnowledgeTournamentModule(Module):
             **trace,
             "receipt": {
                 "digest": digest,
+                "sourceProvenance": source_provenance,
                 "kernel": {
                     "module": KnowledgeTournamentModule.name,
                     "moduleVersion": KnowledgeTournamentModule.version,
@@ -6464,6 +6478,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 settings.knowledge_file,
                 datetime.now(UTC) + timedelta(seconds=30),
             )
+            trace["sourceProvenance"] = service_provenance.receipt()
         except UpstreamUnavailable as error:
             raise ApiError(
                 "knowledge_unavailable",
@@ -6511,9 +6526,16 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         if record is None:
             raise ApiError("knowledge_quiz_not_found", "History question not found.", status_code=404)
         internal = record.get("request") or {}
-        ready = KnowledgeTournamentModule.seal_question(
-            {key: internal[key] for key in ("id", "stageId", "knowledgeId", "title", "prompt", "options", "correctIndex", "deadlineAt")}
-        )
+        try:
+            ready = KnowledgeTournamentModule.seal_question(
+                {key: internal[key] for key in ("id", "stageId", "knowledgeId", "title", "prompt", "options", "correctIndex", "deadlineAt", "sourceProvenance")}
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            raise ApiError("knowledge_quiz_source_invalid", "History question source seal is invalid.", status_code=409) from error
+        if not _service_provenance_receipt_matches(
+            internal.get("sourceProvenance"), service_provenance.receipt()
+        ):
+            raise ApiError("knowledge_quiz_source_drift", "History question belongs to an older service version.", status_code=409)
         expected_action_id = ready["action"]["actionId"]
         if str(request.action_id) != expected_action_id:
             raise ApiError("knowledge_quiz_action_invalid", "History answer action is invalid.", status_code=409)
@@ -6531,6 +6553,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             request.answer_index,
             int(internal["correctIndex"]),
             state,
+            internal["sourceProvenance"],
         )
         response = {
             **result,
@@ -6571,13 +6594,14 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         response = record["response"]
         try:
             question = KnowledgeTournamentModule.seal_question(
-                {key: internal[key] for key in ("id", "stageId", "knowledgeId", "title", "prompt", "options", "correctIndex", "deadlineAt")}
+                {key: internal[key] for key in ("id", "stageId", "knowledgeId", "title", "prompt", "options", "correctIndex", "deadlineAt", "sourceProvenance")}
             )
             expected = KnowledgeTournamentModule.seal_result(
                 str(question["question"]["receipt"]["digest"]),
                 int(response["selectedIndex"]),
                 int(internal["correctIndex"]),
                 str(response["state"]),
+                internal["sourceProvenance"],
             )
         except (KeyError, TypeError, ValueError) as error:
             raise ApiError("knowledge_quiz_seal_invalid", "History seal cannot be reconstructed.", status_code=409) from error
@@ -6594,6 +6618,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "score": expected["score"],
             "digest": receipt["digest"],
             "kernel": receipt["kernel"],
+            "sourceProvenance": receipt["sourceProvenance"],
         }
 
     @router.post("/npcs/{hero_id}/commendations")
@@ -8631,6 +8656,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 if isinstance(quiz_receipt, dict)
                 else None
             )
+            quiz_source_provenance = (
+                quiz_response.get("sourceProvenance")
+                if isinstance(quiz_response, dict)
+                else None
+            )
             mastery_marker = (
                 f"史识印记：{request.knowledge_quiz_result_digest[:12]}"
             )
@@ -8649,6 +8679,9 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 or not isinstance(quiz_kernel, dict)
                 or quiz_kernel.get("module") != KnowledgeTournamentModule.name
                 or quiz_kernel.get("state") != "SEALED"
+                or not _service_provenance_receipt_matches(
+                    quiz_source_provenance, service_provenance.receipt()
+                )
                 or mastery_marker not in str(council_request.get("question") or "")
             ):
                 await store.finish_request(
@@ -8672,6 +8705,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "resultDigest": request.knowledge_quiz_result_digest,
                 "state": "SEALED",
                 "kernel": dict(quiz_kernel),
+                "sourceProvenance": quiz_source_provenance,
             }
 
         try:

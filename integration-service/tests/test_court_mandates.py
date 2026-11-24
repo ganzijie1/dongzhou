@@ -1946,6 +1946,7 @@ def test_verified_quiz_mastery_is_sealed_and_forwarded_to_orgflow() -> None:
                 "resultDigest": result_digest,
                 "state": "SEALED",
                 "kernel": result["receipt"]["kernel"],
+                "sourceProvenance": result["sourceProvenance"],
             }
             assert drafted.json()["mandate"]["council"]["knowledgeMastery"] == mastery
 
