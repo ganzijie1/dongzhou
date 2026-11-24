@@ -271,6 +271,25 @@ remote.task.remoteResult = "00000000-0000-0000-0000-000000000010";
 assert.strictEqual(play.remoteTaskReadyForAdvance({ state: "MEMBER_RESPONSE_PENDING", execution_started_game_time: null }), false);
 assert.strictEqual(play.remoteTaskReadyForAdvance({ state: "IN_PROGRESS", execution_started_game_time: 24306616800 }), false);
 assert.strictEqual(play.remoteTaskReadyForAdvance({ state: "SUBMISSION_PENDING", execution_started_game_time: 24306616800 }), true);
+assert.strictEqual(play.remoteTaskAdvanceBlocker({ state: "MEMBER_RESPONSE_PENDING" }), null);
+assert.deepStrictEqual(play.remoteTaskAdvanceBlocker({
+  organizationTrace: {
+    timeline: [{ type: "MESSAGE_SEND_FAILED", reasonCode: "content_policy_unavailable" }]
+  }
+}), { code: "content_policy_unavailable", message: "内容审核服务暂不可用，请稍后重试。" });
+assert.deepStrictEqual(play.remoteTaskAdvanceBlocker({
+  organizationTrace: {
+    timeline: [{ type: "MESSAGE_SEND_FAILED", reasonCode: "content_policy_exhausted" }]
+  }
+}), { code: "content_policy_exhausted", message: "传令内容未通过审核，任务已停止推进。" });
+assert.strictEqual(play.remoteTaskAdvanceBlocker({
+  organizationTrace: {
+    timeline: [
+      { type: "MESSAGE_SEND_FAILED", reasonCode: "content_policy_unavailable" },
+      { type: "MESSAGE_SENT" }
+    ]
+  }
+}), null);
 const observed = play.reconcileRemoteTasks(remote.state, [{
   task_id: remote.task.remoteResult, state: "MEMBER_RESPONSE_PENDING", execution_started_game_time: null, version: "2"
 }], { advanceMonth: false });

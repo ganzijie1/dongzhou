@@ -803,6 +803,22 @@
       && snapshot.execution_started_game_time !== undefined;
   }
 
+  function remoteTaskAdvanceBlocker(snapshot) {
+    const timeline = snapshot?.organizationTrace?.timeline;
+    if (!Array.isArray(timeline)) return null;
+    const latestDelivery = [...timeline].reverse().find((entry) => ["MESSAGE_SENT", "MESSAGE_SEND_FAILED"].includes(entry?.type));
+    if (latestDelivery?.type !== "MESSAGE_SEND_FAILED") return null;
+    const failure = latestDelivery;
+    const reasonCode = String(failure?.reasonCode || "");
+    if (reasonCode === "content_policy_unavailable") {
+      return { code: reasonCode, message: "内容审核服务暂不可用，请稍后重试。" };
+    }
+    if (reasonCode === "content_policy_exhausted") {
+      return { code: reasonCode, message: "传令内容未通过审核，任务已停止推进。" };
+    }
+    return null;
+  }
+
   function registerDerivedTasks(state, snapshots) {
     const knownRemoteIds = new Set(state.tasks.map((task) => String(task.remoteResult || "")).filter(Boolean));
     for (const snapshot of snapshots || []) {
@@ -1304,5 +1320,5 @@
     return state;
   }
 
-  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordThought, recordLogisticsBriefing, recordCommendation, recordRecollection, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, validateBattleDebrief, recordBattleOutcome, createTask, adoptScheduledDuty, advanceMonth, remoteTaskReadyForAdvance, reconcileRemoteTasks, recordTaskReview, recordInventoryRequisition, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, recordRemoteRoster, hash };
+  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordThought, recordLogisticsBriefing, recordCommendation, recordRecollection, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, validateBattleDebrief, recordBattleOutcome, createTask, adoptScheduledDuty, advanceMonth, remoteTaskReadyForAdvance, remoteTaskAdvanceBlocker, reconcileRemoteTasks, recordTaskReview, recordInventoryRequisition, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, recordRemoteRoster, hash };
 });

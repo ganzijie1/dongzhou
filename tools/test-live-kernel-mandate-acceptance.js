@@ -508,6 +508,13 @@ saveJournal();
         await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, undefined, { timeout: 240000 });
       }
     }
+    const advanceBlocker = await page.evaluate(async (taskId) => {
+      const response = await window.DongzhouIntegration.organizationTask(taskId);
+      const snapshot = response?.result?.data || response?.result || null;
+      if (snapshot && response?.organizationTrace) snapshot.organizationTrace = response.organizationTrace;
+      return window.DongzhouOrganizationPlay.remoteTaskAdvanceBlocker(snapshot);
+    }, issued.task.remoteResult);
+    assert(!advanceBlocker, `organization task advance blocked: ${JSON.stringify(advanceBlocker)}`);
     const terminalState = await page.evaluate(async ({ taskId, supportHeroId, terminalTimeoutMs }) => {
       const deadline = Date.now() + terminalTimeoutMs;
       let lastSnapshot = null;

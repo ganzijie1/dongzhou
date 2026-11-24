@@ -3637,7 +3637,9 @@
     let snapshots = initialSnapshots;
     const deadline = Date.now() + 30000;
     while (snapshots.some((snapshot) => !organization.remoteTaskReadyForAdvance(snapshot))) {
-      if (snapshots.some((snapshot) => snapshot?.review?.state === "REQUIRES_ACTION") || Date.now() >= deadline) break;
+      if (snapshots.some((snapshot) => organization.remoteTaskAdvanceBlocker(snapshot))
+        || snapshots.some((snapshot) => snapshot?.review?.state === "REQUIRES_ACTION")
+        || Date.now() >= deadline) break;
       await sleep(1500);
       snapshots = await readOrganizationTaskSnapshots(tasks);
     }
@@ -3667,6 +3669,11 @@
         const waiting = snapshots.some((snapshot) => !organization.remoteTaskReadyForAdvance(snapshot));
         if (waiting) {
           await commitOrganizationState(organization.reconcileRemoteTasks(profile.organization, snapshots, { advanceMonth: false }));
+          const blocker = snapshots.map((snapshot) => organization.remoteTaskAdvanceBlocker(snapshot)).find(Boolean);
+          if (blocker) {
+            showNotice(blocker.message);
+            return;
+          }
           showNotice(snapshots.some((snapshot) => snapshot?.review?.state === "REQUIRES_ACTION") ? "属官已经复命，请先裁可簿书。" : "差事仍在受理，待属官确认后方可推进月令。");
           return;
         }
