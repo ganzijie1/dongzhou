@@ -508,6 +508,17 @@ const legacyCommendationState = { ...correspondenceCouncil.state, commendations:
 assert.strictEqual(play.recordCommendation(legacyCommendationState, commendation).state.commendations[0].digest, commendation.digest);
 assert.throws(() => play.recordCommendation(commended.state, { ...commendation, digest: "bad" }), /内核校验/);
 assert.throws(() => play.recordCommendation(commended.state, { ...commendation, sourceProvenance: { ...sourceProvenance, digest: "bad" } }), /内核校验/);
+const meritCommendation = {
+  eventId: "npc-merit-commendation:" + "6".repeat(64), heroId: "ZuoRu", entryId: "entry-merit-1",
+  affectionType: "appreciation", affectionDelta: 3, sourceProvenance, digest: "8".repeat(64),
+  contribution: { entryId: "entry-merit-1", heroId: "ZuoRu", amount: 20, digest: "7".repeat(64) },
+  contributionDossier: { entryId: "entry-merit-1", contribution: { digest: "7".repeat(64) }, kernel: { module: "dongzhou_organization_contribution_dossier", state: "SEALED" } },
+  kernel: { module: "dongzhou_npc_merit_commendation", moduleVersion: "1.1.0", state: "SEALED" }
+};
+const meritCommended = play.recordCommendation(commended.state, meritCommendation);
+assert.strictEqual(meritCommended.state.commendations.length, 2);
+const legacyMeritState = { ...commended.state, commendations: [{ ...meritCommendation, sourceProvenance: undefined, digest: "9".repeat(64), kernel: { ...meritCommendation.kernel, moduleVersion: "1.0.0" } }] };
+assert.strictEqual(play.recordCommendation(legacyMeritState, meritCommendation).state.commendations[0].digest, meritCommendation.digest);
 
 const recollection = {
   recollectionId: "npc-recollection:" + "2".repeat(64), playerId: "player-1", heroId: "ZuoRu", npcId: "npc-1",

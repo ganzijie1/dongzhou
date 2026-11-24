@@ -1103,7 +1103,11 @@ def test_contribution_entry_is_reverified_and_sealed_into_mandate() -> None:
             assert commendation["contribution"] == contribution
             assert commendation["contributionDossier"] == dossier
             assert commendation["kernel"]["module"] == "dongzhou_npc_merit_commendation"
+            assert commendation["kernel"]["moduleVersion"] == "1.1.0"
             assert commendation["kernel"]["state"] == "SEALED"
+            assert commendation["sourceProvenance"]["kernel"]["module"] == (
+                "dongzhou_service_provenance"
+            )
 
             replayed = client.post(
                 "/api/dongzhou/v1/npcs/ZuoRu/merit-commendations",

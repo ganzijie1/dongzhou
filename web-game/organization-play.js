@@ -147,7 +147,7 @@
         : [],
       commendations: Array.isArray(source.commendations)
         ? source.commendations.filter((entry) => entry && typeof entry.eventId === "string" && (
-          entry.kernel?.module !== "dongzhou_npc_commendation"
+          !["dongzhou_npc_commendation", "dongzhou_npc_merit_commendation"].includes(entry.kernel?.module)
           || (entry.kernel?.moduleVersion === "1.1.0" && validSourceProvenance(entry.sourceProvenance))
         )).slice(-60).map(copy)
         : [],
@@ -286,6 +286,7 @@
       && String(receipt.eventId || "").startsWith("npc-commendation:")
       && Number(receipt.affectionDelta) === 2;
     const meritCommendation = receipt?.kernel?.module === "dongzhou_npc_merit_commendation"
+      && receipt?.kernel?.moduleVersion === "1.1.0"
       && String(receipt.eventId || "").startsWith("npc-merit-commendation:")
       && Number(receipt.affectionDelta) === 3
       && receipt.entryId === receipt.contribution?.entryId
@@ -294,7 +295,8 @@
       && receipt.contributionDossier?.entryId === receipt.entryId
       && receipt.contributionDossier?.contribution?.digest === receipt.contribution?.digest
       && receipt.contributionDossier?.kernel?.module === "dongzhou_organization_contribution_dossier"
-      && receipt.contributionDossier?.kernel?.state === "SEALED";
+      && receipt.contributionDossier?.kernel?.state === "SEALED"
+      && validSourceProvenance(receipt.sourceProvenance);
     if (!receipt || receipt.kernel?.state !== "SEALED"
       || !/^[0-9a-f]{64}$/.test(String(receipt.digest || ""))
       || receipt.affectionType !== "appreciation"

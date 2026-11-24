@@ -14,7 +14,9 @@ try {
 }
 
 const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
-verifyFourServiceRuntime(url);
+const runtimeReport = verifyFourServiceRuntime(url);
+const expectedSourceSeal = runtimeReport.checks?.liveRuntime?.sourceSealDigest;
+assert.match(expectedSourceSeal || "", /^[0-9a-f]{64}$/);
 const output = path.resolve(__dirname, "../output/integration-validation/merit-commendation-live.png");
 const executablePath = [
   process.env.DONGZHOU_CHROMIUM_EXECUTABLE,
@@ -77,7 +79,9 @@ const executablePath = [
     assert.equal(result.commendation.contribution.digest, contribution.digest);
     assert.equal(result.commendation.contributionDossier.digest, dossier.digest);
     assert.equal(result.commendation.kernel.module, "dongzhou_npc_merit_commendation");
+    assert.equal(result.commendation.kernel.moduleVersion, "1.1.0");
     assert.equal(result.commendation.kernel.state, "SEALED");
+    assert.equal(result.commendation.sourceProvenance.digest, expectedSourceSeal);
 
     await page.waitForFunction((entryId) => {
       const receipt = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2"))

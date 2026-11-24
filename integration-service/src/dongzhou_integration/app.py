@@ -1051,11 +1051,16 @@ class OrganizationContributionDossierModule(Module):
 
 class NpcMeritCommendationModule(Module):
     name = "dongzhou_npc_merit_commendation"
-    version = "1.0.0"
-    dependencies = (OrganizationContributionDossierModule.name,)
+    version = "1.1.0"
+    dependencies = (
+        OrganizationContributionDossierModule.name,
+        "dongzhou_service_provenance",
+    )
 
     @classmethod
     def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
+        if not _service_provenance_receipt_is_valid(trace.get("sourceProvenance")):
+            raise ValueError("NPC merit commendation source provenance is invalid")
         contribution = trace.get("contribution")
         dossier = trace.get("contributionDossier")
         if (
@@ -6825,6 +6830,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "affectionDelta": 3,
             "contribution": contribution,
             "contributionDossier": dossier,
+            "sourceProvenance": service_provenance.receipt(),
         }
         return {
             "state": "COMPLETED",
