@@ -756,8 +756,9 @@
       || (releasedTaskIds.length ? canonicalJson(returnedManagerMemberIds) !== canonicalJson([managerId]) : returnedManagerMemberIds.length !== 0)
       || releasedTaskIds.some((taskId) => {
         const task = releasedTasks.get(taskId);
-        return !task || task.state !== "REASSIGN_PENDING"
-          || task.timeline?.at(-1)?.type !== "TASK_RESPONSIBILITY_RELEASED_MEMBER_DEPARTURE";
+        return !task || !["REASSIGN_PENDING", "DISPATCHING"].includes(task.state)
+          || !task.timeline?.some((event) => event.type === "TASK_RESPONSIBILITY_RELEASED_MEMBER_DEPARTURE"
+            && event.operationId === departure.operationId);
       })) {
       throw new Error("organization_membership_departure_seal_invalid");
     }
@@ -849,6 +850,7 @@
         ? (organization.localPlayerDepartures || []).find((entry) => entry.resultingHierarchyVersion === career.version) || null
         : null;
       const validatedDeparture = await validateLocalMembershipDeparture(organization, departure, career, receipt, sourceProvenance);
+      await verifiedLocalPlayerTasks(organization);
       return { mode: "standalone", replayed: true, organization, career, roster, receipt, departure: validatedDeparture };
     }
     if (existing && canonicalJson(existing) !== canonicalJson(receipt)) throw new Error("organization_membership_seal_invalid");
@@ -874,6 +876,60 @@
       };
       departures.push(departure);
     }
+    const reassignments = Array.isArray(organization.localPlayerReassignments)
+      ? organization.localPlayerReassignments.slice()
+      : [];
+    const createdReassignments = [];
+    if (departure?.releasedTaskIds?.length) {
+      for (let index = 0; index < membershipTasks.length; index += 1) {
+        const task = membershipTasks[index];
+        if (task.state !== "REASSIGN_PENDING" || !departure.releasedTaskIds.includes(task.taskId)) continue;
+        const releasedTaskTraceDigest = task.organizationTrace.digest;
+        task.version += 1;
+        task.updatedAt = localCareerTimestamp(index, task.version);
+        task.state = "DISPATCHING";
+        const dispatchStepId = uuidFromDigest(await sha256(`local-reassignment-dispatch:${departure.operationId}:${task.taskId}:1`));
+        const managementWorkItemId = uuidFromDigest(await sha256(`local-reassignment-work-item:${departure.operationId}:${task.taskId}:1`));
+        task.timeline.push({
+          sequence: task.timeline.length + 1,
+          type: "REASSIGNMENT_RESOURCE_CLEANUP_COMPLETED",
+          occurredAt: task.updatedAt,
+          stateCode: "REASSIGN_PENDING",
+          operationId: departure.operationId,
+          resourceCleanupState: "NOT_REQUIRED"
+        });
+        task.timeline.push({
+          sequence: task.timeline.length + 1,
+          type: "MANAGER_DISPATCH_PREPARE_OPENED",
+          occurredAt: task.updatedAt,
+          stateCode: task.state,
+          operationId: departure.operationId,
+          dispatchStepId,
+          managementWorkItemId
+        });
+        const reassignment = await sealLocalTaskReassignment({
+          reassignmentId: uuidFromDigest(await sha256(`local-task-reassignment:${departure.operationId}:${task.taskId}`)),
+          taskId: task.taskId,
+          departureOperationId: departure.operationId,
+          releasedTaskTraceDigest,
+          fromState: "REASSIGN_PENDING",
+          taskState: task.state,
+          taskVersion: task.version,
+          resourceCleanupState: "NOT_REQUIRED",
+          managerHeroId: "DuBo",
+          managerMemberId: departure.returnedManagerMemberIds[0],
+          dispatchStepId,
+          dispatchStepNo: 1,
+          dispatchState: "PENDING_MANAGER_ACTION",
+          managementWorkItemId,
+          workItemState: "OPEN"
+        }, sourceProvenance);
+        task.reassignment = reassignment;
+        task.organizationTrace = await sealLocalPlayerTask(task, sourceProvenance);
+        reassignments.push(reassignment);
+        createdReassignments.push(reassignment);
+      }
+    }
     const clearances = Array.isArray(organization.localPlayerContributionClearances)
       ? organization.localPlayerContributionClearances.slice()
       : [];
@@ -897,13 +953,14 @@
       localPlayerCareer: career,
       localPlayerTasks: membershipTasks,
       localPlayerDepartures: departures,
+      localPlayerReassignments: reassignments,
       localPlayerContributionClearances: clearances
     };
     const previousProfile = offlineProfile;
     offlineProfile = { ...(currentProfile || {}), organization: nextOrganization };
     const roster = localOrganizationRoster();
     offlineProfile = previousProfile;
-    return { mode: "standalone", replayed, organization: nextOrganization, career, roster, receipt, departure };
+    return { mode: "standalone", replayed, organization: nextOrganization, career, roster, receipt, departure, reassignments: createdReassignments };
   }
 
   function localCareerTimestamp(taskIndex, version) {
@@ -912,7 +969,7 @@
     return `0771-01-${day}T00:00:${second}Z`;
   }
 
-  async function sealLocalPlayerTask(task, sourceProvenance, contentVersion = 3) {
+  async function sealLocalPlayerTask(task, sourceProvenance, contentVersion = 4) {
     const trace = {
       taskId: task.taskId,
       taskState: task.state,
@@ -927,6 +984,7 @@
       activeConfirmations: task.activeConfirmations || [],
       supplementRequest: task.supplementRequest || null,
       executionException: task.executionException || null,
+      ...(contentVersion >= 4 ? { reassignment: task.reassignment || null } : {}),
       timeline: task.timeline || [],
       sourceProvenance
     };
@@ -938,20 +996,77 @@
     };
   }
 
+  async function sealLocalTaskReassignment(input, sourceProvenance) {
+    const trace = {
+      reassignmentId: input.reassignmentId,
+      taskId: input.taskId,
+      departureOperationId: input.departureOperationId,
+      releasedTaskTraceDigest: input.releasedTaskTraceDigest,
+      fromState: input.fromState,
+      taskState: input.taskState,
+      taskVersion: input.taskVersion,
+      resourceCleanupState: input.resourceCleanupState,
+      managerHeroId: input.managerHeroId,
+      managerMemberId: input.managerMemberId,
+      dispatchStepId: input.dispatchStepId,
+      dispatchStepNo: input.dispatchStepNo,
+      dispatchState: input.dispatchState,
+      managementWorkItemId: input.managementWorkItemId,
+      workItemState: input.workItemState,
+      sourceProvenance
+    };
+    return {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: { module: "dongzhou_organization_task_reassignment", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    };
+  }
+
+  async function validateLocalTaskReassignment(organization, task, sourceProvenance) {
+    if (!task.reassignment) return null;
+    const reassignment = task.reassignment;
+    const expected = await sealLocalTaskReassignment(reassignment, sourceProvenance);
+    const stored = (organization.localPlayerReassignments || []).find((entry) => entry.reassignmentId === reassignment.reassignmentId);
+    const departure = (organization.localPlayerDepartures || []).find((entry) => entry.operationId === reassignment.departureOperationId);
+    const releaseEvent = task.timeline?.find((event) => event.type === "TASK_RESPONSIBILITY_RELEASED_MEMBER_DEPARTURE"
+      && event.operationId === reassignment.departureOperationId);
+    const cleanupEvent = task.timeline?.find((event) => event.type === "REASSIGNMENT_RESOURCE_CLEANUP_COMPLETED"
+      && event.operationId === reassignment.departureOperationId);
+    const dispatchEvent = task.timeline?.find((event) => event.type === "MANAGER_DISPATCH_PREPARE_OPENED"
+      && event.operationId === reassignment.departureOperationId);
+    if (canonicalJson(reassignment) !== canonicalJson(expected)
+      || canonicalJson(stored) !== canonicalJson(expected)
+      || !departure?.releasedTaskIds?.includes(task.taskId)
+      || departure.returnedManagerMemberIds?.[0] !== reassignment.managerMemberId
+      || task.state !== "DISPATCHING" || reassignment.taskState !== task.state || reassignment.taskVersion !== task.version
+      || reassignment.fromState !== "REASSIGN_PENDING" || reassignment.resourceCleanupState !== "NOT_REQUIRED"
+      || reassignment.managerHeroId !== "DuBo" || reassignment.dispatchStepNo !== 1
+      || reassignment.dispatchState !== "PENDING_MANAGER_ACTION" || reassignment.workItemState !== "OPEN"
+      || !releaseEvent || cleanupEvent?.resourceCleanupState !== "NOT_REQUIRED"
+      || dispatchEvent?.dispatchStepId !== reassignment.dispatchStepId
+      || dispatchEvent?.managementWorkItemId !== reassignment.managementWorkItemId) {
+      throw new Error("organization_player_task_reassignment_invalid");
+    }
+    return expected;
+  }
+
   async function verifiedLocalPlayerTasks(organization) {
     const sourceProvenance = await localServiceProvenance();
     const tasks = Array.isArray(organization.localPlayerTasks) ? organization.localPlayerTasks : [];
     for (const task of tasks) {
       const expected = await sealLocalPlayerTask(task, sourceProvenance);
       if (canonicalJson(task.organizationTrace) !== canonicalJson(expected)) {
+        const previousV3 = await sealLocalPlayerTask(task, sourceProvenance, 3);
         const previous = await sealLocalPlayerTask(task, sourceProvenance, 2);
         const legacy = await sealLocalPlayerTask(task, sourceProvenance, 0);
         const matchedLegacy = canonicalJson(task.organizationTrace) === canonicalJson(legacy);
-        if (canonicalJson(task.organizationTrace) !== canonicalJson(previous)
+        if (canonicalJson(task.organizationTrace) !== canonicalJson(previousV3)
+          && canonicalJson(task.organizationTrace) !== canonicalJson(previous)
           && !matchedLegacy) throw new Error("organization_player_task_seal_invalid");
         task.organizationTrace = expected;
         if (matchedLegacy) task.localTraceMigratedFromV1 = true;
       }
+      await validateLocalTaskReassignment(organization, task, sourceProvenance);
     }
     return tasks;
   }

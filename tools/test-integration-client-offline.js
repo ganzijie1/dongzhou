@@ -174,10 +174,21 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(careerLeave.departure.membershipDigest, careerLeave.receipt.digest);
   assert.strictEqual(careerLeave.departure.kernel.module, "dongzhou_organization_membership_departure");
   const releasedTask = careerLeave.organization.localPlayerTasks.find((task) => task.taskId === departureBlockedTask.task.taskId);
-  assert.strictEqual(releasedTask.state, "REASSIGN_PENDING");
-  assert.strictEqual(releasedTask.timeline.at(-1).type, "TASK_RESPONSIBILITY_RELEASED_MEMBER_DEPARTURE");
-  assert.strictEqual(releasedTask.timeline.at(-1).operationId, careerLeave.departure.operationId);
-  assert.strictEqual(releasedTask.organizationTrace.taskState, "REASSIGN_PENDING");
+  assert.strictEqual(releasedTask.state, "DISPATCHING");
+  assert.deepStrictEqual(releasedTask.timeline.slice(-3).map((event) => event.type), [
+    "TASK_RESPONSIBILITY_RELEASED_MEMBER_DEPARTURE",
+    "REASSIGNMENT_RESOURCE_CLEANUP_COMPLETED",
+    "MANAGER_DISPATCH_PREPARE_OPENED"
+  ]);
+  assert.strictEqual(releasedTask.timeline.at(-3).operationId, careerLeave.departure.operationId);
+  assert.strictEqual(releasedTask.organizationTrace.taskState, "DISPATCHING");
+  assert.strictEqual(careerLeave.reassignments.length, 1);
+  assert.strictEqual(releasedTask.reassignment.digest, careerLeave.reassignments[0].digest);
+  assert.strictEqual(releasedTask.reassignment.resourceCleanupState, "NOT_REQUIRED");
+  assert.strictEqual(releasedTask.reassignment.managerHeroId, "DuBo");
+  assert.strictEqual(releasedTask.reassignment.dispatchState, "PENDING_MANAGER_ACTION");
+  assert.strictEqual(releasedTask.reassignment.workItemState, "OPEN");
+  assert.strictEqual(releasedTask.reassignment.kernel.module, "dongzhou_organization_task_reassignment");
   localProfile.organization = careerLeave.organization;
   await client.persist(localProfile);
   assert.strictEqual((await client.setOrganizationMembership("LEAVE")).departure.digest, careerLeave.departure.digest);
@@ -191,6 +202,15 @@ const client = require("../web-game/integration-client.js");
   await client.persist(localProfile);
   await assert.rejects(client.setOrganizationMembership("LEAVE"), /organization_membership_departure_seal_invalid/);
   localProfile.organization.localPlayerDepartures.push(removedDeparture);
+  await client.persist(localProfile);
+  const cleanReassignment = JSON.stringify(localProfile.organization.localPlayerReassignments.at(-1));
+  localProfile.organization.localPlayerReassignments[localProfile.organization.localPlayerReassignments.length - 1] = {
+    ...localProfile.organization.localPlayerReassignments.at(-1),
+    digest: "0".repeat(64)
+  };
+  await client.persist(localProfile);
+  await assert.rejects(client.organizationPlayerTasks(), /organization_player_task_reassignment_invalid/);
+  localProfile.organization.localPlayerReassignments[localProfile.organization.localPlayerReassignments.length - 1] = JSON.parse(cleanReassignment);
   await client.persist(localProfile);
   const clearedContributions = await client.organizationPlayerContributions();
   assert.strictEqual(clearedContributions.entries.length, 3);

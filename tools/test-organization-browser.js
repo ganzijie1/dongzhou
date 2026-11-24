@@ -192,8 +192,14 @@ async function openReady(page) {
       || releasedMembership.career.contributionBalance !== 0 || releasedMembership.career.lifetimeEarned !== 30 || releasedMembership.career.lifetimeSpent !== 30
       || releasedMembership.contributions.entries.at(-1)?.eventCode !== "MEMBER_DEPARTURE_CONTRIBUTION_CLEARED"
       || releasedMembership.contributions.entries.at(-1)?.amount !== -30 || releasedMembership.contributions.account.accountBalance !== 0
-      || releasedMembership.releasedTask?.state !== "REASSIGN_PENDING"
-      || releasedMembership.releasedTask?.timeline?.at(-1)?.type !== "TASK_RESPONSIBILITY_RELEASED_MEMBER_DEPARTURE"
+      || releasedMembership.releasedTask?.state !== "DISPATCHING"
+      || releasedMembership.releasedTask?.timeline?.at(-3)?.type !== "TASK_RESPONSIBILITY_RELEASED_MEMBER_DEPARTURE"
+      || releasedMembership.releasedTask?.timeline?.at(-2)?.type !== "REASSIGNMENT_RESOURCE_CLEANUP_COMPLETED"
+      || releasedMembership.releasedTask?.timeline?.at(-1)?.type !== "MANAGER_DISPATCH_PREPARE_OPENED"
+      || releasedMembership.releasedTask?.reassignment?.managerHeroId !== "DuBo"
+      || releasedMembership.releasedTask?.reassignment?.dispatchState !== "PENDING_MANAGER_ACTION"
+      || releasedMembership.releasedTask?.reassignment?.workItemState !== "OPEN"
+      || releasedMembership.releasedTask?.reassignment?.kernel?.module !== "dongzhou_organization_task_reassignment"
       || releasedMembership.departure?.operationType !== "V12_MEMBER_LEAVE"
       || releasedMembership.departure?.releasedTaskIds?.[0] !== releasedMembership.releasedTask?.taskId
       || releasedMembership.departure?.returnedManagerMemberIds?.length !== 1
