@@ -51,6 +51,7 @@
       "tools/test-live-logistics-briefing.js",
       "tools/test-live-manager-support.js",
       "tools/test-live-membership-browser.js",
+      "tools/test-live-merit-commendation.js",
       "tools/test-live-motivation-loop.js",
       "tools/test-live-office-inventory.js",
       "tools/test-live-office-npc-state.js",
@@ -66,7 +67,6 @@
     "externalInputWorkflows": {
       "tools/test-live-censure-acceptance.js": "requires a completed task that is awaiting a CENSURE review and its owning installation ID",
       "tools/test-live-mandate-mobile.js": "requires a private acceptance journal path",
-      "tools/test-live-merit-commendation.js": "requires an existing positive NPC organization-task contribution entry",
       "tools/test-live-office-acceptance.js": "requires a private acceptance journal path",
       "tools/test-live-orgflow-followup.js": "requires a previously generated parent task, derived child task, and owning installation ID",
       "tools/test-live-settlement-acceptance.js": "requires a completed live task journal path",
