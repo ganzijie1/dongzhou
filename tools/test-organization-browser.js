@@ -139,8 +139,26 @@ async function openReady(page) {
     await desktop.waitForSelector("#officeCareerStatus >> text=执行中", { timeout: 10000 });
     await desktop.fill("#officeCareerResult", "北路桥梁冲毁，车队暂时受阻");
     await desktop.click("#officeCareerException");
-    await desktop.waitForSelector('#officeCareerStatus [data-exception-state="ACCEPTED"]', { timeout: 10000 });
-    await desktop.waitForSelector("#officeCareerFeedback >> text=本地受阻记录已封存", { timeout: 10000 });
+    await desktop.waitForSelector('#officeCareerStatus [data-exception-state="OPEN"] >> text=受阻待裁', { timeout: 10000 });
+    await desktop.waitForSelector('#officeCareerStatus [data-exception-state="OPEN"] >> text=按方案复行', { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerFeedback >> text=请选择复行方案", { timeout: 10000 });
+    await desktop.selectOption('[data-office-career-recovery-plan-task-id]', "reissue-same-step");
+    await desktop.click('[data-office-career-recovery-decision="ACCEPT"]');
+    await desktop.waitForSelector('#officeCareerStatus [data-exception-state="ACCEPTED"] >> text=已经复行', { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerFeedback >> text=已按「重发本步」恢复执行", { timeout: 10000 });
+    const recoveryState = await desktop.evaluate(() => {
+      const task = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.localPlayerTasks[0];
+      return { exception: task.executionException, recovery: task.executionRecovery, confirmationCount: task.activeConfirmations.length };
+    });
+    if (recoveryState.exception?.state !== "ACCEPTED"
+      || recoveryState.exception?.selectedPlanId !== "reissue-same-step"
+      || recoveryState.recovery?.state !== "COMPLETED"
+      || recoveryState.recovery?.stage !== "resumed"
+      || recoveryState.recovery?.recoveryMode !== "reissue_same_step"
+      || recoveryState.recovery?.kernel?.module !== "dongzhou_npc_execution_recovery"
+      || recoveryState.confirmationCount !== 0) {
+      throw new Error(`Offline execution recovery was not sealed: ${JSON.stringify(recoveryState)}`);
+    }
     await desktop.fill("#officeCareerResult", "改走西驿道后核清军粮账册");
     await desktop.click("#officeCareerResultSubmit");
     await desktop.waitForSelector("#officeCareerStatus >> text=待补充", { timeout: 10000 });

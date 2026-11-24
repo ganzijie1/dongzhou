@@ -132,6 +132,11 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(taskOptions.tasks.catalog.options[0].targetPositionDisplayName, "军府属官·第12席");
   assert.deepStrictEqual(taskOptions.tasks.catalog.options[0].defaultParameters, { execution_days: 1 });
   assert.deepStrictEqual(taskOptions.tasks.catalog.options[0].assigneeModifiableParameterPaths, ["/execution_days"]);
+  assert.strictEqual(taskOptions.tasks.catalog.options[0].exceptionPolicy.majorExecutionConfirmationSeconds, 300);
+  assert.strictEqual(taskOptions.tasks.catalog.options[0].exceptionPolicy.defaultPlanId, "replan");
+  assert.deepStrictEqual(taskOptions.tasks.catalog.options[0].exceptionPolicy.plans.map((plan) => plan.recoveryMode), [
+    "resume_same_execution", "reissue_same_step", "replan"
+  ]);
   assert.deepStrictEqual((await client.organizationPlayerTasks()).catalog, taskOptions.tasks.catalog);
   await assert.rejects(client.applyOrganizationPlayerTaskAction("REQUEST", { title: "Invented task" }), (error) => {
     assert.strictEqual(error.code, "organization_player_task_catalog_invalid");
@@ -186,14 +191,37 @@ const client = require("../web-game/integration-client.js");
   assert.deepStrictEqual(requestedTask.task.taskDefinitionSnapshot.presentationSnapshot.requirementSnapshot.core.map((item) => item.requirementId), ["core-1", "core-2"]);
   assert.strictEqual(requestedTask.task.taskDefinitionSnapshot.presentationSnapshot.submissionSchema.required[0], "summary");
   assert.strictEqual(requestedTask.task.taskDefinitionSnapshot.executionPolicy.baseExecutionGameSeconds, 86400);
+  assert.deepStrictEqual(requestedTask.task.taskDefinitionSnapshot.exceptionPolicy, taskOptions.tasks.catalog.options[0].exceptionPolicy);
   assert.strictEqual(requestedTask.task.taskDefinitionSnapshot.contributionPolicy.successMemberContribution, 20);
   assert.deepStrictEqual(requestedTask.task.organizationTrace.taskDefinitionSnapshot, requestedTask.task.taskDefinitionSnapshot);
   assert.strictEqual(requestedTask.task.organizationTrace.kernel.moduleVersion, "1.1.0");
   const currentTrace = requestedTask.task.organizationTrace;
-  const { state: traceState, digest: traceDigest, kernel: traceKernel, source: omittedSource,
+  const { state: traceState, digest: traceDigest, kernel: traceKernel,
+    executionStartedGameTime: omittedStartedGameTime, executionDueGameTime: omittedDueGameTime,
+    executionClockEpoch: omittedClockEpoch, executionPausedGameSeconds: omittedPausedGameSeconds,
+    ...v12Payload } = currentTrace;
+  assert.strictEqual(omittedStartedGameTime, null);
+  assert.strictEqual(omittedDueGameTime, null);
+  assert.strictEqual(omittedClockEpoch, null);
+  assert.strictEqual(omittedPausedGameSeconds, 0);
+  const v12Trace = { state: traceState, ...v12Payload, digest: sha256(canonicalJson(v12Payload)), kernel: traceKernel };
+  localProfile.organization.localPlayerTasks[0].organizationTrace = v12Trace;
+  await client.persist(localProfile);
+  const migratedV12Trace = (await client.organizationPlayerTasks()).items[0].organizationTrace;
+  assert.strictEqual(migratedV12Trace.executionStartedGameTime, null);
+  assert.notStrictEqual(migratedV12Trace.digest, v12Trace.digest);
+  const { executionRecovery: omittedExecutionRecovery, ...v11Payload } = v12Payload;
+  assert.strictEqual(omittedExecutionRecovery, null);
+  const v11Trace = { state: traceState, ...v11Payload, digest: sha256(canonicalJson(v11Payload)), kernel: traceKernel };
+  localProfile.organization.localPlayerTasks[0].organizationTrace = v11Trace;
+  await client.persist(localProfile);
+  const migratedV11Trace = (await client.organizationPlayerTasks()).items[0].organizationTrace;
+  assert.strictEqual(migratedV11Trace.executionRecovery, null);
+  assert.notStrictEqual(migratedV11Trace.digest, v11Trace.digest);
+  const { source: omittedSource,
     predecessorTaskId: omittedPredecessorTaskId, derivationIntentId: omittedDerivationIntentId,
     generationDepth: omittedGenerationDepth, derivationIntentIds: omittedDerivationIntentIds,
-    derivedTaskIds: omittedDerivedTaskIds, ...v10Payload } = currentTrace;
+    derivedTaskIds: omittedDerivedTaskIds, ...v10Payload } = v11Payload;
   assert.strictEqual(omittedSource, "MANAGER");
   assert.strictEqual(omittedPredecessorTaskId, null);
   assert.strictEqual(omittedDerivationIntentId, null);
@@ -231,9 +259,74 @@ const client = require("../web-game/integration-client.js");
   const migratedV7Trace = (await client.organizationPlayerTasks()).items[0].organizationTrace;
   assert.deepStrictEqual(migratedV7Trace.taskDefinitionSnapshot, requestedTask.task.taskDefinitionSnapshot);
   assert.notStrictEqual(migratedV7Trace.digest, v7Trace.digest);
-  assert.strictEqual((await applyCareerAction("ACCEPT", { taskId: playerTaskId })).task.state, "IN_PROGRESS");
+  const acceptedTask = await applyCareerAction("ACCEPT", { taskId: playerTaskId });
+  assert.strictEqual(acceptedTask.task.state, "IN_PROGRESS");
+  assert.strictEqual(acceptedTask.task.executionStartedGameTime, acceptedTask.task.version);
+  assert.strictEqual(acceptedTask.task.executionDueGameTime,
+    acceptedTask.task.executionStartedGameTime + acceptedTask.task.effectiveExecutionGameSeconds);
+  assert.strictEqual(acceptedTask.task.executionPausedGameSeconds, 0);
   const blockedTask = await applyCareerAction("EXCEPTION", { taskId: playerTaskId, detail: "Bridge closed" });
-  assert.strictEqual(blockedTask.task.executionException.state, "ACCEPTED");
+  assert.strictEqual(blockedTask.task.executionException.state, "OPEN");
+  assert.strictEqual(blockedTask.task.executionException.selectedPlanId, null);
+  assert.strictEqual(blockedTask.task.executionException.defaultPlanId, "replan");
+  assert.deepStrictEqual(blockedTask.task.executionException.plans.map((plan) => plan.recoveryMode), [
+    "resume_same_execution", "reissue_same_step", "replan"
+  ]);
+  assert.strictEqual(blockedTask.task.executionRecovery.state, "REQUIRES_ACTION");
+  assert.strictEqual(blockedTask.task.executionRecovery.stage, "paused");
+  assert.strictEqual(blockedTask.task.executionRecovery.recoveryMode, null);
+  assert.strictEqual(blockedTask.task.executionRecovery.kernel.module, "dongzhou_npc_execution_recovery");
+  assert.strictEqual(blockedTask.task.executionRecovery.kernel.state, "REQUIRES_ACTION");
+  assert.match(blockedTask.task.executionRecovery.action.expiresAt, /^0771-01-01T00:05:/);
+  assert.strictEqual(blockedTask.task.activeConfirmations[0].actionId, blockedTask.task.executionRecovery.actionId);
+  assert.deepStrictEqual(blockedTask.task.activeConfirmations[0].allowedActions, [
+    "accept_exception_plan", "reject_exception_plan", "terminate"
+  ]);
+  await assert.rejects(applyCareerAction("EXCEPTION", {
+    taskId: playerTaskId, detail: "Duplicate interruption"
+  }), /organization_player_task_recovery_state_invalid/);
+  await assert.rejects(applyCareerAction("RECOVER", {
+    taskId: playerTaskId, actionId: "wrong-action", expectedTaskVersion: blockedTask.task.version,
+    decision: "ACCEPT", planId: "replan"
+  }), /organization_player_task_recovery_action_mismatch/);
+  await assert.rejects(applyCareerAction("RECOVER", {
+    taskId: playerTaskId, actionId: blockedTask.task.executionRecovery.actionId,
+    expectedTaskVersion: blockedTask.task.version - 1, decision: "ACCEPT", planId: "replan"
+  }), /organization_player_task_recovery_version_conflict/);
+  await assert.rejects(applyCareerAction("RECOVER", {
+    taskId: playerTaskId, actionId: blockedTask.task.executionRecovery.actionId,
+    expectedTaskVersion: blockedTask.task.version, decision: "ACCEPT", planId: "unknown-plan"
+  }), /organization_player_task_recovery_plan_invalid/);
+  const recoveredTask = await applyCareerAction("RECOVER", {
+    taskId: playerTaskId,
+    actionId: blockedTask.task.executionRecovery.actionId,
+    expectedTaskVersion: blockedTask.task.version,
+    decision: "ACCEPT",
+    planId: "replan"
+  });
+  assert.strictEqual(recoveredTask.task.state, "IN_PROGRESS");
+  assert.strictEqual(recoveredTask.task.executionException.state, "ACCEPTED");
+  assert.strictEqual(recoveredTask.task.executionException.selectedPlanId, "replan");
+  assert.strictEqual(recoveredTask.task.executionException.resolutionSource, "PLAYER_CONFIRMATION");
+  assert.strictEqual(recoveredTask.task.executionRecovery.state, "COMPLETED");
+  assert.strictEqual(recoveredTask.task.executionRecovery.stage, "resumed");
+  assert.strictEqual(recoveredTask.task.executionRecovery.recoveryMode, "replan");
+  assert.strictEqual(recoveredTask.task.executionRecovery.action, null);
+  assert.strictEqual(recoveredTask.task.executionRecovery.kernel.state, "COMPLETED");
+  assert.strictEqual(recoveredTask.task.executionPausedGameSeconds, 1);
+  assert.strictEqual(recoveredTask.task.executionDueGameTime, acceptedTask.task.executionDueGameTime + 1);
+  assert.deepStrictEqual(recoveredTask.task.organizationTrace.timeline.slice(-2).map((item) => item.type), [
+    "CONFIRMATION_RESOLVED", "EXECUTION_EXCEPTION_RESOLVED"
+  ]);
+  const replayedRecovery = await client.applyOrganizationPlayerTaskAction("RECOVER", {
+    taskId: playerTaskId,
+    actionId: blockedTask.task.executionRecovery.actionId,
+    expectedTaskVersion: blockedTask.task.version,
+    decision: "ACCEPT",
+    planId: "replan"
+  });
+  assert.strictEqual(replayedRecovery.replayed, true);
+  assert.strictEqual(replayedRecovery.task.executionRecovery.digest, recoveredTask.task.executionRecovery.digest);
   await assert.rejects(applyCareerAction("RESULT", {
     taskId: playerTaskId,
     detail: "Invalid structured report",
@@ -378,11 +471,33 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(finalRejection.task.state, "REJECTED");
   assert.strictEqual(finalRejection.task.finalMemberChoice.decision, "REJECT");
   assert.strictEqual(finalRejection.task.parameterModification.resolutionReasonCode, "manager_capacity_reserved");
-  const rejectedTask = await applyCareerAction("REQUEST", { title: "查访边情" });
-  assert.strictEqual((await applyCareerAction("REJECT", { taskId: rejectedTask.task.taskId, detail: "No escort" })).task.state, "REJECTED");
+  const terminatedTask = await applyCareerAction("REQUEST", { title: "查访边情" });
+  await applyCareerAction("ACCEPT", { taskId: terminatedTask.task.taskId });
+  const terminatedException = await applyCareerAction("EXCEPTION", { taskId: terminatedTask.task.taskId, detail: "No escort" });
+  const terminatedRecovery = await applyCareerAction("RECOVER", {
+    taskId: terminatedTask.task.taskId,
+    actionId: terminatedException.task.executionRecovery.actionId,
+    expectedTaskVersion: terminatedException.task.version,
+    decision: "TERMINATE"
+  });
+  assert.strictEqual(terminatedRecovery.task.state, "CANCELLED");
+  assert.strictEqual(terminatedRecovery.task.executionException.state, "TERMINATED");
+  assert.strictEqual(terminatedRecovery.task.executionRecovery.state, "TERMINATED");
+  assert.strictEqual(terminatedRecovery.task.executionRecovery.stage, "terminated");
   const failedTask = await applyCareerAction("REQUEST", { title: "整训军阵" });
   await applyCareerAction("ACCEPT", { taskId: failedTask.task.taskId });
-  assert.strictEqual((await applyCareerAction("RESULT", { taskId: failedTask.task.taskId, detail: "Failed because the pass collapsed" })).task.state, "FAILED");
+  const failedException = await applyCareerAction("EXCEPTION", { taskId: failedTask.task.taskId, detail: "Pass collapsed" });
+  const rejectedRecovery = await applyCareerAction("RECOVER", {
+    taskId: failedTask.task.taskId,
+    actionId: failedException.task.executionRecovery.actionId,
+    expectedTaskVersion: failedException.task.version,
+    decision: "REJECT"
+  });
+  assert.strictEqual(rejectedRecovery.task.state, "FAILED");
+  assert.strictEqual(rejectedRecovery.task.executionException.state, "REJECTED");
+  assert.strictEqual(rejectedRecovery.task.executionRecovery.state, "REJECTED");
+  assert.strictEqual(rejectedRecovery.task.executionRecovery.stage, "failed");
+  assert.strictEqual(rejectedRecovery.task.derivationIntentIds.length, 1);
   assert.strictEqual((await client.organizationPlayerContributions()).entries.length, 2);
   const departureBlockedTask = await applyCareerAction("REQUEST", { title: "修好诸侯" });
   await assert.rejects(client.setOrganizationMembership("LEAVE"), (error) => {
@@ -511,6 +626,20 @@ const client = require("../web-game/integration-client.js");
   await client.persist(localProfile);
   await assert.rejects(client.organizationPlayerTasks(), /organization_player_task_derivation_seal_invalid/);
   localProfile.organization.localPlayerDerivationIntents = JSON.parse(cleanDerivationIntents);
+  const sealedRecoveryTask = localProfile.organization.localPlayerTasks.find((task) => task.executionRecovery?.state === "COMPLETED");
+  sealedRecoveryTask.executionRecovery.recoveryMode = "resume_same_execution";
+  sealedRecoveryTask.organizationTrace.executionRecovery.recoveryMode = "resume_same_execution";
+  const { state: recoveryTraceState, digest: ignoredRecoveryTraceDigest, kernel: recoveryTraceKernel,
+    ...recoveryTaskTrace } = sealedRecoveryTask.organizationTrace;
+  sealedRecoveryTask.organizationTrace = {
+    state: recoveryTraceState,
+    ...recoveryTaskTrace,
+    digest: sha256(canonicalJson(recoveryTaskTrace)),
+    kernel: recoveryTraceKernel
+  };
+  await client.persist(localProfile);
+  await assert.rejects(client.organizationPlayerTasks(), /organization_player_task_recovery_seal_invalid/);
+  localProfile.organization.localPlayerTasks = JSON.parse(cleanPlayerTasks);
   const sealedSubmission = localProfile.organization.localPlayerTasks.find((task) => task.submissions?.length)?.submissions[0];
   sealedSubmission.contentSnapshot.result_summary = "forged submission";
   await client.persist(localProfile);

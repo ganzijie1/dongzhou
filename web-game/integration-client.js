@@ -29,7 +29,7 @@
   const LOCAL_LOGISTICS_BRIEFING_PREFIX = "dongzhou-local-logistics-briefing-v1:";
   const LOCAL_SCHEDULED_DUTY_STATUS_PREFIX = "dongzhou-local-scheduled-duty-status-v1:";
   const LOCAL_MEMBERSHIP_PREFIX = "dongzhou-local-membership-v1:";
-  const LOCAL_PLAYER_TASK_ACTIONS = new Set(["OPTIONS", "INBOX", "REQUEST", "ACCEPT", "REJECT", "MODIFY", "REVIEW", "EXCEPTION", "RESULT", "SUPPLEMENT", "DERIVE"]);
+  const LOCAL_PLAYER_TASK_ACTIONS = new Set(["OPTIONS", "INBOX", "REQUEST", "ACCEPT", "REJECT", "MODIFY", "REVIEW", "EXCEPTION", "RECOVER", "RESULT", "SUPPLEMENT", "DERIVE"]);
   const LOCAL_PLAYER_TASK_CATALOG = Object.freeze([
     { taskCode: "dongzhou.granary.audit", taskType: "NORMAL", title: "核验军粮账册", purpose: "核清府库军粮收支与余量。", defaultBrief: "核验军粮账册并呈报差异。", coreRequirements: ["核对账面与实存", "说明差异及处置建议"], ordinaryRequirements: ["附具复核记录"], baseExecutionGameSeconds: 86400, successOrganizationContribution: 20, successMemberContribution: 20, derivedTaskRules: [{ ruleId: "granary_failure_patrol_remediation", source: "REMEDIATION", triggerResults: ["FAILURE"], triggerReasonCodes: [], targetTaskCode: "dongzhou.postroad.patrol" }] },
     { taskCode: "dongzhou.postroad.patrol", taskType: "NORMAL", title: "巡察驿路", purpose: "查明驿路通阻与沿途风险。", defaultBrief: "巡察辖内驿路并呈报通阻。", coreRequirements: ["核验主要路段", "标记阻断与风险"], ordinaryRequirements: ["提出修复次序"], baseExecutionGameSeconds: 86400, successOrganizationContribution: 20, successMemberContribution: 20, derivedTaskRules: [{ ruleId: "postroad_partial_border_follow_up", source: "FOLLOW_UP", triggerResults: ["PARTIAL"], triggerReasonCodes: [], targetTaskCode: "dongzhou.border.inquiry" }] },
@@ -1038,11 +1038,36 @@
     return `0771-01-${day}T00:00:${second}Z`;
   }
 
-  async function sealLocalPlayerTask(task, sourceProvenance, contentVersion = 11) {
+  function localCareerDeadline(timestamp, seconds) {
+    const value = new Date(timestamp);
+    if (!Number.isFinite(value.getTime()) || !Number.isInteger(seconds) || seconds < 1 || seconds > 86400) {
+      throw new Error("organization_player_task_exception_policy_invalid");
+    }
+    return new Date(value.getTime() + seconds * 1000).toISOString();
+  }
+
+  function startLocalTaskExecutionClock(task, startedGameTime = task.version) {
+    const duration = Number(task.effectiveExecutionGameSeconds
+      || task.taskDefinitionSnapshot?.executionPolicy?.virtualExecutionGameSeconds);
+    if (!Number.isSafeInteger(duration) || duration < 1) throw new Error("organization_player_task_execution_clock_invalid");
+    if (!Number.isSafeInteger(startedGameTime) || startedGameTime < 1) throw new Error("organization_player_task_execution_clock_invalid");
+    task.executionStartedGameTime = startedGameTime;
+    task.executionDueGameTime = startedGameTime + duration;
+    task.executionClockEpoch = "dongzhou-local-career-v1";
+    task.executionPausedGameSeconds = Number(task.executionPausedGameSeconds || 0);
+  }
+
+  async function sealLocalPlayerTask(task, sourceProvenance, contentVersion = 13) {
     const trace = {
       taskId: task.taskId,
       taskState: task.state,
       taskVersion: String(task.version),
+      ...(contentVersion >= 13 ? {
+        executionStartedGameTime: task.executionStartedGameTime ?? null,
+        executionDueGameTime: task.executionDueGameTime ?? null,
+        executionClockEpoch: task.executionClockEpoch || null,
+        executionPausedGameSeconds: Number(task.executionPausedGameSeconds || 0)
+      } : {}),
       ...(contentVersion > 0 ? { taskContent: {
         title: String(task.title || ""),
         ...(contentVersion >= 6 ? {
@@ -1058,6 +1083,7 @@
       activeConfirmations: task.activeConfirmations || [],
       supplementRequest: task.supplementRequest || null,
       executionException: task.executionException || null,
+      ...(contentVersion >= 12 ? { executionRecovery: task.executionRecovery || null } : {}),
       ...(contentVersion >= 10 ? {
         submissions: task.submissions || [],
         lightweightCheck: task.lightweightCheck || null
@@ -1087,6 +1113,34 @@
       ...trace,
       digest: await sha256(canonicalJson(trace)),
       kernel: { module: "dongzhou_organization_task_trace", moduleVersion: "1.1.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    };
+  }
+
+  async function sealLocalExecutionRecovery(recovery, sourceProvenance) {
+    const trace = {
+      recoveryId: recovery.recoveryId,
+      actionId: recovery.actionId,
+      executionId: recovery.executionId,
+      exceptionId: recovery.exceptionId,
+      decisionCaseId: recovery.decisionCaseId,
+      stage: recovery.stage,
+      recoveryMode: recovery.recoveryMode,
+      reasonCode: recovery.reasonCode,
+      interruptTraceId: recovery.interruptTraceId,
+      state: recovery.state,
+      action: recovery.action,
+      selectedPlanId: recovery.selectedPlanId,
+      resolutionSource: recovery.resolutionSource,
+      resolutionEventId: recovery.resolutionEventId,
+      version: recovery.version,
+      createdAt: recovery.createdAt,
+      updatedAt: recovery.updatedAt,
+      sourceProvenance
+    };
+    return {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: { module: "dongzhou_npc_execution_recovery", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: recovery.state }
     };
   }
 
@@ -1238,6 +1292,8 @@
     for (const task of tasks) {
       const expected = await sealLocalPlayerTask(task, sourceProvenance);
       if (canonicalJson(task.organizationTrace) !== canonicalJson(expected)) {
+        const previousV12 = await sealLocalPlayerTask(task, sourceProvenance, 12);
+        const previousV11 = await sealLocalPlayerTask(task, sourceProvenance, 11);
         const previousV10 = await sealLocalPlayerTask(task, sourceProvenance, 10);
         const previousV9 = await sealLocalPlayerTask(task, sourceProvenance, 9);
         const previousV8 = await sealLocalPlayerTask(task, sourceProvenance, 8);
@@ -1249,7 +1305,9 @@
         const previous = await sealLocalPlayerTask(task, sourceProvenance, 2);
         const legacy = await sealLocalPlayerTask(task, sourceProvenance, 0);
         const matchedLegacy = canonicalJson(task.organizationTrace) === canonicalJson(legacy);
-        if (canonicalJson(task.organizationTrace) !== canonicalJson(previousV10)
+        if (canonicalJson(task.organizationTrace) !== canonicalJson(previousV12)
+          && canonicalJson(task.organizationTrace) !== canonicalJson(previousV11)
+          && canonicalJson(task.organizationTrace) !== canonicalJson(previousV10)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previousV9)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previousV8)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previousV7)
@@ -1261,6 +1319,73 @@
           && !matchedLegacy) throw new Error("organization_player_task_seal_invalid");
         task.organizationTrace = expected;
         if (matchedLegacy) task.localTraceMigratedFromV1 = true;
+      }
+      const executionStarted = task.executionStartedGameTime;
+      const executionDuration = Number(task.effectiveExecutionGameSeconds
+        || task.taskDefinitionSnapshot?.executionPolicy?.virtualExecutionGameSeconds || 0);
+      const executionPaused = Number(task.executionPausedGameSeconds || 0);
+      if (executionStarted != null) {
+        if (!Number.isSafeInteger(executionStarted) || executionStarted < 1
+          || !Number.isSafeInteger(task.executionDueGameTime)
+          || task.executionClockEpoch !== "dongzhou-local-career-v1"
+          || !Number.isSafeInteger(executionPaused) || executionPaused < 0
+          || task.executionDueGameTime !== executionStarted + executionDuration + executionPaused) {
+          throw new Error("organization_player_task_execution_clock_invalid");
+        }
+      } else if (task.executionDueGameTime != null || task.executionClockEpoch != null || executionPaused !== 0) {
+        throw new Error("organization_player_task_execution_clock_invalid");
+      }
+      if (task.executionRecovery) {
+        const recovery = task.executionRecovery;
+        const expectedRecovery = await sealLocalExecutionRecovery(recovery, sourceProvenance);
+        const exception = task.executionException;
+        const plan = exception?.plans?.find((item) => item.id === recovery.selectedPlanId);
+        const exceptionPolicy = task.taskDefinitionSnapshot?.exceptionPolicy;
+        const confirmation = task.activeConfirmations?.find((item) => item.type === "TASK_MAJOR_EXECUTION_EXCEPTION");
+        if (canonicalJson(recovery) !== canonicalJson(expectedRecovery)
+          || !exception || recovery.executionId !== task.taskId || recovery.exceptionId !== exception.exceptionId
+          || recovery.decisionCaseId !== exception.decisionCaseId || recovery.reasonCode !== exception.code
+          || recovery.interruptTraceId !== exception.sourceEventId
+          || !/^[0-9a-f-]{36}$/i.test(String(recovery.recoveryId || ""))
+          || !/^[0-9a-f-]{36}$/i.test(String(recovery.actionId || ""))
+          || !Array.isArray(exception.plans) || exception.plans.length < 1 || exception.plans.length > 10
+          || canonicalJson(exception.plans) !== canonicalJson(exceptionPolicy?.plans)
+          || exception.defaultPlanId !== exceptionPolicy?.defaultPlanId
+          || !["OPEN", "ACCEPTED", "REJECTED", "TERMINATED"].includes(exception.state)
+          || new Set(exception.plans.map((item) => item.id)).size !== exception.plans.length
+          || !exception.plans.some((item) => item.id === exception.defaultPlanId)
+          || exception.plans.some((item) => !["resume_same_execution", "reissue_same_step", "replan", "restart_execution"].includes(item.recoveryMode))
+          || !["paused", "resume_selected", "resumed", "terminated", "failed"].includes(recovery.stage)
+          || (exception.state === "OPEN" && (recovery.state !== "REQUIRES_ACTION" || recovery.stage !== "paused"
+            || exception.selectedPlanId !== null || exception.resolutionSource !== null
+            || exception.resolutionEventId !== null || exception.resolvedAt !== null
+            || exception.resumedGameTime !== null || exception.resumedClockEpoch !== null
+            || recovery.recoveryMode !== null || recovery.selectedPlanId !== null
+            || recovery.action?.actionId !== recovery.actionId
+            || recovery.action?.code !== "resolve_execution_exception" || recovery.action?.type !== "confirmation"
+            || recovery.action?.expectedTaskVersion !== task.version
+            || recovery.action?.expiresAt !== localCareerDeadline(recovery.createdAt, exceptionPolicy?.majorExecutionConfirmationSeconds)
+            || canonicalJson(recovery.action?.options) !== canonicalJson(["ACCEPT", "REJECT", "TERMINATE"])
+            || confirmation?.actionId !== recovery.actionId || confirmation?.caseId !== recovery.decisionCaseId
+            || confirmation?.expectedTaskVersion !== task.version
+            || canonicalJson(confirmation?.allowedActions) !== canonicalJson(["accept_exception_plan", "reject_exception_plan", "terminate"])))
+          || (exception.state === "ACCEPTED" && (recovery.state !== "COMPLETED" || recovery.stage !== "resumed"
+            || !plan || recovery.recoveryMode !== plan.recoveryMode || recovery.action !== null || confirmation
+            || exception.resolutionSource !== "PLAYER_CONFIRMATION" || !exception.resolutionEventId || !exception.resolvedAt
+            || !Number.isSafeInteger(exception.resumedGameTime) || exception.resumedGameTime < exception.reportedGameTime
+            || exception.resumedClockEpoch !== exception.reportedClockEpoch))
+          || (exception.state === "REJECTED" && (recovery.state !== "REJECTED" || recovery.stage !== "failed"
+            || recovery.recoveryMode !== "terminate" || recovery.action !== null || confirmation
+            || exception.selectedPlanId !== null || exception.resolutionSource !== "PLAYER_CONFIRMATION"
+            || !exception.resolutionEventId || !exception.resolvedAt
+            || exception.resumedGameTime !== null || exception.resumedClockEpoch !== null))
+          || (exception.state === "TERMINATED" && (recovery.state !== "TERMINATED" || recovery.stage !== "terminated"
+            || recovery.recoveryMode !== "terminate" || recovery.action !== null || confirmation
+            || exception.selectedPlanId !== null || exception.resolutionSource !== "PLAYER_CONFIRMATION"
+            || !exception.resolutionEventId || !exception.resolvedAt
+            || exception.resumedGameTime !== null || exception.resumedClockEpoch !== null))) {
+          throw new Error("organization_player_task_recovery_seal_invalid");
+        }
       }
       await validateLocalTaskReassignment(organization, task, sourceProvenance);
       await validateLocalTaskRedispatch(organization, task, sourceProvenance);
@@ -1342,6 +1467,15 @@
       assigneeModifiableParameterPaths: ["/execution_days"],
       maximumDeadlineExtensionGameSeconds: 259200,
       virtualExecutionGameSeconds: definition.baseExecutionGameSeconds,
+      exceptionPolicy: {
+        majorExecutionConfirmationSeconds: 300,
+        defaultPlanId: "replan",
+        plans: [
+          { id: "resume-same-execution", title: "原案复行", description: "保留原差事与当前步骤，解除冻结后继续办理。", recoveryMode: "resume_same_execution" },
+          { id: "reissue-same-step", title: "重发本步", description: "保留原差事，重新签发当前受阻步骤。", recoveryMode: "reissue_same_step" },
+          { id: "replan", title: "改道重排", description: "保留原目标，按当前受阻情况重排后续步骤。", recoveryMode: "replan" }
+        ]
+      },
       followUpPolicy: {
         allowRecoveryTask: true,
         allowFollowUpTask: true,
@@ -1445,6 +1579,7 @@
         virtualExecutionGameSeconds: option.virtualExecutionGameSeconds,
         maximumDeadlineExtensionGameSeconds: option.maximumDeadlineExtensionGameSeconds
       },
+      exceptionPolicy: JSON.parse(JSON.stringify(option.exceptionPolicy)),
       contributionPolicy: {
         successOrganizationContribution: option.successOrganizationContribution,
         successMemberContribution: option.successMemberContribution
@@ -1700,6 +1835,7 @@
         version: task.version,
         updatedAt: task.updatedAt,
         executionException: task.executionException || null,
+        executionRecovery: task.executionRecovery || null,
         effectiveParameters: task.effectiveParameters || task.taskDefinitionSnapshot?.parameterSnapshot || null,
         effectiveExecutionGameSeconds: task.effectiveExecutionGameSeconds || task.taskDefinitionSnapshot?.executionPolicy?.virtualExecutionGameSeconds || null,
         parameterModification: task.parameterModification || null,
@@ -1782,12 +1918,17 @@
         modification: null,
         effectiveParameters: JSON.parse(JSON.stringify(taskDefinitionSnapshot.parameterSnapshot)),
         effectiveExecutionGameSeconds: taskDefinitionSnapshot.executionPolicy.virtualExecutionGameSeconds,
+        executionStartedGameTime: null,
+        executionDueGameTime: null,
+        executionClockEpoch: null,
+        executionPausedGameSeconds: 0,
         parameterModification: null,
         finalMemberChoice: null,
         submissions: [],
         lightweightCheck: null,
         supplementCount: 0,
         executionException: null,
+        executionRecovery: null,
         activeConfirmations: [],
         timeline: [{ sequence: 1, type: "TASK_CREATED", occurredAt: localCareerTimestamp(taskIndex, 1), stateCode: "MEMBER_RESPONSE_PENDING" }]
       };
@@ -1811,9 +1952,23 @@
       if (normalizedAction === "MODIFY" && finalChoiceConfirmation) throw new Error("organization_player_task_final_choice_required");
       if (normalizedAction === "REVIEW") requireState(["MODIFICATION_CONFIRMATION_PENDING"]);
       if (["EXCEPTION", "RESULT"].includes(normalizedAction)) requireState(["IN_PROGRESS"]);
+      if (normalizedAction === "RECOVER") requireState(["IN_PROGRESS", "FAILED", "CANCELLED"]);
       if (normalizedAction === "SUPPLEMENT") requireState(["SUPPLEMENT_PENDING"]);
       if (normalizedAction === "DERIVE") requireState(["SUCCEEDED", "PARTIALLY_COMPLETED", "FAILED"]);
       if (["MODIFY", "EXCEPTION", "RESULT", "SUPPLEMENT"].includes(normalizedAction) && !detail) throw new Error("organization_player_task_detail_required");
+      if (normalizedAction === "RECOVER") {
+        const recovery = task.executionRecovery;
+        if (!recovery || recovery.actionId !== String(input.actionId || "")) {
+          throw new Error("organization_player_task_recovery_action_mismatch");
+        }
+        if (recovery.state !== "REQUIRES_ACTION") {
+          return { mode: "standalone", replayed: true, organization, task, derivedTask: null, message: "受阻处置已经完成。", tasks: await localOrganizationPlayerTasks() };
+        }
+        if (Number(input.expectedTaskVersion) !== task.version
+          || recovery.action?.expectedTaskVersion !== task.version) {
+          throw new Error("organization_player_task_recovery_version_conflict");
+        }
+      }
       let derivationIntent = null;
       if (normalizedAction === "DERIVE") {
         derivationIntent = derivationIntents.find((intent) => intent.predecessorTaskId === task.taskId
@@ -1866,12 +2021,17 @@
           modification: null,
           effectiveParameters: JSON.parse(JSON.stringify(taskDefinitionSnapshot.parameterSnapshot)),
           effectiveExecutionGameSeconds: taskDefinitionSnapshot.executionPolicy.virtualExecutionGameSeconds,
+          executionStartedGameTime: null,
+          executionDueGameTime: null,
+          executionClockEpoch: null,
+          executionPausedGameSeconds: 0,
           parameterModification: null,
           finalMemberChoice: null,
           submissions: [],
           lightweightCheck: null,
           supplementCount: 0,
           executionException: null,
+          executionRecovery: null,
           activeConfirmations: [],
           timeline: [{ sequence: 1, type: "TASK_CREATED", occurredAt: localCareerTimestamp(childIndex, 1), stateCode: "MEMBER_RESPONSE_PENDING" }]
         };
@@ -1889,6 +2049,7 @@
         message = `续办差事「${derivedTask.title}」已由杜伯立案，等待你回应。`;
       } else if (normalizedAction === "ACCEPT") {
         task.state = "IN_PROGRESS";
+        startLocalTaskExecutionClock(task);
         if (finalChoiceConfirmation) {
           task.activeConfirmations = [];
           task.finalMemberChoice.state = "RESOLVED";
@@ -1939,6 +2100,7 @@
           task.parameterModification.state = "APPLIED";
           task.parameterModification.resolutionReasonCode = "modification_approved";
           task.state = "IN_PROGRESS";
+          startLocalTaskExecutionClock(task);
           task.activeConfirmations = [];
           append("CONFIRMATION_RESOLVED", task.state);
           append("PARAMETER_REVISION_APPLIED", task.state);
@@ -1972,19 +2134,160 @@
           message = `杜伯驳回了改令；请接受原令或最终拒绝差事。`;
         }
       } else if (normalizedAction === "EXCEPTION") {
+        if (task.executionException?.state === "OPEN" || task.executionRecovery?.state === "REQUIRES_ACTION") {
+          throw new Error("organization_player_task_recovery_state_invalid");
+        }
+        if (task.executionStartedGameTime == null) startLocalTaskExecutionClock(task, Math.max(1, task.version - 1));
+        if (task.executionClockEpoch !== "dongzhou-local-career-v1"
+          || !Number.isSafeInteger(task.executionDueGameTime)
+          || task.executionDueGameTime <= task.version) {
+          throw new Error("organization_player_task_execution_clock_invalid");
+        }
+        const exceptionId = uuidFromDigest(await sha256(`${task.taskId}:exception:${task.version}`));
+        const decisionCaseId = uuidFromDigest(await sha256(`${exceptionId}:decision-case`));
+        const recoveryId = uuidFromDigest(await sha256(`${exceptionId}:recovery`));
+        const actionId = uuidFromDigest(await sha256(`${recoveryId}:action:${task.version}`));
+        const sourceEventId = `local-player-task:${task.taskId}:exception:${task.version}`;
+        const exceptionPolicy = task.taskDefinitionSnapshot?.exceptionPolicy;
+        const plans = JSON.parse(JSON.stringify(exceptionPolicy?.plans || []));
+        if (!Number.isInteger(exceptionPolicy?.majorExecutionConfirmationSeconds)
+          || exceptionPolicy.majorExecutionConfirmationSeconds < 1
+          || exceptionPolicy.majorExecutionConfirmationSeconds > 86400
+          || plans.length < 1 || plans.length > 10
+          || !plans.some((plan) => plan.id === exceptionPolicy.defaultPlanId)
+          || new Set(plans.map((plan) => plan.id)).size !== plans.length
+          || plans.some((plan) => !["resume_same_execution", "reissue_same_step", "replan", "restart_execution"].includes(plan.recoveryMode))) {
+          throw new Error("organization_player_task_exception_policy_invalid");
+        }
+        const expiresAt = localCareerDeadline(task.updatedAt, exceptionPolicy.majorExecutionConfirmationSeconds);
         task.executionException = {
-          exceptionId: uuidFromDigest(await sha256(`${task.taskId}:exception:${task.version}`)),
+          exceptionId,
+          taskId: task.taskId,
+          assignmentGeneration: 1,
           code: "local_execution_blocked",
           summary: detail,
-          state: "ACCEPTED",
-          defaultPlanId: "local-adjust-course",
-          selectedPlanId: "local-adjust-course",
-          plans: [{ id: "local-adjust-course", title: "调整行程继续办理", description: "缩小范围并改换路线，保留原差事目标。" }],
-          resolutionSource: "IN_PROCESS_RULE"
+          state: "OPEN",
+          defaultPlanId: exceptionPolicy.defaultPlanId,
+          selectedPlanId: null,
+          plans,
+          sourceEvent: "dongzhou.player_task.exception",
+          sourceEventId,
+          decisionCaseId,
+          reportedGameTime: task.version,
+          reportedClockEpoch: "dongzhou-local-career-v1",
+          resolutionSource: null,
+          resolutionEventId: null,
+          resumedGameTime: null,
+          resumedClockEpoch: null,
+          resolvedAt: null,
+          version: 1,
+          createdAt: task.updatedAt,
+          updatedAt: task.updatedAt
         };
+        const rawRecovery = {
+          recoveryId,
+          actionId,
+          executionId: task.taskId,
+          exceptionId,
+          decisionCaseId,
+          stage: "paused",
+          recoveryMode: null,
+          reasonCode: "local_execution_blocked",
+          interruptTraceId: sourceEventId,
+          state: "REQUIRES_ACTION",
+          action: {
+            actionId,
+            code: "resolve_execution_exception",
+            type: "confirmation",
+            expectedTaskVersion: task.version,
+            expiresAt,
+            options: ["ACCEPT", "REJECT", "TERMINATE"]
+          },
+          selectedPlanId: null,
+          resolutionSource: null,
+          resolutionEventId: null,
+          version: 1,
+          createdAt: task.updatedAt,
+          updatedAt: task.updatedAt
+        };
+        task.executionRecovery = await sealLocalExecutionRecovery(rawRecovery, sourceProvenance);
+        task.activeConfirmations = [{
+          caseId: decisionCaseId,
+          actionId,
+          type: "TASK_MAJOR_EXECUTION_EXCEPTION",
+          state: "WAITING_CONFIRMATION",
+          recipientType: "PLAYER",
+          allowedActions: ["accept_exception_plan", "reject_exception_plan", "terminate"],
+          expectedTaskVersion: task.version
+        }];
         append("EXECUTION_EXCEPTION_REPORTED", "OPEN");
-        append("EXECUTION_EXCEPTION_RESOLVED", "ACCEPTED");
-        message = `本地受阻记录已封存，差事按调整方案继续。`;
+        append("CONFIRMATION_OPENED", "OPEN");
+        message = `本地受阻记录已冻结，请选择复行方案、拒绝方案或终止差事。`;
+      } else if (normalizedAction === "RECOVER") {
+        const decision = String(input.decision || "").toUpperCase();
+        if (!["ACCEPT", "REJECT", "TERMINATE"].includes(decision)) {
+          throw new Error("organization_player_task_recovery_decision_invalid");
+        }
+        const exception = task.executionException;
+        const recovery = task.executionRecovery;
+        if (!exception || exception.state !== "OPEN" || recovery?.state !== "REQUIRES_ACTION") {
+          throw new Error("organization_player_task_recovery_state_invalid");
+        }
+        let selectedPlan = null;
+        if (decision === "ACCEPT") {
+          selectedPlan = exception.plans.find((plan) => plan.id === String(input.planId || ""));
+          if (!selectedPlan) throw new Error("organization_player_task_recovery_plan_invalid");
+        } else if (input.planId != null) {
+          throw new Error("organization_player_task_recovery_plan_invalid");
+        }
+        const resolutionEventId = `local-player-confirmation:${recovery.actionId}:${decision.toLowerCase()}`;
+        const resumedGameTime = task.version;
+        if (decision === "ACCEPT" && (task.executionClockEpoch !== exception.reportedClockEpoch
+          || !Number.isSafeInteger(exception.reportedGameTime)
+          || resumedGameTime < exception.reportedGameTime
+          || !Number.isSafeInteger(task.executionDueGameTime))) {
+          throw new Error("organization_player_task_execution_clock_invalid");
+        }
+        const pausedGameSeconds = decision === "ACCEPT" ? resumedGameTime - exception.reportedGameTime : 0;
+        exception.state = decision === "ACCEPT" ? "ACCEPTED" : decision === "REJECT" ? "REJECTED" : "TERMINATED";
+        exception.selectedPlanId = selectedPlan?.id || null;
+        exception.resolutionSource = "PLAYER_CONFIRMATION";
+        exception.resolutionEventId = resolutionEventId;
+        exception.resolvedAt = task.updatedAt;
+        exception.updatedAt = task.updatedAt;
+        exception.version += 1;
+        exception.resumedGameTime = decision === "ACCEPT" ? resumedGameTime : null;
+        exception.resumedClockEpoch = decision === "ACCEPT" ? exception.reportedClockEpoch : null;
+        if (decision === "ACCEPT") {
+          task.executionDueGameTime += pausedGameSeconds;
+          task.executionPausedGameSeconds = Number(task.executionPausedGameSeconds || 0) + pausedGameSeconds;
+        }
+        const rawRecovery = {
+          ...recovery,
+          stage: decision === "ACCEPT" ? "resumed" : decision === "REJECT" ? "failed" : "terminated",
+          recoveryMode: selectedPlan?.recoveryMode || "terminate",
+          state: decision === "ACCEPT" ? "COMPLETED" : decision === "REJECT" ? "REJECTED" : "TERMINATED",
+          action: null,
+          selectedPlanId: selectedPlan?.id || null,
+          resolutionSource: "PLAYER_CONFIRMATION",
+          resolutionEventId,
+          version: recovery.version + 1,
+          updatedAt: task.updatedAt
+        };
+        delete rawRecovery.digest;
+        delete rawRecovery.kernel;
+        delete rawRecovery.sourceProvenance;
+        task.executionRecovery = await sealLocalExecutionRecovery(rawRecovery, sourceProvenance);
+        task.activeConfirmations = [];
+        task.state = decision === "ACCEPT" ? "IN_PROGRESS" : decision === "REJECT" ? "FAILED" : "CANCELLED";
+        append("CONFIRMATION_RESOLVED", exception.state);
+        append("EXECUTION_EXCEPTION_RESOLVED", exception.state);
+        if (decision !== "ACCEPT") append("TASK_FINALIZED", task.state);
+        message = decision === "ACCEPT"
+          ? `差事《${task.title}》已按「${selectedPlan.title}」恢复执行。`
+          : decision === "REJECT"
+            ? `你已拒绝复行方案，差事《${task.title}》未能办成。`
+            : `你已终止受阻差事《${task.title}》。`;
       } else if (normalizedAction === "RESULT") {
         task.result = detail;
         const review = await localPlayerTaskSubmissionReview(task, input, detail);
@@ -2042,7 +2345,7 @@
               : `本地补呈已复核，差事《${task.title}》未能办成。`;
         }
       }
-      if (["RESULT", "SUPPLEMENT"].includes(normalizedAction)
+      if (["RESULT", "SUPPLEMENT", "RECOVER"].includes(normalizedAction)
         && ["SUCCEEDED", "PARTIALLY_COMPLETED", "FAILED"].includes(task.state)) {
         await createLocalTaskDerivationIntents(task, catalog, derivationIntents, append, sourceProvenance);
       }
