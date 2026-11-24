@@ -36,6 +36,7 @@
       "tools/test-live-battle-emotion.js",
       "tools/test-live-battle-memory.js",
       "tools/test-live-campaign-route-acceptance.js",
+      "tools/test-live-contribution-dossier.js",
       "tools/test-live-correspondence-acceptance.js",
       "tools/test-live-council-acceptance.js",
       "tools/test-live-diplomacy-acceptance.js",
@@ -64,7 +65,6 @@
     ],
     "externalInputWorkflows": {
       "tools/test-live-censure-acceptance.js": "requires a completed task that is awaiting a CENSURE review and its owning installation ID",
-      "tools/test-live-contribution-dossier.js": "requires an existing NPC organization-task contribution entry",
       "tools/test-live-mandate-mobile.js": "requires a private acceptance journal path",
       "tools/test-live-merit-commendation.js": "requires an existing positive NPC organization-task contribution entry",
       "tools/test-live-office-acceptance.js": "requires a private acceptance journal path",
