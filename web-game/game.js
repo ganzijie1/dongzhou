@@ -126,6 +126,7 @@
   let officeCareerTaskCapacity = null;
   let officeCareerTaskOptions = [];
   let officeCareerTaskCatalogDigest = "";
+  let officeCareerCatalogOpen = false;
   let officeCareerSelectedTaskId = null;
   const officeCareerExpandedTaskIds = new Set();
   let officeCareerContributionBusy = false;
@@ -2060,6 +2061,7 @@
       officeCareerTaskCapacity = null;
       officeCareerTaskOptions = [];
       officeCareerTaskCatalogDigest = "";
+      officeCareerCatalogOpen = false;
       return;
     }
     const account = officeCareerContributionAccount || {
@@ -2112,6 +2114,19 @@
     const taskCatalog = $("#officeCareerTaskCatalog");
     if (taskCatalog) taskCatalog.innerHTML = officeCareerTaskOptions.map((option) =>
       `<option value="${escapeHtml(option.title)}" label="${escapeHtml(option.taskType)} · ${escapeHtml(option.defaultBrief)}"></option>`).join("");
+    const taskCatalogView = $("#officeCareerCatalogView");
+    if (taskCatalogView) {
+      const typeLabels = { NORMAL: "常务", TEMPORARY: "临时", URGENT: "紧急" };
+      const selectedTitle = $("#officeCareerTaskName")?.value.trim() || "";
+      taskCatalogView.hidden = !integration.isOffline() || !officeCareerCatalogOpen || !officeCareerTaskOptions.length;
+      taskCatalogView.innerHTML = officeCareerTaskOptions.map((option) => {
+        const requirements = [...(option.coreRequirements || []), ...(option.ordinaryRequirements || [])];
+        const durationDays = Math.max(1, Math.ceil(Number(option.baseExecutionGameSeconds || 0) / 86400));
+        const parameters = JSON.stringify(option.defaultParameters || {});
+        const selected = option.title === selectedTitle;
+        return `<li class="${selected ? "selected" : ""}" data-catalog-task-code="${escapeHtml(option.taskCode)}"><div><strong>${escapeHtml(option.title)}</strong><span>${escapeHtml(typeLabels[option.taskType] || option.taskType)}</span></div><small>${escapeHtml(option.organizationName)} · ${escapeHtml(option.targetPositionDisplayName)} · ${escapeHtml(option.taskCode)}</small><p>${escapeHtml(option.purpose)}</p><dl><div><dt>完成标准</dt><dd>${escapeHtml(requirements.join("；") || option.purpose)}</dd></div><div><dt>默认参数</dt><dd>${escapeHtml(parameters)}</dd></div><div><dt>执行与贡献</dt><dd>${durationDays}日 · 成员贡献 +${Number(option.successMemberContribution || 0)}</dd></div></dl><button class="large-button${selected ? " primary" : ""}" type="button" data-office-career-catalog-task-code="${escapeHtml(option.taskCode)}" aria-pressed="${selected ? "true" : "false"}">${selected ? "已选取" : "选取"}</button></li>`;
+      }).join("");
+    }
     panel.querySelectorAll("button, input").forEach((control) => { control.disabled = officeCareerBusy || officeCareerStatusBusy || officeCareerContributionBusy; });
     const taskStates = {
       GENERATED: "待派发", ASSIGNMENT_CONFIRMATION_PENDING: "待确认派发", MEMBER_RESPONSE_PENDING: "待接受",
@@ -2407,6 +2422,7 @@
         writeJson(PROFILE_KEY, profile);
         await integration.persist(profile);
         await refreshOfficeCareerStatus({ quiet: true });
+        if (action === "options") officeCareerCatalogOpen = true;
         $("#officeCareerFeedback").textContent = response.message;
         if (action === "request" && detail) $("#officeCareerTaskName").value = "";
         if (["result", "supplement", "exception"].includes(action) && detail) $("#officeCareerResult").value = "";
@@ -2540,6 +2556,16 @@
     const taskId = traceButton.dataset.officeCareerTraceTaskId;
     if (officeCareerExpandedTaskIds.has(taskId)) officeCareerExpandedTaskIds.delete(taskId);
     else officeCareerExpandedTaskIds.add(taskId);
+    renderOfficeCareer();
+  }
+
+  function handleOfficeCareerCatalogAction(event) {
+    const button = event.target.closest("[data-office-career-catalog-task-code]");
+    if (!button) return;
+    const option = officeCareerTaskOptions.find((entry) => entry.taskCode === button.dataset.officeCareerCatalogTaskCode);
+    if (!option) return;
+    $("#officeCareerTaskName").value = option.title;
+    $("#officeCareerFeedback").textContent = `已选“${option.title}” · ${option.defaultBrief}`;
     renderOfficeCareer();
   }
 
@@ -6024,6 +6050,7 @@
     $("#officeCareerInbox").addEventListener("click", () => requestOfficeCareer("inbox"));
     $("#officeCareerStatusRefresh").addEventListener("click", () => refreshOfficeCareerStatus());
     $("#officeCareerStatus").addEventListener("click", handleOfficeCareerStatusAction);
+    $("#officeCareerCatalogView").addEventListener("click", handleOfficeCareerCatalogAction);
     $("#officeCareerContributionsRefresh").addEventListener("click", () => refreshOfficeCareerContributions());
     $("#officeCareerContributions").addEventListener("click", (event) => { const verifyButton = event.target.closest("[data-player-contribution-verify-id]"); if (verifyButton) { verifyOfficeCareerContributionDossier(verifyButton.dataset.playerContributionVerifyId); return; } const button = event.target.closest("[data-player-contribution-dossier-id]"); if (button) toggleOfficeCareerContributionDossier(button.dataset.playerContributionDossierId); });
     $("#officeCareerResponseForm").addEventListener("submit", submitOfficeCareerResponse);

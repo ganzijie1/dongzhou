@@ -1263,6 +1263,10 @@
       options.push({
         contextId: await sha256(canonicalJson(context)),
         ...definition,
+        organizationName: String(organization.name || "列国军府"),
+        managerDisplayName: "杜伯",
+        targetPositionDisplayName: "军府属官·第12席",
+        targetRoleDisplayName: "军府属官",
         parameterSchema: { type: "object", additionalProperties: false, properties: {} },
         defaultParameters: {},
         dispatchEditableParameterPaths: [],

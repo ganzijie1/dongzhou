@@ -97,12 +97,20 @@ async function openReady(page) {
     await desktop.waitForSelector("#officeMembershipState >> text=已入仕", { timeout: 10000 });
     await desktop.click("#officeCareerOptions");
     await desktop.waitForSelector("#officeCareerFeedback >> text=本地可领差事", { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerCatalogView:not([hidden])", { timeout: 10000 });
     const localTaskCatalog = await desktop.evaluate(() => window.DongzhouIntegration.organizationPlayerTasks());
     if (localTaskCatalog.catalog?.kernel?.module !== "dongzhou_organization_task_catalog"
       || localTaskCatalog.catalog?.options?.length !== 5
       || await desktop.locator("#officeCareerTaskCatalog option").count() !== 5) {
       throw new Error(`Offline task catalog was not sealed and rendered: ${JSON.stringify(localTaskCatalog.catalog)}`);
     }
+    if (await desktop.locator("#officeCareerCatalogView > li").count() !== 5
+      || !(await desktop.locator('#officeCareerCatalogView [data-catalog-task-code="dongzhou.granary.audit"]').innerText()).includes("核对账面与实存；说明差异及处置建议；附具复核记录")
+      || !(await desktop.locator('#officeCareerCatalogView [data-catalog-task-code="dongzhou.granary.audit"]').innerText()).includes("1日 · 成员贡献 +20")) {
+      throw new Error("Offline task catalog details are incomplete");
+    }
+    await desktop.locator("#officeCareerCatalogView").scrollIntoViewIfNeeded();
+    await desktop.screenshot({ path: path.join(OUT, "task-catalog-desktop.png"), fullPage: false });
     const catalogTaskCount = await desktop.locator("#officeCareerStatus > li:not(.empty)").count();
     const currentOption = localTaskCatalog.catalog.options[0];
     const forgedContextRejected = await desktop.evaluate(async ({ option, digest }) => {
@@ -122,7 +130,8 @@ async function openReady(page) {
     await desktop.click("#officeCareerRequestForm button[type=submit]");
     await desktop.waitForSelector("#officeCareerFeedback >> text=organization_player_task_catalog_invalid", { timeout: 10000 });
     if (await desktop.locator("#officeCareerStatus > li:not(.empty)").count() !== 0) throw new Error("Invalid catalog task created a task");
-    await desktop.fill("#officeCareerTaskName", "核验军粮账册");
+    await desktop.click('[data-office-career-catalog-task-code="dongzhou.granary.audit"]');
+    if (await desktop.inputValue("#officeCareerTaskName") !== "核验军粮账册") throw new Error("Catalog selection did not bind the request input");
     await desktop.click("#officeCareerRequestForm button[type=submit]");
     await desktop.waitForSelector("#officeCareerStatus >> text=待接受", { timeout: 10000 });
     await desktop.waitForSelector("#officeCareerFeedback >> text=等待你接受、改令或拒绝", { timeout: 10000 });
@@ -481,12 +490,19 @@ async function openReady(page) {
     await openReady(mobile);
     await mobile.click("#campaignOfficeButton");
     await mobile.waitForSelector("#campaignOfficeBackdrop:not([hidden])");
+    await mobile.waitForFunction(() => !document.querySelector("#officeMembershipApply").disabled);
+    await mobile.click("#officeMembershipApply");
+    await mobile.waitForSelector("#officeMembershipState >> text=已入仕", { timeout: 10000 });
+    await mobile.click("#officeCareerOptions");
+    await mobile.waitForSelector("#officeCareerCatalogView:not([hidden])", { timeout: 10000 });
     await mobile.waitForTimeout(350);
     const mobileLayout = await mobile.evaluate(() => {
       const drawer = document.querySelector("#campaignOfficeDrawer").getBoundingClientRect();
-      return { left: drawer.left, right: drawer.right, top: drawer.top, width: innerWidth, scrollWidth: document.documentElement.scrollWidth };
+      const catalog = document.querySelector("#officeCareerCatalogView").getBoundingClientRect();
+      return { left: drawer.left, right: drawer.right, top: drawer.top, catalogLeft: catalog.left, catalogRight: catalog.right, width: innerWidth, scrollWidth: document.documentElement.scrollWidth };
     });
-    if (mobileLayout.left < 0 || mobileLayout.right > mobileLayout.width + 1 || mobileLayout.scrollWidth > mobileLayout.width + 1) throw new Error("Mobile organization drawer overflows viewport");
+    if (mobileLayout.left < 0 || mobileLayout.right > mobileLayout.width + 1 || mobileLayout.catalogLeft < 0
+      || mobileLayout.catalogRight > mobileLayout.width + 1 || mobileLayout.scrollWidth > mobileLayout.width + 1) throw new Error("Mobile organization drawer or task catalog overflows viewport");
     await mobile.screenshot({ path: path.join(OUT, "mobile-office.png"), fullPage: false });
 
     const online = await browser.newPage({ viewport: { width: 1440, height: 900 } });

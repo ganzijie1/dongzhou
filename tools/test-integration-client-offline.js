@@ -127,6 +127,9 @@ const client = require("../web-game/integration-client.js");
     "dongzhou.granary.audit", "dongzhou.postroad.patrol", "dongzhou.formation.drill",
     "dongzhou.border.inquiry", "dongzhou.lords.diplomacy"
   ]);
+  assert.strictEqual(taskOptions.tasks.catalog.options[0].organizationName, "列国军府");
+  assert.strictEqual(taskOptions.tasks.catalog.options[0].managerDisplayName, "杜伯");
+  assert.strictEqual(taskOptions.tasks.catalog.options[0].targetPositionDisplayName, "军府属官·第12席");
   assert.deepStrictEqual((await client.organizationPlayerTasks()).catalog, taskOptions.tasks.catalog);
   await assert.rejects(client.applyOrganizationPlayerTaskAction("REQUEST", { title: "Invented task" }), (error) => {
     assert.strictEqual(error.code, "organization_player_task_catalog_invalid");
