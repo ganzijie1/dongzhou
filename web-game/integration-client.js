@@ -1038,7 +1038,7 @@
     return `0771-01-${day}T00:00:${second}Z`;
   }
 
-  async function sealLocalPlayerTask(task, sourceProvenance, contentVersion = 7) {
+  async function sealLocalPlayerTask(task, sourceProvenance, contentVersion = 8) {
     const trace = {
       taskId: task.taskId,
       taskState: task.state,
@@ -1058,6 +1058,11 @@
       activeConfirmations: task.activeConfirmations || [],
       supplementRequest: task.supplementRequest || null,
       executionException: task.executionException || null,
+      ...(contentVersion >= 8 ? {
+        effectiveParameters: task.effectiveParameters || task.taskDefinitionSnapshot?.parameterSnapshot || null,
+        effectiveExecutionGameSeconds: task.effectiveExecutionGameSeconds || task.taskDefinitionSnapshot?.executionPolicy?.virtualExecutionGameSeconds || null,
+        parameterModification: task.parameterModification || null
+      } : {}),
       ...(contentVersion >= 7 ? { taskDefinitionSnapshot: task.taskDefinitionSnapshot || null } : {}),
       ...(contentVersion >= 4 ? { reassignment: task.reassignment || null } : {}),
       ...(contentVersion >= 5 ? { redispatch: task.redispatch || null } : {}),
@@ -1188,6 +1193,7 @@
     for (const task of tasks) {
       const expected = await sealLocalPlayerTask(task, sourceProvenance);
       if (canonicalJson(task.organizationTrace) !== canonicalJson(expected)) {
+        const previousV7 = await sealLocalPlayerTask(task, sourceProvenance, 7);
         const previousV6 = await sealLocalPlayerTask(task, sourceProvenance, 6);
         const previousV5 = await sealLocalPlayerTask(task, sourceProvenance, 5);
         const previousV4 = await sealLocalPlayerTask(task, sourceProvenance, 4);
@@ -1195,7 +1201,8 @@
         const previous = await sealLocalPlayerTask(task, sourceProvenance, 2);
         const legacy = await sealLocalPlayerTask(task, sourceProvenance, 0);
         const matchedLegacy = canonicalJson(task.organizationTrace) === canonicalJson(legacy);
-        if (canonicalJson(task.organizationTrace) !== canonicalJson(previousV6)
+        if (canonicalJson(task.organizationTrace) !== canonicalJson(previousV7)
+          && canonicalJson(task.organizationTrace) !== canonicalJson(previousV6)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previousV5)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previousV4)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previousV3)
@@ -1267,9 +1274,16 @@
         managerDisplayName: "杜伯",
         targetPositionDisplayName: "军府属官·第12席",
         targetRoleDisplayName: "军府属官",
-        parameterSchema: { type: "object", additionalProperties: false, properties: {} },
-        defaultParameters: {},
+        parameterSchema: {
+          type: "object",
+          additionalProperties: false,
+          required: ["execution_days"],
+          properties: { execution_days: { type: "integer", minimum: 1, maximum: 5 } }
+        },
+        defaultParameters: { execution_days: Math.max(1, Math.ceil(definition.baseExecutionGameSeconds / 86400)) },
         dispatchEditableParameterPaths: [],
+        assigneeModifiableParameterPaths: ["/execution_days"],
+        maximumDeadlineExtensionGameSeconds: 259200,
         virtualExecutionGameSeconds: definition.baseExecutionGameSeconds
       });
     }
@@ -1322,16 +1336,70 @@
         coreRequirements: [...option.coreRequirements],
         ordinaryRequirements: [...option.ordinaryRequirements],
         parameterSchema: JSON.parse(JSON.stringify(option.parameterSchema)),
-        dispatchEditableParameterPaths: [...option.dispatchEditableParameterPaths]
+        dispatchEditableParameterPaths: [...option.dispatchEditableParameterPaths],
+        assigneeModifiableParameterPaths: [...option.assigneeModifiableParameterPaths]
       },
       executionPolicy: {
         baseExecutionGameSeconds: option.baseExecutionGameSeconds,
-        virtualExecutionGameSeconds: option.virtualExecutionGameSeconds
+        virtualExecutionGameSeconds: option.virtualExecutionGameSeconds,
+        maximumDeadlineExtensionGameSeconds: option.maximumDeadlineExtensionGameSeconds
       },
       contributionPolicy: {
         successOrganizationContribution: option.successOrganizationContribution,
         successMemberContribution: option.successMemberContribution
       }
+    };
+  }
+
+  function localPlayerTaskModificationProposal(task, input) {
+    const originalParameters = JSON.parse(JSON.stringify(
+      task.effectiveParameters || task.taskDefinitionSnapshot?.parameterSnapshot || {}
+    ));
+    if (!Number.isInteger(originalParameters.execution_days)) {
+      const legacyDuration = Number(task.effectiveExecutionGameSeconds
+        || task.taskDefinitionSnapshot?.executionPolicy?.virtualExecutionGameSeconds || 86400);
+      originalParameters.execution_days = Math.max(1, Math.ceil(legacyDuration / 86400));
+    }
+    let proposedParameters = input.proposedParameters;
+    if (proposedParameters == null) {
+      const detail = String(input.detail || "").trim();
+      const numerals = { "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, one: 1, two: 2, three: 3, four: 4, five: 5 };
+      const absolute = detail.match(/(?:总时限|时限|期限).{0,8}?(?:改为|调整为|定为)\s*([一二三四五1-5])\s*(?:日|天)/i);
+      const extension = detail.match(/(?:顺延|延长|extend(?:ed)?\s+by)\s*([一二三四五1-5]|one|two|three|four|five)\s*(?:日|天|days?|day)/i);
+      const valueOf = (value) => Number(value) || numerals[String(value).toLowerCase()] || numerals[value];
+      if (absolute) proposedParameters = { execution_days: valueOf(absolute[1]) };
+      else if (extension) proposedParameters = { execution_days: Number(originalParameters.execution_days) + valueOf(extension[1]) };
+    }
+    if (!proposedParameters || typeof proposedParameters !== "object" || Array.isArray(proposedParameters)
+      || Object.keys(proposedParameters).sort().join(",") !== "execution_days"
+      || !Number.isInteger(proposedParameters.execution_days)
+      || proposedParameters.execution_days < 1 || proposedParameters.execution_days > 5) {
+      throw new Error("organization_player_task_modification_parameters_invalid");
+    }
+    const changedPaths = canonicalJson(originalParameters) === canonicalJson(proposedParameters) ? [] : ["/execution_days"];
+    const allowedPaths = task.taskDefinitionSnapshot?.presentationSnapshot?.assigneeModifiableParameterPaths || ["/execution_days"];
+    if (!changedPaths.length || changedPaths.some((path) => !allowedPaths.some((allowed) => path === allowed || path.startsWith(`${allowed}/`)))) {
+      throw new Error("organization_player_task_modification_parameters_invalid");
+    }
+    const originalExecutionGameSeconds = Number(task.effectiveExecutionGameSeconds
+      || task.taskDefinitionSnapshot?.executionPolicy?.virtualExecutionGameSeconds || 0);
+    const proposedExecutionGameSeconds = proposedParameters.execution_days * 86400;
+    const maximumExtension = Number(task.taskDefinitionSnapshot?.executionPolicy?.maximumDeadlineExtensionGameSeconds || 259200);
+    if (proposedExecutionGameSeconds - originalExecutionGameSeconds > maximumExtension) {
+      throw new Error("organization_player_task_modification_deadline_invalid");
+    }
+    return {
+      schemaVersion: 1,
+      state: "PENDING_MANAGER_CONFIRMATION",
+      requestedDetail: String(input.detail || "").trim(),
+      originalParameters,
+      proposedParameters: JSON.parse(JSON.stringify(proposedParameters)),
+      changedPaths,
+      originalExecutionGameSeconds,
+      proposedExecutionGameSeconds,
+      requestedBy: "PLAYER",
+      decidedBy: null,
+      decidedAt: null
     };
   }
 
@@ -1360,6 +1428,9 @@
         version: task.version,
         updatedAt: task.updatedAt,
         executionException: task.executionException || null,
+        effectiveParameters: task.effectiveParameters || task.taskDefinitionSnapshot?.parameterSnapshot || null,
+        effectiveExecutionGameSeconds: task.effectiveExecutionGameSeconds || task.taskDefinitionSnapshot?.executionPolicy?.virtualExecutionGameSeconds || null,
+        parameterModification: task.parameterModification || null,
         organizationTrace: task.organizationTrace
       })),
       hasMore: false
@@ -1426,6 +1497,9 @@
         version: 1,
         updatedAt: localCareerTimestamp(taskIndex, 1),
         modification: null,
+        effectiveParameters: JSON.parse(JSON.stringify(taskDefinitionSnapshot.parameterSnapshot)),
+        effectiveExecutionGameSeconds: taskDefinitionSnapshot.executionPolicy.virtualExecutionGameSeconds,
+        parameterModification: null,
         executionException: null,
         activeConfirmations: [],
         timeline: [{ sequence: 1, type: "TASK_CREATED", occurredAt: localCareerTimestamp(taskIndex, 1), stateCode: "MEMBER_RESPONSE_PENDING" }]
@@ -1461,15 +1535,25 @@
         append("CONFIRMATION_RESOLVED", task.state);
         message = `本地差事《${task.title}》已拒绝。`;
       } else if (normalizedAction === "MODIFY") {
+        task.parameterModification = localPlayerTaskModificationProposal(task, input);
         task.state = "MODIFICATION_CONFIRMATION_PENDING";
         task.modification = detail;
-        task.activeConfirmations = [{ type: "TASK_MODIFICATION", state: "WAITING_CONFIRMATION", recipientType: "MANAGER", allowedActions: ["approve"] }];
+        task.activeConfirmations = [{ type: "TASK_MODIFICATION", state: "WAITING_CONFIRMATION", recipientType: "MANAGER", allowedActions: ["approve_modification", "reject_modification"] }];
         append("CONFIRMATION_OPENED", task.state);
         message = `本地改令申请已登记，等待杜伯裁定。`;
       } else if (normalizedAction === "REVIEW") {
+        if (task.parameterModification?.state !== "PENDING_MANAGER_CONFIRMATION") {
+          throw new Error("organization_player_task_modification_invalid");
+        }
+        task.effectiveParameters = JSON.parse(JSON.stringify(task.parameterModification.proposedParameters));
+        task.effectiveExecutionGameSeconds = task.parameterModification.proposedExecutionGameSeconds;
+        task.parameterModification.state = "APPLIED";
+        task.parameterModification.decidedBy = "DuBo";
+        task.parameterModification.decidedAt = task.updatedAt;
         task.state = "IN_PROGRESS";
         task.activeConfirmations = [];
         append("CONFIRMATION_RESOLVED", task.state);
+        append("PARAMETER_REVISION_APPLIED", task.state);
         append("EXECUTION_STARTED", task.state);
         message = `本地改令已经裁定，差事按新要求开始执行。`;
       } else if (normalizedAction === "EXCEPTION") {

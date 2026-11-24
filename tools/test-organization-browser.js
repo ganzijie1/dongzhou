@@ -180,7 +180,21 @@ async function openReady(page) {
     await desktop.fill("#officeCareerTaskName", "巡察驿路");
     await desktop.click("#officeCareerRequestForm button[type=submit]");
     await desktop.waitForSelector('#officeCareerStatus [data-task-state="MEMBER_RESPONSE_PENDING"] >> text=巡察驿路', { timeout: 10000 });
-    await desktop.click("#officeCareerAccept");
+    await desktop.fill("#officeCareerResponseDetail", "总时限改为三日");
+    await desktop.click("#officeCareerModify");
+    await desktop.waitForSelector('#officeCareerStatus [data-task-state="IN_PROGRESS"] >> text=改令已生效', { timeout: 10000 });
+    await desktop.waitForSelector('#officeCareerStatus >> text=执行时限 1日 → 3日', { timeout: 10000 });
+    const appliedModification = await desktop.evaluate(() => {
+      const organization = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization;
+      return organization.localPlayerTasks.find((task) => task.title === "巡察驿路");
+    });
+    if (appliedModification?.parameterModification?.state !== "APPLIED"
+      || appliedModification?.parameterModification?.decidedBy !== "DuBo"
+      || appliedModification?.effectiveParameters?.execution_days !== 3
+      || appliedModification?.effectiveExecutionGameSeconds !== 259200
+      || appliedModification?.organizationTrace?.parameterModification?.changedPaths?.[0] !== "/execution_days") {
+      throw new Error(`Offline structured task modification was not applied: ${JSON.stringify(appliedModification)}`);
+    }
     await desktop.fill("#officeCareerResult", "部分完成驿路巡察，东段塌方仍待后续处置");
     await desktop.click("#officeCareerResultSubmit");
     await desktop.waitForSelector('#officeCareerStatus [data-task-state="PARTIALLY_COMPLETED"] >> text=巡察驿路', { timeout: 10000 });

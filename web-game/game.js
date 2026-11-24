@@ -2140,6 +2140,7 @@
       MESSAGE_SENT: "传令", MESSAGE_SEND_FAILED: "传令受阻", REPLY_RECEIVED: "回覆",
       CONFIRMATION_RESOLVED: "已确认", EXECUTION_STARTED: "开工", SUBMISSION_RECORDED: "复命",
       LIGHTWEIGHT_CHECK_COMPLETED: "核验", SUPPLEMENT_REQUESTED: "补件",
+      PARAMETER_REVISION_APPLIED: "改令生效",
       EXECUTION_EXCEPTION_REPORTED: "报阻", EXECUTION_EXCEPTION_RESOLVED: "复行",
       DERIVED_TASK_INTENT_CREATED: "拟定续办", DERIVED_TASK_CREATED: "续办立案",
       DERIVED_TASK_SKIPPED: "无需续办", TASK_FINALIZED: "定案", SETTLEMENT_RECORDED: "结算",
@@ -2163,11 +2164,15 @@
       const actionable = ["MEMBER_RESPONSE_PENDING", "MODIFICATION_CONFIRMATION_PENDING", "IN_PROGRESS", "SUPPLEMENT_PENDING"].includes(task.state) && exception?.state !== "OPEN";
       const selected = actionable && officeCareerSelectedTaskId === task.taskId;
       const expanded = trace?.state === "SEALED" && officeCareerExpandedTaskIds.has(task.taskId);
+      const revision = trace?.state === "SEALED" ? trace.parameterModification : task.parameterModification;
+      const revisionDetail = revision
+        ? `<div class="office-career-task-revision"><strong>${revision.state === "APPLIED" ? "改令已生效" : "改令待裁"}</strong><span>执行时限 ${Math.ceil(Number(revision.originalExecutionGameSeconds || 0) / 86400)}日 → ${Math.ceil(Number(revision.proposedExecutionGameSeconds || 0) / 86400)}日</span><small>${escapeHtml(revision.changedPaths?.join("、") || "未记录变更路径")} · ${escapeHtml(revision.requestedDetail || "结构化参数修订")}</small></div>`
+        : "";
       const timeline = expanded
         ? `<ol class="office-career-trace">${(trace.timeline || []).map((item) => `<li><span>${Number(item.sequence)} · ${escapeHtml(traceLabels[item.type] || item.type)}</span><strong>${escapeHtml(item.stateCode || "已记录")}</strong><small>${escapeHtml(String(item.occurredAt || "").replace("T", " ").replace("Z", " UTC"))}</small></li>`).join("")}</ol>`
         : "";
       const controls = `<div class="office-career-task-actions">${actionable ? `<button class="large-button${selected ? " primary" : ""}" type="button" data-office-career-select-task-id="${escapeHtml(task.taskId)}" aria-pressed="${selected ? "true" : "false"}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>${selected ? "当前差事" : "选为当前"}</button>` : ""}${task.state === "MODIFICATION_CONFIRMATION_PENDING" ? `<button class="large-button primary" type="button" data-office-career-review-task-id="${escapeHtml(task.taskId)}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>请杜伯裁定</button>` : ""}${trace?.state === "SEALED" ? `<button class="large-button" type="button" data-office-career-trace-task-id="${escapeHtml(task.taskId)}" aria-expanded="${expanded ? "true" : "false"}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>${expanded ? "收起履历" : "查看履历"}</button>` : ""}</div>`;
-      return `<li class="${selected ? "selected" : ""}" data-task-id="${escapeHtml(task.taskId)}" data-task-state="${escapeHtml(task.state)}" data-exception-state="${escapeHtml(exception?.state || "")}" data-trace-state="${escapeHtml(trace?.state || "")}"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(taskStates[task.state] || task.state)}${exceptionLabel}</span><small>版本 ${Number(task.version || 0)} · ${escapeHtml(task.updatedAt || "未记录时间")}${planDetail}${traceDetail}</small>${controls}${timeline}</li>`;
+      return `<li class="${selected ? "selected" : ""}" data-task-id="${escapeHtml(task.taskId)}" data-task-state="${escapeHtml(task.state)}" data-exception-state="${escapeHtml(exception?.state || "")}" data-trace-state="${escapeHtml(trace?.state || "")}"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(taskStates[task.state] || task.state)}${exceptionLabel}</span><small>版本 ${Number(task.version || 0)} · ${escapeHtml(task.updatedAt || "未记录时间")}${planDetail}${traceDetail}</small>${revisionDetail}${controls}${timeline}</li>`;
     }).join("") || '<li class="empty">尚无权威差事状态</li>';
     renderOfficeCareerContributions();
   }
@@ -2404,6 +2409,16 @@
         const requestedOption = action === "request"
           ? officeCareerTaskOptions.find((option) => option.title === detail) || null
           : null;
+        const modificationParameters = action === "modify" ? (() => {
+          const currentDays = Number(selectedTask?.effectiveParameters?.execution_days || 0);
+          const numerals = { "一": 1, "二": 2, "三": 3, "四": 4, "五": 5 };
+          const absolute = detail.match(/(?:总时限|时限|期限).{0,8}?(?:改为|调整为|定为)\s*([一二三四五1-5])\s*(?:日|天)/);
+          const extension = detail.match(/(?:顺延|延长)\s*([一二三四五1-5])\s*(?:日|天)/);
+          const valueOf = (value) => Number(value) || numerals[value];
+          if (absolute) return { execution_days: valueOf(absolute[1]) };
+          if (extension && currentDays) return { execution_days: currentDays + valueOf(extension[1]) };
+          return null;
+        })() : null;
         const input = action === "request"
           ? {
               title: detail,
@@ -2411,7 +2426,11 @@
               contextId: requestedOption?.contextId || "",
               catalogDigest: officeCareerTaskCatalogDigest
             }
-          : ["options", "inbox"].includes(action) ? {} : { taskId: selectedTask.taskId, detail };
+          : ["options", "inbox"].includes(action) ? {} : {
+              taskId: selectedTask.taskId,
+              detail,
+              ...(modificationParameters ? { proposedParameters: modificationParameters } : {})
+            };
         let response = await integration.applyOrganizationPlayerTaskAction(action.toUpperCase(), input);
         profile.organization = organization.normalizeState(response.organization);
         if (action === "modify") {

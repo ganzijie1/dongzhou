@@ -130,6 +130,8 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(taskOptions.tasks.catalog.options[0].organizationName, "列国军府");
   assert.strictEqual(taskOptions.tasks.catalog.options[0].managerDisplayName, "杜伯");
   assert.strictEqual(taskOptions.tasks.catalog.options[0].targetPositionDisplayName, "军府属官·第12席");
+  assert.deepStrictEqual(taskOptions.tasks.catalog.options[0].defaultParameters, { execution_days: 1 });
+  assert.deepStrictEqual(taskOptions.tasks.catalog.options[0].assigneeModifiableParameterPaths, ["/execution_days"]);
   assert.deepStrictEqual((await client.organizationPlayerTasks()).catalog, taskOptions.tasks.catalog);
   await assert.rejects(client.applyOrganizationPlayerTaskAction("REQUEST", { title: "Invented task" }), (error) => {
     assert.strictEqual(error.code, "organization_player_task_catalog_invalid");
@@ -174,7 +176,8 @@ const client = require("../web-game/integration-client.js");
   assert.match(requestedTask.task.contextId, /^[0-9a-f]{64}$/);
   assert.strictEqual(requestedTask.task.catalogDigest, taskOptions.tasks.catalog.digest);
   assert.strictEqual(requestedTask.task.organizationTrace.taskContent.taskCode, requestedTask.task.taskCode);
-  assert.deepStrictEqual(requestedTask.task.taskDefinitionSnapshot.parameterSnapshot, {});
+  assert.deepStrictEqual(requestedTask.task.taskDefinitionSnapshot.parameterSnapshot, { execution_days: 1 });
+  assert.deepStrictEqual(requestedTask.task.effectiveParameters, { execution_days: 1 });
   assert.strictEqual(requestedTask.task.taskDefinitionSnapshot.presentationSnapshot.title, "核验军粮账册");
   assert.strictEqual(requestedTask.task.taskDefinitionSnapshot.presentationSnapshot.brief, "核验军粮账册并呈报差异。");
   assert.deepStrictEqual(requestedTask.task.taskDefinitionSnapshot.presentationSnapshot.acceptanceCriteria, [
@@ -185,14 +188,15 @@ const client = require("../web-game/integration-client.js");
   assert.deepStrictEqual(requestedTask.task.organizationTrace.taskDefinitionSnapshot, requestedTask.task.taskDefinitionSnapshot);
   assert.strictEqual(requestedTask.task.organizationTrace.kernel.moduleVersion, "1.1.0");
   const currentTrace = requestedTask.task.organizationTrace;
-  const { state: traceState, digest: traceDigest, kernel: traceKernel, taskDefinitionSnapshot: omittedSnapshot, ...v6Payload } = currentTrace;
-  assert.ok(traceDigest && omittedSnapshot);
-  const v6Trace = { state: traceState, ...v6Payload, digest: sha256(canonicalJson(v6Payload)), kernel: traceKernel };
-  localProfile.organization.localPlayerTasks[0].organizationTrace = v6Trace;
+  const { state: traceState, digest: traceDigest, kernel: traceKernel, effectiveParameters: omittedEffectiveParameters,
+    effectiveExecutionGameSeconds: omittedEffectiveDuration, parameterModification: omittedModification, ...v7Payload } = currentTrace;
+  assert.ok(traceDigest && omittedEffectiveParameters && omittedEffectiveDuration && omittedModification === null);
+  const v7Trace = { state: traceState, ...v7Payload, digest: sha256(canonicalJson(v7Payload)), kernel: traceKernel };
+  localProfile.organization.localPlayerTasks[0].organizationTrace = v7Trace;
   await client.persist(localProfile);
   const migratedTrace = (await client.organizationPlayerTasks()).items[0].organizationTrace;
   assert.deepStrictEqual(migratedTrace.taskDefinitionSnapshot, requestedTask.task.taskDefinitionSnapshot);
-  assert.notStrictEqual(migratedTrace.digest, v6Trace.digest);
+  assert.notStrictEqual(migratedTrace.digest, v7Trace.digest);
   assert.strictEqual((await applyCareerAction("ACCEPT", { taskId: playerTaskId })).task.state, "IN_PROGRESS");
   const blockedTask = await applyCareerAction("EXCEPTION", { taskId: playerTaskId, detail: "Bridge closed" });
   assert.strictEqual(blockedTask.task.executionException.state, "ACCEPTED");
@@ -217,8 +221,31 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(playerContributionDossier.kernel.module, "dongzhou_organization_contribution_dossier");
   const modifiedTask = await applyCareerAction("REQUEST", { title: "巡察驿路" });
   const modifiedTaskId = modifiedTask.task.taskId;
-  assert.strictEqual((await applyCareerAction("MODIFY", { taskId: modifiedTaskId, detail: "Extend by one day" })).task.state, "MODIFICATION_CONFIRMATION_PENDING");
-  assert.strictEqual((await applyCareerAction("REVIEW", { taskId: modifiedTaskId })).task.state, "IN_PROGRESS");
+  await assert.rejects(applyCareerAction("MODIFY", {
+    taskId: modifiedTaskId, detail: "Change the route", proposedParameters: { execution_days: 6 }
+  }), /organization_player_task_modification_parameters_invalid/);
+  await assert.rejects(applyCareerAction("MODIFY", {
+    taskId: modifiedTaskId, detail: "Extend beyond the policy limit", proposedParameters: { execution_days: 5 }
+  }), /organization_player_task_modification_deadline_invalid/);
+  await assert.rejects(applyCareerAction("MODIFY", {
+    taskId: modifiedTaskId, detail: "Change an unauthorized field", proposedParameters: { execution_days: 2, route: "east" }
+  }), /organization_player_task_modification_parameters_invalid/);
+  const pendingModification = await applyCareerAction("MODIFY", { taskId: modifiedTaskId, detail: "Extend by one day" });
+  assert.strictEqual(pendingModification.task.state, "MODIFICATION_CONFIRMATION_PENDING");
+  assert.deepStrictEqual(pendingModification.task.effectiveParameters, { execution_days: 1 });
+  assert.deepStrictEqual(pendingModification.task.parameterModification.originalParameters, { execution_days: 1 });
+  assert.deepStrictEqual(pendingModification.task.parameterModification.proposedParameters, { execution_days: 2 });
+  assert.deepStrictEqual(pendingModification.task.parameterModification.changedPaths, ["/execution_days"]);
+  assert.strictEqual(pendingModification.task.parameterModification.proposedExecutionGameSeconds, 172800);
+  const reviewedModification = await applyCareerAction("REVIEW", { taskId: modifiedTaskId });
+  assert.strictEqual(reviewedModification.task.state, "IN_PROGRESS");
+  assert.deepStrictEqual(reviewedModification.task.effectiveParameters, { execution_days: 2 });
+  assert.strictEqual(reviewedModification.task.effectiveExecutionGameSeconds, 172800);
+  assert.strictEqual(reviewedModification.task.parameterModification.state, "APPLIED");
+  assert.strictEqual(reviewedModification.task.parameterModification.decidedBy, "DuBo");
+  assert.deepStrictEqual(reviewedModification.task.organizationTrace.timeline.slice(-3).map((item) => item.type), [
+    "CONFIRMATION_RESOLVED", "PARAMETER_REVISION_APPLIED", "EXECUTION_STARTED"
+  ]);
   const partialTask = await applyCareerAction("RESULT", { taskId: modifiedTaskId, detail: "Partially completed with the eastern road still blocked" });
   assert.strictEqual(partialTask.task.state, "PARTIALLY_COMPLETED");
   const contributionsAfterPartial = await client.organizationPlayerContributions();
