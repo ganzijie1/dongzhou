@@ -306,6 +306,13 @@ const sourceBoundReviewState = JSON.parse(JSON.stringify(state));
 sourceBoundReviewState.tasks.at(-1).sourceProvenance = sourceProvenance;
 const sourceBoundAcceptedReview = {
   ...acceptedReview,
+  review: {
+    ...acceptedReview.review,
+    taskId: remote.task.remoteResult,
+    sourceProvenance,
+    digest: "8".repeat(64),
+    kernel: { module: "dongzhou_mandate_workflow", moduleVersion: "1.14.0", state: "ACCEPTED" }
+  },
   growthReward: {
     ...acceptedReview.growthReward,
     sourceProvenance,
@@ -313,6 +320,7 @@ const sourceBoundAcceptedReview = {
   }
 };
 assert.strictEqual(play.recordTaskReview(sourceBoundReviewState, { taskId: remote.task.remoteResult, review: sourceBoundAcceptedReview }).state.tasks.at(-1).pendingReview.growthReward.sourceProvenance.digest, sourceProvenance.digest);
+assert.throws(() => play.recordTaskReview(sourceBoundReviewState, { taskId: remote.task.remoteResult, review: { ...sourceBoundAcceptedReview, review: { ...sourceBoundAcceptedReview.review, sourceProvenance: { ...sourceProvenance, digest: "9".repeat(64) } } } }), /组织结算复核服务来源无效/);
 assert.throws(() => play.recordTaskReview(sourceBoundReviewState, { taskId: remote.task.remoteResult, review: { ...sourceBoundAcceptedReview, growthReward: { ...sourceBoundAcceptedReview.growthReward, kernel: { ...sourceBoundAcceptedReview.growthReward.kernel, moduleVersion: "1.13.0" } } } }), /复命记功印记无效/);
 const acceptedRelationship = {
   state: "DELIVERED",

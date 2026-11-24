@@ -46,6 +46,27 @@
     ) throw new Error(`${label}服务来源无效`);
   }
 
+  function validateSourceBoundReview(review, sourceProvenance, taskId, settlement, closureReceipt) {
+    if (!review || typeof review !== "object" || !sourceProvenance) return;
+    const receipt = review.review;
+    const expectedKernelState = review.state === "REQUIRES_ACTION" ? "REQUIRES_ACTION" : review.state;
+    const expectedReceiptState = review.state === "REQUIRES_ACTION" ? "PENDING" : review.state;
+    if (
+      !receipt
+      || !["REQUIRES_ACTION", "ACCEPTED", "CENSURED"].includes(review.state)
+      || receipt.state !== expectedReceiptState
+      || (review.state !== "REQUIRES_ACTION" && !/^[0-9a-f]{64}$/.test(String(receipt.digest || "")))
+      || receipt.taskId !== String(taskId)
+      || (settlement && receipt.settlementId !== settlement.settlementId)
+      || (closureReceipt && receipt.closureDigest !== closureReceipt.digest)
+      || receipt.kernel?.module !== "dongzhou_mandate_workflow"
+      || receipt.kernel?.moduleVersion !== "1.14.0"
+      || receipt.kernel?.state !== expectedKernelState
+      || !validSourceProvenance(receipt.sourceProvenance)
+      || receipt.sourceProvenance.digest !== sourceProvenance.digest
+    ) throw new Error("组织结算复核服务来源无效");
+  }
+
   function hash(text) {
     let value = 2166136261;
     for (const char of String(text)) {
@@ -842,6 +863,7 @@
       const finalResult = snapshot.final_result;
       if (!finalResult) continue;
       if (snapshot.review && typeof snapshot.review === "object") {
+        validateSourceBoundReview(snapshot.review, authoritativeSource, task.remoteResult, snapshot.settlement, snapshot.closureReceipt);
         task.pendingReview = copy(snapshot.review);
       }
       if (snapshot.settlement && typeof snapshot.settlement === "object") task.pendingSettlement = copy(snapshot.settlement);
@@ -942,6 +964,7 @@
     const task = state.tasks.find((entry) => entry.status === "active" && String(entry.remoteResult) === String(input?.taskId || ""));
     const review = input?.review;
     if (!task || !review || !["ACCEPTED", "CENSURED"].includes(review.state)) throw new Error("复命裁决与当前差事不匹配");
+    validateSourceBoundReview(review, task.sourceProvenance || task.mandate?.sourceProvenance, task.remoteResult, task.pendingSettlement, { digest: task.pendingReview?.review?.closureDigest });
     const pending = task.pendingReview;
     if (!pending || pending.review?.settlementId !== review.review?.settlementId || pending.review?.closureDigest !== review.review?.closureDigest) {
       throw new Error("复命裁决印记与待裁簿书不匹配");
