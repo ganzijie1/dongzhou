@@ -952,8 +952,9 @@ class OrganizationOutcomeTests(unittest.TestCase):
             "quality": delivered,
             "motivation": delivered,
         }
-        first = NpcSettlementModule.seal_delivery(task_id, "SUCCESS", outcome)
-        replay = NpcSettlementModule.seal_delivery(task_id, "SUCCESS", outcome)
+        source = ServiceProvenanceModule.seal(public_service_sources())
+        first = NpcSettlementModule.seal_delivery(task_id, "SUCCESS", outcome, source_provenance=source)
+        replay = NpcSettlementModule.seal_delivery(task_id, "SUCCESS", outcome, source_provenance=source)
         self.assertEqual(first, replay)
         self.assertEqual(first["state"], "SEALED")
         self.assertEqual(first["kernel"]["module"], "dongzhou_npc_settlement")
@@ -974,6 +975,7 @@ class OrganizationOutcomeTests(unittest.TestCase):
             outcome,
             event_ids=support_ids,
             participant_hero_id="SiTu",
+            source_provenance=source,
         )
         self.assertEqual(support["participantHeroId"], "SiTu")
         self.assertEqual(
@@ -982,7 +984,7 @@ class OrganizationOutcomeTests(unittest.TestCase):
         )
         pending = {**outcome, "motivation": {"state": "PENDING", "attempts": 1}}
         with self.assertRaisesRegex(ValueError, "motivation"):
-            NpcSettlementModule.seal_delivery(task_id, "SUCCESS", pending)
+            NpcSettlementModule.seal_delivery(task_id, "SUCCESS", pending, source_provenance=source)
 
     def test_nexus_seals_review_relationship_after_all_three_deliveries(self) -> None:
         task_id = "00000000-0000-4000-8000-000000000077"
@@ -1001,12 +1003,14 @@ class OrganizationOutcomeTests(unittest.TestCase):
             "memory": "settlement-accept:memory",
             "affection": "settlement-accept:affection",
         }
+        source = ServiceProvenanceModule.seal(public_service_sources())
         first = NpcReviewRelationshipModule.seal_delivery(
             task_id,
             "ACCEPT",
             "a" * 64,
             relationship,
             event_ids=event_ids,
+            source_provenance=source,
         )
         replay = NpcReviewRelationshipModule.seal_delivery(
             task_id,
@@ -1014,6 +1018,7 @@ class OrganizationOutcomeTests(unittest.TestCase):
             "a" * 64,
             relationship,
             event_ids=event_ids,
+            source_provenance=source,
         )
         self.assertEqual(first, replay)
         self.assertEqual(first["state"], "SEALED")
@@ -1032,6 +1037,7 @@ class OrganizationOutcomeTests(unittest.TestCase):
                 "a" * 64,
                 pending,
                 event_ids=event_ids,
+                source_provenance=source,
             )
 
 
@@ -3726,6 +3732,7 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
                 "primaryToSupport": "relationship-primary",
                 "supportToPrimary": "relationship-support",
             },
+            source_provenance=ServiceProvenanceModule.seal(public_service_sources()),
         )
         self.assertEqual(receipt["state"], "SEALED")
         self.assertEqual(receipt["affectionType"], "respect")
@@ -3743,6 +3750,7 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
                     "primaryToSupport": "relationship-primary",
                     "supportToPrimary": "relationship-support",
                 },
+                source_provenance=ServiceProvenanceModule.seal(public_service_sources()),
             )
 
     def test_organization_task_trace_projects_safe_fields_and_seals(self) -> None:

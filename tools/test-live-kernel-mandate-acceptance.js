@@ -512,6 +512,8 @@ saveJournal();
       assert.equal(terminalState.supportOutcome?.quality?.state, "DELIVERED");
       assert.equal(terminalState.supportOutcome?.motivation?.state, "DELIVERED");
       assert.equal(terminalState.supportOutcome?.receipt?.kernel?.module, "dongzhou_npc_settlement");
+      assert.equal(terminalState.supportOutcome?.receipt?.kernel?.moduleVersion, "1.2.0");
+      assert.equal(terminalState.supportOutcome?.receipt?.sourceProvenance?.digest, expectedSourceSeal);
       assert.equal(terminalState.supportOutcome?.receipt?.participantHeroId, supportHeroId);
     }
 
@@ -727,6 +729,8 @@ saveJournal();
       assert.equal(relationshipGrowth.task?.memory?.state, "DELIVERED");
       assert.equal(relationshipGrowth.task?.affection?.state, "DELIVERED");
       assert.equal(relationshipGrowth.task?.receipt?.kernel?.module, "dongzhou_npc_review_relationship");
+      assert.equal(relationshipGrowth.task?.receipt?.kernel?.moduleVersion, "1.1.0");
+      assert.equal(relationshipGrowth.task?.receipt?.sourceProvenance?.digest, expectedSourceSeal);
       assert.match(relationshipGrowth.task?.receipt?.digest || "", /^[0-9a-f]{64}$/);
       assert(relationshipGrowth.matched, "authoritative AINPC appreciation was not persisted before timeout");
       assert.equal(Number(relationshipGrowth.matched.max_value ?? relationshipGrowth.matched.maxValue), 6);

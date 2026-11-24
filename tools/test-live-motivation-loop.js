@@ -102,6 +102,8 @@ function motive(snapshot, name) {
     assert.equal(task.npcOutcome?.state, "DELIVERED", "The complete NPC outcome was not delivered");
     assert.equal(task.npcOutcome?.receipt?.state, "SEALED", "NexusKernel did not seal the four-part NPC settlement");
     assert.equal(task.npcOutcome?.receipt?.kernel?.module, "dongzhou_npc_settlement");
+    assert.equal(task.npcOutcome?.receipt?.kernel?.moduleVersion, "1.2.0");
+    assert.equal(task.npcOutcome?.receipt?.sourceProvenance?.digest, task.sourceProvenance?.digest);
     assert.equal(task.npcOutcome?.receipt?.digest?.length, 64);
     const nextAssignmentResponse = await page.evaluate(
       () => window.DongzhouIntegration.npcAssignment("ZuoRu", "supply", "01")

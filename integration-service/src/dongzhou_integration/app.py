@@ -759,8 +759,8 @@ class CampaignRouteModule(Module):
 
 class NpcSettlementModule(Module):
     name = "dongzhou_npc_settlement"
-    version = "1.1.0"
-    dependencies = (RuntimeModule.name,)
+    version = "1.2.0"
+    dependencies = (RuntimeModule.name, "dongzhou_service_provenance")
 
     @staticmethod
     def seal_delivery(
@@ -770,6 +770,7 @@ class NpcSettlementModule(Module):
         *,
         event_ids: dict[str, str] | None = None,
         participant_hero_id: str | None = None,
+        source_provenance: dict[str, Any],
     ) -> dict[str, Any]:
         normalized_result = str(final_result).upper()
         if normalized_result not in {"SUCCESS", "PARTIAL", "FAILURE"}:
@@ -798,12 +799,15 @@ class NpcSettlementModule(Module):
             "taskId": task_id,
             "finalResult": normalized_result,
             "deliveries": deliveries,
+            "sourceProvenance": source_provenance,
             **(
                 {"participantHeroId": participant_hero_id}
                 if participant_hero_id
                 else {}
             ),
         }
+        if not _service_provenance_receipt_is_valid(source_provenance):
+            raise ValueError("invalid NPC settlement source provenance")
         digest = hashlib.sha256(
             json.dumps(
                 trace,
@@ -827,8 +831,8 @@ class NpcSettlementModule(Module):
 
 class NpcReviewRelationshipModule(Module):
     name = "dongzhou_npc_review_relationship"
-    version = "1.0.0"
-    dependencies = (RuntimeModule.name,)
+    version = "1.1.0"
+    dependencies = (RuntimeModule.name, "dongzhou_service_provenance")
 
     @staticmethod
     def seal_delivery(
@@ -838,6 +842,7 @@ class NpcReviewRelationshipModule(Module):
         relationship: dict[str, Any],
         *,
         event_ids: dict[str, str],
+        source_provenance: dict[str, Any],
     ) -> dict[str, Any]:
         UUID(task_id)
         if decision not in {"ACCEPT", "CENSURE"}:
@@ -872,8 +877,13 @@ class NpcReviewRelationshipModule(Module):
             "affectionType": affection_type,
             "affectionDelta": float(affection_delta),
             "deliveries": deliveries,
+            "sourceProvenance": source_provenance,
         }
-        if not trace["npcId"] or not trace["targetId"]:
+        if (
+            not trace["npcId"]
+            or not trace["targetId"]
+            or not _service_provenance_receipt_is_valid(source_provenance)
+        ):
             raise ValueError("invalid NPC review relationship identities")
         digest = hashlib.sha256(
             json.dumps(
@@ -898,8 +908,8 @@ class NpcReviewRelationshipModule(Module):
 
 class NpcCollaborationRelationshipModule(Module):
     name = "dongzhou_npc_collaboration_relationship"
-    version = "1.0.0"
-    dependencies = (RuntimeModule.name,)
+    version = "1.1.0"
+    dependencies = (RuntimeModule.name, "dongzhou_service_provenance")
 
     @staticmethod
     def seal_delivery(
@@ -908,6 +918,7 @@ class NpcCollaborationRelationshipModule(Module):
         relationship: dict[str, Any],
         *,
         event_ids: dict[str, str],
+        source_provenance: dict[str, Any],
     ) -> dict[str, Any]:
         UUID(task_id)
         normalized = str(final_result).upper()
@@ -934,6 +945,7 @@ class NpcCollaborationRelationshipModule(Module):
             "affectionType": str(relationship["affectionType"]),
             "affectionDelta": float(relationship["affectionDelta"]),
             "deliveries": deliveries,
+            "sourceProvenance": source_provenance,
         }
         if (
             not trace["primaryHeroId"]
@@ -941,6 +953,7 @@ class NpcCollaborationRelationshipModule(Module):
             or trace["primaryHeroId"] == trace["supportHeroId"]
             or trace["affectionType"] not in {"friendship", "respect", "annoyance"}
             or not 0 < trace["affectionDelta"] <= 10
+            or not _service_provenance_receipt_is_valid(source_provenance)
         ):
             raise ValueError("invalid collaboration relationship trace")
         digest = _canonical_digest(trace)
@@ -11822,6 +11835,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 task_key,
                 str(settlement.get("result") or ""),
                 outcome,
+                source_provenance=service_provenance.receipt(),
             )
         support_npc_outcomes: list[dict[str, Any]] = []
         collaboration_relationship: dict[str, Any] | None = None
@@ -11893,6 +11907,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                         support_outcome,
                         event_ids=support_event_ids,
                         participant_hero_id=support_hero_id,
+                        source_provenance=service_provenance.receipt(),
                     )
                 support_npc_outcomes.append(support_outcome)
                 if isinstance(settlement, dict):
@@ -11967,6 +11982,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                                 str(settlement["result"]),
                                 collaboration_relationship,
                                 event_ids=event_ids,
+                                source_provenance=service_provenance.receipt(),
                             )
                         )
         task_state = {
@@ -12029,6 +12045,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                         "memory": str(consequence.get("memoryEventId") or ""),
                         "affection": str(consequence.get("affectionEventId") or ""),
                     },
+                    source_provenance=service_provenance.receipt(),
                 )
             task_state["npcConsequence"] = relationship
         if settlement is not None and closure is not None:

@@ -70,6 +70,8 @@ assert(journal.installation && taskId, "completed live task journal is incomplet
     assert.equal(actual.npcConsequence?.affectionType, "appreciation");
     assert.equal(actual.npcConsequence?.affectionDelta, 6);
     assert.equal(actual.npcConsequence?.receipt?.kernel?.module, "dongzhou_npc_review_relationship");
+    assert.equal(actual.npcConsequence?.receipt?.kernel?.moduleVersion, "1.1.0");
+    assert.equal(actual.npcConsequence?.receipt?.sourceProvenance?.digest, actual.sourceProvenance?.digest);
     assert.equal(actual.npcConsequence?.receipt?.kernel?.state, "SEALED");
 
     const applied = await page.evaluate(({ id, snapshot, settlement, closureReceipt, review, npcConsequence }) => {
