@@ -759,6 +759,10 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["scheduleName"], "临时军令")
         self.assertEqual(seen[0].url.path, "/api/v1/schedule-interrupts/temp/generate")
         self.assertEqual(seen[0].headers["Authorization"], "Bearer ainpc-token")
+        self.assertEqual(
+            seen[0].extensions["timeout"]["read"],
+            Upstreams.SCHEDULE_INTERRUPT_TIMEOUT_SECONDS,
+        )
         body = json.loads(seen[0].content)
         self.assertEqual(body["game_server_id"], "91001")
         self.assertEqual(body["npc_id"], "42")

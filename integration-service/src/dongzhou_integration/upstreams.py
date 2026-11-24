@@ -54,6 +54,8 @@ def _knowledge_graph_path(item: dict[str, Any]) -> dict[str, Any] | None:
 
 
 class Upstreams:
+    SCHEDULE_INTERRUPT_TIMEOUT_SECONDS = 120.0
+
     def __init__(self, settings: Settings, client: httpx.AsyncClient | None = None) -> None:
         self.settings = settings
         self.client = client or httpx.AsyncClient(
@@ -181,10 +183,15 @@ class Upstreams:
     def _headers(token: str) -> dict[str, str]:
         return {"Authorization": f"Bearer {token}"} if token else {}
 
-    async def _json(self, method: str, url: str, *, token: str = "", payload: dict[str, Any] | None = None, params: dict[str, Any] | None = None, headers: dict[str, str] | None = None, content: bytes | None = None) -> dict[str, Any]:
+    async def _json(self, method: str, url: str, *, token: str = "", payload: dict[str, Any] | None = None, params: dict[str, Any] | None = None, headers: dict[str, str] | None = None, content: bytes | None = None, timeout_seconds: float | None = None) -> dict[str, Any]:
         try:
             request_headers = {**self._headers(token), **(headers or {})}
-            response = await self.client.request(method, url, headers=request_headers, params=params, json=payload if content is None else None, content=content)
+            timeout = (
+                {"timeout": httpx.Timeout(timeout_seconds, connect=3)}
+                if timeout_seconds is not None
+                else {}
+            )
+            response = await self.client.request(method, url, headers=request_headers, params=params, json=payload if content is None else None, content=content, **timeout)
             response.raise_for_status()
             data = response.json()
             if not isinstance(data, dict):
@@ -1390,6 +1397,7 @@ class Upstreams:
                 "npc_id": str(npc_id),
                 **payload,
             },
+            timeout_seconds=self.SCHEDULE_INTERRUPT_TIMEOUT_SECONDS,
         )
         data = response.get("data")
         if response.get("code") not in (0, 200, "0", "200") or not isinstance(data, dict):
