@@ -2013,6 +2013,10 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
             assert schedule_receipt["action"] == "insert_today"
             assert schedule_receipt["mandateId"] == mandate["id"]
             assert schedule_receipt["mandateDigest"] == mandate["digest"]
+            assert (
+                schedule_receipt["sourceProvenance"]
+                == mandate["sourceProvenance"]
+            )
             assert schedule_receipt["scheduleName"] == "临时军令"
             assert len(schedule_receipt["digest"]) == 64
             assert upstreams.interruptions == [(
@@ -2078,6 +2082,58 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
                 task_state.json()["sourceProvenance"]
                 == mandate["sourceProvenance"]
             )
+
+            connection = sqlite3.connect(Path(directory) / "gateway.sqlite3")
+            try:
+                row = connection.execute(
+                    "SELECT response_payload FROM requests WHERE request_id=?",
+                    (schedule_request_id,),
+                ).fetchone()
+                assert row is not None
+                schedule_response = json.loads(row[0])
+                prior_manifest = public_service_sources()
+                prior_manifest["services"]["aiNpc"]["sourceRevision"] = "0" * 40
+                schedule_response["scheduleReceipt"]["sourceProvenance"] = (
+                    ServiceProvenanceModule.seal(prior_manifest)
+                )
+                receipt_trace = {
+                    key: value
+                    for key, value in schedule_response["scheduleReceipt"].items()
+                    if key != "digest"
+                }
+                schedule_response["scheduleReceipt"]["digest"] = hashlib.sha256(
+                    json.dumps(
+                        receipt_trace,
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                        sort_keys=True,
+                    ).encode("utf-8")
+                ).hexdigest()
+                connection.execute(
+                    "UPDATE requests SET response_payload=? WHERE request_id=?",
+                    (
+                        json.dumps(schedule_response, ensure_ascii=False),
+                        schedule_request_id,
+                    ),
+                )
+                connection.commit()
+            finally:
+                connection.close()
+
+            drifted_schedule_order = {
+                **order,
+                "client_request_id": str(uuid4()),
+            }
+            drifted_schedule = client.post(
+                "/api/dongzhou/v1/organization/tasks",
+                json=drifted_schedule_order,
+            )
+            assert drifted_schedule.status_code == 409
+            assert (
+                drifted_schedule.json()["error"]["code"]
+                == "court_mandate_schedule_source_provenance_mismatch"
+            )
+            assert len(upstreams.triggers) == 1
 
             mismatched = {
                 **order,

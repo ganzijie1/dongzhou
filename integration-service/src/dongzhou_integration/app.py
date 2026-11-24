@@ -9282,6 +9282,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "requestId": str(request.client_request_id),
                 "mandateId": mandate_id,
                 "mandateDigest": request.mandate_digest,
+                "sourceProvenance": service_provenance.receipt(),
                 "heroId": hero_id,
                 "npcId": str(stable_npc_id(settings.ainpc_game_server_id, hero_id)),
                 "role": role,
@@ -10776,17 +10777,60 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     status_code=409,
                 )
             schedule_event_id = f"dongzhou-mandate-{mandate_digest[:32]}"
-            schedule_request = await store.read_external_request(
+            schedule_record = await store.read_external_request_record(
                 player_id, schedule_event_id, "court_mandate_schedule"
+            )
+            schedule_request = (
+                schedule_record.get("request")
+                if isinstance(schedule_record, dict)
+                else None
+            )
+            schedule_response = (
+                schedule_record.get("response")
+                if isinstance(schedule_record, dict)
+                else None
+            )
+            schedule_receipt = (
+                schedule_response.get("scheduleReceipt")
+                if isinstance(schedule_response, dict)
+                else None
+            )
+            schedule_receipt_trace = (
+                {
+                    key: value
+                    for key, value in schedule_receipt.items()
+                    if key != "digest"
+                }
+                if isinstance(schedule_receipt, dict)
+                else {}
             )
             if (
                 not isinstance(schedule_request, dict)
                 or schedule_request.get("mandateId") != mandate_id
                 or schedule_request.get("mandate_digest") != mandate_digest
+                or not isinstance(schedule_receipt, dict)
+                or schedule_receipt.get("mandateId") != mandate_id
+                or schedule_receipt.get("mandateDigest") != mandate_digest
+                or schedule_receipt.get("digest")
+                != _canonical_digest(schedule_receipt_trace)
             ):
                 raise ApiError(
                     "court_mandate_schedule_required",
                     "The issued mandate must receive an AINPC schedule decision before organization dispatch.",
+                    status_code=409,
+                )
+            schedule_source_provenance = schedule_receipt.get(
+                "sourceProvenance"
+            )
+            if (
+                schedule_source_provenance is not None
+                and not _service_provenance_receipt_matches(
+                    schedule_source_provenance, service_provenance.receipt()
+                )
+            ):
+                raise ApiError(
+                    "court_mandate_schedule_source_provenance_mismatch",
+                    "The AINPC schedule receipt was not sealed by the current four-service runtime.",
                     status_code=409,
                 )
         await require_source_attested_runtime(
