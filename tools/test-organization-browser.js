@@ -134,6 +134,11 @@ async function openReady(page) {
     let savedRemoteTask = false;
     let releaseOrder;
     const orderGate = new Promise((resolve) => { releaseOrder = resolve; });
+    const sourceProvenance = {
+      digest: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      services: { knowledge: {}, aiNpc: {}, orgFlow: {}, nexusKernel: {} },
+      kernel: { module: "dongzhou_service_provenance", state: "SEALED" }
+    };
     await online.route("**/api/dongzhou/v1/**", async (route) => {
       const request = route.request();
       const url = new URL(request.url());
@@ -346,27 +351,26 @@ async function openReady(page) {
       }
       else if (/\/npcs\/[^/]+\/schedule$/.test(pathName) && request.method() === "GET") body = { schedule: { data: { schedules: [{ date: "共和元年", events: [{ name: "整饬军粮" }, { name: "巡视营垒" }] }] } }, runtime: { available: true, degraded: false, loaded: true, online: true, currentGameTime: "0772-10-22T14:00:00", activeWindow: { status: "active", start: "0772-10-22T14:00:00", end: "0772-10-22T22:00:00" }, running: { id: "running-1", name: "休息", type: "休息" }, pending: [{ id: "pending-1", name: "检阅军阵", type: "军事" }, { id: "pending-2", name: "议定军令", type: "军事" }], suspended: [], counts: { pending: 2, suspended: 0, completed: 0, discarded: 0 } } };
       else if (/\/npcs\/[^/]+\/schedule$/.test(pathName)) body = { schedule: { data: { plan_id: "plan-e2e" } } };
-      else if (pathName.includes("/court/mandates/") && pathName.endsWith("/schedule")) { const input = request.postDataJSON(); const mandateId = decodeURIComponent(pathName.split("/").at(-2)); body = { state: "COMPLETED", scheduleReceipt: { requestId: input.client_request_id, mandateId, mandateDigest: input.mandate_digest, heroId: "ZuoRu", npcId: "42", eventId: `dongzhou-mandate-${input.mandate_digest.slice(0, 32)}`, action: "insert_today", scheduleId: `dongzhou-mandate-${input.mandate_digest.slice(0, 32)}`, scheduleName: "临时军令", duplicate: false, reason: null, appliedAt: "0771-01-01 14:00:00", digest: "d".repeat(64) } }; }
-      else if (/\/npcs\/[^/]+\/decisions$/.test(pathName)) body = { state: "COMPLETED", decision: { data: { index: 1, type: "OPTION", text: "整军强攻，争取先机" } } };
+      else if (pathName.includes("/court/mandates/") && pathName.endsWith("/schedule")) { const input = request.postDataJSON(); const mandateId = decodeURIComponent(pathName.split("/").at(-2)); body = { state: "COMPLETED", scheduleReceipt: { requestId: input.client_request_id, mandateId, mandateDigest: input.mandate_digest, heroId: "ZuoRu", npcId: "42", eventId: `dongzhou-mandate-${input.mandate_digest.slice(0, 32)}`, action: "insert_today", scheduleId: `dongzhou-mandate-${input.mandate_digest.slice(0, 32)}`, scheduleName: "临时军令", duplicate: false, reason: null, appliedAt: "0771-01-01 14:00:00", digest: "d".repeat(64), sourceProvenance } }; }
+      else if (/\/npcs\/[^/]+\/decisions$/.test(pathName)) body = { state: "COMPLETED", decision: { data: { index: 1, type: "OPTION", text: "整军强攻，争取先机" } }, sourceProvenance };
       else if (pathName.endsWith("/court/mandates")) {
         mandateAttempts += 1;
         const input = request.postDataJSON();
         if (input.schedule_plan_id !== "plan-e2e") throw new Error("Nexus mandate did not retain the authoritative AINPC schedule plan ID");
-        body = { state: "ISSUED", mandate: { id: `dongzhou:player-e2e:${input.client_request_id}`, stageId: input.stage_id, stageTitle: "东郊索命", heroId: input.hero_id, taskType: input.task_type, evidence: { id: input.knowledge_id, name: "第一回·已发布本回史料", summary: "杜伯进谏", source: { index: input.evidence_source_index, work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" } }, evidenceFit: { taskType: input.task_type, factor: 2, band: "weak", signals: [{ kind: "sourceTier", label: "史实骨架", factor: 2 }] }, council: { requestId: input.council_request_id, index: input.decision_index, text: "整军强攻，争取先机" }, assignment: { heroId: input.hero_id, npcId: "42", runtimeState: "READY", planId: input.schedule_plan_id, generationId: "generation-e2e", eventId: input.schedule_event_id, transactionId: 9100103, name: "转运军粮", type: "军需", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "resolute", intensity: 72, affectionCount: 2, relationshipCount: 3 }, readiness: { score: 82, band: "steady", factors: { runtime: 6, duty: 7.2, emotion: 0, support: 7 } } }, kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "READY" }, digest: "b".repeat(64), state: "ISSUED" } };
+        body = { state: "ISSUED", mandate: { id: `dongzhou:player-e2e:${input.client_request_id}`, stageId: input.stage_id, stageTitle: "东郊索命", heroId: input.hero_id, taskType: input.task_type, evidence: { id: input.knowledge_id, name: "第一回·已发布本回史料", summary: "杜伯进谏", source: { index: input.evidence_source_index, work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" } }, evidenceFit: { taskType: input.task_type, factor: 2, band: "weak", signals: [{ kind: "sourceTier", label: "史实骨架", factor: 2 }] }, council: { requestId: input.council_request_id, index: input.decision_index, text: "整军强攻，争取先机", sourceProvenance }, assignment: { heroId: input.hero_id, npcId: "42", runtimeState: "READY", planId: input.schedule_plan_id, generationId: "generation-e2e", eventId: input.schedule_event_id, transactionId: 9100103, name: "转运军粮", type: "军需", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "resolute", intensity: 72, affectionCount: 2, relationshipCount: 3 }, readiness: { score: 82, band: "steady", factors: { runtime: 6, duty: 7.2, emotion: 0, support: 7 } } }, sourceProvenance, kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "READY" }, digest: "b".repeat(64), state: "ISSUED" } };
         body.mandate.assignment.personality = { available: true, profileId: "profile-zuoru", traits: { stubborn: 79, smooth: 48 }, dominantTraits: ["stubborn", "smooth"], fit: { available: true, score: 56, band: "steady", factor: 1.2, signals: [{ trait: "stubborn", value: 79, effect: 6.3 }] } };
         body.mandate.assignment.motivation = { available: true, motives: [{ name: "情报核验", score: 35 }], revision: 2, updatedAt: "2026-11-10T08:01:52.476000", threshold: 80, fit: { available: true, score: 50, band: "neutral", factor: 0, signals: [] } };
         body.mandate.assignment.managerSupport = { managerNpcId: "41", affection: { type: "respect", value: 50, count: 2 }, relationships: [{ type: "organization", subtype: "superior_subordinate", title: "上级", bilateral: true }], factor: 5.5 };
         body.mandate.assignment.readiness.factors.personality = 1.2;
         body.mandate.assignment.readiness.factors.motivation = 0;
         body.mandate.emergency = { urgent: true, score: 54.548, interruptTraceId: "itr-browser-emergency", assessedAt: "2026-11-11T04:57:03Z", event: "emergency military report" };
-        body.mandate.sourceProvenance = { digest: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" };
       }
       else if (pathName.endsWith("/organization/tasks")) {
         orderAttempts += 1;
         if (orderAttempts === 2) await orderGate;
         body = orderAttempts === 1
           ? { state: "REJECTED", error: { message: "验收拒单" } }
-          : { state: "ACCEPTED", taskId: "00000000-0000-0000-0000-000000000010" };
+          : { state: "ACCEPTED", taskId: "00000000-0000-0000-0000-000000000010", sourceProvenance };
       }
       else if (/\/organization\/tasks\//.test(pathName)) {
         organizationTaskReads += 1;
@@ -561,6 +565,12 @@ async function openReady(page) {
     if (!/54\.548/.test(await online.locator("#officeTaskLedger li.active").innerText())) throw new Error("Sealed AINPC emergency assessment is missing from the task ledger");
     if (!/版本封印 0123456789/.test(await online.locator("#officeMandateLedger").innerText())) throw new Error("Four-service source seal is missing from the mandate ledger");
     const afterConcurrentOrder = await online.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")));
+    const acceptedTask = afterConcurrentOrder.organization.tasks[0];
+    const acceptedCouncil = afterConcurrentOrder.organization.councils.find((entry) => entry.id === acceptedTask.mandate.council.requestId);
+    if (acceptedCouncil?.sourceProvenance?.digest !== sourceProvenance.digest) throw new Error("Council source seal was not persisted");
+    if (acceptedTask.mandate.council.sourceProvenance?.digest !== sourceProvenance.digest) throw new Error("Mandate did not retain its council source seal");
+    if (acceptedTask.mandate.scheduleInterruption?.sourceProvenance?.digest !== sourceProvenance.digest) throw new Error("Schedule receipt did not retain its source seal");
+    if (acceptedTask.sourceProvenance?.digest !== sourceProvenance.digest) throw new Error("Organization acceptance did not retain its source seal");
     if (afterConcurrentOrder.organization.month !== 2) throw new Error(`Accepted order rolled back a concurrent month advance: ${afterConcurrentOrder.organization.month}`);
     if (afterConcurrentOrder.campaignResources.provisions !== provisionsBeforeOrder - afterConcurrentOrder.organization.tasks[0].cost) throw new Error("Accepted order did not charge exactly once");
     if (orderAttempts !== 2) throw new Error("Repeated click created duplicate remote orders");

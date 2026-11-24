@@ -79,8 +79,12 @@ assert.throws(() => play.recordCouncil(state, { id: "council-mastery-invalid", s
 const masteryCouncil = play.recordCouncil(state, { id: "council-mastery-1", stageId: "01", memberId: "ZuoRu", knowledgeId: "dongzhou_stage_001", knowledgeName: "第一回", evidenceSourceIndex: 0, question: `如何部署\n史识印记：${masteryResult.receipt.digest.slice(0, 12)}`, options: ["守", "攻"], index: 1, knowledgeMastery: masteryResult });
 state = masteryCouncil.state;
 assert.strictEqual(masteryCouncil.council.knowledgeMastery.score, 10);
-const sealed = play.recordMandate(state, { id: "mandate-source-1", stageId: "01", stageTitle: "东郊索命", heroId: "ZuoRu", taskType: "drill", evidence: { id: "dongzhou_stage_001", name: "第一回", source: { index: 0, work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" } }, council: { requestId: "council-source-1", text: "攻", publicNotice, contribution }, publicNotice, contribution, assignment: { heroId: "ZuoRu", npcId: "42", runtimeState: "READY", planId: "plan-1", generationId: "gen-1", eventId: "event-drill", transactionId: 9100102, name: "检阅军阵", type: "军事", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "calm", intensity: 0, affectionCount: 0, relationshipCount: 0 }, readiness: { score: 75, band: "steady", factors: { runtime: 6, duty: 7.2, emotion: 6, support: 0 } } }, emergency: { urgent: true, score: 81.25, interruptTraceId: "emergency_evaluate:test", assessedAt: "0771-01-01 14:00:00", event: "Enemy riders reached the pass" }, kernel: { state: "READY" }, digest: "a".repeat(64), state: "ISSUED" });
+const sealed = play.recordMandate(state, { id: "mandate-source-1", stageId: "01", stageTitle: "东郊索命", heroId: "ZuoRu", taskType: "drill", evidence: { id: "dongzhou_stage_001", name: "第一回", source: { index: 0, work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" } }, council: { requestId: "council-source-1", text: "攻", publicNotice, contribution, sourceProvenance }, publicNotice, contribution, assignment: { heroId: "ZuoRu", npcId: "42", runtimeState: "READY", planId: "plan-1", generationId: "gen-1", eventId: "event-drill", transactionId: 9100102, name: "检阅军阵", type: "军事", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "calm", intensity: 0, affectionCount: 0, relationshipCount: 0 }, readiness: { score: 75, band: "steady", factors: { runtime: 6, duty: 7.2, emotion: 6, support: 0 } } }, emergency: { urgent: true, score: 81.25, interruptTraceId: "emergency_evaluate:test", assessedAt: "0771-01-01 14:00:00", event: "Enemy riders reached the pass" }, sourceProvenance, kernel: { state: "READY" }, digest: "a".repeat(64), state: "ISSUED" });
 state = sealed.state;
+const tamperedSourceMandate = JSON.parse(JSON.stringify(sealed.mandate));
+tamperedSourceMandate.id = "mandate-source-tampered";
+tamperedSourceMandate.council.sourceProvenance.digest = "9".repeat(64);
+assert.throws(() => play.recordMandate(state, tamperedSourceMandate), /服务来源无效/);
 const tamperedNoticeMandate = JSON.parse(JSON.stringify(sealed.mandate));
 tamperedNoticeMandate.id = "mandate-notice-tampered";
 tamperedNoticeMandate.publicNotice.digest = "5".repeat(64);
@@ -120,9 +124,15 @@ collaborationMandate.supportScheduleInterruption = {
   action: "insert_today",
   scheduleId: "support-schedule",
   scheduleName: "协办军令",
-  digest: "c".repeat(64)
+  digest: "c".repeat(64),
+  sourceProvenance
 };
 const collaborationSealed = play.recordMandate(state, collaborationMandate);
+const tamperedScheduleSource = JSON.parse(JSON.stringify(collaborationMandate));
+tamperedScheduleSource.id = "mandate-schedule-source-tampered";
+tamperedScheduleSource.supportScheduleInterruption.mandateId = tamperedScheduleSource.id;
+tamperedScheduleSource.supportScheduleInterruption.sourceProvenance.digest = "9".repeat(64);
+assert.throws(() => play.recordMandate(state, tamperedScheduleSource), /副手日程服务来源不一致/);
 const collaborationTask = play.createTask(collaborationSealed.state, { type: "drill", assigneeId: "ZuoRu", stageId: "01", stageTitle: "东郊索命", knowledgeId: "dongzhou_stage_001", councilId: "council-source-1", mandateId: collaborationMandate.id });
 assert.strictEqual(collaborationTask.task.mandate.collaboration.supportHeroId, "DuBo");
 assert.strictEqual(collaborationTask.state.members.find((member) => member.id === "DuBo").fatigue, 8);

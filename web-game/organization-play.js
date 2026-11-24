@@ -16,6 +16,19 @@
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, Number(value) || 0));
   const copy = (value) => JSON.parse(JSON.stringify(value));
+  const SOURCE_SERVICES = ['knowledge', 'aiNpc', 'orgFlow', 'nexusKernel'];
+
+  function validSourceProvenance(receipt) {
+    const services = Object.keys(receipt?.services || {});
+    return Boolean(
+      receipt
+      && /^[0-9a-f]{64}$/.test(String(receipt.digest || ''))
+      && receipt.kernel?.module === 'dongzhou_service_provenance'
+      && receipt.kernel?.state === 'SEALED'
+      && services.length === SOURCE_SERVICES.length
+      && SOURCE_SERVICES.every((name) => services.includes(name))
+    );
+  }
 
   function hash(text) {
     let value = 2166136261;
@@ -176,8 +189,7 @@
     const dialogueReceipt = input.dialogueReceipt && typeof input.dialogueReceipt === 'object' ? copy(input.dialogueReceipt) : null;
     if (dialogueReceipt && (dialogueReceipt.state !== 'RECORDED' || !String(dialogueReceipt.sourceRecordId || '').startsWith('dongzhou-council:') || !/^[0-9a-f]{64}$/.test(String(dialogueReceipt.digest || '')))) throw new Error('军议对话归档回执无效');
     const sourceProvenance = input.sourceProvenance && typeof input.sourceProvenance === 'object' ? copy(input.sourceProvenance) : null;
-    const sourceServices = Object.keys(sourceProvenance?.services || {});
-    if (sourceProvenance && (!/^[0-9a-f]{64}$/.test(String(sourceProvenance.digest || '')) || sourceProvenance.kernel?.module !== 'dongzhou_service_provenance' || sourceProvenance.kernel?.state !== 'SEALED' || sourceServices.length !== 4 || !['knowledge', 'aiNpc', 'orgFlow', 'nexusKernel'].every((name) => sourceServices.includes(name)))) throw new Error('军议服务来源回执无效');
+    if (sourceProvenance && !validSourceProvenance(sourceProvenance)) throw new Error('军议服务来源回执无效');
     const memory = input.memory && typeof input.memory === 'object' ? copy(input.memory) : null;
     if (memory && (!memory.idempotencyKey || !memory.content || !/^[0-9a-f]{64}$/.test(String(memory.digest || '')) || !String(input.question || '').includes(`记忆印记：${memory.digest.slice(0, 12)}`))) throw new Error('军议旧事回执无效');
     const publicNotice = input.publicNotice && typeof input.publicNotice === 'object' ? copy(input.publicNotice) : null;
@@ -325,6 +337,11 @@
     const mandate = input && typeof input === "object" ? copy(input) : null;
     if (!mandate?.id || !mandate.stageId || !mandate.heroId || !mandate.taskType) throw new Error("内核军令缺少关卡、属官或差事");
     if (!mandate.evidence?.id || !mandate.evidence?.source?.work || !mandate.council?.requestId || !mandate.council?.text) throw new Error("内核军令未绑定史料、选证与属官裁断");
+    const mandateSource = mandate.sourceProvenance;
+    const councilSource = mandate.council.sourceProvenance;
+    const recordedCouncilSource = state.councils.find((entry) => entry.id === mandate.council.requestId)?.sourceProvenance;
+    if (Boolean(mandateSource) !== Boolean(councilSource) || (mandateSource && (!validSourceProvenance(mandateSource) || !validSourceProvenance(councilSource) || mandateSource.digest !== councilSource.digest))) throw new Error("内核军令服务来源无效");
+    if (recordedCouncilSource && (!validSourceProvenance(recordedCouncilSource) || recordedCouncilSource.digest !== mandateSource?.digest)) throw new Error("内核军令与本地军议服务来源不一致");
     if (mandate.evidence.searchReceipt && (!/^[0-9a-f]{64}$/.test(String(mandate.evidence.searchReceipt.digest || "")) || !Array.isArray(mandate.evidence.retrieval?.channels) || !mandate.evidence.retrieval.channels.length)) throw new Error("内核军令检索回执无效");
     if (mandate.evidenceFit && (mandate.evidenceFit.taskType !== mandate.taskType || !Number.isFinite(Number(mandate.evidenceFit.factor)) || Number(mandate.evidenceFit.factor) < 0 || Number(mandate.evidenceFit.factor) > 9 || !["strong", "aligned", "weak"].includes(mandate.evidenceFit.band) || !Array.isArray(mandate.evidenceFit.signals))) throw new Error("内核军令史证适配无效");
     if (mandate.knowledgeMastery && (mandate.knowledgeMastery.stageId !== mandate.stageId || mandate.knowledgeMastery.knowledgeId !== mandate.evidence.id || Number(mandate.knowledgeMastery.score) !== 10 || Number(mandate.knowledgeMastery.bonus) !== 3 || mandate.knowledgeMastery.state !== "SEALED" || !/^[0-9a-f]{64}$/.test(String(mandate.knowledgeMastery.resultDigest || "")) || mandate.knowledgeMastery.kernel?.module !== "dongzhou_knowledge_tournament" || mandate.knowledgeMastery.kernel?.state !== "SEALED" || mandate.knowledgeMastery.resultDigest !== mandate.council?.knowledgeMastery?.resultDigest)) throw new Error("内核军令史识凭据无效");
@@ -357,6 +374,7 @@
       || !["insert_today", "future", "discard", "expired", "worthless"].includes(interruption.action)
       || (["insert_today", "future"].includes(interruption.action) && (!interruption.scheduleId || !interruption.scheduleName))
     )) throw new Error("属官日程中断回执无效");
+    if (interruption?.sourceProvenance && (!validSourceProvenance(interruption.sourceProvenance) || interruption.sourceProvenance.digest !== mandateSource?.digest)) throw new Error("属官日程服务来源不一致");
     const supportInterruption = mandate.supportScheduleInterruption;
     if (mandate.collaboration && (!supportInterruption
       || supportInterruption.mandateId !== mandate.id
@@ -367,6 +385,7 @@
       || !String(supportInterruption.eventId || "").startsWith("dongzhou-mandate-support-")
       || !["insert_today", "future", "discard", "expired", "worthless"].includes(supportInterruption.action)
       || (["insert_today", "future"].includes(supportInterruption.action) && (!supportInterruption.scheduleId || !supportInterruption.scheduleName)))) throw new Error("副手日程中断回执无效");
+    if (supportInterruption?.sourceProvenance && (!validSourceProvenance(supportInterruption.sourceProvenance) || supportInterruption.sourceProvenance.digest !== mandateSource?.digest)) throw new Error("副手日程服务来源不一致");
     if (mandate.state !== "ISSUED" || !/^[0-9a-f]{64}$/.test(String(mandate.digest || "")) || !["ISSUED", "READY", "DEGRADED"].includes(mandate.kernel?.state)) throw new Error("内核军令尚未签发或印记无效");
     if (mandate.operation && (mandate.taskType !== "diplomacy" || mandate.operation.kind !== "diplomacy" || !mandate.operation.target_id || !mandate.operation.target_name || !mandate.operation.proposal)) throw new Error("外交军令缺少目标或主张");
     const previous = state.mandates.find((entry) => entry.id === mandate.id);

@@ -435,6 +435,11 @@
   }
   function applyOrganizationOrder(profile, task, result) {
     task = Object.values(read(ORDER_JOURNAL_KEY, {})).find((entry) => entry.result?.taskId === result.taskId)?.task || task;
+    const acceptanceSource = result.sourceProvenance;
+    const acceptanceServices = Object.keys(acceptanceSource?.services || {});
+    if (acceptanceSource && (!/^[0-9a-f]{64}$/.test(String(acceptanceSource.digest || "")) || acceptanceSource.kernel?.module !== "dongzhou_service_provenance" || acceptanceSource.kernel?.state !== "SEALED" || acceptanceServices.length !== 4 || !["knowledge", "aiNpc", "orgFlow", "nexusKernel"].every((name) => acceptanceServices.includes(name)) || acceptanceSource.digest !== task.mandate?.sourceProvenance?.digest)) {
+      throw new Error("组织任务受理服务来源与军令不一致");
+    }
     const org = profile.organization;
     if (org.tasks.some((entry) => entry.remoteResult === result.taskId)) return;
     org.mandates ||= [];
@@ -450,6 +455,7 @@
       ...task,
       remoteMirrored: true,
       remoteResult: result.taskId,
+      ...(acceptanceSource ? { sourceProvenance: JSON.parse(JSON.stringify(acceptanceSource)) } : {}),
       ...(result.topology ? { organizationTopology: JSON.parse(JSON.stringify(result.topology)) } : {})
     };
     org.tasks.push(restored);
