@@ -46,11 +46,11 @@ const SYSTEM_CHROMIUM = [
         readinessRequests += 1;
         assert.deepStrictEqual(request.postDataJSON(), { stage_id: "02" });
         body = {
-          mode: "connected", state: "READY", kind: "BATTLE_READINESS", stageId: "02", stageTitle: "骊山烽火",
+          mode: "connected", state: "READY", kind: "BATTLE_READINESS", readinessId: "00000000-0000-4000-8000-000000000101", playerDigest: "4".repeat(64), stageId: "02", stageTitle: "骊山烽火",
           knowledge: { knowledgeIds: ["dongzhou_stage_002"], digest: "b".repeat(64) },
           organization: { organizationId: "court", state: "ACTIVE", hierarchyVersion: 1, activeHeroIds: ["DuBo"] },
           aiNpc: { readyHeroIds: ["DuBo"] }, sourceProvenance, digest: "6".repeat(64),
-          kernel: { module: "dongzhou_battle_readiness", moduleVersion: "1.1.0", state: "SEALED" }
+          kernel: { module: "dongzhou_battle_readiness", moduleVersion: "1.2.0", state: "SEALED" }
         };
       }
       else if (url.pathname.endsWith("/battle-deployment")) {

@@ -736,8 +736,10 @@
           if (
             battleReadiness?.state !== "READY"
             || battleReadiness?.kernel?.module !== "dongzhou_battle_readiness"
-            || battleReadiness?.kernel?.moduleVersion !== "1.1.0"
+            || battleReadiness?.kernel?.moduleVersion !== "1.2.0"
             || battleReadiness?.kernel?.state !== "SEALED"
+            || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(String(battleReadiness?.readinessId || ""))
+            || !/^[0-9a-f]{64}$/.test(String(battleReadiness?.playerDigest || ""))
             || !/^[0-9a-f]{64}$/.test(String(battleReadiness?.digest || ""))
             || !/^[0-9a-f]{64}$/.test(String(battleReadiness?.sourceProvenance?.digest || ""))
           ) {

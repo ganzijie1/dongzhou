@@ -1438,11 +1438,13 @@ def _service_provenance_receipt_is_valid(receipt: Any) -> bool:
 
 class BattleReadinessModule(Module):
     name = "dongzhou_battle_readiness"
-    version = "1.1.0"
+    version = "1.2.0"
     dependencies = (RuntimeModule.name, ServiceProvenanceModule.name)
 
     @classmethod
-    def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
+    def _validate_trace(
+        cls, trace: dict[str, Any], *, require_player_identity: bool
+    ) -> None:
         knowledge = trace.get("knowledge")
         organization = trace.get("organization")
         ai_npc = trace.get("aiNpc")
@@ -1460,6 +1462,15 @@ class BattleReadinessModule(Module):
             )
         ):
             raise ValueError("battle readiness trace is incomplete")
+        if require_player_identity:
+            try:
+                UUID(str(trace.get("readinessId") or ""))
+            except ValueError:
+                raise ValueError("battle readiness identity is invalid") from None
+            if not re.fullmatch(
+                r"[0-9a-f]{64}", str(trace.get("playerDigest") or "")
+            ):
+                raise ValueError("battle readiness player is invalid")
         knowledge_ids = knowledge.get("knowledgeIds")
         active_heroes = organization.get("activeHeroIds")
         ready_heroes = ai_npc.get("readyHeroIds")
@@ -1480,6 +1491,10 @@ class BattleReadinessModule(Module):
             or ready_heroes != active_heroes
         ):
             raise ValueError("battle readiness evidence is invalid")
+
+    @classmethod
+    def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
+        cls._validate_trace(trace, require_player_identity=True)
         return {
             **trace,
             "digest": _canonical_digest(trace),
@@ -1500,11 +1515,21 @@ class BattleReadinessModule(Module):
             for key, value in receipt.items()
             if key not in {"digest", "kernel"}
         }
+        module_version = receipt.get("kernel", {}).get("moduleVersion")
         try:
-            sealed = cls.seal(trace)
-            if receipt.get("kernel", {}).get("moduleVersion") == "1.0.0":
-                sealed["kernel"]["moduleVersion"] = "1.0.0"
-            return sealed == receipt
+            if module_version in {"1.0.0", "1.1.0"}:
+                cls._validate_trace(trace, require_player_identity=False)
+                return {
+                    **trace,
+                    "digest": _canonical_digest(trace),
+                    "kernel": {
+                        "module": cls.name,
+                        "moduleVersion": module_version,
+                        "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                        "state": "SEALED",
+                    },
+                } == receipt
+            return cls.seal(trace) == receipt
         except (TypeError, ValueError):
             return False
 
@@ -3744,6 +3769,12 @@ def _battle_report_signature(report: dict[str, Any]) -> dict[str, Any]:
 def _battle_deployment_player_digest(player_id: UUID) -> str:
     return hashlib.sha256(
         f"dongzhou-battle-deployment:{player_id}".encode("utf-8")
+    ).hexdigest()
+
+
+def _battle_readiness_player_digest(player_id: UUID) -> str:
+    return hashlib.sha256(
+        f"dongzhou-battle-readiness:{player_id}".encode("utf-8")
     ).hexdigest()
 
 
@@ -7673,7 +7704,6 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         request: BattleReadinessRequest,
         player_id: UUID = Depends(player),
     ) -> dict[str, Any]:
-        del player_id
         stage_title = stage_titles.get(request.stage_id)
         if stage_title is None:
             raise ApiError(
@@ -7733,10 +7763,13 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     stable_npc_id(settings.ainpc_game_server_id, hero_id)
                 ) in online_npc_ids
             )
+            readiness_id = uuid4()
             trace = {
                 "mode": "connected",
                 "state": "READY",
                 "kind": "BATTLE_READINESS",
+                "readinessId": str(readiness_id),
+                "playerDigest": _battle_readiness_player_digest(player_id),
                 "stageId": request.stage_id,
                 "stageTitle": stage_title,
                 "knowledge": knowledge,
@@ -7756,6 +7789,29 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "Battle readiness evidence is incomplete or inconsistent.",
                 status_code=409,
             ) from error
+        started, existing = await store.begin_request(
+            player_id,
+            readiness_id,
+            "battle_readiness",
+            {
+                "stageId": request.stage_id,
+                "sourceProvenanceDigest": str(
+                    trace["sourceProvenance"].get("digest") or ""
+                ),
+            },
+            reclaim_pending=False,
+        )
+        if not started:
+            if existing == receipt:
+                return receipt
+            raise ApiError(
+                "battle_readiness_id_conflict",
+                "The readiness receipt identity conflicts.",
+                status_code=409,
+            )
+        await store.finish_request(
+            player_id, readiness_id, "COMPLETED", receipt
+        )
         return receipt
 
     @router.post("/battle-deployment")
@@ -7773,7 +7829,10 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         readiness = request.battle_readiness
         if (
             not battle_readiness.verify(readiness)
+            or readiness.get("kernel", {}).get("moduleVersion") != "1.2.0"
             or str(readiness.get("stageId") or "") != request.stage_id
+            or str(readiness.get("playerDigest") or "")
+            != _battle_readiness_player_digest(player_id)
             or not _service_provenance_receipt_matches(
                 readiness.get("sourceProvenance"), service_provenance.receipt()
             )
@@ -7781,6 +7840,27 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             raise ApiError(
                 "battle_deployment_readiness_invalid",
                 "The four-service readiness receipt is invalid.",
+                status_code=409,
+            )
+        try:
+            readiness_id = UUID(str(readiness.get("readinessId") or ""))
+        except ValueError:
+            raise ApiError(
+                "battle_deployment_readiness_invalid",
+                "The four-service readiness receipt is invalid.",
+                status_code=409,
+            ) from None
+        readiness_record = await store.read_request(
+            player_id, readiness_id, "battle_readiness"
+        )
+        if (
+            not readiness_record
+            or readiness_record.get("state") != "COMPLETED"
+            or readiness_record.get("response") != readiness
+        ):
+            raise ApiError(
+                "battle_deployment_readiness_invalid",
+                "The four-service readiness receipt was not issued to this player.",
                 status_code=409,
             )
         campaign_route = request.campaign_route

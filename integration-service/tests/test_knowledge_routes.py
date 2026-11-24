@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from dongzhou_integration.app import (
     BattleDeploymentModule,
+    BattleReadinessModule,
     ServiceProvenanceModule,
     _canonical_digest,
     build_application,
@@ -417,9 +418,28 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
         }
         assert receipt["aiNpc"] == {"readyHeroIds": ["DuBo"]}
         assert receipt["kernel"]["module"] == "dongzhou_battle_readiness"
-        assert receipt["kernel"]["moduleVersion"] == "1.1.0"
+        assert receipt["kernel"]["moduleVersion"] == "1.2.0"
         assert receipt["kernel"]["state"] == "SEALED"
+        assert len(receipt["readinessId"]) == 36
+        assert len(receipt["playerDigest"]) == 64
         assert len(receipt["digest"]) == 64
+        readiness_trace = {
+            key: json.loads(json.dumps(value))
+            for key, value in receipt.items()
+            if key not in {"digest", "kernel"}
+        }
+        legacy_readiness_trace = json.loads(json.dumps(readiness_trace))
+        legacy_readiness_trace.pop("readinessId")
+        legacy_readiness_trace.pop("playerDigest")
+        for legacy_version in ("1.0.0", "1.1.0"):
+            assert BattleReadinessModule.verify({
+                **legacy_readiness_trace,
+                "digest": _canonical_digest(legacy_readiness_trace),
+                "kernel": {
+                    **receipt["kernel"],
+                    "moduleVersion": legacy_version,
+                },
+            })
 
         with sqlite3.connect(settings.database_path) as database:
             original_payload = database.execute(
@@ -448,6 +468,22 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
                 "UPDATE saves SET payload=? WHERE player_id=?",
                 (original_payload, player_id),
             )
+
+        unissued_trace = json.loads(json.dumps(readiness_trace))
+        unissued_trace["readinessId"] = str(uuid4())
+        unissued_readiness = BattleReadinessModule.seal(unissued_trace)
+        unissued_deployment = client.post(
+            "/api/dongzhou/v1/battle-deployment",
+            json={
+                "stage_id": "01",
+                "battle_readiness": unissued_readiness,
+                "campaign_route": None,
+            },
+        )
+        assert unissued_deployment.status_code == 409
+        assert unissued_deployment.json()["error"]["code"] == (
+            "battle_deployment_readiness_invalid"
+        )
 
         deployed = client.post("/api/dongzhou/v1/battle-deployment", json={
             "stage_id": "01",
@@ -629,6 +665,18 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
             json={"installation_id": str(uuid4())},
         )
         assert second_session.status_code == 200
+        borrowed_readiness = client.post(
+            "/api/dongzhou/v1/battle-deployment",
+            json={
+                "stage_id": "01",
+                "battle_readiness": receipt,
+                "campaign_route": None,
+            },
+        )
+        assert borrowed_readiness.status_code == 409
+        assert borrowed_readiness.json()["error"]["code"] == (
+            "battle_deployment_readiness_invalid"
+        )
         forged_support = client.put("/api/dongzhou/v1/save", json={
             "expected_version": 1,
             "payload": {

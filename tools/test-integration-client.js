@@ -133,7 +133,7 @@ global.fetch = async (url, options = {}) => {
   }
   else if (url.endsWith("/battle-readiness")) {
     battleReadinessInput = body;
-    response = { state: "READY", stageId: body.stage_id, digest: "6".repeat(64), kernel: { module: "dongzhou_battle_readiness", moduleVersion: "1.1.0", state: "SEALED" } };
+    response = { state: "READY", readinessId: "00000000-0000-4000-8000-000000000101", playerDigest: "4".repeat(64), stageId: body.stage_id, digest: "6".repeat(64), kernel: { module: "dongzhou_battle_readiness", moduleVersion: "1.2.0", state: "SEALED" } };
   }
   else if (url.endsWith("/battle-deployment")) {
     battleDeploymentInput = body;
