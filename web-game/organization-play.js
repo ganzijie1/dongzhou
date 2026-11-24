@@ -63,7 +63,7 @@
       taskSequence: 0,
       influence: 12,
       contribution: 0,
-      backend: { mode: "local", nexusKernel: false, nexusRequiredModules: null, nexusOperationalModules: null, nexusUnavailableModules: [], orgFlow: false, aiNpc: false, knowledge: false, serviceSources: {}, serviceAttestations: {}, serviceFailures: {}, serviceSourceSealDigest: "", checkedAt: null },
+      backend: { mode: "local", nexusKernel: false, nexusRequiredModules: null, nexusOperationalModules: null, nexusUnavailableModules: [], nexusSourceBoundModules: null, nexusSourceBoundModuleNames: [], orgFlow: false, aiNpc: false, knowledge: false, serviceSources: {}, serviceAttestations: {}, serviceFailures: {}, serviceSourceSealDigest: "", checkedAt: null },
       members: [],
       remoteRoster: { organization: null, members: [], playerMembership: null, openPositions: [], observedAt: null },
       tasks: [],

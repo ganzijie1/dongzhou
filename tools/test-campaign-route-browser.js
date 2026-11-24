@@ -39,7 +39,7 @@ const SYSTEM_CHROMIUM = [
       if (url.pathname.endsWith("/sessions/guest")) body = { playerId: "route-player", expiresIn: 86400 };
       else if (url.pathname.endsWith("/save") && request.method() === "GET") body = { version: saveVersion, payload: profile };
       else if (url.pathname.endsWith("/save")) body = { version: ++saveVersion, payload: request.postDataJSON().payload };
-      else if (url.pathname.endsWith("/integration/status")) body = { mode: "connected", services: { knowledge: { online: true }, aiNpc: { online: true }, orgFlow: { online: true }, nexusKernel: { online: true } } };
+      else if (url.pathname.endsWith("/integration/status")) body = { mode: "connected", services: { knowledge: { online: true }, aiNpc: { online: true }, orgFlow: { online: true }, nexusKernel: { online: true, requiredModuleCount: 20, operationalModuleCount: 20, sourceBoundModuleCount: 18, sourceBoundModules: Array.from({ length: 18 }, (_, index) => `source-bound-${index + 1}`) } } };
       else if (url.pathname.endsWith("/knowledge/routes")) {
         routeRequests += 1;
         assert.deepStrictEqual(request.postDataJSON(), {

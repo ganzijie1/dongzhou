@@ -1606,7 +1606,10 @@
       && org.backend.nexusRequiredModules > 0
       ? `内核 ${org.backend.nexusOperationalModules}/${org.backend.nexusRequiredModules}`
       : "内核";
-    const serviceLabels = [["nexusKernel", nexusModuleCount], ["orgFlow", "朝议"], ["aiNpc", "属官"], ["knowledge", "史官"]];
+    const nexusSourceCount = Number.isSafeInteger(org.backend.nexusSourceBoundModules)
+      ? ` · 验源 ${org.backend.nexusSourceBoundModules}/18`
+      : "";
+    const serviceLabels = [["nexusKernel", nexusModuleCount + nexusSourceCount], ["orgFlow", "朝议"], ["aiNpc", "属官"], ["knowledge", "史官"]];
     const sourceSealDigest = /^[0-9a-f]{64}$/i.test(org.backend.serviceSourceSealDigest || "") ? org.backend.serviceSourceSealDigest : "";
     const allSourcesAttested = serviceLabels.every(([key]) => org.backend.serviceAttestations?.[key] === true);
     const anySourceDrift = serviceLabels.some(([key]) => org.backend.serviceAttestations?.[key] === false && org.backend.serviceFailures?.[key] === "source_attestation_failed");
@@ -2405,11 +2408,22 @@
     try {
       const response = await integration.status();
       const services = response.services || {};
+      const nexusRequiredModules = Number.isSafeInteger(services.nexusKernel?.requiredModuleCount) ? services.nexusKernel.requiredModuleCount : null;
+      const nexusOperationalModules = Number.isSafeInteger(services.nexusKernel?.operationalModuleCount) ? services.nexusKernel.operationalModuleCount : null;
+      const nexusSourceBoundModules = Number.isSafeInteger(services.nexusKernel?.sourceBoundModuleCount) ? services.nexusKernel.sourceBoundModuleCount : null;
+      const nexusSourceBoundModuleNames = Array.isArray(services.nexusKernel?.sourceBoundModules) ? services.nexusKernel.sourceBoundModules.map(String) : [];
+      const nexusFullyOperational = nexusRequiredModules > 0
+        && nexusOperationalModules === nexusRequiredModules
+        && nexusSourceBoundModules === 18
+        && nexusSourceBoundModuleNames.length === 18
+        && new Set(nexusSourceBoundModuleNames).size === 18;
       profile.organization = organization.updateBackend(profile.organization, {
-        nexusKernel: Boolean(services.nexusKernel?.online),
-        nexusRequiredModules: Number.isSafeInteger(services.nexusKernel?.requiredModuleCount) ? services.nexusKernel.requiredModuleCount : null,
-        nexusOperationalModules: Number.isSafeInteger(services.nexusKernel?.operationalModuleCount) ? services.nexusKernel.operationalModuleCount : null,
+        nexusKernel: Boolean(services.nexusKernel?.online) && nexusFullyOperational,
+        nexusRequiredModules,
+        nexusOperationalModules,
         nexusUnavailableModules: Array.isArray(services.nexusKernel?.unavailableModules) ? services.nexusKernel.unavailableModules.map(String) : [],
+        nexusSourceBoundModules,
+        nexusSourceBoundModuleNames,
         orgFlow: Boolean(services.orgFlow?.online), aiNpc: Boolean(services.aiNpc?.online), knowledge: Boolean(services.knowledge?.online),
         serviceSources: Object.fromEntries(["nexusKernel", "orgFlow", "aiNpc", "knowledge"].map((key) => [key, {
           sourceBranch: String(services[key]?.sourceBranch || ""),
@@ -2429,7 +2443,7 @@
         await refreshOfficeInventory();
       }
     } catch (_) {
-      profile.organization = organization.updateBackend(profile.organization, { nexusKernel: false, nexusRequiredModules: null, nexusOperationalModules: null, nexusUnavailableModules: [], orgFlow: false, aiNpc: false, knowledge: false, serviceSources: {}, serviceAttestations: {}, serviceFailures: {}, serviceSourceSealDigest: "" });
+      profile.organization = organization.updateBackend(profile.organization, { nexusKernel: false, nexusRequiredModules: null, nexusOperationalModules: null, nexusUnavailableModules: [], nexusSourceBoundModules: null, nexusSourceBoundModuleNames: [], orgFlow: false, aiNpc: false, knowledge: false, serviceSources: {}, serviceAttestations: {}, serviceFailures: {}, serviceSourceSealDigest: "" });
     }
     writeJson(PROFILE_KEY, profile);
     renderOrganizationPanel();

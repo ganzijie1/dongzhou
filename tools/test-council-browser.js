@@ -43,7 +43,7 @@ async function setup(browser) {
         const input=req.postDataJSON();assert.equal(input.expected_version,model.version);model.cloud=clone(input.payload);model.version++;
       }
       body={version:model.version,payload:clone(model.cloud)};
-    } else if(p.endsWith('/integration/status')) body={mode:'connected',organizationId:'test',services:{nexusKernel:{online:true},orgFlow:{online:true},aiNpc:{online:true},knowledge:{online:true}}};
+    } else if(p.endsWith('/integration/status')) body={mode:'connected',organizationId:'test',services:{nexusKernel:{online:true,requiredModuleCount:20,operationalModuleCount:20,sourceBoundModuleCount:18,sourceBoundModules:Array.from({length:18},(_,index)=>`source-bound-${index+1}`)},orgFlow:{online:true},aiNpc:{online:true},knowledge:{online:true}}};
     else if(p.endsWith('/court/mandates/pending')) body={pending:null};
     else if(p.endsWith('/npcs/interaction-preference')) body={enabled:req.postDataJSON().enabled,source:'dongzhou-player-settings',updatedAt:'2026-11-11T12:00:00Z'};
     else if(p.endsWith('/npcs/ZuoRu/merit-commendations')) {model.meritCommendations.push(req.postDataJSON());body={state:'COMPLETED',replayed:model.meritCommendations.length>1,commendation:clone(MERIT_COMMENDATION)};}

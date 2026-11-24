@@ -93,7 +93,7 @@ const guideReceipt = (actionId, state, digest) => ({
         model.version += 1;
       }
       body = { version: model.version, payload: model.cloud };
-    } else if (pathname.endsWith("/integration/status")) body = { mode: "connected", organizationId: "test", services: { nexusKernel: { online: true }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } } };
+    } else if (pathname.endsWith("/integration/status")) body = { mode: "connected", organizationId: "test", services: { nexusKernel: { online: true, requiredModuleCount: 20, operationalModuleCount: 20, sourceBoundModuleCount: 18, sourceBoundModules: Array.from({ length: 18 }, (_, index) => `source-bound-${index + 1}`) }, orgFlow: { online: true }, aiNpc: { online: true }, knowledge: { online: true } } };
     else if (pathname.endsWith("/court/mandates/pending")) body = { pending: null };
     else if (pathname.endsWith("/npcs/sync")) body = { ready: true, npcs: [] };
     else if (pathname.endsWith("/npcs/interaction-preference")) body = { enabled: true, source: "test" };
