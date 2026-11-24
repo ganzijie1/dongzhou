@@ -3164,7 +3164,7 @@
     const evidence = currentOfficeEvidence();
     $("#officeCouncilHint").textContent = council ? "已保存：" + council.memberName + "据" + council.evidenceSource.work + (council.knowledgeMastery ? "、史官问对" : "") + (council.correspondence ? "及府中耳报" : "") + (council.publicNotice ? "及官署告示" : "") + (council.contributionDossier ? "、功绩卷宗" : "") + (council.thought ? "，采纳自主进言" : "") + "建议“" + council.text + "”。联网授命须勾选并由内核签发军令。" : evidence ? "已选证：" + evidence.source.work + "（" + evidence.source.tier + "）。请当前属官据此参议。" : "先查本回史料并选定出处，再请当前属官参议。";
     const thought = currentOfficeThought();
-    $("#officeThoughtButton").disabled = officeThoughtInFlight || integration.isOffline() || !evidence;
+    $("#officeThoughtButton").disabled = officeThoughtInFlight || !evidence;
     if (!officeThoughtInFlight) {
       $("#officeThoughtResult").innerHTML = thought?.thought?.hasThought
         ? `<strong>${escapeHtml(thought.heroId === $("#officeMemberSelect").value ? "属官进言" : "进言")}</strong><span>${escapeHtml(thought.thought.description)} · 重要度 ${Number(thought.thought.importance)} · 印记 ${escapeHtml(String(thought.digest || "").slice(0, 10))}</span>`
@@ -3174,7 +3174,7 @@
 
   let officeThoughtInFlight = false;
   async function requestOfficeNpcThought() {
-    if (officeThoughtInFlight || integration.isOffline()) return;
+    if (officeThoughtInFlight) return;
     const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
     const stage = officeStage();
     const evidence = currentOfficeEvidence();

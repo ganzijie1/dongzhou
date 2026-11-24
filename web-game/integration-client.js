@@ -24,6 +24,7 @@
   const BATTLE_DEBRIEF_PREFIX = "dongzhou-local-battle-debrief-v1:";
   const NPC_COMMENDATION_PREFIX = "dongzhou-local-npc-commendation-v1:";
   const NPC_RECOLLECTION_PREFIX = "dongzhou-local-npc-recollection-v1:";
+  const NPC_DECISION_PREFIX = "dongzhou-local-npc-decision-v1:";
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
   let session = read(SESSION_KEY, null);
   let sessionPromise = null;
@@ -220,6 +221,122 @@
     }
     write(key, { input, recollection: receipt });
     return { state: "COMPLETED", replayed: false, recollection: receipt };
+  }
+
+  const LOCAL_TASK_LABELS = Object.freeze({
+    supply: "筹措军粮",
+    drill: "整训军阵",
+    patrol: "巡察境内",
+    intelligence: "刺探敌情",
+    diplomacy: "出使游说"
+  });
+
+  async function buildLocalNpcThought(heroId, input) {
+    requireLocalOfficer(heroId);
+    const knowledge = await localPublishedKnowledge(input?.stage_id, input?.knowledge_id);
+    const taskName = LOCAL_TASK_LABELS[input?.task_type];
+    if (!taskName) throw new Error("npc_thought_task_invalid");
+    const sources = Array.isArray(knowledge.sourceDetails) ? knowledge.sourceDetails : knowledge.sources;
+    const source = sources?.[Number(input.evidence_source_index)];
+    if (!source?.work) throw new Error("npc_thought_evidence_invalid");
+    const currentProfile = read("dongzhou-h5-profile-v2", offlineProfile) || offlineProfile;
+    let logisticsBriefing;
+    if (input.logistics_briefing_request_id || input.logistics_briefing_digest) {
+      logisticsBriefing = (currentProfile?.organization?.logisticsBriefings || []).find((entry) =>
+        entry?.requestId === input.logistics_briefing_request_id && entry?.digest === input.logistics_briefing_digest);
+      if (!logisticsBriefing) throw new Error("npc_thought_logistics_invalid");
+    }
+    const sourceProvenance = await localServiceProvenance();
+    const seed = await sha256(canonicalJson({ heroId, input, sourceProvenance: sourceProvenance.digest }));
+    const assignment = {
+      planId: uuidFromDigest(await sha256(`local-thought-plan:${heroId}:${input.stage_id}:${input.task_type}`)),
+      eventId: uuidFromDigest(await sha256(`local-thought-event:${heroId}:${input.stage_id}:${input.task_type}`)),
+      name: taskName
+    };
+    const receipt = {
+      requestId: String(input.client_request_id),
+      operationId: `dongzhou-local-thought:${await localPlayerId()}:${input.client_request_id}`,
+      heroId: String(heroId),
+      npcId: `local:${heroId}`,
+      stageId: String(input.stage_id),
+      taskType: String(input.task_type),
+      knowledgeId: String(input.knowledge_id),
+      source: {
+        index: Number(input.evidence_source_index),
+        work: String(source.work),
+        tier: String(source.tier || "来源"),
+        scope: String(source.scope || ""),
+        url: String(source.url || "")
+      },
+      assignment,
+      ...(logisticsBriefing ? { logisticsBriefing: {
+        requestId: logisticsBriefing.requestId,
+        digest: logisticsBriefing.digest,
+        inventoryRevision: logisticsBriefing.inventoryRevision,
+        sourceProvenance: logisticsBriefing.sourceProvenance
+      } } : {}),
+      thought: {
+        hasThought: true,
+        description: `${heroId}据${source.work}斟酌${taskName}，认为应先依史势定次序再执行。`,
+        importance: 65 + (parseInt(seed.slice(0, 4), 16) % 26)
+      },
+      councilProposal: `依${String(source.work).slice(0, 18)}推进${taskName}`.slice(0, 48),
+      sourceProvenance
+    };
+    receipt.digest = await sha256(canonicalJson(receipt));
+    return receipt;
+  }
+
+  async function localNpcThought(heroId, input) {
+    const context = [heroId, input.stage_id, input.knowledge_id, input.evidence_source_index, input.task_type, input.logistics_briefing_request_id || "", input.logistics_briefing_digest || ""].join(":");
+    const key = NPC_THOUGHT_PENDING_PREFIX + context;
+    const stored = read(key, null);
+    const pending = stored?.input || stored || { ...input, client_request_id: root.crypto.randomUUID() };
+    if (stored?.input && canonicalJson(stored.input) !== canonicalJson({ ...input, client_request_id: stored.input.client_request_id })) {
+      throw new Error("npc_thought_idempotency_conflict");
+    }
+    const thoughtReceipt = await buildLocalNpcThought(heroId, pending);
+    const result = { state: "COMPLETED", requestId: pending.client_request_id, thoughtReceipt };
+    if (stored?.result && canonicalJson(stored.result) !== canonicalJson(result)) throw new Error("npc_thought_seal_invalid");
+    write(key, { input: pending, result });
+    return { replayed: Boolean(stored?.result), ...result };
+  }
+
+  async function localNpcDecision(heroId, question, options, stageId, memory) {
+    requireLocalOfficer(heroId);
+    if (!String(question || "").trim() || !Array.isArray(options) || options.length < 2 || options.some((item) => !String(item || "").trim())) {
+      throw new Error("npc_decision_input_invalid");
+    }
+    const currentProfile = read("dongzhou-h5-profile-v2", offlineProfile) || offlineProfile;
+    const matchingThought = [...(currentProfile?.organization?.thoughts || [])].reverse().find((entry) =>
+      entry?.heroId === heroId && entry?.stageId === String(stageId) && entry?.thought?.hasThought === true
+      && options.includes(entry.councilProposal));
+    const sourceProvenance = await localServiceProvenance();
+    if (memory && (!/^[0-9a-f]{64}$/.test(String(memory.digest || ""))
+      || canonicalJson(memory.sourceProvenance) !== canonicalJson(sourceProvenance))) throw new Error("npc_decision_memory_invalid");
+    const context = canonicalJson({ heroId, stageId: String(stageId), question, options, memoryId: memory?.idempotencyKey || "" });
+    const key = NPC_DECISION_PREFIX + await sha256(context);
+    const stored = read(key, null);
+    const clientRequestId = stored?.input?.clientRequestId || root.crypto.randomUUID();
+    const seed = await sha256(`${context}:${clientRequestId}`);
+    const thoughtIndex = matchingThought ? options.indexOf(matchingThought.councilProposal) : -1;
+    const index = thoughtIndex >= 0 ? thoughtIndex : parseInt(seed.slice(0, 8), 16) % options.length;
+    const dialogueTrace = { clientRequestId, heroId: String(heroId), stageId: String(stageId), question, options, index, sourceProvenance };
+    const result = {
+      state: "COMPLETED",
+      decision: { data: { type: "OPTION", index, text: options[index] } },
+      dialogueReceipt: {
+        state: "RECORDED",
+        sourceRecordId: `dongzhou-council:${clientRequestId}`,
+        digest: await sha256(canonicalJson(dialogueTrace))
+      },
+      ...(memory ? { memoryReceipt: memory } : {}),
+      sourceProvenance,
+      clientRequestId
+    };
+    if (stored?.result && canonicalJson(stored.result) !== canonicalJson(result)) throw new Error("npc_decision_seal_invalid");
+    write(key, { input: { clientRequestId, context }, result });
+    return { replayed: Boolean(stored?.result), ...result };
   }
 
   async function buildLocalKnowledgeQuiz(questionId, stageId, deadlineAt) {
@@ -1012,6 +1129,7 @@
   }
   function generateNpcSchedule(heroId) { return request(`/npcs/${encodeURIComponent(heroId)}/schedule`, { method: "POST", body: JSON.stringify({ force_regenerate: false }) }); }
   async function npcDecision(heroId, question, options, stageId, memory, publicNotice, contribution, contributionDossier) {
+    if (offline) return localNpcDecision(heroId, question, options, stageId, memory);
     const pendingKey = `dongzhou-pending-decision-v5:${JSON.stringify([heroId, stageId || "", question, options, memory?.idempotencyKey || "", publicNotice?.messageId || "", contribution?.entryId || "", contributionDossier?.digest || ""])}`;
     const pending = read(pendingKey, null) || { client_request_id: root.crypto.randomUUID(), ...(stageId ? { stage_id: String(stageId) } : {}), question, options: options.map((text, index) => ({ index, text })), topic: "court_decision", ...(memory ? { memory_idempotency_key: memory.idempotencyKey, memory_digest: memory.digest } : {}), ...(publicNotice ? { public_notice_id: publicNotice.messageId, public_notice_digest: publicNotice.digest } : {}), ...(contribution ? { contribution_entry_id: contribution.entryId, contribution_entry_digest: contribution.digest } : {}), ...(contributionDossier ? { contribution_dossier_digest: contributionDossier.digest } : {}) };
     write(pendingKey, pending);
@@ -1020,6 +1138,7 @@
     return { ...result, clientRequestId: pending.client_request_id };
   }
   async function npcThought(heroId, input) {
+    if (offline) return localNpcThought(heroId, input);
     const context = [heroId, input.stage_id, input.knowledge_id, input.evidence_source_index, input.task_type, input.logistics_briefing_request_id || "", input.logistics_briefing_digest || ""].join(":");
     const pendingKey = NPC_THOUGHT_PENDING_PREFIX + context;
     const pending = read(pendingKey, null) || { ...input, client_request_id: root.crypto.randomUUID() };

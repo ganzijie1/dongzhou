@@ -100,6 +100,19 @@ async function openReady(page) {
       || localNpcHistory.recollection.memoryReceipt?.digest !== localNpcHistory.recollection.memoryDigest) {
       throw new Error("Offline recollection lacks the sealed local AINPC memory");
     }
+    await desktop.waitForSelector("#officeThoughtButton:not(:disabled)");
+    await desktop.click("#officeThoughtButton");
+    await desktop.waitForFunction(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.thoughts.length === 1);
+    await desktop.click("#officeDecisionForm button[type=submit]");
+    await desktop.waitForFunction(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.councils.length === 1);
+    const localCouncil = await desktop.evaluate(() => {
+      const organization = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization;
+      return { council: organization.councils[0], thought: organization.thoughts[0] };
+    });
+    if (!localCouncil.council.thought?.digest || localCouncil.council.thought.digest !== localCouncil.thought.digest
+      || localCouncil.council.text !== localCouncil.thought.councilProposal) {
+      throw new Error("Offline council did not bind the local AINPC thought");
+    }
     await desktop.click("#officeQuizStart");
     await desktop.waitForSelector("[data-quiz-answer]");
     const stagePeople = new Set(["周宣王", "伯阳父", "乡民", "杜伯", "左儒", "尹吉甫"]);

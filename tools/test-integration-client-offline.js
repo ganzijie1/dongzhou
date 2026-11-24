@@ -108,6 +108,38 @@ const client = require("../web-game/integration-client.js");
     client.recallNpc("Unknown", { stage_id: "01", knowledge_id: "dongzhou_stage_001" }),
     /npc_not_in_local_organization/
   );
+  const thought = await client.npcThought("DuBo", {
+    stage_id: "01",
+    stage_title: "Chapter One",
+    knowledge_id: "dongzhou_stage_001",
+    evidence_source_index: 0,
+    task_type: "supply",
+  });
+  assert.strictEqual(thought.state, "COMPLETED");
+  assert.strictEqual(thought.thoughtReceipt.thought.hasThought, true);
+  assert.match(thought.thoughtReceipt.digest, /^[0-9a-f]{64}$/);
+  assert.strictEqual((await client.npcThought("DuBo", {
+    stage_id: "01", stage_title: "Chapter One", knowledge_id: "dongzhou_stage_001", evidence_source_index: 0, task_type: "supply",
+  })).replayed, true);
+  const thoughtKey = [...values.keys()].find((key) => key.startsWith("dongzhou-pending-npc-thought-v1:"));
+  const cleanThought = values.get(thoughtKey);
+  const forgedThought = JSON.parse(cleanThought);
+  forgedThought.result.thoughtReceipt.digest = "0".repeat(64);
+  values.set(thoughtKey, JSON.stringify(forgedThought));
+  await assert.rejects(
+    client.npcThought("DuBo", { stage_id: "01", stage_title: "Chapter One", knowledge_id: "dongzhou_stage_001", evidence_source_index: 0, task_type: "supply" }),
+    /npc_thought_seal_invalid/
+  );
+  values.set(thoughtKey, cleanThought);
+  localProfile.organization.thoughts = [thought.thoughtReceipt];
+  await client.persist(localProfile);
+  const localMemory = { ...recollection.recollection.memoryReceipt, sourceProvenance: recollection.recollection.sourceProvenance };
+  const decisionOptions = ["Hold", "Advance", thought.thoughtReceipt.councilProposal];
+  const decision = await client.npcDecision("DuBo", "What should the court do?", decisionOptions, "01", localMemory);
+  assert.strictEqual(decision.state, "COMPLETED");
+  assert.strictEqual(decision.decision.data.text, thought.thoughtReceipt.councilProposal);
+  assert.strictEqual(decision.dialogueReceipt.state, "RECORDED");
+  assert.strictEqual((await client.npcDecision("DuBo", "What should the court do?", decisionOptions, "01", localMemory)).replayed, true);
 
   const battlePlan = {
     formation: "balanced",
@@ -277,7 +309,7 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(rejected.guide.kernel.state, "SEALED");
   assert.strictEqual(fetchedUrls.some((url) => url.includes("/api/")), false);
 
-  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true, localBattleGate: true, localDebrief: true, localCommendation: true, localRecollection: true }));
+  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true, localBattleGate: true, localDebrief: true, localCommendation: true, localRecollection: true, localThought: true, localCouncil: true }));
 })().catch((error) => {
   console.error(error.stack || error.message);
   process.exitCode = 1;
