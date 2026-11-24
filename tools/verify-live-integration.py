@@ -74,7 +74,10 @@ def schedule_event_source(event: dict, plan_id: str) -> str:
         assert extra.get("schedule_origin") == "90_day_plan", "base schedule event has no plan origin"
         return "90_day_plan"
     if source == "dongzhou_scheduled_duty":
-        assert str(extra.get("hero_id") or "").strip(), "scheduled duty has no hero"
+        assert (
+            extra.get("schedule_origin") == "90_day_plan"
+            and str(extra.get("hero_id") or "").strip()
+        ), "scheduled duty is not bound to the current plan"
         try:
             UUID(str(extra.get("rule_id") or ""))
         except ValueError:
@@ -82,7 +85,8 @@ def schedule_event_source(event: dict, plan_id: str) -> str:
         return source
     if source == "dongzhou_court_duty":
         assert (
-            extra.get("plan_id") == plan_id
+            extra.get("schedule_origin") == "90_day_plan"
+            and extra.get("plan_id") == plan_id
             and str(extra.get("hero_id") or "").strip()
             and str(extra.get("task_type") or "").strip()
             and str(extra.get("stage_id") or "").strip()
@@ -126,6 +130,8 @@ def validate_dongzhou_schedule(schedule: dict) -> dict:
             assert type(identifier) is int, "schedule contains non-Dongzhou transaction IDs"
             source = schedule_event_source(event, str(data.get("plan_id") or ""))
             source_counts[source] = source_counts.get(source, 0) + 1
+            if source == "event_report":
+                assert 10001 <= identifier <= 10009, "temporary transaction uses a formal transaction ID"
             if 10001 <= identifier <= 10009:
                 assert (
                     event.get("type") == "temp"
