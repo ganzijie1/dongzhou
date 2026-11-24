@@ -2103,7 +2103,7 @@
     panel.querySelectorAll("button, input").forEach((control) => { control.disabled = officeCareerBusy || officeCareerStatusBusy || officeCareerContributionBusy; });
     const taskStates = {
       GENERATED: "待派发", ASSIGNMENT_CONFIRMATION_PENDING: "待确认派发", MEMBER_RESPONSE_PENDING: "待接受",
-      MODIFICATION_CONFIRMATION_PENDING: "变更待确认", IN_PROGRESS: "执行中", SUBMISSION_PENDING: "复命待审核",
+      MODIFICATION_CONFIRMATION_PENDING: "变更待确认", IN_PROGRESS: "执行中", REASSIGN_PENDING: "已退回主官", SUBMISSION_PENDING: "复命待审核",
       RESULT_CONFIRMATION_PENDING: "成果待确认", SUPPLEMENT_PENDING: "待补充", SUCCEEDED: "已办成",
       PARTIALLY_COMPLETED: "部分办成", FAILED: "未办成", REJECTED: "已驳回", CANCELLED: "已撤销", INVALIDATED: "已失效"
     };
@@ -2536,7 +2536,9 @@
         officeMembershipLeavePending = false;
         $("#officeMembershipFeedback").textContent = response.career.state === "ACTIVE"
           ? "本地仕籍已登记，列入军府属官第12席。"
-          : "本地辞仕已完成，军府第12席已经释放。";
+          : response.departure?.releasedTaskIds?.length
+            ? `本地辞仕已完成，${response.departure.releasedTaskIds.length} 项执行中差事已退回杜伯重新派任。`
+            : "本地辞仕已完成，军府第12席已经释放。";
         renderOrganizationPanel();
         return;
       }

@@ -709,22 +709,107 @@
     };
   }
 
+  async function validateLocalMembershipDeparture(organization, departure, career, membershipReceipt, sourceProvenance) {
+    if (!departure) {
+      if (membershipReceipt.departureSnapshotRequired === true) throw new Error("organization_membership_departure_seal_invalid");
+      return null;
+    }
+    const trace = {
+      operationId: departure.operationId,
+      organizationId: departure.organizationId,
+      targetMemberId: departure.targetMemberId,
+      operationType: departure.operationType,
+      resultingHierarchyVersion: departure.resultingHierarchyVersion,
+      releasedTaskIds: departure.releasedTaskIds,
+      returnedManagerMemberIds: departure.returnedManagerMemberIds,
+      membershipDigest: departure.membershipDigest,
+      sourceProvenance
+    };
+    const expected = {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: { module: "dongzhou_organization_membership_departure", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    };
+    const releasedTaskIds = Array.isArray(departure.releasedTaskIds) ? departure.releasedTaskIds : [];
+    const returnedManagerMemberIds = Array.isArray(departure.returnedManagerMemberIds) ? departure.returnedManagerMemberIds : [];
+    const sortedReleased = [...new Set(releasedTaskIds)].sort();
+    const sortedManagers = [...new Set(returnedManagerMemberIds)].sort();
+    const releasedTasks = new Map((organization.localPlayerTasks || []).map((task) => [task.taskId, task]));
+    const managerId = uuidFromDigest(await sha256("dongzhou-local-organization-member:DuBo"));
+    const expectedOperationId = uuidFromDigest(await sha256(`local-membership-departure:${membershipReceipt.playerId}:${career.version}`));
+    const expectedOrganizationId = uuidFromDigest(await sha256("dongzhou-local-court"));
+    const expectedReleasedTaskIds = [...releasedTasks.values()]
+      .filter((task) => task.timeline?.some((event) => event.type === "TASK_RESPONSIBILITY_RELEASED_MEMBER_DEPARTURE"
+        && event.operationId === departure.operationId))
+      .map((task) => task.taskId)
+      .sort();
+    if (canonicalJson(departure) !== canonicalJson(expected)
+      || departure.operationType !== "V12_MEMBER_LEAVE"
+      || departure.operationId !== expectedOperationId
+      || departure.organizationId !== expectedOrganizationId
+      || departure.resultingHierarchyVersion !== career.version
+      || departure.targetMemberId !== membershipReceipt.playerId
+      || departure.membershipDigest !== membershipReceipt.digest
+      || canonicalJson(releasedTaskIds) !== canonicalJson(sortedReleased)
+      || canonicalJson(releasedTaskIds) !== canonicalJson(expectedReleasedTaskIds)
+      || canonicalJson(returnedManagerMemberIds) !== canonicalJson(sortedManagers)
+      || (releasedTaskIds.length ? canonicalJson(returnedManagerMemberIds) !== canonicalJson([managerId]) : returnedManagerMemberIds.length !== 0)
+      || releasedTaskIds.some((taskId) => {
+        const task = releasedTasks.get(taskId);
+        return !task || task.state !== "REASSIGN_PENDING"
+          || task.timeline?.at(-1)?.type !== "TASK_RESPONSIBILITY_RELEASED_MEMBER_DEPARTURE";
+      })) {
+      throw new Error("organization_membership_departure_seal_invalid");
+    }
+    return expected;
+  }
+
   async function localOrganizationMembership(action) {
     const normalizedAction = String(action || "").toUpperCase();
     if (!["JOIN", "LEAVE"].includes(normalizedAction)) throw new Error("organization_membership_action_invalid");
     const currentProfile = offlineProfile || read("dongzhou-h5-profile-v2", null);
     const organization = currentProfile?.organization || {};
     const current = organization.localPlayerCareer || { state: "OUT", version: 1, contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 };
+    const sourceProvenance = await localServiceProvenance();
+    const playerId = await localPlayerId();
     const targetState = normalizedAction === "JOIN" ? "ACTIVE" : "OUT";
     const replayed = current.state === targetState;
+    const departureOperationId = !replayed && normalizedAction === "LEAVE"
+      ? uuidFromDigest(await sha256(`local-membership-departure:${playerId}:${current.version + 1}`))
+      : null;
+    let membershipTasks = Array.isArray(organization.localPlayerTasks) ? organization.localPlayerTasks : [];
+    let releasedTaskIds = [];
+    let returnedManagerMemberIds = [];
     if (!replayed && normalizedAction === "LEAVE") {
-      const terminalStates = new Set(["SUCCEEDED", "PARTIALLY_COMPLETED", "FAILED", "REJECTED", "CANCELLED"]);
-      const activeTasks = (await verifiedLocalPlayerTasks(organization)).filter((task) => !terminalStates.has(task.state));
-      if (activeTasks.length) {
-        const error = new Error(`尚有 ${activeTasks.length} 项未结差事，请先办结或拒绝后再辞仕。`);
-        error.code = "organization_membership_active_tasks";
-        error.activeTaskIds = activeTasks.map((task) => task.taskId);
+      const settledStates = new Set(["SUCCEEDED", "PARTIALLY_COMPLETED", "FAILED", "REJECTED", "CANCELLED", "REASSIGN_PENDING"]);
+      membershipTasks = (await verifiedLocalPlayerTasks(organization)).map((task) => JSON.parse(JSON.stringify(task)));
+      const pendingTasks = membershipTasks.filter((task) => !settledStates.has(task.state) && task.state !== "IN_PROGRESS");
+      if (pendingTasks.length) {
+        const error = new Error(`尚有 ${pendingTasks.length} 项差事等待回应、裁定或补呈，请先处理后再辞仕。`);
+        error.code = "organization_membership_task_pending";
+        error.activeTaskIds = pendingTasks.map((task) => task.taskId).sort();
         throw error;
+      }
+      for (let index = 0; index < membershipTasks.length; index += 1) {
+        const task = membershipTasks[index];
+        if (task.state !== "IN_PROGRESS") continue;
+        task.version += 1;
+        task.updatedAt = localCareerTimestamp(index, task.version);
+        task.state = "REASSIGN_PENDING";
+        task.activeConfirmations = [];
+        task.timeline.push({
+          sequence: task.timeline.length + 1,
+          type: "TASK_RESPONSIBILITY_RELEASED_MEMBER_DEPARTURE",
+          occurredAt: task.updatedAt,
+          stateCode: task.state,
+          operationId: departureOperationId
+        });
+        task.organizationTrace = await sealLocalPlayerTask(task, sourceProvenance);
+        releasedTaskIds.push(task.taskId);
+      }
+      releasedTaskIds.sort();
+      if (releasedTaskIds.length) {
+        returnedManagerMemberIds = [uuidFromDigest(await sha256("dongzhou-local-organization-member:DuBo"))];
       }
     }
     const clearedAmount = !replayed && normalizedAction === "LEAVE" ? current.contributionBalance : 0;
@@ -734,23 +819,61 @@
       version: replayed ? current.version : current.version + 1,
       ...(clearedAmount > 0 ? { contributionBalance: 0, lifetimeSpent: current.lifetimeSpent + clearedAmount } : {})
     };
-    const playerId = await localPlayerId();
     const key = `${LOCAL_MEMBERSHIP_PREFIX}${playerId}:${career.version}`;
     const existing = read(key, null);
-    const sourceProvenance = await localServiceProvenance();
     const previousState = replayed ? (targetState === "ACTIVE" ? "OUT" : "ACTIVE") : current.state;
-    const trace = { playerId, action: normalizedAction, previousState, state: career.state, version: career.version, office: "军府属官·第12席", directManagerHeroId: "DuBo", sourceProvenance };
-    const receipt = { ...trace, digest: await sha256(canonicalJson(trace)), kernel: { module: "dongzhou_organization_local_membership", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "SEALED" } };
+    const departureSnapshotRequired = normalizedAction === "LEAVE"
+      && (!replayed || existing?.kernel?.moduleVersion === "1.1.0");
+    const trace = {
+      playerId, action: normalizedAction, previousState, state: career.state, version: career.version,
+      office: "军府属官·第12席", directManagerHeroId: "DuBo", sourceProvenance,
+      ...(departureSnapshotRequired ? { departureSnapshotRequired: true } : {})
+    };
+    const receipt = {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: {
+        module: "dongzhou_organization_local_membership",
+        moduleVersion: departureSnapshotRequired ? "1.1.0" : "1.0.0",
+        nexusKernelVersion: "0.2.0",
+        state: "SEALED"
+      }
+    };
     if (replayed) {
       if (canonicalJson(existing) !== canonicalJson(receipt)) throw new Error("organization_membership_seal_invalid");
       const previousProfile = offlineProfile;
       offlineProfile = { ...(currentProfile || {}), organization: { ...organization, localPlayerCareer: career } };
       const roster = localOrganizationRoster();
       offlineProfile = previousProfile;
-      return { mode: "standalone", replayed: true, organization, career, roster, receipt };
+      const departure = normalizedAction === "LEAVE"
+        ? (organization.localPlayerDepartures || []).find((entry) => entry.resultingHierarchyVersion === career.version) || null
+        : null;
+      const validatedDeparture = await validateLocalMembershipDeparture(organization, departure, career, receipt, sourceProvenance);
+      return { mode: "standalone", replayed: true, organization, career, roster, receipt, departure: validatedDeparture };
     }
     if (existing && canonicalJson(existing) !== canonicalJson(receipt)) throw new Error("organization_membership_seal_invalid");
     write(key, receipt);
+    const departures = Array.isArray(organization.localPlayerDepartures) ? organization.localPlayerDepartures.slice() : [];
+    let departure = null;
+    if (normalizedAction === "LEAVE") {
+      const departureTrace = {
+        operationId: departureOperationId,
+        organizationId: uuidFromDigest(await sha256("dongzhou-local-court")),
+        targetMemberId: playerId,
+        operationType: "V12_MEMBER_LEAVE",
+        resultingHierarchyVersion: career.version,
+        releasedTaskIds,
+        returnedManagerMemberIds,
+        membershipDigest: receipt.digest,
+        sourceProvenance
+      };
+      departure = {
+        ...departureTrace,
+        digest: await sha256(canonicalJson(departureTrace)),
+        kernel: { module: "dongzhou_organization_membership_departure", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+      };
+      departures.push(departure);
+    }
     const clearances = Array.isArray(organization.localPlayerContributionClearances)
       ? organization.localPlayerContributionClearances.slice()
       : [];
@@ -769,12 +892,18 @@
         kernel: { module: "dongzhou_organization_membership_clearance", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
       });
     }
-    const nextOrganization = { ...organization, localPlayerCareer: career, localPlayerContributionClearances: clearances };
+    const nextOrganization = {
+      ...organization,
+      localPlayerCareer: career,
+      localPlayerTasks: membershipTasks,
+      localPlayerDepartures: departures,
+      localPlayerContributionClearances: clearances
+    };
     const previousProfile = offlineProfile;
     offlineProfile = { ...(currentProfile || {}), organization: nextOrganization };
     const roster = localOrganizationRoster();
     offlineProfile = previousProfile;
-    return { mode: "standalone", replayed, organization: nextOrganization, career, roster, receipt };
+    return { mode: "standalone", replayed, organization: nextOrganization, career, roster, receipt, departure };
   }
 
   function localCareerTimestamp(taskIndex, version) {
@@ -867,7 +996,7 @@
       const taskIndex = tasks.length;
       const playerId = await localPlayerId();
       const taskId = uuidFromDigest(await sha256(canonicalJson({ playerId, sequence: taskIndex + 1, title })));
-      if (tasks.some((entry) => entry.taskId === taskId || (entry.title === title && !["SUCCEEDED", "REJECTED", "CANCELLED", "FAILED"].includes(entry.state)))) {
+      if (tasks.some((entry) => entry.taskId === taskId || (entry.title === title && !["SUCCEEDED", "REJECTED", "CANCELLED", "FAILED", "REASSIGN_PENDING"].includes(entry.state)))) {
         throw new Error("organization_player_task_conflict");
       }
       task = {
