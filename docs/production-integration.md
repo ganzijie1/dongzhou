@@ -24,7 +24,7 @@ orgFlow 东周任务目录当前为 v7。五类正式任务以玩家可直接输
 
 ## 身份与真值
 
-日程目录配置检查可运行 `integration-service/.venv/Scripts/python.exe tools/test-dongzhou-schedule-owner.py`。它仅解析合并配置、在无网络临时容器读取所选镜像目录，不启动 AINPC 服务或修改计划。已有计划的真值在 AINPC Mongo `schedule_plans`，按游戏服与 NPC 复合身份保存；`current` 直接返回已提交计划，非强制生成会复用当日可执行的旧计划，重启和更换目录不会自动迁移。过期计划的持久生成可超过 Gateway 的 30 秒 HTTP 预算；调用方收到超时后必须轮询 `current`，确认计划号变化且新时间窗已写回，不能把超时本身当作失败或成功。先验收 Gateway 实际目录，再经授权对明确 NPC 调用正式重拟接口；`force_regenerate=true` 会产生真实规划并覆盖当前计划，不能在健康检查或修复验证中偷偷调用。迁移验收须核对完整 90 天的事务 ID 均为 `9100101..9100112`、无异游戏内容，并确认持久计划版本变化及重启读取一致。
+日程目录配置检查可运行 `integration-service/.venv/Scripts/python.exe tools/test-dongzhou-schedule-owner.py`。它仅解析合并配置、在无网络临时容器读取所选镜像目录，不启动 AINPC 服务或修改计划。已有计划的真值在 AINPC Mongo `schedule_plans`，按游戏服与 NPC 复合身份保存；`current` 直接返回已提交计划，非强制生成会复用当日可执行的旧计划，重启和更换目录不会自动迁移。过期计划的持久生成可超过 Gateway 的 30 秒 HTTP 预算；调用方收到超时后必须轮询 `current`，确认计划号变化且新时间窗已写回，不能把超时本身当作失败或成功。先验收 Gateway 实际目录，再经授权对明确 NPC 调用正式重拟接口；`force_regenerate=true` 会产生真实规划并覆盖当前计划，不能在健康检查或修复验证中偷偷调用。持久基础计划的迁移验收须核对完整 90 天的事务 ID 均为 `9100101..9100112`、无异游戏内容，并确认计划版本变化及重启读取一致；玩家聚合日程还可追加带当前计划来源锚的正式职责，以及使用 `10001..10009` 且携带东周军令摘要的临时战报。
 
 - 玩家会话是 HttpOnly、SameSite=Strict 的签名 Cookie；原生客户端可用同一签名 Bearer。
 - `hero_id` 通过固定 BLAKE2 映射为 AINPC 63 位正整数，重启和扩容后不变。
@@ -77,7 +77,7 @@ orgFlow 东周任务目录当前为 v7。五类正式任务以玩家可直接输
 - orgFlowEngine 必须覆盖重复 `source_event_id`、服务重试、部分完成、失败和终态回读。
 - AINPC 必须覆盖 NPC 注册、情绪/关系读取、日程生成与读取、对话裁断的同一复合身份。
 - AINPC 紧急评估必须经 `POST /callback/emergency-assessment/evaluate` 实测，校验 `results`、`scores`、`interrupt_trace_ids` 三个数组一一对齐，且急报必须带非空追踪号；仅探测健康接口不算通过。
-- AINPC 日程验收必须确认事务 ID 全部位于 `9100101..9100112`，且抽查结果不含“机体、银河币、天关、飞船”等其他游戏词汇。首次强制重拟可能由 Actor 异步完成；随后用非强制生成接口读取已提交计划，并用 current 接口确认完整 90 天日程。
+- AINPC 持久基础计划验收必须确认事务 ID 全部位于 `9100101..9100112`，且抽查结果不含“机体、银河币、天关、飞船”等其他游戏词汇。首次强制重拟可能由 Actor 异步完成；随后用非强制生成接口读取已提交计划，并用 current 接口确认完整 90 天日程。玩家聚合日程中的临时事务必须位于 `10001..10009`，同时带 `event_report` 来源、东周事件与军令 ID、64 位军令摘要；正式职责必须保留当前 90 天计划来源锚。
 - AINPC 私聊必须覆盖 `NDLLMChatWithPlayer`、`NDLLMSendPrivateMessage`、`QueryPrivateChatRuntimeState` 和 `ResetPrivateChatRuntimeState`。游戏服持久化消息并回调后才算送达；仅收到聊天请求不算成功。
 - 书问验收还必须覆盖登录态 `POST /api/dongzhou/v1/npcs/{hero_id}/messages`、AINPC 正式入站载荷、回调缺失 `playerInfo` 的参与者恢复、不同玩家读取隔离、`GET /api/dongzhou/v1/npcs/{hero_id}/correspondence`、摘要重算、议政短印校验以及军令内 `correspondence` 证据一致性；只验证页面展示不算通过。
 - 网关必须覆盖 Cookie 失效恢复、存档版本冲突、跨玩家任务读取拒绝、上游超时和重启后的幂等重放。
