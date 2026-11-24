@@ -18,6 +18,8 @@ Open `http://127.0.0.1:8765/?offline=1`. Do not start the former four-service co
 
 Standalone history quizzes load only `scenario/dongzhou-knowledge.json` and `scenario/service-sources.json`. Questions omit the correct index until answered; completed receipts are recomputed and verified locally with the pinned four-repository provenance.
 
+Standalone adviser questions use those same two static files. The browser applies AINPC's published intent and guide state contract in-process, binds answers to the local `列国军府` authority, and seals accepted guide transitions with the Nexus `dongzhou_adviser_guide 1.1.0` shape. Reads, feedback, decisions, status changes and cancellation all rebuild the answer from local knowledge before accepting the journal; no `/api/` request or service process is involved.
+
 ## Legacy connected-mode notes (inactive)
 
 The notes below describe the former connected deployment and remain only as schema and migration context. They are not current operating instructions and must not be used to restart containers, processes, callbacks, health probes, or private-network access.

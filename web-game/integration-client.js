@@ -163,6 +163,158 @@
     return { trace, source, ready };
   }
 
+  function adviserIntent(question) {
+    const value = String(question || "").toLocaleLowerCase();
+    if (/(?:哪里|在哪|何处|怎么去|如何去|带我|引路|location|where)/u.test(value)) return "location";
+    if (/(?:任务|军令|目标|怎么打|如何打|攻略|task|objective)/u.test(value)) return "task";
+    if (/(?:物品|道具|装备|item)/u.test(value)) return "item";
+    if (/(?:谁|何人|人物|将领|角色|role|who)/u.test(value)) return "role";
+    if (/(?:系统|规则|玩法|system)/u.test(value)) return "system";
+    return "unknown";
+  }
+
+  async function buildLocalAdviserAnswer(input) {
+    const questionId = String(input?.client_request_id || "");
+    const question = String(input?.question || "").trim();
+    const stageId = String(input?.stage_id || "");
+    const stageIndex = Number(input?.stage_index);
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(questionId)
+      || !question || question.length > 500 || !stageId || !Number.isSafeInteger(stageIndex) || stageIndex < 1) {
+      throw new Error("adviser_question_invalid");
+    }
+    const entries = await localKnowledgeCatalog();
+    const knowledge = entries.find((entry) => entry && String(entry.stageId || "") === stageId);
+    if (!knowledge) throw new Error("adviser_knowledge_unavailable");
+    const people = [...new Set((Array.isArray(knowledge.people) ? knowledge.people : [])
+      .map((item) => String(item || "").trim()).filter(Boolean))];
+    const matchedPerson = people.find((name) => question.includes(name)) || "";
+    const intentType = adviserIntent(question);
+    const title = String(knowledge.name || knowledge.title || input.stage_title || stageId);
+    const objective = String(knowledge.objective || "").trim();
+    const summary = String(knowledge.summary || knowledge.content || "").trim().slice(0, 260);
+    const summarySentences = summary.match(/[^。！？]+[。！？]?/gu) || [];
+    const summaryLead = String(summarySentences[0] || summary).replace(/[。！？]+$/u, "");
+    const boundedSummary = summarySentences.slice(0, 2).join("") || summary;
+    let answer;
+    if (intentType === "location" && matchedPerson) {
+      answer = `${matchedPerson}见于《${title}》；可从当前关卡入口前往核验。`;
+    } else if (intentType === "task") {
+      answer = objective ? `本关军令：${objective}。${summaryLead}。` : boundedSummary;
+    } else if (intentType === "role") {
+      answer = people.length ? `本回相关人物有${people.slice(0, 6).join("、")}。${summaryLead}。` : boundedSummary;
+    } else if (intentType === "item") {
+      answer = "本回已发布史料没有可核验的物品来源，请改问具体人物、战役或军令。";
+    } else if (intentType === "system") {
+      answer = `当前关卡为《${title}》；军师只依据本地已发布史料答复，不补造未收录规则。`;
+    } else {
+      answer = boundedSummary || "未能理解你的问题，请补充游戏相关的具体信息（如任务名、道具名、地点）。";
+    }
+    const sourceProvenance = await localServiceProvenance();
+    const guideAvailable = intentType === "location" && Boolean(matchedPerson);
+    const guideSessionId = guideAvailable
+      ? uuidFromDigest(await sha256(`dongzhou-local-adviser-guide:${questionId}:${stageId}:${matchedPerson}`))
+      : null;
+    const trace = {
+      questionId,
+      taskId: questionId,
+      chatId: `dongzhou-local-adviser-${questionId}`,
+      question,
+      stageId,
+      stageIndex,
+      stageTitle: String(input.stage_title || title),
+      knowledgeId: String(knowledge.id || knowledge.aku_id || ""),
+      adviser: { heroId: "DuBo", name: "杜伯", organization: "列国军府", office: "军府主官" },
+      answer,
+      intentType,
+      guide: guideAvailable ? {
+        available: true,
+        sessionId: guideSessionId,
+        status: "AVAILABLE",
+        started: false,
+        promptText: `由杜伯引至${matchedPerson}所在的当前关卡入口`,
+        target: { mapId: 900000 + stageIndex, mapName: String(input.stage_title || title), name: matchedPerson, description: title }
+      } : { available: false, sessionId: null, status: "UNAVAILABLE", started: false },
+      sourceProvenance
+    };
+    const answerDigest = await sha256(canonicalJson(trace));
+    return {
+      trace,
+      result: {
+        mode: "offline",
+        state: "ANSWERED",
+        questionId,
+        taskId: questionId,
+        chatId: trace.chatId,
+        answer,
+        intentType,
+        guide: trace.guide,
+        knowledgeId: trace.knowledgeId,
+        adviser: trace.adviser,
+        sourceProvenance,
+        answerDigest
+      }
+    };
+  }
+
+  async function validatedLocalAdviserJournal(questionId) {
+    const journal = pendingAdviserQuestion();
+    if (!journal || String(journal.input?.client_request_id || "") !== String(questionId)) {
+      throw new Error("adviser_question_not_found");
+    }
+    const rebuilt = await buildLocalAdviserAnswer(journal.input);
+    if (canonicalJson(journal.result) !== canonicalJson(rebuilt.result)) {
+      throw new Error("adviser_answer_source_invalid");
+    }
+    return { journal, rebuilt };
+  }
+
+  async function localPlayerId() {
+    return uuidFromDigest(await sha256(`dongzhou-local-player:${installationId()}`));
+  }
+
+  async function sealLocalAdviserGuide(answer, actionId, decision, state, eventType, fields = {}) {
+    const trace = {
+      actionId: String(actionId),
+      questionId: answer.questionId,
+      taskId: answer.taskId,
+      playerId: await localPlayerId(),
+      chatId: answer.chatId,
+      guideSessionId: String(answer.guide?.sessionId || ""),
+      decision,
+      state,
+      eventType,
+      guideStarted: state === "RUNNING" || state === "COMPLETED",
+      message: String(fields.message || ""),
+      reason: String(fields.reason || ""),
+      sourceProvenance: answer.sourceProvenance
+    };
+    return {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: {
+        module: "dongzhou_adviser_guide",
+        moduleVersion: "1.1.0",
+        nexusKernelVersion: "0.2.0",
+        state: "SEALED"
+      }
+    };
+  }
+
+  async function validateLocalAdviserGuide(answer, receipt) {
+    if (!receipt || receipt.questionId !== answer.questionId || receipt.taskId !== answer.taskId
+      || receipt.chatId !== answer.chatId || receipt.guideSessionId !== answer.guide?.sessionId
+      || !["ACCEPT", "REJECT"].includes(receipt.decision)
+      || !["ACCEPTED", "RUNNING", "COMPLETED", "FAILED", "REJECTED", "CANCELLED"].includes(receipt.state)) {
+      throw new Error("adviser_guide_seal_invalid");
+    }
+    const expected = await sealLocalAdviserGuide(
+      answer, receipt.actionId, receipt.decision, receipt.state, receipt.eventType,
+      { message: receipt.message, reason: receipt.reason }
+    );
+    if (canonicalJson(receipt) !== canonicalJson(expected)) throw new Error("adviser_guide_seal_invalid");
+    return expected;
+  }
+
   function installationId() {
     let value = root.localStorage.getItem(INSTALLATION_KEY);
     if (!value) {
@@ -940,7 +1092,17 @@
   }
 
   async function askAdviser(input) {
-    if (offline) return Promise.reject(new Error("adviser_requires_online"));
+    if (offline) {
+      const pending = {
+        input: { ...input, client_request_id: root.crypto.randomUUID() },
+        result: null,
+        feedback: null
+      };
+      const built = await buildLocalAdviserAnswer(pending.input);
+      const journal = { ...pending, result: built.result };
+      write(ADVISER_QUESTION_KEY, journal);
+      return built.result;
+    }
     const existing = pendingAdviserQuestion();
     const pending = existing?.result?.state === "PROCESSING"
       ? existing
@@ -959,7 +1121,10 @@
   }
 
   async function adviserQuestion(questionId) {
-    if (offline) return Promise.reject(new Error("adviser_requires_online"));
+    if (offline) {
+      const { rebuilt } = await validatedLocalAdviserJournal(questionId);
+      return { ...rebuilt.result, replayed: true };
+    }
     const result = await requestWithTransientRetry(`/adviser/questions/${encodeURIComponent(questionId)}`);
     const pending = pendingAdviserQuestion();
     if (pending?.input?.client_request_id === questionId) {
@@ -969,7 +1134,24 @@
   }
 
   async function feedbackAdviser(questionId, rating, reason = "") {
-    if (offline) return Promise.reject(new Error("adviser_requires_online"));
+    if (offline) {
+      if (!['accurate', 'inaccurate'].includes(rating) || String(reason).length > 500) {
+        throw new Error("adviser_feedback_invalid");
+      }
+      const { journal } = await validatedLocalAdviserJournal(questionId);
+      if (journal.feedback?.result) {
+        if (journal.feedback.rating !== rating || journal.feedback.reason !== reason) {
+          throw new Error("adviser_feedback_already_recorded");
+        }
+        return { ...journal.feedback.result, replayed: true };
+      }
+      const feedback = {
+        action_id: root.crypto.randomUUID(), rating, reason,
+        result: { mode: "offline", state: "RECORDED", questionId: String(questionId), rating, replayed: false }
+      };
+      write(ADVISER_QUESTION_KEY, { ...journal, feedback });
+      return feedback.result;
+    }
     const pending = pendingAdviserQuestion();
     const feedback = pending?.feedback?.rating === rating
       ? pending.feedback
@@ -984,7 +1166,27 @@
   }
 
   async function decideAdviserGuide(questionId, decision) {
-    if (offline) return Promise.reject(new Error("adviser_requires_online"));
+    if (offline) {
+      if (!['ACCEPT', 'REJECT'].includes(decision)) throw new Error("adviser_guide_decision_invalid");
+      const { journal, rebuilt } = await validatedLocalAdviserJournal(questionId);
+      if (!rebuilt.result.guide.available || !rebuilt.result.guide.sessionId) {
+        throw new Error("adviser_guide_unavailable");
+      }
+      if (journal.guideDecision?.result) {
+        if (journal.guideDecision.decision !== decision) throw new Error("adviser_guide_already_decided");
+        await validateLocalAdviserGuide(rebuilt.result, journal.guideDecision.result.guide);
+        return { ...journal.guideDecision.result, replayed: true };
+      }
+      const actionId = root.crypto.randomUUID();
+      const state = decision === "ACCEPT" ? "ACCEPTED" : "REJECTED";
+      const receipt = await sealLocalAdviserGuide(rebuilt.result, actionId, decision, state, "guide_decision");
+      const result = { mode: "offline", state, replayed: false, guide: receipt };
+      write(ADVISER_QUESTION_KEY, {
+        ...journal,
+        guideDecision: { action_id: actionId, decision, result }
+      });
+      return result;
+    }
     const pending = pendingAdviserQuestion();
     const guideDecision = pending?.guideDecision?.decision === decision
       ? pending.guideDecision
@@ -999,7 +1201,30 @@
   }
 
   async function adviserGuide(actionId) {
-    if (offline) return Promise.reject(new Error("adviser_requires_online"));
+    if (offline) {
+      const journal = pendingAdviserQuestion();
+      if (!journal?.input?.client_request_id || journal.guideDecision?.action_id !== actionId) {
+        throw new Error("adviser_guide_not_found");
+      }
+      const { journal: validated, rebuilt } = await validatedLocalAdviserJournal(journal.input.client_request_id);
+      const previous = validated.guideDecision?.result?.guide;
+      await validateLocalAdviserGuide(rebuilt.result, previous);
+      if (previous.decision !== "ACCEPT" || !["ACCEPTED", "RUNNING", "COMPLETED"].includes(previous.state)) {
+        return validated.guideDecision.result;
+      }
+      const nextState = previous.state === "ACCEPTED" ? "RUNNING" : previous.state === "RUNNING" ? "COMPLETED" : "COMPLETED";
+      const eventType = nextState === "RUNNING" ? "guide_started" : "guide_completed";
+      const receipt = await sealLocalAdviserGuide(
+        rebuilt.result, actionId, "ACCEPT", nextState, eventType,
+        { message: nextState === "COMPLETED" ? "已抵达当前关卡入口。" : "杜伯正在引路。" }
+      );
+      const result = { mode: "offline", state: nextState, guide: receipt };
+      write(ADVISER_QUESTION_KEY, {
+        ...validated,
+        guideDecision: { ...validated.guideDecision, result }
+      });
+      return result;
+    }
     const result = await requestWithTransientRetry(`/adviser/guides/${encodeURIComponent(actionId)}`);
     const pending = pendingAdviserQuestion();
     if (pending?.guideDecision?.action_id === actionId) {
@@ -1012,7 +1237,35 @@
   }
 
   async function cancelAdviserGuide(actionId, reason = "player_cancelled") {
-    if (offline) return Promise.reject(new Error("adviser_requires_online"));
+    if (offline) {
+      if (String(reason).length > 500) throw new Error("adviser_guide_cancel_invalid");
+      const journal = pendingAdviserQuestion();
+      if (!journal?.input?.client_request_id || journal.guideDecision?.action_id !== actionId) {
+        throw new Error("adviser_guide_not_found");
+      }
+      const { journal: validated, rebuilt } = await validatedLocalAdviserJournal(journal.input.client_request_id);
+      const previous = validated.guideDecision?.result?.guide;
+      await validateLocalAdviserGuide(rebuilt.result, previous);
+      if (validated.guideCancellation?.result) {
+        await validateLocalAdviserGuide(rebuilt.result, validated.guideCancellation.result.guide);
+        return { ...validated.guideCancellation.result, replayed: true };
+      }
+      if (previous.decision !== "ACCEPT" || !["ACCEPTED", "RUNNING"].includes(previous.state)) {
+        throw new Error("adviser_guide_not_cancellable");
+      }
+      const cancellation = { action_id: root.crypto.randomUUID(), reason: String(reason), result: null };
+      const receipt = await sealLocalAdviserGuide(
+        rebuilt.result, actionId, "ACCEPT", "CANCELLED", "guide_cancelled", { reason: cancellation.reason }
+      );
+      const result = { mode: "offline", state: "CANCELLED", replayed: false, guide: receipt };
+      cancellation.result = result;
+      write(ADVISER_QUESTION_KEY, {
+        ...validated,
+        guideDecision: { ...validated.guideDecision, result },
+        guideCancellation: cancellation
+      });
+      return result;
+    }
     const pending = pendingAdviserQuestion();
     const cancellation = pending?.guideCancellation || {
       action_id: root.crypto.randomUUID(), reason, result: null

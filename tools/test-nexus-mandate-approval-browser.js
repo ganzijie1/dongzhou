@@ -12,20 +12,42 @@ try {
 }
 
 const base = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
+const baseUrl = new URL(base);
+baseUrl.searchParams.set("offline", "1");
+const baseOrigin = baseUrl.origin;
+const webRoot = path.resolve(__dirname, "../web-game");
 const screenshot = path.resolve(__dirname, "../output/integration-validation/nexus-mandate-approval-complete27.png");
 const executablePath = [
   "C:/Program Files/Google/Chrome/Application/chrome.exe",
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
 ].find((candidate) => fs.existsSync(candidate));
 
+async function routeLocalAssets(page) {
+  await page.route("**/*", async (route) => {
+    const requestUrl = new URL(route.request().url());
+    if (requestUrl.origin !== baseOrigin || requestUrl.pathname.startsWith("/api/")) return route.abort();
+    const file = path.resolve(webRoot, `.${decodeURIComponent(requestUrl.pathname === "/" ? "/index.html" : requestUrl.pathname)}`);
+    if (!file.startsWith(`${webRoot}${path.sep}`) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+      return route.fulfill({ status: 404, body: "not found" });
+    }
+    const contentTypes = {
+      ".html": "text/html", ".js": "application/javascript", ".css": "text/css", ".json": "application/json",
+      ".webp": "image/webp", ".png": "image/png", ".svg": "image/svg+xml", ".mp3": "audio/mpeg",
+      ".ogg": "audio/ogg", ".wav": "audio/wav", ".lua": "text/plain"
+    };
+    return route.fulfill({ status: 200, contentType: contentTypes[path.extname(file)] || "application/octet-stream", body: fs.readFileSync(file) });
+  });
+}
+
 (async () => {
   fs.mkdirSync(path.dirname(screenshot), { recursive: true });
   const browser = await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}) });
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    await routeLocalAssets(page);
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
-    await page.goto(base, { waitUntil: "domcontentloaded" });
+    await page.goto(baseUrl.href, { waitUntil: "domcontentloaded" });
     await page.waitForSelector("#app:not([hidden])", { timeout: 45000 });
     await page.evaluate(() => {
       const input = {

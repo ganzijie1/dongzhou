@@ -8,9 +8,27 @@ try { ({ chromium } = require(path.resolve(__dirname, "../output/playwright-runt
 catch (_) { ({ chromium } = require("playwright")); }
 const url = new URL(process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8781/");
 url.searchParams.set("offline", "1");
+const baseOrigin = url.origin;
+const webRoot = path.resolve(__dirname, "../web-game");
 const executablePath = [process.env.DONGZHOU_CHROMIUM_EXECUTABLE, "C:/Program Files/Google/Chrome/Application/chrome.exe", "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"].find(p => p && fs.existsSync(p));
 const PROFILE = "dongzhou-h5-profile-v2";
 const BATTLE = "dongzhou-h5-battle-v2";
+async function routeLocalAssets(page) {
+  await page.route("**/*", async (route) => {
+    const requestUrl = new URL(route.request().url());
+    if (requestUrl.origin !== baseOrigin || requestUrl.pathname.startsWith("/api/")) return route.abort();
+    const file = path.resolve(webRoot, `.${decodeURIComponent(requestUrl.pathname === "/" ? "/index.html" : requestUrl.pathname)}`);
+    if (!file.startsWith(`${webRoot}${path.sep}`) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+      return route.fulfill({ status: 404, body: "not found" });
+    }
+    const contentTypes = {
+      ".html": "text/html", ".js": "application/javascript", ".css": "text/css", ".json": "application/json",
+      ".webp": "image/webp", ".png": "image/png", ".svg": "image/svg+xml", ".mp3": "audio/mpeg",
+      ".ogg": "audio/ogg", ".wav": "audio/wav", ".lua": "text/plain"
+    };
+    return route.fulfill({ status: 200, contentType: contentTypes[path.extname(file)] || "application/octet-stream", body: fs.readFileSync(file) });
+  });
+}
 async function ready(page) {
   await page.goto(url.href, { waitUntil: "domcontentloaded" });
   await page.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
@@ -27,12 +45,14 @@ async function begin(page) {
   const errors = [];
   try {
     const baseline = await browser.newPage();
+    await routeLocalAssets(baseline);
     baseline.on("pageerror", error => errors.push(error.message));
     await ready(baseline);
     const initial = (await snapshot(baseline)).profile;
     await begin(baseline);
     const normal = (await snapshot(baseline)).battle;
     const page = await browser.newPage();
+    await routeLocalAssets(page);
     page.on("pageerror", error => errors.push(error.message));
     await ready(page);
     await page.evaluate(({ PROFILE, initial }) => {
@@ -102,13 +122,16 @@ async function begin(page) {
     assert.deepEqual(resumed.profile.campaignResources, retried.profile.campaignResources);
     assert.equal(resumed.profile.organization.pendingSupport.length, 0);
     const online = await browser.newPage();
+    await routeLocalAssets(online);
     online.on("pageerror", error => errors.push(error.message));
     const onlineUrl = new URL(url);
     onlineUrl.searchParams.delete("offline");
     let cloud = JSON.parse(JSON.stringify(before.profile));
     let version = 1;
     let failSaves = false;
+    let successfulPutsBeforeFailure = 0;
     let conflictPage = null;
+    let conflictSuccessfulPuts = 0;
     let failedPuts = 0;
     let signalFailedPut;
     const failedPut = new Promise(resolve => { signalFailedPut = resolve; });
@@ -120,11 +143,47 @@ async function begin(page) {
       if (pathname.endsWith("/sessions/guest")) body = { playerId: "preparation-transaction-test" };
       else if (pathname.endsWith("/save") && request.method() === "GET") body = { version, payload: cloud };
       else if (pathname.endsWith("/save") && request.method() === "PUT") {
-        if (request.frame().page() === conflictPage) { status = 409; body = { error: { message: "injected competing page version conflict" } }; }
-        else if (failSaves) { status = 503; body = { error: { message: "injected cloud save unavailable" } }; failedPuts++; signalFailedPut(); }
+        if (request.frame().page() === conflictPage && conflictSuccessfulPuts <= 0) { status = 409; body = { error: { message: "injected competing page version conflict" } }; }
+        else if (request.frame().page() === conflictPage) { conflictSuccessfulPuts--; cloud = request.postDataJSON().payload; body = { version: ++version, payload: cloud }; }
+        else if (failSaves && successfulPutsBeforeFailure <= 0) { status = 503; body = { error: { message: "injected cloud save unavailable" } }; failedPuts++; signalFailedPut(); }
+        else if (failSaves) { successfulPutsBeforeFailure--; cloud = request.postDataJSON().payload; body = { version: ++version, payload: cloud }; }
         else { cloud = request.postDataJSON().payload; body = { version: ++version, payload: cloud }; }
       } else if (pathname.endsWith("/integration/status")) body = { services: {} };
       else if (pathname.endsWith("/court/mandates/pending")) body = { pending: null };
+      else if (pathname.endsWith("/battle-readiness")) {
+        const stageId = String(request.postDataJSON().stage_id);
+        const support = (cloud.organization?.pendingSupport || []).filter(entry => String(entry.stageId) === stageId);
+        const sum = key => support.reduce((total, entry) => total + Number(entry[key] || 0), 0);
+        body = {
+          state: "READY",
+          stageId,
+          readinessId: "00000000-0000-4000-8000-000000000151",
+          playerDigest: "4".repeat(64),
+          digest: "6".repeat(64),
+          sourceProvenance: { digest: "7".repeat(64) },
+          battlePlan: {
+            formation: cloud.formation || "balanced",
+            vanguardHeroId: cloud.stageVanguards?.[stageId] || "DuBo",
+            supportIds: support.map(entry => String(entry.id || "")).filter(Boolean).sort(),
+            supportEffect: { provisions: sum("provisions"), morale: sum("morale"), attack: sum("attack"), defense: sum("defense"), recon: sum("recon") }
+          },
+          kernel: { module: "dongzhou_battle_readiness", moduleVersion: "1.2.0", state: "SEALED" }
+        };
+      }
+      else if (pathname.endsWith("/battle-deployment")) {
+        const input = request.postDataJSON();
+        body = {
+          state: "AUTHORIZED",
+          stageId: input.stage_id,
+          reportId: `battle:${input.stage_id}:transaction-test`,
+          readinessDigest: input.battle_readiness.digest,
+          routeDigest: input.campaign_route?.receipt?.digest || null,
+          battlePlan: input.battle_readiness.battlePlan,
+          digest: "5".repeat(64),
+          sourceProvenance: { digest: "7".repeat(64) },
+          kernel: { module: "dongzhou_battle_deployment", moduleVersion: "1.2.0", state: "SEALED" }
+        };
+      }
       else { status = 503; body = { error: { message: "Test denies all unmocked API calls" } }; }
       await route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
     };
@@ -132,6 +191,7 @@ async function begin(page) {
     await online.goto(onlineUrl.href, { waitUntil: "domcontentloaded" });
     await online.waitForSelector("#campaignScreen:not([hidden])");
     failSaves = true;
+    successfulPutsBeforeFailure = 1;
     await begin(online);
     await failedPut;
     assert.equal(cloud.organization.pendingSupport.length, 1, "Failed cloud writes leave the previous cloud preparation intact");
@@ -162,12 +222,14 @@ async function begin(page) {
     const first = await browser.newPage();
     const second = await browser.newPage();
     for (const tab of [first, second]) {
+      await routeLocalAssets(tab);
       tab.on("pageerror", error => errors.push(error.message));
       await tab.route("**/api/**", handleApi);
       await tab.goto(onlineUrl.href, { waitUntil: "domcontentloaded" });
       await tab.waitForSelector("#app:not([hidden])");
     }
     conflictPage = second;
+    conflictSuccessfulPuts = 1;
     await begin(first);
     await first.waitForFunction(() => Object.keys(JSON.parse(localStorage.getItem("dongzhou-preparation-journal-v1") || "{}")).length === 0);
     const winnerResources = JSON.parse(JSON.stringify(cloud.campaignResources));

@@ -3808,9 +3808,19 @@
 
   function adviserRouteHandoff(journal = integration.pendingAdviserQuestion()) {
     const result = journal?.result;
-    if (result?.state !== "ANSWERED" || result.intentType !== "location" || result.guide?.available) return null;
+    if (result?.state !== "ANSWERED" || result.intentType !== "location") return null;
     const current = officeStage();
     if (!current) return null;
+    if (result.guide?.available) {
+      if (journal?.guideDecision?.result?.state !== "COMPLETED") return null;
+      const target = findStageRecord(journal.input?.stage_id) || current;
+      return {
+        target,
+        available: true,
+        completedGuide: true,
+        status: `引路已完成，可查看“${target.battleTitle}”关卡入口。`
+      };
+    }
     const completed = new Set(profile.completed || []);
     const target = Number(current.index) > 1
       ? current
@@ -3835,10 +3845,9 @@
     const guideStatus = $("#officeAdviserGuideStatus");
     if (!answer || !feedback || !guidePanel || !guideStatus) return;
     const processing = result?.state === "PROCESSING" || result?.state === "PENDING";
-    $("#officeAdviserAsk").disabled = officeAdviserInFlight || processing || integration.isOffline();
+    $("#officeAdviserAsk").disabled = officeAdviserInFlight || processing;
     answer.classList.toggle("answered", result?.state === "ANSWERED");
-    if (integration.isOffline()) answer.textContent = "离线演算不启用军师问策。";
-    else if (result?.state === "ANSWERED") answer.textContent = result.answer || "军师未留下答复。";
+    if (result?.state === "ANSWERED") answer.textContent = result.answer || "军师未留下答复。";
     else if (processing) answer.textContent = result.progress || "军师正在查阅军情……";
     else if (result?.state === "RETRYABLE") answer.textContent = "军师暂未应答，可再次问策。";
     else answer.textContent = "";
@@ -3871,9 +3880,9 @@
     cancelButton.hidden = !["ACCEPTED", "RUNNING"].includes(guideState);
     cancelButton.disabled = officeAdviserInFlight;
     const routeButton = guidePanel.querySelector("[data-adviser-route]");
-    routeButton.hidden = !routeHandoff || Boolean(guideState);
+    routeButton.hidden = !routeHandoff || (Boolean(guideState) && guideState !== "COMPLETED");
     routeButton.disabled = officeAdviserInFlight || !routeHandoff?.available;
-    routeButton.textContent = routeHandoff?.available ? "查看行军路线" : "完成本战后查看路线";
+    routeButton.textContent = routeHandoff?.completedGuide ? "查看关卡入口" : routeHandoff?.available ? "查看行军路线" : "完成本战后查看路线";
   }
 
   function openAdviserCampaignRoute() {
@@ -3897,7 +3906,6 @@
     officeAdviserTimer = null;
     renderOfficeAdviser();
     const journal = integration.pendingAdviserQuestion();
-    if (integration.isOffline()) return;
     try {
       if (journal?.result?.state === "PROCESSING") {
         await integration.adviserQuestion(journal.input.client_request_id);

@@ -3,6 +3,7 @@
 const assert = require("assert");
 
 const values = new Map();
+const fetchedUrls = [];
 const serviceSources = {
   schemaVersion: 1,
   services: {
@@ -20,7 +21,9 @@ global.localStorage = {
   key: (index) => [...values.keys()][index] || null,
   get length() { return values.size; },
 };
-global.fetch = async (url) => ({
+global.fetch = async (url) => {
+  fetchedUrls.push(String(url));
+  return ({
   ok: true,
   json: async () => String(url).endsWith("service-sources.json") ? serviceSources : ({
     entries: [{
@@ -42,7 +45,8 @@ global.fetch = async (url) => ({
       id: "dongzhou_stage_004", index: 4, stageId: "04", name: "Chapter Four", people: ["Duke Zheng"]
     }],
   }),
-});
+  });
+};
 
 const client = require("../web-game/integration-client.js");
 
@@ -96,7 +100,73 @@ const client = require("../web-game/integration-client.js");
   values.set(quizKey, JSON.stringify(tamperedKernel));
   await assert.rejects(client.verifyKnowledgeQuizSeal(questionId), /knowledge_quiz_seal_invalid/);
 
-  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true }));
+  const adviser = await client.askAdviser({
+    question: "Where is Du Bo?",
+    stage_id: "01",
+    stage_title: "Chapter One",
+    stage_index: 1,
+  });
+  assert.strictEqual(adviser.mode, "offline");
+  assert.strictEqual(adviser.state, "ANSWERED");
+  assert.strictEqual(adviser.intentType, "location");
+  assert.strictEqual(adviser.guide.available, true);
+  assert.strictEqual(adviser.guide.target.name, "Du Bo");
+  assert.strictEqual(adviser.adviser.heroId, "DuBo");
+  assert.strictEqual(Object.keys(adviser.sourceProvenance.services).length, 4);
+  assert.match(adviser.answerDigest, /^[0-9a-f]{64}$/);
+  const adviserJournal = JSON.parse(values.get("dongzhou-adviser-question-v1"));
+  const adviserId = adviserJournal.input.client_request_id;
+  assert.strictEqual((await client.adviserQuestion(adviserId)).replayed, true);
+  const cleanAdviserJournal = values.get("dongzhou-adviser-question-v1");
+  adviserJournal.result.answer = "forged answer";
+  values.set("dongzhou-adviser-question-v1", JSON.stringify(adviserJournal));
+  await assert.rejects(client.adviserQuestion(adviserId), /adviser_answer_source_invalid/);
+  values.set("dongzhou-adviser-question-v1", cleanAdviserJournal);
+
+  const guide = await client.decideAdviserGuide(adviserId, "ACCEPT");
+  assert.strictEqual(guide.state, "ACCEPTED");
+  assert.strictEqual(guide.guide.kernel.module, "dongzhou_adviser_guide");
+  assert.strictEqual(guide.guide.kernel.moduleVersion, "1.1.0");
+  assert.strictEqual(guide.guide.sourceProvenance.digest, adviser.sourceProvenance.digest);
+  assert.strictEqual((await client.decideAdviserGuide(adviserId, "ACCEPT")).replayed, true);
+  await assert.rejects(client.decideAdviserGuide(adviserId, "REJECT"), /adviser_guide_already_decided/);
+  const guideActionId = guide.guide.actionId;
+  assert.strictEqual((await client.adviserGuide(guideActionId)).state, "RUNNING");
+  assert.strictEqual((await client.adviserGuide(guideActionId)).state, "COMPLETED");
+  const feedback = await client.feedbackAdviser(adviserId, "accurate");
+  assert.strictEqual(feedback.state, "RECORDED");
+  assert.strictEqual((await client.feedbackAdviser(adviserId, "accurate")).replayed, true);
+  await assert.rejects(client.feedbackAdviser(adviserId, "inaccurate"), /adviser_feedback_already_recorded/);
+
+  const cancellable = await client.askAdviser({
+    question: "Where is Du Bo?",
+    stage_id: "01",
+    stage_title: "Chapter One",
+    stage_index: 1,
+  });
+  const cancellableId = JSON.parse(values.get("dongzhou-adviser-question-v1")).input.client_request_id;
+  const accepted = await client.decideAdviserGuide(cancellableId, "ACCEPT");
+  const cancelled = await client.cancelAdviserGuide(accepted.guide.actionId, "player_changed_plan");
+  assert.strictEqual(cancelled.state, "CANCELLED");
+  assert.strictEqual(cancelled.guide.reason, "player_changed_plan");
+  assert.strictEqual((await client.cancelAdviserGuide(accepted.guide.actionId, "player_changed_plan")).replayed, true);
+  const sealedJournal = values.get("dongzhou-adviser-question-v1");
+  const forgedGuide = JSON.parse(sealedJournal);
+  forgedGuide.guideDecision.result.guide.digest = "0".repeat(64);
+  values.set("dongzhou-adviser-question-v1", JSON.stringify(forgedGuide));
+  await assert.rejects(client.adviserGuide(accepted.guide.actionId), /adviser_guide_seal_invalid/);
+  values.set("dongzhou-adviser-question-v1", sealedJournal);
+  await assert.rejects(client.cancelAdviserGuide(accepted.guide.actionId, "x".repeat(501)), /adviser_guide_cancel_invalid/);
+
+  await client.askAdviser({ question: "Where is Du Bo?", stage_id: "01", stage_title: "Chapter One", stage_index: 1 });
+  const rejectedId = JSON.parse(values.get("dongzhou-adviser-question-v1")).input.client_request_id;
+  const rejected = await client.decideAdviserGuide(rejectedId, "REJECT");
+  assert.strictEqual(rejected.state, "REJECTED");
+  assert.strictEqual(rejected.guide.decision, "REJECT");
+  assert.strictEqual(rejected.guide.kernel.state, "SEALED");
+  assert.strictEqual(fetchedUrls.some((url) => url.includes("/api/")), false);
+
+  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true }));
 })().catch((error) => {
   console.error(error.stack || error.message);
   process.exitCode = 1;
