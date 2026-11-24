@@ -2115,8 +2115,9 @@ def test_pending_mandate_can_be_recovered_after_browser_reload() -> None:
 
 def test_graph_search_receipt_is_sealed_into_council_and_mandate() -> None:
     with TemporaryDirectory() as directory:
+        database = Path(directory) / "gateway.sqlite3"
         app = build_application(
-            configured(Path(directory) / "gateway.sqlite3"), upstreams=MandateUpstreams()
+            configured(database), upstreams=MandateUpstreams()
         )
         with TestClient(app) as client:
             start_session(client)
@@ -2131,6 +2132,8 @@ def test_graph_search_receipt_is_sealed_into_council_and_mandate() -> None:
             assert searched.status_code == 200
             receipt = searched.json()["searchReceipt"]
             result = searched.json()["results"][0]
+            assert receipt["sourceProvenance"]["kernel"]["state"] == "SEALED"
+            assert len(receipt["sourceProvenance"]["digest"]) == 64
             assert result["retrieval"]["graphRelated"] is True
             assert result["searchReceipt"] == {"id": receipt["id"], "digest": receipt["digest"]}
             replay = client.post("/api/dongzhou/v1/knowledge/search", json=search_body)
@@ -2163,7 +2166,44 @@ def test_graph_search_receipt_is_sealed_into_council_and_mandate() -> None:
             assert drafted.status_code == 200
             evidence = drafted.json()["mandate"]["evidence"]
             assert evidence["retrieval"] == result["retrieval"]
-            assert evidence["searchReceipt"] == result["searchReceipt"]
+            assert evidence["searchReceipt"]["id"] == result["searchReceipt"]["id"]
+            assert evidence["searchReceipt"]["digest"] == result["searchReceipt"]["digest"]
+            assert (
+                evidence["searchReceipt"]["sourceProvenance"]
+                == receipt["sourceProvenance"]
+            )
+
+            connection = sqlite3.connect(database)
+            try:
+                row = connection.execute(
+                    "SELECT response_payload FROM requests WHERE request_id=?",
+                    (search_id,),
+                ).fetchone()
+                assert row is not None
+                stored_response = json.loads(row[0])
+                stored_response["searchReceipt"]["sourceProvenance"][
+                    "digest"
+                ] = "0" * 64
+                connection.execute(
+                    "UPDATE requests SET response_payload=? WHERE request_id=?",
+                    (
+                        json.dumps(stored_response, ensure_ascii=False),
+                        search_id,
+                    ),
+                )
+                connection.commit()
+            finally:
+                connection.close()
+
+            forged = client.post(
+                "/api/dongzhou/v1/court/mandates",
+                json={**body, "client_request_id": str(uuid4())},
+            )
+            assert forged.status_code == 422
+            assert (
+                forged.json()["error"]["code"]
+                == "court_knowledge_receipt_unverified"
+            )
 
             tampered = client.post(
                 "/api/dongzhou/v1/court/mandates",

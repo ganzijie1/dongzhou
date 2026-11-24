@@ -6388,6 +6388,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "requestId": str(request.client_request_id),
                 "stageId": request.stage_id,
                 "query": request.query,
+                "sourceProvenance": service_provenance.receipt(),
                 "results": [
                     {
                         "id": str(item.get("id") or item.get("aku_id") or ""),
@@ -8757,6 +8758,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             )
             receipt_response = receipt_record.get("response") if receipt_record else None
             receipt = receipt_response.get("searchReceipt") if isinstance(receipt_response, dict) else None
+            receipt_trace = (
+                {key: value for key, value in receipt.items() if key != "digest"}
+                if isinstance(receipt, dict)
+                else {}
+            )
             receipt_result = next(
                 (
                     item
@@ -8774,6 +8780,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 or receipt_record.get("externalId") != receipt_id
                 or not isinstance(receipt, dict)
                 or receipt.get("digest") != request.knowledge_search_receipt_digest
+                or receipt.get("digest") != _canonical_digest(receipt_trace)
                 or receipt.get("stageId") != request.stage_id
                 or not isinstance(receipt_result, dict)
                 or not isinstance(receipt_result.get("retrieval"), dict)
@@ -8790,10 +8797,34 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     "The knowledge search receipt does not prove this stage evidence.",
                     status_code=422,
                 )
+            receipt_source_provenance = receipt.get("sourceProvenance")
+            if (
+                receipt_source_provenance is not None
+                and not _service_provenance_receipt_matches(
+                    receipt_source_provenance, service_provenance.receipt()
+                )
+            ):
+                await store.finish_request(
+                    player_id,
+                    request.client_request_id,
+                    "REJECTED",
+                    {"state": "REJECTED"},
+                    "court_knowledge_source_provenance_mismatch",
+                )
+                raise ApiError(
+                    "court_knowledge_source_provenance_mismatch",
+                    "The knowledge receipt was not sealed by the current four-service runtime.",
+                    status_code=409,
+                )
             retrieval = receipt_result["retrieval"]
             retrieval_receipt = {
                 "id": receipt_id,
                 "digest": request.knowledge_search_receipt_digest,
+                **(
+                    {"sourceProvenance": receipt_source_provenance}
+                    if receipt_source_provenance is not None
+                    else {}
+                ),
             }
         source_marker = f"选证：{canonical_source['work']}｜{canonical_source['tier']}"
         if source_marker not in str(council_request.get("question") or ""):
