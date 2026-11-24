@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 21;
+  const SCHEMA_VERSION = 22;
   const TASK_TYPES = {
     supply: { name: "转运军粮", office: "司徒", duration: 1, cost: 8, base: 72, reward: { provisions: 24 } },
     drill: { name: "整训军阵", office: "司马", duration: 1, cost: 6, base: 68, reward: { attack: 0.08 } },
@@ -91,6 +91,7 @@
           { resourceKey: "guild.capacity", balance: 12, version: 1 }
         ]
       },
+      localScheduledDuty: { state: "DISABLED", version: 1 },
       backend: { mode: "local", nexusKernel: false, nexusRequiredModules: null, nexusOperationalModules: null, nexusUnavailableModules: [], nexusSourceBoundModules: null, nexusSourceBoundModuleNames: [], orgFlow: false, aiNpc: false, knowledge: false, serviceSources: {}, serviceAttestations: {}, serviceFailures: {}, serviceSourceSealDigest: "", checkedAt: null },
       members: [],
       remoteRoster: { organization: null, members: [], playerMembership: null, openPositions: [], observedAt: null },
@@ -161,6 +162,14 @@
               version: Number.isSafeInteger(account.version) && account.version > 0 ? account.version : 1
             }))
           : copy(base.localInventory.accounts)
+      },
+      localScheduledDuty: {
+        state: ["ACTIVE", "DISABLED"].includes(source.localScheduledDuty?.state)
+          ? source.localScheduledDuty.state
+          : base.localScheduledDuty.state,
+        version: Number.isSafeInteger(source.localScheduledDuty?.version) && source.localScheduledDuty.version > 0
+          ? source.localScheduledDuty.version
+          : base.localScheduledDuty.version
       },
       backend: { ...base.backend, ...(source.backend || {}) },
       members: Array.isArray(source.members) ? source.members.slice(0, 12).map(normalizeMember) : [],
@@ -604,6 +613,7 @@
         scopeStageId: "court-monthly-intelligence",
         triggerState: String(duty.latestTrigger?.state || ""),
         triggerFailureCode: String(duty.latestTrigger?.failure_code || ""),
+        ...(active.local === true ? { mode: "IN_PROCESS" } : {}),
         sourceProvenance: copy(duty.sourceProvenance),
       },
     };
@@ -611,6 +621,38 @@
     member.fatigue = clamp(member.fatigue + 8, 0, 100);
     state.history.push({ month: state.month, tone: "order", text: `${member.name}的“${task.name}”已纳入官署差事账。` });
     return { state, task: copy(task), adopted: true };
+  }
+
+  function recordScheduledDutyStatus(rawState, response) {
+    const state = normalizeState(rawState);
+    const receipt = response?.receipt;
+    const sourceProvenance = response?.sourceProvenance;
+    const expectedVersion = receipt?.previousState === receipt?.desiredState
+      ? receipt?.previousVersion
+      : Number(receipt?.previousVersion) + 1;
+    if (
+      !["ACTIVE", "DISABLED"].includes(response?.state)
+      || !Number.isSafeInteger(response?.version)
+      || receipt?.kind !== "STATUS_CHANGE"
+      || receipt.resultingState !== response.state
+      || receipt.resultingVersion !== response.version
+      || receipt.resultingState !== receipt.desiredState
+      || receipt.resultingVersion !== expectedVersion
+      || receipt.managerHeroId !== "DuBo"
+      || receipt.workerHeroId !== "ZuoRu"
+      || receipt.taskCode !== "dongzhou.intelligence"
+      || receipt.kernel?.module !== "dongzhou_organization_scheduled_duty"
+      || receipt.kernel?.moduleVersion !== "1.2.0"
+      || receipt.kernel?.state !== "SEALED"
+      || !/^[0-9a-f]{64}$/.test(String(receipt.digest || ""))
+      || !validSourceProvenance(sourceProvenance)
+      || !validSourceProvenance(receipt.sourceProvenance)
+      || receipt.sourceProvenance.digest !== sourceProvenance.digest
+      || state.localScheduledDuty.state !== receipt.previousState
+      || state.localScheduledDuty.version !== receipt.previousVersion
+    ) throw new Error("月例规则状态回执无效");
+    state.localScheduledDuty = { state: response.state, version: response.version };
+    return { state, receipt: copy(receipt) };
   }
 
   function recordLobbying(rawState, input) {
@@ -809,7 +851,7 @@
     state.month += 1;
     for (const member of state.members) member.fatigue = clamp(member.fatigue - 5, 0, 100);
     for (const task of state.tasks) {
-      if (resolveLocalTasks && !task.remoteResult && task.status === "active" && Number(task.dueMonth) <= state.month) resolveTask(state, task);
+      if (resolveLocalTasks && (!task.remoteResult || task.scheduledDuty?.mode === "IN_PROCESS") && task.status === "active" && Number(task.dueMonth) <= state.month) resolveTask(state, task);
     }
     state.history = state.history.slice(-40);
     return state;
@@ -1360,5 +1402,5 @@
     return state;
   }
 
-  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordThought, recordLogisticsBriefing, recordCommendation, recordRecollection, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, validateBattleDebrief, recordBattleOutcome, createTask, adoptScheduledDuty, advanceMonth, remoteTaskReadyForAdvance, remoteTaskAdvanceBlocker, reconcileRemoteTasks, recordTaskReview, recordInventoryRequisition, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, recordRemoteRoster, hash };
+  return { SCHEMA_VERSION, TASK_TYPES, defaultState, normalizeState, syncMembers, recordThought, recordLogisticsBriefing, recordCommendation, recordRecollection, recordCouncil, recordMandate, recordLobbying, createAlliance, breakAlliance, validateBattleDebrief, recordBattleOutcome, createTask, adoptScheduledDuty, recordScheduledDutyStatus, advanceMonth, remoteTaskReadyForAdvance, remoteTaskAdvanceBlocker, reconcileRemoteTasks, recordTaskReview, recordInventoryRequisition, consumeSupport, recordKnowledge, selectEvidence, selectCorrespondence, updateBackend, recordRemoteRoster, hash };
 });

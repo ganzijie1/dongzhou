@@ -45,6 +45,39 @@ assert.equal(adoptedDuty.state.tasks.filter((task) => task.remoteResult === sche
 assert.throws(() => play.adoptScheduledDuty(state, { ...scheduledDuty, latestTrigger: { ...scheduledDuty.latestTrigger, task_id: "other" } }), /任务号/);
 assert.throws(() => play.adoptScheduledDuty(state, { ...scheduledDuty, sourceProvenance: { ...sourceProvenance, digest: "invalid" } }), /服务来源无效/);
 assert.throws(() => play.adoptScheduledDuty(state, { ...scheduledDuty, receipt: { ...scheduledDuty.receipt, kernel: { ...scheduledDuty.receipt.kernel, moduleVersion: "1.1.0" } } }), /快照封印无效/);
+const localDutyStatus = {
+  state: "ACTIVE",
+  version: 2,
+  sourceProvenance,
+  receipt: {
+    kind: "STATUS_CHANGE",
+    previousState: "DISABLED",
+    resultingState: "ACTIVE",
+    desiredState: "ACTIVE",
+    previousVersion: 1,
+    resultingVersion: 2,
+    managerHeroId: "DuBo",
+    workerHeroId: "ZuoRu",
+    taskCode: "dongzhou.intelligence",
+    sourceProvenance,
+    digest: "b".repeat(64),
+    kernel: { module: "dongzhou_organization_scheduled_duty", moduleVersion: "1.2.0", state: "SEALED" }
+  }
+};
+const enabledLocalDuty = play.recordScheduledDutyStatus(state, localDutyStatus);
+assert.deepStrictEqual(enabledLocalDuty.state.localScheduledDuty, { state: "ACTIVE", version: 2 });
+assert.throws(() => play.recordScheduledDutyStatus(enabledLocalDuty.state, localDutyStatus));
+const localScheduledTask = play.adoptScheduledDuty(enabledLocalDuty.state, {
+  ...scheduledDuty,
+  version: 2,
+  activeTask: { ...scheduledDuty.activeTask, local: true },
+  receipt: { ...scheduledDuty.receipt, version: 2 }
+});
+assert.strictEqual(localScheduledTask.task.scheduledDuty.mode, "IN_PROCESS");
+const pendingLocalScheduledTask = play.advanceMonth(localScheduledTask.state, { resolveLocalTasks: true });
+assert.strictEqual(pendingLocalScheduledTask.tasks.find((task) => task.id === localScheduledTask.task.id).status, "active");
+const resolvedLocalScheduledTask = play.advanceMonth(pendingLocalScheduledTask, { resolveLocalTasks: true });
+assert.notStrictEqual(resolvedLocalScheduledTask.tasks.find((task) => task.id === localScheduledTask.task.id).status, "active");
 const completedScheduledDuty = play.reconcileRemoteTasks(adoptedDuty.state, [{ task_id: scheduledTaskId, state: "SUCCEEDED", final_result: "SUCCESS", version: "3" }], { advanceMonth: false });
 const scheduledSupport = play.consumeSupport(completedScheduledDuty, "02");
 assert.equal(scheduledSupport.support.recon, 1);

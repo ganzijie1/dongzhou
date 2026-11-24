@@ -1595,14 +1595,10 @@
     const refresh = $("#officeScheduledDutyRefresh");
     const toggle = $("#officeScheduledDutyToggle");
     if (!status || !refresh || !toggle) return;
-    const unavailable = integration.isOffline() || Boolean(officeScheduledDutyView?.loading) || officeScheduledDutyBusy;
+    const unavailable = Boolean(officeScheduledDutyView?.loading) || officeScheduledDutyBusy;
     refresh.disabled = unavailable;
     toggle.disabled = unavailable || !officeScheduledDutyView || Boolean(officeScheduledDutyView?.error);
     toggle.textContent = officeScheduledDutyView?.state === "DISABLED" ? "恢复月例" : "停办月例";
-    if (integration.isOffline()) {
-      status.textContent = "离线演练不派发自动差事";
-      return;
-    }
     if (officeScheduledDutyView?.loading) {
       status.textContent = "正在调阅定时簿……";
       return;
@@ -1639,11 +1635,6 @@
   }
 
   async function refreshOfficeScheduledDuty() {
-    if (integration.isOffline()) {
-      officeScheduledDutyView = { error: true };
-      renderOfficeScheduledDuty();
-      return;
-    }
     officeScheduledDutyView = { ...(officeScheduledDutyView || {}), loading: true };
     renderOfficeScheduledDuty();
     try {
@@ -1653,11 +1644,13 @@
         : { state: profile.organization, task: null, adopted: false };
       if (adopted.task) {
         let next = adopted.state;
-        try {
-          const response = await integration.organizationTask(adopted.task.remoteResult);
-          next = organization.reconcileRemoteTasks(next, [organizationTaskSnapshot(response)], { advanceMonth: false });
-        } catch (_) {
-          // Keep the adopted authoritative task visible while a transient trace read recovers.
+        if (!integration.isOffline()) {
+          try {
+            const response = await integration.organizationTask(adopted.task.remoteResult);
+            next = organization.reconcileRemoteTasks(next, [organizationTaskSnapshot(response)], { advanceMonth: false });
+          } catch (_) {
+            // Keep the adopted authoritative task visible while a transient trace read recovers.
+          }
         }
         if (adopted.adopted || JSON.stringify(next) !== JSON.stringify(profile.organization)) {
           await commitOrganizationState(next);
@@ -1670,12 +1663,16 @@
   }
 
   async function toggleOfficeScheduledDuty() {
-    if (officeScheduledDutyBusy || integration.isOffline() || !officeScheduledDutyView) return;
+    if (officeScheduledDutyBusy || !officeScheduledDutyView) return;
     officeScheduledDutyBusy = true;
     renderOfficeScheduledDuty();
     try {
       const enabled = officeScheduledDutyView.state === "DISABLED";
       const response = await integration.setOrganizationScheduledDutyEnabled(enabled);
+      if (integration.isOffline()) {
+        const recorded = organization.recordScheduledDutyStatus(profile.organization, response);
+        await commitOrganizationState(recorded.state);
+      }
       await refreshOfficeScheduledDuty();
       officeScheduledDutyView = { ...officeScheduledDutyView, receipt: response.receipt };
     } catch (_) {

@@ -147,6 +147,24 @@ async function openReady(page) {
       return profile.campaignResources.provisions === provisions + 12 && currentBalance === balance - 20;
     }, localInventoryBefore);
     if (await desktop.evaluate(() => Boolean(localStorage.getItem("dongzhou-pending-inventory-requisition-v1")))) throw new Error("Offline requisition journal was not acknowledged after commit");
+    await desktop.waitForSelector("#officeScheduledDutyStatus >> text=月例已停办");
+    await desktop.click("#officeScheduledDutyToggle");
+    await desktop.waitForFunction(() => {
+      const organization = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization;
+      return organization.localScheduledDuty?.state === "ACTIVE"
+        && organization.tasks.filter((task) => task.scheduledDuty?.mode === "IN_PROCESS").length === 1;
+    });
+    const localScheduledDuty = await desktop.evaluate(() => {
+      const organization = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization;
+      return { rule: organization.localScheduledDuty, task: organization.tasks.find((entry) => entry.scheduledDuty?.mode === "IN_PROCESS") };
+    });
+    if (localScheduledDuty.rule.version !== 2 || !localScheduledDuty.task?.remoteResult || localScheduledDuty.task.cost !== 0) throw new Error("Offline monthly duty was not sealed and adopted exactly once");
+    await desktop.click("#officeScheduledDutyRefresh");
+    await desktop.waitForTimeout(100);
+    if (await desktop.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.tasks.filter((task) => task.scheduledDuty?.mode === "IN_PROCESS").length) !== 1) throw new Error("Offline monthly duty refresh dispatched a duplicate task");
+    await desktop.click("#officeScheduledDutyToggle");
+    await desktop.waitForSelector("#officeScheduledDutyStatus >> text=已派差事仍照常办理");
+    if (await desktop.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.localScheduledDuty?.state) !== "DISABLED") throw new Error("Offline monthly duty did not persist the disabled state");
     await desktop.click("#officeQuizStart");
     await desktop.waitForSelector("[data-quiz-answer]");
     const stagePeople = new Set(["周宣王", "伯阳父", "乡民", "杜伯", "左儒", "尹吉甫"]);

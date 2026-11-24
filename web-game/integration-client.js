@@ -26,6 +26,7 @@
   const NPC_RECOLLECTION_PREFIX = "dongzhou-local-npc-recollection-v1:";
   const NPC_DECISION_PREFIX = "dongzhou-local-npc-decision-v1:";
   const LOCAL_LOGISTICS_BRIEFING_PREFIX = "dongzhou-local-logistics-briefing-v1:";
+  const LOCAL_SCHEDULED_DUTY_STATUS_PREFIX = "dongzhou-local-scheduled-duty-status-v1:";
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
   let session = read(SESSION_KEY, null);
   let sessionPromise = null;
@@ -524,6 +525,131 @@
     };
     write(INVENTORY_REQUISITION_PENDING_KEY, { ...pending, result });
     return result;
+  }
+
+  async function localScheduledDutyIdentity() {
+    const playerId = await localPlayerId();
+    return {
+      organizationId: uuidFromDigest(await sha256(`dongzhou-local-organization:${playerId}`)),
+      ruleId: uuidFromDigest(await sha256(`dongzhou-local-scheduled-duty:${playerId}`))
+    };
+  }
+
+  function currentLocalScheduledDutyState() {
+    const currentProfile = read("dongzhou-h5-profile-v2", offlineProfile) || offlineProfile;
+    const value = currentProfile?.organization?.localScheduledDuty;
+    return {
+      state: ["ACTIVE", "DISABLED"].includes(value?.state) ? value.state : "DISABLED",
+      version: Number.isSafeInteger(value?.version) && value.version > 0 ? value.version : 1,
+      month: Math.max(1, Math.trunc(Number(currentProfile?.organization?.month || 1))),
+      tasks: Array.isArray(currentProfile?.organization?.tasks) ? currentProfile.organization.tasks : [],
+      members: Array.isArray(currentProfile?.organization?.members) ? currentProfile.organization.members : []
+    };
+  }
+
+  async function buildLocalScheduledDutySnapshot() {
+    const identity = await localScheduledDutyIdentity();
+    const local = currentLocalScheduledDutyState();
+    const sourceProvenance = await localServiceProvenance();
+    const workerAvailable = local.members.some((member) => member?.id === "ZuoRu");
+    let task = local.tasks.find((entry) => entry?.status === "active"
+      && entry?.scheduledDuty?.ruleId === identity.ruleId
+      && entry?.scheduledDuty?.mode === "IN_PROCESS") || null;
+    let taskId = String(task?.remoteResult || "");
+    if (!taskId && local.state === "ACTIVE" && workerAvailable) {
+      taskId = uuidFromDigest(await sha256(`dongzhou-local-scheduled-duty-task:${identity.ruleId}:${local.month}`));
+    }
+    const activeTask = taskId ? {
+      taskId,
+      title: "东周朝廷月例察访",
+      state: task ? "IN_PROGRESS" : "GENERATED",
+      finalResult: null,
+      updatedAt: "",
+      adopted: true,
+      local: true
+    } : null;
+    const latestTrigger = taskId ? { state: "DISPATCHED", failure_code: null, task_id: taskId } : null;
+    const trace = {
+      kind: "SNAPSHOT",
+      ruleId: identity.ruleId,
+      organizationId: identity.organizationId,
+      gameServerId: "standalone",
+      state: local.state,
+      version: local.version,
+      frequency: "DAILY",
+      triggerMinute: 780,
+      managerHeroId: "DuBo",
+      workerHeroId: "ZuoRu",
+      taskCode: "dongzhou.intelligence",
+      latestTriggerState: latestTrigger?.state || null,
+      latestTriggerTaskId: taskId || null,
+      activeTaskId: taskId || null,
+      activeTaskState: activeTask?.state || null,
+      activeTaskAdopted: Boolean(activeTask?.adopted),
+      sourceProvenance
+    };
+    const receipt = {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: { module: "dongzhou_organization_scheduled_duty", moduleVersion: "1.2.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    };
+    return {
+      ruleId: identity.ruleId,
+      state: local.state,
+      version: local.version,
+      frequency: "DAILY",
+      triggerMinute: 780,
+      managerHeroId: "DuBo",
+      workerHeroId: "ZuoRu",
+      taskCode: "dongzhou.intelligence",
+      dutyTitle: "东周朝廷月例察访",
+      latestTrigger,
+      activeTask,
+      sourceProvenance,
+      receipt
+    };
+  }
+
+  async function localSetOrganizationScheduledDutyEnabled(pending) {
+    const snapshot = await buildLocalScheduledDutySnapshot();
+    const desiredState = pending.enabled ? "ACTIVE" : "DISABLED";
+    const resultingVersion = snapshot.state === desiredState ? snapshot.version : snapshot.version + 1;
+    const identity = await localScheduledDutyIdentity();
+    const trace = {
+      kind: "STATUS_CHANGE",
+      playerRequestId: String(pending.client_request_id),
+      ruleId: identity.ruleId,
+      organizationId: identity.organizationId,
+      previousState: snapshot.state,
+      resultingState: desiredState,
+      desiredState,
+      previousVersion: snapshot.version,
+      resultingVersion,
+      managerHeroId: "DuBo",
+      workerHeroId: "ZuoRu",
+      taskCode: "dongzhou.intelligence",
+      activeTaskId: snapshot.activeTask?.taskId || null,
+      sourceProvenance: snapshot.sourceProvenance
+    };
+    const receipt = {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: { module: "dongzhou_organization_scheduled_duty", moduleVersion: "1.2.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    };
+    const result = {
+      state: desiredState,
+      version: resultingVersion,
+      activeTask: snapshot.activeTask,
+      sourceProvenance: snapshot.sourceProvenance,
+      receipt
+    };
+    const key = LOCAL_SCHEDULED_DUTY_STATUS_PREFIX + pending.client_request_id;
+    const stored = read(key, null);
+    if (stored && canonicalJson(stored) !== canonicalJson({ input: pending, result })) {
+      throw new Error("organization_scheduled_duty_status_seal_invalid");
+    }
+    write(key, { input: pending, result });
+    return { replayed: Boolean(stored), ...result };
   }
 
   async function buildLocalKnowledgeQuiz(questionId, stageId, deadlineAt) {
@@ -1576,7 +1702,10 @@
     if (offline) return Promise.resolve(localInventorySnapshot());
     return requestWithTransientRetry("/organization/inventory");
   }
-  function organizationScheduledDuties() { return requestWithTransientRetry("/organization/scheduled-duties"); }
+  function organizationScheduledDuties() {
+    if (offline) return buildLocalScheduledDutySnapshot();
+    return requestWithTransientRetry("/organization/scheduled-duties");
+  }
   async function setOrganizationScheduledDutyEnabled(enabled) {
     const saved = read(SCHEDULED_DUTY_STATUS_PENDING_KEY, null);
     const pending = saved?.enabled === Boolean(enabled)
@@ -1584,6 +1713,11 @@
       : { client_request_id: root.crypto.randomUUID(), enabled: Boolean(enabled) };
     write(SCHEDULED_DUTY_STATUS_PENDING_KEY, pending);
     try {
+      if (offline) {
+        const result = await localSetOrganizationScheduledDutyEnabled(pending);
+        root.localStorage.removeItem(SCHEDULED_DUTY_STATUS_PENDING_KEY);
+        return result;
+      }
       const result = await request("/organization/scheduled-duties/status", {
         method: "POST",
         body: JSON.stringify(pending)

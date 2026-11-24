@@ -222,6 +222,28 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual((await client.organizationInventory()).accounts.find((account) => account.resourceKey === "task.execution").balance, 60);
   client.acknowledgeOrganizationInventoryRequisition(rejectedRequisition.requestId);
 
+  const disabledDuty = await client.organizationScheduledDuties();
+  assert.strictEqual(disabledDuty.state, "DISABLED");
+  assert.strictEqual(disabledDuty.version, 1);
+  assert.strictEqual(disabledDuty.activeTask, null);
+  assert.strictEqual(disabledDuty.receipt.kernel.module, "dongzhou_organization_scheduled_duty");
+  const enabledDuty = await client.setOrganizationScheduledDutyEnabled(true);
+  assert.strictEqual(enabledDuty.state, "ACTIVE");
+  assert.strictEqual(enabledDuty.version, 2);
+  assert.strictEqual(enabledDuty.receipt.kind, "STATUS_CHANGE");
+  localProfile.organization.localScheduledDuty = { state: enabledDuty.state, version: enabledDuty.version };
+  await client.persist(localProfile);
+  const activeDuty = await client.organizationScheduledDuties();
+  assert.strictEqual(activeDuty.state, "ACTIVE");
+  assert.strictEqual(activeDuty.activeTask.local, true);
+  assert.strictEqual(activeDuty.activeTask.adopted, true);
+  assert.strictEqual((await client.organizationScheduledDuties()).activeTask.taskId, activeDuty.activeTask.taskId);
+  const stoppedDuty = await client.setOrganizationScheduledDutyEnabled(false);
+  assert.strictEqual(stoppedDuty.state, "DISABLED");
+  assert.strictEqual(stoppedDuty.version, 3);
+  localProfile.organization.localScheduledDuty = { state: stoppedDuty.state, version: stoppedDuty.version };
+  await client.persist(localProfile);
+
   const battlePlan = {
     formation: "balanced",
     vanguardHeroId: "DuBo",
@@ -390,7 +412,7 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(rejected.guide.kernel.state, "SEALED");
   assert.strictEqual(fetchedUrls.some((url) => url.includes("/api/")), false);
 
-  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true, localBattleGate: true, localDebrief: true, localCommendation: true, localRecollection: true, localLogistics: true, localInventoryRequisition: true, localThought: true, localCouncil: true }));
+  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true, localBattleGate: true, localDebrief: true, localCommendation: true, localRecollection: true, localLogistics: true, localInventoryRequisition: true, localScheduledDuty: true, localThought: true, localCouncil: true }));
 })().catch((error) => {
   console.error(error.stack || error.message);
   process.exitCode = 1;
