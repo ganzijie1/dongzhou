@@ -598,10 +598,13 @@ class NpcCommendationModule(Module):
 
 class NpcRecollectionModule(Module):
     name = "dongzhou_npc_recollection"
-    version = "1.1.0"
+    version = "1.2.0"
+    dependencies = (RuntimeModule.name, "dongzhou_service_provenance")
 
     @classmethod
     def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
+        if not _service_provenance_receipt_is_valid(trace.get("sourceProvenance")):
+            raise ValueError("NPC recollection source provenance is invalid")
         required = (
             "recollectionId", "playerId", "heroId", "npcId", "stageId",
             "knowledgeId", "knowledgeTitle", "memoryId", "memoryType",
@@ -6928,6 +6931,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "memoryDigest": memory_digest,
             "memoryReceipt": memory_receipt,
             "matchMode": match_mode,
+            "sourceProvenance": service_provenance.receipt(),
         }
         return {"state": "COMPLETED", "recollection": npc_recollection.seal(trace)}
 

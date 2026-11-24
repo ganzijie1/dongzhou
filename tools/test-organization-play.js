@@ -510,13 +510,15 @@ const recollection = {
   stageId: "01", knowledgeId: "dongzhou_stage_001", memoryId: "memory-1", memoryType: "dialogue_choice",
   memoryContent: "据 dongzhou_stage_001 旧议，当先固守军粮。", memoryTimestamp: "2026-11-14T10:00:00Z",
   memoryDigest: "3".repeat(64), matchMode: "knowledge_dialogue", digest: "4".repeat(64),
+  sourceProvenance,
   memoryReceipt: { idempotencyKey: "memory-1", sourceType: "dialogue_choice", factKind: "decision", timestamp: "2026-11-14T10:00:00Z", content: "据 dongzhou_stage_001 旧议，当先固守军粮。", digest: "3".repeat(64) },
-  kernel: { module: "dongzhou_npc_recollection", moduleVersion: "1.1.0", state: "SEALED" }
+  kernel: { module: "dongzhou_npc_recollection", moduleVersion: "1.2.0", state: "SEALED" }
 };
 const recalled = play.recordRecollection(commended.state, recollection);
 assert.strictEqual(recalled.state.recollections.length, 1);
 assert.strictEqual(play.recordRecollection(recalled.state, recollection).state.recollections.length, 1);
 assert.throws(() => play.recordRecollection(recalled.state, { ...recollection, memoryDigest: "bad" }), /内核校验/);
+assert.throws(() => play.recordRecollection(recalled.state, { ...recollection, sourceProvenance: { ...sourceProvenance, digest: "bad" } }), /内核校验/);
 assert.throws(() => play.recordRecollection(recalled.state, { ...recollection, digest: "5".repeat(64) }), /冲突回执/);
 
 console.log(JSON.stringify({ result: "PASS", tasks: state.tasks.length, members: state.members.length, knowledge: state.knowledge.length, longCampaignOrders: issuedIds.size, retainedUnspentRewards: beforeReplay, legacyMigration: "PASS", correspondence: "PASS" }));

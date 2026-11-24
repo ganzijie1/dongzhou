@@ -1235,7 +1235,10 @@
       if (response?.state !== "COMPLETED" || !response.recollection) throw new Error("属官尚未忆起可核验旧事");
       const recorded = organization.recordRecollection(profile.organization, response.recollection);
       profile.organization = recorded.state;
-      officeSelectedMemory = recorded.recollection.memoryReceipt;
+      officeSelectedMemory = {
+        ...recorded.recollection.memoryReceipt,
+        sourceProvenance: recorded.recollection.sourceProvenance
+      };
       if (!officeMemoryView.some((item) => item.idempotencyKey === officeSelectedMemory.idempotencyKey)) {
         officeMemoryView = [officeSelectedMemory, ...officeMemoryView].slice(0, 20);
       }
@@ -1811,7 +1814,7 @@
       : "选定本回出处后，可慰勉当前在职属官；每关每人只结算一次。";
     $("#officeRecollectionButton").disabled = officeRecollectionInFlight || integration.isOffline();
     $("#officeRecollectionResult").textContent = latestRecollection
-      ? `${latestRecollection.memoryType === "dialogue_choice" ? "旧议" : "战报"}：${latestRecollection.memoryContent.slice(0, 90)} · ${officeSelectedMemory?.idempotencyKey === latestRecollection.memoryId ? "已取为军议依据 · " : ""}印记 ${String(latestRecollection.digest).slice(0, 12)}`
+      ? `${latestRecollection.memoryType === "dialogue_choice" ? "旧议" : "战报"}：${latestRecollection.memoryContent.slice(0, 90)} · ${officeSelectedMemory?.idempotencyKey === latestRecollection.memoryId ? "已取为军议依据 · " : ""}印记 ${String(latestRecollection.digest).slice(0, 12)}${latestRecollection.sourceProvenance?.digest ? ` · 版本封印 ${latestRecollection.sourceProvenance.digest.slice(0, 10)}` : ""}`
       : "选定本回出处后，可请当前属官据史追忆可核验旧事。";
     renderOfficeMandateApproval();
     renderOfficeSettlementReview();
@@ -3270,7 +3273,7 @@
       }
       const thought = currentOfficeThought();
       const selectedThought = thought?.thought?.hasThought === true && thought.councilProposal === options[selected.index] ? thought : null;
-      const noted = organization.recordCouncil(profile.organization, { id: response.clientRequestId, stageId, memberId: member.id, knowledgeId: knowledge.id, knowledgeName: knowledge.name, knowledgeSummary: knowledge.summary, evidenceSourceIndex: evidence.source.index, question: contextualQuestion, options, index: selected.index, dialogueReceipt: response.dialogueReceipt, ...(response.sourceProvenance ? { sourceProvenance: response.sourceProvenance } : {}), ...(response.memoryReceipt ? { memory: response.memoryReceipt } : {}), ...(response.publicNoticeReceipt ? { publicNotice: response.publicNoticeReceipt } : {}), ...(response.contributionReceipt ? { contribution: response.contributionReceipt } : {}), ...(response.contributionDossierReceipt ? { contributionDossier: response.contributionDossierReceipt } : {}), ...(knowledgeMastery ? { knowledgeMastery } : {}), ...(selectedThought ? { thoughtRequestId: selectedThought.requestId, thoughtDigest: selectedThought.digest } : {}) });
+      const noted = organization.recordCouncil(profile.organization, { id: response.clientRequestId, stageId, memberId: member.id, knowledgeId: knowledge.id, knowledgeName: knowledge.name, knowledgeSummary: knowledge.summary, evidenceSourceIndex: evidence.source.index, question: contextualQuestion, options, index: selected.index, dialogueReceipt: response.dialogueReceipt, ...(response.sourceProvenance ? { sourceProvenance: response.sourceProvenance } : {}), ...(response.memoryReceipt ? { memory: { ...response.memoryReceipt, ...(activeMemory?.sourceProvenance ? { sourceProvenance: activeMemory.sourceProvenance } : {}) } } : {}), ...(response.publicNoticeReceipt ? { publicNotice: response.publicNoticeReceipt } : {}), ...(response.contributionReceipt ? { contribution: response.contributionReceipt } : {}), ...(response.contributionDossierReceipt ? { contributionDossier: response.contributionDossierReceipt } : {}), ...(knowledgeMastery ? { knowledgeMastery } : {}), ...(selectedThought ? { thoughtRequestId: selectedThought.requestId, thoughtDigest: selectedThought.digest } : {}) });
       await integration.persist({ ...profile, organization: noted.state });
       profile.organization = noted.state;
       writeJson(PROFILE_KEY, profile);

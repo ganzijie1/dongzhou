@@ -448,8 +448,11 @@ def test_history_recollection_uses_authoritative_memory_and_seals_receipt(tmp_pa
         assert len(receipt["memoryDigest"]) == 64
         assert len(receipt["digest"]) == 64
         assert receipt["kernel"]["module"] == "dongzhou_npc_recollection"
-        assert receipt["kernel"]["moduleVersion"] == "1.1.0"
+        assert receipt["kernel"]["moduleVersion"] == "1.2.0"
         assert receipt["kernel"]["state"] == "SEALED"
+        assert receipt["sourceProvenance"]["kernel"]["module"] == (
+            "dongzhou_service_provenance"
+        )
         assert upstreams.memory_queries == [(int(receipt["npcId"]), "dialogue_choice", 50)]
 
         replay = client.post(path, json=body)

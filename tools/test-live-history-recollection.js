@@ -9,7 +9,9 @@ try { ({ chromium } = require(path.resolve(__dirname, "../output/playwright-runt
 catch (_) { ({ chromium } = require("playwright")); }
 
 const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
-verifyFourServiceRuntime(url);
+const runtimeReport = verifyFourServiceRuntime(url);
+const expectedSourceSeal = runtimeReport.checks?.liveRuntime?.sourceSealDigest;
+assert.match(expectedSourceSeal || "", /^[0-9a-f]{64}$/);
 const executablePath = [
   process.env.DONGZHOU_CHROMIUM_EXECUTABLE,
   "C:/Program Files/Google/Chrome/Application/chrome.exe",
@@ -56,10 +58,12 @@ const executablePath = [
     assert.match(receipt.digest, /^[0-9a-f]{64}$/);
     assert.equal(receipt.kernel.module, "dongzhou_npc_recollection");
     assert.equal(receipt.kernel.state, "SEALED");
-    assert.equal(receipt.kernel.moduleVersion, "1.1.0");
+    assert.equal(receipt.kernel.moduleVersion, "1.2.0");
+    assert.equal(receipt.sourceProvenance.digest, expectedSourceSeal);
     await page.waitForFunction(() => document.querySelector("#officeRecollectionResult").textContent.includes("印记"));
     assert.equal(await page.locator(".office-memory-item.selected").count(), 1);
     assert.match(await page.locator("#officeRecollectionResult").innerText(), /已取为军议依据/);
+    assert.match(await page.locator("#officeRecollectionResult").innerText(), new RegExp(`版本封印 ${expectedSourceSeal.slice(0, 10)}`));
 
     await page.click("#officeRecollectionButton");
     await page.waitForTimeout(1200);
@@ -81,6 +85,7 @@ const executablePath = [
     const council = await page.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.councils.at(-1));
     assert.equal(council.memory.idempotencyKey, receipt.memoryId);
     assert.equal(council.memory.digest, receipt.memoryDigest);
+    assert.equal(council.memory.sourceProvenance.digest, expectedSourceSeal);
 
     const screenshot = path.resolve(__dirname, "../output/integration-validation/history-recollection-live.png");
     const mobileScreenshot = path.resolve(__dirname, "../output/integration-validation/history-recollection-mobile-live.png");

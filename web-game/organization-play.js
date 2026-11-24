@@ -191,7 +191,7 @@
     const sourceProvenance = input.sourceProvenance && typeof input.sourceProvenance === 'object' ? copy(input.sourceProvenance) : null;
     if (sourceProvenance && !validSourceProvenance(sourceProvenance)) throw new Error('军议服务来源回执无效');
     const memory = input.memory && typeof input.memory === 'object' ? copy(input.memory) : null;
-    if (memory && (!memory.idempotencyKey || !memory.content || !/^[0-9a-f]{64}$/.test(String(memory.digest || '')) || !String(input.question || '').includes(`记忆印记：${memory.digest.slice(0, 12)}`))) throw new Error('军议旧事回执无效');
+    if (memory && (!memory.idempotencyKey || !memory.content || !/^[0-9a-f]{64}$/.test(String(memory.digest || '')) || (memory.sourceProvenance && (!validSourceProvenance(memory.sourceProvenance) || memory.sourceProvenance.digest !== sourceProvenance?.digest)) || !String(input.question || '').includes(`记忆印记：${memory.digest.slice(0, 12)}`))) throw new Error('军议旧事回执无效');
     const publicNotice = input.publicNotice && typeof input.publicNotice === 'object' ? copy(input.publicNotice) : null;
     if (publicNotice && (!String(publicNotice.messageId || '').startsWith('npc-public:') || publicNotice.heroId !== member.id || !String(publicNotice.message || '').trim() || !/^[0-9a-f]{64}$/.test(String(publicNotice.digest || '')) || publicNotice.kernel?.module !== 'dongzhou_npc_public_notice' || publicNotice.kernel?.state !== 'SEALED' || !String(input.question || '').includes(`告示印记：${publicNotice.digest.slice(0, 12)}`))) throw new Error('军议官署告示回执无效');
     const contribution = input.contribution && typeof input.contribution === 'object' ? copy(input.contribution) : null;
@@ -312,7 +312,8 @@
   function recordRecollection(rawState, receipt) {
     const state = normalizeState(rawState);
     const requiredText = ["heroId", "stageId", "knowledgeId", "memoryId", "memoryContent"];
-    if (!receipt || receipt.kernel?.module !== "dongzhou_npc_recollection" || receipt.kernel?.state !== "SEALED"
+    if (!receipt || receipt.kernel?.module !== "dongzhou_npc_recollection" || receipt.kernel?.moduleVersion !== "1.2.0" || receipt.kernel?.state !== "SEALED"
+      || !validSourceProvenance(receipt.sourceProvenance)
       || !/^[0-9a-f]{64}$/.test(String(receipt.digest || ""))
       || !/^[0-9a-f]{64}$/.test(String(receipt.memoryDigest || ""))
       || !String(receipt.recollectionId || "").startsWith("npc-recollection:")
