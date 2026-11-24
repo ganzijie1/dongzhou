@@ -30,6 +30,7 @@ const privatePath = path.join(privateDirectory, "acceptance-private.json");
 const outputDirectory = path.resolve(__dirname, "../output/integration-validation");
 const resultPath = path.join(outputDirectory, `live-${acceptanceLabel}.json`);
 const screenshotPath = path.join(outputDirectory, `live-${acceptanceLabel}.png`);
+const mobileScreenshotPath = path.join(outputDirectory, `live-${acceptanceLabel}-mobile.png`);
 fs.mkdirSync(privateDirectory, { recursive: true });
 fs.mkdirSync(outputDirectory, { recursive: true });
 
@@ -423,6 +424,31 @@ saveJournal();
       }, { key: PROFILE, remoteTask: journal.remoteTask, mandateId: journal.mandateId }));
       assert(issued.task && issued.mandate && council, "Existing acceptance task is missing from the restored profile");
     }
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.locator("#officeMandateLedger").scrollIntoViewIfNeeded();
+    const mobileLayout = await page.evaluate(() => {
+      const drawer = document.querySelector("#campaignOfficeDrawer").getBoundingClientRect();
+      const ledger = document.querySelector("#officeMandateLedger");
+      const item = ledger.querySelector("li");
+      return {
+        viewport: innerWidth,
+        documentWidth: document.documentElement.scrollWidth,
+        drawerLeft: drawer.left,
+        drawerRight: drawer.right,
+        ledgerClientWidth: ledger.clientWidth,
+        ledgerScrollWidth: ledger.scrollWidth,
+        itemClientWidth: item?.clientWidth || 0,
+        itemScrollWidth: item?.scrollWidth || 0,
+      };
+    });
+    assert(mobileLayout.drawerLeft >= -1 && mobileLayout.drawerRight <= mobileLayout.viewport + 1);
+    assert(mobileLayout.documentWidth <= mobileLayout.viewport + 1);
+    assert(mobileLayout.ledgerScrollWidth <= mobileLayout.ledgerClientWidth + 1);
+    assert(mobileLayout.itemScrollWidth <= mobileLayout.itemClientWidth + 1);
+    await page.screenshot({ path: mobileScreenshotPath, fullPage: true });
+    assert(fs.statSync(mobileScreenshotPath).size > 8000, "mobile mandate screenshot is unexpectedly blank");
+    await page.setViewportSize({ width: 1440, height: 1000 });
 
     if (requireKnowledgeMastery) {
       assert.equal(issued.mandate.knowledgeMastery?.score, 10);

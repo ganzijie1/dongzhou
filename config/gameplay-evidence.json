@@ -66,7 +66,6 @@
     ],
     "externalInputWorkflows": {
       "tools/test-live-censure-acceptance.js": "requires a completed task that is awaiting a CENSURE review and its owning installation ID",
-      "tools/test-live-mandate-mobile.js": "requires a private acceptance journal path",
       "tools/test-live-office-acceptance.js": "requires a private acceptance journal path",
       "tools/test-live-orgflow-followup.js": "requires a previously generated parent task, derived child task, and owning installation ID",
       "tools/test-live-settlement-acceptance.js": "requires a completed live task journal path",
