@@ -223,6 +223,26 @@ async function openReady(page) {
       || redispatchedMembershipTask.task?.redispatch?.kernel?.module !== "dongzhou_organization_task_redispatch") {
       throw new Error(`Offline departure task was not redispatched: ${JSON.stringify(redispatchedMembershipTask)}`);
     }
+    await desktop.fill("#officeCareerTaskName", "容量巡查甲");
+    await desktop.click("#officeCareerRequestForm button[type=submit]");
+    await desktop.waitForSelector('#officeCareerStatus [data-task-state="MEMBER_RESPONSE_PENDING"] >> text=容量巡查甲', { timeout: 10000 });
+    await desktop.fill("#officeCareerTaskName", "容量巡查乙");
+    await desktop.click("#officeCareerRequestForm button[type=submit]");
+    await desktop.waitForSelector('#officeCareerStatus [data-task-state="MEMBER_RESPONSE_PENDING"] >> text=容量巡查乙', { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerAccount >> text=在办 3/3", { timeout: 10000 });
+    const taskCountAtCapacity = await desktop.locator("#officeCareerStatus > li:not(.empty)").count();
+    await desktop.fill("#officeCareerTaskName", "容量越限差事");
+    await desktop.click("#officeCareerRequestForm button[type=submit]");
+    await desktop.waitForSelector("#officeCareerFeedback >> text=在办差事已达上限 3 项", { timeout: 10000 });
+    if (await desktop.locator("#officeCareerStatus > li:not(.empty)").count() !== taskCountAtCapacity) {
+      throw new Error("Offline task capacity rejection created an extra task");
+    }
+    const capacityReceipt = await desktop.evaluate(() => window.DongzhouIntegration.organizationPlayerTasks());
+    if (capacityReceipt.capacity?.activeTaskCount !== 3 || capacityReceipt.capacity?.availableSlots !== 0
+      || capacityReceipt.capacity?.kernel?.module !== "dongzhou_organization_task_capacity"
+      || capacityReceipt.capacity?.activeTaskIds?.length !== 3) {
+      throw new Error(`Offline task capacity receipt is invalid: ${JSON.stringify(capacityReceipt.capacity)}`);
+    }
     if (offlineApiRequests !== 0) throw new Error(`Offline membership flow made ${offlineApiRequests} API requests`);
     await desktop.click("#officeScheduleButton");
     await desktop.waitForSelector("#officeNpcSchedule >> text=进程内账本", { timeout: 10000 });

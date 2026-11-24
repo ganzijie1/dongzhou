@@ -123,6 +123,7 @@
   let officeCareerBusy = false;
   let officeCareerStatusBusy = false;
   let officeCareerStatusItems = [];
+  let officeCareerTaskCapacity = null;
   let officeCareerSelectedTaskId = null;
   const officeCareerExpandedTaskIds = new Set();
   let officeCareerContributionBusy = false;
@@ -2054,6 +2055,7 @@
     if (!membership) {
       officeCareerSelectedTaskId = null;
       officeCareerExpandedTaskIds.clear();
+      officeCareerTaskCapacity = null;
       return;
     }
     const account = officeCareerContributionAccount || {
@@ -2099,7 +2101,10 @@
         ? `退回要求：${request.reasonDetail || supplementReasonLabels[request.reasonCode] || request.reasonCode}`
         : "";
     }
-    $("#officeCareerAccount").textContent = `可用贡献 ${Number(account.accountBalance || 0)} · 累计功绩 ${Number(account.lifetimeEarned || 0)} · 已用 ${Number(account.lifetimeSpent || 0)}`;
+    const capacityLabel = officeCareerTaskCapacity
+      ? ` · 在办 ${Number(officeCareerTaskCapacity.activeTaskCount)}/${Number(officeCareerTaskCapacity.maximumActiveTasks)}`
+      : "";
+    $("#officeCareerAccount").textContent = `可用贡献 ${Number(account.accountBalance || 0)} · 累计功绩 ${Number(account.lifetimeEarned || 0)} · 已用 ${Number(account.lifetimeSpent || 0)}${capacityLabel}`;
     panel.querySelectorAll("button, input").forEach((control) => { control.disabled = officeCareerBusy || officeCareerStatusBusy || officeCareerContributionBusy; });
     const taskStates = {
       GENERATED: "待派发", ASSIGNMENT_CONFIRMATION_PENDING: "待确认派发", MEMBER_RESPONSE_PENDING: "待接受",
@@ -2268,6 +2273,21 @@
         refreshOfficeCareerContributions({ quiet: true })
       ]);
       officeCareerStatusItems = Array.isArray(response.items) ? response.items : [];
+      const capacityActiveIds = officeCareerStatusItems
+        .filter((task) => ["MEMBER_RESPONSE_PENDING", "MODIFICATION_CONFIRMATION_PENDING", "IN_PROGRESS", "SUPPLEMENT_PENDING"].includes(task.state))
+        .map((task) => task.taskId)
+        .sort();
+      if (integration.isOffline()) {
+        if (!response.capacity || response.capacity.kernel?.module !== "dongzhou_organization_task_capacity"
+          || response.capacity.kernel?.moduleVersion !== "1.0.0" || response.capacity.kernel?.state !== "SEALED"
+          || response.capacity.maximumActiveTasks !== 3 || response.capacity.activeTaskCount !== capacityActiveIds.length
+          || JSON.stringify(response.capacity.activeTaskIds) !== JSON.stringify(capacityActiveIds)) {
+          throw new Error("差事容量回执与当前任务不一致");
+        }
+        officeCareerTaskCapacity = response.capacity;
+      } else {
+        officeCareerTaskCapacity = null;
+      }
       const actionable = officeCareerStatusItems.filter((task) => {
         const exception = task.organizationTrace?.state === "SEALED" ? task.organizationTrace.executionException : task.executionException;
         return ["MEMBER_RESPONSE_PENDING", "MODIFICATION_CONFIRMATION_PENDING", "IN_PROGRESS", "SUPPLEMENT_PENDING"].includes(task.state) && exception?.state !== "OPEN";

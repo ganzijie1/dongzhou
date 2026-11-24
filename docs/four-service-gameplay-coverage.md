@@ -143,6 +143,8 @@ standalone 辞仕现同时清算玩家当前可用贡献：`LEAVE` 履历成功�
 
 辞仕还复用 orgFlow V1.2 的任务责任释放语义。待接受、待改令裁定或待补呈的差事仍会在生成履历和清算前阻止辞仕，并返回稳定任务号；已经进入 `IN_PROGRESS` 的差事则随辞事流程转为 `REASSIGN_PENDING`，追加 `TASK_RESPONSIBILITY_RELEASED_MEMBER_DEPARTURE` 行迹。进程内资源处理器确认本地差事没有外部资源需要释放后记录 `NOT_REQUIRED`，再把任务推进到 `DISPATCHING`，为杜伯建立 `OPEN / PENDING_MANAGER_ACTION` 的派任工作项。`dongzhou_organization_membership_departure 1.0.0` 快照绑定 `V12_MEMBER_LEAVE`、层级版本、排序后的释放任务、退回主管、仕籍摘要和四仓来源；`dongzhou_organization_task_reassignment 1.0.0` 另行绑定释放前任务封印、清理结果、派任步骤和工作项。玩家后来重新请仕填回第12席时，杜伯以 `SUBMIT_DISPATCH` 完成开放工作项，将派任步骤置为 `CANCELLED`、工作项置为 `ACTED`，再生成第2次 `OFFERED` 尝试和 `MEMBER_RESPONSE_PENDING` 玩家待办；`dongzhou_organization_task_redispatch 1.0.0` 同时绑定新 JOIN 回执、原重新派任摘要、目标成员和全部状态转换。离线浏览器已连续验证阻止分支、执行责任释放、主官工作项、辞仕、重新请仕和旧差事重派，全程不发送 `/api/` 请求。
 
+玩家领差还执行 orgFlow 目录中的 `recommendation_rules.maximum_active_tasks=3`。`dongzhou_organization_task_capacity 1.0.0` 以当前仕籍版本、排序后的在办任务号、固定策略路径和四仓来源封存容量快照；待接受、待改令裁定、执行中和待补呈均计入在办数。达到三项后新的领差请求以 `organization_task_workload_conflict` 在立案前拒绝，不增加任务或任务版本；页面持续显示“在办 n/3”。
+
 ## 历史验证基线
 
 以下现场证据仅记录隔离前已经完成的能力验收，不是当前运行拓扑，也不授权重新启动服务、访问 GitLab 或连接内网。

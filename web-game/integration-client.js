@@ -1193,12 +1193,35 @@
     return tasks;
   }
 
+  async function localPlayerTaskCapacity(organization, tasks) {
+    const activeStates = new Set(["MEMBER_RESPONSE_PENDING", "MODIFICATION_CONFIRMATION_PENDING", "IN_PROGRESS", "SUPPLEMENT_PENDING"]);
+    const activeTaskIds = tasks.filter((task) => activeStates.has(task.state)).map((task) => task.taskId).sort();
+    const sourceProvenance = await localServiceProvenance();
+    const trace = {
+      playerId: await localPlayerId(),
+      membershipVersion: Number(organization.localPlayerCareer?.version || 1),
+      policyPath: "recommendation_rules.maximum_active_tasks",
+      maximumActiveTasks: 3,
+      activeTaskIds,
+      activeTaskCount: activeTaskIds.length,
+      availableSlots: Math.max(0, 3 - activeTaskIds.length),
+      sourceProvenance
+    };
+    return {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: { module: "dongzhou_organization_task_capacity", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    };
+  }
+
   async function localOrganizationPlayerTasks() {
     const currentProfile = offlineProfile || read("dongzhou-h5-profile-v2", null);
     const organization = currentProfile?.organization || {};
     const tasks = await verifiedLocalPlayerTasks(organization);
+    const capacity = await localPlayerTaskCapacity(organization, tasks);
     return {
       mode: "standalone",
+      capacity,
       items: tasks.map((task) => ({
         taskId: task.taskId,
         title: task.title,
@@ -1230,6 +1253,13 @@
     } else if (normalizedAction === "REQUEST") {
       const title = String(input.title || "").trim();
       if (!title || title.length > 80) throw new Error("organization_player_task_title_invalid");
+      const capacity = await localPlayerTaskCapacity(organization, tasks);
+      if (capacity.activeTaskCount >= capacity.maximumActiveTasks) {
+        const error = new Error(`在办差事已达上限 ${capacity.maximumActiveTasks} 项，请先处理现有差事。`);
+        error.code = "organization_task_workload_conflict";
+        error.capacity = capacity;
+        throw error;
+      }
       const taskIndex = tasks.length;
       const playerId = await localPlayerId();
       const taskId = uuidFromDigest(await sha256(canonicalJson({ playerId, sequence: taskIndex + 1, title })));
