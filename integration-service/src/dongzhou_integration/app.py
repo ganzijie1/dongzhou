@@ -1122,8 +1122,8 @@ class NpcMeritCommendationModule(Module):
 
 class AdviserGuideModule(Module):
     name = "dongzhou_adviser_guide"
-    version = "1.0.0"
-    dependencies = (RuntimeModule.name,)
+    version = "1.1.0"
+    dependencies = (RuntimeModule.name, "dongzhou_service_provenance")
 
     @classmethod
     def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
@@ -1146,6 +1146,9 @@ class AdviserGuideModule(Module):
             or (decision == "REJECT" and state != "REJECTED")
             or (decision == "ACCEPT" and state == "REJECTED")
             or not isinstance(trace.get("guideStarted"), bool)
+            or not _service_provenance_receipt_is_valid(
+                trace.get("sourceProvenance")
+            )
         ):
             raise ValueError("adviser guide trace is invalid")
         UUID(str(trace["actionId"]))
@@ -4816,6 +4819,30 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         else None
     )
 
+    def current_adviser_guide_receipt(receipt: Any) -> Any:
+        if not isinstance(receipt, dict):
+            return receipt
+        kernel_receipt = receipt.get("kernel")
+        if (
+            isinstance(kernel_receipt, dict)
+            and kernel_receipt.get("module") == AdviserGuideModule.name
+            and kernel_receipt.get("moduleVersion") == "1.0.0"
+            and "sourceProvenance" not in receipt
+        ):
+            trace = {
+                key: value
+                for key, value in receipt.items()
+                if key not in {"digest", "kernel"}
+            }
+            trace["sourceProvenance"] = service_provenance.receipt()
+            return adviser_guide.seal(trace)
+        return receipt
+
+    def current_adviser_guide_response(response: Any) -> Any:
+        if not isinstance(response, dict) or not isinstance(response.get("guide"), dict):
+            return response
+        return {**response, "guide": current_adviser_guide_receipt(response["guide"])}
+
     async def current_member_contribution_receipt(
         *,
         hero_id: str,
@@ -5504,6 +5531,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     and isinstance(guide_record.get("response"), dict)
                     else None
                 )
+                receipt = current_adviser_guide_receipt(receipt)
                 if isinstance(receipt, dict):
                     event_type = str(request.intent_type or "guide_update")
                     state_by_event = {
@@ -5858,7 +5886,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 status_code=409,
             ) from error
         if not created:
-            return {"replayed": True, **(previous or {})}
+            return {"replayed": True, **current_adviser_guide_response(previous or {})}
         payload = {
             "taskId": str(question_id),
             "gameServerId": settings.game_server_id,
@@ -5902,6 +5930,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "guideStarted": False,
             "message": "",
             "reason": "",
+            "sourceProvenance": service_provenance.receipt(),
         }
         sealed = adviser_guide.seal(trace)
         response = {"state": state, "guide": sealed}
@@ -5923,7 +5952,9 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             raise ApiError(
                 "adviser_guide_not_found", "Adviser guide was not found.", status_code=404
             )
-        return record["response"] or {"state": record["state"]}
+        return current_adviser_guide_response(
+            record["response"] or {"state": record["state"]}
+        )
 
     @router.post("/adviser/guides/{guide_action_id}/cancel")
     async def cancel_adviser_guide(
@@ -5940,6 +5971,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             and isinstance(guide_record.get("response"), dict)
             else None
         )
+        receipt = current_adviser_guide_receipt(receipt)
         body = {
             "guide_action_id": str(guide_action_id),
             **_payload(request),

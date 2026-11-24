@@ -164,7 +164,11 @@ def test_adviser_async_answer_is_isolated_idempotent_and_reviewable() -> None:
             assert accepted.json()["state"] == "ACCEPTED"
             assert accepted.json()["guide"]["decision"] == "ACCEPT"
             assert accepted.json()["guide"]["kernel"]["module"] == "dongzhou_adviser_guide"
+            assert accepted.json()["guide"]["kernel"]["moduleVersion"] == "1.1.0"
             assert accepted.json()["guide"]["kernel"]["state"] == "SEALED"
+            assert accepted.json()["guide"]["sourceProvenance"]["kernel"]["module"] == (
+                "dongzhou_service_provenance"
+            )
             assert upstreams.guide_decisions == [{
                 "taskId": str(question_id),
                 "gameServerId": settings.game_server_id,
@@ -201,6 +205,9 @@ def test_adviser_async_answer_is_isolated_idempotent_and_reviewable() -> None:
             assert guide_status.json()["state"] == "RUNNING"
             assert guide_status.json()["guide"]["eventType"] == "guide_started"
             assert guide_status.json()["guide"]["guideStarted"] is True
+            assert guide_status.json()["guide"]["sourceProvenance"] == (
+                accepted.json()["guide"]["sourceProvenance"]
+            )
 
             completed = client.post(
                 "/api/v2/NDLLMSendLittleElfMessage",

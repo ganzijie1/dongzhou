@@ -3728,7 +3728,7 @@
     };
     guidePanel.hidden = !guideState && !routeHandoff;
     guideStatus.textContent = guideState
-      ? `${guideLabels[guideState] || guideState}${guideReceipt?.digest ? ` · 印记 ${String(guideReceipt.digest).slice(0, 12)}` : ""}`
+      ? `${guideLabels[guideState] || guideState}${guideReceipt?.digest ? ` · 印记 ${String(guideReceipt.digest).slice(0, 12)}` : ""}${guideReceipt?.sourceProvenance?.digest ? ` · 版本封印 ${String(guideReceipt.sourceProvenance.digest).slice(0, 10)}` : ""}`
       : routeHandoff?.status || "";
     guidePanel.querySelectorAll("[data-adviser-guide]").forEach((button) => {
       button.hidden = guideState !== "AVAILABLE" || Boolean(journal?.guideDecision);

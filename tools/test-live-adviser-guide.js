@@ -14,7 +14,9 @@ try {
 }
 
 const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
-verifyFourServiceRuntime(url);
+const runtimeReport = verifyFourServiceRuntime(url);
+const expectedSourceSeal = runtimeReport.checks?.liveRuntime?.sourceSealDigest;
+assert.match(expectedSourceSeal || "", /^[0-9a-f]{64}$/);
 const output = path.resolve(__dirname, "../output/integration-validation/adviser-guide-live.png");
 const executablePath = [
   process.env.DONGZHOU_CHROMIUM_EXECUTABLE,
@@ -102,7 +104,9 @@ const questions = [
     const decision = await decisionResponse.json();
     assert.equal(decision.state, "ACCEPTED");
     assert.equal(decision.guide.kernel.module, "dongzhou_adviser_guide");
+    assert.equal(decision.guide.kernel.moduleVersion, "1.1.0");
     assert.equal(decision.guide.kernel.state, "SEALED");
+    assert.equal(decision.guide.sourceProvenance.digest, expectedSourceSeal);
 
     await page.waitForFunction(() => {
       const current = JSON.parse(localStorage.getItem("dongzhou-adviser-question-v1") || "null");
@@ -123,6 +127,7 @@ const questions = [
     assert(["COMPLETED", "FAILED", "CANCELLED"].includes(finalState));
     assert.equal(journal.guideDecision.result.guide.kernel.module, "dongzhou_adviser_guide");
     assert.equal(journal.guideDecision.result.guide.kernel.state, "SEALED");
+    assert.equal(journal.guideDecision.result.guide.sourceProvenance.digest, expectedSourceSeal);
     assert.deepEqual(errors, []);
 
     fs.mkdirSync(path.dirname(output), { recursive: true });

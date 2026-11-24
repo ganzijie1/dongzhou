@@ -19,6 +19,7 @@ const executablePath = [
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
 ].find((entry) => fs.existsSync(entry));
 const scheduledTaskId = "00000000-0000-4000-8000-000000000199";
+const sourceProvenance = { digest: "8".repeat(64), services: { knowledge: {}, aiNpc: {}, orgFlow: {}, nexusKernel: {} }, kernel: { module: "dongzhou_service_provenance", state: "SEALED" } };
 
 async function waitForCampaign(page, model) {
   await page.waitForFunction(() => (
@@ -44,10 +45,11 @@ const guideReceipt = (actionId, state, digest) => ({
   guideStarted: state === "RUNNING",
   message: "",
   reason: state === "CANCELLED" ? "player_cancelled" : "",
+  sourceProvenance,
   digest,
   kernel: {
     module: "dongzhou_adviser_guide",
-    moduleVersion: "1.0.0",
+    moduleVersion: "1.1.0",
     nexusKernelVersion: "0.2.0",
     state: "SEALED",
   },
@@ -102,12 +104,13 @@ const guideReceipt = (actionId, state, digest) => ({
       triggerMinute: 780, managerHeroId: "DuBo", workerHeroId: "ZuoRu", taskCode: "dongzhou.intelligence",
       latestTrigger: { state: "SKIPPED", failure_code: "duplicate_active_task", task_id: scheduledTaskId },
       activeTask: { taskId: scheduledTaskId, title: "东周朝廷月例察访", state: "IN_PROGRESS", finalResult: null, updatedAt: "2026-11-14T10:00:00Z", adopted: true },
+      sourceProvenance,
     };
     else if (pathname.endsWith(`/organization/tasks/${scheduledTaskId}`)) {
       model.scheduledTaskReads += 1;
       body = {
         taskId: scheduledTaskId, assigneeHeroId: "ZuoRu",
-        organizationTrace: { state: "SEALED", digest: "8".repeat(64), timeline: [{ sequence: 1, type: "TASK_CREATED", stateCode: "GENERATED" }], activeConfirmations: [], kernel: { module: "dongzhou_organization_task_trace", state: "SEALED" } },
+        organizationTrace: { state: "SEALED", sourceProvenance, digest: "8".repeat(64), timeline: [{ sequence: 1, type: "TASK_CREATED", stateCode: "GENERATED" }], activeConfirmations: [], kernel: { module: "dongzhou_organization_task_trace", moduleVersion: "1.1.0", state: "SEALED" } },
         result: { data: { task_id: scheduledTaskId, state: "IN_PROGRESS", execution_started_game_time: 24306616800, final_result: null, version: "2" } },
       };
     }
@@ -128,7 +131,8 @@ const guideReceipt = (actionId, state, digest) => ({
           from: { knowledgeIds: ["stage-01"], digest: "4".repeat(64) },
           to: { knowledgeIds: ["stage-02"], digest: "5".repeat(64) },
         },
-        receipt: { digest: "6".repeat(64), attestation: "7".repeat(64), kernel: { state: "SEALED" } },
+        sourceProvenance,
+        receipt: { digest: "6".repeat(64), attestation: "7".repeat(64), sourceProvenance, kernel: { module: "dongzhou_campaign_route", moduleVersion: "1.3.0", state: "SEALED" } },
       };
     }
     else if (pathname.includes("/assignments/")) body = { assignment: { heroId: "ZuoRu", npcId: "42", runtimeState: "READY", planId: "plan-browser", generationId: "generation-browser", eventId: "event-supply", transactionId: 9100103, name: "转运军粮", type: "军务", date: "0772-10-22", day: 1, stageRange: { start: 1, end: 20 }, timeSlot: "", importance: 90, state: { emotion: "calm", intensity: 0, affectionCount: 0, relationshipCount: 0 } } };
