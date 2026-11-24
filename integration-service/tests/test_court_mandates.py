@@ -2015,6 +2015,7 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
             accepted = client.post("/api/dongzhou/v1/organization/tasks", json=order)
             assert accepted.status_code == 200
             assert accepted.json()["state"] == "ACCEPTED"
+            assert accepted.json()["sourceProvenance"] == mandate["sourceProvenance"]
             assert upstreams.triggers[0]["expected_hierarchy_version"] == 8
             assert "mandate_id" not in upstreams.triggers[0]["parameters"]
             assert "mandate_digest" not in upstreams.triggers[0]["parameters"]
@@ -2023,6 +2024,14 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
             assert "Personality task fit 56/100 (steady)." in upstreams.triggers[0]["brief"]
             assert "Motivation task willingness 50/100 (neutral)." in upstreams.triggers[0]["brief"]
             assert "AINPC emergency assessment: urgent, score 81.25" in upstreams.triggers[0]["brief"]
+            task_state = client.get(
+                f"/api/dongzhou/v1/organization/tasks/{accepted.json()['taskId']}"
+            )
+            assert task_state.status_code == 200, task_state.text
+            assert (
+                task_state.json()["sourceProvenance"]
+                == mandate["sourceProvenance"]
+            )
 
             mismatched = {
                 **order,

@@ -10735,7 +10735,10 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "knowledge, AINPC, orgFlow, and Nexus runtimes."
             ),
         )
-        body = _payload(request)
+        body = {
+            **_payload(request),
+            "sourceProvenance": service_provenance.receipt(),
+        }
         try:
             created, previous = await store.begin_request(player_id, request.client_request_id, "organization_task", body)
         except VersionConflict as error:
@@ -11055,6 +11058,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "requestId": str(request.client_request_id),
             "taskId": task_id,
             "result": result,
+            "sourceProvenance": body["sourceProvenance"],
             **({"topology": topology} if topology is not None else {}),
         }
         await store.finish_request(player_id, request.client_request_id, "ACCEPTED", response, external_id=task_id)
@@ -11071,6 +11075,16 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             raise ApiError(
                 "organization_contract_invalid",
                 "Stored organization task request is invalid.",
+                status_code=502,
+            )
+        task_source_provenance = original.get("sourceProvenance")
+        if (
+            task_source_provenance is not None
+            and not _service_provenance_receipt_is_valid(task_source_provenance)
+        ):
+            raise ApiError(
+                "organization_task_source_provenance_invalid",
+                "Stored organization task source provenance is invalid.",
                 status_code=502,
             )
         creation_response = original_record.get("response")
@@ -11636,6 +11650,11 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "npcOutcome": outcome,
             "supportNpcOutcomes": support_npc_outcomes,
             "organizationTrace": organization_trace,
+            **(
+                {"sourceProvenance": task_source_provenance}
+                if task_source_provenance is not None
+                else {}
+            ),
             **(
                 {"organizationTopology": composite_topology}
                 if composite_topology is not None
