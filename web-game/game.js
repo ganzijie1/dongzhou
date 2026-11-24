@@ -708,7 +708,10 @@
           campaignRoute.mode === "connected"
           && (
             campaignRoute.receipt?.kernel?.state !== "SEALED"
+            || campaignRoute.receipt?.kernel?.moduleVersion !== "1.3.0"
             || !/^[0-9a-f]{64}$/.test(String(campaignRoute.receipt?.attestation || ""))
+            || !/^[0-9a-f]{64}$/.test(String(campaignRoute.sourceProvenance?.digest || ""))
+            || campaignRoute.receipt?.sourceProvenance?.digest !== campaignRoute.sourceProvenance.digest
           )
         ) {
           throw new Error("路线未获内核封印");

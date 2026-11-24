@@ -172,11 +172,13 @@ def test_campaign_route_requires_completed_predecessor_and_validates_published_d
         assert accepted.json()["routeId"] == "campaign_progression_900001_900002"
         assert accepted.json()["provisionCost"] == 2
         assert accepted.json()["receipt"]["kernel"]["module"] == "dongzhou_campaign_route"
-        assert accepted.json()["receipt"]["kernel"]["moduleVersion"] == "1.2.0"
+        assert accepted.json()["receipt"]["kernel"]["moduleVersion"] == "1.3.0"
         assert accepted.json()["receipt"]["kernel"]["nexusKernelVersion"]
         assert accepted.json()["receipt"]["kernel"]["state"] == "SEALED"
         assert len(accepted.json()["receipt"]["digest"]) == 64
         assert len(accepted.json()["receipt"]["attestation"]) == 64
+        assert accepted.json()["receipt"]["sourceProvenance"] == accepted.json()["sourceProvenance"]
+        assert accepted.json()["sourceProvenance"]["kernel"]["module"] == "dongzhou_service_provenance"
         assert accepted.json()["knowledgeWitnesses"]["from"]["knowledgeIds"] == ["dongzhou_stage_001"]
         assert accepted.json()["knowledgeWitnesses"]["to"]["knowledgeIds"] == ["dongzhou_stage_002"]
         assert len(accepted.json()["knowledgeWitnesses"]["from"]["digest"]) == 64

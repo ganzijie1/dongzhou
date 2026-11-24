@@ -12,7 +12,9 @@ try {
 }
 
 const URL = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
-verifyFourServiceRuntime(URL);
+const runtimeReport = verifyFourServiceRuntime(URL);
+const expectedSourceSeal = runtimeReport.checks?.liveRuntime?.sourceSealDigest;
+assert.match(expectedSourceSeal || "", /^[0-9a-f]{64}$/);
 const OUTPUT_DIR = path.resolve(__dirname, "..", "output", "integration-validation");
 const SYSTEM_CHROMIUM = [
   process.env.DONGZHOU_CHROMIUM_EXECUTABLE,
@@ -75,10 +77,12 @@ const SYSTEM_CHROMIUM = [
       assert.strictEqual(result.profile.campaignResources.provisions, scenario.provisions);
       assert.strictEqual(result.profile.campaignResources.morale, scenario.morale);
       assert.strictEqual(result.battle.campaignRoute.receipt.kernel.module, "dongzhou_campaign_route");
-      assert.strictEqual(result.battle.campaignRoute.receipt.kernel.moduleVersion, "1.2.0");
+      assert.strictEqual(result.battle.campaignRoute.receipt.kernel.moduleVersion, "1.3.0");
       assert.strictEqual(result.battle.campaignRoute.receipt.kernel.state, "SEALED");
       assert.strictEqual(result.battle.campaignRoute.receipt.digest.length, 64);
       assert.strictEqual(result.battle.campaignRoute.receipt.attestation.length, 64);
+      assert.strictEqual(result.battle.campaignRoute.sourceProvenance.digest, expectedSourceSeal);
+      assert.deepStrictEqual(result.battle.campaignRoute.receipt.sourceProvenance, result.battle.campaignRoute.sourceProvenance);
       assert.deepStrictEqual(result.battle.campaignRoute.knowledgeWitnesses.from.knowledgeIds, ["dongzhou_stage_001"]);
       assert.deepStrictEqual(result.battle.campaignRoute.knowledgeWitnesses.to.knowledgeIds, ["dongzhou_stage_002"]);
       assert.strictEqual(result.battle.campaignRoute.knowledgeWitnesses.from.digest.length, 64);

@@ -29,6 +29,7 @@ const SYSTEM_CHROMIUM = [
   let routeRequests = 0;
   let saveVersion = 1;
   const profile = { completed: ["01"], campaignResources: { provisions: 100, morale: 70 } };
+  const sourceProvenance = { digest: "8".repeat(64), services: { knowledge: {}, aiNpc: {}, orgFlow: {}, nexusKernel: {} }, kernel: { module: "dongzhou_service_provenance", state: "SEALED" } };
   page.on("pageerror", (error) => errors.push(error.message));
   await page.route("**/*", async (route) => {
     const request = route.request();
@@ -57,7 +58,8 @@ const SYSTEM_CHROMIUM = [
           toMapId: 900002,
           routeId: "campaign_progression_900001_900002",
           provisionCost: 2,
-          receipt: { attestation: "a".repeat(64), kernel: { state: "SEALED" } }
+          sourceProvenance,
+          receipt: { attestation: "a".repeat(64), sourceProvenance, kernel: { module: "dongzhou_campaign_route", moduleVersion: "1.3.0", state: "SEALED" } }
         };
       } else body = {};
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });

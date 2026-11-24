@@ -332,6 +332,7 @@ class OrganizationOutcomeTests(unittest.TestCase):
             "provisionCost": 1,
             "moraleDelta": -4,
             "guideName": "乡民",
+            "sourceProvenance": ServiceProvenanceModule.seal(public_service_sources()),
         }
         route["receipt"] = campaign_routes.seal_selection(route)
         report["campaignRoute"] = route

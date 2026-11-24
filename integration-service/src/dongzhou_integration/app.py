@@ -703,14 +703,16 @@ class OrganizationContributionLedgerModule(Module):
 
 class CampaignRouteModule(Module):
     name = "dongzhou_campaign_route"
-    version = "1.2.0"
-    dependencies = (RuntimeModule.name,)
+    version = "1.3.0"
+    dependencies = (RuntimeModule.name, "dongzhou_service_provenance")
 
     def __init__(self, secret: str) -> None:
         super().__init__()
         self._secret = secret.encode("utf-8")
 
     def seal_selection(self, trace: dict[str, Any]) -> dict[str, Any]:
+        if not _service_provenance_receipt_is_valid(trace.get("sourceProvenance")):
+            raise ValueError("campaign route source provenance is invalid")
         digest = _digest_json(trace)
         return {
             "digest": digest,
@@ -719,6 +721,7 @@ class CampaignRouteModule(Module):
                 digest.encode("ascii"),
                 hashlib.sha256,
             ).hexdigest(),
+            "sourceProvenance": trace["sourceProvenance"],
             "kernel": {
                 "module": CampaignRouteModule.name,
                 "moduleVersion": CampaignRouteModule.version,
@@ -744,6 +747,8 @@ class CampaignRouteModule(Module):
             and kernel.get("module") == self.name
             and kernel.get("moduleVersion") == self.version
             and kernel.get("state") == "SEALED"
+            and _service_provenance_receipt_is_valid(route.get("sourceProvenance"))
+            and receipt.get("sourceProvenance") == route.get("sourceProvenance")
             and hmac.compare_digest(str(receipt.get("digest") or ""), digest)
             and hmac.compare_digest(
                 str(receipt.get("attestation") or ""),
@@ -3566,6 +3571,7 @@ def _campaign_route_trace(route: dict[str, Any]) -> dict[str, Any]:
         "provisionCost",
         "moraleDelta",
         "guideName",
+        "sourceProvenance",
     )
     return {key: route[key] for key in keys if key in route}
 
@@ -7130,6 +7136,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "fromMapId": from_map_id,
             "toMapId": to_map_id,
             "knowledgeWitnesses": knowledge_witnesses,
+            "sourceProvenance": service_provenance.receipt(),
             **selected,
         }
         return {
@@ -7142,6 +7149,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             **selected,
             "options": route_options,
             "knowledgeWitnesses": knowledge_witnesses,
+            "sourceProvenance": selection_trace["sourceProvenance"],
             "receipt": campaign_routes.seal_selection(selection_trace),
         }
 
