@@ -127,6 +127,7 @@ AINPC 事件公聊现由东周正式实现 `NDLLMSendPublicMessage` 游戏服契
 - 军议来源：新 AINPC 军议完成响应保存完整四源回执，NexusKernel 军令草案把该回执纳入军议证据；新军议与当前运行时封印不一致时以 `court_council_source_provenance_mismatch` 拒绝，旧军议没有来源字段时保持兼容。
 - 检索来源：带请求号的 knowledge 检索回执把完整四源回执纳入自身摘要；军令使用检索证据时重算整个回执 digest，并要求新回执与当前封印一致，否则分别以 `court_knowledge_receipt_unverified` 或 `court_knowledge_source_provenance_mismatch` 拒绝。旧检索回执无来源字段时保持兼容。
 - 日程来源：新 AINPC 军令入程回执把完整四源回执纳入自身摘要；组织派单前重算日程回执 digest、核对军令号与军令摘要，并要求新回执与当前封印一致，来源漂移以 `court_mandate_schedule_source_provenance_mismatch` 拒绝。旧日程回执无来源字段时保持兼容。
+- 军令变更：草案批准和首次入程在外部写入前核对军令自身四源回执；已完成批准或已完成入程仍可只读幂等回放，尚未执行的旧版本军令以 `court_mandate_source_provenance_mismatch` 拒绝。
 
 ## orgFlow 追办与补救
 

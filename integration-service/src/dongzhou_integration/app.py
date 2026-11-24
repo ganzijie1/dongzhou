@@ -9099,6 +9099,23 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "The player action does not match this court mandate.",
                 status_code=409,
             )
+        pending_mandate = response.get("mandate")
+        pending_source_provenance = (
+            pending_mandate.get("sourceProvenance")
+            if isinstance(pending_mandate, dict)
+            else None
+        )
+        if (
+            pending_source_provenance is not None
+            and not _service_provenance_receipt_matches(
+                pending_source_provenance, service_provenance.receipt()
+            )
+        ):
+            raise ApiError(
+                "court_mandate_source_provenance_mismatch",
+                "The court mandate draft was not sealed by the current four-service runtime.",
+                status_code=409,
+            )
         await require_source_attested_runtime(
             error_code="court_mandate_resume_requires_four_services",
             message=(
@@ -9186,6 +9203,19 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             raise ApiError(
                 "court_mandate_schedule_conflict",
                 "The mandate schedule identity is already bound to different input.",
+                status_code=409,
+            )
+
+        mandate_source_provenance = mandate.get("sourceProvenance")
+        if (
+            mandate_source_provenance is not None
+            and not _service_provenance_receipt_matches(
+                mandate_source_provenance, service_provenance.receipt()
+            )
+        ):
+            raise ApiError(
+                "court_mandate_source_provenance_mismatch",
+                "The issued mandate was not sealed by the current four-service runtime.",
                 status_code=409,
             )
 

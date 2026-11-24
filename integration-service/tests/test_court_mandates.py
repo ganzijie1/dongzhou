@@ -967,6 +967,74 @@ def test_mandate_resume_and_schedule_recover_after_source_drift() -> None:
             assert len(upstreams.interruptions) == 1
 
 
+def test_pending_mandate_writes_reject_a_prior_source_seal() -> None:
+    with TemporaryDirectory() as directory:
+        database = Path(directory) / "gateway.sqlite3"
+        upstreams = MandateUpstreams()
+        app = build_application(configured(database), upstreams=upstreams)
+        with TestClient(app) as client:
+            start_session(client)
+            council_id, _ = complete_council(client)
+            drafted = client.post(
+                "/api/dongzhou/v1/court/mandates",
+                json=mandate_body(council_id),
+            )
+            assert drafted.status_code == 200, drafted.text
+            current_response = drafted.json()
+            mandate_id = current_response["mandate"]["id"]
+            request_id = mandate_id.rsplit(":", 1)[-1]
+
+            prior_manifest = public_service_sources()
+            prior_manifest["services"]["aiNpc"]["sourceRevision"] = "0" * 40
+            prior_provenance = ServiceProvenanceModule.seal(prior_manifest)
+
+            def write_response(response: dict[str, object]) -> None:
+                connection = sqlite3.connect(database)
+                try:
+                    connection.execute(
+                        "UPDATE requests SET response_payload=? WHERE request_id=?",
+                        (json.dumps(response, ensure_ascii=False), request_id),
+                    )
+                    connection.commit()
+                finally:
+                    connection.close()
+
+            prior_draft = json.loads(json.dumps(current_response))
+            prior_draft["mandate"]["sourceProvenance"] = prior_provenance
+            write_response(prior_draft)
+            blocked_resume = client.post(
+                f"/api/dongzhou/v1/court/mandates/{mandate_id}/resume",
+                json={
+                    "action_id": current_response["action"]["actionId"],
+                    "decision": "APPROVE",
+                },
+            )
+            assert blocked_resume.status_code == 409
+            assert (
+                blocked_resume.json()["error"]["code"]
+                == "court_mandate_source_provenance_mismatch"
+            )
+
+            write_response(current_response)
+            issued = approve_mandate(client, drafted)
+            issued_response = {"state": "ISSUED", "mandate": issued}
+            issued_response["mandate"]["sourceProvenance"] = prior_provenance
+            write_response(issued_response)
+            blocked_schedule = client.post(
+                f"/api/dongzhou/v1/court/mandates/{mandate_id}/schedule",
+                json={
+                    "client_request_id": str(uuid4()),
+                    "mandate_digest": issued["digest"],
+                },
+            )
+            assert blocked_schedule.status_code == 409
+            assert (
+                blocked_schedule.json()["error"]["code"]
+                == "court_mandate_source_provenance_mismatch"
+            )
+            assert upstreams.interruptions == []
+
+
 def test_contribution_entry_is_reverified_and_sealed_into_mandate() -> None:
     with TemporaryDirectory() as directory:
         upstreams = MandateUpstreams()
