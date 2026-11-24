@@ -583,14 +583,15 @@ assert.throws(() => play.recordCommendation(commended.state, { ...commendation, 
 const meritCommendation = {
   eventId: "npc-merit-commendation:" + "6".repeat(64), heroId: "ZuoRu", entryId: "entry-merit-1",
   affectionType: "appreciation", affectionDelta: 3, sourceProvenance, digest: "8".repeat(64),
-  contribution: { entryId: "entry-merit-1", heroId: "ZuoRu", amount: 20, digest: "7".repeat(64) },
-  contributionDossier: { entryId: "entry-merit-1", contribution: { digest: "7".repeat(64) }, kernel: { module: "dongzhou_organization_contribution_dossier", state: "SEALED" } },
+  contribution: { entryId: "entry-merit-1", heroId: "ZuoRu", amount: 20, sourceProvenance, digest: "7".repeat(64), kernel: { module: "dongzhou_organization_contribution_ledger", moduleVersion: "1.1.0", state: "SEALED" } },
+  contributionDossier: { entryId: "entry-merit-1", sourceProvenance, contribution: { sourceProvenance, digest: "7".repeat(64) }, taskTrace: { sourceProvenance, kernel: { module: "dongzhou_organization_task_trace", moduleVersion: "1.1.0", state: "SEALED" } }, kernel: { module: "dongzhou_organization_contribution_dossier", moduleVersion: "1.1.0", state: "SEALED" } },
   kernel: { module: "dongzhou_npc_merit_commendation", moduleVersion: "1.1.0", state: "SEALED" }
 };
 const meritCommended = play.recordCommendation(commended.state, meritCommendation);
 assert.strictEqual(meritCommended.state.commendations.length, 2);
 const legacyMeritState = { ...commended.state, commendations: [{ ...meritCommendation, sourceProvenance: undefined, digest: "9".repeat(64), kernel: { ...meritCommendation.kernel, moduleVersion: "1.0.0" } }] };
 assert.strictEqual(play.recordCommendation(legacyMeritState, meritCommendation).state.commendations[0].digest, meritCommendation.digest);
+assert.throws(() => play.recordCommendation(commended.state, { ...meritCommendation, contributionDossier: { ...meritCommendation.contributionDossier, sourceProvenance: { ...sourceProvenance, digest: "bad" } } }));
 
 const recollection = {
   recollectionId: "npc-recollection:" + "2".repeat(64), playerId: "player-1", heroId: "ZuoRu", npcId: "npc-1",

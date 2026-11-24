@@ -330,11 +330,22 @@
       && receipt.entryId === receipt.contribution?.entryId
       && receipt.heroId === receipt.contribution?.heroId
       && Number(receipt.contribution?.amount) > 0
+      && receipt.contribution?.kernel?.module === "dongzhou_organization_contribution_ledger"
+      && receipt.contribution?.kernel?.moduleVersion === "1.1.0"
+      && receipt.contribution?.kernel?.state === "SEALED"
       && receipt.contributionDossier?.entryId === receipt.entryId
       && receipt.contributionDossier?.contribution?.digest === receipt.contribution?.digest
       && receipt.contributionDossier?.kernel?.module === "dongzhou_organization_contribution_dossier"
+      && receipt.contributionDossier?.kernel?.moduleVersion === "1.1.0"
       && receipt.contributionDossier?.kernel?.state === "SEALED"
-      && validSourceProvenance(receipt.sourceProvenance);
+      && receipt.contributionDossier?.taskTrace?.kernel?.module === "dongzhou_organization_task_trace"
+      && receipt.contributionDossier?.taskTrace?.kernel?.moduleVersion === "1.1.0"
+      && receipt.contributionDossier?.taskTrace?.kernel?.state === "SEALED"
+      && validSourceProvenance(receipt.sourceProvenance)
+      && receipt.contribution?.sourceProvenance?.digest === receipt.sourceProvenance.digest
+      && receipt.contributionDossier?.sourceProvenance?.digest === receipt.sourceProvenance.digest
+      && receipt.contributionDossier?.contribution?.sourceProvenance?.digest === receipt.sourceProvenance.digest
+      && receipt.contributionDossier?.taskTrace?.sourceProvenance?.digest === receipt.sourceProvenance.digest;
     if (!receipt || receipt.kernel?.state !== "SEALED"
       || !/^[0-9a-f]{64}$/.test(String(receipt.digest || ""))
       || receipt.affectionType !== "appreciation"
