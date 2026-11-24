@@ -150,6 +150,8 @@ async function openReady(page) {
     await desktop.click("#officeCareerResultSubmit");
     await desktop.waitForSelector("#officeCareerStatus >> text=已办成", { timeout: 10000 });
     await desktop.waitForSelector("#officeCareerFeedback >> text=本地补呈已复核", { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerStatus >> text=成果核验", { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerStatus >> text=3/3 项满足", { timeout: 10000 });
     await desktop.waitForSelector("#officeCareerContributions >> text=差事告成", { timeout: 10000 });
     await desktop.waitForSelector("#officeCareerContributions >> text=+20", { timeout: 10000 });
     await desktop.click('#officeCareerContributions [data-player-contribution-dossier-id]');
@@ -168,6 +170,11 @@ async function openReady(page) {
       || localPlayerTask.trace.taskDefinitionSnapshot?.presentationSnapshot?.acceptanceCriteria?.length !== 3
       || localPlayerTask.trace.taskDefinitionSnapshot?.executionPolicy?.baseExecutionGameSeconds !== 86400
       || localPlayerTask.trace.taskDefinitionSnapshot?.contributionPolicy?.successMemberContribution !== 20
+      || localPlayerTask.trace.submissions?.length !== 2
+      || localPlayerTask.trace.submissions?.[1]?.submissionKind !== "SUPPLEMENT"
+      || !/^[0-9a-f]{64}$/.test(localPlayerTask.trace.submissions?.[1]?.contentSnapshotHash || "")
+      || localPlayerTask.trace.lightweightCheck?.suggestedDecision !== "SUCCESS"
+      || localPlayerTask.trace.lightweightCheck?.requirementChecks?.some((item) => item.outcome !== "SATISFIED")
       || localPlayerTask.trace.kernel?.moduleVersion !== "1.1.0" || !/^[0-9a-f]{64}$/.test(localPlayerTask.trace.digest)) {
       throw new Error(`Offline player task was not sealed: ${JSON.stringify(localPlayerTask)}`);
     }

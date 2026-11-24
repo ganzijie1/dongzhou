@@ -1038,7 +1038,7 @@
     return `0771-01-${day}T00:00:${second}Z`;
   }
 
-  async function sealLocalPlayerTask(task, sourceProvenance, contentVersion = 9) {
+  async function sealLocalPlayerTask(task, sourceProvenance, contentVersion = 10) {
     const trace = {
       taskId: task.taskId,
       taskState: task.state,
@@ -1058,6 +1058,10 @@
       activeConfirmations: task.activeConfirmations || [],
       supplementRequest: task.supplementRequest || null,
       executionException: task.executionException || null,
+      ...(contentVersion >= 10 ? {
+        submissions: task.submissions || [],
+        lightweightCheck: task.lightweightCheck || null
+      } : {}),
       ...(contentVersion >= 9 ? { finalMemberChoice: task.finalMemberChoice || null } : {}),
       ...(contentVersion >= 8 ? {
         effectiveParameters: task.effectiveParameters || task.taskDefinitionSnapshot?.parameterSnapshot || null,
@@ -1194,6 +1198,7 @@
     for (const task of tasks) {
       const expected = await sealLocalPlayerTask(task, sourceProvenance);
       if (canonicalJson(task.organizationTrace) !== canonicalJson(expected)) {
+        const previousV9 = await sealLocalPlayerTask(task, sourceProvenance, 9);
         const previousV8 = await sealLocalPlayerTask(task, sourceProvenance, 8);
         const previousV7 = await sealLocalPlayerTask(task, sourceProvenance, 7);
         const previousV6 = await sealLocalPlayerTask(task, sourceProvenance, 6);
@@ -1203,7 +1208,8 @@
         const previous = await sealLocalPlayerTask(task, sourceProvenance, 2);
         const legacy = await sealLocalPlayerTask(task, sourceProvenance, 0);
         const matchedLegacy = canonicalJson(task.organizationTrace) === canonicalJson(legacy);
-        if (canonicalJson(task.organizationTrace) !== canonicalJson(previousV8)
+        if (canonicalJson(task.organizationTrace) !== canonicalJson(previousV9)
+          && canonicalJson(task.organizationTrace) !== canonicalJson(previousV8)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previousV7)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previousV6)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previousV5)
@@ -1248,15 +1254,39 @@
     const sourceProvenance = await localServiceProvenance();
     const organizationId = uuidFromDigest(await sha256("dongzhou-local-court"));
     const managerMemberId = uuidFromDigest(await sha256("dongzhou-local-organization-member:DuBo"));
+    const catalogTasks = LOCAL_PLAYER_TASK_CATALOG.map((definition) => ({
+      ...definition,
+      parameterSchema: {
+        type: "object",
+        additionalProperties: false,
+        required: ["execution_days"],
+        properties: { execution_days: { type: "integer", minimum: 1, maximum: 5 } }
+      },
+      defaultParameters: { execution_days: Math.max(1, Math.ceil(definition.baseExecutionGameSeconds / 86400)) },
+      submissionSchema: {
+        type: "object",
+        additionalProperties: false,
+        required: ["summary", "execution_records"],
+        properties: {
+          summary: { type: "string", minLength: 1, maxLength: 2000 },
+          execution_records: { type: "array", minItems: 1, maxItems: 10, items: { type: "string", minLength: 1, maxLength: 500 } },
+          follow_up_suggestions: { type: "array", maxItems: 5, items: { type: "string", minLength: 1, maxLength: 500 } }
+        }
+      },
+      dispatchEditableParameterPaths: [],
+      assigneeModifiableParameterPaths: ["/execution_days"],
+      maximumDeadlineExtensionGameSeconds: 259200,
+      virtualExecutionGameSeconds: definition.baseExecutionGameSeconds
+    }));
     const catalogDefinition = {
       catalogId: "dongzhou.officer_12.player_tasks",
       catalogVersion: 1,
       positionSlotKey: "officer_12",
-      tasks: LOCAL_PLAYER_TASK_CATALOG
+      tasks: catalogTasks
     };
     const catalogChecksum = await sha256(canonicalJson(catalogDefinition));
     const options = [];
-    for (const definition of LOCAL_PLAYER_TASK_CATALOG) {
+    for (const definition of catalogTasks) {
       const context = {
         playerId,
         organizationId,
@@ -1276,18 +1306,7 @@
         organizationName: String(organization.name || "列国军府"),
         managerDisplayName: "杜伯",
         targetPositionDisplayName: "军府属官·第12席",
-        targetRoleDisplayName: "军府属官",
-        parameterSchema: {
-          type: "object",
-          additionalProperties: false,
-          required: ["execution_days"],
-          properties: { execution_days: { type: "integer", minimum: 1, maximum: 5 } }
-        },
-        defaultParameters: { execution_days: Math.max(1, Math.ceil(definition.baseExecutionGameSeconds / 86400)) },
-        dispatchEditableParameterPaths: [],
-        assigneeModifiableParameterPaths: ["/execution_days"],
-        maximumDeadlineExtensionGameSeconds: 259200,
-        virtualExecutionGameSeconds: definition.baseExecutionGameSeconds
+        targetRoleDisplayName: "军府属官"
       });
     }
     const trace = {
@@ -1338,6 +1357,11 @@
         acceptanceCriteria: [...option.coreRequirements, ...option.ordinaryRequirements],
         coreRequirements: [...option.coreRequirements],
         ordinaryRequirements: [...option.ordinaryRequirements],
+        requirementSnapshot: {
+          core: option.coreRequirements.map((description, index) => ({ requirementId: `core-${index + 1}`, description })),
+          ordinary: option.ordinaryRequirements.map((description, index) => ({ requirementId: `ordinary-${index + 1}`, description }))
+        },
+        submissionSchema: JSON.parse(JSON.stringify(option.submissionSchema)),
         parameterSchema: JSON.parse(JSON.stringify(option.parameterSchema)),
         dispatchEditableParameterPaths: [...option.dispatchEditableParameterPaths],
         assigneeModifiableParameterPaths: [...option.assigneeModifiableParameterPaths]
@@ -1406,6 +1430,119 @@
     };
   }
 
+  function localTaskRequirements(task) {
+    const presentation = task.taskDefinitionSnapshot?.presentationSnapshot || {};
+    const frozen = presentation.requirementSnapshot;
+    if (Array.isArray(frozen?.core) && Array.isArray(frozen?.ordinary)) return frozen;
+    return {
+      core: (presentation.coreRequirements || []).map((description, index) => ({ requirementId: `core-${index + 1}`, description })),
+      ordinary: (presentation.ordinaryRequirements || []).map((description, index) => ({ requirementId: `ordinary-${index + 1}`, description }))
+    };
+  }
+
+  async function localPlayerTaskSubmissionReview(task, input, detail) {
+    const requirements = localTaskRequirements(task);
+    const explicit = input.submission;
+    const unable = /(?:未完成|无法完成|未能办成|失败|\bfail(?:ed|ure)?\b)/i.test(detail);
+    const partial = /(?:部分完成|部分办成|\bpartial(?:ly)?\b)/i.test(detail);
+    const evidence = /(?:复核记录|封识清单|经手人|supporting record|sealed checklist|verified record)/i.test(detail);
+    const selfAssessment = explicit?.self_assessment || (unable ? "UNABLE" : partial ? "PARTIALLY_COMPLETED" : "COMPLETED");
+    const fallbackResponse = (requirement) => ({
+      requirement_id: requirement.requirementId,
+      response: evidence ? `${detail}；已提供可核验凭据。` : detail
+    });
+    const report = explicit || {
+      schema_version: 1,
+      task_id: task.taskId,
+      template_version: 1,
+      self_assessment: selfAssessment,
+      generated_at: task.updatedAt,
+      result_summary: detail,
+      execution_records: [detail],
+      core_requirement_responses: requirements.core.map(fallbackResponse),
+      ordinary_requirement_responses: requirements.ordinary.map(fallbackResponse),
+      execution_method_summary: "玩家进程内执行并向直属主官复命。",
+      resource_usage_summary: "未申请额外军府资源。",
+      unfinished_items: partial || unable ? [detail] : [],
+      exceptions_and_issues: unable ? [detail] : [],
+      follow_up_suggestions: partial ? ["续办未完成事项。"] : [],
+      template_content: { summary: detail, execution_records: [detail], follow_up_suggestions: partial ? ["续办未完成事项。"] : [] }
+    };
+    const text = (value) => typeof value === "string" && value === value.trim() && value.length >= 1 && value.length <= 4000;
+    const textList = (value, maximum) => Array.isArray(value) && value.length <= maximum && value.every(text);
+    const schemaText = (value, maximum) => text(value) && value.length <= maximum;
+    const schemaTextList = (value, maximumItems, minimumItems = 0) => Array.isArray(value)
+      && value.length >= minimumItems && value.length <= maximumItems && value.every((item) => schemaText(item, 500));
+    const validateResponses = (actual, expected) => Array.isArray(actual)
+      && actual.length === expected.length
+      && actual.every((item, index) => item && item.requirement_id === expected[index].requirementId && text(item.response));
+    const templateContent = report.template_content;
+    const expectedReportKeys = [
+      "core_requirement_responses", "exceptions_and_issues", "execution_method_summary", "execution_records",
+      "follow_up_suggestions", "generated_at", "ordinary_requirement_responses", "resource_usage_summary",
+      "result_summary", "schema_version", "self_assessment", "task_id", "template_content", "template_version", "unfinished_items"
+    ];
+    if (!report || typeof report !== "object" || Array.isArray(report)
+      || Object.keys(report).sort().join(",") !== expectedReportKeys.sort().join(",")
+      || report.schema_version !== 1 || report.task_id !== task.taskId || report.template_version !== 1
+      || !["COMPLETED", "PARTIALLY_COMPLETED", "UNABLE"].includes(report.self_assessment)
+      || !text(report.generated_at) || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(report.generated_at) || Number.isNaN(Date.parse(report.generated_at))
+      || !text(report.result_summary) || report.result_summary !== detail
+      || !textList(report.execution_records, 30)
+      || !validateResponses(report.core_requirement_responses, requirements.core)
+      || !validateResponses(report.ordinary_requirement_responses || [], requirements.ordinary)
+      || !text(report.execution_method_summary) || !text(report.resource_usage_summary)
+      || !textList(report.unfinished_items || [], 16) || !textList(report.exceptions_and_issues || [], 16)
+      || !textList(report.follow_up_suggestions || [], 16)
+      || !templateContent || typeof templateContent !== "object" || Array.isArray(templateContent)
+      || !schemaText(templateContent.summary, 2000) || !schemaTextList(templateContent.execution_records, 10, 1)
+      || !schemaTextList(templateContent.follow_up_suggestions || [], 5)
+      || Object.keys(templateContent).some((key) => !["summary", "execution_records", "follow_up_suggestions"].includes(key))) {
+      throw new Error("organization_player_task_submission_invalid");
+    }
+    const requirementChecks = [
+      ...requirements.core.map((requirement, index) => {
+        const response = report.core_requirement_responses[index].response;
+        const satisfied = evidence || response.length >= 20;
+        return { requirementId: requirement.requirementId, kind: "CORE", outcome: satisfied ? "SATISFIED" : "NOT_SATISFIED", reasonCode: satisfied ? "covered" : "missing_detail" };
+      }),
+      ...requirements.ordinary.map((requirement, index) => {
+        const response = report.ordinary_requirement_responses[index].response;
+        const satisfied = evidence || response.length >= 20;
+        return { requirementId: requirement.requirementId, kind: "ORDINARY", outcome: satisfied ? "SATISFIED" : "NOT_SATISFIED", reasonCode: satisfied ? "covered" : "missing_detail" };
+      })
+    ];
+    const allCoreSatisfied = requirementChecks.filter((item) => item.kind === "CORE").every((item) => item.outcome === "SATISFIED");
+    const suggestedDecision = report.self_assessment === "UNABLE" ? "FAILURE"
+      : report.self_assessment === "PARTIALLY_COMPLETED" ? "PARTIAL"
+        : allCoreSatisfied ? "SUCCESS" : "RETURN_FOR_SUPPLEMENT";
+    const submissionNo = (task.submissions || []).length + 1;
+    const contentSnapshot = JSON.parse(JSON.stringify(report));
+    const submissionId = uuidFromDigest(await sha256(`${task.taskId}:submission:${submissionNo}:${canonicalJson(contentSnapshot)}`));
+    return {
+      submission: {
+        submissionId,
+        taskId: task.taskId,
+        submissionNo,
+        submissionKind: submissionNo === 1 ? "INITIAL" : "SUPPLEMENT",
+        generatedBy: "PLAYER",
+        selfAssessment: report.self_assessment,
+        contentSnapshot,
+        contentSnapshotHash: await sha256(canonicalJson(contentSnapshot)),
+        submittedAt: task.updatedAt
+      },
+      lightweightCheck: {
+        checkId: uuidFromDigest(await sha256(`${submissionId}:check:1`)),
+        submissionId,
+        attemptNo: 1,
+        state: "COMPLETED",
+        requirementChecks,
+        suggestedDecision,
+        completedAt: task.updatedAt
+      }
+    };
+  }
+
   function localPlayerTaskContribution(task) {
     const configured = Number(task?.taskDefinitionSnapshot?.contributionPolicy?.successMemberContribution);
     const success = Number.isSafeInteger(configured) && configured >= 0 ? configured : 20;
@@ -1435,6 +1572,8 @@
         effectiveExecutionGameSeconds: task.effectiveExecutionGameSeconds || task.taskDefinitionSnapshot?.executionPolicy?.virtualExecutionGameSeconds || null,
         parameterModification: task.parameterModification || null,
         finalMemberChoice: task.finalMemberChoice || null,
+        submissions: task.submissions || [],
+        lightweightCheck: task.lightweightCheck || null,
         organizationTrace: task.organizationTrace
       })),
       hasMore: false
@@ -1505,6 +1644,9 @@
         effectiveExecutionGameSeconds: taskDefinitionSnapshot.executionPolicy.virtualExecutionGameSeconds,
         parameterModification: null,
         finalMemberChoice: null,
+        submissions: [],
+        lightweightCheck: null,
+        supplementCount: 0,
         executionException: null,
         activeConfirmations: [],
         timeline: [{ sequence: 1, type: "TASK_CREATED", occurredAt: localCareerTimestamp(taskIndex, 1), stateCode: "MEMBER_RESPONSE_PENDING" }]
@@ -1635,42 +1777,60 @@
         message = `本地受阻记录已封存，差事按调整方案继续。`;
       } else if (normalizedAction === "RESULT") {
         task.result = detail;
+        const review = await localPlayerTaskSubmissionReview(task, input, detail);
+        task.submissions = [...(task.submissions || []), review.submission];
+        task.lightweightCheck = review.lightweightCheck;
         append("SUBMISSION_RECORDED", "SUBMISSION_PENDING");
-        if (/(?:未完成|无法完成|未能办成|失败|\bfail(?:ed|ure)?\b)/i.test(detail)) {
+        append("LIGHTWEIGHT_CHECK_COMPLETED", "RESULT_CONFIRMATION_PENDING");
+        if (review.lightweightCheck.suggestedDecision === "FAILURE") {
           task.state = "FAILED";
           append("TASK_FINALIZED", task.state);
           message = `本地复命已封存，差事《${task.title}》未能办成。`;
-        } else if (/(?:部分完成|部分办成|\bpartial(?:ly)?\b)/i.test(detail)) {
+        } else if (review.lightweightCheck.suggestedDecision === "PARTIAL") {
           task.state = "PARTIALLY_COMPLETED";
           append("TASK_FINALIZED", task.state);
           message = `本地复命已封存，差事《${task.title}》部分办成。`;
-        } else if (/(?:复核记录|封识清单|supporting record|sealed checklist)/i.test(detail)) {
+        } else if (review.lightweightCheck.suggestedDecision === "SUCCESS") {
           task.state = "SUCCEEDED";
           append("TASK_FINALIZED", task.state);
           message = `本地复命已封存，差事《${task.title}》办结。`;
         } else {
           task.state = "SUPPLEMENT_PENDING";
-          task.supplementCount = 1;
           const supplementCaseId = uuidFromDigest(await sha256(`${task.taskId}:supplement:1`));
           task.activeConfirmations = [{ caseId: supplementCaseId, type: "TASK_SUPPLEMENT_REQUEST", state: "WAITING_CONFIRMATION", recipientType: "PLAYER", allowedActions: ["submit_supplement"] }];
-          task.supplementRequest = { reviewCaseId: uuidFromDigest(await sha256(`${task.taskId}:review:1`)), supplementCaseId, reasonCode: "other", reasonDetail: "请补齐封识清单或经手人复核记录。" };
+          task.supplementRequest = { reviewCaseId: uuidFromDigest(await sha256(`${task.taskId}:review:1`)), supplementCaseId, reasonCode: "missing_core_requirement_response", reasonDetail: "请补齐封识清单或经手人复核记录。" };
           append("SUPPLEMENT_REQUESTED", task.state);
           message = `本地复命已审核，差事《${task.title}》需要补呈封识清单或复核记录。`;
         }
       } else if (normalizedAction === "SUPPLEMENT") {
         task.supplementResult = detail;
-        task.state = /(?:未完成|无法完成|未能办成|失败|\bfail(?:ed|ure)?\b)/i.test(detail)
-          ? "FAILED"
-          : /(?:部分完成|部分办成|\bpartial(?:ly)?\b)/i.test(detail) ? "PARTIALLY_COMPLETED" : "SUCCEEDED";
+        const review = await localPlayerTaskSubmissionReview(task, input, detail);
+        task.submissions = [...(task.submissions || []), review.submission];
+        task.lightweightCheck = review.lightweightCheck;
+        task.supplementCount = task.submissions.length - 1;
+        task.state = review.lightweightCheck.suggestedDecision === "FAILURE" ? "FAILED"
+          : review.lightweightCheck.suggestedDecision === "PARTIAL" ? "PARTIALLY_COMPLETED"
+            : review.lightweightCheck.suggestedDecision === "SUCCESS" ? "SUCCEEDED"
+              : task.supplementCount >= 2 ? "PARTIALLY_COMPLETED" : "SUPPLEMENT_PENDING";
         task.activeConfirmations = [];
         task.supplementRequest = null;
         append("SUBMISSION_RECORDED", "SUBMISSION_PENDING");
-        append("TASK_FINALIZED", task.state);
-        message = task.state === "SUCCEEDED"
-          ? `本地补呈已复核，差事《${task.title}》办结。`
-          : task.state === "PARTIALLY_COMPLETED"
-            ? `本地补呈已复核，差事《${task.title}》部分办成。`
-            : `本地补呈已复核，差事《${task.title}》未能办成。`;
+        append("LIGHTWEIGHT_CHECK_COMPLETED", "RESULT_CONFIRMATION_PENDING");
+        if (task.state === "SUPPLEMENT_PENDING") {
+          const supplementNo = task.supplementCount + 1;
+          const supplementCaseId = uuidFromDigest(await sha256(`${task.taskId}:supplement:${supplementNo}`));
+          task.activeConfirmations = [{ caseId: supplementCaseId, type: "TASK_SUPPLEMENT_REQUEST", state: "WAITING_CONFIRMATION", recipientType: "PLAYER", allowedActions: ["submit_supplement"] }];
+          task.supplementRequest = { reviewCaseId: uuidFromDigest(await sha256(`${task.taskId}:review:${supplementNo}`)), supplementCaseId, reasonCode: "missing_core_requirement_response", reasonDetail: "核心要求仍缺少可核验回应，请再次补呈。" };
+          append("SUPPLEMENT_REQUESTED", task.state);
+          message = `本地补呈仍缺少核心要求回应，差事《${task.title}》需要再次补呈。`;
+        } else {
+          append("TASK_FINALIZED", task.state);
+          message = task.state === "SUCCEEDED"
+            ? `本地补呈已复核，差事《${task.title}》办结。`
+            : task.state === "PARTIALLY_COMPLETED"
+              ? `本地补呈已复核，差事《${task.title}》部分办成。`
+              : `本地补呈已复核，差事《${task.title}》未能办成。`;
+        }
       }
       task.organizationTrace = await sealLocalPlayerTask(task, sourceProvenance);
       tasks[taskIndex] = task;

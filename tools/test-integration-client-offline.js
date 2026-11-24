@@ -183,12 +183,23 @@ const client = require("../web-game/integration-client.js");
   assert.deepStrictEqual(requestedTask.task.taskDefinitionSnapshot.presentationSnapshot.acceptanceCriteria, [
     "核对账面与实存", "说明差异及处置建议", "附具复核记录"
   ]);
+  assert.deepStrictEqual(requestedTask.task.taskDefinitionSnapshot.presentationSnapshot.requirementSnapshot.core.map((item) => item.requirementId), ["core-1", "core-2"]);
+  assert.strictEqual(requestedTask.task.taskDefinitionSnapshot.presentationSnapshot.submissionSchema.required[0], "summary");
   assert.strictEqual(requestedTask.task.taskDefinitionSnapshot.executionPolicy.baseExecutionGameSeconds, 86400);
   assert.strictEqual(requestedTask.task.taskDefinitionSnapshot.contributionPolicy.successMemberContribution, 20);
   assert.deepStrictEqual(requestedTask.task.organizationTrace.taskDefinitionSnapshot, requestedTask.task.taskDefinitionSnapshot);
   assert.strictEqual(requestedTask.task.organizationTrace.kernel.moduleVersion, "1.1.0");
   const currentTrace = requestedTask.task.organizationTrace;
-  const { state: traceState, digest: traceDigest, kernel: traceKernel, finalMemberChoice: omittedFinalChoice, ...v8Payload } = currentTrace;
+  const { state: traceState, digest: traceDigest, kernel: traceKernel, submissions: omittedSubmissions,
+    lightweightCheck: omittedCheck, ...v9Payload } = currentTrace;
+  assert.ok(traceDigest && Array.isArray(omittedSubmissions) && omittedSubmissions.length === 0 && omittedCheck === null);
+  const v9Trace = { state: traceState, ...v9Payload, digest: sha256(canonicalJson(v9Payload)), kernel: traceKernel };
+  localProfile.organization.localPlayerTasks[0].organizationTrace = v9Trace;
+  await client.persist(localProfile);
+  const migratedV9Trace = (await client.organizationPlayerTasks()).items[0].organizationTrace;
+  assert.deepStrictEqual(migratedV9Trace.taskDefinitionSnapshot, requestedTask.task.taskDefinitionSnapshot);
+  assert.notStrictEqual(migratedV9Trace.digest, v9Trace.digest);
+  const { finalMemberChoice: omittedFinalChoice, ...v8Payload } = v9Payload;
   assert.ok(traceDigest && omittedFinalChoice === null);
   const v8Trace = { state: traceState, ...v8Payload, digest: sha256(canonicalJson(v8Payload)), kernel: traceKernel };
   localProfile.organization.localPlayerTasks[0].organizationTrace = v8Trace;
@@ -208,14 +219,48 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual((await applyCareerAction("ACCEPT", { taskId: playerTaskId })).task.state, "IN_PROGRESS");
   const blockedTask = await applyCareerAction("EXCEPTION", { taskId: playerTaskId, detail: "Bridge closed" });
   assert.strictEqual(blockedTask.task.executionException.state, "ACCEPTED");
+  await assert.rejects(applyCareerAction("RESULT", {
+    taskId: playerTaskId,
+    detail: "Invalid structured report",
+    submission: {
+      schema_version: 1, task_id: playerTaskId, template_version: 1, self_assessment: "COMPLETED",
+      generated_at: "0771-01-01T00:00:00Z", result_summary: "Invalid structured report", execution_records: ["Invalid structured report"],
+      core_requirement_responses: [{ requirement_id: "wrong-core", response: "This response is deliberately long enough to pass a length check." }],
+      ordinary_requirement_responses: [], execution_method_summary: "Manual execution", resource_usage_summary: "No extra resources",
+      unfinished_items: [], exceptions_and_issues: [], follow_up_suggestions: [],
+      template_content: { summary: "Invalid structured report", execution_records: ["Invalid structured report"], follow_up_suggestions: [] }
+    }
+  }), /organization_player_task_submission_invalid/);
   const pendingSupplement = await applyCareerAction("RESULT", { taskId: playerTaskId, detail: "Ledger sealed" });
   assert.strictEqual(pendingSupplement.task.state, "SUPPLEMENT_PENDING");
-  assert.strictEqual(pendingSupplement.task.organizationTrace.supplementRequest.reasonCode, "other");
+  assert.strictEqual(pendingSupplement.task.organizationTrace.supplementRequest.reasonCode, "missing_core_requirement_response");
+  assert.strictEqual(pendingSupplement.task.submissions.length, 1);
+  assert.strictEqual(pendingSupplement.task.lightweightCheck.suggestedDecision, "RETURN_FOR_SUPPLEMENT");
+  assert.deepStrictEqual(pendingSupplement.task.lightweightCheck.requirementChecks.slice(0, 2).map((item) => item.outcome), ["NOT_SATISFIED", "NOT_SATISFIED"]);
   assert.deepStrictEqual(pendingSupplement.task.organizationTrace.activeConfirmations[0].allowedActions, ["submit_supplement"]);
   assert.strictEqual((await client.organizationPlayerContributions()).entries.length, 0);
-  const finishedTask = await applyCareerAction("SUPPLEMENT", { taskId: playerTaskId, detail: "Supporting record and sealed checklist attached" });
+  const supplementDetail = "Supporting record and sealed checklist attached";
+  const finishedTask = await applyCareerAction("SUPPLEMENT", {
+    taskId: playerTaskId,
+    detail: supplementDetail,
+    submission: {
+      schema_version: 1, task_id: playerTaskId, template_version: 1, self_assessment: "COMPLETED",
+      generated_at: "0771-01-01T00:00:00Z", result_summary: supplementDetail, execution_records: [supplementDetail],
+      core_requirement_responses: [
+        { requirement_id: "core-1", response: "The supporting record verifies the ledger against the physical stores." },
+        { requirement_id: "core-2", response: "The sealed checklist records every discrepancy and its proposed disposition." }
+      ],
+      ordinary_requirement_responses: [{ requirement_id: "ordinary-1", response: "The signed review record is attached for independent verification." }],
+      execution_method_summary: "Compared the ledger and stores line by line.", resource_usage_summary: "Used existing court records only.",
+      unfinished_items: [], exceptions_and_issues: [], follow_up_suggestions: [],
+      template_content: { summary: supplementDetail, execution_records: [supplementDetail], follow_up_suggestions: [] }
+    }
+  });
   assert.strictEqual(finishedTask.task.state, "SUCCEEDED");
-  assert.deepStrictEqual(finishedTask.task.organizationTrace.timeline.slice(-2).map((item) => item.type), ["SUBMISSION_RECORDED", "TASK_FINALIZED"]);
+  assert.strictEqual(finishedTask.task.submissions.length, 2);
+  assert.strictEqual(finishedTask.task.submissions[1].submissionKind, "SUPPLEMENT");
+  assert.strictEqual(finishedTask.task.lightweightCheck.suggestedDecision, "SUCCESS");
+  assert.deepStrictEqual(finishedTask.task.organizationTrace.timeline.slice(-3).map((item) => item.type), ["SUBMISSION_RECORDED", "LIGHTWEIGHT_CHECK_COMPLETED", "TASK_FINALIZED"]);
   const playerContributions = await client.organizationPlayerContributions();
   assert.deepStrictEqual(playerContributions.account, { accountVersion: 2, accountBalance: 20, lifetimeEarned: 20, lifetimeSpent: 0 });
   assert.strictEqual(playerContributions.entries.length, 1);
@@ -423,6 +468,11 @@ const client = require("../web-game/integration-client.js");
   }), /organization_player_task_context_invalid/);
   assert.strictEqual(localProfile.organization.localPlayerTasks.length, taskCountBeforeStaleRequest);
   const cleanPlayerTasks = JSON.stringify(localProfile.organization.localPlayerTasks);
+  const sealedSubmission = localProfile.organization.localPlayerTasks.find((task) => task.submissions?.length)?.submissions[0];
+  sealedSubmission.contentSnapshot.result_summary = "forged submission";
+  await client.persist(localProfile);
+  await assert.rejects(client.organizationPlayerTasks(), /organization_player_task_seal_invalid/);
+  localProfile.organization.localPlayerTasks = JSON.parse(cleanPlayerTasks);
   const sealedFinalChoice = localProfile.organization.localPlayerTasks.find((task) => task.finalMemberChoice?.decision === "ACCEPT_ORIGINAL");
   sealedFinalChoice.finalMemberChoice.decision = "REJECT";
   await client.persist(localProfile);
