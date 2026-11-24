@@ -1095,7 +1095,7 @@ class ServiceProvenanceModuleTests(unittest.TestCase):
                 name: dict(source) for name, source in payload["services"].items()
             },
         }
-        malformed["services"]["aiNpc"]["sourceRevision"] = "8a7b673"
+        malformed["services"]["aiNpc"]["sourceRevision"] = "3b47903"
         with self.assertRaisesRegex(ValueError, "aiNpc provenance"):
             ServiceProvenanceModule.seal(malformed)
 
@@ -2463,7 +2463,7 @@ class AuthenticationRouteTests(unittest.TestCase):
                 )
                 expected_sources = {
                     "nexusKernel": ("develop", "190abb1", "4f1915b"),
-                    "aiNpc": ("develop", "8a7b673", "eb6189f"),
+                    "aiNpc": ("develop", "3b47903", "e6e67a7"),
                     "knowledge": ("main", "45afa2f", "660d65b"),
                     "orgFlow": ("develop", "8b1049e", "fbfc803"),
                 }

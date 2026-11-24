@@ -806,7 +806,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                     "ready": True,
                     "source": {
                         "branch": "develop",
-                        "revision": "8a7b673c6ddb93c5ac64d96a270b35619e5bcc1c",
+                        "revision": "3b479037fdc99649330c0e05444ec4eab84ac742",
                     },
                 })
             return httpx.Response(200, json={"status": "ready", "ready": True})
@@ -930,7 +930,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                     "ready": True,
                     "source": {
                         "branch": "develop",
-                        "revision": "8a7b673c6ddb93c5ac64d96a270b35619e5bcc1c",
+                        "revision": "3b479037fdc99649330c0e05444ec4eab84ac742",
                     },
                 })
             return httpx.Response(200, json={

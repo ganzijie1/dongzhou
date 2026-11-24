@@ -228,9 +228,9 @@ const topologySnapshot = {
 assert.strictEqual(play.reconcileRemoteTasks(sealedTask.state, [topologySnapshot], { advanceMonth: false }).tasks.find((task) => task.remoteResult === sourcedSnapshot.task_id).organizationTopology.sourceProvenance.digest, sourceProvenance.digest);
 assert.throws(() => play.reconcileRemoteTasks(sealedTask.state, [{ ...topologySnapshot, organizationTopology: { ...topologySnapshot.organizationTopology, sourceProvenance: { ...sourceProvenance, digest: "9".repeat(64) } } }], { advanceMonth: false }), /联合任务拓扑服务来源无效/);
 assert.strictEqual(sealedTask.task.mandate.emergency.urgent, true);
-state = play.updateBackend(state, { nexusKernel: true, orgFlow: true, aiNpc: true, knowledge: true, serviceSources: { aiNpc: { sourceRevision: "8a7b673c6ddb93c5ac64d96a270b35619e5bcc1c" } }, serviceAttestations: { nexusKernel: true, orgFlow: true, aiNpc: true, knowledge: true }, serviceFailures: {}, serviceSourceSealDigest: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" });
+state = play.updateBackend(state, { nexusKernel: true, orgFlow: true, aiNpc: true, knowledge: true, serviceSources: { aiNpc: { sourceRevision: "3b479037fdc99649330c0e05444ec4eab84ac742" } }, serviceAttestations: { nexusKernel: true, orgFlow: true, aiNpc: true, knowledge: true }, serviceFailures: {}, serviceSourceSealDigest: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" });
 assert.strictEqual(state.backend.mode, "connected");
-assert.strictEqual(state.backend.serviceSources.aiNpc.sourceRevision.slice(0, 7), "8a7b673");
+assert.strictEqual(state.backend.serviceSources.aiNpc.sourceRevision.slice(0, 7), "3b47903");
 assert.strictEqual(state.backend.serviceSourceSealDigest.slice(0, 7), "0123456");
 state = play.updateBackend(state, { aiNpc: false, serviceAttestations: { ...state.backend.serviceAttestations, aiNpc: false }, serviceFailures: { aiNpc: "source_attestation_failed" } });
 assert.strictEqual(state.backend.mode, "local");
