@@ -259,10 +259,11 @@ async function openReady(page) {
           amount: 20,
           taskId: "00000000-0000-4000-8000-000000000081",
           taskState: "SUCCEEDED",
-          contribution: { digest: "9".repeat(64) },
-          taskTrace: { timeline: [{ type: "TASK_CREATED" }, { type: "EXECUTION_STARTED" }, { type: "TASK_FINALIZED" }, { type: "SETTLEMENT_RECORDED" }] },
+          contribution: { digest: "9".repeat(64), sourceProvenance },
+          taskTrace: { sourceProvenance, timeline: [{ type: "TASK_CREATED" }, { type: "EXECUTION_STARTED" }, { type: "TASK_FINALIZED" }, { type: "SETTLEMENT_RECORDED" }], kernel: { module: "dongzhou_organization_task_trace", moduleVersion: "1.1.0", state: "SEALED" } },
+          sourceProvenance,
           digest: "7".repeat(64),
-          kernel: { module: "dongzhou_organization_contribution_dossier", state: "SEALED" }
+          kernel: { module: "dongzhou_organization_contribution_dossier", moduleVersion: "1.1.0", state: "SEALED" }
         } };
       }
       else if (pathName.endsWith("/organization/player-contributions")) {

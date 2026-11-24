@@ -2088,7 +2088,7 @@
     try {
       const response = await integration.organizationPlayerContributionDossier(entryId);
       const dossier = response.dossier;
-      if (dossier?.entryId !== entryId || dossier?.heroId !== "PLAYER" || dossier?.contribution?.digest !== contribution.digest || dossier?.kernel?.module !== "dongzhou_organization_contribution_dossier" || dossier?.kernel?.state !== "SEALED") throw new Error("个人卷宗身份或封印不匹配");
+      if (dossier?.entryId !== entryId || dossier?.heroId !== "PLAYER" || dossier?.contribution?.digest !== contribution.digest || dossier?.kernel?.module !== "dongzhou_organization_contribution_dossier" || dossier?.kernel?.moduleVersion !== "1.1.0" || dossier?.kernel?.state !== "SEALED" || dossier?.taskTrace?.kernel?.moduleVersion !== "1.1.0" || dossier?.sourceProvenance?.digest !== contribution.sourceProvenance?.digest || dossier?.taskTrace?.sourceProvenance?.digest !== dossier?.sourceProvenance?.digest) throw new Error("个人卷宗身份或封印不匹配");
       officeCareerContributionDossiers.set(entryId, dossier);
     } catch (error) {
       officeCareerContributionDossiers.set(entryId, { state: "ERROR", message: error.message });
@@ -2105,7 +2105,7 @@
     try {
       const response = await integration.organizationPlayerContributionDossier(entryId);
       const dossier = response.dossier;
-      if (dossier?.entryId !== entryId || dossier?.heroId !== "PLAYER" || dossier?.contribution?.digest !== contribution.digest || dossier?.digest !== current.digest || dossier?.kernel?.module !== "dongzhou_organization_contribution_dossier" || dossier?.kernel?.state !== "SEALED") throw new Error("权威卷宗与当前封印不一致");
+      if (dossier?.entryId !== entryId || dossier?.heroId !== "PLAYER" || dossier?.contribution?.digest !== contribution.digest || dossier?.digest !== current.digest || dossier?.kernel?.module !== "dongzhou_organization_contribution_dossier" || dossier?.kernel?.moduleVersion !== "1.1.0" || dossier?.kernel?.state !== "SEALED" || dossier?.taskTrace?.kernel?.moduleVersion !== "1.1.0" || dossier?.sourceProvenance?.digest !== contribution.sourceProvenance?.digest || dossier?.taskTrace?.sourceProvenance?.digest !== dossier?.sourceProvenance?.digest) throw new Error("权威卷宗与当前封印不一致");
       officeCareerContributionDossiers.set(entryId, dossier);
       officeCareerContributionVerifications.set(entryId, { state: "VERIFIED", digest: dossier.digest });
       showNotice("个人功绩卷宗验印通过");
@@ -2775,7 +2775,7 @@
     try {
       const response = await integration.organizationContributionDossier(contribution.heroId, entryId);
       const dossier = response.dossier;
-      if (dossier?.entryId !== entryId || dossier?.heroId !== contribution.heroId || dossier?.contribution?.digest !== contribution.digest || dossier?.kernel?.module !== "dongzhou_organization_contribution_dossier" || dossier?.kernel?.state !== "SEALED") throw new Error("卷宗身份或封印不匹配");
+      if (dossier?.entryId !== entryId || dossier?.heroId !== contribution.heroId || dossier?.contribution?.digest !== contribution.digest || dossier?.kernel?.module !== "dongzhou_organization_contribution_dossier" || dossier?.kernel?.moduleVersion !== "1.1.0" || dossier?.kernel?.state !== "SEALED" || dossier?.taskTrace?.kernel?.moduleVersion !== "1.1.0" || dossier?.sourceProvenance?.digest !== contribution.sourceProvenance?.digest || dossier?.taskTrace?.sourceProvenance?.digest !== dossier?.sourceProvenance?.digest) throw new Error("卷宗身份或封印不匹配");
       officeContributionDossiers.set(entryId, dossier);
     } catch (error) {
       officeContributionDossiers.set(entryId, { state: "ERROR", message: error.message });
@@ -2792,7 +2792,7 @@
     try {
       const response = await integration.organizationContributionDossier(contribution.heroId, entryId);
       const dossier = response.dossier;
-      if (dossier?.entryId !== entryId || dossier?.heroId !== contribution.heroId || dossier?.contribution?.digest !== contribution.digest || dossier?.digest !== current.digest || dossier?.kernel?.module !== "dongzhou_organization_contribution_dossier" || dossier?.kernel?.state !== "SEALED") throw new Error("权威卷宗与当前封印不一致");
+      if (dossier?.entryId !== entryId || dossier?.heroId !== contribution.heroId || dossier?.contribution?.digest !== contribution.digest || dossier?.digest !== current.digest || dossier?.kernel?.module !== "dongzhou_organization_contribution_dossier" || dossier?.kernel?.moduleVersion !== "1.1.0" || dossier?.kernel?.state !== "SEALED" || dossier?.taskTrace?.kernel?.moduleVersion !== "1.1.0" || dossier?.sourceProvenance?.digest !== contribution.sourceProvenance?.digest || dossier?.taskTrace?.sourceProvenance?.digest !== dossier?.sourceProvenance?.digest) throw new Error("权威卷宗与当前封印不一致");
       officeContributionDossiers.set(entryId, dossier);
       officeContributionVerifications.set(entryId, { state: "VERIFIED", digest: dossier.digest });
       showNotice("属官功绩卷宗验印通过");

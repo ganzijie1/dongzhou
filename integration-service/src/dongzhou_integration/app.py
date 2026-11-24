@@ -954,8 +954,8 @@ class NpcCollaborationRelationshipModule(Module):
 
 class OrganizationTaskTraceModule(Module):
     name = "dongzhou_organization_task_trace"
-    version = "1.0.0"
-    dependencies = (RuntimeModule.name,)
+    version = "1.1.0"
+    dependencies = (RuntimeModule.name, "dongzhou_service_provenance")
 
     @staticmethod
     def seal(trace: dict[str, Any]) -> dict[str, Any]:
@@ -970,6 +970,8 @@ class OrganizationTaskTraceModule(Module):
             range(1, len(timeline) + 1)
         ):
             raise ValueError("organization task trace sequence is invalid")
+        if not _service_provenance_receipt_is_valid(trace.get("sourceProvenance")):
+            raise ValueError("organization task trace source provenance is invalid")
         digest = _canonical_digest(trace)
         return {
             "state": "SEALED",
@@ -986,7 +988,7 @@ class OrganizationTaskTraceModule(Module):
 
 class OrganizationContributionDossierModule(Module):
     name = "dongzhou_organization_contribution_dossier"
-    version = "1.0.0"
+    version = "1.1.0"
     dependencies = (
         OrganizationContributionLedgerModule.name,
         OrganizationTaskTraceModule.name,
@@ -1007,6 +1009,10 @@ class OrganizationContributionDossierModule(Module):
             or not isinstance(task_kernel, dict)
             or task_kernel.get("module") != OrganizationTaskTraceModule.name
             or task_kernel.get("state") != "SEALED"
+            or contribution.get("sourceProvenance") != task_trace.get("sourceProvenance")
+            or not _service_provenance_receipt_is_valid(
+                contribution.get("sourceProvenance")
+            )
             or str(contribution.get("sourceRef") or "") not in {
                 f"organization-task:{task_id}",
                 f"virtual_task:{task_id}",
@@ -1031,6 +1037,7 @@ class OrganizationContributionDossierModule(Module):
             "taskState": str(task_trace.get("taskState") or ""),
             "contribution": contribution,
             "taskTrace": task_trace,
+            "sourceProvenance": contribution["sourceProvenance"],
         }
         if (
             any(
@@ -2160,6 +2167,7 @@ def _organization_task_trace_view(
     *,
     task_id: str,
     organization_id: str,
+    source_provenance: dict[str, Any],
 ) -> dict[str, Any]:
     if not isinstance(snapshot, dict):
         raise ValueError("organization task trace must be an object")
@@ -2471,6 +2479,7 @@ def _organization_task_trace_view(
         "supplementRequest": supplement_request,
         "executionException": execution_exception,
         "timeline": timeline,
+        "sourceProvenance": source_provenance,
     }
 
 
@@ -4908,6 +4917,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 trace_snapshot,
                 task_id=task_id,
                 organization_id=settings.orgflow_org_id,
+                source_provenance=service_provenance.receipt(),
             )
         )
         return organization_contribution_dossier.seal(
@@ -6348,6 +6358,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                             snapshot,
                             task_id=remote_task_id,
                             organization_id=settings.orgflow_org_id,
+                            source_provenance=service_provenance.receipt(),
                         )
                     )
                 )
@@ -9654,6 +9665,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     trace_snapshot,
                     task_id=item["taskId"],
                     organization_id=settings.orgflow_org_id,
+                    source_provenance=service_provenance.receipt(),
                 )
                 return organization_task_trace.seal(trace)
 
@@ -11452,6 +11464,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                                 support_trace_snapshot,
                                 task_id=support_task_id,
                                 organization_id=settings.orgflow_org_id,
+                                source_provenance=service_provenance.receipt(),
                             )
                         )
                     except (TypeError, ValueError) as error:
@@ -11560,6 +11573,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     trace_snapshot,
                     task_id=task_key,
                     organization_id=settings.orgflow_org_id,
+                    source_provenance=service_provenance.receipt(),
                 )
                 organization_trace = organization_task_trace.seal(trace)
             except (TypeError, ValueError) as error:

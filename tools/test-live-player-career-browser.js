@@ -272,7 +272,10 @@ async function releaseMembership(page) {
     assert.equal(dossier?.taskId, resumedTask.taskId);
     assert.equal(dossier?.contribution?.digest, contribution.digest);
     assert.equal(dossier?.kernel?.module, "dongzhou_organization_contribution_dossier");
+    assert.equal(dossier?.kernel?.moduleVersion, "1.1.0");
     assert.equal(dossier?.kernel?.state, "SEALED");
+    assert.equal(dossier?.sourceProvenance?.digest, expectedSourceSeal);
+    assert.equal(dossier?.taskTrace?.kernel?.moduleVersion, "1.1.0");
 
     await page.click("#officeCareerContributionsRefresh");
     await page.waitForSelector(`[data-player-contribution-id="${contribution.entryId}"]`, { timeout });

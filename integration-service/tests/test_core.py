@@ -1169,6 +1169,7 @@ class BattleDebriefModuleTests(unittest.TestCase):
                 "supplementCount": 0,
                 "activeConfirmations": [],
                 "executionException": None,
+                "sourceProvenance": ServiceProvenanceModule.seal(public_service_sources()),
                 "timeline": [
                     {
                         "sequence": 1,
@@ -3795,6 +3796,7 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
             },
             task_id=task_id,
             organization_id=organization_id,
+            source_provenance=ServiceProvenanceModule.seal(public_service_sources()),
         )
         receipt = OrganizationTaskTraceModule.seal(trace)
         self.assertEqual(receipt["state"], "SEALED")
@@ -3814,6 +3816,7 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
                 },
                 task_id=task_id,
                 organization_id=organization_id,
+                source_provenance=ServiceProvenanceModule.seal(public_service_sources()),
             )
 
     def test_organization_task_trace_seals_only_authoritative_supplement_reason(self) -> None:
@@ -3880,6 +3883,7 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
             },
             task_id=task_id,
             organization_id=organization_id,
+            source_provenance=ServiceProvenanceModule.seal(public_service_sources()),
         )
         receipt = OrganizationTaskTraceModule.seal(trace)
         self.assertEqual(receipt["supplementRequest"], {
@@ -3948,6 +3952,7 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
                 snapshot,
                 task_id=task_id,
                 organization_id=organization_id,
+                source_provenance=ServiceProvenanceModule.seal(public_service_sources()),
             )
         )
         exception = receipt["executionException"]
@@ -3966,6 +3971,7 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
                 snapshot,
                 task_id=task_id,
                 organization_id=organization_id,
+                source_provenance=ServiceProvenanceModule.seal(public_service_sources()),
             )
 
     async def test_startup_backfills_missing_npc_memory_once(self) -> None:

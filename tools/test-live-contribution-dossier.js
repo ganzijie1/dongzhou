@@ -14,7 +14,9 @@ try {
 }
 
 const url = process.env.DONGZHOU_TEST_URL || "http://127.0.0.1:8780/";
-verifyFourServiceRuntime(url);
+const runtimeReport = verifyFourServiceRuntime(url);
+const expectedSourceSeal = runtimeReport.checks?.liveRuntime?.sourceSealDigest;
+assert.match(expectedSourceSeal || "", /^[0-9a-f]{64}$/);
 const output = path.resolve(__dirname, "../output/integration-validation/contribution-dossier-live.png");
 const executablePath = [
   process.env.DONGZHOU_CHROMIUM_EXECUTABLE,
@@ -64,7 +66,11 @@ const executablePath = [
     assert.equal(dossier.taskId, contribution.sourceRef.split(":", 2)[1]);
     assert.equal(dossier.taskTrace.taskId, dossier.taskId);
     assert.equal(dossier.kernel.module, "dongzhou_organization_contribution_dossier");
+    assert.equal(dossier.kernel.moduleVersion, "1.1.0");
     assert.equal(dossier.kernel.state, "SEALED");
+    assert.equal(dossier.taskTrace.kernel.moduleVersion, "1.1.0");
+    assert.equal(dossier.sourceProvenance.digest, expectedSourceSeal);
+    assert.deepEqual(dossier.taskTrace.sourceProvenance, dossier.sourceProvenance);
     assert(dossier.taskTrace.timeline.some((entry) => entry.type === "TASK_FINALIZED"));
 
     const panel = page.locator(".office-contribution-dossier");

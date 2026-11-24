@@ -1088,6 +1088,10 @@ def test_contribution_entry_is_reverified_and_sealed_into_mandate() -> None:
             )
             assert dossier_response.status_code == 200, dossier_response.text
             dossier = dossier_response.json()["dossier"]
+            assert dossier["kernel"]["moduleVersion"] == "1.1.0"
+            assert dossier["taskTrace"]["kernel"]["moduleVersion"] == "1.1.0"
+            assert dossier["sourceProvenance"] == contribution["sourceProvenance"]
+            assert dossier["taskTrace"]["sourceProvenance"] == dossier["sourceProvenance"]
             merit_body = {
                 "contribution_entry_id": entry_id,
                 "contribution_entry_digest": contribution["digest"],
