@@ -155,6 +155,10 @@ async function openReady(page) {
     if (localPlayerTask.state !== "SUCCEEDED" || localPlayerTask.result !== "改走西驿道后核清军粮账册"
       || localPlayerTask.career.contributionBalance !== 20 || localPlayerTask.career.lifetimeEarned !== 20
       || localPlayerTask.supplementResult !== "补齐西仓封识清单及经手人复核记录"
+      || localPlayerTask.trace.taskDefinitionSnapshot?.presentationSnapshot?.brief !== "核验军粮账册并呈报差异。"
+      || localPlayerTask.trace.taskDefinitionSnapshot?.presentationSnapshot?.acceptanceCriteria?.length !== 3
+      || localPlayerTask.trace.taskDefinitionSnapshot?.executionPolicy?.baseExecutionGameSeconds !== 86400
+      || localPlayerTask.trace.taskDefinitionSnapshot?.contributionPolicy?.successMemberContribution !== 20
       || localPlayerTask.trace.kernel?.moduleVersion !== "1.1.0" || !/^[0-9a-f]{64}$/.test(localPlayerTask.trace.digest)) {
       throw new Error(`Offline player task was not sealed: ${JSON.stringify(localPlayerTask)}`);
     }

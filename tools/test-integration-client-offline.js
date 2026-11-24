@@ -1,6 +1,16 @@
 "use strict";
 
 const assert = require("assert");
+const { createHash } = require("crypto");
+
+const canonicalJson = (value) => {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+};
+const sha256 = (value) => createHash("sha256").update(String(value)).digest("hex");
 
 const values = new Map();
 const fetchedUrls = [];
@@ -135,6 +145,13 @@ const client = require("../web-game/integration-client.js");
     contextId: "0".repeat(64),
     catalogDigest: taskOptions.tasks.catalog.digest
   }), /organization_player_task_context_invalid/);
+  await assert.rejects(client.applyOrganizationPlayerTaskAction("REQUEST", {
+    taskCode: taskOptions.tasks.catalog.options[0].taskCode,
+    title: taskOptions.tasks.catalog.options[0].title,
+    contextId: taskOptions.tasks.catalog.options[0].contextId,
+    catalogDigest: taskOptions.tasks.catalog.digest,
+    parameters: { forged: true }
+  }), /organization_player_task_parameters_invalid/);
   const applyCareerAction = async (action, input) => {
     let boundInput = input;
     if (action === "REQUEST") {
@@ -154,7 +171,25 @@ const client = require("../web-game/integration-client.js");
   assert.match(requestedTask.task.contextId, /^[0-9a-f]{64}$/);
   assert.strictEqual(requestedTask.task.catalogDigest, taskOptions.tasks.catalog.digest);
   assert.strictEqual(requestedTask.task.organizationTrace.taskContent.taskCode, requestedTask.task.taskCode);
+  assert.deepStrictEqual(requestedTask.task.taskDefinitionSnapshot.parameterSnapshot, {});
+  assert.strictEqual(requestedTask.task.taskDefinitionSnapshot.presentationSnapshot.title, "核验军粮账册");
+  assert.strictEqual(requestedTask.task.taskDefinitionSnapshot.presentationSnapshot.brief, "核验军粮账册并呈报差异。");
+  assert.deepStrictEqual(requestedTask.task.taskDefinitionSnapshot.presentationSnapshot.acceptanceCriteria, [
+    "核对账面与实存", "说明差异及处置建议", "附具复核记录"
+  ]);
+  assert.strictEqual(requestedTask.task.taskDefinitionSnapshot.executionPolicy.baseExecutionGameSeconds, 86400);
+  assert.strictEqual(requestedTask.task.taskDefinitionSnapshot.contributionPolicy.successMemberContribution, 20);
+  assert.deepStrictEqual(requestedTask.task.organizationTrace.taskDefinitionSnapshot, requestedTask.task.taskDefinitionSnapshot);
   assert.strictEqual(requestedTask.task.organizationTrace.kernel.moduleVersion, "1.1.0");
+  const currentTrace = requestedTask.task.organizationTrace;
+  const { state: traceState, digest: traceDigest, kernel: traceKernel, taskDefinitionSnapshot: omittedSnapshot, ...v6Payload } = currentTrace;
+  assert.ok(traceDigest && omittedSnapshot);
+  const v6Trace = { state: traceState, ...v6Payload, digest: sha256(canonicalJson(v6Payload)), kernel: traceKernel };
+  localProfile.organization.localPlayerTasks[0].organizationTrace = v6Trace;
+  await client.persist(localProfile);
+  const migratedTrace = (await client.organizationPlayerTasks()).items[0].organizationTrace;
+  assert.deepStrictEqual(migratedTrace.taskDefinitionSnapshot, requestedTask.task.taskDefinitionSnapshot);
+  assert.notStrictEqual(migratedTrace.digest, v6Trace.digest);
   assert.strictEqual((await applyCareerAction("ACCEPT", { taskId: playerTaskId })).task.state, "IN_PROGRESS");
   const blockedTask = await applyCareerAction("EXCEPTION", { taskId: playerTaskId, detail: "Bridge closed" });
   assert.strictEqual(blockedTask.task.executionException.state, "ACCEPTED");
@@ -315,6 +350,10 @@ const client = require("../web-game/integration-client.js");
   }), /organization_player_task_context_invalid/);
   assert.strictEqual(localProfile.organization.localPlayerTasks.length, taskCountBeforeStaleRequest);
   const cleanPlayerTasks = JSON.stringify(localProfile.organization.localPlayerTasks);
+  localProfile.organization.localPlayerTasks[0].taskDefinitionSnapshot.presentationSnapshot.brief = "forged brief";
+  await client.persist(localProfile);
+  await assert.rejects(client.organizationPlayerTasks(), /organization_player_task_seal_invalid/);
+  localProfile.organization.localPlayerTasks = JSON.parse(cleanPlayerTasks);
   localProfile.organization.localPlayerTasks[0].result = "forged result";
   await client.persist(localProfile);
   await assert.rejects(client.organizationPlayerContributions(), /organization_player_task_seal_invalid/);

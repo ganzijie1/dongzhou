@@ -145,7 +145,9 @@ standalone 辞仕现同时清算玩家当前可用贡献：`LEAVE` 履历成功�
 
 玩家领差还执行 orgFlow 目录中的 `recommendation_rules.maximum_active_tasks=3`。`dongzhou_organization_task_capacity 1.0.0` 以当前仕籍版本、排序后的在办任务号、固定策略路径和四仓来源封存容量快照；待接受、待改令裁定、执行中和待补呈均计入在办数。达到三项后新的领差请求以 `organization_task_workload_conflict` 在立案前拒绝，不增加任务或任务版本；页面持续显示“在办 n/3”。
 
-玩家领差目录现在也承接 orgFlow 的已发布任务候选合同，而不是接受任意文本。standalone 模式发布五项 `officer_12` 岗位任务，每项具有稳定 `taskCode`、随仕籍及层级版本生成的 `contextId`、任务类型、简述、核心/普通要求、参数 schema、执行时限和贡献值；`dongzhou_organization_task_catalog 1.0.0` 将目录校验和、完整候选、直属管理者、岗位、仕籍版本、层级版本及四源谱系一并验印。创建前重新解析当前目录，目录外名称或 `taskCode/title` 不一致以 `organization_player_task_catalog_invalid` 拒绝且不立案；申请还必须同时携带当前 `contextId` 和目录摘要，伪造或辞仕重入后的陈旧候选以 `organization_player_task_context_invalid` 拒绝，不能静默升级为新候选。新任务把 `taskCode/contextId/catalogDigest` 纳入 `dongzhou_organization_task_trace 1.1.0` 第六版内容，旧五版及更早存档继续校验后迁移；页面申请框只提示当前可领候选并自动提交完整绑定，在线模式仍由 AINPC/orgFlow 权威目录决定。
+玩家领差目录现在也承接 orgFlow 的已发布任务候选合同，而不是接受任意文本。standalone 模式发布五项 `officer_12` 岗位任务，每项具有稳定 `taskCode`、随仕籍及层级版本生成的 `contextId`、任务类型、简述、核心/普通要求、参数 schema、执行时限和贡献值；`dongzhou_organization_task_catalog 1.0.0` 将目录校验和、完整候选、直属管理者、岗位、仕籍版本、层级版本及四源谱系一并验印。创建前重新解析当前目录，目录外名称或 `taskCode/title` 不一致以 `organization_player_task_catalog_invalid` 拒绝且不立案；申请还必须同时携带当前 `contextId` 和目录摘要，伪造或辞仕重入后的陈旧候选以 `organization_player_task_context_invalid` 拒绝，不能静默升级为新候选。新任务把 `taskCode/contextId/catalogDigest` 纳入 `dongzhou_organization_task_trace 1.1.0` 内容；页面申请框只提示当前可领候选并自动提交完整绑定，在线模式仍由 AINPC/orgFlow 权威目录决定。
+
+立案还按 orgFlow 创建事务冻结完整 `taskDefinitionSnapshot`：目录 ID/版本/校验和/回执摘要、任务码与类型、参数快照、标题/目的/最终简述、核心与普通要求、验收标准、参数 schema、可修改路径、基础/虚拟执行时限及组织/成员成功贡献均随任务封存。standalone 当前五项任务没有可编辑参数，提交非空参数以 `organization_player_task_parameters_invalid` 在立案前拒绝。任务履历内容升级到第七版并兼容迁移第六版及更早记录；定义快照被改写时验印失败。成功和部分完成的个人贡献分别读取冻结成员奖励及其一半，不再依赖写死的 20/10，旧任务无快照时保持原数值。
 
 ## 历史验证基线
 

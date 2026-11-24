@@ -1038,7 +1038,7 @@
     return `0771-01-${day}T00:00:${second}Z`;
   }
 
-  async function sealLocalPlayerTask(task, sourceProvenance, contentVersion = 6) {
+  async function sealLocalPlayerTask(task, sourceProvenance, contentVersion = 7) {
     const trace = {
       taskId: task.taskId,
       taskState: task.state,
@@ -1058,6 +1058,7 @@
       activeConfirmations: task.activeConfirmations || [],
       supplementRequest: task.supplementRequest || null,
       executionException: task.executionException || null,
+      ...(contentVersion >= 7 ? { taskDefinitionSnapshot: task.taskDefinitionSnapshot || null } : {}),
       ...(contentVersion >= 4 ? { reassignment: task.reassignment || null } : {}),
       ...(contentVersion >= 5 ? { redispatch: task.redispatch || null } : {}),
       timeline: task.timeline || [],
@@ -1187,13 +1188,15 @@
     for (const task of tasks) {
       const expected = await sealLocalPlayerTask(task, sourceProvenance);
       if (canonicalJson(task.organizationTrace) !== canonicalJson(expected)) {
+        const previousV6 = await sealLocalPlayerTask(task, sourceProvenance, 6);
         const previousV5 = await sealLocalPlayerTask(task, sourceProvenance, 5);
         const previousV4 = await sealLocalPlayerTask(task, sourceProvenance, 4);
         const previousV3 = await sealLocalPlayerTask(task, sourceProvenance, 3);
         const previous = await sealLocalPlayerTask(task, sourceProvenance, 2);
         const legacy = await sealLocalPlayerTask(task, sourceProvenance, 0);
         const matchedLegacy = canonicalJson(task.organizationTrace) === canonicalJson(legacy);
-        if (canonicalJson(task.organizationTrace) !== canonicalJson(previousV5)
+        if (canonicalJson(task.organizationTrace) !== canonicalJson(previousV6)
+          && canonicalJson(task.organizationTrace) !== canonicalJson(previousV5)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previousV4)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previousV3)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previous)
@@ -1287,6 +1290,53 @@
     };
   }
 
+  function localPlayerTaskDefinitionSnapshot(option, catalog, input = {}) {
+    const requestedParameters = input.parameters == null ? option.defaultParameters : input.parameters;
+    if (!requestedParameters || typeof requestedParameters !== "object" || Array.isArray(requestedParameters)
+      || canonicalJson(requestedParameters) !== canonicalJson(option.defaultParameters)) {
+      throw new Error("organization_player_task_parameters_invalid");
+    }
+    const requestedBrief = String(input.brief || "").trim();
+    if (requestedBrief.length > 4000) throw new Error("organization_player_task_brief_invalid");
+    return {
+      schemaVersion: 1,
+      catalogRef: {
+        catalogId: catalog.catalogId,
+        catalogVersion: catalog.catalogVersion,
+        catalogChecksum: catalog.catalogChecksum,
+        catalogDigest: catalog.digest
+      },
+      taskCode: option.taskCode,
+      taskType: option.taskType,
+      parameterSnapshot: JSON.parse(JSON.stringify(requestedParameters)),
+      presentationSnapshot: {
+        schemaVersion: 1,
+        title: option.title,
+        purpose: option.purpose,
+        brief: requestedBrief || option.defaultBrief,
+        acceptanceCriteria: [...option.coreRequirements, ...option.ordinaryRequirements],
+        coreRequirements: [...option.coreRequirements],
+        ordinaryRequirements: [...option.ordinaryRequirements],
+        parameterSchema: JSON.parse(JSON.stringify(option.parameterSchema)),
+        dispatchEditableParameterPaths: [...option.dispatchEditableParameterPaths]
+      },
+      executionPolicy: {
+        baseExecutionGameSeconds: option.baseExecutionGameSeconds,
+        virtualExecutionGameSeconds: option.virtualExecutionGameSeconds
+      },
+      contributionPolicy: {
+        successOrganizationContribution: option.successOrganizationContribution,
+        successMemberContribution: option.successMemberContribution
+      }
+    };
+  }
+
+  function localPlayerTaskContribution(task) {
+    const configured = Number(task?.taskDefinitionSnapshot?.contributionPolicy?.successMemberContribution);
+    const success = Number.isSafeInteger(configured) && configured >= 0 ? configured : 20;
+    return task?.state === "SUCCEEDED" ? success : task?.state === "PARTIALLY_COMPLETED" ? Math.floor(success / 2) : 0;
+  }
+
   async function localOrganizationPlayerTasks() {
     const currentProfile = offlineProfile || read("dongzhou-h5-profile-v2", null);
     const organization = currentProfile?.organization || {};
@@ -1347,6 +1397,7 @@
         error.catalog = catalog;
         throw error;
       }
+      const taskDefinitionSnapshot = localPlayerTaskDefinitionSnapshot(option, catalog, input);
       const capacity = await localPlayerTaskCapacity(organization, tasks);
       if (capacity.activeTaskCount >= capacity.maximumActiveTasks) {
         const error = new Error(`在办差事已达上限 ${capacity.maximumActiveTasks} 项，请先处理现有差事。`);
@@ -1365,6 +1416,7 @@
         taskCode: option.taskCode,
         contextId: option.contextId,
         catalogDigest: catalog.digest,
+        taskDefinitionSnapshot,
         title: option.title,
         state: "MEMBER_RESPONSE_PENDING",
         version: 1,
@@ -1473,7 +1525,7 @@
       tasks[taskIndex] = task;
     }
     const career = organization.localPlayerCareer || { state: "ACTIVE", version: 1, contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 };
-    const reward = task?.state === "SUCCEEDED" ? 20 : task?.state === "PARTIALLY_COMPLETED" ? 10 : 0;
+    const reward = localPlayerTaskContribution(task);
     const settledNow = reward > 0 && ["RESULT", "SUPPLEMENT"].includes(normalizedAction);
     const nextCareer = settledNow
       ? { ...career, contributionBalance: career.contributionBalance + reward, lifetimeEarned: career.lifetimeEarned + reward }
@@ -1520,7 +1572,7 @@
       if (boundary > 0) {
         const task = tasks[boundary - 1];
         if (["SUCCEEDED", "PARTIALLY_COMPLETED"].includes(task.state) && !task.localTraceMigratedFromV1 && String(task.result || "").trim()) {
-      const amount = task.state === "SUCCEEDED" ? 20 : 10;
+      const amount = localPlayerTaskContribution(task);
       balance += amount;
       lifetimeEarned += amount;
       const trace = {
