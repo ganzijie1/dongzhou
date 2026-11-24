@@ -213,6 +213,16 @@ const sourceBoundOutcomeSnapshot = {
 const sourceBoundObserved = play.reconcileRemoteTasks(sealedTask.state, [sourceBoundOutcomeSnapshot], { advanceMonth: false });
 assert.strictEqual(sourceBoundObserved.tasks.find((task) => task.remoteResult === sourcedSnapshot.task_id).npcOutcome.receipt.sourceProvenance.digest, sourceProvenance.digest);
 assert.strictEqual(sourceBoundObserved.tasks.find((task) => task.remoteResult === sourcedSnapshot.task_id).organizationTrace.sourceProvenance.digest, sourceProvenance.digest);
+const rotatedSourceProvenance = { ...sourceProvenance, digest: "6".repeat(64) };
+const rotatedTraceSnapshot = {
+  ...sourcedSnapshot,
+  runtimeSourceProvenance: rotatedSourceProvenance,
+  organizationTrace: { ...sourceBoundOutcomeSnapshot.organizationTrace, sourceProvenance: rotatedSourceProvenance },
+};
+const rotatedTraceObserved = play.reconcileRemoteTasks(sealedTask.state, [rotatedTraceSnapshot], { advanceMonth: false });
+assert.strictEqual(rotatedTraceObserved.tasks.find((task) => task.remoteResult === sourcedSnapshot.task_id).sourceProvenance.digest, sourceProvenance.digest);
+assert.strictEqual(rotatedTraceObserved.tasks.find((task) => task.remoteResult === sourcedSnapshot.task_id).organizationTrace.sourceProvenance.digest, rotatedSourceProvenance.digest);
+assert.throws(() => play.reconcileRemoteTasks(sealedTask.state, [{ ...rotatedTraceSnapshot, runtimeSourceProvenance: { ...rotatedSourceProvenance, digest: "invalid" } }], { advanceMonth: false }), /组织任务运行时服务来源无效/);
 assert.throws(() => play.reconcileRemoteTasks(sealedTask.state, [{ ...sourceBoundOutcomeSnapshot, npcOutcome: { state: "DELIVERED" } }], { advanceMonth: false }), /主将结算回执服务来源无效/);
 assert.throws(() => play.reconcileRemoteTasks(sealedTask.state, [{ ...sourceBoundOutcomeSnapshot, supportNpcOutcomes: [{ state: "DELIVERED", receipt: sourceBoundReceipt("dongzhou_npc_settlement", "1.1.0", "2".repeat(64)) }] }], { advanceMonth: false }), /协同结算回执服务来源无效/);
 assert.throws(() => play.reconcileRemoteTasks(sealedTask.state, [{ ...sourceBoundOutcomeSnapshot, npcConsequence: { state: "DELIVERED", receipt: sourceBoundReceipt("dongzhou_npc_settlement", "1.2.0", "3".repeat(64)) } }], { advanceMonth: false }), /复核关系回执服务来源无效/);
@@ -358,6 +368,16 @@ const sourceBoundAcceptedReview = {
   }
 };
 assert.strictEqual(play.recordTaskReview(sourceBoundReviewState, { taskId: remote.task.remoteResult, review: sourceBoundAcceptedReview }).state.tasks.at(-1).pendingReview.growthReward.sourceProvenance.digest, sourceProvenance.digest);
+const rotatedReviewState = JSON.parse(JSON.stringify(sourceBoundReviewState));
+rotatedReviewState.tasks.at(-1).runtimeSourceProvenance = rotatedSourceProvenance;
+const rotatedAcceptedReview = {
+  ...sourceBoundAcceptedReview,
+  review: { ...sourceBoundAcceptedReview.review, sourceProvenance: rotatedSourceProvenance },
+  growthReward: { ...sourceBoundAcceptedReview.growthReward, sourceProvenance: rotatedSourceProvenance },
+};
+const rotatedReviewRecorded = play.recordTaskReview(rotatedReviewState, { taskId: remote.task.remoteResult, review: rotatedAcceptedReview });
+assert.strictEqual(rotatedReviewRecorded.state.tasks.at(-1).sourceProvenance.digest, sourceProvenance.digest);
+assert.strictEqual(rotatedReviewRecorded.state.tasks.at(-1).pendingReview.growthReward.sourceProvenance.digest, rotatedSourceProvenance.digest);
 assert.throws(() => play.recordTaskReview(sourceBoundReviewState, { taskId: remote.task.remoteResult, review: { ...sourceBoundAcceptedReview, review: { ...sourceBoundAcceptedReview.review, sourceProvenance: { ...sourceProvenance, digest: "9".repeat(64) } } } }), /组织结算复核服务来源无效/);
 assert.throws(() => play.recordTaskReview(sourceBoundReviewState, { taskId: remote.task.remoteResult, review: { ...sourceBoundAcceptedReview, growthReward: { ...sourceBoundAcceptedReview.growthReward, kernel: { ...sourceBoundAcceptedReview.growthReward.kernel, moduleVersion: "1.13.0" } } } }), /复命记功印记无效/);
 const acceptedRelationship = {

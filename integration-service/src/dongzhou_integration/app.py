@@ -12135,6 +12135,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 if task_source_provenance is not None
                 else {}
             ),
+            "runtimeSourceProvenance": service_provenance.receipt(),
             **(
                 {"organizationTopology": composite_topology}
                 if composite_topology is not None

@@ -506,6 +506,37 @@ saveJournal();
         saveJournal();
         await page.click("#officeAdvanceButton");
         await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, undefined, { timeout: 240000 });
+      } else {
+        const localTiming = await page.evaluate(({ key, taskId }) => {
+          const organization = JSON.parse(localStorage.getItem(key)).organization;
+          const task = organization.tasks.find((entry) => entry.remoteResult === taskId);
+          return task ? { month: organization.month, dueMonth: task.dueMonth, status: task.status } : null;
+        }, { key: PROFILE, taskId: issued.task.remoteResult });
+        if (localTiming?.status === "active" && localTiming.month < localTiming.dueMonth) {
+          journal.stage = "recovery-advance-due";
+          saveJournal();
+          let advanceDiagnostic = null;
+          for (let attempt = 1; attempt <= 4; attempt += 1) {
+            await page.click("#officeAdvanceButton");
+            await page.waitForFunction(() => !document.querySelector("#officeAdvanceButton").disabled, undefined, { timeout: 240000 });
+            advanceDiagnostic = await page.evaluate(({ key, month, taskId }) => {
+              const organization = JSON.parse(localStorage.getItem(key)).organization;
+              const task = organization.tasks.find((entry) => entry.remoteResult === taskId);
+              return {
+                advanced: organization.month > month,
+                month: organization.month,
+                readyForReview: task?.pendingReview?.state === "REQUIRES_ACTION",
+                notice: document.querySelector("#floatingNotice")?.textContent?.trim() || "",
+              };
+            }, { key: PROFILE, month: localTiming.month, taskId: issued.task.remoteResult });
+            if (advanceDiagnostic.advanced || advanceDiagnostic.readyForReview) break;
+            if (attempt < 4) await page.waitForTimeout(5000);
+          }
+          assert(
+            advanceDiagnostic?.advanced || advanceDiagnostic?.readyForReview,
+            `recovery could not advance to the due month: ${JSON.stringify(advanceDiagnostic)}`
+          );
+        }
       }
     }
     const advanceBlocker = await page.evaluate(async (taskId) => {

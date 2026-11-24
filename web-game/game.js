@@ -3603,7 +3603,7 @@
   function organizationTaskSnapshot(response) {
     const snapshot = response.result?.data || response.result || null;
     return snapshot && typeof snapshot === "object"
-      ? { ...snapshot, assigneeHeroId: response.assigneeHeroId || null, settlement: response.settlement || null, closureReceipt: response.closureReceipt || null, npcOutcome: response.npcOutcome || null, supportNpcOutcomes: Array.isArray(response.supportNpcOutcomes) ? response.supportNpcOutcomes : [], collaborationRelationship: response.collaborationRelationship || null, organizationTrace: response.organizationTrace || null, organizationTopology: response.organizationTopology || null, npcConsequence: response.npcConsequence || null, review: response.review || null, followUps: Array.isArray(response.followUps) ? response.followUps : [], sourceProvenance: response.sourceProvenance || null }
+      ? { ...snapshot, assigneeHeroId: response.assigneeHeroId || null, settlement: response.settlement || null, closureReceipt: response.closureReceipt || null, npcOutcome: response.npcOutcome || null, supportNpcOutcomes: Array.isArray(response.supportNpcOutcomes) ? response.supportNpcOutcomes : [], collaborationRelationship: response.collaborationRelationship || null, organizationTrace: response.organizationTrace || null, organizationTopology: response.organizationTopology || null, npcConsequence: response.npcConsequence || null, review: response.review || null, followUps: Array.isArray(response.followUps) ? response.followUps : [], sourceProvenance: response.sourceProvenance || null, runtimeSourceProvenance: response.runtimeSourceProvenance || null }
       : snapshot;
   }
 

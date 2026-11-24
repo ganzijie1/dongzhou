@@ -886,7 +886,10 @@
       const expectedSource = task.sourceProvenance || task.mandate?.sourceProvenance;
       if (snapshotSource && (!validSourceProvenance(snapshotSource) || (expectedSource && snapshotSource.digest !== expectedSource.digest))) throw new Error("组织任务快照服务来源不一致");
       if (snapshotSource) task.sourceProvenance = copy(snapshotSource);
-      const authoritativeSource = snapshotSource || expectedSource;
+      const runtimeSource = snapshot.runtimeSourceProvenance;
+      if (runtimeSource && !validSourceProvenance(runtimeSource)) throw new Error("组织任务运行时服务来源无效");
+      if (runtimeSource) task.runtimeSourceProvenance = copy(runtimeSource);
+      const authoritativeSource = runtimeSource || snapshotSource || expectedSource;
       if (snapshot.npcOutcome && typeof snapshot.npcOutcome === "object") {
         validateSourceBoundOutcome(snapshot.npcOutcome, authoritativeSource, "dongzhou_npc_settlement", "1.2.0", "主将结算回执");
         task.npcOutcome = copy(snapshot.npcOutcome);
@@ -927,7 +930,7 @@
           || topology.kernel?.moduleVersion !== "1.1.0"
           || topology.kernel?.state !== "SEALED"
           || !validSourceProvenance(topologySource)
-          || topologySource.digest !== (snapshotSource || expectedSource)?.digest
+          || topologySource.digest !== authoritativeSource?.digest
           || (topology.supportTrace?.state === "SEALED" && (
             topology.supportTrace?.kernel?.moduleVersion !== "1.1.0"
             || topology.supportTrace?.sourceProvenance?.digest !== topologySource.digest
@@ -1048,13 +1051,13 @@
     const task = state.tasks.find((entry) => entry.status === "active" && String(entry.remoteResult) === String(input?.taskId || ""));
     const review = input?.review;
     if (!task || !review || !["ACCEPTED", "CENSURED"].includes(review.state)) throw new Error("复命裁决与当前差事不匹配");
-    validateSourceBoundReview(review, task.sourceProvenance || task.mandate?.sourceProvenance, task.remoteResult, task.pendingSettlement, { digest: task.pendingReview?.review?.closureDigest });
+    validateSourceBoundReview(review, task.runtimeSourceProvenance || task.sourceProvenance || task.mandate?.sourceProvenance, task.remoteResult, task.pendingSettlement, { digest: task.pendingReview?.review?.closureDigest });
     const pending = task.pendingReview;
     if (!pending || pending.review?.settlementId !== review.review?.settlementId || pending.review?.closureDigest !== review.review?.closureDigest) {
       throw new Error("复命裁决印记与待裁簿书不匹配");
     }
     const growth = review.growthReward;
-    const authoritativeSource = task.sourceProvenance || task.mandate?.sourceProvenance;
+    const authoritativeSource = task.runtimeSourceProvenance || task.sourceProvenance || task.mandate?.sourceProvenance;
     const expectsGrowth = review.state === "ACCEPTED" && Number(task.pendingSettlement?.organizationDelta || 0) > 0;
     const validGrowth = growth
       && growth.settlementId === review.review.settlementId

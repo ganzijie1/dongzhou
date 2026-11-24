@@ -2208,6 +2208,10 @@ def test_mandate_binds_kernel_knowledge_npc_and_organization() -> None:
                 task_state.json()["sourceProvenance"]
                 == mandate["sourceProvenance"]
             )
+            assert (
+                task_state.json()["runtimeSourceProvenance"]
+                == mandate["sourceProvenance"]
+            )
 
             connection = sqlite3.connect(Path(directory) / "gateway.sqlite3")
             try:
