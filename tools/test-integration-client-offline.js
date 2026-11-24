@@ -70,6 +70,45 @@ const client = require("../web-game/integration-client.js");
   assert.deepStrictEqual(codex.results[0].people, ["Du Bo"]);
   assert.ok(values.has("dongzhou-knowledge-codex-v1"));
 
+  const commendation = await client.commendNpc("DuBo", { stage_id: "01", knowledge_id: "dongzhou_stage_001" });
+  assert.strictEqual(commendation.state, "COMPLETED");
+  assert.strictEqual(commendation.commendation.kernel.module, "dongzhou_npc_commendation");
+  assert.strictEqual(commendation.commendation.affectionDelta, 2);
+  assert.strictEqual((await client.commendNpc("DuBo", { stage_id: "01", knowledge_id: "dongzhou_stage_001" })).replayed, true);
+  const commendationKey = [...values.keys()].find((key) => key.startsWith("dongzhou-local-npc-commendation-v1:"));
+  const cleanCommendation = values.get(commendationKey);
+  const forgedCommendation = JSON.parse(cleanCommendation);
+  forgedCommendation.commendation.digest = "0".repeat(64);
+  values.set(commendationKey, JSON.stringify(forgedCommendation));
+  await assert.rejects(
+    client.commendNpc("DuBo", { stage_id: "01", knowledge_id: "dongzhou_stage_001" }),
+    /npc_commendation_seal_invalid/
+  );
+  values.set(commendationKey, cleanCommendation);
+  await assert.rejects(
+    client.commendNpc("DuBo", { stage_id: "01", knowledge_id: "forged" }),
+    /npc_history_knowledge_invalid|npc_commendation_conflict/
+  );
+  const recollection = await client.recallNpc("DuBo", { stage_id: "01", knowledge_id: "dongzhou_stage_001" });
+  assert.strictEqual(recollection.state, "COMPLETED");
+  assert.strictEqual(recollection.recollection.kernel.module, "dongzhou_npc_recollection");
+  assert.strictEqual(recollection.recollection.memoryReceipt.digest, recollection.recollection.memoryDigest);
+  assert.strictEqual((await client.recallNpc("DuBo", { stage_id: "01", knowledge_id: "dongzhou_stage_001" })).replayed, true);
+  const recollectionKey = [...values.keys()].find((key) => key.startsWith("dongzhou-local-npc-recollection-v1:"));
+  const cleanRecollection = values.get(recollectionKey);
+  const forgedRecollection = JSON.parse(cleanRecollection);
+  forgedRecollection.recollection.memoryReceipt.content = "forged memory";
+  values.set(recollectionKey, JSON.stringify(forgedRecollection));
+  await assert.rejects(
+    client.recallNpc("DuBo", { stage_id: "01", knowledge_id: "dongzhou_stage_001" }),
+    /npc_recollection_seal_invalid/
+  );
+  values.set(recollectionKey, cleanRecollection);
+  await assert.rejects(
+    client.recallNpc("Unknown", { stage_id: "01", knowledge_id: "dongzhou_stage_001" }),
+    /npc_not_in_local_organization/
+  );
+
   const battlePlan = {
     formation: "balanced",
     vanguardHeroId: "DuBo",
@@ -238,7 +277,7 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(rejected.guide.kernel.state, "SEALED");
   assert.strictEqual(fetchedUrls.some((url) => url.includes("/api/")), false);
 
-  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true, localBattleGate: true, localDebrief: true }));
+  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true, localBattleGate: true, localDebrief: true, localCommendation: true, localRecollection: true }));
 })().catch((error) => {
   console.error(error.stack || error.message);
   process.exitCode = 1;

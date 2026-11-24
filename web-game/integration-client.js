@@ -22,6 +22,8 @@
   const BATTLE_READINESS_PREFIX = "dongzhou-local-battle-readiness-v1:";
   const BATTLE_DEPLOYMENT_PREFIX = "dongzhou-local-battle-deployment-v1:";
   const BATTLE_DEBRIEF_PREFIX = "dongzhou-local-battle-debrief-v1:";
+  const NPC_COMMENDATION_PREFIX = "dongzhou-local-npc-commendation-v1:";
+  const NPC_RECOLLECTION_PREFIX = "dongzhou-local-npc-recollection-v1:";
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
   let session = read(SESSION_KEY, null);
   let sessionPromise = null;
@@ -103,6 +105,121 @@
     if (!response.ok) throw new Error("knowledge_quiz_unavailable");
     const payload = await response.json();
     return Array.isArray(payload?.entries) ? payload.entries : [];
+  }
+
+  async function localPublishedKnowledge(stageId, knowledgeId) {
+    const entry = (await localKnowledgeCatalog()).find((item) => item
+      && String(item.stageId || "") === String(stageId)
+      && String(item.id || item.aku_id || "") === String(knowledgeId));
+    if (!entry || !String(knowledgeId || "").startsWith("dongzhou_stage_")) throw new Error("npc_history_knowledge_invalid");
+    return entry;
+  }
+
+  function requireLocalOfficer(heroId) {
+    const currentProfile = read("dongzhou-h5-profile-v2", offlineProfile) || offlineProfile;
+    const members = Array.isArray(currentProfile?.organization?.members) ? currentProfile.organization.members : [];
+    const member = members.find((entry) => String(entry?.id || "") === String(heroId));
+    if (!member) throw new Error("npc_not_in_local_organization");
+    return member;
+  }
+
+  function localKnowledgeSource(entry, input = {}) {
+    const sources = Array.isArray(entry?.sourceDetails) ? entry.sourceDetails : Array.isArray(entry?.sources) ? entry.sources : [];
+    const index = Number.isInteger(input?.source_index) ? input.source_index : 0;
+    const source = sources[index];
+    const work = String(source?.work || source?.name || "");
+    if (!source || !work || (input?.source_work && String(input.source_work) !== work)) throw new Error("npc_history_source_invalid");
+    return work;
+  }
+
+  async function buildLocalNpcCommendation(heroId, input) {
+    requireLocalOfficer(heroId);
+    const knowledge = await localPublishedKnowledge(input?.stage_id, input?.knowledge_id);
+    const playerId = await localPlayerId();
+    const identity = await sha256(`${playerId}\n${input.stage_id}\n${heroId}\ndongzhou-npc-commendation-v1`);
+    const trace = {
+      eventId: `npc-commendation:${identity}`,
+      playerId,
+      heroId: String(heroId),
+      npcId: `local:${heroId}`,
+      stageId: String(input.stage_id),
+      knowledgeId: String(input.knowledge_id),
+      knowledgeTitle: String(knowledge.name || knowledge.title || input.knowledge_id),
+      sourceWork: localKnowledgeSource(knowledge, input),
+      affectionType: "appreciation",
+      affectionDelta: 2,
+      sourceProvenance: await localServiceProvenance()
+    };
+    return {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: { module: "dongzhou_npc_commendation", moduleVersion: "1.1.0", state: "SEALED" }
+    };
+  }
+
+  async function localCommendNpc(heroId, input) {
+    const key = `${NPC_COMMENDATION_PREFIX}${input?.stage_id || ""}:${heroId}`;
+    const receipt = await buildLocalNpcCommendation(heroId, input);
+    const existing = read(key, null);
+    if (existing) {
+      if (canonicalJson(existing.input) !== canonicalJson(input)) throw new Error("npc_commendation_conflict");
+      if (canonicalJson(existing.commendation) !== canonicalJson(receipt)) throw new Error("npc_commendation_seal_invalid");
+      return { state: "COMPLETED", replayed: true, commendation: receipt };
+    }
+    write(key, { input, commendation: receipt });
+    return { state: "COMPLETED", replayed: false, commendation: receipt };
+  }
+
+  async function buildLocalNpcRecollection(heroId, input) {
+    requireLocalOfficer(heroId);
+    const knowledge = await localPublishedKnowledge(input?.stage_id, input?.knowledge_id);
+    const playerId = await localPlayerId();
+    const stageIndex = Math.max(0, Number(knowledge.index || 0));
+    const memoryId = `local-memory:${input.stage_id}:${heroId}:${input.knowledge_id}`;
+    const memoryReceipt = {
+      idempotencyKey: memoryId,
+      sourceType: "dialogue_choice",
+      factKind: "event",
+      timestamp: new Date(Date.UTC(2000, 0, 1) + stageIndex * 86400000).toISOString(),
+      content: `${heroId}据${localKnowledgeSource(knowledge, input)}忆起：${String(knowledge.summary || knowledge.objective || knowledge.name || input.knowledge_id).slice(0, 800)}`
+    };
+    memoryReceipt.digest = await sha256(canonicalJson(memoryReceipt));
+    const identity = await sha256(`${playerId}\n${input.stage_id}\n${heroId}\n${input.knowledge_id}\n${memoryReceipt.digest}\ndongzhou-npc-recollection-v1`);
+    const trace = {
+      recollectionId: `npc-recollection:${identity}`,
+      playerId,
+      heroId: String(heroId),
+      npcId: `local:${heroId}`,
+      stageId: String(input.stage_id),
+      knowledgeId: String(input.knowledge_id),
+      knowledgeTitle: String(knowledge.name || knowledge.title || input.knowledge_id),
+      sourceWork: localKnowledgeSource(knowledge, input),
+      memoryId,
+      memoryType: memoryReceipt.sourceType,
+      memoryTimestamp: memoryReceipt.timestamp,
+      memoryContent: memoryReceipt.content,
+      memoryDigest: memoryReceipt.digest,
+      memoryReceipt,
+      matchMode: "knowledge_dialogue",
+      sourceProvenance: await localServiceProvenance()
+    };
+    return {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: { module: "dongzhou_npc_recollection", moduleVersion: "1.2.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    };
+  }
+
+  async function localRecallNpc(heroId, input) {
+    const key = `${NPC_RECOLLECTION_PREFIX}${input?.stage_id || ""}:${heroId}:${input?.knowledge_id || ""}`;
+    const receipt = await buildLocalNpcRecollection(heroId, input);
+    const existing = read(key, null);
+    if (existing) {
+      if (canonicalJson(existing.recollection) !== canonicalJson(receipt)) throw new Error("npc_recollection_seal_invalid");
+      return { state: "COMPLETED", replayed: true, recollection: receipt };
+    }
+    write(key, { input, recollection: receipt });
+    return { state: "COMPLETED", replayed: false, recollection: receipt };
   }
 
   async function buildLocalKnowledgeQuiz(questionId, stageId, deadlineAt) {
@@ -741,6 +858,12 @@
     }
     write(KNOWLEDGE_CODEX_KEY, codex);
   }
+  function localKnowledgeView(entry) {
+    const sourceDetails = Array.isArray(entry?.sourceDetails)
+      ? entry.sourceDetails
+      : Array.isArray(entry?.sources) ? entry.sources.filter((source) => source && typeof source === "object") : [];
+    return { ...entry, sourceDetails };
+  }
   async function searchKnowledge(query, limit, stageId) {
     if (!offline) {
       const result = await request("/knowledge/search", { method: "POST", body: JSON.stringify({ client_request_id: root.crypto.randomUUID(), ...(stageId ? { stage_id: String(stageId) } : {}), query, limit }) });
@@ -757,7 +880,7 @@
     const results = (data.entries || []).map((entry) => {
       const haystack = [entry.name, entry.summary, entry.content, ...(entry.keywords || [])].join(" ").toLocaleLowerCase();
       return { entry, score: terms.reduce((score, term) => score + (haystack.includes(term) ? 1 : 0), 0) };
-    }).filter((item) => !terms.length || item.score).sort((a, b) => b.score - a.score || a.entry.index - b.entry.index).slice(0, limit).map((item) => item.entry);
+    }).filter((item) => !terms.length || item.score).sort((a, b) => b.score - a.score || a.entry.index - b.entry.index).slice(0, limit).map((item) => localKnowledgeView(item.entry));
     rememberKnowledge(results);
     return { mode: "offline", query, results };
   }
@@ -831,6 +954,7 @@
   function syncNpcs(npcs) { return request("/npcs/sync", { method: "POST", body: JSON.stringify({ npcs: npcs.map((npc) => ({ hero_id: npc.heroId, name: npc.name })) }) }); }
   function setNpcInteractionPreference(enabled) { return request("/npcs/interaction-preference", { method: "POST", body: JSON.stringify({ enabled: Boolean(enabled) }) }); }
   async function commendNpc(heroId, input) {
+    if (offline) return localCommendNpc(heroId, input);
     for (let attempt = 0; attempt < 12; attempt += 1) {
       const result = await request(`/npcs/${encodeURIComponent(heroId)}/commendations`, {
         method: "POST",
@@ -853,6 +977,7 @@
     throw new Error("论功慰勉仍在送达，请稍后重试");
   }
   function recallNpc(heroId, input) {
+    if (offline) return localRecallNpc(heroId, input);
     return request(`/npcs/${encodeURIComponent(heroId)}/recollections`, {
       method: "POST",
       body: JSON.stringify(input)
@@ -1256,7 +1381,7 @@
     const response = await root.fetch("scenario/dongzhou-knowledge.json", { cache: "no-store" });
     if (!response.ok) throw new Error("史料目录暂不可达");
     const data = await response.json();
-    const results = (data.entries || []).filter((entry) => entry.stageId === stageId);
+    const results = (data.entries || []).filter((entry) => entry.stageId === stageId).map(localKnowledgeView);
     rememberKnowledge(results);
     return { mode: "offline", stageId, results };
   }

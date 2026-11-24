@@ -77,8 +77,29 @@ async function openReady(page) {
     await desktop.fill("#officeKnowledgeQuery", "东郊索命 杜伯");
     await desktop.click("#officeKnowledgeForm button[type=submit]");
     await desktop.waitForSelector("#officeKnowledgeResults article", { timeout: 10000 });
+    await desktop.click("#officeKnowledgeResults .office-source-choice:not(:disabled)");
     await desktop.click("#officeStageKnowledgeButton");
     await desktop.waitForSelector("#officeKnowledgeResults article");
+    await desktop.waitForSelector("#officeCommendButton:not(:disabled)");
+    await desktop.click("#officeCommendButton");
+    await desktop.waitForFunction(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.commendations.length === 1);
+    await desktop.waitForSelector("#officeRecollectionButton:not(:disabled)");
+    await desktop.click("#officeRecollectionButton");
+    await desktop.waitForFunction(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.recollections.length === 1);
+    const localNpcHistory = await desktop.evaluate(() => {
+      const organization = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization;
+      return { commendation: organization.commendations[0], recollection: organization.recollections[0] };
+    });
+    if (localNpcHistory.commendation.kernel?.module !== "dongzhou_npc_commendation"
+      || localNpcHistory.commendation.kernel?.moduleVersion !== "1.1.0"
+      || Object.keys(localNpcHistory.commendation.sourceProvenance?.services || {}).length !== 4) {
+      throw new Error("Offline commendation lacks the four-repository Nexus seal");
+    }
+    if (localNpcHistory.recollection.kernel?.module !== "dongzhou_npc_recollection"
+      || localNpcHistory.recollection.kernel?.moduleVersion !== "1.2.0"
+      || localNpcHistory.recollection.memoryReceipt?.digest !== localNpcHistory.recollection.memoryDigest) {
+      throw new Error("Offline recollection lacks the sealed local AINPC memory");
+    }
     await desktop.click("#officeQuizStart");
     await desktop.waitForSelector("[data-quiz-answer]");
     const stagePeople = new Set(["周宣王", "伯阳父", "乡民", "杜伯", "左儒", "尹吉甫"]);
@@ -103,7 +124,7 @@ async function openReady(page) {
     if (completedGuide.kernel?.module !== "dongzhou_adviser_guide" || completedGuide.kernel?.moduleVersion !== "1.1.0" || completedGuide.kernel?.state !== "SEALED") throw new Error("Offline adviser guide lacks the Nexus seal");
     await desktop.click('[data-adviser-rating="accurate"]');
     await desktop.waitForSelector("#officeAdviserAnswer >> text=已记下评价：准确");
-    if (offlineApiRequests !== 0) throw new Error(`Offline knowledge/adviser flow made ${offlineApiRequests} API requests`);
+    if (offlineApiRequests !== 0) throw new Error(`Offline knowledge/NPC/adviser flow made ${offlineApiRequests} API requests`);
     await desktop.waitForSelector('[data-adviser-route]:not([hidden]) >> text=查看关卡入口');
     await desktop.click("[data-adviser-route]");
     await desktop.waitForSelector("#campaignOfficeBackdrop", { state: "hidden" });

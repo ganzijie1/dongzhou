@@ -1302,7 +1302,8 @@
     try {
       const response = await integration.commendNpc(member.id, {
         stage_id: String(officeStage().id),
-        knowledge_id: evidence.knowledge.id
+        knowledge_id: evidence.knowledge.id,
+        ...(integration.isOffline() ? { source_index: evidence.source.index, source_work: evidence.source.work } : {})
       });
       if (response?.state !== "COMPLETED" || !response.commendation) throw new Error("慰勉尚未完成");
       const recorded = organization.recordCommendation(profile.organization, response.commendation);
@@ -1360,7 +1361,8 @@
     try {
       const response = await integration.recallNpc(member.id, {
         stage_id: String(officeStage().id),
-        knowledge_id: evidence.knowledge.id
+        knowledge_id: evidence.knowledge.id,
+        ...(integration.isOffline() ? { source_index: evidence.source.index, source_work: evidence.source.work } : {})
       });
       if (response?.state !== "COMPLETED" || !response.recollection) throw new Error("属官尚未忆起可核验旧事");
       const recorded = organization.recordRecollection(profile.organization, response.recollection);
@@ -1948,11 +1950,11 @@
     const latestCommendation = [...org.commendations].reverse().find((entry) => entry.heroId === selectedHeroId && entry.stageId === currentStageId && entry.kernel?.module === "dongzhou_npc_commendation");
     const selectedKnowledgeId = currentOfficeEvidence()?.knowledge?.id;
     const latestRecollection = [...org.recollections].reverse().find((entry) => entry.heroId === selectedHeroId && entry.stageId === currentStageId && entry.knowledgeId === selectedKnowledgeId);
-    $("#officeCommendButton").disabled = officeCommendationInFlight || integration.isOffline();
+    $("#officeCommendButton").disabled = officeCommendationInFlight || !selectedKnowledgeId;
     $("#officeCommendationResult").textContent = latestCommendation
       ? `已据《${latestCommendation.knowledgeTitle}》慰勉 ${displayName(latestCommendation.heroId)} · 感激 +${Number(latestCommendation.affectionDelta)} · 印记 ${String(latestCommendation.digest).slice(0, 12)}${latestCommendation.sourceProvenance?.digest ? ` · 版本封印 ${latestCommendation.sourceProvenance.digest.slice(0, 10)}` : ""}`
       : "选定本回出处后，可慰勉当前在职属官；每关每人只结算一次。";
-    $("#officeRecollectionButton").disabled = officeRecollectionInFlight || integration.isOffline();
+    $("#officeRecollectionButton").disabled = officeRecollectionInFlight || !selectedKnowledgeId;
     $("#officeRecollectionResult").textContent = latestRecollection
       ? `${latestRecollection.memoryType === "dialogue_choice" ? "旧议" : "战报"}：${latestRecollection.memoryContent.slice(0, 90)} · ${officeSelectedMemory?.idempotencyKey === latestRecollection.memoryId ? "已取为军议依据 · " : ""}印记 ${String(latestRecollection.digest).slice(0, 12)}${latestRecollection.sourceProvenance?.digest ? ` · 版本封印 ${latestRecollection.sourceProvenance.digest.slice(0, 10)}` : ""}`
       : "选定本回出处后，可请当前属官据史追忆可核验旧事。";
