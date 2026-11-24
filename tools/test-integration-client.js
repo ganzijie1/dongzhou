@@ -46,6 +46,7 @@ let knowledgeSearchInput = null;
 let knowledgeCodexRequests = 0;
 let battleDebriefRequests = 0;
 let battleReadinessInput = null;
+let battleDeploymentInput = null;
 let adviserQuestionInput = null;
 let adviserStatusReads = 0;
 let adviserFeedbackInput = null;
@@ -132,7 +133,11 @@ global.fetch = async (url, options = {}) => {
   }
   else if (url.endsWith("/battle-readiness")) {
     battleReadinessInput = body;
-    response = { state: "READY", stageId: body.stage_id, digest: "6".repeat(64), kernel: { module: "dongzhou_battle_readiness", moduleVersion: "1.0.0", state: "SEALED" } };
+    response = { state: "READY", stageId: body.stage_id, digest: "6".repeat(64), kernel: { module: "dongzhou_battle_readiness", moduleVersion: "1.1.0", state: "SEALED" } };
+  }
+  else if (url.endsWith("/battle-deployment")) {
+    battleDeploymentInput = body;
+    response = { state: "AUTHORIZED", stageId: body.stage_id, reportId: `battle:${body.stage_id}:deployment-1`, digest: "5".repeat(64), kernel: { module: "dongzhou_battle_deployment", moduleVersion: "1.0.0", state: "SEALED" } };
   }
   else if (url.endsWith("/adviser/questions") && options.method === "POST") {
     adviserQuestionInput = body;
@@ -361,6 +366,13 @@ const client = require("../web-game/integration-client.js");
   const readiness = await client.battleReadiness("01");
   assert.strictEqual(readiness.kernel.module, "dongzhou_battle_readiness");
   assert.deepStrictEqual(battleReadinessInput, { stage_id: "01" });
+  const deployment = await client.battleDeployment("01", readiness, null);
+  assert.strictEqual(deployment.kernel.module, "dongzhou_battle_deployment");
+  assert.deepStrictEqual(battleDeploymentInput, {
+    stage_id: "01",
+    battle_readiness: readiness,
+    campaign_route: null
+  });
   const adviser = await client.askAdviser({ question: "key people?", stage_id: "01", stage_title: "stage one", stage_index: 1 });
   assert.strictEqual(adviser.state, "PROCESSING");
   assert.match(adviserQuestionInput.client_request_id, /^[0-9a-f-]{36}$/);

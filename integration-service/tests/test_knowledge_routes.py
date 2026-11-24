@@ -158,9 +158,20 @@ def test_campaign_route_requires_completed_predecessor_and_validates_published_d
     (scenario / "campaign.json").write_text(json.dumps({
         "stages": [{"id": "01", "index": 1}, {"id": "02", "index": 2}],
     }), encoding="utf-8")
-    with patch.dict("os.environ", {"DONGZHOU_ENV": "test", "DONGZHOU_WEB_ROOT": str(tmp_path), "DONGZHOU_DATABASE_PATH": str(tmp_path / "save.db")}, clear=True):
+    with patch.dict("os.environ", {
+        "DONGZHOU_ENV": "test",
+        "DONGZHOU_WEB_ROOT": str(tmp_path),
+        "DONGZHOU_DATABASE_PATH": str(tmp_path / "save.db"),
+        "DONGZHOU_ORGFLOW_ORG_ID": "00000000-0000-4000-8000-000000000100",
+        "DONGZHOU_ORGFLOW_HERO_MEMBERS": (
+            "DuBo=00000000-0000-4000-8000-000000000101"
+        ),
+    }, clear=True):
         settings = Settings.from_env()
     upstreams = PublishedKnowledge()
+    upstreams.online_ids = {
+        str(stable_npc_id(settings.ainpc_game_server_id, "DuBo"))
+    }
     request = {
         "from_stage_id": "01",
         "from_stage_index": 1,
@@ -208,14 +219,29 @@ def test_campaign_route_requires_completed_predecessor_and_validates_published_d
         repeated = client.post(path, json={**request, "route_method": "npc_dialog"})
         assert repeated.json()["receipt"] == guided.json()["receipt"]
 
+        readiness = client.post(
+            "/api/dongzhou/v1/battle-readiness", json={"stage_id": "02"}
+        )
+        assert readiness.status_code == 200, readiness.json()
+        deployed = client.post("/api/dongzhou/v1/battle-deployment", json={
+            "stage_id": "02",
+            "battle_readiness": readiness.json(),
+            "campaign_route": guided.json(),
+        })
+        assert deployed.status_code == 200, deployed.json()
+        deployment = deployed.json()
+        assert deployment["routeDigest"] == guided.json()["receipt"]["digest"]
+
         report = {
-            "id": "battle:02:route-attested",
+            "id": deployment["reportId"],
             "stageId": "02",
             "won": True,
             "turns": 8,
             "ownLosses": 1,
             "terminalReason": "victory",
             "campaignRoute": guided.json(),
+            "battleReadiness": readiness.json(),
+            "battleDeployment": deployment,
         }
         saved = client.put("/api/dongzhou/v1/save", json={
             "expected_version": 2,
@@ -313,18 +339,36 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
         }
         assert receipt["aiNpc"] == {"readyHeroIds": ["DuBo"]}
         assert receipt["kernel"]["module"] == "dongzhou_battle_readiness"
-        assert receipt["kernel"]["moduleVersion"] == "1.0.0"
+        assert receipt["kernel"]["moduleVersion"] == "1.1.0"
         assert receipt["kernel"]["state"] == "SEALED"
         assert len(receipt["digest"]) == 64
 
+        deployed = client.post("/api/dongzhou/v1/battle-deployment", json={
+            "stage_id": "01",
+            "battle_readiness": receipt,
+            "campaign_route": None,
+        })
+        assert deployed.status_code == 200, deployed.json()
+        deployment = deployed.json()
+        assert deployment["state"] == "AUTHORIZED"
+        assert deployment["stageId"] == "01"
+        assert deployment["readinessDigest"] == receipt["digest"]
+        assert deployment["routeDigest"] is None
+        assert deployment["reportId"] == (
+            "battle:01:" + deployment["deploymentId"]
+        )
+        assert deployment["kernel"]["module"] == "dongzhou_battle_deployment"
+        assert deployment["kernel"]["moduleVersion"] == "1.0.0"
+
         report = {
-            "id": "battle:01:readiness",
+            "id": deployment["reportId"],
             "stageId": "01",
             "won": True,
             "turns": 6,
             "ownLosses": 0,
             "terminalReason": "victory",
             "battleReadiness": receipt,
+            "battleDeployment": deployment,
         }
         saved = client.put("/api/dongzhou/v1/save", json={
             "expected_version": 1,
@@ -333,6 +377,7 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
         assert saved.status_code == 200, saved.json()
         sealed_report = saved.json()["payload"]["organization"]["battleReports"][0]
         assert sealed_report["battleReadiness"]["digest"] == receipt["digest"]
+        assert sealed_report["battleDeployment"]["digest"] == deployment["digest"]
         assert sealed_report["kernelReceipt"]["kernel"]["state"] == "SEALED"
 
         forged_readiness = json.loads(json.dumps(receipt))
@@ -350,6 +395,70 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
         })
         assert forged.status_code == 409
         assert forged.json()["error"]["code"] == "battle_readiness_invalid"
+
+        forged_deployment = json.loads(json.dumps(deployment))
+        forged_deployment["reportId"] = "battle:01:forged-deployment"
+        forged = client.put("/api/dongzhou/v1/save", json={
+            "expected_version": 2,
+            "payload": {
+                **saved.json()["payload"],
+                "organization": {"battleReports": [sealed_report, {
+                    **report,
+                    "id": "battle:01:forged-deployment",
+                    "battleDeployment": forged_deployment,
+                }]},
+            },
+        })
+        assert forged.status_code == 409
+        assert forged.json()["error"]["code"] == "battle_deployment_invalid"
+
+        missing_deployment = client.put("/api/dongzhou/v1/save", json={
+            "expected_version": 2,
+            "payload": {
+                **saved.json()["payload"],
+                "organization": {"battleReports": [sealed_report, {
+                    "id": "battle:01:missing-deployment",
+                    "stageId": "01",
+                    "won": True,
+                    "turns": 3,
+                    "ownLosses": 0,
+                    "terminalReason": "victory",
+                }]},
+            },
+        })
+        assert missing_deployment.status_code == 409
+        assert missing_deployment.json()["error"]["code"] == "battle_deployment_missing"
+
+        removed = client.put("/api/dongzhou/v1/save", json={
+            "expected_version": 2,
+            "payload": {
+                **saved.json()["payload"],
+                "organization": {"battleReports": []},
+            },
+        })
+        assert removed.status_code == 200, removed.json()
+        replayed_consumed_deployment = client.put(
+            "/api/dongzhou/v1/save",
+            json={
+                "expected_version": 3,
+                "payload": {"organization": {"battleReports": [report]}},
+            },
+        )
+        assert replayed_consumed_deployment.status_code == 409
+        assert replayed_consumed_deployment.json()["error"]["code"] == (
+            "battle_deployment_invalid"
+        )
+
+        assert client.post(
+            "/api/dongzhou/v1/sessions/guest",
+            json={"installation_id": str(uuid4())},
+        ).status_code == 200
+        cross_player = client.put("/api/dongzhou/v1/save", json={
+            "expected_version": 1,
+            "payload": {"organization": {"battleReports": [report]}},
+        })
+        assert cross_player.status_code == 409
+        assert cross_player.json()["error"]["code"] == "battle_deployment_invalid"
 
 
 def test_knowledge_quiz_hides_answer_and_is_idempotent_and_player_scoped(tmp_path):

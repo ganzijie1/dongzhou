@@ -904,6 +904,7 @@ class Store:
         self, player_id: UUID, expected_version: int, payload: dict[str, Any],
         *, organization_reports: list[dict[str, Any]] | None = None,
         game_events: list[dict[str, Any]] | None = None,
+        consumed_battle_deployments: list[UUID] | None = None,
     ) -> dict[str, Any]:
         encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
         requested_month = _organization_month(payload)
@@ -925,6 +926,15 @@ class Store:
                 )
                 if cursor.rowcount != 1:
                     raise VersionConflict("save_version_conflict")
+                for deployment_id in consumed_battle_deployments or []:
+                    consumed = db.execute(
+                        "UPDATE requests SET state='CONSUMED',updated_at=CURRENT_TIMESTAMP "
+                        "WHERE player_id=? AND request_id=? AND kind='battle_deployment' "
+                        "AND state='COMPLETED'",
+                        (str(player_id), str(deployment_id)),
+                    )
+                    if consumed.rowcount != 1:
+                        raise VersionConflict("battle_deployment_not_available")
                 # 存档与到期复命原子提交；首次复命冻结结局，后续疲劳变化不得重写已发事件。
                 for report in organization_reports or []:
                     db.execute(

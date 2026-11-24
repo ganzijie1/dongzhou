@@ -2439,13 +2439,13 @@ class AuthenticationRouteTests(unittest.TestCase):
                 self.assertTrue(nexus["online"])
                 self.assertEqual(nexus["mode"], "embedded")
                 self.assertRegex(nexus["version"], r"^\d+\.\d+\.\d+")
-                self.assertEqual(nexus["requiredModuleCount"], 21)
-                self.assertEqual(nexus["operationalModuleCount"], 21)
-                self.assertEqual(nexus["sourceBoundModuleCount"], 19)
-                self.assertEqual(len(nexus["sourceBoundModules"]), 19)
+                self.assertEqual(nexus["requiredModuleCount"], 22)
+                self.assertEqual(nexus["operationalModuleCount"], 22)
+                self.assertEqual(nexus["sourceBoundModuleCount"], 20)
+                self.assertEqual(len(nexus["sourceBoundModules"]), 20)
                 self.assertNotIn(RuntimeModule.name, nexus["sourceBoundModules"])
                 self.assertNotIn(ServiceProvenanceModule.name, nexus["sourceBoundModules"])
-                self.assertEqual(len(nexus["moduleStates"]), 21)
+                self.assertEqual(len(nexus["moduleStates"]), 22)
                 self.assertEqual(nexus["unavailableModules"], [])
                 self.assertEqual(
                     nexus["serviceProvenanceModule"], ServiceProvenanceModule.name
@@ -2512,7 +2512,7 @@ class AuthenticationRouteTests(unittest.TestCase):
                 self.assertEqual(degraded.status_code, 200)
                 degraded_nexus = degraded.json()["services"]["nexusKernel"]
                 self.assertFalse(degraded_nexus["online"])
-                self.assertEqual(degraded_nexus["operationalModuleCount"], 20)
+                self.assertEqual(degraded_nexus["operationalModuleCount"], 21)
                 self.assertEqual(
                     degraded_nexus["unavailableModules"],
                     ["dongzhou_npc_merit_commendation"],

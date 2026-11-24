@@ -37,6 +37,7 @@ EXPECTED_TASK_CODES = {
 EXPECTED_SOURCE_BOUND_MODULES = {
     "dongzhou_adviser_guide",
     "dongzhou_battle_debrief",
+    "dongzhou_battle_deployment",
     "dongzhou_battle_readiness",
     "dongzhou_campaign_route",
     "dongzhou_knowledge_tournament",

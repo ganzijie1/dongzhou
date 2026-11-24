@@ -222,6 +222,17 @@
       body: JSON.stringify({ stage_id: String(stageId) })
     });
   }
+  function battleDeployment(stageId, battleReadiness, campaignRoute = null) {
+    if (offline) return Promise.resolve(null);
+    return requestWithTransientRetry("/battle-deployment", {
+      method: "POST",
+      body: JSON.stringify({
+        stage_id: String(stageId),
+        battle_readiness: battleReadiness,
+        campaign_route: campaignRoute
+      })
+    });
+  }
   function campaignRoute(input) {
     if (!offline) {
       return requestWithTransientRetry("/knowledge/routes", {
@@ -793,5 +804,5 @@
     return result;
   }
 
-  return { initialize, persist, status, searchKnowledge, knowledgeCodex, battleDebrief, battleReadiness, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, verifyKnowledgeQuizSeal, pendingAdviserQuestion, askAdviser, adviserQuestion, feedbackAdviser, decideAdviserGuide, adviserGuide, cancelAdviserGuide, syncNpcs, setNpcInteractionPreference, commendNpc, commendMeritNpc, recallNpc, npcState, npcCorrespondence, organizationPublicNotices, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationMemberContributions, organizationContributionDossier, organizationPlayerTasks, organizationPlayerContributions, organizationPlayerContributionDossier, organizationInventory, organizationScheduledDuties, setOrganizationScheduledDutyEnabled, organizationLogisticsBriefing, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
+  return { initialize, persist, status, searchKnowledge, knowledgeCodex, battleDebrief, battleReadiness, battleDeployment, campaignRoute, stageKnowledge, startKnowledgeQuiz, answerKnowledgeQuiz, verifyKnowledgeQuizSeal, pendingAdviserQuestion, askAdviser, adviserQuestion, feedbackAdviser, decideAdviserGuide, adviserGuide, cancelAdviserGuide, syncNpcs, setNpcInteractionPreference, commendNpc, commendMeritNpc, recallNpc, npcState, npcCorrespondence, organizationPublicNotices, sendNpcMessage, npcSchedule, npcAssignment, generateNpcSchedule, npcThought, npcDecision, createCourtMandate, pendingCourtMandate, resumeCourtMandate, scheduleCourtMandate, acknowledgeCourtMandate, createOrganizationTask, applyOrganizationOrder, organizationTask, organizationRoster, organizationMemberContributions, organizationContributionDossier, organizationPlayerTasks, organizationPlayerContributions, organizationPlayerContributionDossier, organizationInventory, organizationScheduledDuties, setOrganizationScheduledDutyEnabled, organizationLogisticsBriefing, pendingOrganizationInventoryRequisition, requisitionOrganizationInventory, resumeOrganizationInventoryRequisition, acknowledgeOrganizationInventoryRequisition, reviewOrganizationTask, isOffline: () => offline };
 });

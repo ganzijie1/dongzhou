@@ -698,6 +698,7 @@
     const requiresReadiness = !savedState && !record.isProcedural && !integration.isOffline();
     let campaignRoute = null;
     let battleReadiness = null;
+    let battleDeployment = null;
     if (requiresReadiness || requiresRoute) {
       const button = $("#focusStageButton");
       routeStartPending = true;
@@ -708,7 +709,7 @@
           if (
             battleReadiness?.state !== "READY"
             || battleReadiness?.kernel?.module !== "dongzhou_battle_readiness"
-            || battleReadiness?.kernel?.moduleVersion !== "1.0.0"
+            || battleReadiness?.kernel?.moduleVersion !== "1.1.0"
             || battleReadiness?.kernel?.state !== "SEALED"
             || !/^[0-9a-f]{64}$/.test(String(battleReadiness?.digest || ""))
             || !/^[0-9a-f]{64}$/.test(String(battleReadiness?.sourceProvenance?.digest || ""))
@@ -737,6 +738,26 @@
             return;
           }
         }
+        if (requiresReadiness) {
+          battleDeployment = await integration.battleDeployment(
+            record.id,
+            battleReadiness,
+            campaignRoute
+          );
+          if (
+            battleDeployment?.state !== "AUTHORIZED"
+            || battleDeployment?.stageId !== record.id
+            || battleDeployment?.kernel?.module !== "dongzhou_battle_deployment"
+            || battleDeployment?.kernel?.moduleVersion !== "1.0.0"
+            || battleDeployment?.kernel?.state !== "SEALED"
+            || !/^[0-9a-f]{64}$/.test(String(battleDeployment?.digest || ""))
+            || battleDeployment?.readinessDigest !== battleReadiness.digest
+            || battleDeployment?.routeDigest !== (campaignRoute?.receipt?.digest || null)
+            || !String(battleDeployment?.reportId || "").startsWith(`battle:${record.id}:`)
+          ) {
+            throw new Error("出征许可无效");
+          }
+        }
       } catch (error) {
         showNotice(`战前整备核验失败，请稍后重试：${error.message}`);
         return;
@@ -763,6 +784,7 @@
     updateZoom();
     state = savedState || freshState(record);
     if (battleReadiness) state.battleReadiness = battleReadiness;
+    if (battleDeployment) state.battleDeployment = battleDeployment;
     if (options.procedural) state.procedural = options.procedural;
     state.assist ||= systems.retryAssist(profile, record.id);
     const objectiveType = state.procedural?.objectiveType ? "procedural" : difficultyProfileFor(record).objectiveType;
@@ -840,6 +862,9 @@
         const knowledgeCount = Number(state.battleReadiness.knowledge?.knowledgeIds?.length || 0);
         const officerCount = Number(state.battleReadiness.aiNpc?.readyHeroIds?.length || 0);
         log(`四服务整备已验印：${knowledgeCount} 卷史料、${officerCount} 名在线属官，内核印记 ${String(state.battleReadiness.digest || "").slice(0, 12)}。`, "event");
+      }
+      if (state.battleDeployment) {
+        log(`出征许可已签发：战报号 ${state.battleDeployment.reportId}，内核印记 ${String(state.battleDeployment.digest || "").slice(0, 12)}。`, "event");
       }
       if (state.campaignRoute) log(`史料行军：${state.campaignRoute.label || "奉诏直进"}（${state.campaignRoute.routeId}）；军粮 -${state.campaignRoute.provisionCost}${state.campaignRoute.moraleDelta ? `，士气 ${state.campaignRoute.moraleDelta > 0 ? "+" : ""}${state.campaignRoute.moraleDelta}` : ""}。`, "event");
       log(`军议：${formation.name}${vanguard ? `；${displayName(vanguard)}任先锋` : ""}；军粮 ${profile.campaignResources.provisions}，士气 ${profile.campaignResources.morale}${profile.campaignResources.provisions < 40 ? "；缺粮导致兵力与攻击下降" : ""}。`, "event");
@@ -1629,8 +1654,12 @@
       && org.backend.nexusRequiredModules > 0
       ? `内核 ${org.backend.nexusOperationalModules}/${org.backend.nexusRequiredModules}`
       : "内核";
+    const nexusSourceTarget = Number.isSafeInteger(org.backend.nexusRequiredModules)
+      ? Math.max(0, org.backend.nexusRequiredModules - 2)
+      : null;
     const nexusSourceCount = Number.isSafeInteger(org.backend.nexusSourceBoundModules)
-      ? ` · 验源 ${org.backend.nexusSourceBoundModules}/18`
+      && Number.isSafeInteger(nexusSourceTarget)
+      ? ` · 验源 ${org.backend.nexusSourceBoundModules}/${nexusSourceTarget}`
       : "";
     const serviceLabels = [["nexusKernel", nexusModuleCount + nexusSourceCount], ["orgFlow", "朝议"], ["aiNpc", "属官"], ["knowledge", "史官"]];
     const sourceSealDigest = /^[0-9a-f]{64}$/i.test(org.backend.serviceSourceSealDigest || "") ? org.backend.serviceSourceSealDigest : "";
@@ -2441,9 +2470,9 @@
       const nexusSourceBoundModuleNames = Array.isArray(services.nexusKernel?.sourceBoundModules) ? services.nexusKernel.sourceBoundModules.map(String) : [];
       const nexusFullyOperational = nexusRequiredModules > 0
         && nexusOperationalModules === nexusRequiredModules
-        && nexusSourceBoundModules === 18
-        && nexusSourceBoundModuleNames.length === 18
-        && new Set(nexusSourceBoundModuleNames).size === 18;
+        && nexusSourceBoundModules === nexusRequiredModules - 2
+        && nexusSourceBoundModuleNames.length === nexusSourceBoundModules
+        && new Set(nexusSourceBoundModuleNames).size === nexusSourceBoundModules;
       profile.organization = organization.updateBackend(profile.organization, {
         nexusKernel: Boolean(services.nexusKernel?.online) && nexusFullyOperational,
         nexusRequiredModules,
@@ -4964,12 +4993,13 @@
     profile = progression.profile;
     profile.organization = organization.advanceMonth(profile.organization, { resolveLocalTasks: integration.isOffline() });
     const officeReport = organization.recordBattleOutcome(profile.organization, {
-      id: "battle:" + stageRecord.id + ":" + String(state.startedAt || Date.now()),
+        id: state.battleDeployment?.reportId || "battle:" + stageRecord.id + ":" + String(state.startedAt || Date.now()),
       stageId: String(stageRecord.id), stageTitle: stageRecord.battleTitle, won, turns: state.turn,
       ownLosses: ownUnits.filter((unit) => unit.hp <= 0).length, terminalReason,
       support: state.organizationSupport || {},
       campaignRoute: state.campaignRoute || null,
-      battleReadiness: state.battleReadiness || null
+        battleReadiness: state.battleReadiness || null,
+        battleDeployment: state.battleDeployment || null
     });
     profile.organization = officeReport.state;
     profile.organization.history.push({ month: profile.organization.month, tone: won ? "good" : "bad", text: `${stageRecord.battleTitle}${won ? "告捷" : "失利"}，战后回报已收入官署档案。` });

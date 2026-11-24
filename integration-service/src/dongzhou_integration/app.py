@@ -10,7 +10,7 @@ import json
 import math
 import re
 from typing import Annotated, Any
-from uuid import NAMESPACE_URL, UUID, uuid5
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 from fastapi import APIRouter, Cookie, Depends, Header, Response
 from fastapi.staticfiles import StaticFiles
@@ -28,7 +28,7 @@ from .assignments import (
     select_assignment,
     task_duty,
 )
-from .models import AdviserFeedbackRequest, AdviserGuideCancelRequest, AdviserGuideDecisionRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcPublicMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, BattleReadinessRequest, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcCommendationRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMeritCommendationRequest, NpcMessageRequest, NpcRecollectionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationScheduledDutyStatusRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
+from .models import AdviserFeedbackRequest, AdviserGuideCancelRequest, AdviserGuideDecisionRequest, AdviserQuestionRequest, AinpcAliveQuery, AinpcAllLoginRequest, AinpcBehaviorExecutionRequest, AinpcBehaviorParamsValidationRequest, AinpcChatStartRequest, AinpcLittleElfMessageRequest, AinpcLoginReadyRequest, AinpcNearbyQuery, AinpcNpcDirectoryQuery, AinpcPrivateChatRuntimeQuery, AinpcPrivateChatRuntimeResetRequest, AinpcPrivateMessageDeliveryQuery, AinpcPrivateMessageRequest, AinpcPublicMessageRequest, AinpcSingleLoginRequest, AinpcTargetPlayerQuery, AinpcTaskStatusQuery, BattleDeploymentRequest, BattleReadinessRequest, CampaignRouteRequest, CourtMandateRequest, CourtMandateResumeRequest, CourtMandateScheduleRequest, GameClockQuery, GuestSessionRequest, KnowledgeQuizAnswerRequest, KnowledgeQuizStartRequest, KnowledgeSearchRequest, LogisticsBriefingRequest, NpcCommendationRequest, NpcDecisionRequest, NpcInteractionPreferenceRequest, NpcMeritCommendationRequest, NpcMessageRequest, NpcRecollectionRequest, NpcScheduleGenerateRequest, NpcSyncRequest, NpcThoughtRequest, OrganizationInventoryRequisitionRequest, OrganizationScheduledDutyStatusRequest, OrganizationTaskRequest, OrganizationTaskReviewRequest, SaveWriteRequest
 from .security import InvalidSession, issue_session, stable_event_id, stable_npc_id, stable_player_id, verify_session
 from .service_sources import (
     SERVICE_NAMES,
@@ -1438,7 +1438,7 @@ def _service_provenance_receipt_is_valid(receipt: Any) -> bool:
 
 class BattleReadinessModule(Module):
     name = "dongzhou_battle_readiness"
-    version = "1.0.0"
+    version = "1.1.0"
     dependencies = (RuntimeModule.name, ServiceProvenanceModule.name)
 
     @classmethod
@@ -1480,6 +1480,67 @@ class BattleReadinessModule(Module):
             or ready_heroes != active_heroes
         ):
             raise ValueError("battle readiness evidence is invalid")
+        return {
+            **trace,
+            "digest": _canonical_digest(trace),
+            "kernel": {
+                "module": cls.name,
+                "moduleVersion": cls.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "SEALED",
+            },
+        }
+
+    @classmethod
+    def verify(cls, receipt: Any) -> bool:
+        if not isinstance(receipt, dict):
+            return False
+        trace = {
+            key: value
+            for key, value in receipt.items()
+            if key not in {"digest", "kernel"}
+        }
+        try:
+            sealed = cls.seal(trace)
+            if receipt.get("kernel", {}).get("moduleVersion") == "1.0.0":
+                sealed["kernel"]["moduleVersion"] = "1.0.0"
+            return sealed == receipt
+        except (TypeError, ValueError):
+            return False
+
+
+class BattleDeploymentModule(Module):
+    name = "dongzhou_battle_deployment"
+    version = "1.0.0"
+    dependencies = (
+        RuntimeModule.name,
+        CampaignRouteModule.name,
+        BattleReadinessModule.name,
+        ServiceProvenanceModule.name,
+    )
+
+    @classmethod
+    def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
+        stage_id = str(trace.get("stageId") or "")
+        report_id = str(trace.get("reportId") or "")
+        try:
+            deployment_id = UUID(str(trace.get("deploymentId") or ""))
+        except ValueError:
+            raise ValueError("battle deployment identity is invalid") from None
+        if (
+            trace.get("mode") != "connected"
+            or trace.get("state") != "AUTHORIZED"
+            or trace.get("kind") != "BATTLE_DEPLOYMENT"
+            or not stage_id
+            or not str(trace.get("stageTitle") or "")
+            or report_id != f"battle:{stage_id}:{deployment_id}"
+            or not re.fullmatch(r"[0-9a-f]{64}", str(trace.get("playerDigest") or ""))
+            or not re.fullmatch(r"[0-9a-f]{64}", str(trace.get("readinessDigest") or ""))
+            or trace.get("routeDigest") is not None
+            and not re.fullmatch(r"[0-9a-f]{64}", str(trace.get("routeDigest") or ""))
+            or not _service_provenance_receipt_is_valid(trace.get("sourceProvenance"))
+        ):
+            raise ValueError("battle deployment trace is incomplete")
         return {
             **trace,
             "digest": _canonical_digest(trace),
@@ -3564,6 +3625,7 @@ def _battle_report_signature(report: dict[str, Any]) -> dict[str, Any]:
     support = report.get("support") if isinstance(report.get("support"), dict) else {}
     campaign_route = report.get("campaignRoute")
     battle_readiness = report.get("battleReadiness")
+    battle_deployment = report.get("battleDeployment")
 
     def references(entries: Any, hero_key: str) -> list[dict[str, str]]:
         if not isinstance(entries, list):
@@ -3604,7 +3666,15 @@ def _battle_report_signature(report: dict[str, Any]) -> dict[str, Any]:
         }
     if isinstance(battle_readiness, dict):
         signature["battleReadiness"] = battle_readiness
+    if isinstance(battle_deployment, dict):
+        signature["battleDeployment"] = battle_deployment
     return signature
+
+
+def _battle_deployment_player_digest(player_id: UUID) -> str:
+    return hashlib.sha256(
+        f"dongzhou-battle-deployment:{player_id}".encode("utf-8")
+    ).hexdigest()
 
 
 def _battle_report_digest_matches(
@@ -4021,6 +4091,9 @@ def _seal_battle_reports(
     route_required_stages: set[str] | None = None,
     source_provenance: dict[str, Any] | None = None,
     battle_readiness_module: BattleReadinessModule | None = None,
+    battle_deployment_module: BattleDeploymentModule | None = None,
+    issued_battle_deployments: dict[str, dict[str, Any]] | None = None,
+    battle_deployment_required: bool = False,
 ) -> dict[str, Any]:
     if (
         source_provenance is not None
@@ -4075,6 +4148,7 @@ def _seal_battle_reports(
         for order in previous_report["kernelReceipt"].get("verifiedSupport", {}).get("orders", [])
         if isinstance(order, dict) and order.get("id")
     }
+    seen_report_ids: set[str] = set()
 
     for report in reports[-40:]:
         if not isinstance(report, dict):
@@ -4084,6 +4158,9 @@ def _seal_battle_reports(
         if not report_id or not stage_id or not isinstance(report.get("won"), bool):
             report.pop("kernelReceipt", None)
             continue
+        if report_id in seen_report_ids:
+            raise BattleReceiptConflict("battle_report_duplicate")
+        seen_report_ids.add(report_id)
         signature = _battle_report_signature(report)
         report_digest = _digest_json(signature)
         previous_report = previous_reports.get(report_id)
@@ -4135,6 +4212,38 @@ def _seal_battle_reports(
             and not isinstance(campaign_route, dict)
         ):
             raise BattleReceiptConflict("battle_campaign_route_missing")
+        deployment = report.get("battleDeployment")
+        if not isinstance(deployment, dict):
+            if battle_deployment_required:
+                raise BattleReceiptConflict("battle_deployment_missing")
+        else:
+            deployment_id = str(deployment.get("deploymentId") or "")
+            route_digest = (
+                str(campaign_route.get("receipt", {}).get("digest") or "")
+                if isinstance(campaign_route, dict)
+                else None
+            )
+            issued = (issued_battle_deployments or {}).get(deployment_id)
+            if (
+                battle_deployment_module is None
+                or not battle_deployment_module.verify(deployment)
+                or issued != deployment
+                or str(deployment.get("reportId") or "") != report_id
+                or str(deployment.get("stageId") or "") != stage_id
+                or str(deployment.get("playerDigest") or "")
+                != _battle_deployment_player_digest(player_id)
+                or str(deployment.get("readinessDigest") or "")
+                != str(
+                    readiness.get("digest")
+                    if isinstance(readiness, dict)
+                    else ""
+                )
+                or deployment.get("routeDigest") != route_digest
+                or not _service_provenance_receipt_matches(
+                    deployment.get("sourceProvenance"), source_provenance or {}
+                )
+            ):
+                raise BattleReceiptConflict("battle_deployment_invalid")
         eligible_support = {
             support_id: entry
             for support_id, entry in previous_support.items()
@@ -4905,6 +5014,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     organization_scheduled_duty = OrganizationScheduledDutyModule()
     service_provenance = ServiceProvenanceModule(public_service_sources())
     battle_readiness = BattleReadinessModule()
+    battle_deployment = BattleDeploymentModule()
     battle_debrief = BattleDebriefModule()
     npc_commendation = NpcCommendationModule()
     npc_merit_commendation = NpcMeritCommendationModule()
@@ -4920,7 +5030,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         npc_recollection, npc_public_notice, organization_contribution_ledger,
         organization_contribution_dossier, npc_merit_commendation,
         adviser_guide, organization_scheduled_duty, battle_debrief,
-        battle_readiness,
+        battle_readiness, battle_deployment,
         service_provenance,
     )
     dependencies_by_name = {
@@ -4995,9 +5105,14 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 original_index=19,
             ),
             LoadedModule(
-                module=service_provenance,
+                module=battle_deployment,
                 required=True,
                 original_index=20,
+            ),
+            LoadedModule(
+                module=service_provenance,
+                required=True,
+                original_index=21,
             ),
         ]
     )
@@ -6351,6 +6466,34 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 previous["payload"],
                 request.payload,
             )
+            issued_battle_deployments: dict[str, dict[str, Any]] = {}
+            submitted_organization = request.payload.get("organization")
+            submitted_reports = (
+                submitted_organization.get("battleReports")
+                if isinstance(submitted_organization, dict)
+                else None
+            )
+            for report in submitted_reports if isinstance(submitted_reports, list) else []:
+                deployment = report.get("battleDeployment") if isinstance(report, dict) else None
+                if not isinstance(deployment, dict):
+                    continue
+                deployment_id = str(deployment.get("deploymentId") or "")
+                try:
+                    deployment_request_id = UUID(deployment_id)
+                except ValueError:
+                    continue
+                record = await store.read_request(
+                    player_id, deployment_request_id, "battle_deployment"
+                )
+                if (
+                    record
+                    and record.get("state") == "COMPLETED"
+                    and record.get("response") == deployment
+                ):
+                    issued_battle_deployments[deployment_id] = deployment
+            deployment_contract = await store.read_latest_request_in_states(
+                player_id, "battle_deployment", ("COMPLETED", "CONSUMED")
+            )
             sealed_payload = _seal_battle_reports(
                 player_id,
                 previous["payload"],
@@ -6360,6 +6503,9 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 route_required_stages,
                 source_provenance=service_provenance.receipt(),
                 battle_readiness_module=battle_readiness,
+                battle_deployment_module=battle_deployment,
+                issued_battle_deployments=issued_battle_deployments,
+                battle_deployment_required=deployment_contract is not None,
             )
             sealed_payload["sourceProvenance"] = service_provenance.receipt()
             reports = await _prepare_due_organization_reports(
@@ -6378,6 +6524,10 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 sealed_payload,
                 organization_reports=reports,
                 game_events=battle_events,
+                consumed_battle_deployments=[
+                    UUID(deployment_id)
+                    for deployment_id in issued_battle_deployments
+                ],
             )
         except VersionConflict as error:
             raise ApiError("save_version_conflict", "The save has changed; reload before writing.", status_code=409) from error
@@ -7331,6 +7481,100 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "Battle readiness evidence is incomplete or inconsistent.",
                 status_code=409,
             ) from error
+        return receipt
+
+    @router.post("/battle-deployment")
+    async def authorize_battle_deployment(
+        request: BattleDeploymentRequest,
+        player_id: UUID = Depends(player),
+    ) -> dict[str, Any]:
+        stage_title = stage_titles.get(request.stage_id)
+        if stage_title is None:
+            raise ApiError(
+                "battle_deployment_stage_unknown",
+                "The campaign stage is not published.",
+                status_code=404,
+            )
+        readiness = request.battle_readiness
+        if (
+            not battle_readiness.verify(readiness)
+            or str(readiness.get("stageId") or "") != request.stage_id
+            or not _service_provenance_receipt_matches(
+                readiness.get("sourceProvenance"), service_provenance.receipt()
+            )
+        ):
+            raise ApiError(
+                "battle_deployment_readiness_invalid",
+                "The four-service readiness receipt is invalid.",
+                status_code=409,
+            )
+        campaign_route = request.campaign_route
+        if request.stage_id in route_required_stages and not isinstance(campaign_route, dict):
+            raise ApiError(
+                "battle_deployment_route_missing",
+                "The selected campaign route is required.",
+                status_code=409,
+            )
+        route_digest: str | None = None
+        if isinstance(campaign_route, dict):
+            route_receipt = campaign_route.get("receipt")
+            route_digest = (
+                str(route_receipt.get("digest") or "")
+                if isinstance(route_receipt, dict)
+                else ""
+            )
+            if (
+                not campaign_routes.verify_selection(campaign_route)
+                or str(campaign_route.get("toStageId") or "") != request.stage_id
+                or not re.fullmatch(r"[0-9a-f]{64}", route_digest)
+                or not _service_provenance_receipt_matches(
+                    campaign_route.get("sourceProvenance"),
+                    service_provenance.receipt(),
+                )
+            ):
+                raise ApiError(
+                    "battle_deployment_route_invalid",
+                    "The selected campaign route is invalid.",
+                    status_code=409,
+                )
+        deployment_id = uuid4()
+        trace = {
+            "mode": "connected",
+            "state": "AUTHORIZED",
+            "kind": "BATTLE_DEPLOYMENT",
+            "deploymentId": str(deployment_id),
+            "reportId": f"battle:{request.stage_id}:{deployment_id}",
+            "stageId": request.stage_id,
+            "stageTitle": stage_title,
+            "playerDigest": _battle_deployment_player_digest(player_id),
+            "readinessDigest": str(readiness.get("digest") or ""),
+            "routeDigest": route_digest,
+            "sourceProvenance": service_provenance.receipt(),
+        }
+        receipt = battle_deployment.seal(trace)
+        payload = {
+            "stageId": request.stage_id,
+            "readinessDigest": trace["readinessDigest"],
+            "routeDigest": route_digest,
+        }
+        started, existing = await store.begin_request(
+            player_id,
+            deployment_id,
+            "battle_deployment",
+            payload,
+            reclaim_pending=False,
+        )
+        if not started:
+            if existing == receipt:
+                return receipt
+            raise ApiError(
+                "battle_deployment_id_conflict",
+                "The deployment authorization identity conflicts.",
+                status_code=409,
+            )
+        await store.finish_request(
+            player_id, deployment_id, "COMPLETED", receipt
+        )
         return receipt
 
     @router.post("/knowledge/routes")

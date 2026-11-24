@@ -258,6 +258,16 @@ class BattleReadinessRequest(StrictModel):
     )
 
 
+class BattleDeploymentRequest(StrictModel):
+    stage_id: str = Field(
+        min_length=1,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9_.:-]+$",
+    )
+    battle_readiness: dict[str, Any]
+    campaign_route: dict[str, Any] | None = None
+
+
 class NpcInput(StrictModel):
     hero_id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$")
     name: str = Field(min_length=1, max_length=100)

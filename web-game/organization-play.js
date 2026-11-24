@@ -708,7 +708,7 @@
     if (!id || !stageId || typeof input?.won !== "boolean") throw new Error("战后回报不完整");
     const previous = state.battleReports.find((entry) => entry.id === id);
     if (previous) {
-      const same = previous.stageId === stageId && previous.won === input.won && previous.turns === Math.max(0, Number(input.turns || 0)) && previous.ownLosses === Math.max(0, Number(input.ownLosses || 0)) && previous.terminalReason === String(input.terminalReason || "") && JSON.stringify(previous.support) === JSON.stringify(input.support && typeof input.support === "object" ? input.support : {}) && JSON.stringify(previous.campaignRoute || null) === JSON.stringify(input.campaignRoute && typeof input.campaignRoute === "object" ? input.campaignRoute : null) && JSON.stringify(previous.battleReadiness || null) === JSON.stringify(input.battleReadiness && typeof input.battleReadiness === "object" ? input.battleReadiness : null);
+      const same = previous.stageId === stageId && previous.won === input.won && previous.turns === Math.max(0, Number(input.turns || 0)) && previous.ownLosses === Math.max(0, Number(input.ownLosses || 0)) && previous.terminalReason === String(input.terminalReason || "") && JSON.stringify(previous.support) === JSON.stringify(input.support && typeof input.support === "object" ? input.support : {}) && JSON.stringify(previous.campaignRoute || null) === JSON.stringify(input.campaignRoute && typeof input.campaignRoute === "object" ? input.campaignRoute : null) && JSON.stringify(previous.battleReadiness || null) === JSON.stringify(input.battleReadiness && typeof input.battleReadiness === "object" ? input.battleReadiness : null) && JSON.stringify(previous.battleDeployment || null) === JSON.stringify(input.battleDeployment && typeof input.battleDeployment === "object" ? input.battleDeployment : null);
       if (!same) throw new Error("战后回报记录冲突");
       return { state, report: copy(previous), duplicate: true };
     }
@@ -719,6 +719,7 @@
       terminalReason: String(input.terminalReason || ""), support,
       campaignRoute: input.campaignRoute && typeof input.campaignRoute === "object" ? copy(input.campaignRoute) : null,
       battleReadiness: input.battleReadiness && typeof input.battleReadiness === "object" ? copy(input.battleReadiness) : null,
+      battleDeployment: input.battleDeployment && typeof input.battleDeployment === "object" ? copy(input.battleDeployment) : null,
       councils: Array.isArray(support.councils) ? support.councils.map(copy) : [],
       mandates: Array.isArray(support.mandates) ? support.mandates.map(copy) : [],
       sources: Array.isArray(support.sources) ? support.sources.map(String) : [], month: state.month
