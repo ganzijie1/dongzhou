@@ -7,6 +7,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "config" / "gameplay-evidence.json"
+COVERAGE = ROOT / "docs" / "four-service-gameplay-coverage.md"
 
 
 def test_current_gameplay_evidence_is_present_and_tracked() -> None:
@@ -71,3 +72,13 @@ def test_current_gameplay_evidence_is_present_and_tracked() -> None:
     for item in live_scripts:
         source = (ROOT / item).read_text(encoding="utf-8")
         assert "DONGZHOU_TEST_URL" in source, f"{item} cannot target the active live deployment"
+
+    expected_counts = (
+        f"{len(groups['crossServiceContracts'])} 个跨服务契约、"
+        f"{len(groups['browserWorkflows'])} 个浏览器流程、"
+        f"{len(groups['simulationWorkflows'])} 个可直接运行模拟器、"
+        f"{len(groups['liveWorkflows'])} 个可直接运行现场流程、"
+        f"{len(groups['externalInputWorkflows'])} 个依赖外部输入的受限流程和 "
+        f"{len(groups['readOnlyAcceptance'])} 个只读验收"
+    )
+    assert expected_counts in COVERAGE.read_text(encoding="utf-8")
