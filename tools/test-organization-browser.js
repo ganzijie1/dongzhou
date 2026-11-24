@@ -292,7 +292,7 @@ async function openReady(page) {
           nextBeforeVersion: null
         };
       }
-      else if (pathName.endsWith("/knowledge/search")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回·东郊索命", summary: "杜伯进谏", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }] }] };
+      else if (pathName.endsWith("/knowledge/search")) body = { mode: "connected", searchReceipt: { id: "search-browser", digest: "4".repeat(64), sourceProvenance }, results: [{ id: "dongzhou_stage_001", name: "第一回·东郊索命", summary: "杜伯进谏", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }], retrieval: { aggregateScore: 0.8, strongestChannel: "graph", graphRelated: true, channels: [{ channel: "graph", score: 1, normalizedScore: 1, rank: 1 }] }, searchReceipt: { id: "search-browser", digest: "4".repeat(64) } }] };
       else if (pathName.endsWith("/knowledge/stages/01")) body = { mode: "connected", results: [{ id: "dongzhou_stage_001", name: "第一回·已发布本回史料", summary: "杜伯进谏", stageId: "01", sourceDetails: [{ work: "《史记·周本纪》", tier: "史实骨架", scope: "千亩之败", url: "https://ctext.org/shiji/zhou-ben-ji" }] }] };
       else if (pathName.endsWith("/npcs/sync")) {
         npcSyncAttempts += 1;
@@ -533,6 +533,8 @@ async function openReady(page) {
     await online.fill("#officeKnowledgeQuery", "杜伯");
     await online.click("#officeKnowledgeForm button[type=submit]");
     await online.waitForSelector("#officeKnowledgeResults article");
+    const searchedKnowledge = await online.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.knowledge.find((entry) => entry.id === "dongzhou_stage_001"));
+    if (searchedKnowledge?.searchReceipt?.sourceProvenance?.digest !== sourceProvenance.digest) throw new Error("Knowledge search source seal was not persisted");
     await online.click("#officeStageKnowledgeButton");
     await online.waitForSelector("#officeKnowledgeResults >> text=已发布本回史料");
     await online.click('[data-knowledge-id="dongzhou_stage_001"][data-source-index="0"]');

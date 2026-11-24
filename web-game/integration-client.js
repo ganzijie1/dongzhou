@@ -190,6 +190,12 @@
   async function searchKnowledge(query, limit, stageId) {
     if (!offline) {
       const result = await request("/knowledge/search", { method: "POST", body: JSON.stringify({ client_request_id: root.crypto.randomUUID(), ...(stageId ? { stage_id: String(stageId) } : {}), query, limit }) });
+      const sourceProvenance = result.searchReceipt?.sourceProvenance;
+      if (sourceProvenance && Array.isArray(result.results)) {
+        result.results = result.results.map((entry) => entry?.searchReceipt
+          ? { ...entry, searchReceipt: { ...entry.searchReceipt, sourceProvenance: JSON.parse(JSON.stringify(sourceProvenance)) } }
+          : entry);
+      }
       return result;
     }
     const data = await root.fetch("scenario/dongzhou-knowledge.json", { cache: "no-store" }).then((response) => response.json());

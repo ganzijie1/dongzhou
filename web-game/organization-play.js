@@ -342,7 +342,7 @@
     const recordedCouncilSource = state.councils.find((entry) => entry.id === mandate.council.requestId)?.sourceProvenance;
     if (Boolean(mandateSource) !== Boolean(councilSource) || (mandateSource && (!validSourceProvenance(mandateSource) || !validSourceProvenance(councilSource) || mandateSource.digest !== councilSource.digest))) throw new Error("内核军令服务来源无效");
     if (recordedCouncilSource && (!validSourceProvenance(recordedCouncilSource) || recordedCouncilSource.digest !== mandateSource?.digest)) throw new Error("内核军令与本地军议服务来源不一致");
-    if (mandate.evidence.searchReceipt && (!/^[0-9a-f]{64}$/.test(String(mandate.evidence.searchReceipt.digest || "")) || !Array.isArray(mandate.evidence.retrieval?.channels) || !mandate.evidence.retrieval.channels.length)) throw new Error("内核军令检索回执无效");
+    if (mandate.evidence.searchReceipt && (!/^[0-9a-f]{64}$/.test(String(mandate.evidence.searchReceipt.digest || "")) || !Array.isArray(mandate.evidence.retrieval?.channels) || !mandate.evidence.retrieval.channels.length || (mandate.evidence.searchReceipt.sourceProvenance && (!validSourceProvenance(mandate.evidence.searchReceipt.sourceProvenance) || mandate.evidence.searchReceipt.sourceProvenance.digest !== mandateSource?.digest)))) throw new Error("内核军令检索回执无效");
     if (mandate.evidenceFit && (mandate.evidenceFit.taskType !== mandate.taskType || !Number.isFinite(Number(mandate.evidenceFit.factor)) || Number(mandate.evidenceFit.factor) < 0 || Number(mandate.evidenceFit.factor) > 9 || !["strong", "aligned", "weak"].includes(mandate.evidenceFit.band) || !Array.isArray(mandate.evidenceFit.signals))) throw new Error("内核军令史证适配无效");
     if (mandate.knowledgeMastery && (mandate.knowledgeMastery.stageId !== mandate.stageId || mandate.knowledgeMastery.knowledgeId !== mandate.evidence.id || Number(mandate.knowledgeMastery.score) !== 10 || Number(mandate.knowledgeMastery.bonus) !== 3 || mandate.knowledgeMastery.state !== "SEALED" || !/^[0-9a-f]{64}$/.test(String(mandate.knowledgeMastery.resultDigest || "")) || mandate.knowledgeMastery.kernel?.module !== "dongzhou_knowledge_tournament" || mandate.knowledgeMastery.kernel?.state !== "SEALED" || mandate.knowledgeMastery.resultDigest !== mandate.council?.knowledgeMastery?.resultDigest)) throw new Error("内核军令史识凭据无效");
     if (mandate.correspondence && (!/^[0-9a-f]{64}$/.test(String(mandate.correspondence.digest || "")) || mandate.correspondence.messageId !== mandate.council?.correspondence?.messageId || mandate.correspondence.digest !== mandate.council?.correspondence?.digest)) throw new Error("内核军令耳报来源无效");
@@ -1016,8 +1016,9 @@
       aggregateScore: clamp(entry.retrieval?.aggregateScore, 0, 1), strongestChannel: String(entry.retrieval?.strongestChannel || ""),
       graphRelated: Boolean(entry.retrieval?.graphRelated), channels
     } : null;
+    if (entry.searchReceipt?.sourceProvenance && !validSourceProvenance(entry.searchReceipt.sourceProvenance)) throw new Error("史料检索服务来源回执无效");
     const searchReceipt = entry.searchReceipt && typeof entry.searchReceipt.id === "string" && /^[0-9a-f]{64}$/.test(String(entry.searchReceipt.digest || ""))
-      ? { id: entry.searchReceipt.id, digest: entry.searchReceipt.digest }
+      ? { id: entry.searchReceipt.id, digest: entry.searchReceipt.digest, ...(entry.searchReceipt.sourceProvenance ? { sourceProvenance: copy(entry.searchReceipt.sourceProvenance) } : {}) }
       : null;
     state.knowledge = [{
       id: String(entry.id), name: String(entry.name || entry.title || "史官条目"), summary: String(entry.summary || ""),

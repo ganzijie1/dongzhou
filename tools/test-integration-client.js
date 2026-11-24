@@ -115,7 +115,7 @@ global.fetch = async (url, options = {}) => {
   }
   else if (url.endsWith("/knowledge/search")) {
     knowledgeSearchInput = body;
-    response = { mode: "connected", results: [{ id: "dongzhou_stage_001", stageId: "01", retrieval: { graphRelated: true, channels: [{ channel: "graph", normalizedScore: 1 }] }, searchReceipt: { id: "search-receipt", digest: "c".repeat(64) } }] };
+    response = { mode: "connected", searchReceipt: { id: "search-receipt", digest: "c".repeat(64), sourceProvenance: { digest: "8".repeat(64), services: { knowledge: {}, aiNpc: {}, orgFlow: {}, nexusKernel: {} }, kernel: { module: "dongzhou_service_provenance", state: "SEALED" } } }, results: [{ id: "dongzhou_stage_001", stageId: "01", retrieval: { graphRelated: true, channels: [{ channel: "graph", normalizedScore: 1 }] }, searchReceipt: { id: "search-receipt", digest: "c".repeat(64) } }] };
   }
   else if (url.endsWith("/knowledge/codex")) {
     knowledgeCodexRequests += 1;
@@ -337,6 +337,7 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(knowledgeSearchInput.stage_id, "01");
   assert.match(knowledgeSearchInput.client_request_id, /^[0-9a-f-]{36}$/);
   assert.strictEqual(knowledge.results[0].retrieval.graphRelated, true);
+  assert.strictEqual(knowledge.results[0].searchReceipt.sourceProvenance.digest, "8".repeat(64));
   const codex = await client.knowledgeCodex();
   assert.strictEqual(codex.results[0].name, "第一回·东郊索命");
   assert.strictEqual(knowledgeCodexRequests, 1);
