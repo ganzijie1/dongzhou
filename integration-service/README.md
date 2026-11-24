@@ -1,21 +1,24 @@
 # Dongzhou integration service
 
-This NexusKernel service is the only browser-facing boundary for Dongzhou. It owns signed player sessions, versioned saves, stable AINPC identities, discovered knowledge, idempotency records, and the translation to the formal orgFlow virtual-task API. Its readiness and integration-status responses expose NexusKernel as the embedded runtime alongside the three external services, so delivery checks prove all four repository capabilities are active.
+This package preserves the four repositories' Dongzhou contracts behind one browser-facing boundary. NexusKernel runs in-process; AINPC, orgFlowEngine and knowledge-jizhan are represented by pinned local contracts and game-owned state, never by reachable service processes.
 
-## Local run
+## Local isolation
 
-Initialize the pinned service repositories once from the Dongzhou root, then run the gateway from `integration-service`:
+The checked-in build is permanently disconnected from the former AINPC, orgFlow and knowledge HTTP services. `Upstreams` does not create a network client and rejects every transport except `httpx.MockTransport`, which is used only by in-process contract tests. Starting the gateway cannot probe or call the configured service URLs.
+
+The browser game remains available as an explicit standalone simulation:
 
 ```powershell
-git submodule update --init --recursive services/knowledge-jizhan services/ainpc services/orgFlowEngine services/NexusKernel
 cd integration-service
 uv sync --extra dev
 uv run uvicorn dongzhou_integration.app:app --host 127.0.0.1 --port 8765
 ```
 
-Open `http://127.0.0.1:8765/`. Add `?offline=1` only for an explicit standalone simulation; production never silently falls back.
+Open `http://127.0.0.1:8765/?offline=1`. Do not start the former four-service containers or processes.
 
-## Production invariants
+## Legacy connected-mode notes (inactive)
+
+The notes below describe the former connected deployment and remain only as schema and migration context. They are not current operating instructions and must not be used to restart containers, processes, callbacks, health probes, or private-network access.
 
 - Use one gateway process per SQLite volume. The image deliberately starts one worker; scale-out requires replacing `Store` with the shared database implementation first.
 - Put TLS at the ingress and set `DONGZHOU_PUBLIC_ORIGIN` to the exact public origin.
@@ -27,7 +30,7 @@ Open `http://127.0.0.1:8765/`. Add `?offline=1` only for an explicit standalone 
 - NPC readiness is reconciled against AINPC's complete live actor snapshot, not only the gateway's persisted `READY` rows. The gateway retries incomplete topology snapshots, reads all pages, and reactivates missing actors every 30 seconds, so an AINPC instance restart does not require a browser refresh or manual `/npcs/sync` call. Gateway restarts preserve actors that are already online, while missing persisted actors are reactivated with their original login request ID; both paths prevent in-flight organization notifications from being invalidated by an unnecessary owner-incarnation change.
 - Court mandates use AINPC V2's canonical global emergency-assessment callback before sealing. The aligned decision, score, and interrupt trace are included in the NexusKernel digest and in the orgFlow task brief; malformed or unavailable assessments leave the idempotent mandate retryable instead of silently inventing an urgency result.
 - NPC state reads the canonical AINPC personality profile with `auto_initialize=false`. A task-specific fit score is calculated for supply, drill, patrol, intelligence, and diplomacy, contributes to readiness, is sealed by NexusKernel, and is copied into the orgFlow task brief. Missing profiles remain playable with a neutral factor; the gateway never creates or mutates personality data.
-- Set `DONGZHOU_GAME_SERVER_ID` to the same non-zero numeric ID used by AINPC and orgFlowEngine (`91001` by default). Configure orgFlowEngine's clock URL as `http://gateway:8765/api/v1/QueryGameTimeAndTimeScale`; the gateway exposes a monotonic, event-driven clock derived from accepted campaign saves.
+- `DONGZHOU_GAME_SERVER_ID` remains part of historical save identities. The former AINPC/orgFlow clock and callback configuration is retained only for schema compatibility and is not contacted by this build.
 - Back up `/data/dongzhou-integration.sqlite3` with SQLite's online backup API or a volume snapshot. Do not copy a live WAL database as loose files.
 - Build from the `dongzhou` repository. NexusKernel is pinned inside `services/NexusKernel` and is copied from the normal build context:
 
@@ -35,7 +38,7 @@ Open `http://127.0.0.1:8765/`. Add `?offline=1` only for an explicit standalone 
 docker build -f integration-service/Dockerfile -t dongzhou-integration:1.0.0 .
 ```
 
-## AINPC game-server contracts
+## Historical AINPC schema contracts
 
 The gateway implements the AINPC private-chat transport and runtime contracts at the game-server root:
 

@@ -58,15 +58,23 @@ class Upstreams:
 
     def __init__(self, settings: Settings, client: httpx.AsyncClient | None = None) -> None:
         self.settings = settings
-        self.client = client or httpx.AsyncClient(
-            timeout=httpx.Timeout(settings.upstream_timeout_seconds, connect=3),
-            follow_redirects=False,
-        )
+        self.client = client
         self._owns_client = client is None
 
     async def close(self) -> None:
-        if self._owns_client:
+        if self._owns_client and self.client is not None:
             await self.client.aclose()
+
+    def _mock_client(self) -> httpx.AsyncClient:
+        client = self.client
+        if client is None or not isinstance(
+            getattr(client, "_transport", None), httpx.MockTransport
+        ):
+            raise UpstreamUnavailable(
+                "Four-service network access is disabled; only an in-process mock transport is allowed.",
+                error_code="upstream_network_disabled",
+            )
+        return client
 
     async def ask_ai_helper(self, payload: dict[str, Any]) -> dict[str, Any]:
         response = await self._json(
@@ -184,6 +192,7 @@ class Upstreams:
         return {"Authorization": f"Bearer {token}"} if token else {}
 
     async def _json(self, method: str, url: str, *, token: str = "", payload: dict[str, Any] | None = None, params: dict[str, Any] | None = None, headers: dict[str, str] | None = None, content: bytes | None = None, timeout_seconds: float | None = None) -> dict[str, Any]:
+        client = self._mock_client()
         try:
             request_headers = {**self._headers(token), **(headers or {})}
             timeout = (
@@ -191,7 +200,7 @@ class Upstreams:
                 if timeout_seconds is not None
                 else {}
             )
-            response = await self.client.request(method, url, headers=request_headers, params=params, json=payload if content is None else None, content=content, **timeout)
+            response = await client.request(method, url, headers=request_headers, params=params, json=payload if content is None else None, content=content, **timeout)
             response.raise_for_status()
             data = response.json()
             if not isinstance(data, dict):

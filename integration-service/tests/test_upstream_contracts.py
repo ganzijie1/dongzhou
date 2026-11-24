@@ -76,6 +76,20 @@ def healthy_source_probe(request: httpx.Request) -> httpx.Response | None:
 
 
 class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
+    async def test_default_upstreams_cannot_open_network_connections(self) -> None:
+        upstreams = Upstreams(settings(Path("unused")))
+        self.assertIsNone(upstreams.client)
+        with self.assertRaises(UpstreamUnavailable) as raised:
+            await upstreams._json("GET", "http://127.0.0.1:8000/readiness")
+        self.assertEqual(raised.exception.error_code, "upstream_network_disabled")
+
+    async def test_non_mock_http_client_is_rejected_before_request(self) -> None:
+        async with httpx.AsyncClient() as client:
+            upstreams = Upstreams(settings(Path("unused")), client)
+            with self.assertRaises(UpstreamUnavailable) as raised:
+                await upstreams._json("GET", "http://127.0.0.1:8000/readiness")
+        self.assertEqual(raised.exception.error_code, "upstream_network_disabled")
+
     async def test_member_contribution_route_seals_authoritative_entries(self) -> None:
         member_id = "00000000-0000-0000-0000-000000000004"
         entry_id = "00000000-0000-0000-0000-000000000009"
