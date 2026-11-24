@@ -100,11 +100,12 @@ const guideReceipt = (actionId, state, digest) => ({
     else if (pathname.endsWith("/organization/roster")) body = { organization: { id: "test", name: "东周军府", state: "ACTIVE", templateId: "dongzhou_court", templateVersion: 7, hierarchyVersion: 7, growthContribution: 0 }, members: [] };
     else if (pathname.endsWith("/organization/inventory")) body = { organizationId: "test", gameServerId: "91001", revision: 1, accounts: [] };
     else if (pathname.endsWith("/organization/scheduled-duties")) body = {
-      ruleId: "00000000-0000-4000-8000-000000000198", state: "ACTIVE", frequency: "DAILY",
+      ruleId: "00000000-0000-4000-8000-000000000198", state: "ACTIVE", version: 1, frequency: "DAILY",
       triggerMinute: 780, managerHeroId: "DuBo", workerHeroId: "ZuoRu", taskCode: "dongzhou.intelligence",
       latestTrigger: { state: "SKIPPED", failure_code: "duplicate_active_task", task_id: scheduledTaskId },
       activeTask: { taskId: scheduledTaskId, title: "东周朝廷月例察访", state: "IN_PROGRESS", finalResult: null, updatedAt: "2026-11-14T10:00:00Z", adopted: true },
       sourceProvenance,
+      receipt: { kind: "SNAPSHOT", ruleId: "00000000-0000-4000-8000-000000000198", state: "ACTIVE", version: 1, latestTriggerTaskId: scheduledTaskId, activeTaskId: scheduledTaskId, activeTaskAdopted: true, sourceProvenance, digest: "9".repeat(64), kernel: { module: "dongzhou_organization_scheduled_duty", moduleVersion: "1.2.0", state: "SEALED" } },
     };
     else if (pathname.endsWith(`/organization/tasks/${scheduledTaskId}`)) {
       model.scheduledTaskReads += 1;

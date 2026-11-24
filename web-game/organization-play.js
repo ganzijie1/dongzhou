@@ -515,6 +515,22 @@
     if (!taskId || active?.adopted !== true) return { state, task: null, adopted: false };
     if (duty?.state !== "ACTIVE" || duty?.taskCode !== "dongzhou.intelligence") throw new Error("自动差事规则无效");
     if (!validSourceProvenance(duty?.sourceProvenance)) throw new Error("自动差事服务来源无效");
+    const receipt = duty?.receipt;
+    if (
+      receipt?.kind !== "SNAPSHOT"
+      || receipt.ruleId !== String(duty.ruleId || "")
+      || receipt.state !== duty.state
+      || receipt.version !== duty.version
+      || receipt.latestTriggerTaskId !== taskId
+      || receipt.activeTaskId !== taskId
+      || receipt.activeTaskAdopted !== true
+      || !/^[0-9a-f]{64}$/.test(String(receipt.digest || ""))
+      || receipt.kernel?.module !== "dongzhou_organization_scheduled_duty"
+      || receipt.kernel?.moduleVersion !== "1.2.0"
+      || receipt.kernel?.state !== "SEALED"
+      || !validSourceProvenance(receipt.sourceProvenance)
+      || receipt.sourceProvenance.digest !== duty.sourceProvenance.digest
+    ) throw new Error("自动差事快照封印无效");
     if (String(duty?.latestTrigger?.task_id || "") !== taskId) throw new Error("自动差事任务号与触发记录不匹配");
     const member = state.members.find((entry) => entry.id === workerHeroId);
     if (!member) throw new Error("自动差事责任人不在当前官署名册中");

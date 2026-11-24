@@ -1252,8 +1252,44 @@ class LogisticsBriefingModule(Module):
 
 class OrganizationScheduledDutyModule(Module):
     name = "dongzhou_organization_scheduled_duty"
-    version = "1.1.0"
+    version = "1.2.0"
     dependencies = (RuntimeModule.name, "dongzhou_service_provenance")
+
+    @classmethod
+    def seal_snapshot(cls, trace: dict[str, Any]) -> dict[str, Any]:
+        if not _service_provenance_receipt_is_valid(trace.get("sourceProvenance")):
+            raise ValueError("organization scheduled duty snapshot source is invalid")
+        UUID(str(trace.get("ruleId") or ""))
+        UUID(str(trace.get("organizationId") or ""))
+        active_task_id = trace.get("activeTaskId")
+        latest_task_id = trace.get("latestTriggerTaskId")
+        if active_task_id is not None:
+            UUID(str(active_task_id))
+        if latest_task_id is not None:
+            UUID(str(latest_task_id))
+        if (
+            trace.get("kind") != "SNAPSHOT"
+            or trace.get("state") not in {"ACTIVE", "DISABLED"}
+            or int(trace.get("version") or 0) < 1
+            or trace.get("frequency") != "DAILY"
+            or trace.get("triggerMinute") != 780
+            or trace.get("managerHeroId") != "DuBo"
+            or trace.get("workerHeroId") != "ZuoRu"
+            or trace.get("taskCode") != "dongzhou.intelligence"
+            or active_task_id != latest_task_id
+            or not isinstance(trace.get("activeTaskAdopted"), bool)
+        ):
+            raise ValueError("organization scheduled duty snapshot is invalid")
+        return {
+            **trace,
+            "digest": _canonical_digest(trace),
+            "kernel": {
+                "module": cls.name,
+                "moduleVersion": cls.version,
+                "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                "state": "SEALED",
+            },
+        }
 
     @staticmethod
     def seal(trace: dict[str, Any]) -> dict[str, Any]:
@@ -1284,9 +1320,10 @@ class OrganizationScheduledDutyModule(Module):
             or trace.get("taskCode") != "dongzhou.intelligence"
         ):
             raise ValueError("organization scheduled duty trace is invalid")
-        digest = _canonical_digest(trace)
+        sealed_trace = {"kind": "STATUS_CHANGE", **trace}
+        digest = _canonical_digest(sealed_trace)
         return {
-            **trace,
+            **sealed_trace,
             "digest": digest,
             "kernel": {
                 "module": OrganizationScheduledDutyModule.name,
@@ -10228,7 +10265,8 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                         "finalResult": None,
                         "updatedAt": "",
                     }
-            return {
+            source_provenance = service_provenance.receipt()
+            result = {
                 "ruleId": str(rule_id),
                 "state": str(rule.get("state") or "UNKNOWN"),
                 "version": int(rule.get("version", 1)),
@@ -10240,8 +10278,45 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "dutyTitle": duty_title,
                 "latestTrigger": latest if isinstance(latest, dict) else None,
                 "activeTask": active_task,
-                "sourceProvenance": service_provenance.receipt(),
+                "sourceProvenance": source_provenance,
             }
+            result["receipt"] = organization_scheduled_duty.seal_snapshot(
+                {
+                    "kind": "SNAPSHOT",
+                    "ruleId": result["ruleId"],
+                    "organizationId": settings.orgflow_org_id,
+                    "gameServerId": settings.game_server_id,
+                    "state": result["state"],
+                    "version": result["version"],
+                    "frequency": result["frequency"],
+                    "triggerMinute": result["triggerMinute"],
+                    "managerHeroId": result["managerHeroId"],
+                    "workerHeroId": result["workerHeroId"],
+                    "taskCode": result["taskCode"],
+                    "latestTriggerState": (
+                        str(latest.get("state") or "")
+                        if isinstance(latest, dict)
+                        else None
+                    ),
+                    "latestTriggerTaskId": latest_task_id or None,
+                    "activeTaskId": (
+                        str(active_task.get("taskId"))
+                        if isinstance(active_task, dict) and active_task.get("taskId")
+                        else None
+                    ),
+                    "activeTaskState": (
+                        str(active_task.get("state") or "")
+                        if isinstance(active_task, dict)
+                        else None
+                    ),
+                    "activeTaskAdopted": bool(
+                        isinstance(active_task, dict)
+                        and active_task.get("adopted") is True
+                    ),
+                    "sourceProvenance": source_provenance,
+                }
+            )
+            return result
         except UpstreamUnavailable as error:
             raise ApiError(
                 "organization_scheduled_duties_unavailable",

@@ -27,11 +27,12 @@ assert.throws(() => play.validateBattleDebrief({ ...battleDebrief, kernel: { ...
 assert.throws(() => play.validateBattleDebrief(battleDebrief, battleDebrief.reportId, "9".repeat(64)), /战后复盘服务来源无效/);
 const scheduledTaskId = "00000000-0000-4000-8000-000000000099";
 const scheduledDuty = {
-  ruleId: "00000000-0000-4000-8000-000000000098", state: "ACTIVE",
+  ruleId: "00000000-0000-4000-8000-000000000098", state: "ACTIVE", version: 1,
   taskCode: "dongzhou.intelligence", workerHeroId: "ZuoRu",
   sourceProvenance,
   latestTrigger: { state: "SKIPPED", failure_code: "duplicate_active_task", task_id: scheduledTaskId },
-  activeTask: { taskId: scheduledTaskId, title: "东周朝廷月例察访", state: "IN_PROGRESS", finalResult: null, adopted: true }
+  activeTask: { taskId: scheduledTaskId, title: "东周朝廷月例察访", state: "IN_PROGRESS", finalResult: null, adopted: true },
+  receipt: { kind: "SNAPSHOT", ruleId: "00000000-0000-4000-8000-000000000098", state: "ACTIVE", version: 1, latestTriggerTaskId: scheduledTaskId, activeTaskId: scheduledTaskId, activeTaskAdopted: true, sourceProvenance, digest: "7".repeat(64), kernel: { module: "dongzhou_organization_scheduled_duty", moduleVersion: "1.2.0", state: "SEALED" } }
 };
 const adoptedDuty = play.adoptScheduledDuty(state, scheduledDuty);
 assert.equal(adoptedDuty.adopted, true);
@@ -43,6 +44,7 @@ assert.equal(play.adoptScheduledDuty(adoptedDuty.state, scheduledDuty).adopted, 
 assert.equal(adoptedDuty.state.tasks.filter((task) => task.remoteResult === scheduledTaskId).length, 1);
 assert.throws(() => play.adoptScheduledDuty(state, { ...scheduledDuty, latestTrigger: { ...scheduledDuty.latestTrigger, task_id: "other" } }), /任务号/);
 assert.throws(() => play.adoptScheduledDuty(state, { ...scheduledDuty, sourceProvenance: { ...sourceProvenance, digest: "invalid" } }), /服务来源无效/);
+assert.throws(() => play.adoptScheduledDuty(state, { ...scheduledDuty, receipt: { ...scheduledDuty.receipt, kernel: { ...scheduledDuty.receipt.kernel, moduleVersion: "1.1.0" } } }), /快照封印无效/);
 const completedScheduledDuty = play.reconcileRemoteTasks(adoptedDuty.state, [{ task_id: scheduledTaskId, state: "SUCCEEDED", final_result: "SUCCESS", version: "3" }], { advanceMonth: false });
 const scheduledSupport = play.consumeSupport(completedScheduledDuty, "02");
 assert.equal(scheduledSupport.support.recon, 1);
