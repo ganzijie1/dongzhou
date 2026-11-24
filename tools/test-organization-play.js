@@ -302,6 +302,18 @@ const acceptedReview = {
     kernel: { state: "SEALED" }
   }
 };
+const sourceBoundReviewState = JSON.parse(JSON.stringify(state));
+sourceBoundReviewState.tasks.at(-1).sourceProvenance = sourceProvenance;
+const sourceBoundAcceptedReview = {
+  ...acceptedReview,
+  growthReward: {
+    ...acceptedReview.growthReward,
+    sourceProvenance,
+    kernel: { module: "dongzhou_mandate_workflow", moduleVersion: "1.14.0", state: "SEALED" }
+  }
+};
+assert.strictEqual(play.recordTaskReview(sourceBoundReviewState, { taskId: remote.task.remoteResult, review: sourceBoundAcceptedReview }).state.tasks.at(-1).pendingReview.growthReward.sourceProvenance.digest, sourceProvenance.digest);
+assert.throws(() => play.recordTaskReview(sourceBoundReviewState, { taskId: remote.task.remoteResult, review: { ...sourceBoundAcceptedReview, growthReward: { ...sourceBoundAcceptedReview.growthReward, kernel: { ...sourceBoundAcceptedReview.growthReward.kernel, moduleVersion: "1.13.0" } } } }), /复命记功印记无效/);
 const acceptedRelationship = {
   state: "DELIVERED",
   decision: "ACCEPT",

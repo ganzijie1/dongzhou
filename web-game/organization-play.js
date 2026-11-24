@@ -947,6 +947,7 @@
       throw new Error("复命裁决印记与待裁簿书不匹配");
     }
     const growth = review.growthReward;
+    const authoritativeSource = task.sourceProvenance || task.mandate?.sourceProvenance;
     const expectsGrowth = review.state === "ACCEPTED" && Number(task.pendingSettlement?.organizationDelta || 0) > 0;
     const validGrowth = growth
       && growth.settlementId === review.review.settlementId
@@ -960,7 +961,13 @@
       && growth.accountVersion > 0
       && typeof growth.digest === "string"
       && /^[0-9a-f]{64}$/.test(growth.digest)
-      && growth.kernel?.state === "SEALED";
+      && growth.kernel?.state === "SEALED"
+      && (!authoritativeSource || (
+        growth.kernel?.module === "dongzhou_mandate_workflow"
+        && growth.kernel?.moduleVersion === "1.14.0"
+        && validSourceProvenance(growth.sourceProvenance)
+        && growth.sourceProvenance.digest === authoritativeSource.digest
+      ));
     if (expectsGrowth && !validGrowth) throw new Error("复命记功印记无效");
     if (growth && !validGrowth) throw new Error("复命记功与待裁簿书不匹配");
     if (validGrowth) state.contribution = growth.contributionPoints;
