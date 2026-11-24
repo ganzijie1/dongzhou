@@ -191,6 +191,47 @@ const client = require("../web-game/integration-client.js");
   assert.match(localAssignment.assignment.digest, /^[0-9a-f]{64}$/);
   await assert.rejects(client.npcAssignment("DuBo", "forged", "01"), /npc_assignment_task_invalid/);
   await assert.rejects(client.npcState("Unknown"), /npc_not_in_local_organization/);
+  const localSettlement = {
+    settlementId: "10000000-0000-4000-8000-000000000001",
+    taskId: "10000000-0000-4000-8000-000000000002",
+    memberId: "DuBo",
+    memberDelta: 15,
+    organizationDelta: 30,
+    result: "SUCCESS",
+  };
+  const localClosure = { state: "SEALED", digest: "c".repeat(64), settlement: localSettlement };
+  localProfile.organization.tasks.push({
+    id: "local-settled-task",
+    remoteResult: localSettlement.taskId,
+    assigneeId: "DuBo",
+    name: "Inspect settled granary",
+    status: "success",
+    createdMonth: 1,
+    resolvedMonth: 2,
+    settlement: localSettlement,
+    closureReceipt: localClosure,
+    sourceProvenance: recollection.recollection.sourceProvenance,
+  });
+  localProfile.organization.settlements = [{ ...localSettlement, closureReceipt: localClosure }];
+  await client.persist(localProfile);
+  const contributionResponse = await client.organizationMemberContributions("DuBo");
+  assert.strictEqual(contributionResponse.mode, "standalone");
+  assert.strictEqual(contributionResponse.entries.length, 1);
+  const localContribution = contributionResponse.entries[0];
+  assert.strictEqual(localContribution.amount, 15);
+  assert.strictEqual(localContribution.kernel.module, "dongzhou_organization_contribution_ledger");
+  const localContributionDossier = (await client.organizationContributionDossier("DuBo", localContribution.entryId)).dossier;
+  assert.strictEqual(localContributionDossier.state, "SEALED");
+  assert.strictEqual(localContributionDossier.contribution.digest, localContribution.digest);
+  assert.strictEqual(localContributionDossier.taskTrace.timeline.length, 5);
+  assert.strictEqual(localContributionDossier.kernel.module, "dongzhou_organization_contribution_dossier");
+  await assert.rejects(client.organizationContributionDossier("DuBo", "forged"), /organization_contribution_not_found/);
+  const cleanTaskSource = localProfile.organization.tasks[1].sourceProvenance;
+  localProfile.organization.tasks[1].sourceProvenance = { ...cleanTaskSource, digest: "0".repeat(64) };
+  await client.persist(localProfile);
+  assert.strictEqual((await client.organizationMemberContributions("DuBo")).entries.length, 0);
+  localProfile.organization.tasks[1].sourceProvenance = cleanTaskSource;
+  await client.persist(localProfile);
   const localMemory = { ...recollection.recollection.memoryReceipt, sourceProvenance: recollection.recollection.sourceProvenance };
   const decisionOptions = ["Hold", "Advance", thought.thoughtReceipt.councilProposal];
   const localNotices = await client.organizationPublicNotices();
@@ -199,17 +240,23 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(localNotice.deliveryMode, "IN_PROCESS");
   assert.strictEqual(localNotice.kernel.module, "dongzhou_npc_public_notice");
   assert.strictEqual((await client.organizationPublicNotices()).notices.find((notice) => notice.heroId === "DuBo").digest, localNotice.digest);
-  const decisionQuestion = `What should the court do?\n告示印记：${localNotice.digest.slice(0, 12)}`;
+  const decisionQuestion = `What should the court do?\n告示印记：${localNotice.digest.slice(0, 12)}\n功绩印记：${localContribution.digest.slice(0, 12)}\n卷宗印记：${localContributionDossier.digest.slice(0, 12)}`;
   await assert.rejects(
     client.npcDecision("DuBo", decisionQuestion, decisionOptions, "01", localMemory, { ...localNotice, digest: "0".repeat(64) }),
     /npc_decision_public_notice_invalid/
   );
-  const decision = await client.npcDecision("DuBo", decisionQuestion, decisionOptions, "01", localMemory, localNotice);
+  await assert.rejects(
+    client.npcDecision("DuBo", decisionQuestion, decisionOptions, "01", localMemory, localNotice, { ...localContribution, digest: "0".repeat(64) }, localContributionDossier),
+    /npc_decision_contribution_invalid/
+  );
+  const decision = await client.npcDecision("DuBo", decisionQuestion, decisionOptions, "01", localMemory, localNotice, localContribution, localContributionDossier);
   assert.strictEqual(decision.state, "COMPLETED");
   assert.strictEqual(decision.decision.data.text, thought.thoughtReceipt.councilProposal);
   assert.strictEqual(decision.dialogueReceipt.state, "RECORDED");
   assert.strictEqual(decision.publicNoticeReceipt.digest, localNotice.digest);
-  assert.strictEqual((await client.npcDecision("DuBo", decisionQuestion, decisionOptions, "01", localMemory, localNotice)).replayed, true);
+  assert.strictEqual(decision.contributionReceipt.digest, localContribution.digest);
+  assert.strictEqual(decision.contributionDossierReceipt.digest, localContributionDossier.digest);
+  assert.strictEqual((await client.npcDecision("DuBo", decisionQuestion, decisionOptions, "01", localMemory, localNotice, localContribution, localContributionDossier)).replayed, true);
 
   const inventoryBeforeDraft = await client.organizationInventory();
   const requisitionDraft = await client.requisitionOrganizationInventory({ units: 20, stage_id: "01" });
@@ -447,7 +494,7 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(rejected.guide.kernel.state, "SEALED");
   assert.strictEqual(fetchedUrls.some((url) => url.includes("/api/")), false);
 
-  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true, localBattleGate: true, localDebrief: true, localCommendation: true, localRecollection: true, localPublicNotice: true, localNpcState: true, localNpcSchedule: true, localNpcAssignment: true, localLogistics: true, localInventoryRequisition: true, localScheduledDuty: true, localThought: true, localCouncil: true }));
+  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true, localBattleGate: true, localDebrief: true, localCommendation: true, localRecollection: true, localPublicNotice: true, localNpcState: true, localNpcSchedule: true, localNpcAssignment: true, localContributionLedger: true, localContributionDossier: true, localLogistics: true, localInventoryRequisition: true, localScheduledDuty: true, localThought: true, localCouncil: true }));
 })().catch((error) => {
   console.error(error.stack || error.message);
   process.exitCode = 1;

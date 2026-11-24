@@ -125,6 +125,8 @@ standalone 调拨沿用同一两阶段审批契约，但只操作组织存档中
 
 属官状态、日程和本关当值也已迁入 standalone 本地闭环。状态只投影当前存档中已有的忠诚、劳顿、功绩、玩家关系、在办差事和经 `dongzhou_npc_recollection` 封印的旧事；心境由劳顿及是否在办差事确定性映射，性情、动机和品质没有本地权威记录时明确显示未建档。日程只列当前本月真实在办差事，当值根据属官忠诚、劳顿和功绩计算胜任度；三类响应分别由 `dongzhou_npc_local_state 1.0.0`、`dongzhou_npc_local_schedule 1.0.0` 和 `dongzhou_npc_local_assignment 1.0.0` 封印，并标记 `IN_PROCESS`，不会伪装为 AINPC 实时在线状态。离线官署浏览器覆盖首次开局、拟定日程、桌面及移动端布局，并继续要求 `/api/` 请求为 0。
 
+属官功绩账与卷宗只从存档中已完成的结算生成，不按人物当前功绩总分倒推历史。每一笔账目必须同时匹配任务、结算、结案内容、64 位结案摘要和当前四仓来源封印；任一来源缺失或漂移即不出账。账目使用 `dongzhou_organization_contribution_ledger 1.1.0`，卷宗和五步任务轨迹分别使用 `dongzhou_organization_contribution_dossier 1.1.0` 与 `dongzhou_organization_task_trace 1.1.0` 重算封印。离线军议会重新读取当前存档核对账目、卷宗和题面印记后才予绑定；尚未本地化的据功慰勉按钮不会在断网模式出现。
+
 ## 历史验证基线
 
 以下现场证据仅记录隔离前已经完成的能力验收，不是当前运行拓扑，也不授权重新启动服务、访问 GitLab 或连接内网。

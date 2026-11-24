@@ -478,7 +478,98 @@
     return { mode: "standalone", assignment };
   }
 
-  async function localNpcDecision(heroId, question, options, stageId, memory, publicNotice) {
+  async function localMemberContributionEntries(heroId) {
+    requireLocalOfficer(heroId);
+    const currentProfile = offlineProfile || read("dongzhou-h5-profile-v2", null);
+    const organization = currentProfile?.organization || {};
+    const tasks = Array.isArray(organization.tasks) ? organization.tasks : [];
+    const settlements = Array.isArray(organization.settlements) ? organization.settlements : [];
+    const sourceProvenance = await localServiceProvenance();
+    const entries = [];
+    for (let index = 0; index < settlements.length; index += 1) {
+      const settlement = settlements[index];
+      if (String(settlement?.memberId || "") !== String(heroId) || !Number.isSafeInteger(settlement?.memberDelta) || settlement.memberDelta === 0) continue;
+      const task = tasks.find((item) => String(item?.remoteResult || "") === String(settlement.taskId || ""));
+      if (!task
+        || task.settlement?.settlementId !== settlement.settlementId
+        || task.closureReceipt?.state !== "SEALED"
+        || !/^[0-9a-f]{64}$/.test(String(task.closureReceipt.digest || ""))
+        || canonicalJson(task.closureReceipt.settlement) !== canonicalJson(task.settlement)
+        || canonicalJson(task.settlement) !== canonicalJson(Object.fromEntries(Object.entries(settlement).filter(([key]) => key !== "closureReceipt")))
+        || canonicalJson(task.sourceProvenance) !== canonicalJson(sourceProvenance)) continue;
+      const trace = {
+        entryId: `local-contribution:${settlement.settlementId}`,
+        heroId: String(heroId),
+        eventCode: settlement.result === "PARTIAL" ? "TASK_PARTIALLY_COMPLETED" : "TASK_COMPLETED",
+        amount: settlement.memberDelta,
+        sourceRef: `organization-task:${settlement.taskId}`,
+        entryVersion: index + 2,
+        settlementId: String(settlement.settlementId),
+        closureDigest: String(task.closureReceipt.digest || ""),
+        sourceProvenance
+      };
+      entries.push({
+        ...trace,
+        digest: await sha256(canonicalJson(trace)),
+        kernel: { module: "dongzhou_organization_contribution_ledger", moduleVersion: "1.1.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+      });
+    }
+    return entries;
+  }
+
+  async function localOrganizationMemberContributions(heroId) {
+    return { mode: "standalone", heroId: String(heroId), entries: await localMemberContributionEntries(heroId) };
+  }
+
+  async function localOrganizationContributionDossier(heroId, entryId) {
+    const currentProfile = offlineProfile || read("dongzhou-h5-profile-v2", null);
+    const organization = currentProfile?.organization || {};
+    const contribution = (await localMemberContributionEntries(heroId)).find((entry) => entry.entryId === entryId);
+    if (!contribution) throw new Error("organization_contribution_not_found");
+    const task = (organization.tasks || []).find((item) => String(item?.remoteResult || "") === contribution.sourceRef.replace(/^organization-task:/, ""));
+    if (!task || task.settlement?.settlementId !== contribution.settlementId || task.closureReceipt?.state !== "SEALED") {
+      throw new Error("organization_contribution_task_invalid");
+    }
+    const timeline = [
+      { type: "TASK_CREATED", month: Number(task.createdMonth || 1) },
+      { type: "EXECUTION_STARTED", month: Number(task.createdMonth || 1) },
+      { type: "SUBMISSION_RECORDED", month: Number(task.resolvedMonth || organization.month || 1) },
+      { type: "TASK_FINALIZED", stateCode: String(task.status || "") },
+      { type: "SETTLEMENT_RECORDED", settlementId: contribution.settlementId }
+    ];
+    const taskTraceBody = {
+      state: "SEALED",
+      taskId: String(task.remoteResult),
+      taskState: String(task.status || ""),
+      timeline,
+      closureDigest: String(task.closureReceipt.digest || ""),
+      sourceProvenance: contribution.sourceProvenance
+    };
+    const taskTrace = {
+      ...taskTraceBody,
+      digest: await sha256(canonicalJson(taskTraceBody)),
+      kernel: { module: "dongzhou_organization_task_trace", moduleVersion: "1.1.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    };
+    const body = {
+      state: "SEALED",
+      entryId: contribution.entryId,
+      heroId: String(heroId),
+      taskId: String(task.remoteResult),
+      taskState: String(task.status || ""),
+      contribution,
+      taskTrace,
+      sourceProvenance: contribution.sourceProvenance
+    };
+    return {
+      dossier: {
+        ...body,
+        digest: await sha256(canonicalJson(body)),
+        kernel: { module: "dongzhou_organization_contribution_dossier", moduleVersion: "1.1.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+      }
+    };
+  }
+
+  async function localNpcDecision(heroId, question, options, stageId, memory, publicNotice, contribution, contributionDossier) {
     requireLocalOfficer(heroId);
     if (!String(question || "").trim() || !Array.isArray(options) || options.length < 2 || options.some((item) => !String(item || "").trim())) {
       throw new Error("npc_decision_input_invalid");
@@ -499,7 +590,20 @@
       }
       if (!String(question).includes(`告示印记：${verifiedPublicNotice.digest.slice(0, 12)}`)) throw new Error("npc_decision_public_notice_unbound");
     }
-    const context = canonicalJson({ heroId, stageId: String(stageId), question, options, memoryId: memory?.idempotencyKey || "", publicNoticeId: verifiedPublicNotice?.messageId || "" });
+    let verifiedContribution;
+    let verifiedContributionDossier;
+    if (contribution) {
+      verifiedContribution = (await localMemberContributionEntries(heroId)).find((entry) => entry.entryId === contribution.entryId);
+      if (!verifiedContribution || canonicalJson(verifiedContribution) !== canonicalJson(contribution)) throw new Error("npc_decision_contribution_invalid");
+      if (!String(question).includes(`功绩印记：${verifiedContribution.digest.slice(0, 12)}`)) throw new Error("npc_decision_contribution_unbound");
+    }
+    if (contributionDossier) {
+      if (!verifiedContribution) throw new Error("npc_decision_contribution_dossier_unbound");
+      verifiedContributionDossier = (await localOrganizationContributionDossier(heroId, verifiedContribution.entryId)).dossier;
+      if (canonicalJson(verifiedContributionDossier) !== canonicalJson(contributionDossier)) throw new Error("npc_decision_contribution_dossier_invalid");
+      if (!String(question).includes(`卷宗印记：${verifiedContributionDossier.digest.slice(0, 12)}`)) throw new Error("npc_decision_contribution_dossier_unbound");
+    }
+    const context = canonicalJson({ heroId, stageId: String(stageId), question, options, memoryId: memory?.idempotencyKey || "", publicNoticeId: verifiedPublicNotice?.messageId || "", contributionId: verifiedContribution?.entryId || "", contributionDossierDigest: verifiedContributionDossier?.digest || "" });
     const key = NPC_DECISION_PREFIX + await sha256(context);
     const stored = read(key, null);
     const clientRequestId = stored?.input?.clientRequestId || root.crypto.randomUUID();
@@ -517,6 +621,8 @@
       },
       ...(memory ? { memoryReceipt: memory } : {}),
       ...(verifiedPublicNotice ? { publicNoticeReceipt: verifiedPublicNotice } : {}),
+      ...(verifiedContribution ? { contributionReceipt: verifiedContribution } : {}),
+      ...(verifiedContributionDossier ? { contributionDossierReceipt: verifiedContributionDossier } : {}),
       sourceProvenance,
       clientRequestId
     };
@@ -1639,7 +1745,7 @@
     return request(`/npcs/${encodeURIComponent(heroId)}/schedule`, { method: "POST", body: JSON.stringify({ force_regenerate: false }) });
   }
   async function npcDecision(heroId, question, options, stageId, memory, publicNotice, contribution, contributionDossier) {
-    if (offline) return localNpcDecision(heroId, question, options, stageId, memory, publicNotice);
+    if (offline) return localNpcDecision(heroId, question, options, stageId, memory, publicNotice, contribution, contributionDossier);
     const pendingKey = `dongzhou-pending-decision-v5:${JSON.stringify([heroId, stageId || "", question, options, memory?.idempotencyKey || "", publicNotice?.messageId || "", contribution?.entryId || "", contributionDossier?.digest || ""])}`;
     const pending = read(pendingKey, null) || { client_request_id: root.crypto.randomUUID(), ...(stageId ? { stage_id: String(stageId) } : {}), question, options: options.map((text, index) => ({ index, text })), topic: "court_decision", ...(memory ? { memory_idempotency_key: memory.idempotencyKey, memory_digest: memory.digest } : {}), ...(publicNotice ? { public_notice_id: publicNotice.messageId, public_notice_digest: publicNotice.digest } : {}), ...(contribution ? { contribution_entry_id: contribution.entryId, contribution_entry_digest: contribution.digest } : {}), ...(contributionDossier ? { contribution_dossier_digest: contributionDossier.digest } : {}) };
     write(pendingKey, pending);
@@ -1890,8 +1996,14 @@
   }
   function organizationTask(taskId) { return requestWithTransientRetry(`/organization/tasks/${encodeURIComponent(taskId)}`); }
   function organizationRoster() { return requestWithTransientRetry("/organization/roster"); }
-  function organizationMemberContributions(heroId) { return requestWithTransientRetry(`/organization/members/${encodeURIComponent(heroId)}/contributions`); }
-  function organizationContributionDossier(heroId, entryId) { return requestWithTransientRetry(`/organization/members/${encodeURIComponent(heroId)}/contributions/${encodeURIComponent(entryId)}/dossier`); }
+  function organizationMemberContributions(heroId) {
+    if (offline) return localOrganizationMemberContributions(heroId);
+    return requestWithTransientRetry(`/organization/members/${encodeURIComponent(heroId)}/contributions`);
+  }
+  function organizationContributionDossier(heroId, entryId) {
+    if (offline) return localOrganizationContributionDossier(heroId, entryId);
+    return requestWithTransientRetry(`/organization/members/${encodeURIComponent(heroId)}/contributions/${encodeURIComponent(entryId)}/dossier`);
+  }
   function organizationPlayerTasks() { return requestWithTransientRetry("/organization/player-tasks"); }
   function organizationPlayerContributions() { return requestWithTransientRetry("/organization/player-contributions"); }
   function organizationPlayerContributionDossier(entryId) { return requestWithTransientRetry(`/organization/player-contributions/${encodeURIComponent(entryId)}/dossier`); }

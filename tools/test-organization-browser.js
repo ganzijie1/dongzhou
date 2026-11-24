@@ -108,6 +108,45 @@ async function openReady(page) {
       || localNpcHistory.recollection.memoryReceipt?.digest !== localNpcHistory.recollection.memoryDigest) {
       throw new Error("Offline recollection lacks the sealed local AINPC memory");
     }
+    await desktop.evaluate(() => {
+      const profile = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2"));
+      const heroId = profile.organization.recollections[0].heroId;
+      const settlement = {
+        settlementId: "20000000-0000-4000-8000-000000000001",
+        taskId: "20000000-0000-4000-8000-000000000002",
+        memberId: heroId,
+        memberDelta: 18,
+        organizationDelta: 36,
+        result: "SUCCESS"
+      };
+      const closureReceipt = { state: "SEALED", digest: "c".repeat(64), settlement };
+      profile.organization.tasks.push({
+        id: "offline-settled-task",
+        remoteResult: settlement.taskId,
+        assigneeId: heroId,
+        assigneeName: profile.organization.members.find((member) => member.id === heroId).name,
+        name: "核验本地粮册",
+        status: "success",
+        createdMonth: 1,
+        resolvedMonth: 1,
+        settlement,
+        closureReceipt,
+        sourceProvenance: profile.organization.recollections[0].sourceProvenance
+      });
+      profile.organization.settlements.push({ ...settlement, closureReceipt });
+      localStorage.setItem("dongzhou-h5-profile-v2", JSON.stringify(profile));
+    });
+    await desktop.reload({ waitUntil: "domcontentloaded" });
+    await desktop.waitForSelector("#campaignScreen:not([hidden])", { timeout: 45000 });
+    await desktop.click("#campaignOfficeButton");
+    await desktop.waitForSelector("#officeContributions >> text=差事告成", { timeout: 10000 });
+    await desktop.waitForSelector("#officeContributions >> text=+18", { timeout: 10000 });
+    await desktop.click('#officeContributions [data-contribution-dossier-id]');
+    await desktop.waitForSelector("#officeContributions >> text=功绩卷宗已封印", { timeout: 10000 });
+    if (await desktop.locator('#officeContributions [data-merit-commendation-id]').count()) throw new Error("Offline contribution exposed unsupported merit commendation");
+    await desktop.click('#officeContributions [data-contribution-verify-id]');
+    await desktop.waitForSelector("#officeContributions >> text=验印通过", { timeout: 10000 });
+    await desktop.click('#officeContributions [data-contribution-id]');
     await desktop.waitForSelector("#officeLogisticsBriefing:not(:disabled)");
     await desktop.click("#officeLogisticsBriefing");
     await desktop.waitForFunction(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.logisticsBriefings.length === 1);
@@ -137,6 +176,11 @@ async function openReady(page) {
       || localCouncil.council.publicNotice?.deliveryMode !== "IN_PROCESS"
       || localCouncil.council.publicNotice?.sourceProvenance?.digest !== localCouncil.council.sourceProvenance?.digest) {
       throw new Error("Offline council did not bind the current local public notice");
+    }
+    if (localCouncil.council.contribution?.kernel?.module !== "dongzhou_organization_contribution_ledger"
+      || localCouncil.council.contributionDossier?.kernel?.module !== "dongzhou_organization_contribution_dossier"
+      || localCouncil.council.contributionDossier?.contribution?.digest !== localCouncil.council.contribution?.digest) {
+      throw new Error("Offline council did not bind the verified local contribution dossier");
     }
     const localInventoryBefore = await desktop.evaluate(() => {
       const profile = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2"));
