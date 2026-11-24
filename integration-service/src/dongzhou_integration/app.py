@@ -360,11 +360,13 @@ class RuntimeModule(Module):
 
 class MandateWorkflowModule(Module):
     name = "dongzhou_mandate_workflow"
-    version = "1.13.0"
-    dependencies = (RuntimeModule.name,)
+    version = "1.14.0"
+    dependencies = (RuntimeModule.name, "dongzhou_service_provenance")
 
     @staticmethod
     def draft(trace: dict[str, Any], digest: str) -> dict[str, Any]:
+        if not _service_provenance_receipt_is_valid(trace.get("sourceProvenance")):
+            raise ValueError("mandate source provenance is invalid")
         action_id = uuid5(NAMESPACE_URL, f"dongzhou-mandate-action:{digest}")
         return {
             "state": "REQUIRES_ACTION",
@@ -404,6 +406,8 @@ class MandateWorkflowModule(Module):
     def draft_inventory_requisition(
         trace: dict[str, Any], digest: str
     ) -> dict[str, Any]:
+        if not _service_provenance_receipt_is_valid(trace.get("sourceProvenance")):
+            raise ValueError("inventory requisition source provenance is invalid")
         action_id = uuid5(
             NAMESPACE_URL,
             f"dongzhou-inventory-requisition-action:{digest}",
@@ -427,7 +431,10 @@ class MandateWorkflowModule(Module):
         task_id: str,
         settlement: dict[str, Any],
         closure: dict[str, Any],
+        source_provenance: dict[str, Any],
     ) -> dict[str, Any]:
+        if not _service_provenance_receipt_is_valid(source_provenance):
+            raise ValueError("settlement review source provenance is invalid")
         settlement_id = str(settlement["settlementId"])
         closure_digest = str(closure["digest"])
         action_id = uuid5(
@@ -442,6 +449,7 @@ class MandateWorkflowModule(Module):
                 "settlementId": settlement_id,
                 "finalResult": settlement["result"],
                 "closureDigest": closure_digest,
+                "sourceProvenance": source_provenance,
                 "state": "PENDING",
                 "kernel": {
                     "module": MandateWorkflowModule.name,
@@ -480,6 +488,8 @@ class MandateWorkflowModule(Module):
 
     @staticmethod
     def seal_growth_reward(trace: dict[str, Any]) -> dict[str, Any]:
+        if not _service_provenance_receipt_is_valid(trace.get("sourceProvenance")):
+            raise ValueError("growth reward source provenance is invalid")
         digest = hashlib.sha256(
             json.dumps(
                 trace,
@@ -2514,6 +2524,7 @@ def _organization_growth_reward_view(
     settlement: dict[str, Any],
     closure_digest: str,
     amount: int,
+    source_provenance: dict[str, Any],
 ) -> dict[str, Any]:
     if not isinstance(snapshot, dict):
         raise ValueError("growth account snapshot must be an object")
@@ -2543,6 +2554,7 @@ def _organization_growth_reward_view(
         "contributionPoints": contribution_points,
         "accountVersion": version,
         "closureDigest": closure_digest,
+        "sourceProvenance": source_provenance,
         "kernel": {
             "module": MandateWorkflowModule.name,
             "moduleVersion": MandateWorkflowModule.version,
@@ -11756,7 +11768,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
         review = None
         if settlement is not None and closure is not None:
             pending_review = mandate_workflow.review_settlement(
-                task_key, settlement, closure
+                task_key, settlement, closure, service_provenance.receipt()
             )
             review_id = uuid5(
                 NAMESPACE_URL,
@@ -11802,6 +11814,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                         settlement=settlement,
                         closure_digest=str(closure["digest"]),
                         amount=settlement["organizationDelta"],
+                        source_provenance=service_provenance.receipt(),
                     )
                 except UpstreamUnavailable:
                     # Historical reads stay available while the idempotent ledger
@@ -12083,7 +12096,9 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 "The organization task has no sealed terminal settlement to review.",
                 status_code=409,
             )
-        expected_review = mandate_workflow.review_settlement(task_key, settlement, closure)
+        expected_review = mandate_workflow.review_settlement(
+            task_key, settlement, closure, service_provenance.receipt()
+        )
         expected_action = expected_review["action"]
         if expected_action["actionId"] != str(request.action_id):
             raise ApiError(
@@ -12209,6 +12224,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     settlement=settlement,
                     closure_digest=str(closure["digest"]),
                     amount=reward_units,
+                    source_provenance=service_provenance.receipt(),
                 )
             except UpstreamUnavailable as error:
                 await store.finish_request(

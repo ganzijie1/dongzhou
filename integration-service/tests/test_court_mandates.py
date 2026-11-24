@@ -1207,7 +1207,7 @@ def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -
             assert collaboration["supportAssignment"]["heroId"] == "QinXiangGong"
             assert collaboration["factor"] > 0
             assert collaboration["score"] == round(50 + collaboration["factor"] * 5)
-            assert drafted.json()["mandate"]["kernel"]["moduleVersion"] == "1.13.0"
+            assert drafted.json()["mandate"]["kernel"]["moduleVersion"] == "1.14.0"
 
             mandate = approve_mandate(client, drafted)
             scheduled = client.post(
@@ -1536,7 +1536,7 @@ def test_council_memory_and_public_notice_are_verified_and_sealed_into_mandate()
             assert mandate["council"]["publicNotice"]["messageId"] == notice["messageId"]
             assert mandate["publicNotice"]["sourceProvenance"] == mandate["sourceProvenance"]
             assert mandate["council"]["publicNotice"]["sourceProvenance"] == mandate["sourceProvenance"]
-            assert mandate["kernel"]["moduleVersion"] == "1.13.0"
+            assert mandate["kernel"]["moduleVersion"] == "1.14.0"
 
 
 def test_ainpc_correspondence_is_recomputed_and_sealed() -> None:
@@ -2483,7 +2483,8 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert review["state"] == "REQUIRES_ACTION"
             assert review["review"]["settlementId"] == settlement_id
             assert review["review"]["closureDigest"] == closure["digest"]
-            assert review["review"]["kernel"]["moduleVersion"] == "1.13.0"
+            assert review["review"]["kernel"]["moduleVersion"] == "1.14.0"
+            assert review["review"]["sourceProvenance"] == body["sourceProvenance"]
             wrong_action = client.post(
                 f"/api/dongzhou/v1/organization/tasks/{task_id}/review",
                 json={"action_id": str(uuid4()), "decision": "ACCEPT"},
@@ -2526,7 +2527,8 @@ def test_terminal_task_exposes_authoritative_settlement_and_kernel_closure() -> 
             assert growth_reward["contributionPoints"] == 100
             assert growth_reward["accountVersion"] == 1
             assert growth_reward["closureDigest"] == closure["digest"]
-            assert growth_reward["kernel"]["moduleVersion"] == "1.13.0"
+            assert growth_reward["kernel"]["moduleVersion"] == "1.14.0"
+            assert growth_reward["sourceProvenance"] == body["sourceProvenance"]
             assert len(growth_reward["digest"]) == 64
             assert upstreams.growth_credits == [(
                 "00000000-0000-0000-0000-000000000001",
