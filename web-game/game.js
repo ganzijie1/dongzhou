@@ -1723,7 +1723,9 @@
       const evidenceFit = Number(task.mandate?.evidenceFit?.factor);
       const evidenceLabel = Number.isFinite(evidenceFit) ? ` · 史证${evidenceFit}/9` : "";
       const masteryLabel = task.mandate?.knowledgeMastery ? ` · 史识+${Number(task.mandate.knowledgeMastery.bonus)}` : "";
-      return `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}${collaboration ? ` + ${escapeHtml(displayName(collaboration.supportHeroId))}` : ""}</strong><small>${statusLabel}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}${evidenceLabel}${masteryLabel}${task.mandate?.assignment?.name ? ` · 当值${escapeHtml(task.mandate.assignment.name)}` : ""}${Number.isFinite(Number(task.mandate?.assignment?.readiness?.score)) ? ` · 胜任${Number(task.mandate.assignment.readiness.score)}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${collaborationLabel}${topologyLabel}${peerRelationshipLabel}${emergencyLabel}${traceLabel}${settlementLabel}${outcomeLabel}${supportOutcomeLabel}${relationshipLabel}</small></li>`;
+      const acceptanceSeal = /^[0-9a-f]{64}$/i.test(task.sourceProvenance?.digest || "") ? task.sourceProvenance.digest : "";
+      const acceptanceSealLabel = acceptanceSeal ? ` · 受理封印 ${escapeHtml(acceptanceSeal.slice(0, 10))}` : "";
+      return `<li class="${task.status}"><span>${escapeHtml(task.name)}${task.operation?.kind === "diplomacy" ? ` · ${escapeHtml(task.operation.target_name)}` : ""}</span><strong>${escapeHtml(task.assigneeName)}${collaboration ? ` + ${escapeHtml(displayName(collaboration.supportHeroId))}` : ""}</strong><small>${statusLabel}${task.council ? ` · 据《${escapeHtml(task.council.knowledgeName)}》${escapeHtml(task.council.evidenceSource?.tier || "来源")}军议` : ""}${evidenceLabel}${masteryLabel}${task.mandate?.assignment?.name ? ` · 当值${escapeHtml(task.mandate.assignment.name)}` : ""}${Number.isFinite(Number(task.mandate?.assignment?.readiness?.score)) ? ` · 胜任${Number(task.mandate.assignment.readiness.score)}` : ""}${personalityLabel}${motivationLabel}${qualityLabel}${supportLabel}${collaborationLabel}${topologyLabel}${peerRelationshipLabel}${emergencyLabel}${traceLabel}${settlementLabel}${outcomeLabel}${supportOutcomeLabel}${relationshipLabel}${acceptanceSealLabel}</small></li>`;
     }).join("") || '<li class="empty">尚无差事</li>';
     $("#officeMandateLedger").innerHTML = [...org.mandates].reverse().slice(0, 6).map((mandate) => {
       const label = mandate.state === "RESOLVED" ? (mandate.outcome?.won ? "战后告捷" : "战后失利") : mandate.state === "FULFILLED" ? "复命待战" : mandate.state === "PARTIAL" ? "部分复命" : mandate.state === "FAILED" ? "执行未成" : mandate.state === "ORDERED" ? "属官执行中" : "已签发";
@@ -3962,12 +3964,14 @@
     const selected = profile.organization.selectedSources?.[stageId];
     panel.innerHTML = officeKnowledgeView.slice(0, 6).map((entry) => {
       const sources = Array.isArray(entry.sourceDetails) ? entry.sourceDetails : [];
+      const searchSeal = /^[0-9a-f]{64}$/i.test(entry.searchReceipt?.sourceProvenance?.digest || "") ? entry.searchReceipt.sourceProvenance.digest : "";
+      const searchSealLabel = searchSeal ? ` · 检索封印 ${escapeHtml(searchSeal.slice(0, 10))}` : "";
       const sourceButtons = sources.map((source, index) => {
         const active = selected?.knowledgeId === String(entry.id) && Number(selected.index) === index;
         const eligible = String(entry.stageId || "") === stageId;
         return `<button type="button" class="office-source-choice${active ? " selected" : ""}" data-knowledge-id="${escapeHtml(String(entry.id))}" data-source-index="${index}" ${eligible ? "" : "disabled"}><strong>${escapeHtml(String(source.work || "未名出处"))}</strong><span>${escapeHtml(String(source.tier || "来源"))}</span><small>${escapeHtml(String(source.scope || "未注明适用范围"))}</small><b>${active ? "已取为据" : eligible ? "取此为据" : "非本回史料"}</b></button>`;
       }).join("");
-      return `<article class="${selected?.knowledgeId === String(entry.id) ? "selected" : ""}"><strong>${escapeHtml(entry.name || entry.title || "史官条目")}</strong><div class="office-retrieval-trace">${escapeHtml(knowledgeRetrievalText(entry))}</div><p>${escapeHtml(entry.summary || entry.content || "")}</p><div class="office-source-choices">${sourceButtons || "<small>此条尚未发布可选出处。</small>"}</div></article>`;
+      return `<article class="${selected?.knowledgeId === String(entry.id) ? "selected" : ""}"><strong>${escapeHtml(entry.name || entry.title || "史官条目")}</strong><div class="office-retrieval-trace">${escapeHtml(knowledgeRetrievalText(entry))}${searchSealLabel}</div><p>${escapeHtml(entry.summary || entry.content || "")}</p><div class="office-source-choices">${sourceButtons || "<small>此条尚未发布可选出处。</small>"}</div></article>`;
     }).join("") || "<p>简册中未查到相关记载。</p>";
   }
 

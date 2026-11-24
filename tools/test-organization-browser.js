@@ -533,6 +533,7 @@ async function openReady(page) {
     await online.fill("#officeKnowledgeQuery", "杜伯");
     await online.click("#officeKnowledgeForm button[type=submit]");
     await online.waitForSelector("#officeKnowledgeResults article");
+    await online.waitForSelector("#officeKnowledgeResults >> text=检索封印 0123456789");
     const searchedKnowledge = await online.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.knowledge.find((entry) => entry.id === "dongzhou_stage_001"));
     if (searchedKnowledge?.searchReceipt?.sourceProvenance?.digest !== sourceProvenance.digest) throw new Error("Knowledge search source seal was not persisted");
     await online.click("#officeStageKnowledgeButton");
@@ -565,6 +566,7 @@ async function openReady(page) {
     if (!/协同\+5\.5/.test(await online.locator("#officeTaskLedger li.active").innerText())) throw new Error("Sealed manager relationship support is missing from the task ledger");
     if (!/史证2\/9/.test(await online.locator("#officeTaskLedger li.active").innerText())) throw new Error("Sealed evidence fit is missing from the task ledger");
     if (!/54\.548/.test(await online.locator("#officeTaskLedger li.active").innerText())) throw new Error("Sealed AINPC emergency assessment is missing from the task ledger");
+    if (!/受理封印 0123456789/.test(await online.locator("#officeTaskLedger li.active").innerText())) throw new Error("Organization acceptance source seal is missing from the task ledger");
     if (!/版本封印 0123456789/.test(await online.locator("#officeMandateLedger").innerText())) throw new Error("Four-service source seal is missing from the mandate ledger");
     const afterConcurrentOrder = await online.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")));
     const acceptedTask = afterConcurrentOrder.organization.tasks[0];
