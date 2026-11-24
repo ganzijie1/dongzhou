@@ -179,6 +179,15 @@ const sourcedSnapshot = { task_id: sealedTask.task.remoteResult, state: "IN_PROG
 const sourcedObserved = play.reconcileRemoteTasks(sealedTask.state, [sourcedSnapshot], { advanceMonth: false });
 assert.strictEqual(sourcedObserved.tasks.find((task) => task.remoteResult === sourcedSnapshot.task_id).sourceProvenance.digest, sourceProvenance.digest);
 assert.throws(() => play.reconcileRemoteTasks(sealedTask.state, [{ ...sourcedSnapshot, sourceProvenance: { ...sourceProvenance, digest: "9".repeat(64) } }], { advanceMonth: false }), /任务快照服务来源不一致/);
+const topologySnapshot = {
+  ...sourcedSnapshot,
+  organizationTopology: {
+    state: "ACTIVE", sourceProvenance, digest: "4".repeat(64), supportTrace: null,
+    kernel: { module: "dongzhou_organization_task_topology", moduleVersion: "1.1.0", state: "SEALED" }
+  }
+};
+assert.strictEqual(play.reconcileRemoteTasks(sealedTask.state, [topologySnapshot], { advanceMonth: false }).tasks.find((task) => task.remoteResult === sourcedSnapshot.task_id).organizationTopology.sourceProvenance.digest, sourceProvenance.digest);
+assert.throws(() => play.reconcileRemoteTasks(sealedTask.state, [{ ...topologySnapshot, organizationTopology: { ...topologySnapshot.organizationTopology, sourceProvenance: { ...sourceProvenance, digest: "9".repeat(64) } } }], { advanceMonth: false }), /联合任务拓扑服务来源无效/);
 assert.strictEqual(sealedTask.task.mandate.emergency.urgent, true);
 state = play.updateBackend(state, { nexusKernel: true, orgFlow: true, aiNpc: true, knowledge: true, serviceSources: { aiNpc: { sourceRevision: "8a7b673c6ddb93c5ac64d96a270b35619e5bcc1c" } }, serviceAttestations: { nexusKernel: true, orgFlow: true, aiNpc: true, knowledge: true }, serviceFailures: {}, serviceSourceSealDigest: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" });
 assert.strictEqual(state.backend.mode, "connected");

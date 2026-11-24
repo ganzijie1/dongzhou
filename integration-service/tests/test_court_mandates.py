@@ -1315,6 +1315,10 @@ def test_collaborative_mandate_seals_roster_relationships_and_both_schedules() -
             assert waiting.json()["organizationTopology"]["kernel"]["module"] == (
                 "dongzhou_organization_task_topology"
             )
+            assert waiting.json()["organizationTopology"]["kernel"]["moduleVersion"] == "1.1.0"
+            assert waiting.json()["organizationTopology"]["sourceProvenance"] == (
+                waiting.json()["sourceProvenance"]
+            )
             assert waiting.json()["organizationTopology"]["supportTrace"]["state"] == (
                 "SEALED"
             )

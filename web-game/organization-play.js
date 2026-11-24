@@ -781,6 +781,19 @@
         task.organizationTrace = copy(snapshot.organizationTrace);
       }
       if (snapshot.organizationTopology && typeof snapshot.organizationTopology === "object") {
+        const topology = snapshot.organizationTopology;
+        const topologySource = topology.sourceProvenance;
+        if (
+          topology.kernel?.module !== "dongzhou_organization_task_topology"
+          || topology.kernel?.moduleVersion !== "1.1.0"
+          || topology.kernel?.state !== "SEALED"
+          || !validSourceProvenance(topologySource)
+          || topologySource.digest !== (snapshotSource || expectedSource)?.digest
+          || (topology.supportTrace?.state === "SEALED" && (
+            topology.supportTrace?.kernel?.moduleVersion !== "1.1.0"
+            || topology.supportTrace?.sourceProvenance?.digest !== topologySource.digest
+          ))
+        ) throw new Error("联合任务拓扑服务来源无效");
         task.organizationTopology = copy(snapshot.organizationTopology);
       }
       if (task.status !== "active") continue;

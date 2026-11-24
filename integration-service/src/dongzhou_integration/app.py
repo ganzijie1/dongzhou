@@ -1181,8 +1181,8 @@ class AdviserGuideModule(Module):
 
 class OrganizationTaskTopologyModule(Module):
     name = "dongzhou_organization_task_topology"
-    version = "1.0.0"
-    dependencies = (RuntimeModule.name,)
+    version = "1.1.0"
+    dependencies = (RuntimeModule.name, "dongzhou_service_provenance")
 
     @staticmethod
     def seal(topology: dict[str, Any]) -> dict[str, Any]:
@@ -1200,6 +1200,9 @@ class OrganizationTaskTopologyModule(Module):
             or not str(topology.get("supportHeroId") or "")
             or topology.get("primaryHeroId") == topology.get("supportHeroId")
             or topology.get("state") not in {"ACTIVE", "SEALED", "UNAVAILABLE"}
+            or not _service_provenance_receipt_is_valid(
+                topology.get("sourceProvenance")
+            )
         ):
             raise ValueError("organization task topology is invalid")
         digest = _canonical_digest(topology)
@@ -11585,6 +11588,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                 if isinstance(support_snapshot, dict)
                 else None,
                 "supportTrace": support_trace if support_snapshot is not None else None,
+                "sourceProvenance": service_provenance.receipt(),
             }
             try:
                 composite_topology = organization_task_topology.seal(
