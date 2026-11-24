@@ -139,6 +139,26 @@ async function openReady(page) {
     await desktop.waitForSelector("#officeMembershipState >> text=已入仕", { timeout: 10000 });
     await desktop.waitForSelector("#officeCareerStatus >> text=已办成", { timeout: 10000 });
     await desktop.waitForSelector("#officeCareerContributions >> text=结余 20", { timeout: 10000 });
+    await desktop.fill("#officeCareerTaskName", "巡察驿路");
+    await desktop.click("#officeCareerRequestForm button[type=submit]");
+    await desktop.waitForSelector('#officeCareerStatus [data-task-state="MEMBER_RESPONSE_PENDING"] >> text=巡察驿路', { timeout: 10000 });
+    await desktop.click("#officeCareerAccept");
+    await desktop.fill("#officeCareerResult", "部分完成驿路巡察，东段塌方仍待后续处置");
+    await desktop.click("#officeCareerResultSubmit");
+    await desktop.waitForSelector('#officeCareerStatus [data-task-state="PARTIALLY_COMPLETED"] >> text=巡察驿路', { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerContributions >> text=差事部分告成", { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerAccount >> text=可用贡献 30", { timeout: 10000 });
+    await desktop.fill("#officeCareerTaskName", "整训军阵");
+    await desktop.click("#officeCareerRequestForm button[type=submit]");
+    await desktop.waitForSelector('#officeCareerStatus [data-task-state="MEMBER_RESPONSE_PENDING"] >> text=整训军阵', { timeout: 10000 });
+    await desktop.click("#officeCareerAccept");
+    await desktop.fill("#officeCareerResult", "校场积水无法完成整训，本次差事失败");
+    await desktop.click("#officeCareerResultSubmit");
+    await desktop.waitForSelector('#officeCareerStatus [data-task-state="FAILED"] >> text=整训军阵', { timeout: 10000 });
+    if (await desktop.locator("#officeCareerContributions > li").count() !== 2
+      || !(await desktop.locator("#officeCareerAccount").innerText()).includes("可用贡献 30")) {
+      throw new Error("Offline failed task changed the player contribution ledger");
+    }
     await desktop.click("#officeMembershipLeave");
     await desktop.waitForSelector("#officeMembershipLeaveConfirm:not([hidden])", { timeout: 10000 });
     if (await desktop.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.localPlayerCareer.state) !== "ACTIVE") {

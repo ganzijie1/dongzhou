@@ -905,7 +905,15 @@
       } else if (normalizedAction === "RESULT") {
         task.result = detail;
         append("SUBMISSION_RECORDED", "SUBMISSION_PENDING");
-        if (/(?:复核记录|封识清单|supporting record|sealed checklist)/i.test(detail)) {
+        if (/(?:未完成|无法完成|未能办成|失败|\bfail(?:ed|ure)?\b)/i.test(detail)) {
+          task.state = "FAILED";
+          append("TASK_FINALIZED", task.state);
+          message = `本地复命已封存，差事《${task.title}》未能办成。`;
+        } else if (/(?:部分完成|部分办成|\bpartial(?:ly)?\b)/i.test(detail)) {
+          task.state = "PARTIALLY_COMPLETED";
+          append("TASK_FINALIZED", task.state);
+          message = `本地复命已封存，差事《${task.title}》部分办成。`;
+        } else if (/(?:复核记录|封识清单|supporting record|sealed checklist)/i.test(detail)) {
           task.state = "SUCCEEDED";
           append("TASK_FINALIZED", task.state);
           message = `本地复命已封存，差事《${task.title}》办结。`;
@@ -920,20 +928,27 @@
         }
       } else if (normalizedAction === "SUPPLEMENT") {
         task.supplementResult = detail;
-        task.state = "SUCCEEDED";
+        task.state = /(?:未完成|无法完成|未能办成|失败|\bfail(?:ed|ure)?\b)/i.test(detail)
+          ? "FAILED"
+          : /(?:部分完成|部分办成|\bpartial(?:ly)?\b)/i.test(detail) ? "PARTIALLY_COMPLETED" : "SUCCEEDED";
         task.activeConfirmations = [];
         task.supplementRequest = null;
         append("SUBMISSION_RECORDED", "SUBMISSION_PENDING");
         append("TASK_FINALIZED", task.state);
-        message = `本地补呈已复核，差事《${task.title}》办结。`;
+        message = task.state === "SUCCEEDED"
+          ? `本地补呈已复核，差事《${task.title}》办结。`
+          : task.state === "PARTIALLY_COMPLETED"
+            ? `本地补呈已复核，差事《${task.title}》部分办成。`
+            : `本地补呈已复核，差事《${task.title}》未能办成。`;
       }
       task.organizationTrace = await sealLocalPlayerTask(task, sourceProvenance);
       tasks[taskIndex] = task;
     }
     const career = organization.localPlayerCareer || { state: "ACTIVE", version: 1, contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 };
-    const settledNow = task?.state === "SUCCEEDED" && ["RESULT", "SUPPLEMENT"].includes(normalizedAction);
+    const reward = task?.state === "SUCCEEDED" ? 20 : task?.state === "PARTIALLY_COMPLETED" ? 10 : 0;
+    const settledNow = reward > 0 && ["RESULT", "SUPPLEMENT"].includes(normalizedAction);
     const nextCareer = settledNow
-      ? { ...career, contributionBalance: career.contributionBalance + 20, lifetimeEarned: career.lifetimeEarned + 20 }
+      ? { ...career, contributionBalance: career.contributionBalance + reward, lifetimeEarned: career.lifetimeEarned + reward }
       : career;
     const nextOrganization = { ...organization, localPlayerCareer: nextCareer, localPlayerTasks: tasks };
     offlineProfile = { ...(currentProfile || {}), organization: nextOrganization };
@@ -943,23 +958,24 @@
   async function localPlayerContributionEntries(organization) {
     const tasks = await verifiedLocalPlayerTasks(organization);
     const sourceProvenance = await localServiceProvenance();
-    const completed = tasks.filter((task) => task.state === "SUCCEEDED" && !task.localTraceMigratedFromV1 && String(task.result || "").trim());
+    const completed = tasks.filter((task) => ["SUCCEEDED", "PARTIALLY_COMPLETED"].includes(task.state) && !task.localTraceMigratedFromV1 && String(task.result || "").trim());
     const entries = [];
     let balance = 0;
     for (let index = 0; index < completed.length; index += 1) {
       const task = completed[index];
-      balance += 20;
+      const amount = task.state === "SUCCEEDED" ? 20 : 10;
+      balance += amount;
       const trace = {
         organizationId: "dongzhou-local-court",
         memberId: "dongzhou-local-player",
         heroId: "PLAYER",
         entryId: uuidFromDigest(await sha256(`local-player-contribution:${task.taskId}`)),
         entryVersion: index + 2,
-        amount: 20,
+        amount,
         balanceAfter: balance,
         lifetimeEarnedAfter: balance,
         lifetimeSpentAfter: 0,
-        eventCode: "TASK_COMPLETED",
+        eventCode: task.state === "SUCCEEDED" ? "TASK_COMPLETED" : "TASK_PARTIALLY_COMPLETED",
         sourceRef: `organization-task:${task.taskId}`,
         violationId: null,
         ruleSetId: "dongzhou.local.player-career",
@@ -998,7 +1014,7 @@
     if (!contribution) throw new Error("organization_player_contribution_not_found");
     const taskId = contribution.sourceRef.replace(/^organization-task:/, "");
     const task = (await verifiedLocalPlayerTasks(organization)).find((item) => item.taskId === taskId);
-    if (!task || task.state !== "SUCCEEDED" || task.organizationTrace.digest !== contribution.taskTraceDigest) {
+    if (!task || !["SUCCEEDED", "PARTIALLY_COMPLETED"].includes(task.state) || task.organizationTrace.digest !== contribution.taskTraceDigest) {
       throw new Error("organization_player_contribution_task_invalid");
     }
     const body = {
