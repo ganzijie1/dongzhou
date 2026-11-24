@@ -109,16 +109,36 @@ const client = require("../web-game/integration-client.js");
   const rejoinedMembership = await client.setOrganizationMembership("JOIN");
   localProfile.organization.localPlayerCareer = rejoinedMembership.career;
   await client.persist(localProfile);
-  assert.match((await client.applyOrganizationPlayerTaskAction("OPTIONS")).message, /核验军粮账册/);
+  const taskOptions = await client.applyOrganizationPlayerTaskAction("OPTIONS");
+  assert.match(taskOptions.message, /核验军粮账册/);
+  assert.strictEqual(taskOptions.tasks.catalog.kernel.module, "dongzhou_organization_task_catalog");
+  assert.strictEqual(taskOptions.tasks.catalog.options.length, 5);
+  assert.deepStrictEqual(taskOptions.tasks.catalog.options.map((option) => option.taskCode), [
+    "dongzhou.granary.audit", "dongzhou.postroad.patrol", "dongzhou.formation.drill",
+    "dongzhou.border.inquiry", "dongzhou.lords.diplomacy"
+  ]);
+  assert.deepStrictEqual((await client.organizationPlayerTasks()).catalog, taskOptions.tasks.catalog);
+  await assert.rejects(client.applyOrganizationPlayerTaskAction("REQUEST", { title: "Invented task" }), (error) => {
+    assert.strictEqual(error.code, "organization_player_task_catalog_invalid");
+    assert.strictEqual(error.catalog.digest, taskOptions.tasks.catalog.digest);
+    return true;
+  });
+  await assert.rejects(client.applyOrganizationPlayerTaskAction("REQUEST", {
+    taskCode: "dongzhou.granary.audit", title: "巡察驿路"
+  }), /organization_player_task_catalog_invalid/);
   const applyCareerAction = async (action, input) => {
     const response = await client.applyOrganizationPlayerTaskAction(action, input);
     localProfile.organization = response.organization;
     await client.persist(localProfile);
     return response;
   };
-  const requestedTask = await applyCareerAction("REQUEST", { title: "Inspect player granary" });
+  const requestedTask = await applyCareerAction("REQUEST", { title: "核验军粮账册" });
   const playerTaskId = requestedTask.task.taskId;
   assert.strictEqual(requestedTask.task.state, "MEMBER_RESPONSE_PENDING");
+  assert.strictEqual(requestedTask.task.taskCode, "dongzhou.granary.audit");
+  assert.match(requestedTask.task.contextId, /^[0-9a-f]{64}$/);
+  assert.strictEqual(requestedTask.task.catalogDigest, taskOptions.tasks.catalog.digest);
+  assert.strictEqual(requestedTask.task.organizationTrace.taskContent.taskCode, requestedTask.task.taskCode);
   assert.strictEqual(requestedTask.task.organizationTrace.kernel.moduleVersion, "1.1.0");
   assert.strictEqual((await applyCareerAction("ACCEPT", { taskId: playerTaskId })).task.state, "IN_PROGRESS");
   const blockedTask = await applyCareerAction("EXCEPTION", { taskId: playerTaskId, detail: "Bridge closed" });
@@ -142,7 +162,7 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(playerContributionDossier.contribution.digest, playerContributions.entries[0].digest);
   assert.strictEqual(playerContributionDossier.taskTrace.digest, finishedTask.task.organizationTrace.digest);
   assert.strictEqual(playerContributionDossier.kernel.module, "dongzhou_organization_contribution_dossier");
-  const modifiedTask = await applyCareerAction("REQUEST", { title: "Inspect player road" });
+  const modifiedTask = await applyCareerAction("REQUEST", { title: "巡察驿路" });
   const modifiedTaskId = modifiedTask.task.taskId;
   assert.strictEqual((await applyCareerAction("MODIFY", { taskId: modifiedTaskId, detail: "Extend by one day" })).task.state, "MODIFICATION_CONFIRMATION_PENDING");
   assert.strictEqual((await applyCareerAction("REVIEW", { taskId: modifiedTaskId })).task.state, "IN_PROGRESS");
@@ -152,13 +172,13 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(contributionsAfterPartial.entries[1].eventCode, "TASK_PARTIALLY_COMPLETED");
   assert.strictEqual(contributionsAfterPartial.entries[1].amount, 10);
   assert.strictEqual(contributionsAfterPartial.account.accountBalance, 30);
-  const rejectedTask = await applyCareerAction("REQUEST", { title: "Inspect player border" });
+  const rejectedTask = await applyCareerAction("REQUEST", { title: "查访边情" });
   assert.strictEqual((await applyCareerAction("REJECT", { taskId: rejectedTask.task.taskId, detail: "No escort" })).task.state, "REJECTED");
-  const failedTask = await applyCareerAction("REQUEST", { title: "Inspect player pass" });
+  const failedTask = await applyCareerAction("REQUEST", { title: "整训军阵" });
   await applyCareerAction("ACCEPT", { taskId: failedTask.task.taskId });
   assert.strictEqual((await applyCareerAction("RESULT", { taskId: failedTask.task.taskId, detail: "Failed because the pass collapsed" })).task.state, "FAILED");
   assert.strictEqual((await client.organizationPlayerContributions()).entries.length, 2);
-  const departureBlockedTask = await applyCareerAction("REQUEST", { title: "Inspect before departure" });
+  const departureBlockedTask = await applyCareerAction("REQUEST", { title: "修好诸侯" });
   await assert.rejects(client.setOrganizationMembership("LEAVE"), (error) => {
     assert.strictEqual(error.code, "organization_membership_task_pending");
     assert.deepStrictEqual(error.activeTaskIds, [departureBlockedTask.task.taskId]);
@@ -243,10 +263,10 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(capacityAfterRejoin.activeTaskCount, 1);
   assert.strictEqual(capacityAfterRejoin.availableSlots, 2);
   assert.strictEqual(capacityAfterRejoin.kernel.module, "dongzhou_organization_task_capacity");
-  const capacityTaskTwo = await applyCareerAction("REQUEST", { title: "Inspect capacity route" });
-  const capacityTaskThree = await applyCareerAction("REQUEST", { title: "Inspect capacity stores" });
+  const capacityTaskTwo = await applyCareerAction("REQUEST", { title: "核验军粮账册" });
+  const capacityTaskThree = await applyCareerAction("REQUEST", { title: "巡察驿路" });
   const taskCountAtCapacity = localProfile.organization.localPlayerTasks.length;
-  await assert.rejects(client.applyOrganizationPlayerTaskAction("REQUEST", { title: "Inspect over capacity" }), (error) => {
+  await assert.rejects(client.applyOrganizationPlayerTaskAction("REQUEST", { title: "查访边情" }), (error) => {
     assert.strictEqual(error.code, "organization_task_workload_conflict");
     assert.strictEqual(error.capacity.activeTaskCount, 3);
     assert.strictEqual(error.capacity.availableSlots, 0);
@@ -257,7 +277,7 @@ const client = require("../web-game/integration-client.js");
   await applyCareerAction("REJECT", { taskId: redispatchedTask.taskId, detail: "Decline reassigned departure task" });
   await applyCareerAction("REJECT", { taskId: capacityTaskTwo.task.taskId, detail: "Release capacity slot" });
   await applyCareerAction("REJECT", { taskId: capacityTaskThree.task.taskId, detail: "Release capacity slot" });
-  const postRejoinTask = await applyCareerAction("REQUEST", { title: "Inspect player archive" });
+  const postRejoinTask = await applyCareerAction("REQUEST", { title: "整训军阵" });
   await applyCareerAction("ACCEPT", { taskId: postRejoinTask.task.taskId });
   await applyCareerAction("RESULT", { taskId: postRejoinTask.task.taskId, detail: "Archive sealed with supporting record" });
   const postRejoinContributions = await client.organizationPlayerContributions();

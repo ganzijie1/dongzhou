@@ -97,6 +97,16 @@ async function openReady(page) {
     await desktop.waitForSelector("#officeMembershipState >> text=已入仕", { timeout: 10000 });
     await desktop.click("#officeCareerOptions");
     await desktop.waitForSelector("#officeCareerFeedback >> text=本地可领差事", { timeout: 10000 });
+    const localTaskCatalog = await desktop.evaluate(() => window.DongzhouIntegration.organizationPlayerTasks());
+    if (localTaskCatalog.catalog?.kernel?.module !== "dongzhou_organization_task_catalog"
+      || localTaskCatalog.catalog?.options?.length !== 5
+      || await desktop.locator("#officeCareerTaskCatalog option").count() !== 5) {
+      throw new Error(`Offline task catalog was not sealed and rendered: ${JSON.stringify(localTaskCatalog.catalog)}`);
+    }
+    await desktop.fill("#officeCareerTaskName", "目录外差事");
+    await desktop.click("#officeCareerRequestForm button[type=submit]");
+    await desktop.waitForSelector("#officeCareerFeedback >> text=organization_player_task_catalog_invalid", { timeout: 10000 });
+    if (await desktop.locator("#officeCareerStatus > li:not(.empty)").count() !== 0) throw new Error("Invalid catalog task created a task");
     await desktop.fill("#officeCareerTaskName", "核验军粮账册");
     await desktop.click("#officeCareerRequestForm button[type=submit]");
     await desktop.waitForSelector("#officeCareerStatus >> text=待接受", { timeout: 10000 });
@@ -159,9 +169,9 @@ async function openReady(page) {
       || !(await desktop.locator("#officeCareerAccount").innerText()).includes("可用贡献 30")) {
       throw new Error("Offline failed task changed the player contribution ledger");
     }
-    await desktop.fill("#officeCareerTaskName", "辞仕前巡仓");
+    await desktop.fill("#officeCareerTaskName", "修好诸侯");
     await desktop.click("#officeCareerRequestForm button[type=submit]");
-    await desktop.waitForSelector('#officeCareerStatus [data-task-state="MEMBER_RESPONSE_PENDING"] >> text=辞仕前巡仓', { timeout: 10000 });
+    await desktop.waitForSelector('#officeCareerStatus [data-task-state="MEMBER_RESPONSE_PENDING"] >> text=修好诸侯', { timeout: 10000 });
     await desktop.click("#officeMembershipLeave");
     await desktop.waitForSelector("#officeMembershipLeaveConfirm:not([hidden])", { timeout: 10000 });
     if (await desktop.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.localPlayerCareer.state) !== "ACTIVE") {
@@ -173,7 +183,7 @@ async function openReady(page) {
       throw new Error("Offline membership left while a player task was active");
     }
     await desktop.click("#officeCareerAccept");
-    await desktop.waitForSelector('#officeCareerStatus [data-task-state="IN_PROGRESS"] >> text=辞仕前巡仓', { timeout: 10000 });
+    await desktop.waitForSelector('#officeCareerStatus [data-task-state="IN_PROGRESS"] >> text=修好诸侯', { timeout: 10000 });
     await desktop.click("#officeMembershipLeaveConfirm");
     await desktop.waitForSelector("#officeMembershipState >> text=尚未入仕", { timeout: 10000 });
     await desktop.waitForSelector("#officeMembershipFeedback >> text=1 项执行中差事已退回杜伯", { timeout: 10000 });
@@ -182,7 +192,7 @@ async function openReady(page) {
       return {
         career: organization.localPlayerCareer,
         roster: organization.remoteRoster,
-        releasedTask: organization.localPlayerTasks.find((task) => task.title === "辞仕前巡仓"),
+        releasedTask: organization.localPlayerTasks.find((task) => task.title === "修好诸侯"),
         departure: organization.localPlayerDepartures.at(-1),
         contributions: await window.DongzhouIntegration.organizationPlayerContributions()
       };
@@ -210,10 +220,10 @@ async function openReady(page) {
     await desktop.click("#officeMembershipApply");
     await desktop.waitForSelector("#officeMembershipState >> text=已入仕", { timeout: 10000 });
     await desktop.waitForSelector("#officeMembershipFeedback >> text=1 项旧差事重新派发", { timeout: 10000 });
-    await desktop.waitForSelector('#officeCareerStatus [data-task-state="MEMBER_RESPONSE_PENDING"] >> text=辞仕前巡仓', { timeout: 10000 });
+    await desktop.waitForSelector('#officeCareerStatus [data-task-state="MEMBER_RESPONSE_PENDING"] >> text=修好诸侯', { timeout: 10000 });
     const redispatchedMembershipTask = await desktop.evaluate(() => {
       const organization = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization;
-      const task = organization.localPlayerTasks.find((entry) => entry.title === "辞仕前巡仓");
+      const task = organization.localPlayerTasks.find((entry) => entry.title === "修好诸侯");
       return { task, redispatch: organization.localPlayerRedispatches.at(-1) };
     });
     if (redispatchedMembershipTask.task?.redispatch?.digest !== redispatchedMembershipTask.redispatch?.digest
@@ -223,15 +233,15 @@ async function openReady(page) {
       || redispatchedMembershipTask.task?.redispatch?.kernel?.module !== "dongzhou_organization_task_redispatch") {
       throw new Error(`Offline departure task was not redispatched: ${JSON.stringify(redispatchedMembershipTask)}`);
     }
-    await desktop.fill("#officeCareerTaskName", "容量巡查甲");
+    await desktop.fill("#officeCareerTaskName", "核验军粮账册");
     await desktop.click("#officeCareerRequestForm button[type=submit]");
-    await desktop.waitForSelector('#officeCareerStatus [data-task-state="MEMBER_RESPONSE_PENDING"] >> text=容量巡查甲', { timeout: 10000 });
-    await desktop.fill("#officeCareerTaskName", "容量巡查乙");
+    await desktop.waitForSelector('#officeCareerStatus [data-task-state="MEMBER_RESPONSE_PENDING"] >> text=核验军粮账册', { timeout: 10000 });
+    await desktop.fill("#officeCareerTaskName", "巡察驿路");
     await desktop.click("#officeCareerRequestForm button[type=submit]");
-    await desktop.waitForSelector('#officeCareerStatus [data-task-state="MEMBER_RESPONSE_PENDING"] >> text=容量巡查乙', { timeout: 10000 });
+    await desktop.waitForSelector('#officeCareerStatus [data-task-state="MEMBER_RESPONSE_PENDING"] >> text=巡察驿路', { timeout: 10000 });
     await desktop.waitForSelector("#officeCareerAccount >> text=在办 3/3", { timeout: 10000 });
     const taskCountAtCapacity = await desktop.locator("#officeCareerStatus > li:not(.empty)").count();
-    await desktop.fill("#officeCareerTaskName", "容量越限差事");
+    await desktop.fill("#officeCareerTaskName", "查访边情");
     await desktop.click("#officeCareerRequestForm button[type=submit]");
     await desktop.waitForSelector("#officeCareerFeedback >> text=在办差事已达上限 3 项", { timeout: 10000 });
     if (await desktop.locator("#officeCareerStatus > li:not(.empty)").count() !== taskCountAtCapacity) {

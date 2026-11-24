@@ -30,6 +30,13 @@
   const LOCAL_SCHEDULED_DUTY_STATUS_PREFIX = "dongzhou-local-scheduled-duty-status-v1:";
   const LOCAL_MEMBERSHIP_PREFIX = "dongzhou-local-membership-v1:";
   const LOCAL_PLAYER_TASK_ACTIONS = new Set(["OPTIONS", "INBOX", "REQUEST", "ACCEPT", "REJECT", "MODIFY", "REVIEW", "EXCEPTION", "RESULT", "SUPPLEMENT"]);
+  const LOCAL_PLAYER_TASK_CATALOG = Object.freeze([
+    { taskCode: "dongzhou.granary.audit", taskType: "NORMAL", title: "核验军粮账册", purpose: "核清府库军粮收支与余量。", defaultBrief: "核验军粮账册并呈报差异。", coreRequirements: ["核对账面与实存", "说明差异及处置建议"], ordinaryRequirements: ["附具复核记录"], baseExecutionGameSeconds: 86400, successOrganizationContribution: 20, successMemberContribution: 20 },
+    { taskCode: "dongzhou.postroad.patrol", taskType: "NORMAL", title: "巡察驿路", purpose: "查明驿路通阻与沿途风险。", defaultBrief: "巡察辖内驿路并呈报通阻。", coreRequirements: ["核验主要路段", "标记阻断与风险"], ordinaryRequirements: ["提出修复次序"], baseExecutionGameSeconds: 86400, successOrganizationContribution: 20, successMemberContribution: 20 },
+    { taskCode: "dongzhou.formation.drill", taskType: "NORMAL", title: "整训军阵", purpose: "检校军阵操练与号令协同。", defaultBrief: "整训军阵并记录操演结果。", coreRequirements: ["完成阵列操演", "记录号令与协同问题"], ordinaryRequirements: ["提出后续训练建议"], baseExecutionGameSeconds: 86400, successOrganizationContribution: 20, successMemberContribution: 20 },
+    { taskCode: "dongzhou.border.inquiry", taskType: "TEMPORARY", title: "查访边情", purpose: "核实边地动向与军情线索。", defaultBrief: "查访边情并区分事实与传闻。", coreRequirements: ["核验至少两项线索", "标明情报可信程度"], ordinaryRequirements: ["给出后续查证方向"], baseExecutionGameSeconds: 172800, successOrganizationContribution: 20, successMemberContribution: 20 },
+    { taskCode: "dongzhou.lords.diplomacy", taskType: "TEMPORARY", title: "修好诸侯", purpose: "维系诸侯关系并化解当前嫌隙。", defaultBrief: "与目标诸侯修好并呈报交涉结果。", coreRequirements: ["明确交涉对象与诉求", "记录对方回应"], ordinaryRequirements: ["评估关系变化"], baseExecutionGameSeconds: 172800, successOrganizationContribution: 20, successMemberContribution: 20 }
+  ]);
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
   let session = read(SESSION_KEY, null);
   let sessionPromise = null;
@@ -1031,13 +1038,18 @@
     return `0771-01-${day}T00:00:${second}Z`;
   }
 
-  async function sealLocalPlayerTask(task, sourceProvenance, contentVersion = 5) {
+  async function sealLocalPlayerTask(task, sourceProvenance, contentVersion = 6) {
     const trace = {
       taskId: task.taskId,
       taskState: task.state,
       taskVersion: String(task.version),
       ...(contentVersion > 0 ? { taskContent: {
         title: String(task.title || ""),
+        ...(contentVersion >= 6 ? {
+          taskCode: task.taskCode == null ? null : String(task.taskCode),
+          contextId: task.contextId == null ? null : String(task.contextId),
+          catalogDigest: task.catalogDigest == null ? null : String(task.catalogDigest)
+        } : {}),
         modification: task.modification == null ? null : String(task.modification),
         rejectionReason: task.rejectionReason == null ? null : String(task.rejectionReason),
         result: task.result == null ? null : String(task.result),
@@ -1175,12 +1187,14 @@
     for (const task of tasks) {
       const expected = await sealLocalPlayerTask(task, sourceProvenance);
       if (canonicalJson(task.organizationTrace) !== canonicalJson(expected)) {
+        const previousV5 = await sealLocalPlayerTask(task, sourceProvenance, 5);
         const previousV4 = await sealLocalPlayerTask(task, sourceProvenance, 4);
         const previousV3 = await sealLocalPlayerTask(task, sourceProvenance, 3);
         const previous = await sealLocalPlayerTask(task, sourceProvenance, 2);
         const legacy = await sealLocalPlayerTask(task, sourceProvenance, 0);
         const matchedLegacy = canonicalJson(task.organizationTrace) === canonicalJson(legacy);
-        if (canonicalJson(task.organizationTrace) !== canonicalJson(previousV4)
+        if (canonicalJson(task.organizationTrace) !== canonicalJson(previousV5)
+          && canonicalJson(task.organizationTrace) !== canonicalJson(previousV4)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previousV3)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previous)
           && !matchedLegacy) throw new Error("organization_player_task_seal_invalid");
@@ -1214,16 +1228,79 @@
     };
   }
 
+  async function localPlayerTaskCatalog(organization) {
+    const playerId = await localPlayerId();
+    const membershipVersion = Number(organization.localPlayerCareer?.version || 1);
+    const hierarchyVersion = Number(organization.remoteRoster?.organization?.hierarchyVersion || membershipVersion);
+    const sourceProvenance = await localServiceProvenance();
+    const organizationId = uuidFromDigest(await sha256("dongzhou-local-court"));
+    const managerMemberId = uuidFromDigest(await sha256("dongzhou-local-organization-member:DuBo"));
+    const catalogDefinition = {
+      catalogId: "dongzhou.officer_12.player_tasks",
+      catalogVersion: 1,
+      positionSlotKey: "officer_12",
+      tasks: LOCAL_PLAYER_TASK_CATALOG
+    };
+    const catalogChecksum = await sha256(canonicalJson(catalogDefinition));
+    const options = [];
+    for (const definition of LOCAL_PLAYER_TASK_CATALOG) {
+      const context = {
+        playerId,
+        organizationId,
+        membershipVersion,
+        hierarchyVersion,
+        managerHeroId: "DuBo",
+        managerMemberId,
+        positionSlotKey: "officer_12",
+        catalogId: catalogDefinition.catalogId,
+        catalogVersion: catalogDefinition.catalogVersion,
+        catalogChecksum,
+        taskCode: definition.taskCode
+      };
+      options.push({
+        contextId: await sha256(canonicalJson(context)),
+        ...definition,
+        parameterSchema: { type: "object", additionalProperties: false, properties: {} },
+        defaultParameters: {},
+        dispatchEditableParameterPaths: [],
+        virtualExecutionGameSeconds: definition.baseExecutionGameSeconds
+      });
+    }
+    const trace = {
+      playerId,
+      organizationId,
+      membershipVersion,
+      hierarchyVersion,
+      managerHeroId: "DuBo",
+      managerMemberId,
+      positionSlotKey: "officer_12",
+      catalogId: catalogDefinition.catalogId,
+      catalogVersion: catalogDefinition.catalogVersion,
+      catalogChecksum,
+      options,
+      sourceProvenance
+    };
+    return {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: { module: "dongzhou_organization_task_catalog", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    };
+  }
+
   async function localOrganizationPlayerTasks() {
     const currentProfile = offlineProfile || read("dongzhou-h5-profile-v2", null);
     const organization = currentProfile?.organization || {};
     const tasks = await verifiedLocalPlayerTasks(organization);
     const capacity = await localPlayerTaskCapacity(organization, tasks);
+    const catalog = organization.localPlayerCareer?.state === "ACTIVE" ? await localPlayerTaskCatalog(organization) : null;
     return {
       mode: "standalone",
       capacity,
+      catalog,
       items: tasks.map((task) => ({
         taskId: task.taskId,
+        taskCode: task.taskCode || null,
+        contextId: task.contextId || null,
         title: task.title,
         state: task.state,
         version: task.version,
@@ -1243,6 +1320,7 @@
     if (organization.localPlayerCareer?.state !== "ACTIVE") throw new Error("organization_player_membership_required");
     const tasks = (await verifiedLocalPlayerTasks(organization)).map((task) => JSON.parse(JSON.stringify(task)));
     const sourceProvenance = await localServiceProvenance();
+    const catalog = await localPlayerTaskCatalog(organization);
     let task;
     let message;
     if (normalizedAction === "OPTIONS" || normalizedAction === "INBOX") {
@@ -1253,6 +1331,14 @@
     } else if (normalizedAction === "REQUEST") {
       const title = String(input.title || "").trim();
       if (!title || title.length > 80) throw new Error("organization_player_task_title_invalid");
+      const requestedCode = String(input.taskCode || "").trim();
+      const option = catalog.options.find((entry) => requestedCode ? entry.taskCode === requestedCode : entry.title === title);
+      if (!option || (requestedCode && title && option.title !== title)) {
+        const error = new Error("organization_player_task_catalog_invalid");
+        error.code = "organization_player_task_catalog_invalid";
+        error.catalog = catalog;
+        throw error;
+      }
       const capacity = await localPlayerTaskCapacity(organization, tasks);
       if (capacity.activeTaskCount >= capacity.maximumActiveTasks) {
         const error = new Error(`在办差事已达上限 ${capacity.maximumActiveTasks} 项，请先处理现有差事。`);
@@ -1262,13 +1348,16 @@
       }
       const taskIndex = tasks.length;
       const playerId = await localPlayerId();
-      const taskId = uuidFromDigest(await sha256(canonicalJson({ playerId, sequence: taskIndex + 1, title })));
-      if (tasks.some((entry) => entry.taskId === taskId || (entry.title === title && !["SUCCEEDED", "REJECTED", "CANCELLED", "FAILED", "REASSIGN_PENDING"].includes(entry.state)))) {
+      const taskId = uuidFromDigest(await sha256(canonicalJson({ playerId, sequence: taskIndex + 1, taskCode: option.taskCode })));
+      if (tasks.some((entry) => entry.taskId === taskId || ((entry.taskCode === option.taskCode || entry.title === option.title) && !["SUCCEEDED", "PARTIALLY_COMPLETED", "REJECTED", "CANCELLED", "FAILED", "REASSIGN_PENDING"].includes(entry.state)))) {
         throw new Error("organization_player_task_conflict");
       }
       task = {
         taskId,
-        title,
+        taskCode: option.taskCode,
+        contextId: option.contextId,
+        catalogDigest: catalog.digest,
+        title: option.title,
         state: "MEMBER_RESPONSE_PENDING",
         version: 1,
         updatedAt: localCareerTimestamp(taskIndex, 1),

@@ -124,6 +124,7 @@
   let officeCareerStatusBusy = false;
   let officeCareerStatusItems = [];
   let officeCareerTaskCapacity = null;
+  let officeCareerTaskOptions = [];
   let officeCareerSelectedTaskId = null;
   const officeCareerExpandedTaskIds = new Set();
   let officeCareerContributionBusy = false;
@@ -2056,6 +2057,7 @@
       officeCareerSelectedTaskId = null;
       officeCareerExpandedTaskIds.clear();
       officeCareerTaskCapacity = null;
+      officeCareerTaskOptions = [];
       return;
     }
     const account = officeCareerContributionAccount || {
@@ -2105,6 +2107,9 @@
       ? ` · 在办 ${Number(officeCareerTaskCapacity.activeTaskCount)}/${Number(officeCareerTaskCapacity.maximumActiveTasks)}`
       : "";
     $("#officeCareerAccount").textContent = `可用贡献 ${Number(account.accountBalance || 0)} · 累计功绩 ${Number(account.lifetimeEarned || 0)} · 已用 ${Number(account.lifetimeSpent || 0)}${capacityLabel}`;
+    const taskCatalog = $("#officeCareerTaskCatalog");
+    if (taskCatalog) taskCatalog.innerHTML = officeCareerTaskOptions.map((option) =>
+      `<option value="${escapeHtml(option.title)}" label="${escapeHtml(option.taskType)} · ${escapeHtml(option.defaultBrief)}"></option>`).join("");
     panel.querySelectorAll("button, input").forEach((control) => { control.disabled = officeCareerBusy || officeCareerStatusBusy || officeCareerContributionBusy; });
     const taskStates = {
       GENERATED: "待派发", ASSIGNMENT_CONFIRMATION_PENDING: "待确认派发", MEMBER_RESPONSE_PENDING: "待接受",
@@ -2285,8 +2290,16 @@
           throw new Error("差事容量回执与当前任务不一致");
         }
         officeCareerTaskCapacity = response.capacity;
+        if (!response.catalog || response.catalog.kernel?.module !== "dongzhou_organization_task_catalog"
+          || response.catalog.kernel?.moduleVersion !== "1.0.0" || response.catalog.kernel?.state !== "SEALED"
+          || response.catalog.positionSlotKey !== "officer_12" || response.catalog.options?.length !== 5
+          || response.catalog.options.some((option) => !option.contextId || !option.taskCode || !option.title)) {
+          throw new Error("差事目录回执与当前岗位不一致");
+        }
+        officeCareerTaskOptions = response.catalog.options;
       } else {
         officeCareerTaskCapacity = null;
+        officeCareerTaskOptions = [];
       }
       const actionable = officeCareerStatusItems.filter((task) => {
         const exception = task.organizationTrace?.state === "SEALED" ? task.organizationTrace.executionException : task.executionException;
