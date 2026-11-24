@@ -304,7 +304,57 @@
     return { replayed: Boolean(stored?.result), ...result };
   }
 
-  async function localNpcDecision(heroId, question, options, stageId, memory) {
+  function localNoticeTaskText(member, task, month) {
+    if (!task) return `第${month}月，${member.name || member.id}在${member.office || "官署"}当值，当前无在办差事。`;
+    const states = { active: "正在办理", success: "已经办成", partial: "部分办成", failed: "未能办成", censured: "复命受申斥" };
+    return `第${month}月，${member.name || member.id}${states[task.status] || "已记入"}“${task.name || "官署差事"}”。`;
+  }
+
+  async function localOrganizationPublicNotices() {
+    const currentProfile = read("dongzhou-h5-profile-v2", offlineProfile) || offlineProfile;
+    const organization = currentProfile?.organization || {};
+    const members = Array.isArray(organization.members) ? organization.members : [];
+    const tasks = Array.isArray(organization.tasks) ? organization.tasks : [];
+    const month = Math.max(1, Math.trunc(Number(organization.month || 1)));
+    const sourceProvenance = await localServiceProvenance();
+    const notices = [];
+    for (const member of members) {
+      const memberTasks = tasks.filter((task) => task?.assigneeId === member?.id);
+      const task = memberTasks.find((entry) => entry.status === "active") || memberTasks.at(-1) || null;
+      const localRound = {
+        mode: "standalone",
+        month,
+        heroId: String(member?.id || ""),
+        taskId: String(task?.id || ""),
+        taskStatus: String(task?.status || "idle"),
+        taskName: String(task?.name || "")
+      };
+      if (!localRound.heroId) continue;
+      const loginRoundDigest = await sha256(canonicalJson(localRound));
+      const message = localNoticeTaskText(member, task, month);
+      const messageId = `npc-public:${await sha256(canonicalJson({ ...localRound, message }))}`;
+      const trace = {
+        messageId,
+        gameServerId: "standalone",
+        npcId: `local:${localRound.heroId}`,
+        heroId: localRound.heroId,
+        npcName: String(member.name || member.id),
+        message,
+        loginRoundDigest,
+        publishedAt: `第${month}月本地账本`,
+        deliveryMode: "IN_PROCESS",
+        sourceProvenance
+      };
+      notices.push({
+        ...trace,
+        digest: await sha256(canonicalJson(trace)),
+        kernel: { module: "dongzhou_npc_public_notice", moduleVersion: "1.1.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+      });
+    }
+    return { mode: "standalone", notices };
+  }
+
+  async function localNpcDecision(heroId, question, options, stageId, memory, publicNotice) {
     requireLocalOfficer(heroId);
     if (!String(question || "").trim() || !Array.isArray(options) || options.length < 2 || options.some((item) => !String(item || "").trim())) {
       throw new Error("npc_decision_input_invalid");
@@ -316,7 +366,16 @@
     const sourceProvenance = await localServiceProvenance();
     if (memory && (!/^[0-9a-f]{64}$/.test(String(memory.digest || ""))
       || canonicalJson(memory.sourceProvenance) !== canonicalJson(sourceProvenance))) throw new Error("npc_decision_memory_invalid");
-    const context = canonicalJson({ heroId, stageId: String(stageId), question, options, memoryId: memory?.idempotencyKey || "" });
+    let verifiedPublicNotice;
+    if (publicNotice) {
+      verifiedPublicNotice = (await localOrganizationPublicNotices()).notices.find((notice) => notice.heroId === heroId
+        && notice.messageId === publicNotice.messageId && notice.digest === publicNotice.digest);
+      if (!verifiedPublicNotice || canonicalJson(verifiedPublicNotice.sourceProvenance) !== canonicalJson(sourceProvenance)) {
+        throw new Error("npc_decision_public_notice_invalid");
+      }
+      if (!String(question).includes(`告示印记：${verifiedPublicNotice.digest.slice(0, 12)}`)) throw new Error("npc_decision_public_notice_unbound");
+    }
+    const context = canonicalJson({ heroId, stageId: String(stageId), question, options, memoryId: memory?.idempotencyKey || "", publicNoticeId: verifiedPublicNotice?.messageId || "" });
     const key = NPC_DECISION_PREFIX + await sha256(context);
     const stored = read(key, null);
     const clientRequestId = stored?.input?.clientRequestId || root.crypto.randomUUID();
@@ -333,6 +392,7 @@
         digest: await sha256(canonicalJson(dialogueTrace))
       },
       ...(memory ? { memoryReceipt: memory } : {}),
+      ...(verifiedPublicNotice ? { publicNoticeReceipt: verifiedPublicNotice } : {}),
       sourceProvenance,
       clientRequestId
     };
@@ -1415,7 +1475,10 @@
   }
   function npcState(heroId) { return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/state`); }
   function npcCorrespondence(heroId, limit = 20) { return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/correspondence?limit=${encodeURIComponent(limit)}`); }
-  function organizationPublicNotices() { return requestWithTransientRetry("/organization/public-notices"); }
+  function organizationPublicNotices() {
+    if (offline) return localOrganizationPublicNotices();
+    return requestWithTransientRetry("/organization/public-notices");
+  }
   async function sendNpcMessage(heroId, content, options = {}) {
     const pendingKey = NPC_MESSAGE_PENDING_PREFIX + heroId;
     const saved = read(pendingKey, null);
@@ -1442,7 +1505,7 @@
   }
   function generateNpcSchedule(heroId) { return request(`/npcs/${encodeURIComponent(heroId)}/schedule`, { method: "POST", body: JSON.stringify({ force_regenerate: false }) }); }
   async function npcDecision(heroId, question, options, stageId, memory, publicNotice, contribution, contributionDossier) {
-    if (offline) return localNpcDecision(heroId, question, options, stageId, memory);
+    if (offline) return localNpcDecision(heroId, question, options, stageId, memory, publicNotice);
     const pendingKey = `dongzhou-pending-decision-v5:${JSON.stringify([heroId, stageId || "", question, options, memory?.idempotencyKey || "", publicNotice?.messageId || "", contribution?.entryId || "", contributionDossier?.digest || ""])}`;
     const pending = read(pendingKey, null) || { client_request_id: root.crypto.randomUUID(), ...(stageId ? { stage_id: String(stageId) } : {}), question, options: options.map((text, index) => ({ index, text })), topic: "court_decision", ...(memory ? { memory_idempotency_key: memory.idempotencyKey, memory_digest: memory.digest } : {}), ...(publicNotice ? { public_notice_id: publicNotice.messageId, public_notice_digest: publicNotice.digest } : {}), ...(contribution ? { contribution_entry_id: contribution.entryId, contribution_entry_digest: contribution.digest } : {}), ...(contributionDossier ? { contribution_dossier_digest: contributionDossier.digest } : {}) };
     write(pendingKey, pending);

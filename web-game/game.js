@@ -2821,7 +2821,6 @@
   }
 
   async function refreshOfficePublicNotices() {
-    if (integration.isOffline()) { officePublicNotices = []; renderOfficePublicNotices(); return; }
     try {
       const response = await integration.organizationPublicNotices();
       officePublicNotices = Array.isArray(response.notices) ? response.notices : [];

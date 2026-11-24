@@ -170,11 +170,23 @@ const client = require("../web-game/integration-client.js");
   await client.persist(localProfile);
   const localMemory = { ...recollection.recollection.memoryReceipt, sourceProvenance: recollection.recollection.sourceProvenance };
   const decisionOptions = ["Hold", "Advance", thought.thoughtReceipt.councilProposal];
-  const decision = await client.npcDecision("DuBo", "What should the court do?", decisionOptions, "01", localMemory);
+  const localNotices = await client.organizationPublicNotices();
+  const localNotice = localNotices.notices.find((notice) => notice.heroId === "DuBo");
+  assert.strictEqual(localNotices.mode, "standalone");
+  assert.strictEqual(localNotice.deliveryMode, "IN_PROCESS");
+  assert.strictEqual(localNotice.kernel.module, "dongzhou_npc_public_notice");
+  assert.strictEqual((await client.organizationPublicNotices()).notices.find((notice) => notice.heroId === "DuBo").digest, localNotice.digest);
+  const decisionQuestion = `What should the court do?\n告示印记：${localNotice.digest.slice(0, 12)}`;
+  await assert.rejects(
+    client.npcDecision("DuBo", decisionQuestion, decisionOptions, "01", localMemory, { ...localNotice, digest: "0".repeat(64) }),
+    /npc_decision_public_notice_invalid/
+  );
+  const decision = await client.npcDecision("DuBo", decisionQuestion, decisionOptions, "01", localMemory, localNotice);
   assert.strictEqual(decision.state, "COMPLETED");
   assert.strictEqual(decision.decision.data.text, thought.thoughtReceipt.councilProposal);
   assert.strictEqual(decision.dialogueReceipt.state, "RECORDED");
-  assert.strictEqual((await client.npcDecision("DuBo", "What should the court do?", decisionOptions, "01", localMemory)).replayed, true);
+  assert.strictEqual(decision.publicNoticeReceipt.digest, localNotice.digest);
+  assert.strictEqual((await client.npcDecision("DuBo", decisionQuestion, decisionOptions, "01", localMemory, localNotice)).replayed, true);
 
   const inventoryBeforeDraft = await client.organizationInventory();
   const requisitionDraft = await client.requisitionOrganizationInventory({ units: 20, stage_id: "01" });
@@ -412,7 +424,7 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(rejected.guide.kernel.state, "SEALED");
   assert.strictEqual(fetchedUrls.some((url) => url.includes("/api/")), false);
 
-  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true, localBattleGate: true, localDebrief: true, localCommendation: true, localRecollection: true, localLogistics: true, localInventoryRequisition: true, localScheduledDuty: true, localThought: true, localCouncil: true }));
+  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true, localBattleGate: true, localDebrief: true, localCommendation: true, localRecollection: true, localPublicNotice: true, localLogistics: true, localInventoryRequisition: true, localScheduledDuty: true, localThought: true, localCouncil: true }));
 })().catch((error) => {
   console.error(error.stack || error.message);
   process.exitCode = 1;

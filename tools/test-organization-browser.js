@@ -106,6 +106,9 @@ async function openReady(page) {
     await desktop.waitForSelector("#officeThoughtButton:not(:disabled)");
     await desktop.click("#officeThoughtButton");
     await desktop.waitForFunction(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.thoughts.length === 1);
+    await desktop.click("#officePublicNoticesRefresh");
+    await desktop.waitForSelector('#officePublicNotices [data-public-notice-id]:not(:disabled)');
+    await desktop.click('#officePublicNotices [data-public-notice-id]:not(:disabled)');
     await desktop.click("#officeDecisionForm button[type=submit]");
     await desktop.waitForFunction(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.councils.length === 1);
     const localCouncil = await desktop.evaluate(() => {
@@ -121,6 +124,11 @@ async function openReady(page) {
       || localCouncil.briefing.ainpcDelivery?.mode !== "IN_PROCESS"
       || localCouncil.thought.logisticsBriefing?.digest !== localCouncil.briefing.digest) {
       throw new Error("Offline thought did not bind the sealed local logistics briefing");
+    }
+    if (localCouncil.council.publicNotice?.kernel?.module !== "dongzhou_npc_public_notice"
+      || localCouncil.council.publicNotice?.deliveryMode !== "IN_PROCESS"
+      || localCouncil.council.publicNotice?.sourceProvenance?.digest !== localCouncil.council.sourceProvenance?.digest) {
+      throw new Error("Offline council did not bind the current local public notice");
     }
     const localInventoryBefore = await desktop.evaluate(() => {
       const profile = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2"));
