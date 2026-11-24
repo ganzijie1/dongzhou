@@ -1047,6 +1047,7 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
                     "current_game_server_session_id": "private-session",
                     "execution_id": "execution-1",
                     "phase": "WAITING_FOR_REPORT",
+                    "status_message": "execution_started",
                     "is_running": True,
                     "is_paused": False,
                     "waiting_for_report": True,
@@ -1072,10 +1073,50 @@ class UpstreamContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(status["currentActionIndex"], 1)
         self.assertEqual(status["totalActions"], 3)
         self.assertTrue(status["waitingForReport"])
+        self.assertIsNone(status["outcome"])
         serialized = json.dumps(status, ensure_ascii=False)
         self.assertNotIn("private", serialized)
         self.assertNotIn("terminal", serialized)
         self.assertNotIn("session", serialized)
+
+    async def test_npc_execution_status_projects_unconfirmed_terminal(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={
+                "code": 200,
+                "data": {
+                    "game_server_id": "91001",
+                    "npc_id": "42",
+                    "is_running": False,
+                    "phase": "ENDED",
+                    "status_message": "execution_unconfirmed",
+                    "current_schedule_name": "校核军令",
+                },
+            })
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            status = await Upstreams(settings(Path("unused")), client).npc_execution_status(42)
+
+        self.assertEqual(status["outcome"], "unconfirmed")
+        self.assertEqual(status["scheduleName"], "校核军令")
+
+    async def test_npc_execution_status_does_not_expose_unknown_terminal_message(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={
+                "code": 200,
+                "data": {
+                    "game_server_id": "91001",
+                    "npc_id": "42",
+                    "is_running": False,
+                    "phase": "FAILED",
+                    "status_message": "execution_failed: private model response",
+                },
+            })
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            status = await Upstreams(settings(Path("unused")), client).npc_execution_status(42)
+
+        self.assertIsNone(status["outcome"])
+        self.assertNotIn("private", json.dumps(status, ensure_ascii=False))
 
     async def test_npc_execution_status_rejects_cross_actor_identity(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:

@@ -870,6 +870,19 @@ class Upstreams:
                 )
             return value
 
+        status_message = data.get("status_message")
+        if status_message is not None and not isinstance(status_message, str):
+            raise UpstreamUnavailable(
+                "AINPC returned an invalid schedule execution status.",
+                error_code="ainpc_execution_status_invalid",
+                response_payload=response,
+            )
+        terminal_outcome = {
+            ("ENDED", "execution_unconfirmed"): "unconfirmed",
+            ("COMPLETED", "execution_completed"): "succeeded",
+            ("FAILED", "execution_failed"): "failed",
+        }.get((data.get("phase"), status_message)) if data["is_running"] is False else None
+
         return {
             "available": True,
             "running": data["is_running"],
@@ -877,6 +890,7 @@ class Upstreams:
             "waitingForReport": data.get("waiting_for_report") is True,
             "executionId": text_value("execution_id", 128),
             "phase": text_value("phase", 64),
+            "outcome": terminal_outcome,
             "scheduleId": text_value("current_schedule_id", 128) or text_value("schedule_id", 128),
             "scheduleName": text_value("current_schedule_name", 120),
             "scheduleDate": text_value("schedule_date", 32),

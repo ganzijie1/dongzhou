@@ -304,7 +304,8 @@ async function openReady(page) {
       else if (/\/npcs\/[^/]+\/state$/.test(pathName)) {
         npcStateAttempts += 1;
         if (npcStateAttempts <= 6) return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "npc_unavailable", message: "NPC state is temporarily unavailable." } }) });
-        body = { aiPlayerId: "player-ai-e2e", knownNpcIds: { DuBo: "npc-dubo", ZuoRu: "npc-zuoru" }, emotion: { data: { dominant: { emotion_type: "resolute", intensity: 72 } } }, affection: { data: { total: 2, items: [{ target_id: "player-ai-e2e", dominant_affection_type: "respect", max_value: 68 }, { target_id: "historical-player", dominant_affection_type: "trust", max_value: 41 }] } }, relationships: { data: { total: 3, items: [{ target_id: "npc-dubo", relation_type: "organization", relation_sub: "superior_subordinate", is_bilateral: true, is_active: true }] } }, personality: { available: true, profileId: "profile-zuoru", traits: { stubborn: 79, smooth: 48 }, dominantTraits: ["stubborn", "smooth"], templateSource: "identity", backgroundNote: "fixed profile", updatedAt: "2026-11-07T21:56:40.288000" }, motivation: { available: true, motives: [{ name: "情报核验", score: 35 }], revision: 2, updatedAt: "2026-11-10T08:01:52.476000", threshold: 80 }, execution: { available: true, running: true, paused: false, waitingForReport: true, scheduleName: "巡核军粮", currentActionIndex: 1, totalActions: 3 } };
+        const isManager = pathName.includes("/npcs/DuBo/");
+        body = { aiPlayerId: "player-ai-e2e", knownNpcIds: { DuBo: "npc-dubo", ZuoRu: "npc-zuoru" }, emotion: { data: { dominant: { emotion_type: "resolute", intensity: 72 } } }, affection: { data: { total: 2, items: [{ target_id: "player-ai-e2e", dominant_affection_type: "respect", max_value: 68 }, { target_id: "historical-player", dominant_affection_type: "trust", max_value: 41 }] } }, relationships: { data: { total: 3, items: [{ target_id: "npc-dubo", relation_type: "organization", relation_sub: "superior_subordinate", is_bilateral: true, is_active: true }] } }, personality: { available: true, profileId: "profile-zuoru", traits: { stubborn: 79, smooth: 48 }, dominantTraits: ["stubborn", "smooth"], templateSource: "identity", backgroundNote: "fixed profile", updatedAt: "2026-11-07T21:56:40.288000" }, motivation: { available: true, motives: [{ name: "情报核验", score: 35 }], revision: 2, updatedAt: "2026-11-10T08:01:52.476000", threshold: 80 }, execution: isManager ? { available: true, running: false, paused: false, outcome: "unconfirmed", scheduleName: "校核军令" } : { available: true, running: true, paused: false, waitingForReport: true, scheduleName: "巡核军粮", currentActionIndex: 1, totalActions: 3 } };
       }
       else if (/\/npcs\/[^/]+\/messages$/.test(pathName)) {
         const input = request.postDataJSON();
@@ -503,6 +504,7 @@ async function openReady(page) {
     await online.waitForFunction(() => document.querySelector("#officeIssueButton").disabled && /组织负责人/.test(document.querySelector("#officeOrderHint").textContent));
     await online.waitForSelector("#officeNpcState >> text=属官服务正在恢复", { timeout: 10000 });
     await online.waitForSelector("#officeNpcState >> text=坚决", { timeout: 15000 });
+    await online.waitForSelector("#officeNpcState >> text=上次事务结果待确认 · 校核军令", { timeout: 15000 });
     const assignee = visibleMembers.find((value) => value && value !== "DuBo");
     if (!assignee) throw new Error("No non-manager organization assignee is available");
     await online.selectOption("#officeMemberSelect", assignee);

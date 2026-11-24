@@ -2654,8 +2654,13 @@
   function officeExecutionText(execution) {
     if (execution?.available !== true) return "执行状态暂不可用";
     if (execution.paused) return "执行暂停";
-    if (!execution.running) return "当前无执行中的事务";
     const schedule = String(execution.scheduleName || "当前事务");
+    if (!execution.running) {
+      if (execution.outcome === "unconfirmed") return `上次事务结果待确认 · ${schedule}`;
+      if (execution.outcome === "succeeded") return `上次事务已办结 · ${schedule}`;
+      if (execution.outcome === "failed") return `上次事务未办成 · ${schedule}`;
+      return "当前无执行中的事务";
+    }
     const total = Number(execution.totalActions);
     const index = Number(execution.currentActionIndex);
     const progress = Number.isInteger(total) && total > 0 && Number.isInteger(index)
