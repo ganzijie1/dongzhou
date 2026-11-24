@@ -799,6 +799,19 @@
         task.collaborationRelationship = copy(snapshot.collaborationRelationship);
       }
       if (snapshot.organizationTrace && typeof snapshot.organizationTrace === "object") {
+        const trace = snapshot.organizationTrace;
+        if (authoritativeSource && (
+          trace.state !== "SEALED"
+          || trace.taskId !== String(task.remoteResult)
+          || !Array.isArray(trace.timeline)
+          || trace.timeline.length === 0
+          || !/^[0-9a-f]{64}$/.test(String(trace.digest || ""))
+          || trace.kernel?.module !== "dongzhou_organization_task_trace"
+          || trace.kernel?.moduleVersion !== "1.1.0"
+          || trace.kernel?.state !== "SEALED"
+          || !validSourceProvenance(trace.sourceProvenance)
+          || trace.sourceProvenance.digest !== authoritativeSource.digest
+        )) throw new Error("组织任务轨迹服务来源无效");
         task.organizationTrace = copy(snapshot.organizationTrace);
       }
       if (snapshot.organizationTopology && typeof snapshot.organizationTopology === "object") {

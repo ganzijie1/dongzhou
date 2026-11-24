@@ -188,14 +188,17 @@ const sourceBoundOutcomeSnapshot = {
   npcOutcome: { state: "DELIVERED", receipt: sourceBoundReceipt("dongzhou_npc_settlement", "1.2.0", "1".repeat(64)) },
   supportNpcOutcomes: [{ state: "DELIVERED", receipt: sourceBoundReceipt("dongzhou_npc_settlement", "1.2.0", "2".repeat(64)) }],
   npcConsequence: { state: "DELIVERED", receipt: sourceBoundReceipt("dongzhou_npc_review_relationship", "1.1.0", "3".repeat(64)) },
-  collaborationRelationship: { state: "DELIVERED", receipt: sourceBoundReceipt("dongzhou_npc_collaboration_relationship", "1.1.0", "4".repeat(64)) }
+  collaborationRelationship: { state: "DELIVERED", receipt: sourceBoundReceipt("dongzhou_npc_collaboration_relationship", "1.1.0", "4".repeat(64)) },
+  organizationTrace: { state: "SEALED", taskId: sourcedSnapshot.task_id, timeline: [{ sequence: 1, type: "TASK_CREATED" }], sourceProvenance, digest: "5".repeat(64), kernel: { module: "dongzhou_organization_task_trace", moduleVersion: "1.1.0", state: "SEALED" } }
 };
 const sourceBoundObserved = play.reconcileRemoteTasks(sealedTask.state, [sourceBoundOutcomeSnapshot], { advanceMonth: false });
 assert.strictEqual(sourceBoundObserved.tasks.find((task) => task.remoteResult === sourcedSnapshot.task_id).npcOutcome.receipt.sourceProvenance.digest, sourceProvenance.digest);
+assert.strictEqual(sourceBoundObserved.tasks.find((task) => task.remoteResult === sourcedSnapshot.task_id).organizationTrace.sourceProvenance.digest, sourceProvenance.digest);
 assert.throws(() => play.reconcileRemoteTasks(sealedTask.state, [{ ...sourceBoundOutcomeSnapshot, npcOutcome: { state: "DELIVERED" } }], { advanceMonth: false }), /主将结算回执服务来源无效/);
 assert.throws(() => play.reconcileRemoteTasks(sealedTask.state, [{ ...sourceBoundOutcomeSnapshot, supportNpcOutcomes: [{ state: "DELIVERED", receipt: sourceBoundReceipt("dongzhou_npc_settlement", "1.1.0", "2".repeat(64)) }] }], { advanceMonth: false }), /协同结算回执服务来源无效/);
 assert.throws(() => play.reconcileRemoteTasks(sealedTask.state, [{ ...sourceBoundOutcomeSnapshot, npcConsequence: { state: "DELIVERED", receipt: sourceBoundReceipt("dongzhou_npc_settlement", "1.2.0", "3".repeat(64)) } }], { advanceMonth: false }), /复核关系回执服务来源无效/);
 assert.throws(() => play.reconcileRemoteTasks(sealedTask.state, [{ ...sourceBoundOutcomeSnapshot, collaborationRelationship: { state: "DELIVERED", receipt: { ...sourceBoundReceipt("dongzhou_npc_collaboration_relationship", "1.1.0", "4".repeat(64)), sourceProvenance: { ...sourceProvenance, digest: "9".repeat(64) } } } }], { advanceMonth: false }), /协作关系回执服务来源无效/);
+assert.throws(() => play.reconcileRemoteTasks(sealedTask.state, [{ ...sourceBoundOutcomeSnapshot, organizationTrace: { ...sourceBoundOutcomeSnapshot.organizationTrace, kernel: { module: "dongzhou_runtime", moduleVersion: "1.0.0", state: "SEALED" } } }], { advanceMonth: false }), /组织任务轨迹服务来源无效/);
 const topologySnapshot = {
   ...sourcedSnapshot,
   organizationTopology: {
