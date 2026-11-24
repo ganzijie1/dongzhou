@@ -94,6 +94,7 @@
       localScheduledDuty: { state: "DISABLED", version: 1 },
       localPlayerCareer: { state: "OUT", version: 1, contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 },
       localPlayerTasks: [],
+      localPlayerDerivationIntents: [],
       localPlayerDepartures: [],
       localPlayerReassignments: [],
       localPlayerRedispatches: [],
@@ -140,6 +141,15 @@
     const source = raw && typeof raw === "object" ? raw : {};
     const base = defaultState();
     const tasks = Array.isArray(source.tasks) ? source.tasks.filter((task) => task && typeof task === "object") : [];
+    const localPlayerTasks = Array.isArray(source.localPlayerTasks)
+      ? source.localPlayerTasks.filter((task) => task && typeof task === "object").slice(-30)
+      : [];
+    const localPlayerTaskIds = new Set(localPlayerTasks.map((task) => task.taskId));
+    const localPlayerDerivationIntents = Array.isArray(source.localPlayerDerivationIntents)
+      ? source.localPlayerDerivationIntents.filter((intent) => intent && typeof intent === "object"
+        && localPlayerTaskIds.has(intent.predecessorTaskId)
+        && (!intent.createdTaskId || localPlayerTaskIds.has(intent.createdTaskId))).slice(-30)
+      : [];
     // 历史记录可以裁剪，尚未复命的差事和未投入战斗的筹备不能随之丢失。
     const recentClosed = new Set(tasks.filter((task) => task.status !== "active").slice(-40));
     const retainedTasks = tasks.filter((task) => task.status === "active" || recentClosed.has(task));
@@ -190,9 +200,8 @@
           lifetimeSpent: spent
         };
       })(),
-      localPlayerTasks: Array.isArray(source.localPlayerTasks)
-        ? source.localPlayerTasks.filter((task) => task && typeof task === "object").slice(-30)
-        : [],
+      localPlayerTasks,
+      localPlayerDerivationIntents,
       localPlayerDepartures: Array.isArray(source.localPlayerDepartures)
         ? source.localPlayerDepartures.filter((entry) => entry && typeof entry === "object").slice(-20)
         : [],

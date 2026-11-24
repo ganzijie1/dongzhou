@@ -222,6 +222,27 @@ async function openReady(page) {
     await desktop.waitForSelector('#officeCareerStatus [data-task-state="PARTIALLY_COMPLETED"] >> text=巡察驿路', { timeout: 10000 });
     await desktop.waitForSelector("#officeCareerContributions >> text=差事部分告成", { timeout: 10000 });
     await desktop.waitForSelector("#officeCareerAccount >> text=可用贡献 30", { timeout: 10000 });
+    await desktop.waitForSelector('#officeCareerStatus [data-task-state="PARTIALLY_COMPLETED"] >> text=续办待立案', { timeout: 10000 });
+    await desktop.click('#officeCareerStatus [data-task-state="PARTIALLY_COMPLETED"] [data-office-career-derive-task-id]');
+    await desktop.waitForSelector("#officeCareerFeedback >> text=续办差事「查访边情」已由杜伯立案", { timeout: 10000 });
+    await desktop.waitForSelector('#officeCareerStatus [data-task-state="MEMBER_RESPONSE_PENDING"] >> text=查访边情', { timeout: 10000 });
+    await desktop.waitForSelector('#officeCareerStatus [data-task-state="MEMBER_RESPONSE_PENDING"] >> text=第一代派生', { timeout: 10000 });
+    const derivationState = await desktop.evaluate(() => {
+      const organization = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization;
+      const intent = organization.localPlayerDerivationIntents?.[0];
+      const child = organization.localPlayerTasks.find((task) => task.derivationIntentId === intent?.intentId);
+      return { intent, child };
+    });
+    if (derivationState.intent?.state !== "CREATED"
+      || derivationState.intent?.createdTaskId !== derivationState.child?.taskId
+      || derivationState.child?.source !== "FOLLOW_UP"
+      || derivationState.child?.generationDepth !== 1
+      || derivationState.child?.derivationIntentIds?.length !== 0) {
+      throw new Error(`Offline derived task contract is invalid: ${JSON.stringify(derivationState)}`);
+    }
+    await desktop.fill("#officeCareerResponseDetail", "本次不接受续办差事");
+    await desktop.click("#officeCareerReject");
+    await desktop.waitForSelector('#officeCareerStatus [data-task-state="REJECTED"] >> text=查访边情', { timeout: 10000 });
     await desktop.fill("#officeCareerTaskName", "整训军阵");
     await desktop.click("#officeCareerRequestForm button[type=submit]");
     await desktop.waitForSelector('#officeCareerStatus [data-task-state="MEMBER_RESPONSE_PENDING"] >> text=整训军阵', { timeout: 10000 });

@@ -2192,11 +2192,19 @@
       const checkDetail = check
         ? `<div class="office-career-task-revision"><strong>成果核验</strong><span>${satisfiedChecks}/${check.requirementChecks.length} 项满足</span><small>建议 ${escapeHtml(check.suggestedDecision || "待审核")} · 提交 ${escapeHtml(String(check.submissionId || "").slice(0, 8))}</small></div>`
         : "";
+      const pendingDerivation = task.derivationIntents?.find((intent) => intent.state === "PENDING") || null;
+      const derivationDetail = task.predecessorTaskId
+        ? `<div class="office-career-task-revision"><strong>${task.source === "REMEDIATION" ? "恢复任务" : "续办任务"}</strong><span>第一代派生</span><small>来源差事 ${escapeHtml(String(task.predecessorTaskId).slice(0, 8))} · 意图 ${escapeHtml(String(task.derivationIntentId || "").slice(0, 8))}</small></div>`
+        : task.derivedTaskIds?.length
+          ? `<div class="office-career-task-revision"><strong>续办已立案</strong><span>${task.derivedTaskIds.length} 项</span><small>${task.derivedTaskIds.map((id) => escapeHtml(String(id).slice(0, 8))).join(" · ")}</small></div>`
+          : pendingDerivation
+            ? `<div class="office-career-task-revision"><strong>续办待立案</strong><span>${pendingDerivation.source === "REMEDIATION" ? "恢复" : "跟进"}</span><small>${escapeHtml(pendingDerivation.targetTaskCode)} · 意图封印 ${escapeHtml(String(pendingDerivation.digest || "").slice(0, 10))}</small></div>`
+            : "";
       const timeline = expanded
         ? `<ol class="office-career-trace">${(trace.timeline || []).map((item) => `<li><span>${Number(item.sequence)} · ${escapeHtml(traceLabels[item.type] || item.type)}</span><strong>${escapeHtml(item.stateCode || "已记录")}</strong><small>${escapeHtml(String(item.occurredAt || "").replace("T", " ").replace("Z", " UTC"))}</small></li>`).join("")}</ol>`
         : "";
-      const controls = `<div class="office-career-task-actions">${actionable ? `<button class="large-button${selected ? " primary" : ""}" type="button" data-office-career-select-task-id="${escapeHtml(task.taskId)}" aria-pressed="${selected ? "true" : "false"}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>${selected ? "当前差事" : "选为当前"}</button>` : ""}${task.state === "MODIFICATION_CONFIRMATION_PENDING" ? `<button class="large-button primary" type="button" data-office-career-review-task-id="${escapeHtml(task.taskId)}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>请杜伯裁定</button>` : ""}${trace?.state === "SEALED" ? `<button class="large-button" type="button" data-office-career-trace-task-id="${escapeHtml(task.taskId)}" aria-expanded="${expanded ? "true" : "false"}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>${expanded ? "收起履历" : "查看履历"}</button>` : ""}</div>`;
-      return `<li class="${selected ? "selected" : ""}" data-task-id="${escapeHtml(task.taskId)}" data-task-state="${escapeHtml(task.state)}" data-exception-state="${escapeHtml(exception?.state || "")}" data-trace-state="${escapeHtml(trace?.state || "")}"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(taskStates[task.state] || task.state)}${exceptionLabel}</span><small>版本 ${Number(task.version || 0)} · ${escapeHtml(task.updatedAt || "未记录时间")}${planDetail}${traceDetail}</small>${revisionDetail}${checkDetail}${controls}${timeline}</li>`;
+      const controls = `<div class="office-career-task-actions">${actionable ? `<button class="large-button${selected ? " primary" : ""}" type="button" data-office-career-select-task-id="${escapeHtml(task.taskId)}" aria-pressed="${selected ? "true" : "false"}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>${selected ? "当前差事" : "选为当前"}</button>` : ""}${pendingDerivation ? `<button class="large-button primary" type="button" data-office-career-derive-task-id="${escapeHtml(task.taskId)}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>续办立案</button>` : ""}${task.state === "MODIFICATION_CONFIRMATION_PENDING" ? `<button class="large-button primary" type="button" data-office-career-review-task-id="${escapeHtml(task.taskId)}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>请杜伯裁定</button>` : ""}${trace?.state === "SEALED" ? `<button class="large-button" type="button" data-office-career-trace-task-id="${escapeHtml(task.taskId)}" aria-expanded="${expanded ? "true" : "false"}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>${expanded ? "收起履历" : "查看履历"}</button>` : ""}</div>`;
+      return `<li class="${selected ? "selected" : ""}" data-task-id="${escapeHtml(task.taskId)}" data-task-state="${escapeHtml(task.state)}" data-exception-state="${escapeHtml(exception?.state || "")}" data-trace-state="${escapeHtml(trace?.state || "")}"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(taskStates[task.state] || task.state)}${exceptionLabel}</span><small>版本 ${Number(task.version || 0)} · ${escapeHtml(task.updatedAt || "未记录时间")}${planDetail}${traceDetail}</small>${revisionDetail}${checkDetail}${derivationDetail}${controls}${timeline}</li>`;
     }).join("") || '<li class="empty">尚无权威差事状态</li>';
     renderOfficeCareerContributions();
   }
@@ -2372,7 +2380,7 @@
   async function requestOfficeCareer(action, detail = "") {
     if (officeCareerBusy || !profile.organization.remoteRoster?.playerMembership) return;
     const selectedTask = officeCareerStatusItems.find((task) => task.taskId === officeCareerSelectedTaskId) || null;
-    if (["accept", "reject", "modify", "review", "result", "supplement", "exception"].includes(action) && !selectedTask) {
+    if (["accept", "reject", "modify", "review", "result", "supplement", "exception", "derive"].includes(action) && !selectedTask) {
       $("#officeCareerFeedback").textContent = "请先在权威差事状态中选定本次要汇报的差事。";
       return;
     }
@@ -2423,19 +2431,22 @@
       review: "请立即审核我对已下发组织任务提出的参数修改申请。",
       exception: "我在执行当前组织任务时遇到重大异常，请立即按任务冻结规则登记受阻并列出处置方案。",
       result: "我已完成当前组织任务，请审核我的完成成果。",
-      supplement: "我按退回要求提交当前组织任务的补充成果，请登记为本次补呈并继续审核。"
+      supplement: "我按退回要求提交当前组织任务的补充成果，请登记为本次补呈并继续审核。",
+      derive: "请杜伯处理当前任务的续办意图，并按冻结规则另行立案。"
     };
     const content = ["result", "supplement", "exception"].includes(action)
       ? `${commands[action]}我明确汇报的差事是《${selectedTask.title}》。${action === "result" ? "完成情况" : action === "supplement" ? "补呈内容" : "受阻情况"}：${detail}`
       : action === "review"
         ? `${commands.review}我明确请求裁定的差事是《${selectedTask.title}》。请按权威任务流程立即作出决定。`
+      : action === "derive"
+        ? `${commands.derive}父任务是《${selectedTask.title}》。`
       : ["accept", "reject", "modify"].includes(action)
         ? `${commands[action]}我明确回应的差事是《${selectedTask.title}》。${action === "modify" ? `调整内容：${detail}` : action === "reject" && detail ? `拒绝理由：${detail}` : "请按权威任务流程立即登记。"}`
       : commands[action];
     if (!content) return;
     officeCareerBusy = true;
     renderOfficeCareer();
-    $("#officeCareerFeedback").textContent = ({ options: "正在向杜伯查询可领差事……", request: "领差申请已送杜伯，等待派发……", inbox: "正在调阅我的任务待办……", accept: "受命回执已送杜伯……", reject: "拒绝回执已送杜伯……", modify: "改令申请已送杜伯，等待裁定……", review: "正在请杜伯裁定改令……", exception: "受阻报告已送杜伯，等待冻结方案裁定……", result: "复命已送杜伯，等待审核与贡献结算……", supplement: "补呈已送杜伯，等待权威行迹登记与复核……" })[action];
+    $("#officeCareerFeedback").textContent = ({ options: "正在向杜伯查询可领差事……", request: "领差申请已送杜伯，等待派发……", inbox: "正在调阅我的任务待办……", accept: "受命回执已送杜伯……", reject: "拒绝回执已送杜伯……", modify: "改令申请已送杜伯，等待裁定……", review: "正在请杜伯裁定改令……", exception: "受阻报告已送杜伯，等待冻结方案裁定……", result: "复命已送杜伯，等待审核与贡献结算……", supplement: "补呈已送杜伯，等待权威行迹登记与复核……", derive: "正在请杜伯核验续办意图并立案……" })[action];
     try {
       if (integration.isOffline()) {
         const requestedOption = action === "request"
@@ -2465,6 +2476,7 @@
             };
         let response = await integration.applyOrganizationPlayerTaskAction(action.toUpperCase(), input);
         profile.organization = organization.normalizeState(response.organization);
+        if (action === "derive" && response.derivedTask?.taskId) officeCareerSelectedTaskId = response.derivedTask.taskId;
         if (action === "modify") {
           response = await integration.applyOrganizationPlayerTaskAction("REVIEW", { taskId: selectedTask.taskId });
           profile.organization = organization.normalizeState(response.organization);
@@ -2590,6 +2602,12 @@
   }
 
   function handleOfficeCareerStatusAction(event) {
+    const deriveButton = event.target.closest("[data-office-career-derive-task-id]");
+    if (deriveButton) {
+      officeCareerSelectedTaskId = deriveButton.dataset.officeCareerDeriveTaskId;
+      requestOfficeCareer("derive");
+      return;
+    }
     const reviewButton = event.target.closest("[data-office-career-review-task-id]");
     if (reviewButton) {
       officeCareerSelectedTaskId = reviewButton.dataset.officeCareerReviewTaskId;

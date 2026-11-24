@@ -29,13 +29,13 @@
   const LOCAL_LOGISTICS_BRIEFING_PREFIX = "dongzhou-local-logistics-briefing-v1:";
   const LOCAL_SCHEDULED_DUTY_STATUS_PREFIX = "dongzhou-local-scheduled-duty-status-v1:";
   const LOCAL_MEMBERSHIP_PREFIX = "dongzhou-local-membership-v1:";
-  const LOCAL_PLAYER_TASK_ACTIONS = new Set(["OPTIONS", "INBOX", "REQUEST", "ACCEPT", "REJECT", "MODIFY", "REVIEW", "EXCEPTION", "RESULT", "SUPPLEMENT"]);
+  const LOCAL_PLAYER_TASK_ACTIONS = new Set(["OPTIONS", "INBOX", "REQUEST", "ACCEPT", "REJECT", "MODIFY", "REVIEW", "EXCEPTION", "RESULT", "SUPPLEMENT", "DERIVE"]);
   const LOCAL_PLAYER_TASK_CATALOG = Object.freeze([
-    { taskCode: "dongzhou.granary.audit", taskType: "NORMAL", title: "核验军粮账册", purpose: "核清府库军粮收支与余量。", defaultBrief: "核验军粮账册并呈报差异。", coreRequirements: ["核对账面与实存", "说明差异及处置建议"], ordinaryRequirements: ["附具复核记录"], baseExecutionGameSeconds: 86400, successOrganizationContribution: 20, successMemberContribution: 20 },
-    { taskCode: "dongzhou.postroad.patrol", taskType: "NORMAL", title: "巡察驿路", purpose: "查明驿路通阻与沿途风险。", defaultBrief: "巡察辖内驿路并呈报通阻。", coreRequirements: ["核验主要路段", "标记阻断与风险"], ordinaryRequirements: ["提出修复次序"], baseExecutionGameSeconds: 86400, successOrganizationContribution: 20, successMemberContribution: 20 },
-    { taskCode: "dongzhou.formation.drill", taskType: "NORMAL", title: "整训军阵", purpose: "检校军阵操练与号令协同。", defaultBrief: "整训军阵并记录操演结果。", coreRequirements: ["完成阵列操演", "记录号令与协同问题"], ordinaryRequirements: ["提出后续训练建议"], baseExecutionGameSeconds: 86400, successOrganizationContribution: 20, successMemberContribution: 20 },
-    { taskCode: "dongzhou.border.inquiry", taskType: "TEMPORARY", title: "查访边情", purpose: "核实边地动向与军情线索。", defaultBrief: "查访边情并区分事实与传闻。", coreRequirements: ["核验至少两项线索", "标明情报可信程度"], ordinaryRequirements: ["给出后续查证方向"], baseExecutionGameSeconds: 172800, successOrganizationContribution: 20, successMemberContribution: 20 },
-    { taskCode: "dongzhou.lords.diplomacy", taskType: "TEMPORARY", title: "修好诸侯", purpose: "维系诸侯关系并化解当前嫌隙。", defaultBrief: "与目标诸侯修好并呈报交涉结果。", coreRequirements: ["明确交涉对象与诉求", "记录对方回应"], ordinaryRequirements: ["评估关系变化"], baseExecutionGameSeconds: 172800, successOrganizationContribution: 20, successMemberContribution: 20 }
+    { taskCode: "dongzhou.granary.audit", taskType: "NORMAL", title: "核验军粮账册", purpose: "核清府库军粮收支与余量。", defaultBrief: "核验军粮账册并呈报差异。", coreRequirements: ["核对账面与实存", "说明差异及处置建议"], ordinaryRequirements: ["附具复核记录"], baseExecutionGameSeconds: 86400, successOrganizationContribution: 20, successMemberContribution: 20, derivedTaskRules: [{ ruleId: "granary_failure_patrol_remediation", source: "REMEDIATION", triggerResults: ["FAILURE"], triggerReasonCodes: [], targetTaskCode: "dongzhou.postroad.patrol" }] },
+    { taskCode: "dongzhou.postroad.patrol", taskType: "NORMAL", title: "巡察驿路", purpose: "查明驿路通阻与沿途风险。", defaultBrief: "巡察辖内驿路并呈报通阻。", coreRequirements: ["核验主要路段", "标记阻断与风险"], ordinaryRequirements: ["提出修复次序"], baseExecutionGameSeconds: 86400, successOrganizationContribution: 20, successMemberContribution: 20, derivedTaskRules: [{ ruleId: "postroad_partial_border_follow_up", source: "FOLLOW_UP", triggerResults: ["PARTIAL"], triggerReasonCodes: [], targetTaskCode: "dongzhou.border.inquiry" }] },
+    { taskCode: "dongzhou.formation.drill", taskType: "NORMAL", title: "整训军阵", purpose: "检校军阵操练与号令协同。", defaultBrief: "整训军阵并记录操演结果。", coreRequirements: ["完成阵列操演", "记录号令与协同问题"], ordinaryRequirements: ["提出后续训练建议"], baseExecutionGameSeconds: 86400, successOrganizationContribution: 20, successMemberContribution: 20, derivedTaskRules: [{ ruleId: "formation_failure_granary_remediation", source: "REMEDIATION", triggerResults: ["FAILURE"], triggerReasonCodes: [], targetTaskCode: "dongzhou.granary.audit" }] },
+    { taskCode: "dongzhou.border.inquiry", taskType: "TEMPORARY", title: "查访边情", purpose: "核实边地动向与军情线索。", defaultBrief: "查访边情并区分事实与传闻。", coreRequirements: ["核验至少两项线索", "标明情报可信程度"], ordinaryRequirements: ["给出后续查证方向"], baseExecutionGameSeconds: 172800, successOrganizationContribution: 20, successMemberContribution: 20, derivedTaskRules: [] },
+    { taskCode: "dongzhou.lords.diplomacy", taskType: "TEMPORARY", title: "修好诸侯", purpose: "维系诸侯关系并化解当前嫌隙。", defaultBrief: "与目标诸侯修好并呈报交涉结果。", coreRequirements: ["明确交涉对象与诉求", "记录对方回应"], ordinaryRequirements: ["评估关系变化"], baseExecutionGameSeconds: 172800, successOrganizationContribution: 20, successMemberContribution: 20, derivedTaskRules: [] }
   ]);
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
   let session = read(SESSION_KEY, null);
@@ -1038,7 +1038,7 @@
     return `0771-01-${day}T00:00:${second}Z`;
   }
 
-  async function sealLocalPlayerTask(task, sourceProvenance, contentVersion = 10) {
+  async function sealLocalPlayerTask(task, sourceProvenance, contentVersion = 11) {
     const trace = {
       taskId: task.taskId,
       taskState: task.state,
@@ -1062,6 +1062,14 @@
         submissions: task.submissions || [],
         lightweightCheck: task.lightweightCheck || null
       } : {}),
+      ...(contentVersion >= 11 ? {
+        source: task.source || "MANAGER",
+        predecessorTaskId: task.predecessorTaskId || null,
+        derivationIntentId: task.derivationIntentId || null,
+        generationDepth: Number(task.generationDepth || 0),
+        derivationIntentIds: task.derivationIntentIds || [],
+        derivedTaskIds: task.derivedTaskIds || []
+      } : {}),
       ...(contentVersion >= 9 ? { finalMemberChoice: task.finalMemberChoice || null } : {}),
       ...(contentVersion >= 8 ? {
         effectiveParameters: task.effectiveParameters || task.taskDefinitionSnapshot?.parameterSnapshot || null,
@@ -1079,6 +1087,38 @@
       ...trace,
       digest: await sha256(canonicalJson(trace)),
       kernel: { module: "dongzhou_organization_task_trace", moduleVersion: "1.1.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    };
+  }
+
+  async function sealLocalTaskDerivationIntent(intent, sourceProvenance) {
+    const trace = {
+      intentId: intent.intentId,
+      predecessorTaskId: intent.predecessorTaskId,
+      plannedTaskId: intent.plannedTaskId,
+      ruleId: intent.ruleId,
+      source: intent.source,
+      targetTaskCode: intent.targetTaskCode,
+      targetDefaultParameters: intent.targetDefaultParameters,
+      targetDefaultParametersHash: intent.targetDefaultParametersHash,
+      targetPositionSelector: intent.targetPositionSelector,
+      parameterStrategy: intent.parameterStrategy,
+      generationDepth: intent.generationDepth,
+      triggerResult: intent.triggerResult,
+      triggerReasonCode: intent.triggerReasonCode,
+      predecessorVersion: intent.predecessorVersion,
+      catalogDigest: intent.catalogDigest,
+      state: intent.state,
+      createdTaskId: intent.createdTaskId,
+      resolutionReasonCode: intent.resolutionReasonCode,
+      version: intent.version,
+      createdAt: intent.createdAt,
+      updatedAt: intent.updatedAt,
+      sourceProvenance
+    };
+    return {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: { module: "dongzhou_organization_task_derivation", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
     };
   }
 
@@ -1198,6 +1238,7 @@
     for (const task of tasks) {
       const expected = await sealLocalPlayerTask(task, sourceProvenance);
       if (canonicalJson(task.organizationTrace) !== canonicalJson(expected)) {
+        const previousV10 = await sealLocalPlayerTask(task, sourceProvenance, 10);
         const previousV9 = await sealLocalPlayerTask(task, sourceProvenance, 9);
         const previousV8 = await sealLocalPlayerTask(task, sourceProvenance, 8);
         const previousV7 = await sealLocalPlayerTask(task, sourceProvenance, 7);
@@ -1208,7 +1249,8 @@
         const previous = await sealLocalPlayerTask(task, sourceProvenance, 2);
         const legacy = await sealLocalPlayerTask(task, sourceProvenance, 0);
         const matchedLegacy = canonicalJson(task.organizationTrace) === canonicalJson(legacy);
-        if (canonicalJson(task.organizationTrace) !== canonicalJson(previousV9)
+        if (canonicalJson(task.organizationTrace) !== canonicalJson(previousV10)
+          && canonicalJson(task.organizationTrace) !== canonicalJson(previousV9)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previousV8)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previousV7)
           && canonicalJson(task.organizationTrace) !== canonicalJson(previousV6)
@@ -1222,6 +1264,29 @@
       }
       await validateLocalTaskReassignment(organization, task, sourceProvenance);
       await validateLocalTaskRedispatch(organization, task, sourceProvenance);
+    }
+    const intents = Array.isArray(organization.localPlayerDerivationIntents) ? organization.localPlayerDerivationIntents : [];
+    for (const intent of intents) {
+      const expected = await sealLocalTaskDerivationIntent(intent, sourceProvenance);
+      const predecessor = tasks.find((task) => task.taskId === intent.predecessorTaskId);
+      const createdTask = intent.state === "CREATED" ? tasks.find((task) => task.taskId === intent.createdTaskId) : null;
+      const rule = predecessor?.taskDefinitionSnapshot?.followUpPolicy?.rules?.find((item) => item.ruleId === intent.ruleId);
+      if (canonicalJson(intent) !== canonicalJson(expected)
+        || !predecessor || predecessor.derivationIntentIds?.filter((id) => id === intent.intentId).length !== 1
+        || predecessor.source && predecessor.source !== "MANAGER"
+        || !rule || rule.targetTaskCode !== intent.targetTaskCode || rule.source !== intent.source
+        || intent.generationDepth !== 1 || intent.targetPositionSelector !== "SAME_POSITION"
+        || intent.parameterStrategy !== "TARGET_DEFAULTS"
+        || intent.targetDefaultParametersHash !== await sha256(canonicalJson(intent.targetDefaultParameters))
+        || !["PENDING", "CREATED", "SKIPPED"].includes(intent.state)
+        || (intent.state === "PENDING" && (intent.createdTaskId || intent.resolutionReasonCode))
+        || (intent.state === "CREATED" && (!createdTask || intent.createdTaskId !== intent.plannedTaskId
+          || intent.resolutionReasonCode !== "derived_task_created"
+          || createdTask.predecessorTaskId !== predecessor.taskId || createdTask.derivationIntentId !== intent.intentId
+          || createdTask.source !== intent.source || createdTask.generationDepth !== 1))
+        || (intent.state === "SKIPPED" && (intent.createdTaskId || !intent.resolutionReasonCode))) {
+        throw new Error("organization_player_task_derivation_seal_invalid");
+      }
     }
     return tasks;
   }
@@ -1276,7 +1341,16 @@
       dispatchEditableParameterPaths: [],
       assigneeModifiableParameterPaths: ["/execution_days"],
       maximumDeadlineExtensionGameSeconds: 259200,
-      virtualExecutionGameSeconds: definition.baseExecutionGameSeconds
+      virtualExecutionGameSeconds: definition.baseExecutionGameSeconds,
+      followUpPolicy: {
+        allowRecoveryTask: true,
+        allowFollowUpTask: true,
+        rules: (definition.derivedTaskRules || []).map((rule) => ({
+          ...rule,
+          targetPositionSelector: "SAME_POSITION",
+          parameterStrategy: "TARGET_DEFAULTS"
+        }))
+      }
     }));
     const catalogDefinition = {
       catalogId: "dongzhou.officer_12.player_tasks",
@@ -1374,8 +1448,60 @@
       contributionPolicy: {
         successOrganizationContribution: option.successOrganizationContribution,
         successMemberContribution: option.successMemberContribution
-      }
+      },
+      followUpPolicy: JSON.parse(JSON.stringify(option.followUpPolicy))
     };
+  }
+
+  async function createLocalTaskDerivationIntents(task, catalog, intents, append, sourceProvenance) {
+    if ((task.source || "MANAGER") !== "MANAGER" || Number(task.generationDepth || 0) !== 0) return [];
+    const triggerResult = task.state === "SUCCEEDED" ? "SUCCESS"
+      : task.state === "PARTIALLY_COMPLETED" ? "PARTIAL"
+        : task.state === "FAILED" ? "FAILURE" : null;
+    if (!triggerResult) return [];
+    const reasonCode = `lightweight_check_${triggerResult.toLowerCase()}`;
+    const rules = task.taskDefinitionSnapshot?.followUpPolicy?.rules || [];
+    const created = [];
+    for (const rule of rules) {
+      if (!rule.triggerResults?.includes(triggerResult)
+        || (rule.triggerReasonCodes?.length && !rule.triggerReasonCodes.includes(reasonCode))) continue;
+      const target = catalog.options.find((option) => option.taskCode === rule.targetTaskCode);
+      if (!target || target.taskCode === task.taskCode) throw new Error("organization_player_task_derivation_rule_invalid");
+      const intentId = uuidFromDigest(await sha256(`dongzhou-task-derivation-intent:${task.taskId}:${rule.ruleId}`));
+      const plannedTaskId = uuidFromDigest(await sha256(`dongzhou-derived-task:${intentId}`));
+      const targetDefaultParameters = JSON.parse(JSON.stringify(target.defaultParameters));
+      const rawIntent = {
+        intentId,
+        predecessorTaskId: task.taskId,
+        plannedTaskId,
+        ruleId: rule.ruleId,
+        source: rule.source,
+        targetTaskCode: rule.targetTaskCode,
+        targetDefaultParameters,
+        targetDefaultParametersHash: await sha256(canonicalJson(targetDefaultParameters)),
+        targetPositionSelector: rule.targetPositionSelector,
+        parameterStrategy: rule.parameterStrategy,
+        generationDepth: 1,
+        triggerResult,
+        triggerReasonCode: reasonCode,
+        predecessorVersion: task.version,
+        catalogDigest: catalog.digest,
+        state: "PENDING",
+        createdTaskId: null,
+        resolutionReasonCode: null,
+        version: 1,
+        createdAt: task.updatedAt,
+        updatedAt: task.updatedAt
+      };
+      const intent = await sealLocalTaskDerivationIntent(rawIntent, sourceProvenance);
+      const existing = intents.find((entry) => entry.intentId === intentId);
+      if (existing && canonicalJson(existing) !== canonicalJson(intent)) throw new Error("organization_player_task_derivation_conflict");
+      if (!existing) intents.push(intent);
+      task.derivationIntentIds = [...new Set([...(task.derivationIntentIds || []), intentId])];
+      append("DERIVED_TASK_INTENT_CREATED", "PENDING");
+      created.push(intent);
+    }
+    return created;
   }
 
   function localPlayerTaskModificationProposal(task, input) {
@@ -1564,6 +1690,12 @@
         taskCode: task.taskCode || null,
         contextId: task.contextId || null,
         title: task.title,
+        source: task.source || "MANAGER",
+        predecessorTaskId: task.predecessorTaskId || null,
+        derivationIntentId: task.derivationIntentId || null,
+        generationDepth: Number(task.generationDepth || 0),
+        derivationIntents: (organization.localPlayerDerivationIntents || []).filter((intent) => intent.predecessorTaskId === task.taskId),
+        derivedTaskIds: task.derivedTaskIds || [],
         state: task.state,
         version: task.version,
         updatedAt: task.updatedAt,
@@ -1587,9 +1719,11 @@
     const organization = currentProfile?.organization || {};
     if (organization.localPlayerCareer?.state !== "ACTIVE") throw new Error("organization_player_membership_required");
     const tasks = (await verifiedLocalPlayerTasks(organization)).map((task) => JSON.parse(JSON.stringify(task)));
+    const derivationIntents = (organization.localPlayerDerivationIntents || []).map((intent) => JSON.parse(JSON.stringify(intent)));
     const sourceProvenance = await localServiceProvenance();
     const catalog = await localPlayerTaskCatalog(organization);
     let task;
+    let derivedTask = null;
     let message;
     if (normalizedAction === "OPTIONS" || normalizedAction === "INBOX") {
       message = normalizedAction === "OPTIONS"
@@ -1636,6 +1770,12 @@
         catalogDigest: catalog.digest,
         taskDefinitionSnapshot,
         title: option.title,
+        source: "MANAGER",
+        predecessorTaskId: null,
+        derivationIntentId: null,
+        generationDepth: 0,
+        derivationIntentIds: [],
+        derivedTaskIds: [],
         state: "MEMBER_RESPONSE_PENDING",
         version: 1,
         updatedAt: localCareerTimestamp(taskIndex, 1),
@@ -1672,12 +1812,82 @@
       if (normalizedAction === "REVIEW") requireState(["MODIFICATION_CONFIRMATION_PENDING"]);
       if (["EXCEPTION", "RESULT"].includes(normalizedAction)) requireState(["IN_PROGRESS"]);
       if (normalizedAction === "SUPPLEMENT") requireState(["SUPPLEMENT_PENDING"]);
+      if (normalizedAction === "DERIVE") requireState(["SUCCEEDED", "PARTIALLY_COMPLETED", "FAILED"]);
       if (["MODIFY", "EXCEPTION", "RESULT", "SUPPLEMENT"].includes(normalizedAction) && !detail) throw new Error("organization_player_task_detail_required");
+      let derivationIntent = null;
+      if (normalizedAction === "DERIVE") {
+        derivationIntent = derivationIntents.find((intent) => intent.predecessorTaskId === task.taskId
+          && (!input.intentId || intent.intentId === String(input.intentId)));
+        if (!derivationIntent) throw new Error("organization_player_task_derivation_not_found");
+        if (derivationIntent.state === "CREATED") {
+          const existing = tasks.find((entry) => entry.taskId === derivationIntent.createdTaskId);
+          if (!existing) throw new Error("organization_player_task_derivation_seal_invalid");
+          return { mode: "standalone", replayed: true, organization, task, derivedTask: existing, message: "续办差事已经立案。", tasks: await localOrganizationPlayerTasks() };
+        }
+        if (derivationIntent.state !== "PENDING") throw new Error("organization_player_task_derivation_state_invalid");
+      }
       delete task.localTraceMigratedFromV1;
       task.version += 1;
       task.updatedAt = localCareerTimestamp(taskIndex, task.version);
       const append = (type, stateCode) => task.timeline.push({ sequence: task.timeline.length + 1, type, occurredAt: task.updatedAt, stateCode });
-      if (normalizedAction === "ACCEPT") {
+      if (normalizedAction === "DERIVE") {
+        const capacity = await localPlayerTaskCapacity(organization, tasks);
+        if (capacity.activeTaskCount >= capacity.maximumActiveTasks) {
+          const error = new Error(`在办差事已达上限 ${capacity.maximumActiveTasks} 项。`);
+          error.code = "organization_task_workload_conflict";
+          error.capacity = capacity;
+          throw error;
+        }
+        const target = catalog.options.find((option) => option.taskCode === derivationIntent.targetTaskCode);
+        const rule = task.taskDefinitionSnapshot?.followUpPolicy?.rules?.find((item) => item.ruleId === derivationIntent.ruleId);
+        if (!target || !rule || target.taskCode === task.taskCode
+          || canonicalJson(target.defaultParameters) !== canonicalJson(derivationIntent.targetDefaultParameters)
+          || derivationIntent.targetDefaultParametersHash !== await sha256(canonicalJson(target.defaultParameters))) {
+          throw new Error("organization_player_task_derivation_rule_invalid");
+        }
+        const childIndex = tasks.length;
+        const taskDefinitionSnapshot = localPlayerTaskDefinitionSnapshot(target, catalog, { parameters: target.defaultParameters });
+        derivedTask = {
+          taskId: derivationIntent.plannedTaskId,
+          taskCode: target.taskCode,
+          contextId: target.contextId,
+          catalogDigest: catalog.digest,
+          taskDefinitionSnapshot,
+          title: target.title,
+          source: derivationIntent.source,
+          predecessorTaskId: task.taskId,
+          derivationIntentId: derivationIntent.intentId,
+          generationDepth: 1,
+          derivationIntentIds: [],
+          derivedTaskIds: [],
+          state: "MEMBER_RESPONSE_PENDING",
+          version: 1,
+          updatedAt: localCareerTimestamp(childIndex, 1),
+          modification: null,
+          effectiveParameters: JSON.parse(JSON.stringify(taskDefinitionSnapshot.parameterSnapshot)),
+          effectiveExecutionGameSeconds: taskDefinitionSnapshot.executionPolicy.virtualExecutionGameSeconds,
+          parameterModification: null,
+          finalMemberChoice: null,
+          submissions: [],
+          lightweightCheck: null,
+          supplementCount: 0,
+          executionException: null,
+          activeConfirmations: [],
+          timeline: [{ sequence: 1, type: "TASK_CREATED", occurredAt: localCareerTimestamp(childIndex, 1), stateCode: "MEMBER_RESPONSE_PENDING" }]
+        };
+        derivedTask.organizationTrace = await sealLocalPlayerTask(derivedTask, sourceProvenance);
+        derivationIntent.state = "CREATED";
+        derivationIntent.createdTaskId = derivedTask.taskId;
+        derivationIntent.resolutionReasonCode = "derived_task_created";
+        derivationIntent.version += 1;
+        derivationIntent.updatedAt = task.updatedAt;
+        const intentIndex = derivationIntents.findIndex((intent) => intent.intentId === derivationIntent.intentId);
+        derivationIntents[intentIndex] = await sealLocalTaskDerivationIntent(derivationIntent, sourceProvenance);
+        task.derivedTaskIds = [...new Set([...(task.derivedTaskIds || []), derivedTask.taskId])];
+        append("DERIVED_TASK_CREATED", "CREATED");
+        tasks.push(derivedTask);
+        message = `续办差事「${derivedTask.title}」已由杜伯立案，等待你回应。`;
+      } else if (normalizedAction === "ACCEPT") {
         task.state = "IN_PROGRESS";
         if (finalChoiceConfirmation) {
           task.activeConfirmations = [];
@@ -1832,6 +2042,10 @@
               : `本地补呈已复核，差事《${task.title}》未能办成。`;
         }
       }
+      if (["RESULT", "SUPPLEMENT"].includes(normalizedAction)
+        && ["SUCCEEDED", "PARTIALLY_COMPLETED", "FAILED"].includes(task.state)) {
+        await createLocalTaskDerivationIntents(task, catalog, derivationIntents, append, sourceProvenance);
+      }
       task.organizationTrace = await sealLocalPlayerTask(task, sourceProvenance);
       tasks[taskIndex] = task;
     }
@@ -1841,9 +2055,9 @@
     const nextCareer = settledNow
       ? { ...career, contributionBalance: career.contributionBalance + reward, lifetimeEarned: career.lifetimeEarned + reward }
       : career;
-    const nextOrganization = { ...organization, localPlayerCareer: nextCareer, localPlayerTasks: tasks };
+    const nextOrganization = { ...organization, localPlayerCareer: nextCareer, localPlayerTasks: tasks, localPlayerDerivationIntents: derivationIntents };
     offlineProfile = { ...(currentProfile || {}), organization: nextOrganization };
-    return { mode: "standalone", organization: nextOrganization, task, message, tasks: await localOrganizationPlayerTasks() };
+    return { mode: "standalone", organization: nextOrganization, task, derivedTask, message, tasks: await localOrganizationPlayerTasks() };
   }
 
   async function localPlayerContributionEntries(organization) {
