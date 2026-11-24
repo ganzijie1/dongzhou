@@ -123,6 +123,7 @@
   let officeCareerBusy = false;
   let officeCareerStatusBusy = false;
   let officeCareerStatusItems = [];
+  let officeCareerSummaries = [];
   let officeCareerTaskCapacity = null;
   let officeCareerTaskOptions = [];
   let officeCareerTaskCatalogDigest = "";
@@ -2214,6 +2215,14 @@
       const controls = `<div class="office-career-task-actions">${actionable ? `<button class="large-button${selected ? " primary" : ""}" type="button" data-office-career-select-task-id="${escapeHtml(task.taskId)}" aria-pressed="${selected ? "true" : "false"}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>${selected ? "当前差事" : "选为当前"}</button>` : ""}${pendingDerivation ? `<button class="large-button primary" type="button" data-office-career-derive-task-id="${escapeHtml(task.taskId)}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>续办立案</button>` : ""}${task.state === "MODIFICATION_CONFIRMATION_PENDING" ? `<button class="large-button primary" type="button" data-office-career-review-task-id="${escapeHtml(task.taskId)}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>请杜伯裁定</button>` : ""}${trace?.state === "SEALED" ? `<button class="large-button" type="button" data-office-career-trace-task-id="${escapeHtml(task.taskId)}" aria-expanded="${expanded ? "true" : "false"}" ${officeCareerBusy || officeCareerStatusBusy ? "disabled" : ""}>${expanded ? "收起履历" : "查看履历"}</button>` : ""}</div>`;
       return `<li class="${selected ? "selected" : ""}" data-task-id="${escapeHtml(task.taskId)}" data-task-state="${escapeHtml(task.state)}" data-exception-state="${escapeHtml(exception?.state || "")}" data-trace-state="${escapeHtml(trace?.state || "")}"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(taskStates[task.state] || task.state)}${exceptionLabel}</span><small>版本 ${Number(task.version || 0)} · ${escapeHtml(task.updatedAt || "未记录时间")}${planDetail}${traceDetail}</small>${revisionDetail}${checkDetail}${recoveryDetail}${derivationDetail}${recoveryControls}${controls}${timeline}</li>`;
     }).join("") || '<li class="empty">尚无权威差事状态</li>';
+    const summaryStates = { REQUIRES_ACTION: "汇报待确认", ACCEPTED: "汇报已受理", REJECTED: "汇报已驳回" };
+    const summaryResults = { SUCCESS: "全部办成", PARTIAL: "部分办成", FAILURE: "均未办成", INVALIDATED: "包含失效差事" };
+    $("#officeCareerSummaries").innerHTML = officeCareerSummaries.map((summary) => {
+      const controls = summary.state === "REQUIRES_ACTION" && summary.action
+        ? `<div class="office-career-task-actions"><button class="large-button primary" type="button" data-office-career-summary-id="${escapeHtml(summary.summaryId)}" data-office-career-summary-decision="ACCEPT">受理汇报</button><button class="large-button" type="button" data-office-career-summary-id="${escapeHtml(summary.summaryId)}" data-office-career-summary-decision="REJECT">驳回汇报</button></div>`
+        : "";
+      return `<li data-summary-state="${escapeHtml(summary.state)}"><strong>阶段复盘 · ${escapeHtml(summary.evidenceSnapshot?.title || "史料凭据")}</strong><span>${escapeHtml(summaryStates[summary.state] || summary.state)}</span><small>${summary.childTaskIds.length} 项关键差事 · ${escapeHtml(summaryResults[summary.result] || summary.result)} · 汇报 ${escapeHtml(summary.report?.events?.map((event) => event.stage).join(" → ") || "未生成")} · 封印 ${escapeHtml(String(summary.digest || "").slice(0, 10))}</small>${controls}</li>`;
+    }).join("") || '<li class="empty">尚无阶段复盘</li>';
     renderOfficeCareerContributions();
   }
 
@@ -2340,6 +2349,7 @@
         refreshOfficeCareerContributions({ quiet: true })
       ]);
       officeCareerStatusItems = Array.isArray(response.items) ? response.items : [];
+      officeCareerSummaries = Array.isArray(response.summaries) ? response.summaries : [];
       const capacityActiveIds = officeCareerStatusItems
         .filter((task) => ["MEMBER_RESPONSE_PENDING", "MODIFICATION_CONFIRMATION_PENDING", "IN_PROGRESS", "SUPPLEMENT_PENDING"].includes(task.state))
         .map((task) => task.taskId)
@@ -2446,7 +2456,9 @@
       result: "我已完成当前组织任务，请审核我的完成成果。",
       supplement: "我按退回要求提交当前组织任务的补充成果，请登记为本次补呈并继续审核。",
       recover: "我确认处理当前组织任务的重大执行异常。",
-      derive: "请杜伯处理当前任务的续办意图，并按冻结规则另行立案。"
+      derive: "请杜伯处理当前任务的续办意图，并按冻结规则另行立案。",
+      summary: "请按已终结差事生成阶段复盘。",
+      summary_confirm: "请确认阶段复盘中的组织汇报。"
     };
     const content = ["result", "supplement", "exception"].includes(action)
       ? `${commands[action]}我明确汇报的差事是《${selectedTask.title}》。${action === "result" ? "完成情况" : action === "supplement" ? "补呈内容" : "受阻情况"}：${detail}`
@@ -2462,7 +2474,7 @@
     if (!content) return;
     officeCareerBusy = true;
     renderOfficeCareer();
-    $("#officeCareerFeedback").textContent = ({ options: "正在向杜伯查询可领差事……", request: "领差申请已送杜伯，等待派发……", inbox: "正在调阅我的任务待办……", accept: "受命回执已送杜伯……", reject: "拒绝回执已送杜伯……", modify: "改令申请已送杜伯，等待裁定……", review: "正在请杜伯裁定改令……", exception: "受阻报告已送杜伯，等待冻结方案裁定……", recover: "正在封存受阻处置并恢复任务……", result: "复命已送杜伯，等待审核与贡献结算……", supplement: "补呈已送杜伯，等待权威行迹登记与复核……", derive: "正在请杜伯核验续办意图并立案……" })[action];
+    $("#officeCareerFeedback").textContent = ({ options: "正在向杜伯查询可领差事……", request: "领差申请已送杜伯，等待派发……", inbox: "正在调阅我的任务待办……", accept: "受命回执已送杜伯……", reject: "拒绝回执已送杜伯……", modify: "改令申请已送杜伯，等待裁定……", review: "正在请杜伯裁定改令……", exception: "受阻报告已送杜伯，等待冻结方案裁定……", recover: "正在封存受阻处置并恢复任务……", result: "复命已送杜伯，等待审核与贡献结算……", supplement: "补呈已送杜伯，等待权威行迹登记与复核……", derive: "正在请杜伯核验续办意图并立案……", summary: "正在汇总已终结差事……", summary_confirm: "正在确认组织汇报……" })[action];
     try {
       if (integration.isOffline()) {
         const requestedOption = action === "request"
@@ -2485,7 +2497,8 @@
               contextId: requestedOption?.contextId || "",
               catalogDigest: officeCareerTaskCatalogDigest
             }
-          : ["options", "inbox"].includes(action) ? {} : {
+          : ["options", "inbox"].includes(action) ? {}
+          : ["summary", "summary_confirm"].includes(action) ? actionInput : {
               taskId: selectedTask.taskId,
               detail,
               ...actionInput,
@@ -2619,6 +2632,18 @@
   }
 
   function handleOfficeCareerStatusAction(event) {
+    const summaryButton = event.target.closest("[data-office-career-summary-id]");
+    if (summaryButton) {
+      const summary = officeCareerSummaries.find((item) => item.summaryId === summaryButton.dataset.officeCareerSummaryId);
+      if (!summary?.action) return;
+      requestOfficeCareer("summary_confirm", "", {
+        summaryId: summary.summaryId,
+        actionId: summary.action.actionId,
+        expectedSummaryVersion: summary.version,
+        decision: summaryButton.dataset.officeCareerSummaryDecision
+      });
+      return;
+    }
     const recoverButton = event.target.closest("[data-office-career-recover-task-id]");
     if (recoverButton) {
       const taskId = recoverButton.dataset.officeCareerRecoverTaskId;
@@ -6152,6 +6177,13 @@
     $("#officeCareerInbox").addEventListener("click", () => requestOfficeCareer("inbox"));
     $("#officeCareerStatusRefresh").addEventListener("click", () => refreshOfficeCareerStatus());
     $("#officeCareerStatus").addEventListener("click", handleOfficeCareerStatusAction);
+    $("#officeCareerSummaries").addEventListener("click", handleOfficeCareerStatusAction);
+    $("#officeCareerSummaryCreate").addEventListener("click", () => requestOfficeCareer("summary", "", {
+      childTaskIds: officeCareerStatusItems
+        .filter((task) => ["SUCCEEDED", "PARTIALLY_COMPLETED", "FAILED", "INVALIDATED"].includes(task.state))
+        .slice(-3)
+        .map((task) => task.taskId)
+    }));
     $("#officeCareerCatalogView").addEventListener("click", handleOfficeCareerCatalogAction);
     $("#officeCareerContributionsRefresh").addEventListener("click", () => refreshOfficeCareerContributions());
     $("#officeCareerContributions").addEventListener("click", (event) => { const verifyButton = event.target.closest("[data-player-contribution-verify-id]"); if (verifyButton) { verifyOfficeCareerContributionDossier(verifyButton.dataset.playerContributionVerifyId); return; } const button = event.target.closest("[data-player-contribution-dossier-id]"); if (button) toggleOfficeCareerContributionDossier(button.dataset.playerContributionDossierId); });

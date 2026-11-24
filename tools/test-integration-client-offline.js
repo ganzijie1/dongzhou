@@ -418,6 +418,47 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(pendingIntent.generationDepth, 1);
   assert.strictEqual(pendingIntent.kernel.module, "dongzhou_organization_task_derivation");
   assert.match(pendingIntent.digest, /^[0-9a-f]{64}$/);
+  const summaryChildIds = partialTask.organization.localPlayerTasks
+    .filter((task) => ["SUCCEEDED", "PARTIALLY_COMPLETED", "FAILED", "INVALIDATED"].includes(task.state))
+    .slice(-2)
+    .map((task) => task.taskId);
+  const pendingSummary = await applyCareerAction("SUMMARY", { childTaskIds: summaryChildIds });
+  assert.strictEqual(pendingSummary.summary.state, "REQUIRES_ACTION");
+  assert.strictEqual(pendingSummary.summary.result, "PARTIAL");
+  assert.deepStrictEqual(pendingSummary.summary.report.events.map((event) => event.stage), ["generated", "sent"]);
+  assert.strictEqual(pendingSummary.summary.evidenceSnapshot.knowledgeId, "dongzhou_stage_001");
+  assert.strictEqual(pendingSummary.summary.evidenceSnapshot.source.work, "Dongzhou Chronicle");
+  assert.strictEqual(pendingSummary.summary.kernel.module, "dongzhou_organization_task_summary");
+  assert.deepStrictEqual(pendingSummary.summary.action.options, ["ACCEPT", "REJECT"]);
+  await assert.rejects(client.applyOrganizationPlayerTaskAction("SUMMARY_CONFIRM", {
+    summaryId: pendingSummary.summary.summaryId,
+    actionId: "wrong-action",
+    expectedSummaryVersion: 1,
+    decision: "ACCEPT"
+  }), /organization_player_task_summary_action_mismatch/);
+  await assert.rejects(client.applyOrganizationPlayerTaskAction("SUMMARY_CONFIRM", {
+    summaryId: pendingSummary.summary.summaryId,
+    actionId: pendingSummary.summary.action.actionId,
+    expectedSummaryVersion: 2,
+    decision: "ACCEPT"
+  }), /organization_player_task_summary_version_conflict/);
+  const acceptedSummary = await applyCareerAction("SUMMARY_CONFIRM", {
+    summaryId: pendingSummary.summary.summaryId,
+    actionId: pendingSummary.summary.action.actionId,
+    expectedSummaryVersion: 1,
+    decision: "ACCEPT"
+  });
+  assert.strictEqual(acceptedSummary.summary.state, "ACCEPTED");
+  assert.strictEqual(acceptedSummary.summary.report.result, "accepted");
+  assert.deepStrictEqual(acceptedSummary.summary.report.events.map((event) => event.stage), ["generated", "sent", "accepted"]);
+  assert.strictEqual(acceptedSummary.summary.action, null);
+  const replayedSummary = await client.applyOrganizationPlayerTaskAction("SUMMARY_CONFIRM", {
+    summaryId: acceptedSummary.summary.summaryId,
+    actionId: pendingSummary.summary.action.actionId,
+    expectedSummaryVersion: 1,
+    decision: "ACCEPT"
+  });
+  assert.strictEqual(replayedSummary.replayed, true);
   const derived = await applyCareerAction("DERIVE", { taskId: modifiedTaskId, intentId: pendingIntent.intentId });
   assert.strictEqual(derived.derivedTask.taskId, pendingIntent.plannedTaskId);
   assert.strictEqual(derived.derivedTask.taskCode, "dongzhou.border.inquiry");
@@ -622,6 +663,11 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(localProfile.organization.localPlayerTasks.length, taskCountBeforeStaleRequest);
   const cleanPlayerTasks = JSON.stringify(localProfile.organization.localPlayerTasks);
   const cleanDerivationIntents = JSON.stringify(localProfile.organization.localPlayerDerivationIntents);
+  const cleanTaskSummaries = JSON.stringify(localProfile.organization.localPlayerTaskSummaries);
+  localProfile.organization.localPlayerTaskSummaries[0].evidenceSnapshot.source.work = "forged source";
+  await client.persist(localProfile);
+  await assert.rejects(client.organizationPlayerTasks(), /organization_player_task_summary_seal_invalid/);
+  localProfile.organization.localPlayerTaskSummaries = JSON.parse(cleanTaskSummaries);
   localProfile.organization.localPlayerDerivationIntents[0].targetTaskCode = "dongzhou.lords.diplomacy";
   await client.persist(localProfile);
   await assert.rejects(client.organizationPlayerTasks(), /organization_player_task_derivation_seal_invalid/);

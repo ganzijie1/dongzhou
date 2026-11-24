@@ -94,6 +94,7 @@
       localScheduledDuty: { state: "DISABLED", version: 1 },
       localPlayerCareer: { state: "OUT", version: 1, contributionBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 },
       localPlayerTasks: [],
+      localPlayerTaskSummaries: [],
       localPlayerDerivationIntents: [],
       localPlayerDepartures: [],
       localPlayerReassignments: [],
@@ -145,6 +146,11 @@
       ? source.localPlayerTasks.filter((task) => task && typeof task === "object").slice(-30)
       : [];
     const localPlayerTaskIds = new Set(localPlayerTasks.map((task) => task.taskId));
+    const localPlayerTaskSummaries = Array.isArray(source.localPlayerTaskSummaries)
+      ? source.localPlayerTaskSummaries.filter((entry) => entry && typeof entry === "object"
+        && Array.isArray(entry.childTaskIds) && entry.childTaskIds.length >= 2
+        && entry.childTaskIds.every((taskId) => localPlayerTaskIds.has(taskId))).slice(-20)
+      : [];
     const localPlayerDerivationIntents = Array.isArray(source.localPlayerDerivationIntents)
       ? source.localPlayerDerivationIntents.filter((intent) => intent && typeof intent === "object"
         && localPlayerTaskIds.has(intent.predecessorTaskId)
@@ -201,6 +207,7 @@
         };
       })(),
       localPlayerTasks,
+      localPlayerTaskSummaries,
       localPlayerDerivationIntents,
       localPlayerDepartures: Array.isArray(source.localPlayerDepartures)
         ? source.localPlayerDepartures.filter((entry) => entry && typeof entry === "object").slice(-20)

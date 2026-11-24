@@ -29,7 +29,7 @@
   const LOCAL_LOGISTICS_BRIEFING_PREFIX = "dongzhou-local-logistics-briefing-v1:";
   const LOCAL_SCHEDULED_DUTY_STATUS_PREFIX = "dongzhou-local-scheduled-duty-status-v1:";
   const LOCAL_MEMBERSHIP_PREFIX = "dongzhou-local-membership-v1:";
-  const LOCAL_PLAYER_TASK_ACTIONS = new Set(["OPTIONS", "INBOX", "REQUEST", "ACCEPT", "REJECT", "MODIFY", "REVIEW", "EXCEPTION", "RECOVER", "RESULT", "SUPPLEMENT", "DERIVE"]);
+  const LOCAL_PLAYER_TASK_ACTIONS = new Set(["OPTIONS", "INBOX", "REQUEST", "ACCEPT", "REJECT", "MODIFY", "REVIEW", "EXCEPTION", "RECOVER", "RESULT", "SUPPLEMENT", "DERIVE", "SUMMARY", "SUMMARY_CONFIRM"]);
   const LOCAL_PLAYER_TASK_CATALOG = Object.freeze([
     { taskCode: "dongzhou.granary.audit", taskType: "NORMAL", title: "核验军粮账册", purpose: "核清府库军粮收支与余量。", defaultBrief: "核验军粮账册并呈报差异。", coreRequirements: ["核对账面与实存", "说明差异及处置建议"], ordinaryRequirements: ["附具复核记录"], baseExecutionGameSeconds: 86400, successOrganizationContribution: 20, successMemberContribution: 20, derivedTaskRules: [{ ruleId: "granary_failure_patrol_remediation", source: "REMEDIATION", triggerResults: ["FAILURE"], triggerReasonCodes: [], targetTaskCode: "dongzhou.postroad.patrol" }] },
     { taskCode: "dongzhou.postroad.patrol", taskType: "NORMAL", title: "巡察驿路", purpose: "查明驿路通阻与沿途风险。", defaultBrief: "巡察辖内驿路并呈报通阻。", coreRequirements: ["核验主要路段", "标记阻断与风险"], ordinaryRequirements: ["提出修复次序"], baseExecutionGameSeconds: 86400, successOrganizationContribution: 20, successMemberContribution: 20, derivedTaskRules: [{ ruleId: "postroad_partial_border_follow_up", source: "FOLLOW_UP", triggerResults: ["PARTIAL"], triggerReasonCodes: [], targetTaskCode: "dongzhou.border.inquiry" }] },
@@ -1144,6 +1144,73 @@
     };
   }
 
+  async function sealLocalTaskSummary(summary, sourceProvenance) {
+    const trace = {
+      summaryId: summary.summaryId,
+      childTaskIds: summary.childTaskIds,
+      keyChildTaskIds: summary.keyChildTaskIds,
+      childResults: summary.childResults,
+      result: summary.result,
+      state: summary.state,
+      evidenceSnapshot: summary.evidenceSnapshot,
+      report: summary.report,
+      action: summary.action,
+      version: summary.version,
+      createdAt: summary.createdAt,
+      updatedAt: summary.updatedAt,
+      sourceProvenance
+    };
+    return {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: { module: "dongzhou_organization_task_summary", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: summary.state }
+    };
+  }
+
+  function aggregateLocalTaskSummaryResult(tasks) {
+    const results = new Set(tasks.map((task) => task.state));
+    if (results.has("INVALIDATED")) return "INVALIDATED";
+    if (results.size === 1 && results.has("SUCCEEDED")) return "SUCCESS";
+    if (results.has("SUCCEEDED") || results.has("PARTIALLY_COMPLETED")) return "PARTIAL";
+    return "FAILURE";
+  }
+
+  async function verifiedLocalTaskSummaries(organization, tasks, sourceProvenance) {
+    const summaries = Array.isArray(organization.localPlayerTaskSummaries) ? organization.localPlayerTaskSummaries : [];
+    for (const summary of summaries) {
+      const children = summary.childTaskIds?.map((id) => tasks.find((task) => task.taskId === id));
+      const expected = await sealLocalTaskSummary(summary, sourceProvenance);
+      const stages = summary.report?.events?.map((event) => event.stage);
+      if (canonicalJson(summary) !== canonicalJson(expected)
+        || !Array.isArray(children) || children.length < 2 || children.some((task) => !task)
+        || new Set(summary.childTaskIds).size !== summary.childTaskIds.length
+        || canonicalJson(summary.keyChildTaskIds) !== canonicalJson(summary.childTaskIds)
+        || children.some((task) => !["SUCCEEDED", "PARTIALLY_COMPLETED", "FAILED", "INVALIDATED"].includes(task.state))
+        || summary.result !== aggregateLocalTaskSummaryResult(children)
+        || !Array.isArray(summary.childResults) || summary.childResults.length !== children.length
+        || summary.childResults.some((result, index) => result.taskId !== children[index].taskId
+          || result.state !== children[index].state || !/^[0-9a-f]{64}$/.test(String(result.traceDigest || "")))
+        || !summary.evidenceSnapshot?.knowledgeId || !summary.evidenceSnapshot?.source
+        || summary.report?.organizationTaskId !== summary.summaryId || summary.report?.assignmentGeneration !== 1
+        || summary.report?.executionId !== summary.summaryId || summary.report?.reportRef !== `summary:${summary.summaryId}:v${summary.version}`
+        || summary.report?.schemaVersion !== 1 || !summary.report?.messageId || !summary.report?.deliveryAttemptId
+        || summary.report?.wireChatId !== "local-process:DuBo"
+        || !Array.isArray(stages) || canonicalJson(stages.slice(0, 2)) !== canonicalJson(["generated", "sent"])
+        || (summary.state === "REQUIRES_ACTION" && (stages.length !== 2 || !summary.action
+          || summary.action.code !== "confirm_organization_report" || summary.action.type !== "confirmation"
+          || summary.action.expectedSummaryVersion !== summary.version
+          || summary.action.expiresAt !== localCareerDeadline(summary.createdAt, 300)
+          || canonicalJson(summary.action.options) !== canonicalJson(["ACCEPT", "REJECT"])))
+        || (summary.state === "ACCEPTED" && (canonicalJson(stages) !== canonicalJson(["generated", "sent", "accepted"])
+          || summary.report.result !== "accepted" || summary.action !== null))
+        || (summary.state === "REJECTED" && (canonicalJson(stages) !== canonicalJson(["generated", "sent", "failed"])
+          || summary.report.result !== "failed" || !summary.report.reasonCode || summary.action !== null))) {
+        throw new Error("organization_player_task_summary_seal_invalid");
+      }
+    }
+    return summaries;
+  }
+
   async function sealLocalTaskDerivationIntent(intent, sourceProvenance) {
     const trace = {
       intentId: intent.intentId,
@@ -1814,12 +1881,15 @@
     const currentProfile = offlineProfile || read("dongzhou-h5-profile-v2", null);
     const organization = currentProfile?.organization || {};
     const tasks = await verifiedLocalPlayerTasks(organization);
+    const sourceProvenance = await localServiceProvenance();
+    const summaries = await verifiedLocalTaskSummaries(organization, tasks, sourceProvenance);
     const capacity = await localPlayerTaskCapacity(organization, tasks);
     const catalog = organization.localPlayerCareer?.state === "ACTIVE" ? await localPlayerTaskCatalog(organization) : null;
     return {
       mode: "standalone",
       capacity,
       catalog,
+      summaries,
       items: tasks.map((task) => ({
         taskId: task.taskId,
         taskCode: task.taskCode || null,
@@ -1855,6 +1925,7 @@
     const organization = currentProfile?.organization || {};
     if (organization.localPlayerCareer?.state !== "ACTIVE") throw new Error("organization_player_membership_required");
     const tasks = (await verifiedLocalPlayerTasks(organization)).map((task) => JSON.parse(JSON.stringify(task)));
+    const summaries = (await verifiedLocalTaskSummaries(organization, tasks, await localServiceProvenance())).map((summary) => JSON.parse(JSON.stringify(summary)));
     const derivationIntents = (organization.localPlayerDerivationIntents || []).map((intent) => JSON.parse(JSON.stringify(intent)));
     const sourceProvenance = await localServiceProvenance();
     const catalog = await localPlayerTaskCatalog(organization);
@@ -1866,6 +1937,75 @@
         ? "本地可领差事：核验军粮账册、巡察驿路、整训军阵、查访边情、修好诸侯。"
         : tasks.length ? `本地仕途账共有 ${tasks.length} 项差事。` : "本地仕途账尚无差事。";
       return { mode: "standalone", organization, task: null, message, tasks: await localOrganizationPlayerTasks() };
+    } else if (normalizedAction === "SUMMARY") {
+      const terminal = new Set(["SUCCEEDED", "PARTIALLY_COMPLETED", "FAILED", "INVALIDATED"]);
+      const requestedIds = Array.isArray(input.childTaskIds) ? [...new Set(input.childTaskIds.map(String))] : [];
+      const children = (requestedIds.length ? requestedIds.map((id) => tasks.find((item) => item.taskId === id)) : tasks.filter((item) => terminal.has(item.state)).slice(-3));
+      if (children.length < 2 || children.some((item) => !item || !terminal.has(item.state))) throw new Error("organization_player_task_summary_children_invalid");
+      const childTaskIds = children.map((item) => item.taskId);
+      const existing = summaries.find((item) => canonicalJson(item.childTaskIds) === canonicalJson(childTaskIds));
+      if (existing) return { mode: "standalone", replayed: true, organization, summary: existing, message: "这批差事已经生成阶段复盘。", tasks: await localOrganizationPlayerTasks() };
+      const catalogEntries = await localKnowledgeCatalog();
+      const knowledge = catalogEntries.find((entry) => String(entry?.id || "").startsWith("dongzhou_stage_") && (entry.sourceDetails?.length || entry.sources?.length));
+      if (!knowledge) throw new Error("organization_player_task_summary_evidence_unavailable");
+      const source = JSON.parse(JSON.stringify((knowledge.sourceDetails || knowledge.sources)[0]));
+      const createdAt = localCareerTimestamp(summaries.length, 1);
+      const summaryId = uuidFromDigest(await sha256(`local-task-summary:${childTaskIds.join(":")}`));
+      const actionId = uuidFromDigest(await sha256(`${summaryId}:confirm:1`));
+      const messageId = uuidFromDigest(await sha256(`${summaryId}:organization-report`));
+      const deliveryAttemptId = uuidFromDigest(await sha256(`${summaryId}:delivery:1`));
+      const base = {
+        summaryId,
+        childTaskIds,
+        keyChildTaskIds: childTaskIds,
+        childResults: children.map((item) => ({ taskId: item.taskId, state: item.state, traceDigest: item.organizationTrace.digest })),
+        result: aggregateLocalTaskSummaryResult(children),
+        state: "REQUIRES_ACTION",
+        evidenceSnapshot: { knowledgeId: String(knowledge.id), stageId: String(knowledge.stageId), title: String(knowledge.name || knowledge.title || knowledge.id), source },
+        report: {
+          schemaVersion: 1,
+          organizationTaskId: summaryId,
+          assignmentGeneration: 1,
+          executionId: summaryId,
+          reportRef: `summary:${summaryId}:v1`,
+          messageId,
+          wireChatId: "local-process:DuBo",
+          deliveryAttemptId,
+          result: null,
+          reasonCode: null,
+          events: [{ stage: "generated", occurredAt: createdAt }, { stage: "sent", occurredAt: createdAt }]
+        },
+        action: { actionId, code: "confirm_organization_report", type: "confirmation", expectedSummaryVersion: 1, expiresAt: localCareerDeadline(createdAt, 300), options: ["ACCEPT", "REJECT"] },
+        version: 1,
+        createdAt,
+        updatedAt: createdAt
+      };
+      const summary = await sealLocalTaskSummary(base, sourceProvenance);
+      summaries.push(summary);
+      const nextOrganization = { ...organization, localPlayerTaskSummaries: summaries };
+      offlineProfile = { ...(currentProfile || {}), organization: nextOrganization };
+      return { mode: "standalone", organization: nextOrganization, summary, message: "阶段复盘已经生成，请确认组织汇报。", tasks: await localOrganizationPlayerTasks() };
+    } else if (normalizedAction === "SUMMARY_CONFIRM") {
+      const summary = summaries.find((item) => item.summaryId === String(input.summaryId || ""));
+      if (!summary) throw new Error("organization_player_task_summary_not_found");
+      if (summary.state !== "REQUIRES_ACTION") return { mode: "standalone", replayed: true, organization, summary, message: "阶段复盘已经处理。", tasks: await localOrganizationPlayerTasks() };
+      if (summary.action?.actionId !== String(input.actionId || "")) throw new Error("organization_player_task_summary_action_mismatch");
+      if (Number(input.expectedSummaryVersion) !== summary.version || summary.action.expectedSummaryVersion !== summary.version) throw new Error("organization_player_task_summary_version_conflict");
+      const decision = String(input.decision || "").toUpperCase();
+      if (!["ACCEPT", "REJECT"].includes(decision)) throw new Error("organization_player_task_summary_decision_invalid");
+      summary.version += 1;
+      summary.updatedAt = localCareerTimestamp(summaries.indexOf(summary), summary.version);
+      summary.state = decision === "ACCEPT" ? "ACCEPTED" : "REJECTED";
+      summary.report.events.push({ stage: decision === "ACCEPT" ? "accepted" : "failed", occurredAt: summary.updatedAt });
+      summary.report.result = decision === "ACCEPT" ? "accepted" : "failed";
+      summary.report.reasonCode = decision === "REJECT" ? String(input.reasonCode || "player_rejected_report") : null;
+      summary.action = null;
+      summary.report.reportRef = `summary:${summary.summaryId}:v${summary.version}`;
+      const sealed = await sealLocalTaskSummary(summary, sourceProvenance);
+      summaries[summaries.findIndex((item) => item.summaryId === summary.summaryId)] = sealed;
+      const nextOrganization = { ...organization, localPlayerTaskSummaries: summaries };
+      offlineProfile = { ...(currentProfile || {}), organization: nextOrganization };
+      return { mode: "standalone", organization: nextOrganization, summary: sealed, message: decision === "ACCEPT" ? "组织汇报已经受理。" : "组织汇报已经驳回并记录原因。", tasks: await localOrganizationPlayerTasks() };
     } else if (normalizedAction === "REQUEST") {
       const title = String(input.title || "").trim();
       if (!title || title.length > 80) throw new Error("organization_player_task_title_invalid");
@@ -2358,7 +2498,7 @@
     const nextCareer = settledNow
       ? { ...career, contributionBalance: career.contributionBalance + reward, lifetimeEarned: career.lifetimeEarned + reward }
       : career;
-    const nextOrganization = { ...organization, localPlayerCareer: nextCareer, localPlayerTasks: tasks, localPlayerDerivationIntents: derivationIntents };
+    const nextOrganization = { ...organization, localPlayerCareer: nextCareer, localPlayerTasks: tasks, localPlayerDerivationIntents: derivationIntents, localPlayerTaskSummaries: summaries };
     offlineProfile = { ...(currentProfile || {}), organization: nextOrganization };
     return { mode: "standalone", organization: nextOrganization, task, derivedTask, message, tasks: await localOrganizationPlayerTasks() };
   }

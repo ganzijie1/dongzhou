@@ -241,6 +241,20 @@ async function openReady(page) {
     await desktop.waitForSelector("#officeCareerContributions >> text=差事部分告成", { timeout: 10000 });
     await desktop.waitForSelector("#officeCareerAccount >> text=可用贡献 30", { timeout: 10000 });
     await desktop.waitForSelector('#officeCareerStatus [data-task-state="PARTIALLY_COMPLETED"] >> text=续办待立案', { timeout: 10000 });
+    await desktop.click("#officeCareerSummaryCreate");
+    await desktop.waitForSelector('#officeCareerSummaries [data-summary-state="REQUIRES_ACTION"] >> text=汇报待确认', { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerSummaries >> text=generated → sent", { timeout: 10000 });
+    await desktop.click('#officeCareerSummaries [data-office-career-summary-decision="ACCEPT"]');
+    await desktop.waitForSelector('#officeCareerSummaries [data-summary-state="ACCEPTED"] >> text=汇报已受理', { timeout: 10000 });
+    await desktop.waitForSelector("#officeCareerSummaries >> text=generated → sent → accepted", { timeout: 10000 });
+    const acceptedSummary = await desktop.evaluate(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.localPlayerTaskSummaries?.[0]);
+    if (acceptedSummary?.result !== "PARTIAL"
+      || acceptedSummary?.report?.result !== "accepted"
+      || acceptedSummary?.evidenceSnapshot?.knowledgeId !== "dongzhou_stage_001"
+      || acceptedSummary?.kernel?.module !== "dongzhou_organization_task_summary"
+      || !/^[0-9a-f]{64}$/.test(acceptedSummary?.digest || "")) {
+      throw new Error(`Offline task summary was not sealed: ${JSON.stringify(acceptedSummary)}`);
+    }
     await desktop.click('#officeCareerStatus [data-task-state="PARTIALLY_COMPLETED"] [data-office-career-derive-task-id]');
     await desktop.waitForSelector("#officeCareerFeedback >> text=续办差事「查访边情」已由杜伯立案", { timeout: 10000 });
     await desktop.waitForSelector('#officeCareerStatus [data-task-state="MEMBER_RESPONSE_PENDING"] >> text=查访边情', { timeout: 10000 });
