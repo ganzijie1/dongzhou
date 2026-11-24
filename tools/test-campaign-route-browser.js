@@ -65,8 +65,9 @@ const SYSTEM_CHROMIUM = [
           reportId: "battle:02:00000000-0000-4000-8000-000000000201",
           stageId: "02", stageTitle: "骊山烽火",
           readinessDigest: "6".repeat(64), routeDigest: "c".repeat(64),
+          battlePlan: { formation: "balanced", vanguardHeroId: "ZhouYouWang", supportIds: [] },
           sourceProvenance, digest: "5".repeat(64),
-          kernel: { module: "dongzhou_battle_deployment", moduleVersion: "1.0.0", state: "SEALED" }
+          kernel: { module: "dongzhou_battle_deployment", moduleVersion: "1.1.0", state: "SEALED" }
         };
       }
       else if (url.pathname.endsWith("/knowledge/routes")) {
@@ -121,6 +122,7 @@ const SYSTEM_CHROMIUM = [
     assert.strictEqual(stored.battle.battleReadiness.kernel.module, "dongzhou_battle_readiness");
     assert.strictEqual(stored.battle.battleDeployment.kernel.module, "dongzhou_battle_deployment");
     assert.strictEqual(stored.battle.battleDeployment.routeDigest, "c".repeat(64));
+    assert.deepStrictEqual(stored.battle.battlePlan, { formation: "balanced", vanguardHeroId: "ZhouYouWang", supportIds: [] });
     assert.strictEqual(stored.profile.campaignResources.provisions, 98);
     assert.strictEqual(routeRequests, 2, "deployment must revalidate the selected campaign route");
     assert.strictEqual(readinessRequests, 1, "deployment must obtain a fresh four-service readiness seal");

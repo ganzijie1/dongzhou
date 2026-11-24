@@ -1511,7 +1511,7 @@ class BattleReadinessModule(Module):
 
 class BattleDeploymentModule(Module):
     name = "dongzhou_battle_deployment"
-    version = "1.0.0"
+    version = "1.1.0"
     dependencies = (
         RuntimeModule.name,
         CampaignRouteModule.name,
@@ -1520,13 +1520,16 @@ class BattleDeploymentModule(Module):
     )
 
     @classmethod
-    def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
+    def _validate_trace(
+        cls, trace: dict[str, Any], *, require_battle_plan: bool
+    ) -> None:
         stage_id = str(trace.get("stageId") or "")
         report_id = str(trace.get("reportId") or "")
         try:
             deployment_id = UUID(str(trace.get("deploymentId") or ""))
         except ValueError:
             raise ValueError("battle deployment identity is invalid") from None
+        battle_plan = trace.get("battlePlan")
         if (
             trace.get("mode") != "connected"
             or trace.get("state") != "AUTHORIZED"
@@ -1541,6 +1544,32 @@ class BattleDeploymentModule(Module):
             or not _service_provenance_receipt_is_valid(trace.get("sourceProvenance"))
         ):
             raise ValueError("battle deployment trace is incomplete")
+        if not require_battle_plan:
+            return
+        if not isinstance(battle_plan, dict):
+            raise ValueError("battle deployment plan is missing")
+        support_ids = battle_plan.get("supportIds")
+        vanguard_hero_id = battle_plan.get("vanguardHeroId")
+        if (
+            battle_plan.get("formation")
+            not in {"balanced", "assault", "bulwark", "maneuver"}
+            or vanguard_hero_id is not None
+            and not re.fullmatch(
+                r"[A-Za-z0-9_.:-]{1,128}", str(vanguard_hero_id or "")
+            )
+            or not isinstance(support_ids, list)
+            or support_ids != sorted(set(map(str, support_ids)))
+            or any(
+                not re.fullmatch(r"[A-Za-z0-9_.:-]{1,256}", str(item or ""))
+                for item in support_ids
+            )
+            or set(battle_plan) != {"formation", "vanguardHeroId", "supportIds"}
+        ):
+            raise ValueError("battle deployment plan is invalid")
+
+    @classmethod
+    def seal(cls, trace: dict[str, Any]) -> dict[str, Any]:
+        cls._validate_trace(trace, require_battle_plan=True)
         return {
             **trace,
             "digest": _canonical_digest(trace),
@@ -1561,7 +1590,21 @@ class BattleDeploymentModule(Module):
             for key, value in receipt.items()
             if key not in {"digest", "kernel"}
         }
+        module_version = receipt.get("kernel", {}).get("moduleVersion")
         try:
+            if module_version == "1.0.0":
+                cls._validate_trace(trace, require_battle_plan=False)
+                sealed = {
+                    **trace,
+                    "digest": _canonical_digest(trace),
+                    "kernel": {
+                        "module": cls.name,
+                        "moduleVersion": "1.0.0",
+                        "nexusKernelVersion": _NEXUS_KERNEL_VERSION,
+                        "state": "SEALED",
+                    },
+                }
+                return sealed == receipt
             return cls.seal(trace) == receipt
         except (TypeError, ValueError):
             return False
@@ -3626,6 +3669,7 @@ def _battle_report_signature(report: dict[str, Any]) -> dict[str, Any]:
     campaign_route = report.get("campaignRoute")
     battle_readiness = report.get("battleReadiness")
     battle_deployment = report.get("battleDeployment")
+    battle_plan = report.get("battlePlan")
 
     def references(entries: Any, hero_key: str) -> list[dict[str, str]]:
         if not isinstance(entries, list):
@@ -3668,6 +3712,8 @@ def _battle_report_signature(report: dict[str, Any]) -> dict[str, Any]:
         signature["battleReadiness"] = battle_readiness
     if isinstance(battle_deployment, dict):
         signature["battleDeployment"] = battle_deployment
+    if isinstance(battle_plan, dict):
+        signature["battlePlan"] = battle_plan
     return signature
 
 
@@ -4218,6 +4264,10 @@ def _seal_battle_reports(
                 raise BattleReceiptConflict("battle_deployment_missing")
         else:
             deployment_id = str(deployment.get("deploymentId") or "")
+            deployment_version = str(
+                deployment.get("kernel", {}).get("moduleVersion") or ""
+            )
+            report_battle_plan = report.get("battlePlan")
             route_digest = (
                 str(campaign_route.get("receipt", {}).get("digest") or "")
                 if isinstance(campaign_route, dict)
@@ -4239,6 +4289,11 @@ def _seal_battle_reports(
                     else ""
                 )
                 or deployment.get("routeDigest") != route_digest
+                or deployment_version != "1.0.0"
+                and (
+                    not isinstance(report_battle_plan, dict)
+                    or report_battle_plan != deployment.get("battlePlan")
+                )
                 or not _service_provenance_receipt_matches(
                     deployment.get("sourceProvenance"), source_provenance or {}
                 )
@@ -4359,6 +4414,17 @@ def _seal_battle_reports(
 
         support = report.get("support") if isinstance(report.get("support"), dict) else {}
         support_orders = support.get("orders")
+        if isinstance(deployment, dict) and str(
+            deployment.get("kernel", {}).get("moduleVersion") or ""
+        ) != "1.0.0":
+            planned_support_ids = deployment.get("battlePlan", {}).get("supportIds")
+            submitted_support_ids = sorted(
+                str(order.get("id") or "")
+                for order in support_orders
+                if isinstance(order, dict) and order.get("id")
+            ) if isinstance(support_orders, list) else []
+            if submitted_support_ids != planned_support_ids:
+                raise BattleReceiptConflict("battle_deployment_support_mismatch")
         for order in support_orders if isinstance(support_orders, list) else []:
             if not isinstance(order, dict):
                 raise BattleReceiptConflict("battle_order_reference_invalid")
@@ -4988,6 +5054,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
     campaign_path = settings.web_root / "scenario" / "campaign.json"
     route_required_stages: set[str] = set()
     stage_titles: dict[str, str] = {}
+    stage_vanguard_candidates: dict[str, set[str]] = {}
     if campaign_path.is_file():
         campaign_catalog = json.loads(campaign_path.read_text(encoding="utf-8"))
         stage_titles = {
@@ -5000,6 +5067,30 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             for stage in campaign_catalog.get("stages", [])
             if isinstance(stage, dict) and int(stage.get("index") or 0) > 1
         }
+        for stage in campaign_catalog.get("stages", []):
+            if not isinstance(stage, dict) or not stage.get("id"):
+                continue
+            deploy = stage.get("stage", {}).get("deploy", {})
+            if not isinstance(deploy, dict):
+                continue
+            candidates: set[str] = set()
+            for key in ("unselectables", "selectables"):
+                entries = deploy.get(key, [])
+                values = (
+                    entries
+                    if isinstance(entries, list)
+                    else entries.values()
+                    if isinstance(entries, dict)
+                    else []
+                )
+                candidates.update(
+                    str(entry.get("hero"))
+                    for entry in values
+                    if isinstance(entry, dict)
+                    and entry.get("hero")
+                    and str(entry.get("force") or "own") == "own"
+                )
+            stage_vanguard_candidates[str(stage["id"])] = candidates
     module = RuntimeModule(store, upstreams, settings)
     mandate_workflow = MandateWorkflowModule()
     knowledge_tournament = KnowledgeTournamentModule()
@@ -7537,6 +7628,62 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
                     "The selected campaign route is invalid.",
                     status_code=409,
                 )
+        saved = await store.read_save(player_id)
+        saved_payload = saved.get("payload")
+        if not isinstance(saved_payload, dict):
+            saved_payload = {}
+        formation = str(saved_payload.get("formation") or "balanced")
+        stage_vanguards = saved_payload.get("stageVanguards")
+        vanguard_hero_id = (
+            str(stage_vanguards.get(request.stage_id) or "") or None
+            if isinstance(stage_vanguards, dict)
+            else None
+        )
+        candidates = stage_vanguard_candidates.get(request.stage_id, set())
+        if not candidates:
+            vanguard_hero_id = None
+        organization = saved_payload.get("organization")
+        pending_support = (
+            organization.get("pendingSupport")
+            if isinstance(organization, dict)
+            else None
+        )
+        consumed_support_ids = {
+            str(item)
+            for item in organization.get("consumedSupportIds", [])
+        } if isinstance(organization, dict) and isinstance(
+            organization.get("consumedSupportIds"), list
+        ) else set()
+        support_ids = sorted(
+            str(entry.get("id") or "")
+            for entry in pending_support
+            if isinstance(entry, dict)
+            and entry.get("id")
+            and str(entry.get("id")) not in consumed_support_ids
+            and (
+                not entry.get("stageId")
+                or str(entry.get("stageId")) == request.stage_id
+            )
+        ) if isinstance(pending_support, list) else []
+        if (
+            formation not in {"balanced", "assault", "bulwark", "maneuver"}
+            or candidates and vanguard_hero_id not in candidates
+            or len(support_ids) != len(set(support_ids))
+            or any(
+                not re.fullmatch(r"[A-Za-z0-9_.:-]{1,256}", support_id)
+                for support_id in support_ids
+            )
+        ):
+            raise ApiError(
+                "battle_deployment_plan_invalid",
+                "The saved battle plan is invalid or stale.",
+                status_code=409,
+            )
+        battle_plan = {
+            "formation": formation,
+            "vanguardHeroId": vanguard_hero_id,
+            "supportIds": support_ids,
+        }
         deployment_id = uuid4()
         trace = {
             "mode": "connected",
@@ -7549,6 +7696,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "playerDigest": _battle_deployment_player_digest(player_id),
             "readinessDigest": str(readiness.get("digest") or ""),
             "routeDigest": route_digest,
+            "battlePlan": battle_plan,
             "sourceProvenance": service_provenance.receipt(),
         }
         receipt = battle_deployment.seal(trace)
@@ -7556,6 +7704,7 @@ def build_application(settings: Settings | None = None, *, store: Store | None =
             "stageId": request.stage_id,
             "readinessDigest": trace["readinessDigest"],
             "routeDigest": route_digest,
+            "battlePlan": battle_plan,
         }
         started, existing = await store.begin_request(
             player_id,

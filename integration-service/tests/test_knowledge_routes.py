@@ -231,6 +231,11 @@ def test_campaign_route_requires_completed_predecessor_and_validates_published_d
         assert deployed.status_code == 200, deployed.json()
         deployment = deployed.json()
         assert deployment["routeDigest"] == guided.json()["receipt"]["digest"]
+        assert deployment["battlePlan"] == {
+            "formation": "balanced",
+            "vanguardHeroId": None,
+            "supportIds": [],
+        }
 
         report = {
             "id": deployment["reportId"],
@@ -242,6 +247,7 @@ def test_campaign_route_requires_completed_predecessor_and_validates_published_d
             "campaignRoute": guided.json(),
             "battleReadiness": readiness.json(),
             "battleDeployment": deployment,
+            "battlePlan": deployment["battlePlan"],
         }
         saved = client.put("/api/dongzhou/v1/save", json={
             "expected_version": 2,
@@ -303,7 +309,13 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
     scenario = tmp_path / "scenario"
     scenario.mkdir()
     (scenario / "campaign.json").write_text(json.dumps({
-        "stages": [{"id": "01", "index": 1, "battleTitle": "东郊索命"}],
+        "stages": [{
+            "id": "01", "index": 1, "battleTitle": "东郊索命",
+            "stage": {"deploy": {
+                "unselectables": [{"hero": "DuBo"}],
+                "selectables": [],
+            }},
+        }],
     }, ensure_ascii=False), encoding="utf-8")
     org_id = "00000000-0000-4000-8000-000000000100"
     member_id = "00000000-0000-4000-8000-000000000101"
@@ -326,6 +338,20 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
             "/api/dongzhou/v1/sessions/guest",
             json={"installation_id": str(uuid4())},
         ).status_code == 200
+        planned = client.put("/api/dongzhou/v1/save", json={
+            "expected_version": 1,
+            "payload": {
+                "formation": "assault",
+                "stageVanguards": {"01": "DuBo"},
+                "organization": {"pendingSupport": [{
+                    "id": "support-01",
+                    "stageId": "01",
+                    "source": "军需预备",
+                    "provisions": 5,
+                }]},
+            },
+        })
+        assert planned.status_code == 200, planned.json()
         prepared = client.post(path, json={"stage_id": "01"})
         assert prepared.status_code == 200
         receipt = prepared.json()
@@ -354,11 +380,16 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
         assert deployment["stageId"] == "01"
         assert deployment["readinessDigest"] == receipt["digest"]
         assert deployment["routeDigest"] is None
+        assert deployment["battlePlan"] == {
+            "formation": "assault",
+            "vanguardHeroId": "DuBo",
+            "supportIds": ["support-01"],
+        }
         assert deployment["reportId"] == (
             "battle:01:" + deployment["deploymentId"]
         )
         assert deployment["kernel"]["module"] == "dongzhou_battle_deployment"
-        assert deployment["kernel"]["moduleVersion"] == "1.0.0"
+        assert deployment["kernel"]["moduleVersion"] == "1.1.0"
 
         report = {
             "id": deployment["reportId"],
@@ -367,11 +398,24 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
             "turns": 6,
             "ownLosses": 0,
             "terminalReason": "victory",
+            "support": {
+                "provisions": 5,
+                "morale": 0,
+                "attack": 0,
+                "defense": 0,
+                "recon": 0,
+                "orders": [{
+                    "id": "support-01",
+                    "memberId": None,
+                    "source": "军需预备",
+                }],
+            },
             "battleReadiness": receipt,
             "battleDeployment": deployment,
+            "battlePlan": deployment["battlePlan"],
         }
         saved = client.put("/api/dongzhou/v1/save", json={
-            "expected_version": 1,
+            "expected_version": 2,
             "payload": {"organization": {"battleReports": [report]}},
         })
         assert saved.status_code == 200, saved.json()
@@ -383,7 +427,7 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
         forged_readiness = json.loads(json.dumps(receipt))
         forged_readiness["aiNpc"]["readyHeroIds"] = []
         forged = client.put("/api/dongzhou/v1/save", json={
-            "expected_version": 2,
+            "expected_version": 3,
             "payload": {
                 **saved.json()["payload"],
                 "organization": {"battleReports": [sealed_report, {
@@ -399,7 +443,7 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
         forged_deployment = json.loads(json.dumps(deployment))
         forged_deployment["reportId"] = "battle:01:forged-deployment"
         forged = client.put("/api/dongzhou/v1/save", json={
-            "expected_version": 2,
+            "expected_version": 3,
             "payload": {
                 **saved.json()["payload"],
                 "organization": {"battleReports": [sealed_report, {
@@ -412,8 +456,25 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
         assert forged.status_code == 409
         assert forged.json()["error"]["code"] == "battle_deployment_invalid"
 
+        forged_plan = client.put("/api/dongzhou/v1/save", json={
+            "expected_version": 3,
+            "payload": {
+                **saved.json()["payload"],
+                "organization": {"battleReports": [sealed_report, {
+                    **report,
+                    "id": "battle:01:forged-plan",
+                    "battlePlan": {
+                        **deployment["battlePlan"],
+                        "supportIds": [],
+                    },
+                }]},
+            },
+        })
+        assert forged_plan.status_code == 409
+        assert forged_plan.json()["error"]["code"] == "battle_deployment_invalid"
+
         missing_deployment = client.put("/api/dongzhou/v1/save", json={
-            "expected_version": 2,
+            "expected_version": 3,
             "payload": {
                 **saved.json()["payload"],
                 "organization": {"battleReports": [sealed_report, {
@@ -430,7 +491,7 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
         assert missing_deployment.json()["error"]["code"] == "battle_deployment_missing"
 
         removed = client.put("/api/dongzhou/v1/save", json={
-            "expected_version": 2,
+            "expected_version": 3,
             "payload": {
                 **saved.json()["payload"],
                 "organization": {"battleReports": []},
@@ -440,7 +501,7 @@ def test_battle_readiness_seals_all_four_services_and_rejects_tampering(tmp_path
         replayed_consumed_deployment = client.put(
             "/api/dongzhou/v1/save",
             json={
-                "expected_version": 3,
+                "expected_version": 4,
                 "payload": {"organization": {"battleReports": [report]}},
             },
         )

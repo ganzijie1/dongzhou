@@ -599,6 +599,21 @@
     return [...new Set(entries.filter((entry) => entry?.hero && (!entry.force || entry.force === "own")).map((entry) => String(entry.hero)))];
   }
 
+  function currentBattlePlan(record) {
+    const candidates = stageOwnHeroes(record);
+    const selectedVanguard = candidates.includes(profile.stageVanguards?.[record.id])
+      ? profile.stageVanguards[record.id]
+      : candidates[0] || null;
+    profile.stageVanguards ||= {};
+    if (selectedVanguard) profile.stageVanguards[record.id] = selectedVanguard;
+    const preview = organization.consumeSupport(profile.organization, record.id);
+    return {
+      formation: systems.FORMATION_PRESETS[profile.formation] ? profile.formation : "balanced",
+      vanguardHeroId: selectedVanguard,
+      supportIds: (preview.support.orders || []).map((entry) => String(entry.id || "")).filter(Boolean).sort()
+    };
+  }
+
   function renderWarCouncil(record) {
     const resources = profile.campaignResources;
     const wounded = Object.keys(profile.woundedHeroes || {}).length;
@@ -699,12 +714,16 @@
     let campaignRoute = null;
     let battleReadiness = null;
     let battleDeployment = null;
+    let battlePlan = null;
     if (requiresReadiness || requiresRoute) {
       const button = $("#focusStageButton");
       routeStartPending = true;
       if (button?.dataset.stageId === record.id) button.disabled = true;
       try {
         if (requiresReadiness) {
+          battlePlan = currentBattlePlan(record);
+          await integration.persist(profile);
+          battlePlan = currentBattlePlan(record);
           battleReadiness = await integration.battleReadiness(record.id);
           if (
             battleReadiness?.state !== "READY"
@@ -748,11 +767,12 @@
             battleDeployment?.state !== "AUTHORIZED"
             || battleDeployment?.stageId !== record.id
             || battleDeployment?.kernel?.module !== "dongzhou_battle_deployment"
-            || battleDeployment?.kernel?.moduleVersion !== "1.0.0"
+            || battleDeployment?.kernel?.moduleVersion !== "1.1.0"
             || battleDeployment?.kernel?.state !== "SEALED"
             || !/^[0-9a-f]{64}$/.test(String(battleDeployment?.digest || ""))
             || battleDeployment?.readinessDigest !== battleReadiness.digest
             || battleDeployment?.routeDigest !== (campaignRoute?.receipt?.digest || null)
+            || JSON.stringify(battleDeployment?.battlePlan || null) !== JSON.stringify(battlePlan)
             || !String(battleDeployment?.reportId || "").startsWith(`battle:${record.id}:`)
           ) {
             throw new Error("出征许可无效");
@@ -785,6 +805,13 @@
     state = savedState || freshState(record);
     if (battleReadiness) state.battleReadiness = battleReadiness;
     if (battleDeployment) state.battleDeployment = battleDeployment;
+    if (battlePlan) {
+      state.battlePlan = battlePlan;
+      profile.formation = battlePlan.formation;
+      profile.stageVanguards ||= {};
+      if (battlePlan.vanguardHeroId) profile.stageVanguards[record.id] = battlePlan.vanguardHeroId;
+      else delete profile.stageVanguards[record.id];
+    }
     if (options.procedural) state.procedural = options.procedural;
     state.assist ||= systems.retryAssist(profile, record.id);
     const objectiveType = state.procedural?.objectiveType ? "procedural" : difficultyProfileFor(record).objectiveType;
@@ -839,6 +866,10 @@
       }
       profile.organization = syncOfficeMembers(profile.organization, record);
       const prepared = organization.consumeSupport(profile.organization, record.id);
+      const consumedSupportIds = (prepared.support.orders || []).map((entry) => String(entry.id || "")).filter(Boolean).sort();
+      if (state.battlePlan && JSON.stringify(consumedSupportIds) !== JSON.stringify(state.battlePlan.supportIds)) {
+        throw new Error("官署支援与出征许可不一致");
+      }
       profile.organization = prepared.state;
       state.organizationSupport = prepared.support;
       profile.campaignResources.provisions = clamp(profile.campaignResources.provisions + prepared.support.provisions, 0, 200);
@@ -864,7 +895,7 @@
         log(`四服务整备已验印：${knowledgeCount} 卷史料、${officerCount} 名在线属官，内核印记 ${String(state.battleReadiness.digest || "").slice(0, 12)}。`, "event");
       }
       if (state.battleDeployment) {
-        log(`出征许可已签发：战报号 ${state.battleDeployment.reportId}，内核印记 ${String(state.battleDeployment.digest || "").slice(0, 12)}。`, "event");
+        log(`出征许可已签发：${formation.name}${vanguard ? `、${displayName(vanguard)}任先锋` : ""}、${state.battlePlan?.supportIds?.length || 0} 项官署支援；战报号 ${state.battleDeployment.reportId}，内核印记 ${String(state.battleDeployment.digest || "").slice(0, 12)}。`, "event");
       }
       if (state.campaignRoute) log(`史料行军：${state.campaignRoute.label || "奉诏直进"}（${state.campaignRoute.routeId}）；军粮 -${state.campaignRoute.provisionCost}${state.campaignRoute.moraleDelta ? `，士气 ${state.campaignRoute.moraleDelta > 0 ? "+" : ""}${state.campaignRoute.moraleDelta}` : ""}。`, "event");
       log(`军议：${formation.name}${vanguard ? `；${displayName(vanguard)}任先锋` : ""}；军粮 ${profile.campaignResources.provisions}，士气 ${profile.campaignResources.morale}${profile.campaignResources.provisions < 40 ? "；缺粮导致兵力与攻击下降" : ""}。`, "event");
@@ -4998,8 +5029,9 @@
       ownLosses: ownUnits.filter((unit) => unit.hp <= 0).length, terminalReason,
       support: state.organizationSupport || {},
       campaignRoute: state.campaignRoute || null,
-        battleReadiness: state.battleReadiness || null,
-        battleDeployment: state.battleDeployment || null
+      battleReadiness: state.battleReadiness || null,
+        battleDeployment: state.battleDeployment || null,
+        battlePlan: state.battlePlan || null
     });
     profile.organization = officeReport.state;
     profile.organization.history.push({ month: profile.organization.month, tone: won ? "good" : "bad", text: `${stageRecord.battleTitle}${won ? "告捷" : "失利"}，战后回报已收入官署档案。` });
