@@ -68,6 +68,14 @@ async function openReady(page) {
     await desktop.click("#campaignOfficeButton");
     await desktop.waitForSelector("#campaignOfficeBackdrop:not([hidden])");
     await desktop.waitForTimeout(350);
+    await desktop.waitForSelector("#officeNpcState >> text=本地账本", { timeout: 10000 });
+    await desktop.waitForSelector("#officeNpcState >> text=当前无执行中的事务", { timeout: 10000 });
+    await desktop.waitForSelector("#officeNpcSchedule >> text=本地当值", { timeout: 10000 });
+    await desktop.waitForSelector("#officeNpcSchedule >> text=日程来自本地官署账本", { timeout: 10000 });
+    await desktop.waitForSelector("#officeNpcAssignment >> text=本地拟定", { timeout: 10000 });
+    await desktop.waitForSelector("#officeNpcAssignment >> text=本地账本已核验", { timeout: 10000 });
+    await desktop.click("#officeScheduleButton");
+    await desktop.waitForSelector("#officeNpcSchedule >> text=进程内账本", { timeout: 10000 });
     const desktopLayout = await desktop.evaluate(() => {
       const drawer = document.querySelector("#campaignOfficeDrawer").getBoundingClientRect();
       const viewport = { width: innerWidth, height: innerHeight };

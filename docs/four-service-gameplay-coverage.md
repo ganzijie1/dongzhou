@@ -123,6 +123,8 @@ standalone 调拨沿用同一两阶段审批契约，但只操作组织存档中
 
 史官问对已迁入 standalone 本地闭环：浏览器从 `dongzhou-knowledge.json` 读取本关人物录，按请求号确定性生成一名本关人物和三名异关干扰项；题面及未答本地记录不含 `correctIndex`。答题时重新读取史料计算正确项，以 `service-sources.json` 中四仓固定版本生成 `dongzhou_service_provenance`，再生成 `dongzhou_knowledge_tournament 1.1.0` 结果回执；同题同答案幂等回放，换答案拒绝，主动验印会从史料和版本清单重算，篡改摘要无法通过。离线浏览器验收完成真实点击、10 分入账和主动验印，并确认全程 `/api/` 请求为 0。
 
+属官状态、日程和本关当值也已迁入 standalone 本地闭环。状态只投影当前存档中已有的忠诚、劳顿、功绩、玩家关系、在办差事和经 `dongzhou_npc_recollection` 封印的旧事；心境由劳顿及是否在办差事确定性映射，性情、动机和品质没有本地权威记录时明确显示未建档。日程只列当前本月真实在办差事，当值根据属官忠诚、劳顿和功绩计算胜任度；三类响应分别由 `dongzhou_npc_local_state 1.0.0`、`dongzhou_npc_local_schedule 1.0.0` 和 `dongzhou_npc_local_assignment 1.0.0` 封印，并标记 `IN_PROCESS`，不会伪装为 AINPC 实时在线状态。离线官署浏览器覆盖首次开局、拟定日程、桌面及移动端布局，并继续要求 `/api/` 请求为 0。
+
 ## 历史验证基线
 
 以下现场证据仅记录隔离前已经完成的能力验收，不是当前运行拓扑，也不授权重新启动服务、访问 GitLab 或连接内网。

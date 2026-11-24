@@ -119,7 +119,7 @@
   }
 
   function requireLocalOfficer(heroId) {
-    const currentProfile = read("dongzhou-h5-profile-v2", offlineProfile) || offlineProfile;
+    const currentProfile = offlineProfile || read("dongzhou-h5-profile-v2", null);
     const members = Array.isArray(currentProfile?.organization?.members) ? currentProfile.organization.members : [];
     const member = members.find((entry) => String(entry?.id || "") === String(heroId));
     if (!member) throw new Error("npc_not_in_local_organization");
@@ -352,6 +352,130 @@
       });
     }
     return { mode: "standalone", notices };
+  }
+
+  function localOfficerSnapshot(heroId) {
+    const member = requireLocalOfficer(heroId);
+    const currentProfile = offlineProfile || read("dongzhou-h5-profile-v2", null);
+    const organization = currentProfile?.organization || {};
+    const tasks = Array.isArray(organization.tasks) ? organization.tasks : [];
+    const memberTasks = tasks.filter((task) => String(task?.assigneeId || "") === String(heroId));
+    const activeTask = memberTasks.find((task) => task?.status === "active") || null;
+    const latestTask = memberTasks.at(-1) || null;
+    const fatigue = Math.max(0, Math.min(100, Number(member.fatigue || 0)));
+    const relation = Math.max(-100, Math.min(100, Number(organization.relations?.[heroId] || 0)));
+    const emotion = fatigue >= 70 ? "irritation" : activeTask ? "resolute" : "calm";
+    const intensity = fatigue >= 70 ? Math.round(fatigue) : activeTask ? Math.max(50, Math.round(70 - fatigue / 3)) : Math.max(20, Math.round(45 - fatigue / 4));
+    return { currentProfile, organization, member, memberTasks, activeTask, latestTask, fatigue, relation, emotion, intensity };
+  }
+
+  async function localNpcState(heroId) {
+    const snapshot = localOfficerSnapshot(heroId);
+    const sourceProvenance = await localServiceProvenance();
+    const memories = (Array.isArray(snapshot.organization.recollections) ? snapshot.organization.recollections : [])
+      .filter((entry) => String(entry?.heroId || "") === String(heroId) && entry?.memoryReceipt)
+      .map((entry) => ({ ...entry.memoryReceipt, sourceProvenance: entry.sourceProvenance }))
+      .slice(-20)
+      .reverse();
+    const executionTask = snapshot.activeTask || snapshot.latestTask;
+    const trace = {
+      mode: "standalone",
+      deliveryMode: "IN_PROCESS",
+      heroId: String(heroId),
+      month: Math.max(1, Math.trunc(Number(snapshot.organization.month || 1))),
+      loyalty: Number(snapshot.member.loyalty || 0),
+      fatigue: snapshot.fatigue,
+      merit: Number(snapshot.member.merit || 0),
+      relation: snapshot.relation,
+      activeTaskId: String(snapshot.activeTask?.id || ""),
+      latestTaskId: String(snapshot.latestTask?.id || ""),
+      memoryDigests: memories.map((memory) => String(memory.digest || "")),
+      sourceProvenance
+    };
+    return {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      knownNpcIds: Object.fromEntries((snapshot.organization.members || []).map((entry) => [entry.id, `local:${entry.id}`])),
+      aiPlayerId: "local:player",
+      emotion: { dominant: { emotion_type: snapshot.emotion, intensity: snapshot.intensity } },
+      affection: { total: 1, items: [{ target_id: "local:player", dominant_affection_type: snapshot.relation >= 0 ? "trust" : "disgust", max_value: Math.min(100, Math.abs(snapshot.relation) + Math.round(Number(snapshot.member.loyalty || 0) / 2)) }] },
+      relationships: { total: 1, items: [{ target_id: "local:player", relation_type: "superior_subordinate", title: "主从", is_active: true, is_bilateral: true }] },
+      memories: { items: memories },
+      personality: { available: false },
+      motivation: { available: false },
+      quality: { available: false },
+      execution: {
+        available: true,
+        mode: "IN_PROCESS",
+        running: Boolean(snapshot.activeTask),
+        paused: false,
+        waitingForReport: false,
+        scheduleName: String(executionTask?.name || "当前无差事"),
+        outcome: snapshot.activeTask ? null : ({ success: "succeeded", partial: "succeeded", failed: "failed", censured: "failed" })[snapshot.latestTask?.status] || null
+      },
+      kernel: { module: "dongzhou_npc_local_state", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    };
+  }
+
+  async function localNpcSchedule(heroId) {
+    const snapshot = localOfficerSnapshot(heroId);
+    const sourceProvenance = await localServiceProvenance();
+    const month = Math.max(1, Math.trunc(Number(snapshot.organization.month || 1)));
+    const events = snapshot.memberTasks.filter((task) => task?.status === "active").map((task) => ({
+      event_id: String(task.id || ""),
+      name: String(task.name || "官署差事"),
+      importance: 70
+    }));
+    const trace = { mode: "standalone", deliveryMode: "IN_PROCESS", heroId: String(heroId), month, taskIds: events.map((event) => event.event_id), sourceProvenance };
+    return {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      schedule: { start_date: `第${month}月`, end_date: `第${month}月`, schedules: [{ date: `第${month}月`, events }] },
+      runtime: {
+        available: true,
+        mode: "IN_PROCESS",
+        online: false,
+        running: events[0] || null,
+        pending: events.slice(1),
+        activeWindow: null,
+        counts: { suspended: 0 }
+      },
+      kernel: { module: "dongzhou_npc_local_schedule", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    };
+  }
+
+  async function localNpcAssignment(heroId, taskType, stageId) {
+    const snapshot = localOfficerSnapshot(heroId);
+    const name = LOCAL_TASK_LABELS[taskType];
+    if (!name) throw new Error("npc_assignment_task_invalid");
+    const stage = (await localKnowledgeCatalog()).find((entry) => String(entry?.stageId || "") === String(stageId));
+    if (!stage) throw new Error("npc_assignment_stage_invalid");
+    const sourceProvenance = await localServiceProvenance();
+    const month = Math.max(1, Math.trunc(Number(snapshot.organization.month || 1)));
+    const readiness = Math.max(0, Math.min(100, Math.round(Number(snapshot.member.loyalty || 0) - snapshot.fatigue * 0.35 + Math.max(-10, Math.min(10, Number(snapshot.member.merit || 0))))));
+    const identity = `${heroId}:${stageId}:${taskType}:month-${month}`;
+    const assignment = {
+      planId: uuidFromDigest(await sha256(`local-assignment-plan:${identity}`)),
+      eventId: uuidFromDigest(await sha256(`local-assignment-event:${identity}`)),
+      heroId: String(heroId),
+      stageId: String(stageId),
+      taskType: String(taskType),
+      name,
+      date: `第${month}月`,
+      timeSlot: "本月",
+      importance: 70,
+      readiness: { score: readiness, band: readiness >= 70 ? "steady" : readiness >= 45 ? "watch" : "strained" },
+      state: { emotion: snapshot.emotion, intensity: snapshot.intensity, relationshipCount: 1, affectionCount: 1 },
+      personality: { available: false, fit: { available: false } },
+      motivation: { available: false, fit: { available: false } },
+      quality: { available: false, fit: { available: false } },
+      deliveryMode: "IN_PROCESS",
+      sourceProvenance
+    };
+    const trace = { ...assignment };
+    assignment.digest = await sha256(canonicalJson(trace));
+    assignment.kernel = { module: "dongzhou_npc_local_assignment", moduleVersion: "1.0.0", nexusKernelVersion: "0.2.0", state: "SEALED" };
+    return { mode: "standalone", assignment };
   }
 
   async function localNpcDecision(heroId, question, options, stageId, memory, publicNotice) {
@@ -1473,7 +1597,10 @@
       body: JSON.stringify(input)
     });
   }
-  function npcState(heroId) { return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/state`); }
+  function npcState(heroId) {
+    if (offline) return localNpcState(heroId);
+    return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/state`);
+  }
   function npcCorrespondence(heroId, limit = 20) { return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/correspondence?limit=${encodeURIComponent(limit)}`); }
   function organizationPublicNotices() {
     if (offline) return localOrganizationPublicNotices();
@@ -1499,11 +1626,18 @@
       throw error;
     }
   }
-  function npcSchedule(heroId) { return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/schedule`); }
+  function npcSchedule(heroId) {
+    if (offline) return localNpcSchedule(heroId);
+    return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/schedule`);
+  }
   function npcAssignment(heroId, taskType, stageId) {
+    if (offline) return localNpcAssignment(heroId, taskType, stageId);
     return requestWithTransientRetry(`/npcs/${encodeURIComponent(heroId)}/assignments/${encodeURIComponent(taskType)}?stage_id=${encodeURIComponent(stageId)}`);
   }
-  function generateNpcSchedule(heroId) { return request(`/npcs/${encodeURIComponent(heroId)}/schedule`, { method: "POST", body: JSON.stringify({ force_regenerate: false }) }); }
+  function generateNpcSchedule(heroId) {
+    if (offline) return localNpcSchedule(heroId);
+    return request(`/npcs/${encodeURIComponent(heroId)}/schedule`, { method: "POST", body: JSON.stringify({ force_regenerate: false }) });
+  }
   async function npcDecision(heroId, question, options, stageId, memory, publicNotice, contribution, contributionDossier) {
     if (offline) return localNpcDecision(heroId, question, options, stageId, memory, publicNotice);
     const pendingKey = `dongzhou-pending-decision-v5:${JSON.stringify([heroId, stageId || "", question, options, memory?.idempotencyKey || "", publicNotice?.messageId || "", contribution?.entryId || "", contributionDossier?.digest || ""])}`;

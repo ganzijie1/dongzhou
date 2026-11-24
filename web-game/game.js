@@ -2741,10 +2741,6 @@
     const serial = ++officeNpcRefreshSerial;
     clearTimeout(officeNpcRefreshTimer);
     officeNpcRefreshTimer = null;
-    if (integration.isOffline()) {
-      panel.innerHTML = "<p>离线演算不读取属官实时状态。</p>";
-      return;
-    }
     panel.innerHTML = `<p>正在调阅 ${escapeHtml(member.name)} 的属官状态…</p>`;
     try {
       await syncOfficeNpcs([member]);
@@ -2756,7 +2752,7 @@
       const relationships = state.relationships?.data || state.relationships || {};
       const dominant = emotion.dominant || {};
       const memories = Array.isArray(state.memories?.items) ? state.memories.items : [];
-      panel.innerHTML = `<strong>${escapeHtml(member.name)} · ${escapeHtml(member.office)}</strong><dl><div><dt>心境</dt><dd>${escapeHtml(officeEmotionText(dominant.emotion_type))} ${Math.round(Number(dominant.intensity || 0))}</dd></div><div><dt>牵挂</dt><dd>${Number(affection.total || affection.items?.length || 0)}</dd></div><div><dt>人际</dt><dd>${Number(relationships.total || relationships.items?.length || 0)}</dd></div><div><dt>记忆</dt><dd>${memories.length}</dd></div></dl>${officeNpcRelations(state, affection, relationships)}`;
+      panel.innerHTML = `<strong>${escapeHtml(member.name)} · ${escapeHtml(member.office)}${state.mode === "standalone" ? " · 本地账本" : ""}</strong><dl><div><dt>心境</dt><dd>${escapeHtml(officeEmotionText(dominant.emotion_type))} ${Math.round(Number(dominant.intensity || 0))}</dd></div><div><dt>牵挂</dt><dd>${Number(affection.total || affection.items?.length || 0)}</dd></div><div><dt>人际</dt><dd>${Number(relationships.total || relationships.items?.length || 0)}</dd></div><div><dt>记忆</dt><dd>${memories.length}</dd></div></dl>${officeNpcRelations(state, affection, relationships)}`;
       const personality = state.personality || { available: false };
       panel.querySelector("dl")?.insertAdjacentHTML("beforeend", `<div><dt>性情</dt><dd>${escapeHtml(officePersonalityText(personality))}</dd></div>`);
       const motivation = state.motivation || { available: false };
@@ -2801,7 +2797,6 @@
   function renderOfficeNpcMemories(member) {
     const panel = $("#officeNpcMemories");
     if (!panel) return;
-    if (integration.isOffline()) { panel.innerHTML = "<p>离线演算不调阅属官旧事。</p>"; return; }
     panel.innerHTML = `<div class="office-memory-heading"><strong>${escapeHtml(member?.name || "属官")}旧事</strong><small>可取一事作为本回军议依据</small></div>${officeMemoryView.slice(0, 6).map((memory) => {
       const selected = memory.idempotencyKey === officeSelectedMemory?.idempotencyKey;
       return `<div class="office-memory-item${selected ? " selected" : ""}"><span>${escapeHtml(officeNarrativeText(memory.content))}</span><button class="large-button" type="button" data-memory-id="${escapeHtml(memory.idempotencyKey)}">${selected ? "已取用" : "取为旧事"}</button><small>${escapeHtml(officeMemorySourceText(memory.sourceType))} · 印记 ${escapeHtml(String(memory.digest || "").slice(0, 10))}</small></div>`;
@@ -2967,7 +2962,7 @@
   async function refreshOfficeNpcSchedule(memberOverride, requestSerial) {
     const panel = $("#officeNpcSchedule");
     const member = memberOverride || profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
-    if (!panel || !member || integration.isOffline()) return;
+    if (!panel || !member) return;
     panel.textContent = "正在查阅日程…";
     try {
       const response = await integration.npcSchedule(member.id);
@@ -2984,10 +2979,10 @@
       const windowEnd = String(runtime.activeWindow?.end || "").slice(11, 16);
       const window = windowStart && windowEnd ? `${windowStart}-${windowEnd}` : "时窗未定";
       const runtimeHtml = runtime.available === true
-        ? `<strong>今日实况</strong><span>${runtime.online ? "在线" : "离线"} · ${escapeHtml(window)}</span><small>当下：${escapeHtml(running)}${pending.length ? ` · 稍后：${escapeHtml(pending.join("、"))}` : " · 今日暂无后续待办"}${Number(runtime.counts?.suspended || 0) ? ` · 挂起 ${Number(runtime.counts.suspended)}` : ""}</small>`
+        ? `<strong>${response.mode === "standalone" ? "本地当值" : "今日实况"}</strong><span>${response.mode === "standalone" ? "进程内账本" : `${runtime.online ? "在线" : "离线"} · ${escapeHtml(window)}`}</span><small>当下：${escapeHtml(running)}${pending.length ? ` · 稍后：${escapeHtml(pending.join("、"))}` : ` · ${response.mode === "standalone" ? "本月暂无后续待办" : "今日暂无后续待办"}`}${Number(runtime.counts?.suspended || 0) ? ` · 挂起 ${Number(runtime.counts.suspended)}` : ""}</small>`
         : `<strong>今日实况</strong><span>运行队列暂不可用</span>`;
       const planHtml = days.length
-        ? `<strong>${days.length} 日计划</strong><span>${escapeHtml(day.date || plan.start_date || "近日")} 至 ${escapeHtml(lastDay?.date || plan.end_date || "未定")}</span><small>${events.length ? `首日：${escapeHtml(events.join("、"))}` : "首日尚无定事"} · 日程已由属官确认</small>`
+        ? `<strong>${response.mode === "standalone" ? "本月计划" : `${days.length} 日计划`}</strong><span>${escapeHtml(day.date || plan.start_date || "近日")} 至 ${escapeHtml(lastDay?.date || plan.end_date || "未定")}</span><small>${events.length ? `${response.mode === "standalone" ? "在办" : "首日"}：${escapeHtml(events.join("、"))}` : `${response.mode === "standalone" ? "本月" : "首日"}尚无定事`} · ${response.mode === "standalone" ? "日程来自本地官署账本" : "日程已由属官确认"}</small>`
         : `<strong>远期计划</strong><span>尚无已定日程</span>`;
       panel.innerHTML = runtimeHtml + planHtml;
       await refreshOfficeNpcAssignment(member, requestSerial);
@@ -3043,7 +3038,7 @@
     const member = memberOverride || profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
     const taskType = taskTypeOverride || $("#officeTaskType").value;
     const stageId = String(officeStage()?.id || "");
-    if (!panel || !member || !taskType || !stageId || integration.isOffline()) return null;
+    if (!panel || !member || !taskType || !stageId) return null;
     panel.textContent = "正在核对本关当值…";
     try {
       const response = await integration.npcAssignment(member.id, taskType, stageId);
@@ -3055,7 +3050,7 @@
       const readinessBand = { steady: "从容", watch: "审慎", strained: "吃紧" }[assignment.readiness?.band] || "待评";
       const readinessText = Number.isFinite(readiness) ? ` · 胜任 ${readiness}/100 · ${readinessBand}` : "";
       const state = assignment.state || {};
-      panel.innerHTML = `<strong>本关当值</strong><span>${escapeHtml(assignment.date || "近日")} · ${escapeHtml(assignment.name || taskType)}${assignment.timeSlot ? ` · ${escapeHtml(assignment.timeSlot)}` : ""}</span><small>日程已核验 · 重要度 ${Number(assignment.importance || 0)}${readinessText}</small><small class="office-npc-readiness">情绪 ${escapeHtml(officeEmotionText(state.emotion))} ${Number(state.intensity || 0)} · 关系 ${Number(state.relationshipCount || 0)} · 好感 ${Number(state.affectionCount || 0)}</small>`;
+      panel.innerHTML = `<strong>本关当值${response.mode === "standalone" ? " · 本地拟定" : ""}</strong><span>${escapeHtml(assignment.date || "近日")} · ${escapeHtml(assignment.name || taskType)}${assignment.timeSlot ? ` · ${escapeHtml(assignment.timeSlot)}` : ""}</span><small>${response.mode === "standalone" ? "本地账本已核验" : "日程已核验"} · 重要度 ${Number(assignment.importance || 0)}${readinessText}</small><small class="office-npc-readiness">情绪 ${escapeHtml(officeEmotionText(state.emotion))} ${Number(state.intensity || 0)} · 关系 ${Number(state.relationshipCount || 0)} · 好感 ${Number(state.affectionCount || 0)}</small>`;
       const fit = Number(assignment.personality?.fit?.score);
       const fitBand = { strong: "相合", steady: "可任", strained: "相冲" }[assignment.personality?.fit?.band] || "待评";
       const fitText = assignment.personality?.fit?.available === true && Number.isFinite(fit) ? `适岗 ${fit}/100 · ${fitBand}` : "适岗未建档";
