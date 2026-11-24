@@ -54,10 +54,18 @@ const client = require("../web-game/integration-client.js");
   const localProfile = {
     formation: "balanced",
     stageVanguards: { "02": "DuBo" },
+    campaignResources: { provisions: 84, morale: 67 },
     organization: {
       remoteId: "dongzhou-local-court",
       members: [{ id: "DuBo" }, { id: "ZuoRu" }],
       remoteRoster: { organization: { hierarchyVersion: 1 } },
+      localInventory: {
+        revision: 3,
+        accounts: [
+          { resourceKey: "task.execution", balance: 60, version: 3 },
+          { resourceKey: "guild.capacity", balance: 12, version: 1 },
+        ],
+      },
     },
   };
   await client.initialize(localProfile);
@@ -108,18 +116,45 @@ const client = require("../web-game/integration-client.js");
     client.recallNpc("Unknown", { stage_id: "01", knowledge_id: "dongzhou_stage_001" }),
     /npc_not_in_local_organization/
   );
+  const inventory = await client.organizationInventory();
+  assert.strictEqual(inventory.revision, 3);
+  assert.strictEqual(inventory.accounts.find((account) => account.resourceKey === "task.execution").balance, 60);
+  const briefing = await client.organizationLogisticsBriefing("DuBo", { stage_id: "01", stage_title: "Chapter One" });
+  assert.strictEqual(briefing.state, "COMPLETED");
+  assert.strictEqual(briefing.briefingReceipt.kernel.module, "dongzhou_logistics_briefing");
+  assert.strictEqual(briefing.briefingReceipt.inventoryRevision, 3);
+  assert.strictEqual(briefing.briefingReceipt.exchange.availableLots, 3);
+  assert.strictEqual(briefing.briefingReceipt.campaignResources.provisions, 84);
+  assert.strictEqual(briefing.briefingReceipt.ainpcDelivery.mode, "IN_PROCESS");
+  assert.strictEqual((await client.organizationLogisticsBriefing("DuBo", { stage_id: "01", stage_title: "Chapter One" })).replayed, true);
+  const briefingKey = [...values.keys()].find((key) => key.startsWith("dongzhou-local-logistics-briefing-v1:"));
+  const cleanBriefing = values.get(briefingKey);
+  const forgedBriefing = JSON.parse(cleanBriefing);
+  forgedBriefing.result.briefingReceipt.exchange.availableLots = 999;
+  values.set(briefingKey, JSON.stringify(forgedBriefing));
+  await assert.rejects(
+    client.organizationLogisticsBriefing("DuBo", { stage_id: "01", stage_title: "Chapter One" }),
+    /organization_logistics_briefing_seal_invalid/
+  );
+  values.set(briefingKey, cleanBriefing);
+  localProfile.organization.logisticsBriefings = [briefing.briefingReceipt];
+  await client.persist(localProfile);
   const thought = await client.npcThought("DuBo", {
     stage_id: "01",
     stage_title: "Chapter One",
     knowledge_id: "dongzhou_stage_001",
     evidence_source_index: 0,
     task_type: "supply",
+    logistics_briefing_request_id: briefing.briefingReceipt.requestId,
+    logistics_briefing_digest: briefing.briefingReceipt.digest,
   });
   assert.strictEqual(thought.state, "COMPLETED");
   assert.strictEqual(thought.thoughtReceipt.thought.hasThought, true);
+  assert.strictEqual(thought.thoughtReceipt.logisticsBriefing.digest, briefing.briefingReceipt.digest);
   assert.match(thought.thoughtReceipt.digest, /^[0-9a-f]{64}$/);
   assert.strictEqual((await client.npcThought("DuBo", {
     stage_id: "01", stage_title: "Chapter One", knowledge_id: "dongzhou_stage_001", evidence_source_index: 0, task_type: "supply",
+    logistics_briefing_request_id: briefing.briefingReceipt.requestId, logistics_briefing_digest: briefing.briefingReceipt.digest,
   })).replayed, true);
   const thoughtKey = [...values.keys()].find((key) => key.startsWith("dongzhou-pending-npc-thought-v1:"));
   const cleanThought = values.get(thoughtKey);
@@ -127,7 +162,7 @@ const client = require("../web-game/integration-client.js");
   forgedThought.result.thoughtReceipt.digest = "0".repeat(64);
   values.set(thoughtKey, JSON.stringify(forgedThought));
   await assert.rejects(
-    client.npcThought("DuBo", { stage_id: "01", stage_title: "Chapter One", knowledge_id: "dongzhou_stage_001", evidence_source_index: 0, task_type: "supply" }),
+    client.npcThought("DuBo", { stage_id: "01", stage_title: "Chapter One", knowledge_id: "dongzhou_stage_001", evidence_source_index: 0, task_type: "supply", logistics_briefing_request_id: briefing.briefingReceipt.requestId, logistics_briefing_digest: briefing.briefingReceipt.digest }),
     /npc_thought_seal_invalid/
   );
   values.set(thoughtKey, cleanThought);
@@ -309,7 +344,7 @@ const client = require("../web-game/integration-client.js");
   assert.strictEqual(rejected.guide.kernel.state, "SEALED");
   assert.strictEqual(fetchedUrls.some((url) => url.includes("/api/")), false);
 
-  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true, localBattleGate: true, localDebrief: true, localCommendation: true, localRecollection: true, localThought: true, localCouncil: true }));
+  console.log(JSON.stringify({ result: "PASS", entries: codex.results.length, compact: true, localQuiz: true, localAdviser: true, localBattleGate: true, localDebrief: true, localCommendation: true, localRecollection: true, localLogistics: true, localThought: true, localCouncil: true }));
 })().catch((error) => {
   console.error(error.stack || error.message);
   process.exitCode = 1;

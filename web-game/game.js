@@ -1448,7 +1448,7 @@
           ? "差事额度不足 20"
           : "可补入 12 军粮";
     const briefingButton = $("#officeLogisticsBriefing");
-    briefingButton.disabled = integration.isOffline() || officeLogisticsBriefingBusy || !$("#officeMemberSelect").value;
+    briefingButton.disabled = officeLogisticsBriefingBusy || !$("#officeMemberSelect").value;
     briefingButton.textContent = officeLogisticsBriefingBusy
       ? "正在核验仓情"
       : briefing
@@ -1576,11 +1576,6 @@
   }
 
   async function refreshOfficeInventory() {
-    if (integration.isOffline()) {
-      officeInventoryView = { error: true, accounts: [] };
-      renderOfficeInventory();
-      return;
-    }
     officeInventoryView = { ...(officeInventoryView || {}), loading: true };
     renderOfficeInventory();
     const button = $("#officeInventoryRefresh");
@@ -1692,7 +1687,7 @@
   }
 
   async function requestOfficeLogisticsBriefing() {
-    if (officeLogisticsBriefingBusy || integration.isOffline()) return;
+    if (officeLogisticsBriefingBusy) return;
     const member = profile.organization.members.find((entry) => entry.id === $("#officeMemberSelect").value);
     const stage = officeStage();
     if (!member || !stage) return;

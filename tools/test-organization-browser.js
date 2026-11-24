@@ -100,6 +100,9 @@ async function openReady(page) {
       || localNpcHistory.recollection.memoryReceipt?.digest !== localNpcHistory.recollection.memoryDigest) {
       throw new Error("Offline recollection lacks the sealed local AINPC memory");
     }
+    await desktop.waitForSelector("#officeLogisticsBriefing:not(:disabled)");
+    await desktop.click("#officeLogisticsBriefing");
+    await desktop.waitForFunction(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.logisticsBriefings.length === 1);
     await desktop.waitForSelector("#officeThoughtButton:not(:disabled)");
     await desktop.click("#officeThoughtButton");
     await desktop.waitForFunction(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.thoughts.length === 1);
@@ -107,11 +110,17 @@ async function openReady(page) {
     await desktop.waitForFunction(() => JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization.councils.length === 1);
     const localCouncil = await desktop.evaluate(() => {
       const organization = JSON.parse(localStorage.getItem("dongzhou-h5-profile-v2")).organization;
-      return { council: organization.councils[0], thought: organization.thoughts[0] };
+      return { council: organization.councils[0], thought: organization.thoughts[0], briefing: organization.logisticsBriefings[0] };
     });
     if (!localCouncil.council.thought?.digest || localCouncil.council.thought.digest !== localCouncil.thought.digest
       || localCouncil.council.text !== localCouncil.thought.councilProposal) {
       throw new Error("Offline council did not bind the local AINPC thought");
+    }
+    if (localCouncil.briefing.kernel?.module !== "dongzhou_logistics_briefing"
+      || localCouncil.briefing.kernel?.moduleVersion !== "1.1.0"
+      || localCouncil.briefing.ainpcDelivery?.mode !== "IN_PROCESS"
+      || localCouncil.thought.logisticsBriefing?.digest !== localCouncil.briefing.digest) {
+      throw new Error("Offline thought did not bind the sealed local logistics briefing");
     }
     await desktop.click("#officeQuizStart");
     await desktop.waitForSelector("[data-quiz-answer]");

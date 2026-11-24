@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_VERSION = 20;
+  const SCHEMA_VERSION = 21;
   const TASK_TYPES = {
     supply: { name: "转运军粮", office: "司徒", duration: 1, cost: 8, base: 72, reward: { provisions: 24 } },
     drill: { name: "整训军阵", office: "司马", duration: 1, cost: 6, base: 68, reward: { attack: 0.08 } },
@@ -84,6 +84,13 @@
       taskSequence: 0,
       influence: 12,
       contribution: 0,
+      localInventory: {
+        revision: 1,
+        accounts: [
+          { resourceKey: "task.execution", balance: 60, version: 1 },
+          { resourceKey: "guild.capacity", balance: 12, version: 1 }
+        ]
+      },
       backend: { mode: "local", nexusKernel: false, nexusRequiredModules: null, nexusOperationalModules: null, nexusUnavailableModules: [], nexusSourceBoundModules: null, nexusSourceBoundModuleNames: [], orgFlow: false, aiNpc: false, knowledge: false, serviceSources: {}, serviceAttestations: {}, serviceFailures: {}, serviceSourceSealDigest: "", checkedAt: null },
       members: [],
       remoteRoster: { organization: null, members: [], playerMembership: null, openPositions: [], observedAt: null },
@@ -141,6 +148,20 @@
       taskSequence: Math.max(inheritedSequence, Number.isSafeInteger(source.taskSequence) && source.taskSequence >= 0 ? source.taskSequence : 0),
       influence: clamp(source.influence ?? 12, 0, 999),
       contribution: Math.trunc(clamp(source.contribution ?? 0, -999999, 999999)),
+      localInventory: {
+        revision: Number.isSafeInteger(source.localInventory?.revision) && source.localInventory.revision > 0
+          ? source.localInventory.revision
+          : base.localInventory.revision,
+        accounts: Array.isArray(source.localInventory?.accounts)
+          ? source.localInventory.accounts.filter((account) => account && typeof account.resourceKey === "string")
+            .slice(0, 20)
+            .map((account) => ({
+              resourceKey: account.resourceKey,
+              balance: Number.isSafeInteger(account.balance) && account.balance >= 0 ? account.balance : 0,
+              version: Number.isSafeInteger(account.version) && account.version > 0 ? account.version : 1
+            }))
+          : copy(base.localInventory.accounts)
+      },
       backend: { ...base.backend, ...(source.backend || {}) },
       members: Array.isArray(source.members) ? source.members.slice(0, 12).map(normalizeMember) : [],
       remoteRoster: {

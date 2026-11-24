@@ -25,6 +25,7 @@
   const NPC_COMMENDATION_PREFIX = "dongzhou-local-npc-commendation-v1:";
   const NPC_RECOLLECTION_PREFIX = "dongzhou-local-npc-recollection-v1:";
   const NPC_DECISION_PREFIX = "dongzhou-local-npc-decision-v1:";
+  const LOCAL_LOGISTICS_BRIEFING_PREFIX = "dongzhou-local-logistics-briefing-v1:";
   const offline = new URLSearchParams(root.location?.search || "").get("offline") === "1";
   let session = read(SESSION_KEY, null);
   let sessionPromise = null;
@@ -336,6 +337,83 @@
     };
     if (stored?.result && canonicalJson(stored.result) !== canonicalJson(result)) throw new Error("npc_decision_seal_invalid");
     write(key, { input: { clientRequestId, context }, result });
+    return { replayed: Boolean(stored?.result), ...result };
+  }
+
+  function localInventorySnapshot() {
+    const currentProfile = read("dongzhou-h5-profile-v2", offlineProfile) || offlineProfile;
+    const inventory = currentProfile?.organization?.localInventory;
+    const accounts = Array.isArray(inventory?.accounts) ? inventory.accounts.map((account) => ({
+      resourceKey: String(account?.resourceKey || ""),
+      balance: Number(account?.balance),
+      version: Number(account?.version)
+    })) : [];
+    if (!Number.isSafeInteger(inventory?.revision) || inventory.revision < 1
+      || !accounts.length
+      || accounts.some((account) => !account.resourceKey || !Number.isSafeInteger(account.balance)
+        || account.balance < 0 || !Number.isSafeInteger(account.version) || account.version < 1)) {
+      throw new Error("local_inventory_invalid");
+    }
+    return { revision: inventory.revision, accounts };
+  }
+
+  async function buildLocalLogisticsBriefing(heroId, input) {
+    requireLocalOfficer(heroId);
+    const knowledge = (await localKnowledgeCatalog()).find((entry) => entry
+      && String(entry.stageId || "") === String(input?.stage_id || "")
+      && String(entry.id || entry.aku_id || "").startsWith("dongzhou_stage_"));
+    if (!knowledge) throw new Error("organization_logistics_knowledge_unavailable");
+    const inventory = localInventorySnapshot();
+    const currentProfile = read("dongzhou-h5-profile-v2", offlineProfile) || offlineProfile;
+    const provisions = Math.max(0, Math.min(999999, Math.trunc(Number(currentProfile?.campaignResources?.provisions || 0))));
+    const morale = Math.max(0, Math.min(999999, Math.trunc(Number(currentProfile?.campaignResources?.morale || 0))));
+    const taskUnits = inventory.accounts.find((account) => account.resourceKey === "task.execution")?.balance || 0;
+    const trace = {
+      state: "SEALED",
+      requestId: String(input.client_request_id),
+      heroId: String(heroId),
+      npcId: `local:${heroId}`,
+      stageId: String(input.stage_id),
+      stageTitle: String(input.stage_title || knowledge.name || knowledge.title || input.stage_id),
+      knowledge: {
+        id: String(knowledge.id || knowledge.aku_id),
+        title: String(knowledge.name || knowledge.title || knowledge.id || knowledge.aku_id)
+      },
+      inventoryRevision: inventory.revision,
+      accounts: inventory.accounts,
+      campaignResources: { provisions, morale },
+      exchange: {
+        resourceKey: "task.execution",
+        priceUnits: 20,
+        provisionsPerLot: 12,
+        availableUnits: taskUnits,
+        availableLots: Math.floor(taskUnits / 20)
+      },
+      ainpcDelivery: { market: "DELIVERED", warehouse: "DELIVERED", mode: "IN_PROCESS" },
+      sourceProvenance: await localServiceProvenance()
+    };
+    return {
+      ...trace,
+      digest: await sha256(canonicalJson(trace)),
+      kernel: { module: "dongzhou_logistics_briefing", moduleVersion: "1.1.0", nexusKernelVersion: "0.2.0", state: "SEALED" }
+    };
+  }
+
+  async function localOrganizationLogisticsBriefing(heroId, input) {
+    const inventory = localInventorySnapshot();
+    const currentProfile = read("dongzhou-h5-profile-v2", offlineProfile) || offlineProfile;
+    const context = [heroId, input?.stage_id || "", inventory.revision,
+      Number(currentProfile?.campaignResources?.provisions || 0), Number(currentProfile?.campaignResources?.morale || 0)].join(":");
+    const key = LOCAL_LOGISTICS_BRIEFING_PREFIX + context;
+    const stored = read(key, null);
+    const pending = stored?.input || { ...input, client_request_id: root.crypto.randomUUID() };
+    if (stored?.input && (stored.input.stage_id !== input.stage_id || stored.input.stage_title !== input.stage_title)) {
+      throw new Error("organization_logistics_briefing_conflict");
+    }
+    const briefingReceipt = await buildLocalLogisticsBriefing(heroId, pending);
+    const result = { state: "COMPLETED", requestId: pending.client_request_id, briefingReceipt };
+    if (stored?.result && canonicalJson(stored.result) !== canonicalJson(result)) throw new Error("organization_logistics_briefing_seal_invalid");
+    write(key, { input: pending, result });
     return { replayed: Boolean(stored?.result), ...result };
   }
 
@@ -1385,7 +1463,10 @@
   function organizationPlayerTasks() { return requestWithTransientRetry("/organization/player-tasks"); }
   function organizationPlayerContributions() { return requestWithTransientRetry("/organization/player-contributions"); }
   function organizationPlayerContributionDossier(entryId) { return requestWithTransientRetry(`/organization/player-contributions/${encodeURIComponent(entryId)}/dossier`); }
-  function organizationInventory() { return requestWithTransientRetry("/organization/inventory"); }
+  function organizationInventory() {
+    if (offline) return Promise.resolve(localInventorySnapshot());
+    return requestWithTransientRetry("/organization/inventory");
+  }
   function organizationScheduledDuties() { return requestWithTransientRetry("/organization/scheduled-duties"); }
   async function setOrganizationScheduledDutyEnabled(enabled) {
     const saved = read(SCHEDULED_DUTY_STATUS_PENDING_KEY, null);
@@ -1408,6 +1489,7 @@
     }
   }
   async function organizationLogisticsBriefing(heroId, input) {
+    if (offline) return localOrganizationLogisticsBriefing(heroId, input);
     const pendingKey = LOGISTICS_BRIEFING_PENDING_PREFIX + [heroId, input.stage_id].join(":");
     const saved = read(pendingKey, null);
     const pending = saved?.stage_id === input.stage_id && saved?.stage_title === input.stage_title
