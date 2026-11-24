@@ -439,6 +439,11 @@ const requisitionReceipt = {
   requestId: "00000000-0000-4000-8000-000000000040",
   stageId: "01",
   sourceProvenance,
+  requisition: {
+    state: "COMPLETED", requestId: "00000000-0000-4000-8000-000000000040", stageId: "01",
+    resourceKey: "task.execution", units: 20, effect: { provisions: 12 }, sourceProvenance,
+    digest: "6".repeat(64), kernel: { module: "dongzhou_mandate_workflow", moduleVersion: "1.14.0", state: "COMPLETED" }
+  },
   inventoryDebit: {
     entryId: "00000000-0000-4000-8000-000000000041",
     resourceKey: "task.execution",
@@ -462,6 +467,8 @@ assert.throws(
   /回执无效/
 );
 assert.throws(() => play.recordInventoryRequisition(state, { ...requisitionReceipt, sourceProvenance: { ...sourceProvenance, digest: "invalid" } }), /回执无效/);
+assert.throws(() => play.recordInventoryRequisition(state, { ...requisitionReceipt, sourceProvenance: null }), /回执无效/);
+assert.throws(() => play.recordInventoryRequisition(state, { ...requisitionReceipt, requisition: { ...requisitionReceipt.requisition, kernel: { ...requisitionReceipt.requisition.kernel, moduleVersion: "1.13.0" } } }), /回执无效/);
 
 const logisticsReceipt = {
   state: "SEALED",

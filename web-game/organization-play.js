@@ -1058,6 +1058,7 @@
     const debit = response?.inventoryDebit;
     const provisions = response?.effect?.provisions;
     const sourceProvenance = response?.sourceProvenance;
+    const requisition = response?.requisition;
     const validDebit = debit
       && debit.resourceKey === "task.execution"
       && Number.isSafeInteger(debit.delta)
@@ -1068,15 +1069,29 @@
       && debit.accountVersion > 0
       && Number.isSafeInteger(debit.inventoryRevision)
       && debit.inventoryRevision > 0;
+    const validRequisition = requisition
+      && requisition.state === "COMPLETED"
+      && requisition.requestId === requestId
+      && requisition.stageId === stageId
+      && requisition.resourceKey === debit?.resourceKey
+      && requisition.units === -debit?.delta
+      && requisition.effect?.provisions === provisions
+      && /^[0-9a-f]{64}$/.test(String(requisition.digest || ""))
+      && requisition.kernel?.module === "dongzhou_mandate_workflow"
+      && requisition.kernel?.moduleVersion === "1.14.0"
+      && requisition.kernel?.state === "COMPLETED"
+      && validSourceProvenance(requisition.sourceProvenance)
+      && requisition.sourceProvenance.digest === sourceProvenance?.digest;
     if (
       response?.state !== "COMPLETED"
       || !requestId
       || !stageId
       || !validDebit
+      || !validRequisition
       || !Number.isSafeInteger(provisions)
       || provisions <= 0
       || provisions !== (-debit.delta * 3) / 5
-      || (sourceProvenance && !validSourceProvenance(sourceProvenance))
+      || !validSourceProvenance(sourceProvenance)
     ) {
       throw new Error("军需调拨回执无效");
     }
@@ -1088,7 +1103,8 @@
       stageId,
       provisions,
       inventoryDebit: copy(debit),
-      ...(sourceProvenance ? { sourceProvenance: copy(sourceProvenance) } : {})
+      requisition: copy(requisition),
+      sourceProvenance: copy(sourceProvenance)
     };
     state.inventoryRequisitions.push(record);
     state.inventoryRequisitions = state.inventoryRequisitions.slice(-100);
